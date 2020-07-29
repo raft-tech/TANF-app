@@ -22,7 +22,7 @@ class Common(Configuration):
         'rest_framework.authtoken',  # token authentication
         'django_filters',            # for filtering rest endpoints
 
-        # Your apps
+        # Local apps
         'tdpservice.users',
 
     )
