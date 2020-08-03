@@ -34,7 +34,7 @@ class ValidateOIDCBearerToken(ObtainAuthToken):
                     user.set_unusable_password()
                     user.save()
             else:
-                return Response({"error": "Unverified email", status=status.HTTP_400_BAD_REQUEST})
+                return Response({"error": "Unverified email"}, status=status.HTTP_400_BAD_REQUEST)
                 
             session.user_id = user.pk
             
