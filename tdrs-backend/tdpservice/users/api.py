@@ -26,12 +26,15 @@ class ValidateOIDCBearerToken(ObtainAuthToken):
             data = r.json()
             
             # get user from database if they exist. if not, create a new one
-            try:
-                user = User.objects.get(email=data.email)
-            except ObjectDoesNotExist:
-                user = User.objects.create_user(data.email)
-                user.set_unusable_password()
-                user.save()
+            if data.email_verified == True:
+                try:
+                    user = User.objects.get(email=data.email)
+                except ObjectDoesNotExist:
+                    user = User.objects.create_user(data.email)
+                    user.set_unusable_password()
+                    user.save()
+            else:
+                return Response({"error": "Unverified email", status=status.HTTP_400_BAD_REQUEST})
                 
             session.user_id = user.pk
             
