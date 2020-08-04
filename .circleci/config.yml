@@ -31,6 +31,7 @@ workflows:
           yarn: true
           wait-on: 'http://localhost:3000'
           working_directory: tdrs-frontend
+          cache-key: 'cache-{{ arch }}-{{ .Branch }}-{{ checksum "web/package.json" }}'
       # some type of docker container cleanup
       # - restore_cache:
       #     key: dependency-cache-{{ checksum "package.json" }}
