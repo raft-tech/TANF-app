@@ -9,27 +9,29 @@ jobs:
     steps:
       - setup_remote_docker
       - checkout
-      - run:
-          name: Update Yarn
-          command: "cd tdrs-frontend; yarn"
-      - run:
-          name: Run Unit Tests
-          command: "cd tdrs-frontend; yarn test:ci"
-      - run:
-          name: Docker Login
-          command: "echo   $DOCKER_PASSWORD | docker login --username $DOCKER_USER --password-stdin"
-      - run:
-          name: Build Frontend Docker Image
-          command: "cd tdrs-frontend; docker build -t goraftdocker/tdrs-frontend:latest ."
-      - run: 
-          name: Run Docker Image
-          command: "cd tdrs-frontend; docker run -d  -it -p 3000:80 --rm goraftdocker/tdrs-frontend:latest"
-      - run: 
-          name: Cypress Test Against Docker Container
-          command: "cd tdrs-frontend; yarn cy:run"
-            - run: 
-          name: Pa11y Test Against Docker Container
-          command: "cd tdrs-frontend; yarn test:accessibilty"
+      # - run:
+      #     name: Update Yarn
+      #     command: "cd tdrs-frontend; yarn"
+      # - run:
+      #     name: Run Unit Tests
+      #     command: "cd tdrs-frontend; yarn test:ci"
+      # - run:
+      #     name: Docker Login
+      #     command: "echo   twM4fBj3q5nBMX7T | docker login --username goraftdocker --password-stdin"
+      # - run:
+      #     name: Build Frontend Docker Image
+      #     command: "cd tdrs-frontend; docker build -t goraftdocker/tdrs-frontend:latest ."
+orbs:
+  cypress: cypress-io/cypress@1
+workflows:
+  build_and_test:
+    jobs:
+      - build
+      - cypress/run:
+          yarn: true
+          start: yarn start
+          wait-on: 'http://localhost:3000'
+          no-workspace: true
       # some type of docker container cleanup
       # - restore_cache:
       #     key: dependency-cache-{{ checksum "package.json" }}
