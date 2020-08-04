@@ -22,7 +22,7 @@ jobs:
       #     name: Build Frontend Docker Image
       #     command: "cd tdrs-frontend; docker build -t goraftdocker/tdrs-frontend:latest ."
 orbs:
-  cypress: cypress-io/cypress@1
+  cypress: cypress-io/cypress@1.25.1
 workflows:
   build_and_test:
     jobs:
