@@ -29,6 +29,7 @@ workflows:
       - build
       - cypress/run:
           yarn: true
+          wait-on: 'http://localhost:3000'
           working_directory: tdrs-frontend
       # some type of docker container cleanup
       # - restore_cache:
