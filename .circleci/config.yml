@@ -28,6 +28,7 @@ workflows:
     jobs:
       - cypress/run:
           yarn: true
+          command: yarn test
           working_directory: tdrs-frontend
           cache-key: 'cache-{{ arch }}-{{ .Branch }}-{{ checksum "tdrs-frontend/package.json" }}'
       # some type of docker container cleanup
