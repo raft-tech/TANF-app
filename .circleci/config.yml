@@ -8,11 +8,17 @@ jobs:
       - setup_remote_docker
       - checkout
       - run:
-          name: Update Yarn
+          name:  Run Cypress Integration Test
           command: "cd tdrs-frontend; yarn && yarn ci:cypress-run"
-      # - run:
-      #     name: Run Unit Tests
-      #     command: "cd tdrs-frontend; yarn test:ci"
+      - run:
+          name: Run Unit Tests
+          command: "cd tdrs-frontend; yarn test:ci"
+      - run: 
+          name: Pa11y Accessibility Test
+          command: "cd tdrs-frontend; yarn test:accessibility"
+      - run: 
+          name: Pa11y Accessibility Test
+          command: "cd tdrs-frontend; yarn lint"    
       # - run:
       #     name: Docker Login
       #     command: "echo   ${} | docker login --username ${} --password-stdin"
@@ -23,13 +29,10 @@ jobs:
       #     name: Yarn Start in the background 
       #     command: "cd tdrs-frontend; yarn start"   
       # - run: 
-      #     name: Pa11y Test Against Docker Container
-      #     command: "cd tdrs-frontend; yarn test:accessibilty"
-      # - run: 
       #     name: Tear Down Docker Container
       #     command: "docker kill frontend"
 workflows:
-  main:
+  build-and-test:
     jobs:
       - build
       # some type of docker container cleanup
