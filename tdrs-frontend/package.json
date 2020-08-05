@@ -19,7 +19,7 @@
     "test:ci": "CI=1 react-scripts test --coverage",
     "eject": "react-scripts eject",
     "lint": "eslint src/ && echo 'Lint complete.'",
-    "test:accessibilty": "pa11y-ci --config .pa11yci.json",
+    "test:accessibility": "start-server-and-test 'yarn host BROWSER=none react-scripts start' http://localhost:3000 'yarn pa11y-ci --config .pa11yci.json'",
     "test": "yarn cypress run",
     "host": "HOST=localhost",
     "browser": "BROWSER=none",
@@ -59,6 +59,7 @@
     "eslint-plugin-react-hooks": "^4.0.8",
     "http-get": "^0.5.10",
     "jest-enzyme": "^7.1.2",
+    "pa11y-ci": "^2.3.0",
     "prettier": "^2.0.5",
     "start-server-and-test": "^1.11.2",
     "wait-on": "5.1.0"
