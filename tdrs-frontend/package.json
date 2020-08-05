@@ -10,16 +10,18 @@
     "typescript": "^3.9.7"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "NODE_OPTIONS=-'-max_old_space_size=4096' BROWSER=none yarn react-scripts start",
     "build": "react-scripts build",
     "cy:open": "cypress open",
-    "test": "cypress run",
-    "test:react": "react-scripts test",
+    "cy:run": "cypress run",
+    "test:stuff": "react-scripts test",
     "test:cov": "react-scripts test --coverage --watchAll",
     "test:ci": "CI=1 react-scripts test --coverage",
     "eject": "react-scripts eject",
     "lint": "eslint src/ && echo 'Lint complete.'",
-    "test:accessibilty": "pa11y-ci --config .pa11yci.json"
+    "test:accessibilty": "pa11y-ci --config .pa11yci.json",
+    "test": "yarn cypress run",
+    "ci:cypress-run": "start-server-and-test 3000 test"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -42,7 +44,7 @@
     "@testing-library/react": "^9.3.2",
     "@testing-library/user-event": "^7.1.2",
     "babel-eslint": "^10.1.0",
-    "cypress": "^4.11.0",
+    "cypress": "^4.12.0",
     "enzyme": "^3.11.0",
     "enzyme-adapter-react-16": "^1.15.2",
     "eslint-config-airbnb": "^18.2.0",
@@ -53,8 +55,11 @@
     "eslint-plugin-prettier": "^3.1.4",
     "eslint-plugin-react": "^7.20.5",
     "eslint-plugin-react-hooks": "^4.0.8",
+    "http-get": "^0.5.10",
     "jest-enzyme": "^7.1.2",
-    "prettier": "^2.0.5"
+    "prettier": "^2.0.5",
+    "start-server-and-test": "^1.11.2",
+    "wait-on": "5.1.0"
   },
   "jest": {
     "collectCoverageFrom": [

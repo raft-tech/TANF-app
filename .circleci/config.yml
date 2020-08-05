@@ -1,17 +1,18 @@
-
 version: 2.1
 jobs:
   build:
     working_directory: ~/repo
     docker:
-      - image: circleci/node:12
-        user: root
+      - image: cypress/base:10
     steps:
       - setup_remote_docker
       - checkout
-      # - run:
-      #     name: Update Yarn
-      #     command: "cd tdrs-frontend; yarn"
+      - run:
+          name: Update Yarn
+          command: "cd tdrs-frontend; yarn install"
+      - run:
+          name: Update Yarn
+          command: "cd tdrs-frontend; yarn ci:cypress-run"          
       # - run:
       #     name: Run Unit Tests
       #     command: "cd tdrs-frontend; yarn test:ci"
@@ -21,18 +22,19 @@ jobs:
       # - run:
       #     name: Build Frontend Docker Image
       #     command: "cd tdrs-frontend; docker build -t goraftdocker/tdrs-frontend:latest ."
-orbs:
-  cypress: cypress-io/cypress@1
+      # - run:
+      #     name: Yarn Start in the background 
+      #     command: "cd tdrs-frontend; yarn start"   
+      # - run: 
+      #     name: Pa11y Test Against Docker Container
+      #     command: "cd tdrs-frontend; yarn test:accessibilty"
+      # - run: 
+      #     name: Tear Down Docker Container
+      #     command: "docker kill frontend"
 workflows:
-  build_and_test:
+  main:
     jobs:
-      - cypress/run:
-          yarn: true
-          start: yarn start
-          command: yarn cypress run
-          working_directory: tdrs-frontend
-          cache-key: 'cache-{{ arch }}-{{ .Branch }}-{{ checksum "tdrs-frontend/package.json" }}'
-      #test
+      - build
       # some type of docker container cleanup
       # - restore_cache:
       #     key: dependency-cache-{{ checksum "package.json" }}
