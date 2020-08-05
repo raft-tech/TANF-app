@@ -40,7 +40,10 @@ class Common(Configuration):
 
     ALLOWED_HOSTS = ["*"]
     ROOT_URLCONF = 'tdpservice.urls'
-    SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+    SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
+    PUBLIC_KEY = os.environ['PUBLIC_KEY']
+    JWT_CERT = os.environ['JWT_CERT']
+    OIDC_RP_IDP_SIGN_KEY = os.environ['OIDC_RP_IDP_SIGN_KEY']
     WSGI_APPLICATION = 'tdpservice.wsgi.application'
 
     # Email Server
@@ -226,6 +229,7 @@ class Common(Configuration):
     else:
         # we are running locally
         appuri = 'http://localhost:8000/openid/callback/login/'
+
 
 # configure things set up by cloudfoundry
 if 'VCAP_SERVICES' in os.environ:
