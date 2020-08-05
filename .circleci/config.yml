@@ -28,7 +28,8 @@ workflows:
     jobs:
       - cypress/run:
           yarn: true
-          command: yarn test
+          start: yarn start
+          wait-on: 'http://localhost:3000'
           working_directory: tdrs-frontend
           cache-key: 'cache-{{ arch }}-{{ .Branch }}-{{ checksum "tdrs-frontend/package.json" }}'
       #test
