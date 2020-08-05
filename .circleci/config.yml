@@ -9,19 +9,16 @@ jobs:
       - checkout
       - run:
           name: Update Yarn
-          command: "cd tdrs-frontend; yarn install"
-      - run:
-          name: Update Yarn
-          command: "cd tdrs-frontend; yarn ci:cypress-run"          
+          command: "cd tdrs-frontend; yarn && yarn ci:cypress-run"
       # - run:
       #     name: Run Unit Tests
       #     command: "cd tdrs-frontend; yarn test:ci"
       # - run:
       #     name: Docker Login
-      #     command: "echo   twM4fBj3q5nBMX7T | docker login --username goraftdocker --password-stdin"
+      #     command: "echo   ${} | docker login --username ${} --password-stdin"
       # - run:
       #     name: Build Frontend Docker Image
-      #     command: "cd tdrs-frontend; docker build -t goraftdocker/tdrs-frontend:latest ."
+      #     command: "cd tdrs-frontend; docker build -t ${}/tdrs-frontend:latest ."
       # - run:
       #     name: Yarn Start in the background 
       #     command: "cd tdrs-frontend; yarn start"   
