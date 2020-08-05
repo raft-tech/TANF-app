@@ -4,13 +4,14 @@ import requests
 import sys
 import json
 import uuid
+import jwt
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework_jwt.utils import jwt_decode_handler
 from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 # consider adding throttling logic
 class ValidateOIDCBearerToken(ObtainAuthToken):
@@ -19,7 +20,8 @@ class ValidateOIDCBearerToken(ObtainAuthToken):
     def post(self, request, *args, **kwargs):
         '''Handle decoding auth token and authenticate user'''
         id_token = request.data['id_token']
-        decoded_payload = jwt_decode_handler(id_token)
+        cert_str = settings.OIDC_RP_IDP_SIGN_KEY
+        decoded_payload = jwt.decode(id_token, cert_str, algorithm='RS256')
         
         User = get_user_model()
         
