@@ -6,7 +6,7 @@
     "@trussworks/react-uswds": "^1.8.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-scripts": "3.4.1",
+    "react-scripts": "3.4.0",
     "typescript": "^3.9.7"
   },
   "scripts": {
@@ -21,7 +21,9 @@
     "lint": "eslint src/ && echo 'Lint complete.'",
     "test:accessibilty": "pa11y-ci --config .pa11yci.json",
     "test": "yarn cypress run",
-    "ci:cypress-run": "start-server-and-test 'yarn react-scripts start' http://localhost:3000 'yarn cypress run'"
+    "host": "HOST=localhost",
+    "browser": "BROWSER=none",
+    "ci:cypress-run": "start-server-and-test 'yarn host BROWSER=none react-scripts start' http://localhost:3000 'yarn cypress run'"
   },
   "eslintConfig": {
     "extends": "react-app"
