@@ -8,44 +8,23 @@ jobs:
       - setup_remote_docker
       - checkout
       - run:
-<<<<<<< HEAD
           name: Run Cypress Integration Test
-=======
-          name:  Run Cypress Integration Test
->>>>>>> f74ad65... testing adding full ui test suite to circleci
           command: "cd tdrs-frontend; yarn && yarn ci:cypress-run"
       - run:
           name: Run Unit Tests
           command: "cd tdrs-frontend; yarn test:ci"
       - run: 
-<<<<<<< HEAD
           name: Run Pa11y Accessibility Test
           command: "cd tdrs-frontend; yarn test:accessibility"
       - run: 
           name: Run Linting Test
-=======
-          name: Pa11y Accessibility Test
-          command: "cd tdrs-frontend; yarn test:accessibility"
-      - run: 
-          name: Pa11y Accessibility Test
->>>>>>> f74ad65... testing adding full ui test suite to circleci
           command: "cd tdrs-frontend; yarn lint"    
       # - run:
       #     name: Docker Login
       #     command: "echo   $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin"
       # - run:
       #     name: Build Frontend Docker Image
-<<<<<<< HEAD
       #     command: "cd tdrs-frontend; docker build -t $DOCKER_USERNAME/tdrs-frontend:latest ."   
-=======
-      #     command: "cd tdrs-frontend; docker build -t ${}/tdrs-frontend:latest ."
-      # - run:
-      #     name: Yarn Start in the background 
-      #     command: "cd tdrs-frontend; yarn start"   
-      # - run: 
-      #     name: Tear Down Docker Container
-      #     command: "docker kill frontend"
->>>>>>> f74ad65... testing adding full ui test suite to circleci
 workflows:
   build-and-test:
     jobs:
