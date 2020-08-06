@@ -20,10 +20,12 @@ DoD:
  - [ ] 0 linting errors and warnings
  - [ ] 0 accessibility errors
  - [ ] deployed to a dev environment
+ - [ ] 0 accessability errors
+ - [ ] deployed to a staging environment
  - [ ] all significant changes have been documented
  - [ ] free of high and medium security vulnerabilities
  
- 
+
 
 Supporting Documentation:
 
