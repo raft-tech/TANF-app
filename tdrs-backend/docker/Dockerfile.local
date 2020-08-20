@@ -1,13 +1,12 @@
-FROM python:3.8
+FROM python:3.8-slim-buster
 ENV PYTHONUNBUFFERED 1
 
 ARG user=tdpuser
 ARG group=tdpuser
 ARG uid=1000
 ARG gid=1000
- 
-ENV DJANGO_SETTINGS_MODULE=tdpservice.settings.development
-ENV DJANGO_CONFIGURATION=Development
+ENV DJANGO_SETTINGS_MODULE=tdpservice.settings.local
+ENV DJANGO_CONFIGURATION=Local
 # Allows docker to cache installed dependencies between builds
 COPY ./requirements.txt requirements.txt
 RUN pip install --upgrade pip && pip install -r requirements.txt
