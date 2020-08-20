@@ -46,3 +46,8 @@ spritesmith.scss
 
 # Testing files
 htmlcov/*
+
+# Ignore txt and pem files
+*.pem
+*.rsa
+*.txt
