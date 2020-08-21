@@ -13,6 +13,7 @@ from rest_framework import status
 from django.contrib.auth import get_user_model
 from django.contrib.auth import login
 from django.core.exceptions import SuspiciousOperation
+from django.http import HttpResponseRedirect
 from urllib.parse import urlencode, quote_plus
 
 class TokenAuthorizationOIDC(ObtainAuthToken):
@@ -70,7 +71,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
                     user = CustomAuthentication.authenticate(self, username=decoded_payload['email'])
                     if user is not None:
                         login(request, user, backend='tdpservice.users.authentication.CustomAuthentication')
-                        return self.responseInternal(user, "User Found", id_token)
+                        return self.responseRedirect(id_token)
 
                     else:
                         User = get_user_model()
@@ -79,7 +80,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
                         user.save()
 
                         login(request, user, backend='tdpservice.users.authentication.CustomAuthentication')
-                        return self.responseInternal(user, "User Created", id_token)
+                        return self.responseRedirect(id_token)
 
                 except Exception:
                     return Response(
@@ -198,21 +199,15 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
         return validation_keys
 
     """
-    Returns a found users information along with an httpOnly cookie.
+    Redirects to web app with an httpOnly cookie.
 
     :param self: parameter to permit django python to call a method within its own class
-    :param user: current user associated with this session
-    :param status_message: Helper message to note how the user was found
     :param id_token: encoded token returned by login.gov/token
     """
-    def responseInternal(self, user, status_message, id_token):
-        """Respond with an httpOnly cookie to secure the session with the client."""
-        response = Response(
-            {'user_id': user.pk,
-             'email': user.username,
-             'status': status_message
-             }, status=status.HTTP_200_OK)
+    def responseRedirect(self, id_token):
+        """Redirect to frontend with an httpOnly cookie to secure the session with the client."""
+        response = HttpResponseRedirect(os.environ['FRONTEND_BASE_URL'] + '/login')
         response.set_cookie(
-            'id_token', value=id_token, max_age=None, expires=None, path='/', domain=None, secure=True, httponly=True
+            'id_token', value=id_token, max_age=None, expires=None, path='/', domain=None, secure=False, httponly=True
         )
         return response
