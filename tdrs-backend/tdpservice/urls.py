@@ -11,6 +11,7 @@ from .users.api.login import TokenAuthorizationOIDC
 from .users.api.logout import LogoutUser
 from .users.api.login_redirect_oidc import LoginRedirectOIDC
 from .users.api.logout_redirect_oidc import LogoutRedirectOIDC
+from .users.api.authorization_check import AuthorizationCheck
 
 
 router = DefaultRouter()
@@ -23,6 +24,8 @@ urlpatterns = [
     path('login/oidc', LoginRedirectOIDC.as_view(), name='oidc-auth'),
     path('logout', LogoutUser.as_view(), name="logout"),
     path('logout/oidc', LogoutRedirectOIDC.as_view(), name='oidc-logout'),
+    path('auth_check', AuthorizationCheck.as_view(), name='authorization-check'),
+
 
 
     # the 'api-root' from django rest-frameworks default router

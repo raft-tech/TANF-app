@@ -248,5 +248,7 @@ class Common(Configuration):
             os.environ['BASE_URL'] = 'https://' + \
                 appinfo['application_uris'][0] + '/v1'
 
+    # CORS
+    CORS_ALLOW_CREDENTIALS = True
 
 # configure things set up by cloudfoundry
