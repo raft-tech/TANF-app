@@ -1,4 +1,4 @@
-#API
+# API
 venv
 *.sqlite3
 *.sqlite3-journal
@@ -22,7 +22,7 @@ tdrs-frontend/yarn-debug.log*
 tdrs-frontend/yarn-error.log*
 tdrs-backend/*/env_vars/*.env*
 tdrs-backend/*/env_vars/*.env*.*
+tdrs-frontend/.env.local
 
-
-# General
+# Commmon
 .DS_Store

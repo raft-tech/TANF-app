@@ -4,6 +4,8 @@ from django.contrib.auth import logout
 
 from rest_framework import status
 from rest_framework.response import Response
+import os
+from django.http import HttpResponseRedirect
 from rest_framework.views import APIView
 
 
@@ -13,18 +15,8 @@ class LogoutUser(APIView):
 
     def get(self, request, *args, **kwargs):
         """Destroy user session."""
-        try:
-            logout(request)
-        # TODO: Not sure what exceptions can actually occur here or why.
-        # Can we just remove this?
-        except Exception:  # pragma: nocover
-            return Response(
-                {
-                    "system": (
-                        "User logged out of Login.gov/ "
-                        "Django sessions terminated before local logout"
-                    )
-                },
-                status=status.HTTP_200_OK,
-            )
-        return Response({"system": "User logged out"}, status=status.HTTP_200_OK)
+
+        logout(request)
+        response = HttpResponseRedirect(os.environ['FRONTEND_BASE_URL'])
+        response.delete_cookie('id_token')
+        return response

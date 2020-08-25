@@ -14,6 +14,13 @@ from rest_framework.response import Response
 from ..authentication import CustomAuthentication
 from . import utils
 
+from rest_framework import status
+from django.contrib.auth import get_user_model
+from django.contrib.auth import login
+from django.core.exceptions import SuspiciousOperation
+from django.http import HttpResponseRedirect
+from urllib.parse import urlencode, quote_plus
+
 
 class TokenAuthorizationOIDC(ObtainAuthToken):
     """Define methods for handling login request from login.gov."""
@@ -70,7 +77,6 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
             access_token=None,
             options={"verify_nbf": False},
         )
-
         decoded_nonce = decoded_payload["nonce"]
 
         if not utils.validate_nonce_and_state(
@@ -99,7 +105,6 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
                     backend="tdpservice.users.authentication.CustomAuthentication",
                 )
                 return utils.response_internal(user, "User Found", id_token)
-
             else:
                 User = get_user_model()
                 user = User.objects.create_user(decoded_payload["email"])
