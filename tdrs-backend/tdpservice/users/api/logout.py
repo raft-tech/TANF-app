@@ -1,9 +1,7 @@
 """Login.gov/logout is redirected to this endpoint end a django user session."""
 
 import os
-from django.http import HttpResponse
 from django.http import HttpResponseRedirect
-from rest_framework import status
 from rest_framework.views import APIView
 from django.contrib.auth import logout
 
