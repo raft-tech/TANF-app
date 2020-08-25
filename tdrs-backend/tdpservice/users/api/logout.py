@@ -3,7 +3,6 @@
 import os
 from django.http import HttpResponseRedirect
 from rest_framework.views import APIView
-from django.contrib.auth import logout
 
 
 # logout user

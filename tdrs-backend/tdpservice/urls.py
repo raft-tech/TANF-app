@@ -1,22 +1,21 @@
 """Define Django routing."""
 
 from django.conf import settings
-from django.urls import path, re_path, include, reverse_lazy
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.views.generic.base import RedirectView
+from django.urls import include, path
+
 from rest_framework.routers import DefaultRouter
-from .users.views import UserViewSet, UserCreateViewSet
+
 from .users.api.login import TokenAuthorizationOIDC
-from .users.api.logout import LogoutUser
 from .users.api.login_redirect_oidc import LoginRedirectOIDC
+from .users.api.logout import LogoutUser
 from .users.api.logout_redirect_oidc import LogoutRedirectOIDC
 from .users.api.authorization_check import AuthorizationCheck
 
 
 router = DefaultRouter()
-router.register(r'users', UserViewSet)
-router.register(r'users', UserCreateViewSet)
+router.register("users", UserViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -34,5 +33,7 @@ urlpatterns = [
         url=reverse_lazy('api-root'), permanent=False)),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
+urlpatterns += router.urls
+
 # Add 'prefix' to all urlpatterns to make it easier to version/group endpoints
-urlpatterns = [path('v1/', include(urlpatterns))]
+urlpatterns = [path("v1/", include(urlpatterns))]
