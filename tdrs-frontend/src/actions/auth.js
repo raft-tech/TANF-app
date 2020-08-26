@@ -9,14 +9,20 @@ export const fetchAuth = () => async (dispatch) => {
   dispatch({ type: FETCH_AUTH })
   try {
     const URL = `${process.env.REACT_APP_BACKEND_URL}/auth_check`
-    const { user } = await axios.get(URL, {
+    await axios.get(URL, {
       withCredentials: true,
+    }).then((response) => {
+
+      if (response.data) {
+        const user = response.data.user
+        dispatch({ type: SET_AUTH, payload: { user } })
+      } else {
+        dispatch({ type: CLEAR_AUTH })
+      }
     })
-    if (user) {
-      dispatch({ type: SET_AUTH, payload: { user } })
-    } else {
-      dispatch({ type: CLEAR_AUTH })
-    }
+
+
+
   } catch (error) {
     dispatch({ type: SET_AUTH_ERROR, payload: { error } })
   }
