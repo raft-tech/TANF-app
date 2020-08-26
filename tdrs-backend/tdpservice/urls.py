@@ -3,10 +3,12 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path, reverse_lazy
+from django.views.generic.base import RedirectView
 
 from rest_framework.routers import DefaultRouter
 
+from .users.api.authorization_check import AuthorizationCheck
 from .users.api.login import TokenAuthorizationOIDC
 from .users.api.login_redirect_oidc import LoginRedirectOIDC
 from .users.api.logout import LogoutUser
@@ -29,8 +31,7 @@ urlpatterns = [
 
     # the 'api-root' from django rest-frameworks default router
     # http://www.django-rest-framework.org/api-guide/routers/#defaultrouter
-    re_path(r'^$', RedirectView.as_view(
-        url=reverse_lazy('api-root'), permanent=False)),
+    re_path(r"^$", RedirectView.as_view(url=reverse_lazy("api-root"), permanent=False)),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 urlpatterns += router.urls
