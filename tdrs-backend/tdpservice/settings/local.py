@@ -1,9 +1,7 @@
 """Define configuration settings for local environment."""
 import os
 from os.path import dirname, join
-
 from dotenv import load_dotenv
-
 from .common import Common
 
 # load env vars from .env file and override any system environment variables
@@ -29,4 +27,3 @@ class Local(Common):
     CORS_ORIGIN_WHITELIST = [
         "http://localhost:3000",
     ]
-
