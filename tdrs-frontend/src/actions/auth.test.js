@@ -19,7 +19,6 @@ describe('actions/auth.js', () => {
           user: { email: 'hi@bye.com' },
         },
       })
-
     )
     const store = mockStore()
 
