@@ -38,3 +38,4 @@ def test_create_user(api_client, user_data):
     response = api_client.post("/v1/users/", user_data)
     assert response.status_code == status.HTTP_201_CREATED
     assert User.objects.filter(username=user_data["username"]).exists()
+
