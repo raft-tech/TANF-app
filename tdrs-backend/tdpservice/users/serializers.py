@@ -47,6 +47,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
         read_only_fields = ("auth_token",)
         extra_kwargs = {"password": {"write_only": True}}
 
+
 class SetUserProfileSerializer(serializers.ModelSerializer):
     """Serializer used for setting a user's profile."""
 
