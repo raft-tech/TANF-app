@@ -87,75 +87,66 @@ jobs:
       - run:
           name: 'Ensure cf cli is installed, otherwise install it.'
           command: "./scripts/cf-check.sh"
-      - run:
-          name: "Log Into Docker"
-          command: "echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin"
-      - run:
-          name:  "Build Backend Docker image"
-          command: "cd tdrs-backend; docker build -t goraftdocker/tdp-backend:$CIRCLE_BRANCH . -f ./docker/Dockerfile.dev"
-      - run:
-          name:  "Push Backend Image to Docker Hub"
-          command: "docker push goraftdocker/tdp-backend:$CIRCLE_BRANCH"
-      - run:
-          name:  "Build Frontend Docker image"
-          command: "cd tdrs-frontend; docker build -t goraftdocker/tdp-frontend:$CIRCLE_BRANCH . -f Dockerfile.dev"
-      - run:
-          name:  "Push Frontend Image to Docker Hub"
-          command: "docker push goraftdocker/tdp-frontend:$CIRCLE_BRANCH"
-      - run:
-          name: deploy to cloud.gov
-          command: |
-            # If we do not specify a space, then deploy to the branch that we are on.
-            # Also map certain branches to spaces.
-            # This lets you have dev/staging/main branches that automatically go to the right place.
-            export DOCKER_IMAGE_BACKEND="goraftdocker/tdp-backend:$CIRCLE_BRANCH"
-            export DOCKER_IMAGE_FRONTEND="goraftdocker/tdp-frontend:$CIRCLE_BRANCH"
-            if [ "$CIRCLE_BRANCH" == "main" ] ; then
-              export CF_SPACE="tanf-prod"
-              export CF_USERNAME="$CF_USERNAME_PROD"
-              export CF_PASSWORD="$CF_PASSWORD_PROD"
-              export CGHOSTNAME_BACKEND="$CGHOSTNAME_BACKEND_PROD"
-              export CGHOSTNAME_FRONTEND="$CGHOSTNAME_FRONTEND_PROD"
-            elif [ "$CIRCLE_BRANCH" == "staging" ] ; then
-              export CF_SPACE="tanf-staging"
-              export CF_USERNAME="$CF_USERNAME_STAGING"
-              export CF_PASSWORD="$CF_PASSWORD_STAGING"
-              export CGHOSTNAME_BACKEND="$CGHOSTNAME_BACKEND_STAGING"
-              export CGHOSTNAME_FRONTEND="$CGHOSTNAME_FRONTEND_STAGING"
-            elif [ "$CIRCLE_BRANCH" == "dev" ] ; then
-              export CF_SPACE="tanf-dev"
-              export CF_USERNAME="$CF_USERNAME_DEV"
-              export CF_PASSWORD="$CF_PASSWORD_DEV"
-              export CGHOSTNAME_BACKEND="$CGHOSTNAME_BACKEND_DEV"
-              export CGHOSTNAME_FRONTEND="$CGHOSTNAME_FRONTEND_DEV"
-            elif [ "$CIRCLE_BRANCH" == "raft-tdp-main" ] ; then
-              export CF_SPACE="tanf-dev"
-              export CF_USERNAME="$CF_USERNAME_DEV"
-              export CF_PASSWORD="$CF_PASSWORD_DEV"
-              export CGHOSTNAME_BACKEND="$CGHOSTNAME_BACKEND_DEV"
-              export CGHOSTNAME_FRONTEND="$CGHOSTNAME_FRONTEND_DEV"
-            else
-              export CF_SPACE="$CIRCLE_BRANCH"
-            fi
-            if [ -z "$CF_ORG" ] ; then
-              echo CF_ORG not set, aborting
-              exit 1
-            fi
+      # - run:
+      #     name: "Log Into Docker"
+      #     command: "echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin"
+      # - run:
+      #     name:  "Build Backend Docker image"
+      #     command: "cd tdrs-backend; docker build -t goraftdocker/tdp-backend:$CIRCLE_BRANCH . -f ./docker/Dockerfile.dev"
+      # - run:
+      #     name:  "Push Backend Image to Docker Hub"
+      #     command: "docker push goraftdocker/tdp-backend:$CIRCLE_BRANCH"
+      # - run:
+      #     name:  "Build Frontend Docker image"
+      #     command: "cd tdrs-frontend; docker build -t goraftdocker/tdp-frontend:$CIRCLE_BRANCH . -f Dockerfile.dev"
+      # - run:
+      #     name:  "Push Frontend Image to Docker Hub"
+      #     command: "docker push goraftdocker/tdp-frontend:$CIRCLE_BRANCH"
+      # - run:
+      #     name: deploy to cloud.gov
+      #     command: |
+      #       # If we do not specify a space, then deploy to the branch that we are on.
+      #       # Also map certain branches to spaces.
+      #       # This lets you have dev/staging/main branches that automatically go to the right place.
+      #       export DOCKER_IMAGE_BACKEND="goraftdocker/tdp-backend:$CIRCLE_BRANCH"
+      #       export DOCKER_IMAGE_FRONTEND="goraftdocker/tdp-frontend:$CIRCLE_BRANCH"
+      #       if [ "$CIRCLE_BRANCH" == "main" ] ; then
+      #         export CF_SPACE="tanf-prod"
+      #         export CF_USERNAME="$CF_USERNAME_PROD"
+      #         export CF_PASSWORD="$CF_PASSWORD_PROD"
+      #         export CGHOSTNAME_BACKEND="$CGHOSTNAME_BACKEND_PROD"
+      #         export CGHOSTNAME_FRONTEND="$CGHOSTNAME_FRONTEND_PROD"
+      #       elif [ "$CIRCLE_BRANCH" == "staging" ] ; then
+      #         export CF_SPACE="tanf-staging"
+      #         export CF_USERNAME="$CF_USERNAME_STAGING"
+      #         export CF_PASSWORD="$CF_PASSWORD_STAGING"
+      #         export CGHOSTNAME_BACKEND="$CGHOSTNAME_BACKEND_STAGING"
+      #         export CGHOSTNAME_FRONTEND="$CGHOSTNAME_FRONTEND_STAGING"
+      #       elif [ "$CIRCLE_BRANCH" == "dev" ] ; then
+      #         export CF_SPACE="tanf-dev"
+      #         export CF_USERNAME="$CF_USERNAME_DEV"
+      #         export CF_PASSWORD="$CF_PASSWORD_DEV"
+      #         export CGHOSTNAME_BACKEND="$CGHOSTNAME_BACKEND_DEV"
+      #         export CGHOSTNAME_FRONTEND="$CGHOSTNAME_FRONTEND_DEV"
+      #       elif [ "$CIRCLE_BRANCH" == "raft-tdp-main" ] ; then
+      #         export CF_SPACE="tanf-dev"
+      #         export CF_USERNAME="$CF_USERNAME_DEV"
+      #         export CF_PASSWORD="$CF_PASSWORD_DEV"
+      #         export CGHOSTNAME_BACKEND="$CGHOSTNAME_BACKEND_DEV"
+      #         export CGHOSTNAME_FRONTEND="$CGHOSTNAME_FRONTEND_DEV"
+      #       else
+      #         export CF_SPACE="$CIRCLE_BRANCH"
+      #       fi
+      #       if [ -z "$CF_ORG" ] ; then
+      #         echo CF_ORG not set, aborting
+      #         exit 1
+      #       fi
 
-            cf api https://api.fr.cloud.gov
-            cf auth "$CF_USERNAME" "$CF_PASSWORD"
-            cf target -o $CF_ORG -s "$CF_SPACE"
-            ./deploy-cloudgov-docker.sh rolling test $CGHOSTNAME_BACKEND $CGHOSTNAME_FRONTEND $DOCKER_IMAGE_BACKEND $DOCKER_IMAGE_FRONTEND $CIRCLE_BRANCH
+      #       cf api https://api.fr.cloud.gov
+      #       cf auth "$CF_USERNAME" "$CF_PASSWORD"
+      #       cf target -o $CF_ORG -s "$CF_SPACE"
+      #       ./deploy-cloudgov-docker.sh rolling test $CGHOSTNAME_BACKEND $CGHOSTNAME_FRONTEND $DOCKER_IMAGE_BACKEND $DOCKER_IMAGE_FRONTEND $CIRCLE_BRANCH
 workflows:
   build-and-test:
     jobs:
-      - test-backend
-      - test-frontend
-      - deploy:
-          requires:
-            - test-backend
-            - test-frontend
-          filters:
-            branches:
-              only:
-                - raft-tdp-main
+      - deploy
