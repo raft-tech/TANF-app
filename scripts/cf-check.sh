@@ -8,5 +8,5 @@ apt-get install wget gnupg2 apt-transport-https
 wget -q -O - https://packages.cloudfoundry.org/debian/cli.cloudfoundry.org.key | sudo apt-key add -
 echo "deb https://packages.cloudfoundry.org/debian stable main" | sudo tee /etc/apt/sources.list.d/cloudfoundry-cli.list
 apt-get update
-apt-get install cf7-cli
+apt-get -y --allow-unauthenticated install cf7-cli
 fi 
