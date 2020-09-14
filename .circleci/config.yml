@@ -72,7 +72,7 @@ jobs:
       - run:
           name:  "Test: Execute Frontend  OWASP ZAP Vulnerability Scan"
           command: "cd tdrs-frontend; ./zap-scanner.sh"  
-  deploy:
+  build:
     working_directory: ~/tdp-deploy
     docker:
       - image: circleci/python:3.8
@@ -149,4 +149,4 @@ jobs:
 workflows:
   build-and-test:
     jobs:
-      - deploy
+      - build
