@@ -1,4 +1,4 @@
-"""API User Tests."""
+"""API Tests."""
 from django.contrib.auth import get_user_model
 import pytest
 from rest_framework import status
@@ -44,8 +44,7 @@ def test_set_profile_data(api_client, user):
     """Test profile data can be set."""
     api_client.login(username=user.username, password="test_password")
     response = api_client.post(
-        "/v1/users/set_profile/",
-        {"first_name": "Joe", "last_name": "Bloggs"},
+        "/v1/users/set_profile/", {"first_name": "Joe", "last_name": "Bloggs"},
     )
     assert response.status_code == status.HTTP_200_OK
     assert response.data == {"first_name": "Joe", "last_name": "Bloggs"}
@@ -59,8 +58,7 @@ def test_set_profile_data_last_name_apostrophe(api_client, user):
     """Test profile data last name  can be set with an apostrophe."""
     api_client.login(username=user.username, password="test_password")
     response = api_client.post(
-        "/v1/users/set_profile/",
-        {"first_name": "Mike", "last_name": "O'Hare"},
+        "/v1/users/set_profile/", {"first_name": "Mike", "last_name": "O'Hare"},
     )
     assert response.status_code == status.HTTP_200_OK
     assert response.data == {"first_name": "Mike", "last_name": "O'Hare"}
@@ -74,8 +72,7 @@ def test_set_profile_data_first_name_apostrophe(api_client, user):
     """Test profile data first name can be set with an apostrophe."""
     api_client.login(username=user.username, password="test_password")
     response = api_client.post(
-        "/v1/users/set_profile/",
-        {"first_name": "Pat'Jack", "last_name": "Smith"},
+        "/v1/users/set_profile/", {"first_name": "Pat'Jack", "last_name": "Smith"},
     )
     assert response.status_code == status.HTTP_200_OK
     assert response.data == {"first_name": "Pat'Jack", "last_name": "Smith"}
@@ -89,8 +86,7 @@ def test_set_profile_data_empty_first_name(api_client, user):
     """Test profile data cannot be be set if first name is blank."""
     api_client.login(username=user.username, password="test_password")
     response = api_client.post(
-        "/v1/users/set_profile/",
-        {"first_name": "", "last_name": "Jones"},
+        "/v1/users/set_profile/", {"first_name": "", "last_name": "Jones"},
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -100,8 +96,7 @@ def test_set_profile_data_empty_last_name(api_client, user):
     """Test profile data cannot be set last name is blank."""
     api_client.login(username=user.username, password="test_password")
     response = api_client.post(
-        "/v1/users/set_profile/",
-        {"first_name": "John", "last_name": ""},
+        "/v1/users/set_profile/", {"first_name": "John", "last_name": ""},
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -111,8 +106,7 @@ def test_set_profile_data_empty_first_name_and_last_name(api_client, user):
     """Test profile data cannot be set if first and last name are blank."""
     api_client.login(username=user.username, password="test_password")
     response = api_client.post(
-        "/v1/users/set_profile/",
-        {"first_name": "", "last_name": ""},
+        "/v1/users/set_profile/", {"first_name": "", "last_name": ""},
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -122,8 +116,7 @@ def test_set_profile_data_special_last_name(api_client, user):
     """Test profile data can be set if last name has multipe special characters."""
     api_client.login(username=user.username, password="test_password")
     response = api_client.post(
-        "/v1/users/set_profile/",
-        {"first_name": "John", "last_name": "Smith-O'Hare"},
+        "/v1/users/set_profile/", {"first_name": "John", "last_name": "Smith-O'Hare"},
     )
     assert response.status_code == status.HTTP_200_OK
     assert response.data == {"first_name": "John", "last_name": "Smith-O'Hare"}
@@ -137,8 +130,7 @@ def test_set_profile_data_special_first_name(api_client, user):
     """Test profile data can be set if first name has multiple special characters."""
     api_client.login(username=user.username, password="test_password")
     response = api_client.post(
-        "/v1/users/set_profile/",
-        {"first_name": "John-Tom'", "last_name": "Jacobs"},
+        "/v1/users/set_profile/", {"first_name": "John-Tom'", "last_name": "Jacobs"},
     )
     assert response.status_code == status.HTTP_200_OK
     assert response.data == {"first_name": "John-Tom'", "last_name": "Jacobs"}
@@ -152,8 +144,7 @@ def test_set_profile_data_spaced_last_name(api_client, user):
     """Test profile data can be set if last name has a space."""
     api_client.login(username=user.username, password="test_password")
     response = api_client.post(
-        "/v1/users/set_profile/",
-        {"first_name": "Joan", "last_name": "Mary Ann"},
+        "/v1/users/set_profile/", {"first_name": "Joan", "last_name": "Mary Ann"},
     )
     assert response.status_code == status.HTTP_200_OK
     assert response.data == {"first_name": "Joan", "last_name": "Mary Ann"}
@@ -167,8 +158,7 @@ def test_set_profile_data_spaced_first_name(api_client, user):
     """Test profile data can be set if first name has a space."""
     api_client.login(username=user.username, password="test_password")
     response = api_client.post(
-        "/v1/users/set_profile/",
-        {"first_name": "John Jim", "last_name": "Smith"},
+        "/v1/users/set_profile/", {"first_name": "John Jim", "last_name": "Smith"},
     )
     assert response.status_code == status.HTTP_200_OK
     assert response.data == {"first_name": "John Jim", "last_name": "Smith"}
@@ -182,8 +172,7 @@ def test_set_profile_data_last_name_with_tilde_over_char(api_client, user):
     """Test profile data can be set if last name includes a tilde character."""
     api_client.login(username=user.username, password="test_password")
     response = api_client.post(
-        "/v1/users/set_profile/",
-        {"first_name": "Max", "last_name": "Grecheñ"},
+        "/v1/users/set_profile/", {"first_name": "Max", "last_name": "Grecheñ"},
     )
     assert response.status_code == status.HTTP_200_OK
     assert response.data == {"first_name": "Max", "last_name": "Grecheñ"}
@@ -197,8 +186,7 @@ def test_set_profile_data_last_name_with_tilde(api_client, user):
     """Test profile data can be set if last name includes alternate tilde character."""
     api_client.login(username=user.username, password="test_password")
     response = api_client.post(
-        "/v1/users/set_profile/",
-        {"first_name": "Max", "last_name": "Glen~"},
+        "/v1/users/set_profile/", {"first_name": "Max", "last_name": "Glen~"},
     )
     assert response.status_code == status.HTTP_200_OK
     assert response.data == {"first_name": "Max", "last_name": "Glen~"}
@@ -235,7 +223,7 @@ def test_set_profile_data_extra_field_include_required(api_client, user):
 def test_set_profile_data_missing_last_name_field(api_client, user):
     """Test profile data cannot be set if last name field is missing."""
     api_client.login(username=user.username, password="test_password")
-    response = api_client.post("/v1/users/set_profile/", {"first_name": "Heather"})
+    response = api_client.post("/v1/users/set_profile/", {"first_name": "Heather", },)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -243,5 +231,5 @@ def test_set_profile_data_missing_last_name_field(api_client, user):
 def test_set_profile_data_missing_first_name_field(api_client, user):
     """Test profile data cannot be set if first name field is missing."""
     api_client.login(username=user.username, password="test_password")
-    response = api_client.post("/v1/users/set_profile/", {"last_name": "Heather"})
+    response = api_client.post("/v1/users/set_profile/", {"last_name": "Heather", },)
     assert response.status_code == status.HTTP_400_BAD_REQUEST

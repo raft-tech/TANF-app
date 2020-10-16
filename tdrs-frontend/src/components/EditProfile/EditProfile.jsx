@@ -1,18 +1,7 @@
-import React, { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-// import comboBox from 'uswds/src/js/components/combo-box'
-import { fetchStts } from '../../actions/stts'
+import React from 'react'
 import Button from '../Button'
-import ComboBox from '../ComboBox'
 
 function EditProfile() {
-  const stts = useSelector((state) => state.stts.stts)
-  const dispatch = useDispatch()
-
-  useEffect(() => {
-    dispatch(fetchStts())
-  }, [dispatch])
-
   return (
     <div className="grid-container">
       <h1 className="request-access-header font-serif-2xl">Request Access</h1>
@@ -25,26 +14,25 @@ function EditProfile() {
           First name
           <input
             className="usa-input"
-            id="firstName"
-            name="firstName"
+            id="first-name"
+            name="first-name"
             type="text"
             required
             aria-required="true"
           />
         </label>
 
-        <label className="usa-label" htmlFor="lastName">
+        <label className="usa-label" htmlFor="last-name">
           Last name
           <input
             className="usa-input"
-            id="lastName"
-            name="lastName"
+            id="last-name"
+            name="last-name"
             type="text"
             required
             aria-required="true"
           />
         </label>
-        <ComboBox sttList={stts} />
         <Button
           type="submit"
           disabled
