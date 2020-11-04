@@ -195,7 +195,7 @@ function EditProfile() {
             ))}
           </ComboBox>
         </div>
-        <Button type="submit" className="width-full request-access-button">
+        <Button type="submit" className="width-full">
           Request Access
         </Button>
       </form>

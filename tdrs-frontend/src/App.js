@@ -4,6 +4,7 @@ import Routes from './components/Routes'
 import { Alert } from './components/Alert'
 import Header from './components/Header'
 import Footer from './components/Footer'
+import IdleTimer from './components/IdleTimer'
 
 /**
  * The root component
@@ -20,6 +21,7 @@ function App() {
       <a className="usa-skipnav" href="#main-content">
         Skip to main content
       </a>
+      <IdleTimer />
       <GovBanner />
       <Header />
       <Alert />
