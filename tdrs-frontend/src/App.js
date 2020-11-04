@@ -18,7 +18,15 @@ import IdleTimer from './components/IdleTimer'
 function App() {
   return (
     <>
-      <a className="usa-skipnav" href="#main-content">
+      <a
+        className="usa-skipnav"
+        href="#main-content"
+        onKeyPress={(e) => {
+          if (e.charCode === 32) {
+            window.location.href = '#main-content'
+          }
+        }}
+      >
         Skip to main content
       </a>
       <IdleTimer />
