@@ -33,26 +33,26 @@ describe('IdleTimer', () => {
   //   }, 5000)
   // })
 
-  it('should setDisplay to true when page is idle for five seconds', (done) => {
-    // Cache original functionality
-    const realUseState = React.useState
+  // it('should setDisplay to true when page is idle for five seconds', (done) => {
+  // Cache original functionality
+  // const realUseState = React.useState
 
-    // Stub the initial state
-    const stubInitialState = true
+  // Stub the initial state
+  // const stubInitialState = true
 
-    // Mock useState before rendering your component
-    jest
-      .spyOn(React, 'useState')
-      .mockImplementationOnce(() => realUseState(stubInitialState))
+  // Mock useState before rendering your component
+  // jest
+  //   .spyOn(React, 'useState')
+  //   .mockImplementationOnce(() => realUseState(stubInitialState))
 
-    const wrapper = shallow(<IdleTimer />)
+  // const wrapper = shallow(<IdleTimer />)
 
-    React.useState(true)
+  // React.useState(true)
 
-    // setTimeout(() => {
-    expect(React.useState).toHaveBeenCalledTimes(1)
-    //   wrapper.unmount()
-    //   done()
-    // }, 3000)
-  })
+  // setTimeout(() => {
+  // expect(React.useState).toHaveBeenCalledTimes(1)
+  //   wrapper.unmount()
+  //   done()
+  // }, 3000)
+  // })
 })
