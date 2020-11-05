@@ -1,13 +1,10 @@
 import React from 'react'
-import thunk from 'redux-thunk'
-import { mount, shallow } from 'enzyme'
-import { Provider } from 'react-redux'
-import configureStore from 'redux-mock-store'
+import { shallow } from 'enzyme'
 
 import IdleTimer from './components/IdleTimer'
 import GovBanner from './components/GovBanner'
 import Header from './components/Header'
-import { Alert, ALERT_INFO } from './components/Alert'
+import { Alert } from './components/Alert'
 
 import App from './App'
 
