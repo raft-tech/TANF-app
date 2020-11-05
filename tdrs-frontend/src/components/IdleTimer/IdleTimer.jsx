@@ -15,7 +15,7 @@ function IdleTimer() {
   // }
 
   useIdleTimer({
-    timeout: 1000 * 2,
+    timeout: 1000 * 60 * 20,
     onIdle: () => setDisplay(true),
   })
 
