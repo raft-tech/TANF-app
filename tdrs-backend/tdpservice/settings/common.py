@@ -48,7 +48,7 @@ class Common(Configuration):
     ROOT_URLCONF = "tdpservice.urls"
     SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
     WSGI_APPLICATION = "tdpservice.wsgi.application"
-    CORS_ORIGIN_ALLOW_ALL = True
+    CORS_ALLOW_ALL_ORIGINS = True
 
     # Email Server
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
