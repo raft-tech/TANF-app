@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState } from 'react'
 import { useIdleTimer } from 'react-idle-timer'
 import axios from 'axios'
 import { useHistory } from 'react-router'
