@@ -1,18 +1,20 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useIdleTimer } from 'react-idle-timer'
-// import axios from 'axios'
+import axios from 'axios'
+import { useHistory } from 'react-router'
 import Button from '../Button'
 
 function IdleTimer() {
+  const history = useHistory()
   const [display, setDisplay] = useState(false)
 
-  // const signOut = () => {
-  //   window.location.href = `${process.env.REACT_APP_BACKEND_URL}/logout/oidc`
-  // }
+  const signOut = () => {
+    history.replace(`/${process.env.REACT_APP_BACKEND_URL}/logout/oidc`)
+  }
 
-  // const staySignedIn = () => {
-  //   axios.post('/v1/authorization-check')
-  // }
+  const staySignedIn = () => {
+    axios.post('/v1/authorization-check')
+  }
 
   useIdleTimer({
     timeout: 1000 * 60 * 20,
@@ -36,10 +38,10 @@ function IdleTimer() {
           </p>
         </div>
         <div className="modal-footer">
-          <Button type="button" className="margin-1">
+          <Button type="button" className="margin-1" onClick={signOut}>
             Sign Out
           </Button>
-          <Button type="button" className="margin-1">
+          <Button type="button" className="margin-1" onClick={staySignedIn}>
             Stay Signed In
           </Button>
         </div>
