@@ -1,15 +1,13 @@
 import React, { useState } from 'react'
 import { useIdleTimer } from 'react-idle-timer'
 import axios from 'axios'
-import { useHistory } from 'react-router'
 import Button from '../Button'
 
 function IdleTimer() {
-  const history = useHistory()
   const [display, setDisplay] = useState(false)
 
   const signOut = () => {
-    history.replace(`/${process.env.REACT_APP_BACKEND_URL}/logout/oidc`)
+    window.location.href = `${process.env.REACT_APP_BACKEND_URL}/logout/oidc`
   }
 
   const staySignedIn = () => {
@@ -17,7 +15,8 @@ function IdleTimer() {
   }
 
   useIdleTimer({
-    timeout: 1000 * 60 * 20,
+    // timeout: 1000 * 60 * 20,
+    timeout: 1000 * 3,
     onIdle: () => setDisplay(true),
   })
 
