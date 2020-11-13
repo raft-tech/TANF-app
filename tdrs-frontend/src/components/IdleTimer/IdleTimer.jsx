@@ -1,33 +1,47 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useIdleTimer } from 'react-idle-timer'
 import axios from 'axios'
 import Button from '../Button'
 
 function IdleTimer() {
-  const [display, setDisplay] = useState(false)
+  const [isModalVisible, setIsModalVisible] = useState(false)
 
-  const signOut = () => {
+  // useEffect(() => {
+  //   const keyListener = (e) => {
+  //     if (e.keyCode === 27) {
+  //       onRenewSession()
+  //     }
+  //   }
+
+  //   document.addEventListener('keydown', keyListener)
+
+  //   return () => document.removeEventListener('keydown', keyListener)
+  // })
+
+  const onSignOut = () => {
     window.location.href = `${process.env.REACT_APP_BACKEND_URL}/logout/oidc`
   }
 
-  const staySignedIn = () => {
+  const onRenewSession = () => {
     axios.post('/v1/authorization-check')
   }
 
   useIdleTimer({
     // timeout: 1000 * 60 * 20,
     timeout: 1000 * 3,
-    onIdle: () => setDisplay(true),
+    onIdle: () => setIsModalVisible(true),
   })
 
   return (
     <div
       id="myModal"
-      className={`modal ${display ? 'display-block' : 'display-none'}`}
+      className={`modal ${isModalVisible ? 'display-block' : 'display-none'}`}
     >
       <div className="modal-content">
         <div className="modal-header">
-          <h2>Your Session is About to Expire!</h2>
+          <h1 className="font-serif-2xl margin-bottom-0 text-normal">
+            Your session is about to expire!
+          </h1>
         </div>
         <div className="modal-body">
           <p>
@@ -37,10 +51,18 @@ function IdleTimer() {
           </p>
         </div>
         <div className="modal-footer">
-          <Button type="button" className="margin-1" onClick={signOut}>
+          <Button
+            type="button"
+            className="margin-1 sign-out"
+            onClick={onSignOut}
+          >
             Sign Out
           </Button>
-          <Button type="button" className="margin-1" onClick={staySignedIn}>
+          <Button
+            type="button"
+            className="margin-1 renew-session"
+            onClick={onRenewSession}
+          >
             Stay Signed In
           </Button>
         </div>

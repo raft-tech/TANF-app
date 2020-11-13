@@ -1,7 +1,6 @@
 import React from 'react'
 import { shallow } from 'enzyme'
 
-import IdleTimer from './components/IdleTimer'
 import GovBanner from './components/GovBanner'
 import Header from './components/Header'
 import { Alert } from './components/Alert'
@@ -11,11 +10,6 @@ import App from './App'
 describe('App.js', () => {
   afterEach(() => {
     window.location.href = ''
-  })
-
-  it('renders the Idle Timer', () => {
-    const wrapper = shallow(<App />)
-    expect(wrapper.find(IdleTimer)).toExist()
   })
 
   it('renders the Gov Banner', () => {
