@@ -45,6 +45,7 @@ class UserViewSet(
         return {
             "create": CreateUserSerializer,
             "set_profile": UserProfileSerializer,
+            "no_roles": UserSerializer,
         }.get(self.action, UserSerializer)
 
     @action(methods=["GET"],detail=False)
