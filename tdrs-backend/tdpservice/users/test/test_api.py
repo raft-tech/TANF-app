@@ -611,8 +611,13 @@ def test_permission_delete(api_client, generate_groups):
     assert not Permission.objects.filter(codename=permission.codename).exists()
 
 @pytest.mark.django_db
-def test_user_no_roles_list(api_client):
+def test_user_no_roles_list(api_client, user):
     """Test endpoint listing users with no roles."""
+    user = User.objects.create(
+        username="dudemcman@man.com",
+        password=user.password
+    )
+    user.save()
     api_client.login(username="test__admin", password="test_password")
     response = api_client.get('/v1/users/no_roles/')
     groupless_users = list(map(lambda u: u.id,User.objects.filter(groups=None))).sort()
