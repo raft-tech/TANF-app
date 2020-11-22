@@ -620,8 +620,16 @@ def test_user_no_roles_list(api_client, user):
     user.save()
     api_client.login(username="test__admin", password="test_password")
     response = api_client.get('/v1/users/no_roles/')
+    print("response.data:")
+    print(response.data.__class__.__name__)
+
+    print(response.data)
     groupless_users = list(map(lambda u: u.id,User.objects.filter(groups=None))).sort()
+    print("groupless users:")
+    print(groupless_users)
     response_users = list(map(lambda u: u.id, response.data)).sort()
+    print("response users:")
+    print(response_users)
     all(list(map(lambda groupless_id, response_id: groupless_id == response_id,
             groupless_users,
             response_users,)))
