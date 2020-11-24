@@ -24,12 +24,7 @@ class User(AbstractUser):
     @staticmethod
     def get_groupless():
         """Get a list of all users who do not belong to a group."""
-        return User.objects.filter(groups=None).values_list(
-            "id",
-            "username",
-            "first_name",
-            "last_name"
-            )
+        return User.objects.filter(groups=None).values()
 
     @property
     def is_admin(self):
