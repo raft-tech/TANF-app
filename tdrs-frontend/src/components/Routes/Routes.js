@@ -5,6 +5,7 @@ import EditProfile from '../EditProfile'
 import PrivateRoute from '../PrivateRoute'
 import LoginCallback from '../LoginCallback'
 import Request from '../Request'
+import UploadInput from '../UploadInput'
 
 /**
  * This component renters the routes for the app.
@@ -16,6 +17,9 @@ const Routes = () => {
     <Switch>
       <Route exact path="/">
         <SplashPage />
+      </Route>
+      <Route>
+        <UploadInput />
       </Route>
       <Route exact path="/login">
         <LoginCallback />
