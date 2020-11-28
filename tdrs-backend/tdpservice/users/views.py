@@ -1,12 +1,10 @@
 """Define API views for user class."""
 import logging
 from django.contrib.auth.models import Group, Permission
-from django.contrib.contenttypes.models import ContentType
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from django.apps import AppConfig
 
 from .models import User
 from .permissions import IsAdmin, IsUserOrReadOnly
@@ -50,8 +48,7 @@ class UserViewSet(
 
     @action(methods=["GET"], detail=False)
     def no_roles(self, request, pk=None):
-        """Get a list of all users that do not belong to a group"""
-
+        """Get a list of all users that do not belong to a group."""
         users = User.get_groupless()
         users_list = list(users)
 
