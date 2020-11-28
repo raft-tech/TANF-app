@@ -48,14 +48,14 @@ class UserViewSet(
             "no_roles": UserSerializer,
         }.get(self.action, UserSerializer)
 
-    @action(methods=["GET"],detail=False)
-    def no_roles(self,request, pk = None):
+    @action(methods=["GET"], detail=False)
+    def no_roles(self, request, pk=None):
         """Get a list of all users that do not belong to a group"""
 
         users = User.get_groupless()
         users_list = list(users)
 
-        serializer = self.get_serializer(users_list,many=True)
+        serializer = self.get_serializer(users_list, many=True)
         return Response(serializer.data)
 
     @action(methods=["PATCH"], detail=False)
