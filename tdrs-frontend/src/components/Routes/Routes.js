@@ -19,12 +19,6 @@ const Routes = () => {
       <Route exact path="/">
         <SplashPage />
       </Route>
-      <Route exact path="/reports">
-        <Reports />
-      </Route>
-      <Route exact path="/reports/new">
-        <NewReport />
-      </Route>
       <Route exact path="/login">
         <LoginCallback />
       </Route>
@@ -33,6 +27,12 @@ const Routes = () => {
       </PrivateRoute>
       <PrivateRoute exact path="/request">
         <Request />
+      </PrivateRoute>
+      <PrivateRoute exact path="/reports">
+        <Reports />
+      </PrivateRoute>
+      <PrivateRoute exact path="/reports/upload">
+        <NewReport />
       </PrivateRoute>
     </Switch>
   )
