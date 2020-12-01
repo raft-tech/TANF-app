@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useDispatch } from 'react-redux'
+import fileInput from 'uswds/src/js/components/file-input'
 import Button from '../Button'
 
 import { upload } from '../../actions/upload'
@@ -7,9 +8,12 @@ import { upload } from '../../actions/upload'
 function NewReport() {
   const dispatch = useDispatch()
   const testFunc = (e) => {
-    e.preventDefault()
-    dispatch(upload(JSON.stringify({ file: e.target.files[0] })))
+    dispatch(upload({ file: e.target.files[0] }))
   }
+
+  useEffect(() => {
+    fileInput.init()
+  })
 
   return (
     <div className="grid-container margin-top-4">

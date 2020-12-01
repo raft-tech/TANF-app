@@ -1,7 +1,11 @@
 import React from 'react'
 import Button from '../Button'
+import { history } from '../../configureStore'
 
-function Reports(props) {
+function Reports() {
+  const handleClick = () => {
+    history.push('/reports/upload')
+  }
   return (
     <div className="grid-container">
       <h1 className="font-serif-2xl margin-bottom-0 text-normal">
@@ -29,7 +33,9 @@ function Reports(props) {
           Upload by a date
         </p>
 
-        <Button type="submit">Begin Report</Button>
+        <Button type="button" onClick={handleClick}>
+          Begin Report
+        </Button>
       </form>
     </div>
   )
