@@ -5,14 +5,6 @@ import Reports from './Reports'
 import Button from '../Button'
 
 describe('Reports', () => {
-  it('should render an h1 with text All Reports', () => {
-    const wrapper = shallow(<Reports />)
-
-    const h1 = wrapper.find('h1')
-
-    expect(h1.text()).toEqual('All Reports')
-  })
-
   it('should render the USWDS Select component with three options', () => {
     const wrapper = shallow(<Reports />)
 

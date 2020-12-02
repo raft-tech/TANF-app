@@ -6,7 +6,7 @@ import PrivateRoute from '../PrivateRoute'
 import LoginCallback from '../LoginCallback'
 import Request from '../Request'
 import Reports from '../Reports'
-import NewReport from '../NewReport'
+import UploadReport from '../UploadReport'
 
 /**
  * This component renters the routes for the app.
@@ -28,11 +28,11 @@ const Routes = () => {
       <PrivateRoute exact title="Request Submitted" path="/request">
         <Request />
       </PrivateRoute>
-      <PrivateRoute exact path="/reports">
+      <PrivateRoute exact title="All Reports" path="/reports">
         <Reports />
       </PrivateRoute>
-      <PrivateRoute exact path="/reports/upload">
-        <NewReport />
+      <PrivateRoute exact title="New Sample Report 2020" path="/reports/upload">
+        <UploadReport />
       </PrivateRoute>
     </Switch>
   )

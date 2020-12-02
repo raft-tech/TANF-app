@@ -4,29 +4,17 @@ import { mount } from 'enzyme'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
 
-import NewReport from './NewReport'
+import UploadReport from './UploadReport'
 
-describe('NewReport', () => {
+describe('UploadReport', () => {
   const initialState = {}
   const mockStore = configureStore([thunk])
-  it('should render an h1 of `New Sample Report 2020`', () => {
-    const store = mockStore(initialState)
-    const wrapper = mount(
-      <Provider store={store}>
-        <NewReport />
-      </Provider>
-    )
-
-    const h1 = wrapper.find('h1')
-
-    expect(h1.text()).toEqual('New Sample Report 2020')
-  })
 
   it('should render four inputs for uploading files', () => {
     const store = mockStore(initialState)
     const wrapper = mount(
       <Provider store={store}>
-        <NewReport />
+        <UploadReport />
       </Provider>
     )
 
@@ -41,7 +29,7 @@ describe('NewReport', () => {
     store.dispatch = jest.fn(origDispatch)
     const wrapper = mount(
       <Provider store={store}>
-        <NewReport />
+        <UploadReport />
       </Provider>
     )
 
