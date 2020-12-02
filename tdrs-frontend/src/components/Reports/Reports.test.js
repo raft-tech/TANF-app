@@ -17,7 +17,7 @@ describe('Reports', () => {
     expect(options.length).toEqual(3)
   })
 
-  it('should change route to `/reports/upload` on click of `Begin Report` button', () => {
+  it('should change route to `/reports/:year/upload` on click of `Begin Report` button', () => {
     const wrapper = shallow(<Reports />)
 
     const beginButton = wrapper.find(Button)
