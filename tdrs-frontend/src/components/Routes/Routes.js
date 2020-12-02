@@ -31,7 +31,11 @@ const Routes = () => {
       <PrivateRoute exact title="All Reports" path="/reports">
         <Reports />
       </PrivateRoute>
-      <PrivateRoute exact title="New Sample Report 2020" path="/reports/upload">
+      <PrivateRoute
+        exact
+        title="New Sample Report 2020"
+        path="/reports/:year/upload"
+      >
         <UploadReport />
       </PrivateRoute>
     </Switch>

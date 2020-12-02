@@ -26,7 +26,7 @@ describe('Reports', () => {
 
     beginButton.simulate('click')
 
-    expect(window.location.href.includes('/reports/upload')).toBeTruthy()
+    expect(window.location.href.includes('/reports/2020/upload')).toBeTruthy()
   })
 
   it('should update h2 when a new year is selected', () => {

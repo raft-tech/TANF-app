@@ -6,7 +6,7 @@ function Reports() {
   const [selectedYear, setSelectedYear] = useState(2020)
 
   const handleClick = () => {
-    history.push('/reports/upload')
+    history.push(`/reports/${selectedYear}/upload`)
   }
 
   const handleSelect = ({ target: { value } }) => {
