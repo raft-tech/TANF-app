@@ -12,7 +12,6 @@ User = get_user_model()
 
 @pytest.mark.django_db
 @pytest.fixture(scope="function")
-
 def create_test_users():
     """Create users for each group."""
     call_command("generate_test_users")
@@ -331,7 +330,7 @@ def test_set_profile_data_extra_field_include_required(api_client, user):
 def test_set_profile_data_missing_last_name_field(api_client, user):
     """Test profile data cannot be set if last name field is missing."""
     api_client.login(username=user.username, password="test_password")
-    response = api_client.patch("/v1/users/set_profile/", {"first_name": "Heather", }, )
+    response = api_client.patch("/v1/users/set_profile/", {"first_name": "Heather", },)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 

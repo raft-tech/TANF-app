@@ -26,7 +26,6 @@ class User(AbstractUser):
         """Get a list of all users who do not belong to a group."""
         return User.objects.filter(groups=None).values()
 
-
     @property
     def is_admin(self):
         """Check if the user is an admin."""

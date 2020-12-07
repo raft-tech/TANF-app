@@ -9,6 +9,7 @@ import factory
 
 User = get_user_model()
 
+
 class Command(BaseCommand):
     """Command class."""
 
