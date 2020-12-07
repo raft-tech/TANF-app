@@ -1,57 +1,46 @@
-import React, { useState } from 'react'
+import React from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import Button from '../Button'
 import { history } from '../../configureStore'
+import { setYear } from '../../actions/upload'
 
 function Reports() {
-  const [selectedYear, setSelectedYear] = useState(2020)
+  const selectedYear = useSelector((state) => state.upload.year)
+  const dispatch = useDispatch()
 
   const handleClick = () => {
     history.push(`/reports/${selectedYear}/upload`)
   }
 
   const handleSelect = ({ target: { value } }) => {
-    setSelectedYear(value)
+    dispatch(setYear(value))
   }
 
-  const createOptions = (years) => {
-    let yearsBack = years
-    const options = []
-    let currentYear = 2020
-
-    do {
-      yearsBack -= 1
-      options.push(<option key={currentYear}>{currentYear}</option>)
-      currentYear -= 1
-    } while (yearsBack > 0)
-
-    return options
-  }
   return (
     <form className="usa-form">
-      {/* eslint-disable-next-line */}
-        <label className="usa-label text-bold margin-top-4" htmlFor="reports">
-        Reporting Year
-      </label>
-      {/* eslint-disable-next-line */}
-        <select
-        className="usa-select"
-        name="options"
-        id="reports"
-        onChange={handleSelect}
+      <label
+        className="usa-label text-bold margin-top-4"
+        htmlFor="reportingYears"
       >
-        {createOptions(3)}
-      </select>
+        Fiscal Year (October - September)
+        {/* eslint-disable-next-line */}
+        <select
+          className="usa-select"
+          name="reportingYears"
+          id="reportingYears"
+          onChange={handleSelect}
+          value={selectedYear}
+        >
+          <option value="2020">2020</option>
+          <option value="2021">2021</option>
+        </select>
+      </label>
 
-      <h2 className="font-serif-xl margin-y-4 text-normal">
-        {selectedYear} TANF Reports
-      </h2>
-
-      <p className="font-sans-md margin-0 text-bold">Test Quarter</p>
-      <p className="font-sans-md margin-0 margin-bottom-105">
-        Upload by a date
+      <p className="font-sans-md margin-top-5 margin-bottom-0 text-bold">
+        TANF Report
       </p>
 
-      <Button type="button" onClick={handleClick}>
+      <Button className="margin-bottom-2" type="button" onClick={handleClick}>
         Begin Report
       </Button>
     </form>

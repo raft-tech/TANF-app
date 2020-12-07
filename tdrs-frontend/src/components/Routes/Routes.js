@@ -1,5 +1,6 @@
 import React from 'react'
 import { Switch, Route } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import SplashPage from '../SplashPage/SplashPage'
 import EditProfile from '../EditProfile'
 import PrivateRoute from '../PrivateRoute'
@@ -9,11 +10,12 @@ import Reports from '../Reports'
 import UploadReport from '../UploadReport'
 
 /**
- * This component renters the routes for the app.
+ * This component renders the routes for the app.
  * Routes have the 'exact' prop, so the order of routes
  * does not matter.
  */
 const Routes = () => {
+  const selectedYear = useSelector((state) => state.upload.year)
   return (
     <Switch>
       <Route exact path="/">
@@ -28,12 +30,16 @@ const Routes = () => {
       <PrivateRoute exact title="Request Submitted" path="/request">
         <Request />
       </PrivateRoute>
-      <PrivateRoute exact title="All Reports" path="/reports">
+      <PrivateRoute
+        exact
+        title={`${selectedYear} TANF Reports`}
+        path="/reports"
+      >
         <Reports />
       </PrivateRoute>
       <PrivateRoute
         exact
-        title="New Sample Report 2020"
+        title="New TANF Report - Test Quarter, 2020"
         path="/reports/:year/upload"
       >
         <UploadReport />
