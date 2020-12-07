@@ -12,14 +12,16 @@ User = get_user_model()
 
 @pytest.mark.django_db
 @pytest.fixture(scope="function")
-def generate_groups():
-    """Create groups and users under those groups."""
+
+def create_test_users():
+    """Create users for each group."""
     call_command("generate_test_users")
 
 
 @pytest.mark.django_db
 def test_retrieve_user(api_client, user):
     """Test user retrieval."""
+    api_client.login(username=user.username, password="test_password")
     response = api_client.get(f"/v1/users/{user.pk}/")
     assert response.status_code == status.HTTP_200_OK
     assert response.data["username"] == user.username
@@ -342,7 +344,7 @@ def test_set_profile_data_missing_first_name_field(api_client, user):
 
 
 @pytest.mark.django_db
-def test_role_list(api_client, generate_groups):
+def test_role_list(api_client, create_test_users):
     """Test role list."""
     # Groups are populated in a data migrations, so are already available.
     api_client.login(username="test__ofa_admin", password="test_password")
@@ -353,7 +355,7 @@ def test_role_list(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_role_list_unauthorized(api_client, generate_groups):
+def test_role_list_unauthorized(api_client, create_test_users):
     """Data prepper does not have access."""
     # Groups are populated in a data migrations, so are already available.
     api_client.login(username="test__data_prepper", password="test_password")
@@ -362,7 +364,7 @@ def test_role_list_unauthorized(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_role_create(api_client, generate_groups):
+def test_role_create(api_client, create_test_users):
     """Test creating a role."""
     api_client.login(username="test__ofa_admin", password="test_password")
     response = api_client.post("/v1/roles/", {"name": "Test Role"})
@@ -371,7 +373,7 @@ def test_role_create(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_role_create_unauthorized(api_client, generate_groups):
+def test_role_create_unauthorized(api_client, create_test_users):
     """Test data prepper does not have access."""
     api_client.login(username="test__data_prepper", password="test_password")
     response = api_client.post("/v1/roles/", {"name": "Test Role"})
@@ -379,7 +381,7 @@ def test_role_create_unauthorized(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_role_create_with_permission(api_client, generate_groups):
+def test_role_create_with_permission(api_client, create_test_users):
     """Test creating a role with a permission."""
     permission = Permission.objects.first()
     api_client.login(username="test__ofa_admin", password="test_password")
@@ -392,7 +394,7 @@ def test_role_create_with_permission(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_role_update(api_client, generate_groups):
+def test_role_update(api_client, create_test_users):
     """Test role update."""
     group = Group.objects.get(name="OFA Admin")
     api_client.login(username="test__ofa_admin", password="test_password")
@@ -403,7 +405,7 @@ def test_role_update(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_role_update_unauthorized(api_client, generate_groups):
+def test_role_update_unauthorized(api_client, create_test_users):
     """Test data prepper does not have access."""
     group = Group.objects.get(name="Data Prepper")
     api_client.login(username="test__data_prepper", password="test_password")
@@ -412,7 +414,7 @@ def test_role_update_unauthorized(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_role_delete(api_client, generate_groups):
+def test_role_delete(api_client, create_test_users):
     """Test role deletion."""
     group = Group.objects.get(name="OFA Admin")
     api_client.login(username="test__ofa_admin", password="test_password")
@@ -422,7 +424,7 @@ def test_role_delete(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_role_delete_unauthorized(api_client, generate_groups):
+def test_role_delete_unauthorized(api_client, create_test_users):
     """Test data prepper does not have access."""
     group = Group.objects.get(name="Data Prepper")
     api_client.login(username="test__data_prepper", password="test_password")
@@ -431,7 +433,7 @@ def test_role_delete_unauthorized(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_permission_list(api_client, generate_groups):
+def test_permission_list(api_client, create_test_users):
     """Test permission list."""
     # Django comes with some permissions, so we'll just test those.
     api_client.login(username="test__ofa_admin", password="test_password")
@@ -441,7 +443,7 @@ def test_permission_list(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_permission_list_unauthorized(api_client, generate_groups):
+def test_permission_list_unauthorized(api_client, create_test_users):
     """Test data prepper does not have access."""
     # Django comes with some permissions, so we'll just test those.
     api_client.login(username="test__data_prepper", password="test_password")
@@ -450,7 +452,7 @@ def test_permission_list_unauthorized(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_permission_create(api_client, generate_groups):
+def test_permission_create(api_client, create_test_users):
     """Test permission creation."""
     api_client.login(username="test__ofa_admin", password="test_password")
     response = api_client.post(
@@ -463,7 +465,7 @@ def test_permission_create(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_permission_create_unauthorized(api_client, generate_groups):
+def test_permission_create_unauthorized(api_client, create_test_users):
     """Test data prepper does not have access."""
     api_client.login(username="test__data_prepper", password="test_password")
     response = api_client.post(
@@ -473,7 +475,7 @@ def test_permission_create_unauthorized(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_permission_create_with_content_type(api_client, generate_groups):
+def test_permission_create_with_content_type(api_client, create_test_users):
     """Test can create a permission with a content type."""
     content_type = ContentType.objects.get_for_model(User)
     api_client.login(username="test__ofa_admin", password="test_password")
@@ -492,7 +494,7 @@ def test_permission_create_with_content_type(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_permission_update(api_client, generate_groups):
+def test_permission_update(api_client, create_test_users):
     """Test permission update."""
     permission = Permission.objects.first()
     api_client.login(username="test__ofa_admin", password="test_password")
@@ -505,7 +507,7 @@ def test_permission_update(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_permission_update_unauthorized(api_client, generate_groups):
+def test_permission_update_unauthorized(api_client, create_test_users):
     """Test data prepper does not have access."""
     permission = Permission.objects.first()
     api_client.login(username="test__data_prepper", password="test_password")
@@ -516,7 +518,7 @@ def test_permission_update_unauthorized(api_client, generate_groups):
 
 
 @pytest.mark.django_db
-def test_permission_delete(api_client, generate_groups):
+def test_permission_delete(api_client, create_test_users):
     """Test permission deletion."""
     permission = Permission.objects.first()
     api_client.login(username="test__ofa_admin", password="test_password")
@@ -547,7 +549,7 @@ def test_user_no_roles_list(api_client, user):
 
 
 @pytest.mark.django_db
-def test_permission_delete_unauthorized(api_client, generate_groups):
+def test_permission_delete_unauthorized(api_client, create_test_users):
     """Test data prepper does not have access."""
     permission = Permission.objects.first()
     api_client.login(username="test__data_prepper", password="test_password")
