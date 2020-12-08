@@ -8,6 +8,9 @@ export const clearError = () => (dispatch) => {
   dispatch({ type: CLEAR_ERROR })
 }
 
+// process.env.REACT_APP_ACCESS_KEY_ID and
+// process.env.SECRET_ACCESS_KEY need to be defined in your .env.local file.
+
 export const upload = ({ file }) => async (dispatch) => {
   try {
     const URL = 'https://s3-us-gov-west-1.amazonaws.com'
