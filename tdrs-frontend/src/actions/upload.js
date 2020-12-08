@@ -2,6 +2,11 @@ import axios from 'axios'
 
 export const SET_FILE = 'SET_FILE'
 export const SET_FILE_ERROR = 'SET_FILE_ERROR'
+export const CLEAR_ERROR = 'CLEAR_ERROR'
+
+export const clearError = () => (dispatch) => {
+  dispatch({ type: CLEAR_ERROR })
+}
 
 export const upload = ({ file }) => async (dispatch) => {
   try {

@@ -1,4 +1,9 @@
-import { SET_FILE, SET_FILE_ERROR, SET_YEAR } from '../actions/upload'
+import {
+  SET_FILE,
+  SET_FILE_ERROR,
+  CLEAR_ERROR,
+  SET_YEAR,
+} from '../actions/upload'
 
 const initialState = {
   file: null,
@@ -15,6 +20,8 @@ const upload = (state = initialState, action) => {
       const { error } = payload
       return { ...initialState, error }
     }
+    case CLEAR_ERROR:
+      return { ...state, error: null }
     case SET_YEAR: {
       const { year } = payload
       return { ...state, year }

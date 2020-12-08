@@ -63,7 +63,7 @@ describe('Reports', () => {
 
     const select = wrapper.find('.usa-select')
 
-    select.simulate('change', {
+    select.simulate('blur', {
       target: {
         value: 2021,
       },

@@ -3,12 +3,13 @@ import { useDispatch, useSelector } from 'react-redux'
 import fileInput from 'uswds/src/js/components/file-input'
 import Button from '../Button'
 
-import { upload } from '../../actions/upload'
+import { clearError, upload } from '../../actions/upload'
 
 function UploadReport() {
   const uploadError = useSelector((state) => state.upload.error)
   const dispatch = useDispatch()
   const testFunc = ({ target }) => {
+    dispatch(clearError())
     dispatch(upload({ file: target.files[0] }))
       .then((resp) => resp)
       .then((success) => {
