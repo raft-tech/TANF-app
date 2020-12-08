@@ -10,11 +10,10 @@ export const clearError = () => (dispatch) => {
 
 export const upload = ({ file }) => async (dispatch) => {
   try {
-    const URL =
-      's3://AKIAR7FXZINYNGDGPPZ5:WZace4tXL97nyBsiAA8RiZsvey4h9QBzepIAEdD8@s3-us-gov-west-1.amazonaws.com/cg-f073b546-cf1c-4960-845f-746318ebc15e'
+    const URL = 'https://s3-us-gov-west-1.amazonaws.com'
     const resp = await axios.post(URL, file, {
-      access_key_id: 'AKIAR7FXZINYNGDGPPZ5',
-      secret_access_key: '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',
+      access_key_id: process.env.REACT_APP_ACCESS_KEY_ID,
+      secret_access_key: process.env.SECRET_ACCESS_KEY,
       region: 'us-gov-west-1',
       bucket: 'cg-f073b546-cf1c-4960-845f-746318ebc15e',
     })
