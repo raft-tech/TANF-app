@@ -23,13 +23,12 @@ function Reports() {
         htmlFor="reportingYears"
       >
         Fiscal Year (October - September)
-        {/* eslint-disable-next-line */}
         <select
           className="usa-select"
           name="reportingYears"
           id="reportingYears"
-          onChange={handleSelect}
-          value={selectedYear}
+          onBlur={handleSelect}
+          defaultValue={selectedYear}
         >
           <option value="2020">2020</option>
           <option value="2021">2021</option>

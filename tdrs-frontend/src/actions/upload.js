@@ -21,7 +21,10 @@ export const upload = ({ file }) => async (dispatch) => {
     }
   } catch (error) {
     dispatch({ type: SET_FILE_ERROR, payload: { error } })
+    return false
   }
+
+  return true
 }
 
 export const SET_YEAR = 'SET_YEAR'

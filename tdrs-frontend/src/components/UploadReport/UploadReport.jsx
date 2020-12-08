@@ -8,8 +8,24 @@ import { upload } from '../../actions/upload'
 function UploadReport() {
   const uploadError = useSelector((state) => state.upload.error)
   const dispatch = useDispatch()
-  const testFunc = (e) => {
-    dispatch(upload({ file: e.target.files[0] }))
+  const testFunc = ({ target }) => {
+    dispatch(upload({ file: target.files[0] }))
+      .then((resp) => resp)
+      .then((success) => {
+        if (!success) {
+          const inputTarget = target.parentNode
+          const previewHeading = inputTarget.querySelector(
+            '.usa-file-input__preview-heading'
+          )
+          const preview = inputTarget.querySelector('.usa-file-input__preview')
+          const instructions = inputTarget.querySelector(
+            '.usa-file-input__instructions'
+          )
+          inputTarget.removeChild(previewHeading)
+          inputTarget.removeChild(preview)
+          instructions.classList.remove('display-none')
+        }
+      })
   }
 
   useEffect(() => {
