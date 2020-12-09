@@ -67,3 +67,13 @@ class ReportFile(File):
     stt = models.ForeignKey(
         STT, on_delete=models.CASCADE, related_name="sttRef", blank=False, null=False
     )
+    slug = models.CharField(
+        unique=True,
+        max_length=256,
+        blank = False,
+        null= False
+    )
+    extension = models.CharField(
+        max_length=8,
+        default="txt"
+    )
