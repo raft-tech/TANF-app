@@ -6,11 +6,11 @@ import Button from '../Button'
 import { clearError, upload } from '../../actions/upload'
 
 function UploadReport() {
-  const uploadError = useSelector((state) => state.upload.error)
+  const files = useSelector((state) => state.upload.files)
   const dispatch = useDispatch()
   const testFunc = ({ target }) => {
-    dispatch(clearError())
-    dispatch(upload({ file: target.files[0] }))
+    dispatch(clearError({ name: target.name }))
+    dispatch(upload({ file: target.files[0], name: target.name }))
       .then((resp) => resp)
       .then((success) => {
         if (!success) {
@@ -37,84 +37,129 @@ function UploadReport() {
     <form>
       <div
         className={`usa-form-group ${
-          uploadError ? 'usa-form-group--error' : ''
+          files[0].error ? 'usa-form-group--error' : ''
         }`}
       >
-        <label className="usa-label text-bold" htmlFor="file-input-specific">
+        <label className="usa-label text-bold" htmlFor="activeData">
           Section 1 - Active Case Data
           <div className="usa-hint" id="file-input-specific-hint">
-            Select CSV or TXT files
+            Select CSV, TXT, or XLS files
           </div>
           <div>
-            {uploadError && (
+            {files[0].error && (
               <div
                 className="usa-error-message"
                 id="file-input-error-alert"
                 role="alert"
               >
-                {uploadError.message}
+                {files[0].error.message}
+              </div>
+            )}
+          </div>
+          <input
+            onChange={(e) => testFunc(e)}
+            id="activeData"
+            className="usa-file-input"
+            type="file"
+            name="activeData"
+            aria-describedby="file-input-specific-hint"
+            accept=".csv,.txt,.xls"
+          />
+        </label>
+      </div>
+      <div
+        className={`usa-form-group ${
+          files[1].error ? 'usa-form-group--error' : ''
+        }`}
+      >
+        <label className="usa-label text-bold" htmlFor="closedData">
+          Section 2 - Closed Case Data
+          <div className="usa-hint" id="file-input-specific-hint">
+            Select CSV, TXT, or XLS files
+          </div>
+          <div>
+            {files[1].error && (
+              <div
+                className="usa-error-message"
+                id="file-input-error-alert"
+                role="alert"
+              >
+                {files[1].error.message}
               </div>
             )}
           </div>
           <input
             onChange={testFunc}
-            id="firstOne"
+            id="closedData"
             className="usa-file-input"
             type="file"
-            name="file-input-specific"
+            name="closedData"
             aria-describedby="file-input-specific-hint"
-            accept=".csv,.txt"
+            accept=".csv,.txt,.xls"
           />
         </label>
       </div>
-      <div className="usa-form-group">
-        <label className="usa-label text-bold" htmlFor="file-input-specific">
-          Section 2 - Closed Case Data
-          <div className="usa-hint" id="file-input-specific-hint">
-            Select CSV or TXT files
-          </div>
-          <input
-            onChange={testFunc}
-            id="file-input-specific"
-            className="usa-file-input"
-            type="file"
-            name="file-input-specific"
-            aria-describedby="file-input-specific-hint"
-            accept=".csv,.txt"
-          />
-        </label>
-      </div>
-      <div className="usa-form-group">
-        <label className="usa-label text-bold" htmlFor="file-input-specific">
+      <div
+        className={`usa-form-group ${
+          files[2].error ? 'usa-form-group--error' : ''
+        }`}
+      >
+        <label className="usa-label text-bold" htmlFor="aggregateData">
           Section 3 - Aggregate Data
           <div className="usa-hint" id="file-input-specific-hint">
-            Select CSV or TXT files
+            Select CSV, TXT, or XLS files
+          </div>
+          <div>
+            {files[2].error && (
+              <div
+                className="usa-error-message"
+                id="file-input-error-alert"
+                role="alert"
+              >
+                {files[2].error.message}
+              </div>
+            )}
           </div>
           <input
             onChange={testFunc}
-            id="file-input-specific"
+            id="aggregataData"
             className="usa-file-input"
             type="file"
-            name="file-input-specific"
+            name="aggregataData"
             aria-describedby="file-input-specific-hint"
-            accept=".csv,.txt"
+            accept=".csv,.txt,.xls"
           />
         </label>
       </div>
-      <div className="usa-form-group">
-        <label className="usa-label text-bold" htmlFor="file-input-specific">
+      <div
+        className={`usa-form-group ${
+          files[3].error ? 'usa-form-group--error' : ''
+        }`}
+      >
+        <label className="usa-label text-bold" htmlFor="stratumData">
           Section 4 - Stratum Data
           <div className="usa-hint" id="file-input-specific-hint">
-            Select CSV or TXT files
+            Select CSV, TXT, or XLS files
+          </div>
+          <div>
+            {files[3].error && (
+              <div
+                className="usa-error-message"
+                id="file-input-error-alert"
+                role="alert"
+              >
+                {files[3].error.message}
+              </div>
+            )}
           </div>
           <input
             onChange={testFunc}
-            id="file-input-specific"
+            id="stratumData"
             className="usa-file-input"
             type="file"
-            name="file-input-specific"
+            name="stratumData"
             aria-describedby="file-input-specific-hint"
-            accept=".csv,.txt"
+            accept=".csv,.txt,.xls"
           />
         </label>
       </div>
