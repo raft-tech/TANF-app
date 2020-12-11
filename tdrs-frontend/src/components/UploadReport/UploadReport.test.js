@@ -9,7 +9,30 @@ import UploadReport from './UploadReport'
 
 describe('UploadReport', () => {
   const initialState = {
-    upload: { error: null },
+    upload: {
+      files: [
+        {
+          name: 'activeData',
+          file: null,
+          error: null,
+        },
+        {
+          name: 'closedData',
+          file: null,
+          error: null,
+        },
+        {
+          name: 'aggregataData',
+          file: null,
+          error: null,
+        },
+        {
+          name: 'stratumData',
+          file: null,
+          error: null,
+        },
+      ],
+    },
   }
   const mockStore = configureStore([thunk])
 
@@ -26,7 +49,7 @@ describe('UploadReport', () => {
     expect(inputs.length).toEqual(4)
   })
 
-  it('should dispatch the `upload` action when submit button is clicked', () => {
+  it('should dispatch the `clearError` and `upload` actions when submit button is clicked', () => {
     const store = mockStore(initialState)
     const origDispatch = store.dispatch
     store.dispatch = jest.fn(origDispatch)
@@ -46,14 +69,37 @@ describe('UploadReport', () => {
       },
     })
 
-    expect(store.dispatch).toHaveBeenCalledTimes(1)
+    expect(store.dispatch).toHaveBeenCalledTimes(2)
   })
 
   it('should render a div with class "usa-form-group--error" if there is an error', () => {
     const store = mockStore({
       ...initialState,
       upload: {
-        error: 'something went wrong',
+        files: [
+          {
+            name: 'activeData',
+            file: null,
+            error: {
+              message: 'something went wrong',
+            },
+          },
+          {
+            name: 'closedData',
+            file: null,
+            error: null,
+          },
+          {
+            name: 'aggregataData',
+            file: null,
+            error: null,
+          },
+          {
+            name: 'stratumData',
+            file: null,
+            error: null,
+          },
+        ],
       },
     })
     render(
