@@ -12,12 +12,12 @@ describe('actions/upload.js', () => {
 
     const store = mockStore()
 
-    await store.dispatch(upload({ file: 'HELLO' }))
+    await store.dispatch(upload({ file: 'HELLO', name: 'testing' }))
 
     const actions = store.getActions()
 
     expect(actions[0].type).toBe(SET_FILE)
-    expect(actions[0].file).toStrictEqual('HELLO')
+    expect(actions[0].payload).toStrictEqual({ file: 'HELLO', name: 'testing' })
   })
 
   it('should dispatch SET_FILE_ERROR when there is an error with the post', async () => {
@@ -27,13 +27,14 @@ describe('actions/upload.js', () => {
 
     const store = mockStore()
 
-    await store.dispatch(upload({ file: 'HELLO' }))
+    await store.dispatch(upload({ file: 'HELLO', name: 'testing' }))
 
     const actions = store.getActions()
 
     expect(actions[0].type).toBe(SET_FILE_ERROR)
     expect(actions[0].payload).toStrictEqual({
       error: Error({ message: 'something went wrong' }),
+      name: 'testing',
     })
   })
 })
