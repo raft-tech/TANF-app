@@ -30,6 +30,7 @@ class Common(Configuration):
         # Local apps
         "tdpservice.users",
         "tdpservice.stts",
+        "tdpservice.reports",
     )
 
     # https://docs.djangoproject.com/en/2.0/topics/http/middleware/

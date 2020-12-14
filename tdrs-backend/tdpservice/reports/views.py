@@ -1,29 +1,36 @@
-"""Define API views for report files"""
+
+"""Check if user is authorized."""
 import logging
 
-from django.utils import timezone
-
-from rest_framework import mixins, viewsets
-from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-
-from .models import Report
-from .permissions import IsUserOrReadOnly
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+from django.middleware import csrf
+from django.utils import timezone
 from .serializers import ReportFileSerializer
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
-class ReportViewSet(
-    mixins.CreateModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.UpdateModelMixin,
-    viewsets.GenericViewSet,
-):
-    def get_serializer_class(self):
-        """Return the serializer class."""
-        return {
-            "create": CreateUserSerializer,
-            "set_profile": UserProfileSerializer,
-        }.get(self.action, ReportSerializer)
+class AuthorizationCheck(APIView):
+    """Check if user is authorized."""
+
+    query_string = True
+    pattern_name = "authorization-check"
+    permission_classes = [AllowAny] # What should I set this to?
+
+    def post(self, request, *args, **kwargs):
+        """Handle get request and verify user is authorized."""
+        user = request.user
+        serializer = ReportFileSerializer(request.data)
+        if user.is_authenticated:
+            logger.info(
+                "Auth check PASS for user: %s on %s", user.username, timezone.now()
+            )
+            res = Response({"success":True})
+            res['Access-Control-Allow-Headers'] = "X-CSRFToken"
+            return res
+        else:
+            logger.info("Auth check FAIL for user on %s", timezone.now())
+            return Response({"authenticated": False})

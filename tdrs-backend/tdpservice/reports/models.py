@@ -47,13 +47,18 @@ class ReportFile(File):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields = ("section","version","quarter","year"),
+                fields = ("section","version","quarter","year",'stt'),
                 name = 'constraint_name')]
 
-    version = models.IntegerField()
-    year = models.IntegerField()
+    quarter = models.CharField(
+        max_length=16, blank=False, null=False, choices=Quarter.choices)
+    year = models.CharField(
+        max_length=16, blank=False, null=False)
     section = models.CharField(
-        max_length=200, blank=True, null=True, choices=Section.choices)
+        max_length=32, blank=False, null=False, choices=Section.choices)
+
+    version = models.IntegerField()
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -62,10 +67,11 @@ class ReportFile(File):
         null=False)
     # I don't think we actually need an STT here, cause the user has an STT.
     # I will use a serializer method to extract it from
-    # stt = models.ForeignKey(
-    #     STT,
-    #     on_delete=models.CASCADE,
-    #     related_name='stt',
-    #     blank=False,
-    #     null=False
-    # )
+    # Adding the stt here 
+    stt = models.ForeignKey(
+        STT,
+        on_delete=models.CASCADE,
+        related_name='sttRef',
+        blank=False,
+        null=False
+    )
