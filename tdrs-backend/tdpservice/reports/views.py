@@ -6,6 +6,7 @@ from rest_framework import mixins, viewsets
 from ..users.permissions import CanUploadReport
 from .models import User
 from .serializers import ReportFileSerializer
+from .models import User
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -25,3 +26,9 @@ class ReportFileViewSet(
     def get_serializer_class(self):
         """Return the serializer class."""
         return {"create": ReportFileSerializer, }.get(self.action, ReportFileSerializer)
+
+    def get_serializer_class(self):
+        """Return the serializer class."""
+        return {
+            "create": ReportFileSerializer,
+        }.get(self.action, ReportFileSerializer)

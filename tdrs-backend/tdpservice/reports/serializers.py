@@ -8,6 +8,8 @@ from django.db.models import Max
 from ..stts.models import STT
 from ..users.models import User
 from .models import ReportFile
+from ..users.models import User
+from ..stts.models import STT
 
 
 class ReportFileSerializer(serializers.ModelSerializer):
