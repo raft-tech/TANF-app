@@ -1,4 +1,3 @@
-
 """Check if user is authorized."""
 import logging
 
@@ -36,6 +35,7 @@ logger.setLevel(logging.INFO)
 #         else:
 #             logger.info("Auth check FAIL for user on %s", timezone.now())
 #             return Response({"authenticated": False})
+
 
 class ReportFileViewSet(
     mixins.CreateModelMixin,
