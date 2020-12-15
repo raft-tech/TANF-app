@@ -4,13 +4,15 @@ from rest_framework import serializers
 from django.db.models import Max
 
 from ..users.serializers import UserSerializer
-from ..stt.serializers import STTSerializer
+from ..stts.serializers import STTSerializer
 from .models import ReportFile
+from ..users.models import User
+from ..stts.models import STT
 
 
 class ReportFileSerializer(serializers.ModelSerializer):
-    stt = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    user = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    stt = serializers.PrimaryKeyRelatedField(queryset=STT.objects.all())
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     class Meta:
         model = ReportFile
         fields = [
@@ -30,14 +32,14 @@ class ReportFileSerializer(serializers.ModelSerializer):
             slug__exact=validated_data['slug'],
         ).aggregate(Max('version'))
 
-        if latest_report.exists():
+        if latest_report['version__max'] is not None:
             version = latest_report.version + 1
 
 
-        return ReportFile.objects.create({
+        return ReportFile.objects.create(
+            version=version,
             **validated_data,
-            version:version
-        })
+        )
         # I think I should have this here?
 
     def update():
