@@ -10,35 +10,30 @@ from ..users.models import User
 # in its own abstract class is better for documentation purposes.
 class File(models.Model):
     """Abstract type representing a file stored in S3"""
+
     class Meta:
         abstract = True
 
-    original_filename = models.CharField(
-        max_length=256,
-        blank = False,
-        null= False
-    )
+    original_filename = models.CharField(max_length=256, blank=False, null=False)
 
-    slug = models.CharField(
-        unique=True,
-        max_length=256,
-        blank = False,
-        null= False
-    )
-    extension = models.CharField(
-        max_length=8,
-        default="txt"
-    )
+    slug = models.CharField(max_length=256, blank=False, null=False)
+    extension = models.CharField(max_length=8, default="txt")
+
+
 class ReportFile(File):
     """Represents a version of a report file."""
+
     class Section(models.TextChoices):
         """Enum for report section."""
+
         ACTIVE_CASE_DATA = "Active Case Data"
         CLOSE_CASE_DATA = "Close Case Data"
         AGGREGATE_DATA = "Aggregate Data"
         STRATUM_DATA = "Stratum Data"
+
     class Quarter(models.TextChoices):
         """Enum for report Quarter"""
+
         Q1 = "Q1"
         Q2 = "Q2"
         Q3 = "Q3"
@@ -47,31 +42,27 @@ class ReportFile(File):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields = ("section","version","quarter","year",'stt'),
-                name = 'constraint_name')]
+                fields=("section", "version", "quarter", "year", "stt"),
+                name="constraint_name",
+            )
+        ]
 
     quarter = models.CharField(
-        max_length=16, blank=False, null=False, choices=Quarter.choices)
-    year = models.CharField(
-        max_length=16, blank=False, null=False)
+        max_length=16, blank=False, null=False, choices=Quarter.choices
+    )
+    year = models.CharField(max_length=16, blank=False, null=False)
     section = models.CharField(
-        max_length=32, blank=False, null=False, choices=Section.choices)
+        max_length=32, blank=False, null=False, choices=Section.choices
+    )
 
     version = models.IntegerField()
 
     user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="user",
-        blank=False,
-        null=False)
+        User, on_delete=models.CASCADE, related_name="user", blank=False, null=False
+    )
     # I don't think we actually need an STT here, cause the user has an STT.
     # I will use a serializer method to extract it from
-    # Adding the stt here 
+    # Adding the stt here
     stt = models.ForeignKey(
-        STT,
-        on_delete=models.CASCADE,
-        related_name='sttRef',
-        blank=False,
-        null=False
+        STT, on_delete=models.CASCADE, related_name="sttRef", blank=False, null=False
     )
