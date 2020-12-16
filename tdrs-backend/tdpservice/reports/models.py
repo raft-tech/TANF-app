@@ -97,6 +97,8 @@ class ReportFile(File):
         Q4 = "Q4"
 
     class Meta:
+        """Metadata."""
+
         constraints = [
             models.UniqueConstraint(
                 fields=("section", "version", "quarter", "year", "stt"),
