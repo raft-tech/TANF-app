@@ -2,8 +2,9 @@
 import logging
 
 from rest_framework import mixins, viewsets
-from rest_framework.permissions import AllowAny, IsUserOrReadOnly
+from rest_framework.permissions import AllowAny
 
+from ..users.permissions import IsUserOrReadOnly
 from .models import User
 from .serializers import ReportFileSerializer
 
