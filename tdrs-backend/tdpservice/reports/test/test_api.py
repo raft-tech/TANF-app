@@ -10,6 +10,7 @@ from ..models import ReportFile
 # Create your tests here.
 @pytest.mark.django_db
 def test_create_report_file_entry(api_client, user):
+    """Test report file metadata registry."""
     api_client.login(username=user.username, password="test_password")
     data = {
         "original_filename": "report.txt",
@@ -36,6 +37,7 @@ def test_create_report_file_entry(api_client, user):
 
 @pytest.mark.django_db
 def test_report_file_version_increment(api_client, user):
+    """Test that report file version numbers increment."""
     api_client.login(username=user.username, password="test_password")
     data1 = {
         "original_filename": "report.txt",
