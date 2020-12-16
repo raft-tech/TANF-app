@@ -1,14 +1,11 @@
 """Check if user is authorized."""
 import logging
 
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
 from rest_framework import mixins, viewsets
-from django.middleware import csrf
-from django.utils import timezone
-from .serializers import ReportFileSerializer
+from rest_framework.permissions import AllowAny, IsUserOrReadOnly
+
 from .models import User
+from .serializers import ReportFileSerializer
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

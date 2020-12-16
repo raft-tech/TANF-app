@@ -5,9 +5,7 @@ from django.db.models import Max
 from rest_framework import serializers
 
 from ..stts.models import STT
-from ..stts.serializers import STTSerializer
 from ..users.models import User
-from ..users.serializers import UserSerializer
 from .models import ReportFile
 
 
