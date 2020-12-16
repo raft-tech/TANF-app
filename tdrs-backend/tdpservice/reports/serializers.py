@@ -46,4 +46,3 @@ class ReportFileSerializer(serializers.ModelSerializer):
 
     def update():
         raise "Cannot update, reports are immutable. Create a new one instead."
-        # throw error, these are immutable
