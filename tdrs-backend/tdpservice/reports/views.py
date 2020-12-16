@@ -7,6 +7,7 @@ from ..users.permissions import CanUploadReport
 from .models import User
 from .serializers import ReportFileSerializer
 from .models import User
+from .serializers import ReportFileSerializer
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
