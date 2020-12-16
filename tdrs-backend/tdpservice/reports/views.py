@@ -41,7 +41,7 @@ class ReportFileViewSet(
     mixins.CreateModelMixin,
     viewsets.GenericViewSet,
 ):
-    """Report file views"""
+    """Report file views."""
 
     queryset = User.objects.select_related("stt")
 
