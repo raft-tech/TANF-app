@@ -3,14 +3,16 @@ import logging
 
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import AllowAny
-
 from ..users.permissions import IsUserOrReadOnly
+from .serializers import ReportFileSerializer,PresignedUrlInputSerializer
 from .models import User
-from .serializers import ReportFileSerializer
+import boto3
+from botocore.exceptions import ClientError
+
+from rest_framework.decorators import action
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
 
 # class AuthorizationCheck(APIView):
 #     """Check if user is authorized."""
@@ -55,4 +57,24 @@ class ReportFileViewSet(
         """Return the serializer class."""
         return {
             "create": ReportFileSerializer,
+            "get_signed_url":PresignedUrlInputSerializer,
         }.get(self.action, ReportFileSerializer)
+
+    @action(methods=["POST"], detail=False)
+    def get_signed_url(self, request,pk=None):
+        s3_client = boto3.client('s3')
+        serializer = self.get_serializer(
+            self.request.user,
+            request.data,
+        )
+        try:
+            Response(s3_client.generate_presigned_url(
+                'put_object',
+                Params={
+                    'Bucket': "cg-f0e35234-e70c-491c-a044-6836dd6abd59",
+                    'Region' : "us-gov-west-1",
+                    'Key': serializer.data['file_name'],
+                }, ExpiresIn=500))
+        except ClientError as e:
+            logging.error(e)
+            return None

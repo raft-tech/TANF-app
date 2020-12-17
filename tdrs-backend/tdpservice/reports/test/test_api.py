@@ -66,3 +66,15 @@ def test_report_file_version_increment(api_client, user):
 
     assert response2.status_code == status.HTTP_201_CREATED
     assert response2.data["slug"] == data2["slug"]
+
+@pytest.mark.django_db
+def test_s3_signed_url(api_client, user):
+    api_client.login(username=user.username, password="test_password")
+    response = api_client.post("/v1/reports/signed_url/", {
+        "file_name":"test.txt",
+        "file_type":"plain/text",
+    })
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data == {}
+    assert response.data['signed_url']
