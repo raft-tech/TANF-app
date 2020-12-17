@@ -34,24 +34,23 @@ class ReportFileViewSet(
         """Return the serializer class."""
         return {
             "create": ReportFileSerializer,
-            "get_signed_url":PresignedUrlInputSerializer,
+            "signed_url":PresignedUrlInputSerializer,
         }.get(self.action, ReportFileSerializer)
 
     @action(methods=["POST"], detail=False)
-    def get_signed_url(self, request,pk=None):
-        s3_client = boto3.client('s3')
+    def signed_url(self, request,pk=None):
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id="AKIAR7FXZINYFXZUS5CE",
+            aws_secret_access_key="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",
+        )
         serializer = self.get_serializer(
-            self.request.user,
             request.data,
         )
-        try:
-            Response(s3_client.generate_presigned_url(
-                'put_object',
-                Params={
-                    'Bucket': "cg-f0e35234-e70c-491c-a044-6836dd6abd59",
-                    'Region' : "us-gov-west-1",
-                    'Key': serializer.data['file_name'],
-                }, ExpiresIn=500))
-        except ClientError as e:
-            logging.error(e)
-            return None
+        return Response(s3_client.generate_presigned_url(
+            'put_object',
+            Params={
+                'Bucket': "cg-f0e35234-e70c-491c-a044-6836dd6abd59",
+                # 'Region' : "us-gov-west-1",
+                'Key': serializer.data['file_name'],
+            }, ExpiresIn=500))
