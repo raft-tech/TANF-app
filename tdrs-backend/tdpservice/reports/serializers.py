@@ -8,6 +8,10 @@ from ..stts.models import STT
 from ..users.models import User
 from .models import ReportFile
 
+class PresignedUrlInputSerializer(serializers.Serializer):
+    file_name = serializers.CharField(max_length=200)
+    file_type = serializers.CharField(max_length=50)
+
 
 class ReportFileSerializer(serializers.ModelSerializer):
     """Serializer for Report files."""
