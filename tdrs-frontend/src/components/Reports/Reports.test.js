@@ -9,7 +9,7 @@ import Button from '../Button'
 
 describe('Reports', () => {
   const initialState = {
-    upload: {
+    reports: {
       file: null,
       error: null,
       year: 2020,
@@ -63,7 +63,7 @@ describe('Reports', () => {
 
     const select = wrapper.find('.usa-select')
 
-    select.simulate('blur', {
+    select.simulate('change', {
       target: {
         value: 2021,
       },

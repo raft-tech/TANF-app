@@ -3,11 +3,11 @@ import { useDispatch, useSelector } from 'react-redux'
 import fileInput from '../../assets/uswds/file-input'
 import Button from '../Button'
 
-import { clearError, upload } from '../../actions/upload'
+import { clearError, upload } from '../../actions/reports'
 import FileUpload from '../FileUpload'
 
 function UploadReport() {
-  const files = useSelector((state) => state.upload.files)
+  const files = useSelector((state) => state.reports.files)
   const getFile = (fileName) => {
     return files.find((file) => fileName === file.name)
   }

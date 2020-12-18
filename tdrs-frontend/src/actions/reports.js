@@ -13,25 +13,22 @@ export const clearError = ({ name }) => (dispatch) => {
 
 export const upload = ({ file, name }) => async (dispatch) => {
   try {
-    const URL = 'https://s3-us-gov-west-1.amazonaws.com'
+    const URL = `${process.env.REACT_APP_BACKEND_URL}/reports/signed_url/`
 
-    const resp = await axios.post(URL, file, {
-      headers: {
-        access_key_id: process.env.REACT_APP_ACCESS_KEY_ID,
-        secret_access_key: process.env.SECRET_ACCESS_KEY,
-        region: 'us-gov-west-1',
-        bucket: 'cg-f073b546-cf1c-4960-845f-746318ebc15e',
-      },
+    const resp = await axios.post(URL, {
+      file_name: file.name,
+      file_type: file.type,
     })
 
     if (resp) {
-      dispatch({
-        type: SET_FILE,
-        payload: {
-          file,
-          name,
-        },
-      })
+      console.log('RESP', resp)
+      // dispatch({
+      //   type: SET_FILE,
+      //   payload: {
+      //     file,
+      //     name,
+      //   },
+      // })
     } else {
       console.log('NO RESPONSE')
     }

@@ -3,7 +3,7 @@ import {
   SET_FILE_ERROR,
   CLEAR_ERROR,
   SET_YEAR,
-} from '../actions/upload'
+} from '../actions/reports'
 
 const getUpdatedFiles = (state, file, name, error) => {
   const oldFileIndex = state.files.findIndex(

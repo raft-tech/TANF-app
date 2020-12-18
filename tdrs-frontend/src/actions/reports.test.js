@@ -2,9 +2,9 @@ import axios from 'axios'
 import thunk from 'redux-thunk'
 import configureStore from 'redux-mock-store'
 
-import { upload, SET_FILE, SET_FILE_ERROR, setYear, SET_YEAR } from './upload'
+import { upload, SET_FILE, SET_FILE_ERROR, setYear, SET_YEAR } from './reports'
 
-describe('actions/upload.js', () => {
+describe('actions/reports.js', () => {
   const mockStore = configureStore([thunk])
 
   it('should dispatch SET_FILE', async () => {
