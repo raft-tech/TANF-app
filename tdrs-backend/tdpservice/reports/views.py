@@ -1,5 +1,6 @@
 """Check if user is authorized."""
 import logging
+import os
 
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import AllowAny
@@ -65,8 +66,8 @@ class ReportFileViewSet(
     def signed_url(self, request,pk=None):
         s3_client = boto3.client(
             's3',
-            aws_access_key_id="AKIAR7FXZINYFXZUS5CE",
-            aws_secret_access_key="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",
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
         )
         serializer = self.get_serializer(
             request.data,
