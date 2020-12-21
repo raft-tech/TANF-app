@@ -72,10 +72,12 @@ class ReportFileViewSet(
         serializer = self.get_serializer(
             request.data,
         )
-        return Response(s3_client.generate_presigned_url(
+        return Response({
+            "signed_url":s3_client.generate_presigned_url(
             'put_object',
             Params={
-                'Bucket': "cg-f0e35234-e70c-491c-a044-6836dd6abd59",
+                'Bucket': os.environ["AWS_BUCKET"],
                 # 'Region' : "us-gov-west-1",
                 'Key': serializer.data['file_name'],
-            }, ExpiresIn=500))
+            }, ExpiresIn=500)
+        })
