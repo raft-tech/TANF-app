@@ -45,7 +45,7 @@ const initialState = {
   year: 2020,
 }
 
-const upload = (state = initialState, action) => {
+const reports = (state = initialState, action) => {
   const { type, payload = {} } = action
   switch (type) {
     case SET_FILE: {
@@ -72,4 +72,4 @@ const upload = (state = initialState, action) => {
   }
 }
 
-export default upload
+export default reports
