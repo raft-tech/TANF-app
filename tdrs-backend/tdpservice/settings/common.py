@@ -30,6 +30,7 @@ class Common(Configuration):
         # Local apps
         "tdpservice.users",
         "tdpservice.stts",
+        "tdpservice.reports",
     )
 
     # https://docs.djangoproject.com/en/2.0/topics/http/middleware/
@@ -42,7 +43,7 @@ class Common(Configuration):
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
         "corsheaders.middleware.CorsMiddleware",
-        "tdpservice.users.api.middleware.AuthUpdateMiddleware"
+        "tdpservice.users.api.middleware.AuthUpdateMiddleware",
     )
 
     ALLOWED_HOSTS = ["*"]
