@@ -21,7 +21,16 @@ export const upload = ({ file, name }) => async (dispatch) => {
     })
 
     if (resp) {
-      console.log('RESP', resp)
+      const signedURL = resp.data.signed_url
+      const options = {
+        headers: {
+          'Content-Type': file.type,
+        },
+      }
+
+      const result = await axios.post(signedURL, file, options)
+
+      console.log('RESULT', result)
       // dispatch({
       //   type: SET_FILE,
       //   payload: {
