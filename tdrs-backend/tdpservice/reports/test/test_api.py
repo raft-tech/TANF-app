@@ -81,6 +81,7 @@ def test_s3_signed_url(api_client, user):
     assert response.data == {}
     assert response.data['signed_url']
 
+<<<<<<<
 @pytest.mark.django_db
 def test_reports_data_prepper_permission(api_client, data_prepper):
     """Test report file metadata registry."""
@@ -119,3 +120,38 @@ def test_reports_data_prepper_not_allowed(api_client, data_prepper):
     response = api_client.post("/v1/reports/", data)
     # response = api_client.post("/v1/reports/", data)
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+=======
+@pytest.mark.django_db
+def test_s3_signed_url(api_client, user):
+    api_client.login(username=user.username, password="test_password")
+    response = api_client.post("/v1/reports/signed_url/", {
+        "file_name":"test.txt",
+        "file_type":"plain/text",
+    })
+
+    assert response.status_code == status.HTTP_200_OK
+    # assert response.data == {}
+    assert response.data['signed_url']
+
+@pytest.mark.django_db
+def test_individual_report_file_retrieval(api_client, user):
+    api_client.login(username=user.username, password="test_password")
+
+    data = {
+        "original_filename": "report.txt",
+        "quarter": "Q1",
+        "slug": str(uuid.uuid4()),
+        "user": user,
+        "stt": user.stt,
+        "year": 2020,
+        "section": "Active Case Data",
+    }
+
+    ReportFile.create_new_version(data)
+    assert ReportFile.objects.filter(**data).exists()
+    response = api_client.get("/v1/reports/2020/Q1/active_case_data")
+
+    assert data['slug'] == response.data['slug']
+
+>>>>>>>
