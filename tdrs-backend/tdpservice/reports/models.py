@@ -125,3 +125,50 @@ class ReportFile(File):
     stt = models.ForeignKey(
         STT, on_delete=models.CASCADE, related_name="sttRef", blank=False, null=False
     )
+
+    @classmethod
+    def create_new_version(self,data):
+
+        # EDGE CASE
+        # We may need to try to get this all in one sql query
+        # if we ever encounter race conditions.
+        version = (
+            self.find_latest_version_number(
+                year=data['year'],
+                quarter=data['quarter'],
+                section=data['section'],
+                stt=data['stt']
+            ) or 0
+        ) + 1
+
+        return ReportFile.objects.create(
+            version=version,
+            **data,)
+
+    @classmethod
+    def find_latest_version_number(self,year,quarter,section,stt):
+        return self.objects.filter(
+            stt=stt,
+            year=year,
+            quarter=quarter,
+            section=section
+        ).aggregate(Max("version"))['version__max']
+
+    @classmethod
+    def find_latest_version(self,year,quarter,section,stt):
+        version = self.find_latest_version_number(year,quarter,section,stt)
+        print("finding")
+        print(year,quarter,section,stt,version)
+        print(self.objects.filter(
+            year=year,
+            quarter=quarter,
+            section=section,
+            stt=stt,))
+
+        return self.objects.filter(
+            version=version,
+            year=year,
+            quarter=quarter,
+            section=section,
+            stt=stt,
+        )[0]
