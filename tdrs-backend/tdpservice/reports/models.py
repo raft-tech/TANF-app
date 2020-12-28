@@ -1,6 +1,7 @@
 """Define report models."""
 
 from django.db import models
+from django.db.models import Max
 
 from ..stts.models import STT
 from ..users.models import User
