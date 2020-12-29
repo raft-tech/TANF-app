@@ -15,7 +15,7 @@ def test_create_report_file_entry(api_client, user):
     data = {
         "original_filename": "report.txt",
         "quarter": "Q1",
-        "slug": uuid.uuid4(),
+        "slug": str(uuid.uuid4()),
         "user": user.id,
         "stt": user.stt.id,
         "year": 2020,
