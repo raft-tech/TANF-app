@@ -7,7 +7,7 @@ import PropTypes from 'prop-types'
  * @param {string} tabTitle - The text that you want displayed
  * on the navigation tab.
  * @param {string} href - The path for where the user should
- * be redirect on click.
+ * be redirected on click.
  */
 function NavItem({ pathname, tabTitle, href }) {
   return (

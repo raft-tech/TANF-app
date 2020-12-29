@@ -6,6 +6,7 @@ import PrivateRoute from '../PrivateRoute'
 import LoginCallback from '../LoginCallback'
 import Request from '../Request'
 import Reports from '../Reports'
+import UploadReport from '../UploadReport'
 
 /**
  * This component renders the routes for the app.
@@ -29,6 +30,13 @@ const Routes = () => {
       </PrivateRoute>
       <PrivateRoute exact title="TANF Reports" path="/reports">
         <Reports />
+      </PrivateRoute>
+      <PrivateRoute
+        exact
+        title="New TANF Report - Test Quarter, 2020"
+        path="/reports/:year/upload"
+      >
+        <UploadReport />
       </PrivateRoute>
     </Switch>
   )
