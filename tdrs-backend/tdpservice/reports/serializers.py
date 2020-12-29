@@ -9,6 +9,7 @@ from ..users.models import User
 from .models import ReportFile
 
 class PresignedUrlInputSerializer(serializers.Serializer):
+    client_method = serializers.CharField(max_length=30)
     file_name = serializers.CharField(max_length=200)
     file_type = serializers.CharField(max_length=50)
 
