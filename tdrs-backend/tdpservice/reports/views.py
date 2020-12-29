@@ -77,16 +77,15 @@ class ReportFileViewSet(
             's3',
             aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
             aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-        )
+            region_name= os.environ["AWS_REGION_NAME"])
+
         serializer = self.get_serializer(
-            request.data,
-        )
+            request.data,)
+
         return Response({
             "signed_url":s3_client.generate_presigned_url(
-            'put_object',
-            Params={
-                'Bucket': os.environ["AWS_BUCKET"],
-                # 'Region' : "us-gov-west-1",
-                'Key': serializer.data['file_name'],
-            }, ExpiresIn=500)
-        })
+                'put_object',
+                Params={
+                    'Bucket': os.environ["AWS_BUCKET"],
+                    'Key': serializer.data['file_name'],
+                }, ExpiresIn=500)})
