@@ -77,7 +77,7 @@ class ReportFileViewSet(
             'put_object',
             Params={
                 'Bucket': os.environ["AWS_BUCKET"],
-                # 'Region' : "us-gov-west-1",
                 'Key': serializer.data['file_name'],
+                'ContentType': serializer.data['file_type']
             }, ExpiresIn=500)
         })
