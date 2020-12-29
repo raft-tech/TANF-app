@@ -84,7 +84,7 @@ class ReportFileViewSet(
 
         return Response({
             "signed_url":s3_client.generate_presigned_url(
-            'put_object',
+            serializer.data['client_method'],
             Params={
                 'Bucket': os.environ["AWS_BUCKET"],
                 'Key': serializer.data['file_name'],
