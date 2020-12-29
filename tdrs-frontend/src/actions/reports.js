@@ -28,7 +28,7 @@ export const upload = ({ file, name }) => async (dispatch) => {
         },
       }
 
-      const result = await axios.post(signedURL, file, options)
+      const result = await axios.put(signedURL, file, options)
 
       console.log('RESULT', result)
       // dispatch({
