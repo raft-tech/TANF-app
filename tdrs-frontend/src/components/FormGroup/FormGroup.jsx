@@ -49,7 +49,6 @@ function FormGroup({
           onChange={({ target: { value } }) => {
             handleChange({ name, value })
           }}
-          onClick={() => console.log('formgroup was clicked')}
           onBlur={handleBlur}
         />
       </label>

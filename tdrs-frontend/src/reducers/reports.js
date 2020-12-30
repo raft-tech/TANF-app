@@ -22,22 +22,22 @@ const getUpdatedFiles = (state, file, name, error) => {
 const initialState = {
   files: [
     {
-      name: 'activeData',
+      name: 'Active Case Data',
       file: null,
       error: null,
     },
     {
-      name: 'closedData',
+      name: 'Closed Case Data',
       file: null,
       error: null,
     },
     {
-      name: 'aggregataData',
+      name: 'Aggregate Data',
       file: null,
       error: null,
     },
     {
-      name: 'stratumData',
+      name: 'Stratum Data',
       file: null,
       error: null,
     },

@@ -18,6 +18,7 @@ export const upload = ({ file, name }) => async (dispatch) => {
     const resp = await axios.post(URL, {
       file_name: file.name,
       file_type: file.type,
+      client_method: 'put_object',
     })
 
     if (resp) {

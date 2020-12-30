@@ -1,13 +1,18 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 
-function FileUpload({ file, onUpload }) {
+function FileUpload({ file, section, onUpload }) {
+  const transformName = (name) => {
+    const splitName = name.split(' ')
+    return `${splitName[0].toLowerCase()}${splitName[1]}`
+  }
+
   return (
     <div
       className={`usa-form-group ${file.error ? 'usa-form-group--error' : ''}`}
     >
       <label className="usa-label text-bold" htmlFor="activeData">
-        Section 1 - Active Case Data
+        Section {section} - {file.name}
         <div className="usa-hint" id={`${file.name}-specific-hint`}>
           Select CSV, TXT, or XLS files
         </div>
@@ -15,7 +20,7 @@ function FileUpload({ file, onUpload }) {
           {file.error && (
             <div
               className="usa-error-message"
-              id={`${file.name}-error-alert`}
+              id={`${transformName(file.name)}-error-alert`}
               role="alert"
             >
               {file.error.message}
@@ -24,11 +29,11 @@ function FileUpload({ file, onUpload }) {
         </div>
         <input
           onChange={(e) => onUpload(e)}
-          id={file.name}
+          id={transformName(file.name)}
           className="usa-file-input"
           type="file"
-          name={file.name}
-          aria-describedby={`${file.name}-specific-hint`}
+          name={transformName(file.name)}
+          aria-describedby={`${transformName(file.name)}-specific-hint`}
           accept=".csv,.txt,.xls"
           data-errormessage="We can’t process that file format. Please provide a .txt, .xls, or .csv file."
         />
@@ -46,6 +51,7 @@ FileUpload.propTypes = {
     }),
   }).isRequired,
   onUpload: PropTypes.func.isRequired,
+  section: PropTypes.string.isRequired,
 }
 
 export default FileUpload
