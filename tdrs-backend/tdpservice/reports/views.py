@@ -4,47 +4,56 @@ import os
 
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import AllowAny
-from ..users.permissions import IsUserOrReadOnly
-from .serializers import ReportFileSerializer,PresignedUrlInputSerializer
+from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import User
+
 import boto3
 from botocore.exceptions import ClientError
+
+from ..users.permissions import IsUserOrReadOnly
+from .serializers import ReportFileSerializer,PresignedUrlInputSerializer
+from .models import ReportFile
+from .models import User
 
 from rest_framework.decorators import action
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# class AuthorizationCheck(APIView):
-#     """Check if user is authorized."""
 
-#     query_string = True
-#     pattern_name = "authorization-check"
-#     permission_classes = [AllowAny] # What should I set this to?
+def to_space_case(snake_str): return ''.join(x.title()+" " for x in snake_str.split('_')).strip()
 
-#     def post(self, request, *args, **kwargs):
-#         """Handle get request and verify user is authorized."""
-#         user = request.user
-#         serializer = ReportFileSerializer(request.data)
-#         if user.is_authenticated:
-#             logger.info(
-#                 "Auth check PASS for user: %s on %s", user.username, timezone.now()
-#             )
-#             res = Response({"success":True})
-#             res['Access-Control-Allow-Headers'] = "X-CSRFToken"
-#             return res
-#         else:
-#             logger.info("Auth check FAIL for user on %s", timezone.now())
-#             return Response({"authenticated": False})
+from rest_framework.decorators import api_view, renderer_classes
+from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 
+class GetReport(APIView):
+    "Get latest version of specified report file"
+
+    query_string = False
+    pattern_name = "report"
+    permission_classes = [AllowAny]
+
+    def get(self,request,year,quarter,section):
+        print({"year":year,"quarter":quarter,"section":to_space_case(section),"stt":request.user.stt.id})
+
+        print(ReportFileSerializer(ReportFile.objects.all()[0]).data)
+
+        latest = ReportFile.find_latest_version(
+            year=year,
+            quarter=quarter,
+            section=to_space_case(section),
+            stt=request.user.stt.id)
+        print(latest)
+        serializer =   ReportFileSerializer(latest)
+        print(serializer)
+        data = serializer.data
+        return Response(data,template_name="report.json")
 
 class ReportFileViewSet(
     mixins.CreateModelMixin,
     viewsets.GenericViewSet,
 ):
     """Report file views."""
-
     queryset = User.objects.select_related("stt")
 
     def get_permissions(self):
@@ -68,13 +77,14 @@ class ReportFileViewSet(
             's3',
             aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
             aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-        )
+            region_name= os.environ["AWS_REGION_NAME"])
+
         serializer = self.get_serializer(
-            request.data,
-        )
+            request.data,)
+
         return Response({
             "signed_url":s3_client.generate_presigned_url(
-            'put_object',
+            serializer.data['client_method'],
             Params={
                 'Bucket': os.environ["AWS_BUCKET"],
                 'Key': serializer.data['file_name'],
