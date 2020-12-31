@@ -5,14 +5,14 @@ import {
   SET_YEAR,
 } from '../actions/reports'
 
-const getUpdatedFiles = (state, file, name, error) => {
+export const getUpdatedFiles = (state, fileName, section, error = null) => {
   const oldFileIndex = state.files.findIndex(
-    (currentFile) => currentFile.name === name
+    (currentFile) => currentFile.section === section
   )
   const updatedFiles = [...state.files]
   updatedFiles[oldFileIndex] = {
-    name,
-    file,
+    section,
+    fileName,
     error,
   }
 
@@ -22,23 +22,23 @@ const getUpdatedFiles = (state, file, name, error) => {
 const initialState = {
   files: [
     {
-      name: 'Active Case Data',
-      file: null,
+      section: 'Active Case Data',
+      fileName: null,
       error: null,
     },
     {
-      name: 'Closed Case Data',
-      file: null,
+      section: 'Closed Case Data',
+      fileName: null,
       error: null,
     },
     {
-      name: 'Aggregate Data',
-      file: null,
+      section: 'Aggregate Data',
+      fileName: null,
       error: null,
     },
     {
-      name: 'Stratum Data',
-      file: null,
+      section: 'Stratum Data',
+      fileName: null,
       error: null,
     },
   ],
@@ -49,18 +49,18 @@ const reports = (state = initialState, action) => {
   const { type, payload = {} } = action
   switch (type) {
     case SET_FILE: {
-      const { file, name } = payload
-      const updatedFiles = getUpdatedFiles(state, file, name)
+      const { fileName, section } = payload
+      const updatedFiles = getUpdatedFiles(state, fileName, section)
       return { ...state, files: updatedFiles }
     }
     case SET_FILE_ERROR: {
-      const { error, name } = payload
-      const updatedFiles = getUpdatedFiles(state, null, name, error)
+      const { error, section } = payload
+      const updatedFiles = getUpdatedFiles(state, null, section, error)
       return { ...initialState, files: updatedFiles }
     }
     case CLEAR_ERROR: {
-      const { name } = payload
-      const updatedFiles = getUpdatedFiles(state, null, name, null)
+      const { section } = payload
+      const updatedFiles = getUpdatedFiles(state, null, section, null)
       return { ...state, files: updatedFiles }
     }
     case SET_YEAR: {

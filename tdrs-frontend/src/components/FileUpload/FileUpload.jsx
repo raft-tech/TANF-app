@@ -11,16 +11,16 @@ function FileUpload({ file, section, onUpload }) {
     <div
       className={`usa-form-group ${file.error ? 'usa-form-group--error' : ''}`}
     >
-      <label className="usa-label text-bold" htmlFor="activeData">
-        Section {section} - {file.name}
-        <div className="usa-hint" id={`${file.name}-specific-hint`}>
+      <label className="usa-label text-bold" htmlFor={file.section}>
+        Section {section} - {file.section}
+        <div className="usa-hint" id={`${file.section}-specific-hint`}>
           Select CSV, TXT, or XLS files
         </div>
         <div>
           {file.error && (
             <div
               className="usa-error-message"
-              id={`${transformName(file.name)}-error-alert`}
+              id={`${transformName(file.section)}-error-alert`}
               role="alert"
             >
               {file.error.message}
@@ -29,11 +29,11 @@ function FileUpload({ file, section, onUpload }) {
         </div>
         <input
           onChange={(e) => onUpload(e)}
-          id={transformName(file.name)}
+          id={transformName(file.section)}
           className="usa-file-input"
           type="file"
-          name={transformName(file.name)}
-          aria-describedby={`${transformName(file.name)}-specific-hint`}
+          name={file.section}
+          aria-describedby={`${transformName(file.section)}-specific-hint`}
           accept=".csv,.txt,.xls"
           data-errormessage="We can’t process that file format. Please provide a .txt, .xls, or .csv file."
         />
@@ -44,7 +44,7 @@ function FileUpload({ file, section, onUpload }) {
 
 FileUpload.propTypes = {
   file: PropTypes.shape({
-    name: PropTypes.string.isRequired,
+    section: PropTypes.string.isRequired,
     file: PropTypes.string,
     error: PropTypes.shape({
       message: PropTypes.string,

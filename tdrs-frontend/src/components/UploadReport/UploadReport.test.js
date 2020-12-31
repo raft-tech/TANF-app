@@ -9,26 +9,26 @@ import UploadReport from './UploadReport'
 
 describe('UploadReport', () => {
   const initialState = {
-    upload: {
+    reports: {
       files: [
         {
-          name: 'activeData',
-          file: null,
+          section: 'Active Case Data',
+          fileName: null,
           error: null,
         },
         {
-          name: 'closedData',
-          file: null,
+          section: 'Closed Case Data',
+          fileName: null,
           error: null,
         },
         {
-          name: 'aggregataData',
-          file: null,
+          section: 'Aggregate Data',
+          fileName: null,
           error: null,
         },
         {
-          name: 'stratumData',
-          file: null,
+          section: 'Stratum Data',
+          fileName: null,
           error: null,
         },
       ],
@@ -75,28 +75,28 @@ describe('UploadReport', () => {
   it('should render a div with class "usa-form-group--error" if there is an error', () => {
     const store = mockStore({
       ...initialState,
-      upload: {
+      reports: {
         files: [
           {
-            name: 'activeData',
-            file: null,
+            section: 'Active Case Data',
+            fileName: null,
             error: {
               message: 'something went wrong',
             },
           },
           {
-            name: 'closedData',
-            file: null,
+            section: 'Closed Case Data',
+            fileName: null,
             error: null,
           },
           {
-            name: 'aggregataData',
-            file: null,
+            section: 'Aggregate Data',
+            fileName: null,
             error: null,
           },
           {
-            name: 'stratumData',
-            file: null,
+            section: 'Stratum Data',
+            fileName: null,
             error: null,
           },
         ],

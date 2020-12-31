@@ -8,16 +8,23 @@ describe('actions/reports.js', () => {
   const mockStore = configureStore([thunk])
 
   it('should dispatch SET_FILE', async () => {
-    axios.post.mockImplementationOnce(() => Promise.resolve('HELLO'))
+    axios.post.mockImplementationOnce(() =>
+      Promise.resolve({ data: { signed_url: 'www.test.com' } })
+    )
 
     const store = mockStore()
 
-    await store.dispatch(upload({ file: 'HELLO', name: 'testing' }))
+    await store.dispatch(
+      upload({ file: { name: 'HELLO' }, section: 'Active Case Data' })
+    )
 
     const actions = store.getActions()
 
     expect(actions[0].type).toBe(SET_FILE)
-    expect(actions[0].payload).toStrictEqual({ file: 'HELLO', name: 'testing' })
+    expect(actions[0].payload).toStrictEqual({
+      fileName: 'HELLO',
+      section: 'Active Case Data',
+    })
   })
 
   it('should dispatch SET_FILE_ERROR when there is an error with the post', async () => {
@@ -27,14 +34,16 @@ describe('actions/reports.js', () => {
 
     const store = mockStore()
 
-    await store.dispatch(upload({ file: 'HELLO', name: 'testing' }))
+    await store.dispatch(
+      upload({ file: { name: 'HELLO' }, section: 'Active Case Data' })
+    )
 
     const actions = store.getActions()
 
     expect(actions[0].type).toBe(SET_FILE_ERROR)
     expect(actions[0].payload).toStrictEqual({
       error: Error({ message: 'something went wrong' }),
-      name: 'testing',
+      section: 'Active Case Data',
     })
   })
 })

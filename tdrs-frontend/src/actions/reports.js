@@ -4,14 +4,11 @@ export const SET_FILE = 'SET_FILE'
 export const SET_FILE_ERROR = 'SET_FILE_ERROR'
 export const CLEAR_ERROR = 'CLEAR_ERROR'
 
-export const clearError = ({ name }) => (dispatch) => {
-  dispatch({ type: CLEAR_ERROR, payload: { name } })
+export const clearError = ({ section }) => (dispatch) => {
+  dispatch({ type: CLEAR_ERROR, payload: { section } })
 }
 
-// process.env.REACT_APP_ACCESS_KEY_ID and
-// process.env.SECRET_ACCESS_KEY need to be defined in your .env.local file.
-
-export const upload = ({ file, name }) => async (dispatch) => {
+export const upload = ({ file, section }) => async (dispatch) => {
   try {
     const URL = `${process.env.REACT_APP_BACKEND_URL}/reports/signed_url/`
 
@@ -31,19 +28,18 @@ export const upload = ({ file, name }) => async (dispatch) => {
 
       const result = await axios.put(signedURL, file, options)
 
-      console.log('RESULT', result)
-      // dispatch({
-      //   type: SET_FILE,
-      //   payload: {
-      //     file,
-      //     name,
-      //   },
-      // })
+      dispatch({
+        type: SET_FILE,
+        payload: {
+          fileName: file.name,
+          section,
+        },
+      })
     } else {
-      console.log('NO RESPONSE')
+      console.log('THAT DIDN"T WORK')
     }
   } catch (error) {
-    dispatch({ type: SET_FILE_ERROR, payload: { error, name } })
+    dispatch({ type: SET_FILE_ERROR, payload: { error, section } })
     return false
   }
 

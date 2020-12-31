@@ -9,28 +9,32 @@ import FileUpload from '../FileUpload'
 function UploadReport() {
   const files = useSelector((state) => state.reports.files)
   const getFile = (fileName) => {
-    return files.find((file) => fileName === file.name)
+    return files.find((file) => fileName === file.section)
   }
   const dispatch = useDispatch()
   const uploadFiles = ({ target }) => {
-    dispatch(clearError({ name: target.name }))
-    dispatch(upload({ file: target.files[0], name: target.name }))
-      .then((resp) => resp)
-      .then((success) => {
-        if (!success) {
-          const inputTarget = target.parentNode
-          const previewHeading = inputTarget.querySelector(
-            '.usa-file-input__preview-heading'
-          )
-          const preview = inputTarget.querySelector('.usa-file-input__preview')
-          const instructions = inputTarget.querySelector(
-            '.usa-file-input__instructions'
-          )
-          inputTarget.removeChild(previewHeading)
-          inputTarget.removeChild(preview)
-          instructions.classList.remove('display-none')
-        }
+    dispatch(clearError({ section: target.name }))
+    dispatch(
+      upload({
+        file: target.files[0],
+        section: target.name,
       })
+    ).then((resp) => resp)
+    // .then((success) => {
+    //   if (!success) {
+    //     const inputTarget = target.parentNode
+    //     const previewHeading = inputTarget.querySelector(
+    //       '.usa-file-input__preview-heading'
+    //     )
+    //     const preview = inputTarget.querySelector('.usa-file-input__preview')
+    //     const instructions = inputTarget.querySelector(
+    //       '.usa-file-input__instructions'
+    //     )
+    //     inputTarget.removeChild(previewHeading)
+    //     inputTarget.removeChild(preview)
+    //     instructions.classList.remove('display-none')
+    //   }
+    // })
   }
 
   useEffect(() => {
