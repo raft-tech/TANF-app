@@ -19,22 +19,22 @@ function UploadReport() {
         file: target.files[0],
         section: target.name,
       })
-    ).then((resp) => resp)
-    // .then((success) => {
-    //   if (!success) {
-    //     const inputTarget = target.parentNode
-    //     const previewHeading = inputTarget.querySelector(
-    //       '.usa-file-input__preview-heading'
-    //     )
-    //     const preview = inputTarget.querySelector('.usa-file-input__preview')
-    //     const instructions = inputTarget.querySelector(
-    //       '.usa-file-input__instructions'
-    //     )
-    //     inputTarget.removeChild(previewHeading)
-    //     inputTarget.removeChild(preview)
-    //     instructions.classList.remove('display-none')
-    //   }
-    // })
+    ).then((success) => {
+      if (!success) {
+        const inputEl = target
+        inputEl.value = ''
+        // const inputTarget = target.parentNode
+        // const previewHeading = inputTarget.querySelector(
+        //   '.usa-file-input__preview-heading'
+        // )
+        // const instructions = inputTarget.querySelector(
+        //   '.usa-file-input__instructions'
+        // )
+
+        // inputTarget.removeChild(previewHeading)
+        // instructions.classList.remove('display-none')
+      }
+    })
   }
 
   useEffect(() => {

@@ -3,7 +3,8 @@ import thunk from 'redux-thunk'
 import { mount } from 'enzyme'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
-import { render } from '@testing-library/react'
+import { fireEvent, render } from '@testing-library/react'
+import axios from 'axios'
 
 import UploadReport from './UploadReport'
 
@@ -124,5 +125,32 @@ describe('UploadReport', () => {
     const formGroup = document.querySelector('.usa-form-group')
 
     expect(formGroup.classList.contains('usa-form-group--error')).toBeFalsy()
+  })
+
+  it('should clear input value if there is an error', () => {
+    const store = mockStore(initialState)
+    axios.post.mockImplementationOnce(() =>
+      Promise.reject(Error({ message: 'something went wrong' }))
+    )
+
+    const { container } = render(
+      <Provider store={store}>
+        <UploadReport />
+      </Provider>
+    )
+
+    const fileInput = container.querySelector('#activeCase')
+
+    const newFile = new File(['test'], 'test.txt', { type: 'text/plain' })
+    const fileList = [newFile]
+
+    fireEvent.change(fileInput, {
+      target: {
+        name: 'Active Case Data',
+        files: fileList,
+      },
+    })
+
+    expect(fileInput.value).toStrictEqual('')
   })
 })
