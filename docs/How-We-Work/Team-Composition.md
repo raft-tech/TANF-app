@@ -4,14 +4,17 @@
 
 **18F**
 * Alex Soble, 18F, consulting engineer
+* Brian Hurst, 18F, consulting engineer
 
 **Raft**
-* Patrick Asata, Raft, tech lead
+* Carlton Smith, Raft, tech lead
 * Spencer Hilvitz, Raft frontend engineer
-* Dimitri Knapp, Raft, visual designer
+* Aaron Beavers, Raft, backend engineer
+* Dmitri Knapp, Raft, visual designer
 * Shubhi Mishra, Raft, design lead + facilitator
 * Miles Reiter, Raft, user researcher
-* Carlton Smith, Raft, backend engineer
+* Jennifer Price, Raft, Sr. User Researcher
+* Romelo Nafarrete, Raft, Security SME 
 
 ## Subject Matter Experts
 **OFA Data Team**
