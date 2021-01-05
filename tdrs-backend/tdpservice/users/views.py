@@ -1,18 +1,19 @@
 """Define API views for user class."""
 import logging
-
+from django.contrib.auth.models import Group
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .models import User
-from .permissions import IsUserOrReadOnly
+from .permissions import IsAdmin, IsUserOrAdmin
 from django.utils import timezone
 from .serializers import (
     CreateUserSerializer,
     UserProfileSerializer,
     UserSerializer,
+    GroupSerializer
 )
 
 logger = logging.getLogger(__name__)
@@ -26,14 +27,15 @@ class UserViewSet(
 ):
     """User accounts viewset."""
 
-    queryset = User.objects.select_related("stt")
+    queryset = User.objects\
+        .select_related("stt")\
+        .prefetch_related("groups__permissions")
 
     def get_permissions(self):
         """Get permissions for the viewset."""
-        if self.action == "create":
-            permission_classes = [AllowAny]
-        else:
-            permission_classes = [IsUserOrReadOnly]
+        permission_classes = {"create": [AllowAny], "list": [IsAdmin]}.get(
+            self.action, [IsUserOrAdmin]
+        )
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
@@ -53,3 +55,12 @@ class UserViewSet(
             "Profile update for user: %s on %s", self.request.user, timezone.now()
         )
         return Response(serializer.data)
+
+
+class GroupViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
+    """GET for groups (roles)."""
+
+    pagination_class = None
+    queryset = Group.objects.all()
+    permission_classes = [IsAdmin]
+    serializer_class = GroupSerializer
