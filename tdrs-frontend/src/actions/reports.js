@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axiosInstance from '../axios-instance'
 
 export const SET_FILE = 'SET_FILE'
 export const SET_FILE_ERROR = 'SET_FILE_ERROR'
@@ -12,21 +12,25 @@ export const upload = ({ file, section }) => async (dispatch) => {
   try {
     const URL = `${process.env.REACT_APP_BACKEND_URL}/reports/signed_url/`
 
-    const resp = await axios.post(URL, {
-      file_name: file.name,
-      file_type: file.type,
-      client_method: 'put_object',
-    })
+    const resp = await axiosInstance.post(
+      URL,
+      {
+        file_name: file.name,
+        file_type: file.type,
+        client_method: 'put_object',
+      },
+      { withCredentials: true }
+    )
 
     if (resp) {
       const signedURL = resp.data.signed_url
       const options = {
         headers: {
-          'Content-Type': file.type,
+          'Content-Type': 'text/plain',
         },
       }
 
-      const result = await axios.put(signedURL, file, options)
+      const result = await axiosInstance.put(signedURL, file, options)
 
       dispatch({
         type: SET_FILE,
