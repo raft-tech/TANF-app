@@ -21,10 +21,8 @@ class ReportFileViewSet(
 
     def get_permissions(self):
         """Get permissions for the viewset."""
-        if self.action == "create":
-            permission_classes = [AllowAny]
-        else:
-            permission_classes = [IsUserOrReadOnly]
+        permission_classes = {"create":[IsOFA]}.get(
+            self.action)
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
