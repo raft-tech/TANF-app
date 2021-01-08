@@ -4,6 +4,7 @@ from rest_framework.test import APIClient
 
 from tdpservice.users.test.factories import UserFactory
 from tdpservice.stts.test.factories import STTFactory, RegionFactory
+from django.contrib.auth.models import Group
 
 
 @pytest.fixture(scope="function")
@@ -17,6 +18,18 @@ def user():
     """Return a basic, non-admin user."""
     return UserFactory.create()
 
+
+@pytest.fixture
+def ofa_admin():
+    return UserFactory.create(groups=(Group.objects.get(name="OFA Admin"),))
+
+@pytest.fixture
+def ofa_analyst():
+    return UserFactory.create(groups=(Group.objects.get(name="OFA Analyst"),))
+
+@pytest.fixture
+def data_prepper():
+    return UserFactory.create(groups=(Group.objects.get(name="Data Prepper"),))
 
 @pytest.fixture
 def stt():
