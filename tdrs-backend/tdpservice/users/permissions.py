@@ -29,3 +29,32 @@ class IsAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         """Check if a user is admin or superuser."""
         return request.user.is_authenticated and request.user.is_admin
+
+
+class IsOFAAnalyst(permissions.BasePermission):
+    """Permission for OFA Analyst only views."""
+
+    def has_permission(self, request, view):
+        """Check if a user is a data analyst."""
+        return is_in_group(request.user,"OFA Analyst")
+
+
+class IsOFAAdmin(permissions.BasePermission):
+    """Permission for OFA Analyst only views."""
+
+    def has_permission(self, request, view):
+        """Check if a user is a OFA Admin."""
+        return is_in_group(request.user,"OFA Admin")
+
+class IsDataPrepper(permissions.BasePermission):
+    """Permission for Data Prepper only views."""
+
+    def has_permission(self, request, view):
+        """Check if a user is a data prepper."""
+        return is_in_group(request.user,"Data Prepper")
+
+class IsOFA(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+        """Check if a user is a data prepper."""
+        return is_in_group(request.user,"OFA Analyst") or is_in_group(request.user,"OFA Admin")
