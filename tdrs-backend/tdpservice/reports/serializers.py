@@ -43,10 +43,7 @@ class ReportFileSerializer(serializers.ModelSerializer):
         if latest_report["version__max"] is not None:
             version = latest_report["version__max"] + 1
 
-        return ReportFile.objects.create(
-            version=version,
-            **validated_data,
-        )
+        return ReportFile.objects.create(version=version, **validated_data,)
         # I think I should have this here?
 
     def update():

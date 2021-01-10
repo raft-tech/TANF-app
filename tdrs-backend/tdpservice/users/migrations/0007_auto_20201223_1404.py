@@ -6,9 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0006_auto_20201117_1717'),
+        ("users", "0006_auto_20201117_1717"),
     ]
 
-    operations = [
-        migrations.RenameField('User', 'requested_roles', 'roles')
-    ]
+    operations = [migrations.RenameField("User", "requested_roles", "roles")]

@@ -69,6 +69,7 @@ def test_report_file_version_increment(api_client, ofa_admin):
     assert response2.status_code == status.HTTP_201_CREATED
     assert response2.data["slug"] == data2["slug"]
 
+
 @pytest.mark.django_db
 def test_reports_permission(api_client, data_prepper):
     """Test report file metadata registry."""

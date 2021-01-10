@@ -13,15 +13,15 @@ class UserForm(forms.ModelForm):
         """Define customizations."""
 
         model = User
-        exclude = ['password', 'is_staff', 'is_superuser', 'user_permissions']
-        readonly_fields = ['last_login', 'date_joined']
+        exclude = ["password", "is_staff", "is_superuser", "user_permissions"]
+        readonly_fields = ["last_login", "date_joined"]
 
 
 class UserAdmin(admin.ModelAdmin):
     """Customize the user admin functions."""
 
-    exclude = ['password', 'is_staff', 'is_superuser', 'user_permissions']
-    readonly_fields = ['last_login', 'date_joined']
+    exclude = ["password", "is_staff", "is_superuser", "user_permissions"]
+    readonly_fields = ["last_login", "date_joined"]
     form = UserForm
 
 

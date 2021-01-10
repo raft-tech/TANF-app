@@ -3,6 +3,7 @@
 from rest_framework import permissions
 from django.contrib.auth.models import Group
 
+
 def is_in_group(user, group_name):
     """
     Takes a user and a group name, and returns `True` if the user is in that group.
@@ -11,6 +12,7 @@ def is_in_group(user, group_name):
         return Group.objects.get(name=group_name).user_set.filter(id=user.id).exists()
     except Group.DoesNotExist:
         return None
+
 
 # Is Owner or admin?
 class IsUserOrAdmin(permissions.BasePermission):
@@ -36,7 +38,7 @@ class IsOFAAnalyst(permissions.BasePermission):
 
     def has_permission(self, request, view):
         """Check if a user is a data analyst."""
-        return is_in_group(request.user,"OFA Analyst")
+        return is_in_group(request.user, "OFA Analyst")
 
 
 class IsOFAAdmin(permissions.BasePermission):
@@ -44,17 +46,20 @@ class IsOFAAdmin(permissions.BasePermission):
 
     def has_permission(self, request, view):
         """Check if a user is a OFA Admin."""
-        return is_in_group(request.user,"OFA Admin")
+        return is_in_group(request.user, "OFA Admin")
+
 
 class IsDataPrepper(permissions.BasePermission):
     """Permission for Data Prepper only views."""
 
     def has_permission(self, request, view):
         """Check if a user is a data prepper."""
-        return is_in_group(request.user,"Data Prepper")
+        return is_in_group(request.user, "Data Prepper")
+
 
 class IsOFA(permissions.BasePermission):
-
     def has_permission(self, request, view):
         """Check if a user is a data prepper."""
-        return is_in_group(request.user,"OFA Analyst") or is_in_group(request.user,"OFA Admin")
+        return is_in_group(request.user, "OFA Analyst") or is_in_group(
+            request.user, "OFA Admin"
+        )

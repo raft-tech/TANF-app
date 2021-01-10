@@ -13,7 +13,7 @@ from .serializers import (
     CreateUserSerializer,
     UserProfileSerializer,
     UserSerializer,
-    GroupSerializer
+    GroupSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -27,9 +27,9 @@ class UserViewSet(
 ):
     """User accounts viewset."""
 
-    queryset = User.objects\
-        .select_related("stt")\
-        .prefetch_related("groups__permissions")
+    queryset = User.objects.select_related("stt").prefetch_related(
+        "groups__permissions"
+    )
 
     def get_permissions(self):
         """Get permissions for the viewset."""
