@@ -5,9 +5,7 @@ from django.contrib.auth.models import Group
 
 
 def is_in_group(user, group_name):
-    """
-    Takes a user and a group name, and returns `True` if the user is in that group.
-    """
+    """Take a user and a group name, and returns `True` if the user is in that group."""
     try:
         return Group.objects.get(name=group_name).user_set.filter(id=user.id).exists()
     except Group.DoesNotExist:
@@ -58,6 +56,8 @@ class IsDataPrepper(permissions.BasePermission):
 
 
 class IsOFA(permissions.BasePermission):
+    """Permission for any member of OFA."""
+
     def has_permission(self, request, view):
         """Check if a user is a data prepper."""
         return is_in_group(request.user, "OFA Analyst") or is_in_group(

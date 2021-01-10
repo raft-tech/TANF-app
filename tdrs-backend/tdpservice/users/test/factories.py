@@ -31,6 +31,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
     @factory.post_generation
     def groups(self, create, extracted, **kwargs):
+        """Add groups to user instance."""
         if not create:
             return
 

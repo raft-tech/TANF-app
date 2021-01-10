@@ -2,9 +2,8 @@
 import logging
 
 from rest_framework import mixins, viewsets
-from rest_framework.permissions import AllowAny
 
-from ..users.permissions import IsOFAAnalyst, IsOFAAdmin, IsUserOrAdmin, IsOFA
+from ..users.permissions import IsOFA
 from .models import User
 from .serializers import ReportFileSerializer
 
@@ -26,4 +25,4 @@ class ReportFileViewSet(
 
     def get_serializer_class(self):
         """Return the serializer class."""
-        return {"create": ReportFileSerializer,}.get(self.action, ReportFileSerializer)
+        return {"create": ReportFileSerializer, }.get(self.action, ReportFileSerializer)

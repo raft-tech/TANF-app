@@ -21,16 +21,19 @@ def user():
 
 @pytest.fixture
 def ofa_admin():
+    """Return an ofa admin user."""
     return UserFactory.create(groups=(Group.objects.get(name="OFA Admin"),))
 
 
 @pytest.fixture
 def ofa_analyst():
+    """Return an OFA Analyst user."""
     return UserFactory.create(groups=(Group.objects.get(name="OFA Analyst"),))
 
 
 @pytest.fixture
 def data_prepper():
+    """Return a data prepper user."""
     return UserFactory.create(groups=(Group.objects.get(name="Data Prepper"),))
 
 
