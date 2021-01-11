@@ -28,6 +28,7 @@ Parameters:
 *Note:*
 
 - Authorization Protected 
+- Only OFA admin and OFA analyst roles can access this end point.
 
 **Response**:
 
