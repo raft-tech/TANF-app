@@ -20,9 +20,10 @@ urlpatterns = [
     path("", include("tdpservice.users.urls")),
     path("stts/", include("tdpservice.stts.urls")),
     path("reports/", include("tdpservice.reports.urls")),
-    # the 'api-root' from django rest-frameworks default router
     # http://www.django-rest-framework.org/api-guide/routers/#defaultrouter
-    re_path(r"^$", RedirectView.as_view(url=reverse_lazy("api-root"), permanent=False)),
+    re_path(
+        r"^$", RedirectView.as_view(url=reverse_lazy("test_api-root"), permanent=False)
+    ),
 ]
 
 # Add 'prefix' to all urlpatterns to make it easier to version/group endpoints
