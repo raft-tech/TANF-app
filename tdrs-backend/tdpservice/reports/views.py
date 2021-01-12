@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from ..users.permissions import IsOFA
 import boto3
 from botocore.exceptions import ClientError
 
@@ -50,18 +51,14 @@ class GetReport(APIView):
         return Response(data,template_name="report.json")
 
 class ReportFileViewSet(
-    mixins.CreateModelMixin,
-    viewsets.GenericViewSet,
+    mixins.CreateModelMixin, viewsets.GenericViewSet,
 ):
     """Report file views."""
     queryset = User.objects.select_related("stt")
 
     def get_permissions(self):
         """Get permissions for the viewset."""
-        if self.action == "create":
-            permission_classes = [AllowAny]
-        else:
-            permission_classes = [IsUserOrReadOnly]
+        permission_classes = {"create": [IsOFA]}.get(self.action)
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):

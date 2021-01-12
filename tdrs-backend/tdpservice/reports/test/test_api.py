@@ -9,8 +9,9 @@ from ..models import ReportFile
 
 # Create your tests here.
 @pytest.mark.django_db
-def test_create_report_file_entry(api_client, user):
+def test_create_report_file_entry(api_client, ofa_admin):
     """Test report file metadata registry."""
+    user = ofa_admin
     api_client.login(username=user.username, password="test_password")
     data = {
         "original_filename": "report.txt",
@@ -23,8 +24,8 @@ def test_create_report_file_entry(api_client, user):
     }
     response = api_client.post("/v1/reports/", data)
     # assert response.data == {}
-    assert response.data["slug"] == str(data["slug"])
     assert response.status_code == status.HTTP_201_CREATED
+    assert response.data["slug"] == str(data["slug"])
 
     assert ReportFile.objects.filter(
         slug=data["slug"],
@@ -36,8 +37,9 @@ def test_create_report_file_entry(api_client, user):
 
 
 @pytest.mark.django_db
-def test_report_file_version_increment(api_client, user):
+def test_report_file_version_increment(api_client, ofa_admin):
     """Test that report file version numbers increment."""
+    user = ofa_admin
     api_client.login(username=user.username, password="test_password")
     data1 = {
         "original_filename": "report.txt",
@@ -66,6 +68,24 @@ def test_report_file_version_increment(api_client, user):
 
     assert response2.status_code == status.HTTP_201_CREATED
     assert response2.data["slug"] == data2["slug"]
+
+
+@pytest.mark.django_db
+def test_reports_permission(api_client, data_prepper):
+    """Test report file metadata registry."""
+    user = data_prepper
+    api_client.login(username=user.username, password="test_password")
+    data = {
+        "original_filename": "report.txt",
+        "quarter": "Q1",
+        "slug": uuid.uuid4(),
+        "user": user.id,
+        "stt": user.stt.id,
+        "year": 2020,
+        "section": "Active Case Data",
+    }
+    response = api_client.post("/v1/reports/", data)
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
 @pytest.mark.django_db
 def test_s3_signed_url(api_client, user):
