@@ -77,7 +77,7 @@ class ReportFileViewSet(
             's3',
             aws_access_key_id=settings.AWS_S3_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_REGION_NAME
+            region_name=settings.AWS_REGION_NAME)
 
         serializer = self.get_serializer(
             request.data,)
