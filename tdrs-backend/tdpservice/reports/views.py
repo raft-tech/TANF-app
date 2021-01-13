@@ -10,7 +10,7 @@ from rest_framework.response import Response
 import boto3
 from botocore.exceptions import ClientError
 
-from ..users.permissions import IsUserOrReadOnly
+from ..users.permissions import IsUser
 from .serializers import ReportFileSerializer,PresignedUrlInputSerializer
 from .models import ReportFile
 from .models import User
@@ -61,7 +61,7 @@ class ReportFileViewSet(
         if self.action == "create":
             permission_classes = [AllowAny]
         else:
-            permission_classes = [IsUserOrReadOnly]
+            permission_classes = [IsUser]
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
