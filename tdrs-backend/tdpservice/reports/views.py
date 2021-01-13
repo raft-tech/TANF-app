@@ -2,13 +2,13 @@
 import logging
 import os
 
+from django.conf import settings
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
 import boto3
-from botocore.exceptions import ClientError
 
 from ..users.permissions import IsUser
 from .serializers import ReportFileSerializer,PresignedUrlInputSerializer
@@ -75,9 +75,9 @@ class ReportFileViewSet(
     def signed_url(self, request,pk=None):
         s3_client = boto3.client(
             's3',
-            aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
-            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-            region_name= os.environ["AWS_REGION_NAME"])
+            aws_access_key_id=settings.AWS_S3_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_REGION_NAME
 
         serializer = self.get_serializer(
             request.data,)
