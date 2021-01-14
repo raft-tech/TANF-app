@@ -4,6 +4,11 @@ from rest_framework import permissions
 from django.contrib.auth.models import Group
 
 
+def is_own_stt(request,view):
+    print(request.data)
+    print(request.user.stt.id)
+    return is_in_group(request.user, "Data Prepper") and request.user.stt.id == request.data['stt']
+
 def is_in_group(user, group_name):
     """Take a user and a group name, and returns `True` if the user is in that group."""
     try:
@@ -31,14 +36,6 @@ class IsAdmin(permissions.BasePermission):
         return request.user.is_authenticated and request.user.is_admin
 
 
-class IsOFAAnalyst(permissions.BasePermission):
-    """Permission for OFA Analyst only views."""
-
-    def has_permission(self, request, view):
-        """Check if a user is a data analyst."""
-        return is_in_group(request.user, "OFA Analyst")
-
-
 class IsOFAAdmin(permissions.BasePermission):
     """Permission for OFA Analyst only views."""
 
@@ -55,11 +52,18 @@ class IsDataPrepper(permissions.BasePermission):
         return is_in_group(request.user, "Data Prepper")
 
 
-class IsOFA(permissions.BasePermission):
-    """Permission for any member of OFA."""
+class CanUploadReport(permissions.BasePermission):
+    """
+    Permission for report uploads, allows admins to upload to any ,
+    limits a data prepper to their own STT.
+    """
+    def has_permission(self,request,view):
+        """
+        Check if a user is a data prepper or an admin, then if they
+        are a data prepper, ensures the STT is their own.
+        """
+        if is_in_group(request.user,"OFA Admin") or is_own_stt(request,view):
+            return True
+        else:
+            return False
 
-    def has_permission(self, request, view):
-        """Check if a user is a data prepper."""
-        return is_in_group(request.user, "OFA Analyst") or is_in_group(
-            request.user, "OFA Admin"
-        )
