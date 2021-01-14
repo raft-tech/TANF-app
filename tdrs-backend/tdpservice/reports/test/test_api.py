@@ -71,7 +71,7 @@ def test_report_file_version_increment(api_client, ofa_admin):
 
 
 @pytest.mark.django_db
-def test_reports_permission(api_client, data_prepper):
+def test_reports_data_prepper_permission(api_client, data_prepper):
     """Test report file metadata registry."""
     user = data_prepper
     api_client.login(username=user.username, password="test_password")
@@ -80,9 +80,31 @@ def test_reports_permission(api_client, data_prepper):
         "quarter": "Q1",
         "slug": uuid.uuid4(),
         "user": user.id,
-        "stt": user.stt.id,
+        "stt": int(user.stt.id),
         "year": 2020,
         "section": "Active Case Data",
     }
+
     response = api_client.post("/v1/reports/", data)
+    # response = api_client.post("/v1/reports/", data)
+    assert response.status_code == status.HTTP_201_CREATED
+
+
+@pytest.mark.django_db
+def test_reports_data_prepper_not_allowed(api_client, data_prepper):
+    """Test report file metadata registry."""
+    user = data_prepper
+    api_client.login(username=user.username, password="test_password")
+    data = {
+        "original_filename": "report.txt",
+        "quarter": "Q1",
+        "slug": uuid.uuid4(),
+        "user": user.id,
+        "stt": int(user.stt.id)+1,
+        "year": 2020,
+        "section": "Active Case Data",
+    }
+
+    response = api_client.post("/v1/reports/", data)
+    # response = api_client.post("/v1/reports/", data)
     assert response.status_code == status.HTTP_403_FORBIDDEN
