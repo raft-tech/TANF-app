@@ -64,9 +64,6 @@ class ReportFile(File):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="user", blank=False, null=False
     )
-    # I don't think we actually need an STT here, cause the user has an STT.
-    # I will use a serializer method to extract it from
-    # Adding the stt here
     stt = models.ForeignKey(
         STT, on_delete=models.CASCADE, related_name="sttRef", blank=False, null=False
     )
