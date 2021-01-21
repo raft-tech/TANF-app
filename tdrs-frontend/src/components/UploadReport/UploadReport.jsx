@@ -3,8 +3,9 @@ import { useDispatch, useSelector } from 'react-redux'
 import fileInput from '../../assets/uswds/file-input'
 import Button from '../Button'
 
-import { clearError, upload } from '../../actions/reports'
+import { clearError, upload, getFiles } from '../../actions/reports'
 import FileUpload from '../FileUpload'
+import axiosInstance from '../../axios-instance'
 
 function UploadReport() {
   const files = useSelector((state) => state.reports.files)
@@ -37,6 +38,27 @@ function UploadReport() {
     })
   }
 
+  const download = () => {
+    console.log('FILES', files)
+    dispatch(getFiles({ file: files[0] }))
+  }
+
+  const onSubmit = (e) => {
+    e.preventDefault()
+    const resp = axiosInstance.post(`/reports`, {
+      original_filename: 'filename',
+      slug: 'hdslajhfdaksdjflajlsdfa',
+      extension: 'txt',
+      user: 'lnsdfkldlkajdfa',
+      stt: 15,
+      year: 2020,
+      quarter: 'Q1',
+      section: 'Active Case Data',
+    })
+
+    console.log('RESP', resp)
+  }
+
   useEffect(() => {
     fileInput.init()
   }, [])
@@ -66,6 +88,9 @@ function UploadReport() {
       <div className="buttonContainer margin-y-4">
         <Button type="submit">Submit Files</Button>
         <Button type="button">Cancel</Button>
+        <Button type="button" onClick={download}>
+          Get Files
+        </Button>
       </div>
     </form>
   )

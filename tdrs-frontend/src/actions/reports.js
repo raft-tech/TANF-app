@@ -3,6 +3,24 @@ import axiosInstance from '../axios-instance'
 export const SET_FILE = 'SET_FILE'
 export const SET_FILE_ERROR = 'SET_FILE_ERROR'
 export const CLEAR_ERROR = 'CLEAR_ERROR'
+export const GET_FILE = 'GET_FILE'
+
+export const getFiles = ({ file }) => async (dispatch) => {
+  console.log('file', file)
+  try {
+    const URL = `${process.env.REACT_APP_BACKEND_URL}/reports/signed_url/`
+
+    const resp = await axiosInstance.post(URL, {
+      file_name: file.fileName,
+      file_type: 'text/plain',
+      client_method: 'get_object',
+    })
+
+    console.log('RESP', resp)
+  } catch (error) {
+    console.log('ERROR', error)
+  }
+}
 
 export const clearError = ({ section }) => (dispatch) => {
   dispatch({ type: CLEAR_ERROR, payload: { section } })
