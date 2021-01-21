@@ -6,7 +6,6 @@ export const CLEAR_ERROR = 'CLEAR_ERROR'
 export const GET_FILE = 'GET_FILE'
 
 export const getFiles = ({ file }) => async (dispatch) => {
-  console.log('file', file)
   try {
     const URL = `${process.env.REACT_APP_BACKEND_URL}/reports/signed_url/`
 
@@ -16,9 +15,10 @@ export const getFiles = ({ file }) => async (dispatch) => {
       client_method: 'get_object',
     })
 
-    console.log('RESP', resp)
+    return resp
   } catch (error) {
     console.log('ERROR', error)
+    return false
   }
 }
 

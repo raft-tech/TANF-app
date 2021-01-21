@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import fileInput from '../../assets/uswds/file-input'
 import Button from '../Button'
@@ -8,6 +8,7 @@ import FileUpload from '../FileUpload'
 import axiosInstance from '../../axios-instance'
 
 function UploadReport() {
+  const [url, setURL] = useState('')
   const files = useSelector((state) => state.reports.files)
   const getFile = (fileName) => {
     return files.find((file) => fileName === file.section)
@@ -39,25 +40,26 @@ function UploadReport() {
   }
 
   const download = () => {
-    console.log('FILES', files)
-    dispatch(getFiles({ file: files[0] }))
+    dispatch(getFiles({ file: files[0] })).then(({ data }) =>
+      setURL(data.signed_url)
+    )
   }
 
-  const onSubmit = (e) => {
-    e.preventDefault()
-    const resp = axiosInstance.post(`/reports`, {
-      original_filename: 'filename',
-      slug: 'hdslajhfdaksdjflajlsdfa',
-      extension: 'txt',
-      user: 'lnsdfkldlkajdfa',
-      stt: 15,
-      year: 2020,
-      quarter: 'Q1',
-      section: 'Active Case Data',
-    })
+  // const onSubmit = (e) => {
+  //   e.preventDefault()
+  //   const resp = axiosInstance.post(`/reports`, {
+  //     original_filename: 'filename',
+  //     slug: 'hdslajhfdaksdjflajlsdfa',
+  //     extension: 'txt',
+  //     user: 'lnsdfkldlkajdfa',
+  //     stt: 15,
+  //     year: 2020,
+  //     quarter: 'Q1',
+  //     section: 'Active Case Data',
+  //   })
 
-    console.log('RESP', resp)
-  }
+  //   console.log('RESP', resp)
+  // }
 
   useEffect(() => {
     fileInput.init()
@@ -91,6 +93,11 @@ function UploadReport() {
         <Button type="button" onClick={download}>
           Get Files
         </Button>
+        {url && (
+          <a download="new.txt" href={url}>
+            Download
+          </a>
+        )}
       </div>
     </form>
   )
