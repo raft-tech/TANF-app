@@ -26,8 +26,13 @@ export const upload = ({ file, section }) => async (dispatch) => {
       const signedURL = resp.data.signed_url
       const options = {
         headers: {
-          'Content-Type': 'text/plain',
+          // 'Access-Control-Allow-Origin': '*',
+          'Content-Type': file.type,
         },
+        // params: {
+        //   Key: file.name,
+        //   ContentType: file.type,
+        // },
       }
 
       const result = await axiosInstance.put(signedURL, file, options)
