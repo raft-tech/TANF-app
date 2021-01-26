@@ -6,6 +6,7 @@ import secrets
 import pytest
 import jwt
 import datetime
+from base64 import b64decode
 from rest_framework import status
 from django.core.exceptions import SuspiciousOperation
 from rest_framework.test import APIRequestFactory
@@ -461,14 +462,63 @@ def test_validate_nonce_and_state():
 @pytest.mark.django_db
 def test_generate_client_assertion_base64():
     """Test client assertion generation."""
-    assert generate_client_assertion(private_key=test_private_key) is not None
+    utf8_jwt_key = generate_client_assertion(private_key=test_private_key)
+
+    private_pem_key = b64decode(test_private_key).decode("utf-8")
+
+    pub_key = generate_jwt_from_jwks()
+
+    print("private key")
+    print(private_pem_key)
+
+    print("public key")
+    print(pub_key)
+
+    print("jwt")
+    print(utf8_jwt_key)
+
+    decoded_jwt = jwt.decode(
+                utf8_jwt_key,
+                key=pub_key,
+                issuer=os.environ["OIDC_OP_ISSUER"],
+                audience=os.environ["CLIENT_ID"],
+                algorithm="RS256",
+                subject=None,
+                access_token=None,
+                options={"verify_nbf": False},
+            )
+    #jwt.decode(utf8_jwt_key,pub_key,algorithim=["RS256"])
+
+    assert "iss" in decoded_jwt
+    assert "aud" in decoded_jwt
+    assert "sub" in decoded_jwt
+    assert "jti" in decoded_jwt
+    assert "exp" in decoded_jwt
 
 @pytest.mark.django_db
 def test_generate_client_assertion_pem():
     """Test client assertion generation."""
-    from base64 import b64decode
-    utf8_jwt_key = generate_client_assertion(private_key = b64decode(test_private_key).decode("utf-8"))
-    assert utf8_jwt_key is not None
+    private_pem_key = b64decode(test_private_key).decode("utf-8")
+    utf8_jwt_key = generate_client_assertion(private_key = private_pem_key)
+    print("private key")
+    print(private_pem_key)
+
+    pub_key = generate_jwt_from_jwks()
+
+    print("public key")
+    print(pub_key)
+
+    print("jwt")
+    print(utf8_jwt_key)
+
+
+    decoded_jwt = jwt.decode(utf8_jwt_key,pub_key,algorithim=["RS256"])
+    assert "iss" in decoded_jwt
+    assert "aud" in decoded_jwt
+    assert "sub" in decoded_jwt
+    assert "jti" in decoded_jwt
+    assert "exp" in decoded_jwt
+
 
 
 @pytest.mark.django_db
