@@ -26,18 +26,11 @@ export const upload = ({ file, section }) => async (dispatch) => {
       const signedURL = resp.data.signed_url
       const options = {
         headers: {
-          // 'Access-Control-Allow-Origin': '*',
           'Content-Type': file.type,
         },
-        // params: {
-        //   Key: file.name,
-        //   ContentType: file.type,
-        // },
       }
 
-      const result = await axiosInstance.put(signedURL, file, options)
-
-      console.log('RESULT', result)
+      await axiosInstance.put(signedURL, file, options)
 
       dispatch({
         type: SET_FILE,
@@ -50,6 +43,7 @@ export const upload = ({ file, section }) => async (dispatch) => {
       console.log('THAT DIDN"T WORK')
     }
   } catch (error) {
+    console.log('ERROR', error)
     dispatch({ type: SET_FILE_ERROR, payload: { error, section } })
     return false
   }
