@@ -16,7 +16,7 @@ def test_create_report_file_entry(api_client, ofa_admin):
     data = {
         "original_filename": "report.txt",
         "quarter": "Q1",
-        "slug": uuid.uuid4(),
+        "slug": str(uuid.uuid4()),
         "user": user.id,
         "stt": user.stt.id,
         "year": 2020,
@@ -69,6 +69,17 @@ def test_report_file_version_increment(api_client, ofa_admin):
     assert response2.status_code == status.HTTP_201_CREATED
     assert response2.data["slug"] == data2["slug"]
 
+@pytest.mark.django_db
+def test_s3_signed_url(api_client, user):
+    api_client.login(username=user.username, password="test_password")
+    response = api_client.post("/v1/reports/signed_url/", {
+        "file_name":"test.txt",
+        "file_type":"plain/text",
+    })
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data == {}
+    assert response.data['signed_url']
 
 @pytest.mark.django_db
 def test_reports_data_prepper_permission(api_client, data_prepper):
