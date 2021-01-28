@@ -55,6 +55,8 @@ export const upload = ({ file, section }) => async (dispatch) => {
 
       const result = await axiosInstance.put(signedURL, file, options)
 
+      console.log('RESULT', result)
+
       dispatch({
         type: SET_FILE,
         payload: {

@@ -62,10 +62,6 @@ class Common(Configuration):
     if "VCAP_SERVICES" in os.environ:  # pragma: nocover
         servicejson = os.environ["VCAP_SERVICES"]
         services = json.loads(servicejson)
-        AWS_STORAGE_BUCKET_NAME = services["s3"][0]["credentials"]["bucket"]
-        AWS_S3_REGION_NAME = services["s3"][0]["credentials"]["region"]
-        AWS_ACCESS_KEY_ID = services["s3"][0]["credentials"]["access_key_id"]
-        AWS_SECRET_ACCESS_KEY = services["s3"][0]["credentials"]["secret_access_key"]
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.postgresql",
