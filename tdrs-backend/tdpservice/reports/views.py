@@ -1,11 +1,14 @@
 """Check if user is authorized."""
 import logging
+import os
 
 from rest_framework import mixins, viewsets
-
+import boto3
 from ..users.permissions import CanUploadReport
+from .serializers import ReportFileSerializer,PresignedUrlInputSerializer
 from .models import User
-from .serializers import ReportFileSerializer
+
+from rest_framework.decorators import action
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -24,4 +27,26 @@ class ReportFileViewSet(
 
     def get_serializer_class(self):
         """Return the serializer class."""
-        return {"create": ReportFileSerializer, }.get(self.action, ReportFileSerializer)
+        return {
+            "create": ReportFileSerializer,
+            "signed_url":PresignedUrlInputSerializer,
+        }.get(self.action, ReportFileSerializer)
+
+    @action(methods=["POST"], detail=False)
+    def signed_url(self, request,pk=None):
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+            region_name= os.environ["AWS_REGION_NAME"])
+
+        serializer = self.get_serializer(
+            request.data,)
+
+        return Response({
+            "signed_url":s3_client.generate_presigned_url(
+                'put_object',
+                Params={
+                    'Bucket': os.environ["AWS_BUCKET"],
+                    'Key': serializer.data['file_name'],
+                }, ExpiresIn=500)})
