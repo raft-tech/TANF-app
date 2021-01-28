@@ -6,12 +6,13 @@ export const CLEAR_ERROR = 'CLEAR_ERROR'
 export const GET_FILE = 'GET_FILE'
 
 export const getFiles = ({ file }) => async (dispatch) => {
+  console.log('FILE', file)
   try {
     const URL = `${process.env.REACT_APP_BACKEND_URL}/reports/signed_url/`
 
     const resp = await axiosInstance.post(URL, {
       file_name: file.fileName,
-      file_type: 'text/plain',
+      file_type: file.fileType,
       client_method: 'get_object',
     })
 
@@ -54,6 +55,7 @@ export const upload = ({ file, section }) => async (dispatch) => {
         type: SET_FILE,
         payload: {
           fileName: file.name,
+          fileType: file.type,
           section,
         },
       })
