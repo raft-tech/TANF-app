@@ -25,7 +25,7 @@ class Common(Configuration):
         "rest_framework",  # Utilities for rest apis
         "rest_framework.authtoken",  # Token authentication
         "django_filters",
-        'django_admin_logs',  # logs for admin site
+        "django_admin_logs",  # logs for admin site
         "corsheaders",
         "django_extensions",
         # Local apps
