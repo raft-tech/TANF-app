@@ -6,6 +6,11 @@ from urllib.parse import quote_plus, urlencode
 
 from django.http import HttpResponseRedirect
 from django.views.generic.base import RedirectView
+from django.utils import timezone
+
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 class LogoutRedirectOIDC(RedirectView):
@@ -29,6 +34,12 @@ class LogoutRedirectOIDC(RedirectView):
 
     def get(self, request, *args, **kwargs):
         """Manage logout requests with login.gov."""
+
+        if request.GET['is_timeout'] == 1:
+            logger.info(
+                "Session timedout for user: %s on %s", request.user, timezone.now()
+            )
+
         # generate a random secured hex string for the state parameter
         state = secrets.token_hex(32)
 
