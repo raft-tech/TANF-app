@@ -21,6 +21,7 @@ class File(models.Model):
                                          blank=False,
                                          null=False)
 
+    slug = models.CharField(max_length=256, blank=False, null=False)
     extension = models.CharField(max_length=8, default="txt")
 
 

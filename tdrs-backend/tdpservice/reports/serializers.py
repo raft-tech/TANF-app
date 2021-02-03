@@ -22,6 +22,7 @@ class ReportFileSerializer(serializers.ModelSerializer):
         model = ReportFile
         fields = [
             "original_filename",
+            "slug",
             "extension",
             "user",
             "stt",
