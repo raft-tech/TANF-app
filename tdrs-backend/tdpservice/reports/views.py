@@ -30,18 +30,12 @@ class GetReport(APIView):
     permission_classes = [AllowAny]
 
     def get(self,request,year,quarter,section):
-        print({"year":year,"quarter":quarter,"section":to_space_case(section),"stt":request.user.stt.id})
-
-        print(ReportFileSerializer(ReportFile.objects.all()[0]).data)
-
         latest = ReportFile.find_latest_version(
             year=year,
             quarter=quarter,
             section=to_space_case(section),
             stt=request.user.stt.id)
-        print(latest)
         serializer =   ReportFileSerializer(latest)
-        print(serializer)
         data = serializer.data
         return Response(data,template_name="report.json")
 
