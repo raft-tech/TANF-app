@@ -17,7 +17,9 @@ class File(models.Model):
 
         abstract = True
 
-    original_filename = models.CharField(max_length=256, blank=False, null=False)
+    original_filename = models.CharField(max_length=256,
+                                         blank=False,
+                                         null=False)
 
     slug = models.CharField(max_length=256, blank=False, null=False)
     extension = models.CharField(max_length=8, default="txt")
@@ -52,119 +54,58 @@ class ReportFile(File):
             )
         ]
 
-    quarter = models.CharField(
-        max_length=16, blank=False, null=False, choices=Quarter.choices
-    )
+    quarter = models.CharField(max_length=16,
+                               blank=False,
+                               null=False,
+                               choices=Quarter.choices)
     year = models.CharField(max_length=16, blank=False, null=False)
-    section = models.CharField(
-        max_length=32, blank=False, null=False, choices=Section.choices
-    )
+    section = models.CharField(max_length=32,
+                               blank=False,
+                               null=False,
+                               choices=Section.choices)
 
     version = models.IntegerField()
 
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="user", blank=False, null=False
-    )
-    stt = models.ForeignKey(
-        STT, on_delete=models.CASCADE, related_name="sttRef", blank=False, null=False
-    )
-    slug = models.CharField(
-        unique=True,
-        max_length=256,
-        blank = False,
-        null= False
-    )
-    extension = models.CharField(
-        max_length=8,
-        default="txt"
-    )
-class ReportFile(File):
-    """Represents a version of a report file."""
-
-    class Section(models.TextChoices):
-        """Enum for report section."""
-
-        ACTIVE_CASE_DATA = "Active Case Data"
-        CLOSE_CASE_DATA = "Close Case Data"
-        AGGREGATE_DATA = "Aggregate Data"
-        STRATUM_DATA = "Stratum Data"
-
-    class Quarter(models.TextChoices):
-        """Enum for report Quarter"""
-
-        Q1 = "Q1"
-        Q2 = "Q2"
-        Q3 = "Q3"
-        Q4 = "Q4"
-
-    class Meta:
-        """Metadata."""
-
-        constraints = [
-            models.UniqueConstraint(
-                fields=("section", "version", "quarter", "year", "stt"),
-                name="constraint_name",
-            )
-        ]
-
-    quarter = models.CharField(
-        max_length=16, blank=False, null=False, choices=Quarter.choices
-    )
-    year = models.CharField(max_length=16, blank=False, null=False)
-    section = models.CharField(
-        max_length=32, blank=False, null=False, choices=Section.choices
-    )
-
-    version = models.IntegerField()
-
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="user", blank=False, null=False
-    )
-    # I don't think we actually need an STT here, cause the user has an STT.
-    # I will use a serializer method to extract it from
-    # Adding the stt here
-    stt = models.ForeignKey(
-        STT, on_delete=models.CASCADE, related_name="sttRef", blank=False, null=False
-    )
+    user = models.ForeignKey(User,
+                             on_delete=models.CASCADE,
+                             related_name="user",
+                             blank=False,
+                             null=False)
+    stt = models.ForeignKey(STT,
+                            on_delete=models.CASCADE,
+                            related_name="sttRef",
+                            blank=False,
+                            null=False)
 
     @classmethod
-    def create_new_version(self,data):
-
+    def create_new_version(self, data):
+        """Create a new version of a report with an incremented version."""
         # EDGE CASE
         # We may need to try to get this all in one sql query
         # if we ever encounter race conditions.
-        version = (
-            self.find_latest_version_number(
-                year=data['year'],
-                quarter=data['quarter'],
-                section=data['section'],
-                stt=data['stt']
-            ) or 0
-        ) + 1
+        version = (self.find_latest_version_number(year=data['year'],
+                                                   quarter=data['quarter'],
+                                                   section=data['section'],
+                                                   stt=data['stt']) or 0) + 1
 
         return ReportFile.objects.create(
             version=version,
-            **data,)
+            **data,
+        )
 
     @classmethod
-    def find_latest_version_number(self,year,quarter,section,stt):
-        return self.objects.filter(
-            stt=stt,
-            year=year,
-            quarter=quarter,
-            section=section
-        ).aggregate(Max("version"))['version__max']
+    def find_latest_version_number(self, year, quarter, section, stt):
+        """Locate the latest version number in a series of report files."""
+        return self.objects.filter(stt=stt,
+                                   year=year,
+                                   quarter=quarter,
+                                   section=section).aggregate(
+                                       Max("version"))['version__max']
 
     @classmethod
-    def find_latest_version(self,year,quarter,section,stt):
-        version = self.find_latest_version_number(year,quarter,section,stt)
-        print("finding")
-        print(year,quarter,section,stt,version)
-        print(self.objects.filter(
-            year=year,
-            quarter=quarter,
-            section=section,
-            stt=stt,))
+    def find_latest_version(self, year, quarter, section, stt):
+        """Locate the latest version of a report."""
+        version = self.find_latest_version_number(year, quarter, section, stt)
 
         return self.objects.filter(
             version=version,
