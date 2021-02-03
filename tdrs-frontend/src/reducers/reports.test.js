@@ -13,21 +13,25 @@ describe('reducers/reports', () => {
         {
           section: 'Active Case Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Closed Case Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Aggregate Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Stratum Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
       ],
@@ -41,6 +45,7 @@ describe('reducers/reports', () => {
         type: SET_FILE,
         payload: {
           fileName: 'Test.txt',
+          fileType: 'text/plain',
           section: 'Stratum Data',
         },
       })
@@ -49,21 +54,25 @@ describe('reducers/reports', () => {
         {
           section: 'Active Case Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Closed Case Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Aggregate Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Stratum Data',
           fileName: 'Test.txt',
+          fileType: 'text/plain',
           error: null,
         },
       ],
@@ -86,21 +95,25 @@ describe('reducers/reports', () => {
         {
           section: 'Active Case Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Closed Case Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Aggregate Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Stratum Data',
           fileName: null,
+          fileType: null,
           error: fakeError,
         },
       ],
@@ -117,21 +130,25 @@ describe('reducers/reports', () => {
             {
               section: 'Active Case Data',
               fileName: null,
+              fileType: null,
               error: null,
             },
             {
               section: 'Closed Case Data',
               fileName: null,
+              fileType: null,
               error: null,
             },
             {
               section: 'Aggregate Data',
               fileName: null,
+              fileType: null,
               error: null,
             },
             {
               section: 'Stratum Data',
               fileName: null,
+              fileType: null,
               error: fakeError,
             },
           ],
@@ -149,21 +166,25 @@ describe('reducers/reports', () => {
         {
           section: 'Active Case Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Closed Case Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Aggregate Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Stratum Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
       ],
@@ -184,21 +205,25 @@ describe('reducers/reports', () => {
         {
           section: 'Active Case Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Closed Case Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Aggregate Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Stratum Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
       ],
@@ -212,48 +237,61 @@ describe('reducers/reports', () => {
         {
           section: 'Active Case Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Closed Case Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Aggregate Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
         {
           section: 'Stratum Data',
           fileName: null,
+          fileType: null,
           error: null,
         },
       ],
       year: 2020,
     }
 
-    const updatedFiles = getUpdatedFiles(state, 'Test.txt', 'Active Case Data')
+    const updatedFiles = getUpdatedFiles(
+      state,
+      'Test.txt',
+      'text/plain',
+      'Active Case Data'
+    )
 
     expect(updatedFiles).toStrictEqual([
       {
         section: 'Active Case Data',
         fileName: 'Test.txt',
+        fileType: 'text/plain',
         error: null,
       },
       {
         section: 'Closed Case Data',
         fileName: null,
+        fileType: null,
         error: null,
       },
       {
         section: 'Aggregate Data',
         fileName: null,
+        fileType: null,
         error: null,
       },
       {
         section: 'Stratum Data',
         fileName: null,
+        fileType: null,
         error: null,
       },
     ])

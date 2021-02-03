@@ -10,25 +10,30 @@ import UploadReport from './UploadReport'
 
 describe('UploadReport', () => {
   const initialState = {
+    auth: { user: { email: 'test@test.com' }, authenticated: true },
     reports: {
       files: [
         {
           section: 'Active Case Data',
+          fileType: null,
           fileName: null,
           error: null,
         },
         {
           section: 'Closed Case Data',
+          fileType: null,
           fileName: null,
           error: null,
         },
         {
           section: 'Aggregate Data',
+          fileType: null,
           fileName: null,
           error: null,
         },
         {
           section: 'Stratum Data',
+          fileType: null,
           fileName: null,
           error: null,
         },
@@ -81,6 +86,7 @@ describe('UploadReport', () => {
           {
             section: 'Active Case Data',
             fileName: null,
+            fileType: null,
             error: {
               message: 'something went wrong',
             },
@@ -88,16 +94,19 @@ describe('UploadReport', () => {
           {
             section: 'Closed Case Data',
             fileName: null,
+            fileType: null,
             error: null,
           },
           {
             section: 'Aggregate Data',
             fileName: null,
+            fileType: null,
             error: null,
           },
           {
             section: 'Stratum Data',
             fileName: null,
+            fileType: null,
             error: null,
           },
         ],

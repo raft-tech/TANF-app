@@ -15,7 +15,10 @@ describe('actions/reports.js', () => {
     const store = mockStore()
 
     await store.dispatch(
-      upload({ file: { name: 'HELLO' }, section: 'Active Case Data' })
+      upload({
+        file: { name: 'HELLO', type: 'text/plain' },
+        section: 'Active Case Data',
+      })
     )
 
     const actions = store.getActions()
@@ -23,6 +26,7 @@ describe('actions/reports.js', () => {
     expect(actions[0].type).toBe(SET_FILE)
     expect(actions[0].payload).toStrictEqual({
       fileName: 'HELLO',
+      fileType: 'text/plain',
       section: 'Active Case Data',
     })
   })
@@ -35,7 +39,10 @@ describe('actions/reports.js', () => {
     const store = mockStore()
 
     await store.dispatch(
-      upload({ file: { name: 'HELLO' }, section: 'Active Case Data' })
+      upload({
+        file: { name: 'HELLO', type: 'text/plain' },
+        section: 'Active Case Data',
+      })
     )
 
     const actions = store.getActions()
