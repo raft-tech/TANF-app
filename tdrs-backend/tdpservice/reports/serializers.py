@@ -1,10 +1,6 @@
 """Serialize stt data."""
 
-from django.db.models import Max
-
 from rest_framework import serializers
-from django.db.models import Max
-
 from ..stts.models import STT
 from ..users.models import User
 from .models import ReportFile
@@ -34,7 +30,6 @@ class ReportFileSerializer(serializers.ModelSerializer):
             "quarter",
             "section",
         ]
-
 
     def create(self, validated_data):
         """Create a new entry with a new version number."""
