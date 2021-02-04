@@ -3,11 +3,12 @@
 from rest_framework import permissions
 from django.contrib.auth.models import Group
 
+def kwargs_or_data(request,view,key): return view.kwargs.get(key,request.data.get(key))
 
 def is_own_stt(request, view):
     """Verify user belongs to requested STT."""
     return is_in_group(request.user, "Data Prepper") and (
-        request.user.stt.id == request.data['stt']
+        request.user.stt.id == kwargs_or_data(request,view,'stt')
     )
 
 def is_in_group(user, group_name):
@@ -51,6 +52,19 @@ class IsDataPrepper(permissions.BasePermission):
     def has_permission(self, request, view):
         """Check if a user is a data prepper."""
         return is_in_group(request.user, "Data Prepper")
+
+
+class CanDownloadReport(permissions.BasePermission):
+   """Permission for report download."""
+
+   def has_permission(self,request, view):
+        """Check if a user can download file."""
+        if is_in_group(request.user, "OFA Admin") and 'stt' in request.kwargs:
+            return True
+        elif request.user.is_authenticated:
+            return True
+        else:
+            return False
 
 
 class CanUploadReport(permissions.BasePermission):

@@ -3,10 +3,11 @@ import logging
 import os
 
 from rest_framework import mixins, viewsets
+from rest_framework.views import APIView
+from rest_framework.response import Response
 import boto3
-from ..users.permissions import CanUploadReport
+from ..users.permissions import CanUploadReport, CanDownloadReport
 
-from ..users.permissions import IsUserOrReadOnly
 from .serializers import ReportFileSerializer,PresignedUrlInputSerializer
 from .models import ReportFile
 from .models import User
@@ -27,14 +28,14 @@ class GetReport(APIView):
 
     query_string = False
     pattern_name = "report"
-    permission_classes = [AllowAny]
+    permission_classes = [CanDownloadReport]
 
-    def get(self,request,year,quarter,section):
+    def get(self,request,year,quarter,section,stt=None):
         latest = ReportFile.find_latest_version(
             year=year,
             quarter=quarter,
             section=to_space_case(section),
-            stt=request.user.stt.id)
+            stt=stt or request.user.stt.id)
         serializer =   ReportFileSerializer(latest)
         data = serializer.data
         return Response(data,template_name="report.json")
