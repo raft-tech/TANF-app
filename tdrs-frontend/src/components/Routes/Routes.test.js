@@ -21,7 +21,7 @@ describe('Routes.js', () => {
         loading: false,
         user: {},
       },
-      upload: {
+      reports: {
         year: 2020,
       },
     })
@@ -45,7 +45,7 @@ describe('Routes.js', () => {
         loading: false,
         user: {},
       },
-      upload: {
+      reports: {
         year: 2020,
       },
     })

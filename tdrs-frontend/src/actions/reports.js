@@ -40,10 +40,9 @@ export const upload = ({ file, section }) => async (dispatch) => {
         },
       })
     } else {
-      console.log('THAT DIDN"T WORK')
+      console.log("THAT DIDN'T WORK")
     }
   } catch (error) {
-    console.log('ERROR', error)
     dispatch({ type: SET_FILE_ERROR, payload: { error, section } })
     return false
   }

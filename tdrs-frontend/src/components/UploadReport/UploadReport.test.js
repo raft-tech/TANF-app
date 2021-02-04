@@ -1,6 +1,6 @@
 import React from 'react'
 import thunk from 'redux-thunk'
-import { mount } from 'enzyme'
+import { mount, shallow } from 'enzyme'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
 import { fireEvent, render } from '@testing-library/react'
@@ -152,5 +152,22 @@ describe('UploadReport', () => {
     })
 
     expect(fileInput.value).toStrictEqual('')
+  })
+
+  it('should navigate user back to "/reports" when "Cancel" button is clicked', () => {
+    global.window = { location: { pathname: null } }
+    const store = mockStore(initialState)
+
+    const wrapper = mount(
+      <Provider store={store}>
+        <UploadReport />
+      </Provider>
+    )
+
+    const cancelBtn = wrapper.find('.cancel').first()
+
+    cancelBtn.simulate('click')
+
+    expect(global.window.location.pathname).toEqual('/reports')
   })
 })

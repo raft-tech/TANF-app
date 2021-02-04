@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import fileInput from '../../assets/uswds/file-input'
 import Button from '../Button'
+import { history } from '../../configureStore'
 
 import { clearError, upload } from '../../actions/reports'
 import FileUpload from '../FileUpload'
@@ -55,7 +56,13 @@ function UploadReport() {
       />
       <div className="buttonContainer margin-y-4">
         <Button type="submit">Submit Files</Button>
-        <Button type="button">Cancel</Button>
+        <Button
+          className="cancel"
+          type="button"
+          onClick={() => history.push('/reports')}
+        >
+          Cancel
+        </Button>
       </div>
     </form>
   )
