@@ -21,7 +21,6 @@ def test_create_report_file_entry(api_client, ofa_admin):
         "section": "Active Case Data",
     }
     response = api_client.post("/v1/reports/", data)
-    # assert response.data == {}
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data["slug"] == str(data["slug"])
 
@@ -107,19 +106,8 @@ def test_reports_data_prepper_not_allowed(api_client, data_prepper):
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 @pytest.mark.django_db
-def test_s3_signed_url(api_client, user):
-    api_client.login(username=user.username, password="test_password")
-    response = api_client.post("/v1/reports/signed_url/", {
-        "file_name":"test.txt",
-        "file_type":"plain/text",
-    })
-
-    assert response.status_code == status.HTTP_200_OK
-    # assert response.data == {}
-    assert response.data['signed_url']
-
-@pytest.mark.django_db
-def test_individual_report_file_retrieval(api_client, user):
+def test_individual_report_file_retrieval(api_client, data_prepper):
+    user = data_prepper
     api_client.login(username=user.username, password="test_password")
 
     data = {
