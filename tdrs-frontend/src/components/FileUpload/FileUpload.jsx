@@ -11,7 +11,10 @@ function FileUpload({ file, section, onUpload }) {
     <div
       className={`usa-form-group ${file.error ? 'usa-form-group--error' : ''}`}
     >
-      <label className="usa-label text-bold" htmlFor={file.section}>
+      <label
+        className="usa-label text-bold"
+        htmlFor={transformName(file.section)}
+      >
         Section {section} - {file.section}
         <div className="usa-hint" id={`${file.section}-specific-hint`}>
           Select CSV, TXT, or XLS files
