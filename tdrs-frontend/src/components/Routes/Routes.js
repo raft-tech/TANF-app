@@ -1,5 +1,6 @@
 import React from 'react'
 import { Switch, Route } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import SplashPage from '../SplashPage'
 import EditProfile from '../EditProfile'
 import PrivateRoute from '../PrivateRoute'
@@ -14,6 +15,7 @@ import UploadReport from '../UploadReport'
  * does not matter.
  */
 const Routes = () => {
+  const year = useSelector((state) => state.reports.year)
   return (
     <Switch>
       <Route exact path="/">
@@ -33,7 +35,7 @@ const Routes = () => {
       </PrivateRoute>
       <PrivateRoute
         exact
-        title="New TANF Report - Test Quarter, 2020"
+        title={`New TANF Report - ${year}`}
         path="/reports/:year/upload"
       >
         <UploadReport />

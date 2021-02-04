@@ -23,16 +23,6 @@ function UploadReport() {
       if (!success) {
         const inputEl = target
         inputEl.value = ''
-        // const inputTarget = target.parentNode
-        // const previewHeading = inputTarget.querySelector(
-        //   '.usa-file-input__preview-heading'
-        // )
-        // const instructions = inputTarget.querySelector(
-        //   '.usa-file-input__instructions'
-        // )
-
-        // inputTarget.removeChild(previewHeading)
-        // instructions.classList.remove('display-none')
       }
     })
   }
