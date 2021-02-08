@@ -52,17 +52,27 @@ def _get_territories():
 def _populate_tribes():
     with open(DATA_DIR / "tribes.csv") as csvfile:
         reader = csv.DictReader(csvfile)
-        stts = [
-            STT(
-                name=row["Name"],
-                region_id=row["Region"],
-                state=STT.objects.get(code=row["Code"]),
-                type=STT.EntityType.TRIBE,
-            )
-            for row in reader
-        ]
-        STT.objects.bulk_create(stts, ignore_conflicts=True)
+        stts = []
+        for row in reader:
+            code = row['Code']
+            name = row['Name']
+            try:
+                state = STT.objects.get(code=code)
+            except STT.DoesNotExist:
+                logger.debug(
+                    f'Unable to find state by code {code} for tribe {name}'
+                )
 
+            stts.append(
+                STT(
+                    name=name,
+                    region_id=row['Region'],
+                    state=state,
+                    type=STT.EntityType.TRIBE,
+                )
+            )
+
+        STT.objects.bulk_create(stts, ignore_conflicts=True)
 
 class Command(BaseCommand):
     """Command class."""
