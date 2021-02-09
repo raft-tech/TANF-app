@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import axiosInstance from '../axios-instance'
 
 export const SET_FILE = 'SET_FILE'
@@ -37,6 +38,7 @@ export const upload = ({ file, section }) => async (dispatch) => {
         payload: {
           fileName: file.name,
           section,
+          uuid: uuidv4(),
         },
       })
     } else {
