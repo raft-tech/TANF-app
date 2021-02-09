@@ -1,6 +1,7 @@
 import axios from 'axios'
 import thunk from 'redux-thunk'
 import configureStore from 'redux-mock-store'
+import { v4 as uuidv4 } from 'uuid'
 
 import { upload, SET_FILE, SET_FILE_ERROR, setYear, SET_YEAR } from './reports'
 
@@ -20,10 +21,13 @@ describe('actions/reports.js', () => {
 
     const actions = store.getActions()
 
+    const { uuid } = actions[0].payload
+
     expect(actions[0].type).toBe(SET_FILE)
     expect(actions[0].payload).toStrictEqual({
       fileName: 'HELLO',
       section: 'Active Case Data',
+      uuid,
     })
   })
 
