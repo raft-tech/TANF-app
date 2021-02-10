@@ -55,7 +55,9 @@ function UploadReport() {
         onUpload={uploadFiles}
       />
       <div className="buttonContainer margin-y-4">
-        <Button type="submit">Submit Files</Button>
+        <Button className="card:margin-y-1" type="submit">
+          Submit Files
+        </Button>
         <Button
           className="cancel"
           type="button"
