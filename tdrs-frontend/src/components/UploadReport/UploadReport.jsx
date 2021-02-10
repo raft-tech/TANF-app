@@ -34,17 +34,23 @@ function UploadReport() {
   const onSubmit = (e) => {
     e.preventDefault()
     const filteredFiles = files.filter((file) => file.fileName)
-    filteredFiles.forEach((file) =>
-      axiosInstance.post(`${process.env.REACT_APP_BACKEND_URL}/reports/`, {
-        original_filename: file.fileName,
-        slug: 'hdslajhfdaksdjflajlsdfa',
-        user: user.id,
-        stt: user.stt.id,
-        year,
-        quarter: 'Q1',
-        section: file.section,
-      })
+    const promises = Promise.all(
+      filteredFiles.map((file) =>
+        axiosInstance.post(`${process.env.REACT_APP_BACKEND_URL}/reports/`, {
+          original_filename: file.fileName,
+          slug: 'hdslajhfdaksdjflajlsdfa',
+          user: user.id,
+          stt: user.stt.id,
+          year,
+          quarter: 'Q1',
+          section: file.section,
+        })
+      )
     )
+
+    promises
+      .then((values) => history.push('/reports'))
+      .catch((error) => console.error(error))
   }
 
   useEffect(() => {

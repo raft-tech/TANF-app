@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import axios from 'axios'
 import Button from '../Button'
 import { history } from '../../configureStore'
 import { setYear } from '../../actions/reports'
@@ -15,6 +16,12 @@ import { setYear } from '../../actions/reports'
  */
 function Reports() {
   const selectedYear = useSelector((state) => state.reports.year)
+  let yearHasReport
+  useEffect(() => {
+    if (selectedYear) {
+      yearHasReport = axios.get()
+    }
+  })
   const dispatch = useDispatch()
 
   const handleClick = () => {
@@ -49,9 +56,23 @@ function Reports() {
         TANF Report {selectedYear}
       </p>
 
-      <Button className="margin-y-2" type="button" onClick={handleClick}>
-        Begin Report
-      </Button>
+      {yearHasReport && (
+        <div className="usa-alert usa-alert--slim usa-alert--success">
+          <div className="usa-alert__body">
+            <p className="usa-alert__text">
+              Your TANF Report has been successfully uploaded
+            </p>
+          </div>
+        </div>
+      )}
+
+      {yearHasReport && <Button>View Files</Button>}
+
+      {!yearHasReport && (
+        <Button className="margin-y-2" type="button" onClick={handleClick}>
+          Begin Report
+        </Button>
+      )}
     </form>
   )
 }
