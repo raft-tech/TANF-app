@@ -2,6 +2,7 @@
 
 import pytest
 
+
 @pytest.fixture
 def report_data(user):
     """Return report creation data."""
@@ -13,5 +14,5 @@ def report_data(user):
         "user": str(user.id),
         "quarter": "Q1",
         "year": "2020",
-        "stt": "Michigan"
+        "stt": "Michigan",
     }

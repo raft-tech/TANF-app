@@ -6,6 +6,7 @@ from rest_framework import status
 
 from ..models import ReportFile
 
+
 @pytest.mark.django_db
 def test_create_report_file_entry(api_client, ofa_admin):
     """Test report file metadata registry."""
@@ -66,6 +67,7 @@ def test_report_file_version_increment(api_client, ofa_admin):
     assert response2.status_code == status.HTTP_201_CREATED
     assert response2.data["slug"] == data2["slug"]
 
+
 @pytest.mark.django_db
 def test_reports_data_prepper_permission(api_client, data_prepper):
     """Test report file metadata registry."""
@@ -96,7 +98,7 @@ def test_reports_data_prepper_not_allowed(api_client, data_prepper):
         "quarter": "Q1",
         "slug": uuid.uuid4(),
         "user": user.id,
-        "stt": int(user.stt.id)+1,
+        "stt": int(user.stt.id) + 1,
         "year": 2020,
         "section": "Active Case Data",
     }
@@ -105,8 +107,10 @@ def test_reports_data_prepper_not_allowed(api_client, data_prepper):
     # response = api_client.post("/v1/reports/", data)
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
+
 @pytest.mark.django_db
 def test_individual_report_file_retrieval(api_client, data_prepper):
+    """Test retrieval of individual reports via GetReport."""
     user = data_prepper
     api_client.login(username=user.username, password="test_password")
 
@@ -124,5 +128,4 @@ def test_individual_report_file_retrieval(api_client, data_prepper):
     assert ReportFile.objects.filter(**data).exists()
     response = api_client.get("/v1/reports/2020/Q1/active_case_data")
 
-    assert data['slug'] == response.data['slug']
-
+    assert data["slug"] == response.data["slug"]
