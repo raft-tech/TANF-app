@@ -9,7 +9,11 @@ router = DefaultRouter()
 router.register("", views.ReportFileViewSet)
 
 urlpatterns = [
-    path("<str:year>/<str:quarter>/<str:section>",views.GetReport.as_view(), name="get-report")
+    path(
+        "<str:year>/<str:quarter>/<str:section>",
+        views.GetReport.as_view(),
+        name="get-report",
+    )
 ]
 
 urlpatterns += router.urls

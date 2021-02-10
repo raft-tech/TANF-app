@@ -3,12 +3,14 @@
 import pytest
 from ..serializers import ReportFileSerializer
 
+
 @pytest.mark.django_db
 def test_serializer_with_valid_date(report):
     """If a serializer has valid data it will return a valid object."""
     get_serializer = ReportFileSerializer(report)
     create_serializer = ReportFileSerializer(data=get_serializer.data)
     assert create_serializer.is_valid() is True
+
 
 @pytest.mark.django_db
 def test_serializer_increment_create(report):
