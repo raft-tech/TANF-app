@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group
 def is_own_stt(request, view):
     """Verify user belongs to requested STT."""
     return is_in_group(request.user, "Data Prepper") and (
-        request.user.stt.id == view.kwargs.get("stts", request.data.get("stts"))
+        request.user.stt.id == view.kwargs.get("stt", request.data.get("stt"))
     )
 
 
