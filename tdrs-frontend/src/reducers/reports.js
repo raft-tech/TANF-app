@@ -10,6 +10,7 @@ export const getUpdatedFiles = (
   fileName,
   fileType,
   section,
+  uuid,
   error = null
 ) => {
   const oldFileIndex = state.files.findIndex(
@@ -21,6 +22,7 @@ export const getUpdatedFiles = (
     fileName,
     fileType,
     error,
+    uuid,
   }
 
   return updatedFiles
@@ -33,24 +35,28 @@ const initialState = {
       fileName: null,
       fileType: null,
       error: null,
+      uuid: null,
     },
     {
       section: 'Closed Case Data',
       fileName: null,
       fileType: null,
       error: null,
+      uuid: null,
     },
     {
       section: 'Aggregate Data',
       fileName: null,
       fileType: null,
       error: null,
+      uuid: null,
     },
     {
       section: 'Stratum Data',
       fileName: null,
       fileType: null,
       error: null,
+      uuid: null,
     },
   ],
   year: 2020,
@@ -60,18 +66,38 @@ const reports = (state = initialState, action) => {
   const { type, payload = {} } = action
   switch (type) {
     case SET_FILE: {
-      const { fileName, fileType, section } = payload
-      const updatedFiles = getUpdatedFiles(state, fileName, fileType, section)
+      const { fileName, fileType, section, uuid } = payload
+      const updatedFiles = getUpdatedFiles(
+        state,
+        fileName,
+        fileType,
+        section,
+        uuid
+      )
       return { ...state, files: updatedFiles }
     }
     case SET_FILE_ERROR: {
       const { error, section } = payload
-      const updatedFiles = getUpdatedFiles(state, null, null, section, error)
+      const updatedFiles = getUpdatedFiles(
+        state,
+        null,
+        null,
+        section,
+        null,
+        error
+      )
       return { ...initialState, files: updatedFiles }
     }
     case CLEAR_ERROR: {
       const { section } = payload
-      const updatedFiles = getUpdatedFiles(state, null, null, section, null)
+      const updatedFiles = getUpdatedFiles(
+        state,
+        null,
+        null,
+        section,
+        null,
+        null
+      )
       return { ...state, files: updatedFiles }
     }
     case SET_YEAR: {
