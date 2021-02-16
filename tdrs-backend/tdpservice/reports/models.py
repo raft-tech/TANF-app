@@ -1,6 +1,7 @@
 """Define report models."""
 
 from django.db import models
+from django.db.models import Max
 
 from ..stts.models import STT
 from ..users.models import User
@@ -15,10 +16,17 @@ class File(models.Model):
         """Metadata."""
 
         abstract = True
-
-    original_filename = models.CharField(max_length=256, blank=False, null=False)
-
+    # Keep the file name because it will be different in s3,
+    # but the interface will still want to present the file with its
+    # original name.
+    original_filename = models.CharField(max_length=256,
+                                         blank=False,
+                                         null=False)
+    # Slug is the name of the file in S3
     slug = models.CharField(max_length=256, blank=False, null=False)
+    # Not all files will have the correct extension,
+    # or even have one at all. The UI will provide this information
+    # seperately
     extension = models.CharField(max_length=8, default="txt")
 
 
@@ -51,19 +59,63 @@ class ReportFile(File):
             )
         ]
 
-    quarter = models.CharField(
-        max_length=16, blank=False, null=False, choices=Quarter.choices
-    )
-    year = models.CharField(max_length=16, blank=False, null=False)
-    section = models.CharField(
-        max_length=32, blank=False, null=False, choices=Section.choices
-    )
+    quarter = models.CharField(max_length=16,
+                               blank=False,
+                               null=False,
+                               choices=Quarter.choices)
+    year = models.IntegerField()
+    section = models.CharField(max_length=32,
+                               blank=False,
+                               null=False,
+                               choices=Section.choices)
 
     version = models.IntegerField()
 
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="user", blank=False, null=False
-    )
-    stt = models.ForeignKey(
-        STT, on_delete=models.CASCADE, related_name="sttRef", blank=False, null=False
-    )
+    user = models.ForeignKey(User,
+                             on_delete=models.CASCADE,
+                             related_name="user",
+                             blank=False,
+                             null=False)
+    stt = models.ForeignKey(STT,
+                            on_delete=models.CASCADE,
+                            related_name="sttRef",
+                            blank=False,
+                            null=False)
+
+    @classmethod
+    def create_new_version(self, data):
+        """Create a new version of a report with an incremented version."""
+        # EDGE CASE
+        # We may need to try to get this all in one sql query
+        # if we ever encounter race conditions.
+        version = (self.find_latest_version_number(year=data['year'],
+                                                   quarter=data['quarter'],
+                                                   section=data['section'],
+                                                   stt=data['stt']) or 0) + 1
+
+        return ReportFile.objects.create(
+            version=version,
+            **data,
+        )
+
+    @classmethod
+    def find_latest_version_number(self, year, quarter, section, stt):
+        """Locate the latest version number in a series of report files."""
+        return self.objects.filter(stt=stt,
+                                   year=year,
+                                   quarter=quarter,
+                                   section=section).aggregate(
+                                       Max("version"))['version__max']
+
+    @classmethod
+    def find_latest_version(self, year, quarter, section, stt):
+        """Locate the latest version of a report."""
+        version = self.find_latest_version_number(year, quarter, section, stt)
+
+        return self.objects.filter(
+            version=version,
+            year=year,
+            quarter=quarter,
+            section=section,
+            stt=stt,
+        )[0]
