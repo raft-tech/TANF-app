@@ -20,6 +20,8 @@ import { fetchAuth } from '../../actions/auth'
  * @param {number} REACT_APP_DEBOUNCE_TIME - When a user is idle and then
  * active again, this variable set the debounce time
  * (in ms) for the call to `/v1/auth_check`.
+ * @param {number} REACT_APP_EVENT_THROTTLE_TIME - This throttles the number
+ * of event calls that can be triggered on a user action.
  *
  * For local development these variables are set in the `.env.local` file.
  * For the development environment these variables are set
@@ -97,11 +99,26 @@ function IdleTimer() {
       }
     },
     debounce: process.env.REACT_APP_DEBOUNCE_TIME,
+    events: [
+      'mousemove',
+      'keydown',
+      'wheel',
+      'DOMMouseScroll',
+      'mousewheel',
+      'mousedown',
+      'touchstart',
+      'touchmove',
+      'MSPointerDown',
+      'MSPointerMove',
+      'visibilitychange',
+      'focus',
+    ],
+    eventsThrottle: process.env.REACT_APP_EVENT_THROTTLE_TIME,
   })
 
   return (
     <div
-      id="myModal"
+      id="timeoutModal"
       className={`modal ${isModalVisible ? 'display-block' : 'display-none'}`}
     >
       <div className="modal-content" ref={modalRef}>
