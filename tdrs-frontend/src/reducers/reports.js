@@ -1,5 +1,6 @@
 import {
   SET_FILE,
+  CLEAR_FILE,
   SET_FILE_ERROR,
   CLEAR_ERROR,
   SET_YEAR,
@@ -62,6 +63,11 @@ const reports = (state = initialState, action) => {
     case SET_FILE: {
       const { fileName, section, uuid } = payload
       const updatedFiles = getUpdatedFiles(state, fileName, section, uuid)
+      return { ...state, files: updatedFiles }
+    }
+    case CLEAR_FILE: {
+      const { section } = payload
+      const updatedFiles = getUpdatedFiles(state, null, section, null)
       return { ...state, files: updatedFiles }
     }
     case SET_FILE_ERROR: {

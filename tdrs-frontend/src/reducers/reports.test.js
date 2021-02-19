@@ -3,6 +3,7 @@ import reducer, { getUpdatedFiles } from './reports'
 import {
   CLEAR_ERROR,
   SET_FILE,
+  CLEAR_FILE,
   SET_FILE_ERROR,
   SET_YEAR,
 } from '../actions/reports'
@@ -78,6 +79,45 @@ describe('reducers/reports', () => {
           fileName: 'Test.txt',
           error: null,
           uuid,
+        },
+      ],
+      year: 2020,
+    })
+  })
+
+  it('should handle CLEAR_FILE', () => {
+    expect(
+      reducer(undefined, {
+        type: CLEAR_FILE,
+        payload: {
+          section: 'Stratum Data',
+        },
+      })
+    ).toEqual({
+      files: [
+        {
+          section: 'Active Case Data',
+          fileName: null,
+          error: null,
+          uuid: null,
+        },
+        {
+          section: 'Closed Case Data',
+          fileName: null,
+          error: null,
+          uuid: null,
+        },
+        {
+          section: 'Aggregate Data',
+          fileName: null,
+          error: null,
+          uuid: null,
+        },
+        {
+          section: 'Stratum Data',
+          fileName: null,
+          error: null,
+          uuid: null,
         },
       ],
       year: 2020,

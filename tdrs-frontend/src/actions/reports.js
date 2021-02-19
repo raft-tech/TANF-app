@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import axiosInstance from '../axios-instance'
 
 export const SET_FILE = 'SET_FILE'
+export const CLEAR_FILE = 'CLEAR_FILE'
 export const SET_FILE_ERROR = 'SET_FILE_ERROR'
 export const CLEAR_ERROR = 'CLEAR_ERROR'
 
@@ -42,7 +43,7 @@ export const upload = ({ file, section }) => async (dispatch) => {
         },
       })
     } else {
-      console.log("THAT DIDN'T WORK")
+      dispatch({ type: CLEAR_FILE, payload: { section } })
     }
   } catch (error) {
     dispatch({ type: SET_FILE_ERROR, payload: { error, section } })
