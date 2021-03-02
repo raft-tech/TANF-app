@@ -97,7 +97,7 @@ class Common(Configuration):
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
         "corsheaders.middleware.CorsMiddleware",
-        "tdpservice.users.api.middleware.AuthUpdateMiddleware"
+        "tdpservice.users.api.middleware.AuthUpdateMiddleware",
     )
 
     ALLOWED_HOSTS = ["*"]
@@ -109,15 +109,18 @@ class Common(Configuration):
     # Email Server
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
+    # AWS access keys
+
+    AWS_S3_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY")
+    AWS_S3_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+    AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_BUCKET")
+    AWS_REGION_NAME = os.getenv("AWS_REGION_NAME")
+
     # Those who will receive error notifications from django via email
     ADMINS = (("Admin1", "ADMIN_EMAIL_FIRST"), ("Admin2", "ADMIN_EMAIL_SECOND"))
     if "VCAP_SERVICES" in os.environ:  # pragma: nocover
         servicejson = os.environ["VCAP_SERVICES"]
         services = json.loads(servicejson)
-        AWS_STORAGE_BUCKET_NAME = services["s3"][0]["credentials"]["bucket"]
-        AWS_S3_REGION_NAME = services["s3"][0]["credentials"]["region"]
-        AWS_ACCESS_KEY_ID = services["s3"][0]["credentials"]["access_key_id"]
-        AWS_SECRET_ACCESS_KEY = services["s3"][0]["credentials"]["secret_access_key"]
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.postgresql",

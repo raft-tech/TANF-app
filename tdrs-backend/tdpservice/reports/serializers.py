@@ -36,3 +36,8 @@ class ReportFileSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         """Throw an error if a user tries to update a report."""
         raise ImmutabilityError(instance, validated_data)
+
+class PresignedUrlInputSerializer(serializers.Serializer):
+    client_method = serializers.CharField(max_length=30)
+    file_name = serializers.CharField(max_length=200)
+    file_type = serializers.CharField(max_length=50)
