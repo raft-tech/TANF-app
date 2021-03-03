@@ -31,7 +31,7 @@
     "redux-oidc": "^4.0.0-beta1",
     "redux-thunk": "^2.3.0",
     "seamless-immutable": "^7.1.3",
-    "typescript": "^3.9.7",
+    "typescript": "^3.9.9",
     "uswds": "2.9.0"
   },
   "resolutions": {
