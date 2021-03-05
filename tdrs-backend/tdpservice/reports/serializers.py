@@ -5,13 +5,7 @@ from ..stts.models import STT
 from ..users.models import User
 from .models import ReportFile
 
-
-class PresignedUrlInputSerializer(serializers.Serializer):
-    """Serializer for input to create a presigned url for s3."""
-
-    file_name = serializers.CharField(max_length=200)
-    file_type = serializers.CharField(max_length=50)
-
+from .errors import ImmutabilityError
 
 class ReportFileSerializer(serializers.ModelSerializer):
     """Serializer for Report files."""
@@ -32,12 +26,13 @@ class ReportFileSerializer(serializers.ModelSerializer):
             "year",
             "quarter",
             "section",
+            "created_at"
         ]
 
     def create(self, validated_data):
         """Create a new entry with a new version number."""
         return ReportFile.create_new_version(validated_data)
 
-    def update():
+    def update(self, instance, validated_data):
         """Throw an error if a user tries to update a report."""
-        raise "Cannot update, reports are immutable. Create a new one instead."
+        raise ImmutabilityError(instance, validated_data)

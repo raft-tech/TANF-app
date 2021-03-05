@@ -1,7 +1,6 @@
 """Set permissions for users."""
 
 from rest_framework import permissions
-from django.contrib.auth.models import Group
 
 
 def is_own_stt(request, view):
@@ -13,10 +12,7 @@ def is_own_stt(request, view):
 
 def is_in_group(user, group_name):
     """Take a user and a group name, and returns `True` if the user is in that group."""
-    try:
-        return Group.objects.get(name=group_name).user_set.filter(id=user.id).exists()
-    except Group.DoesNotExist:
-        return None
+    return user.groups.filter(name=group_name).exists()
 
 
 class IsUser(permissions.BasePermission):
@@ -77,7 +73,4 @@ class CanUploadReport(permissions.BasePermission):
 
         If they are a data prepper, ensures the STT is their own.
         """
-        if is_in_group(request.user, "OFA Admin") or is_own_stt(request, view):
-            return True
-        else:
-            return False
+        return is_in_group(request.user, "OFA Admin") or is_own_stt(request, view)
