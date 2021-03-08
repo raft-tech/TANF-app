@@ -62,7 +62,7 @@ class ReportFileViewSet(
             s3_params['ContentType'] = serializer.data['file_type']
 
         return Response({
-            "signed_url":s3_client.generate_presigned_url(
+            "signed_url": s3_client.generate_presigned_url(
                 serializer.data['client_method'],
                 Params=s3_params, ExpiresIn=500)
         })
