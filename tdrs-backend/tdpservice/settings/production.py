@@ -1,5 +1,4 @@
 """Define production configuration settings."""
-import os
 
 from .common import Common
 

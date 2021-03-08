@@ -1,7 +1,5 @@
 """Define configuration settings for staging environment."""
 
-import os
-
 from .common import Common
 
 

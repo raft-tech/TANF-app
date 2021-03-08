@@ -1,7 +1,5 @@
 """Define settings for dev environment."""
 
-import os
-
 from .common import Common
 
 
