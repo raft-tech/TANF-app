@@ -123,6 +123,7 @@ def test_reports_data_prepper_not_allowed(api_client, data_prepper):
 
 @pytest.mark.django_db
 def test_s3_signed_url(api_client, user):
+    """Test that a url string is given to the client."""
     api_client.login(username=user.username, password="test_password")
     response = api_client.post("/v1/reports/signed_url/", {
         "file_name": "test.txt",
