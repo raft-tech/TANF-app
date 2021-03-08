@@ -38,6 +38,8 @@ class ReportFileSerializer(serializers.ModelSerializer):
         raise ImmutabilityError(instance, validated_data)
 
 class PresignedUrlInputSerializer(serializers.Serializer):
+    """Serializer for presigned url view."""
+
     client_method = serializers.CharField(max_length=30)
     file_name = serializers.CharField(max_length=200)
     file_type = serializers.CharField(max_length=50)
