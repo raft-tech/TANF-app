@@ -43,6 +43,7 @@ class ReportFileViewSet(
 
     @action(methods=["POST"], detail=False)
     def signed_url(self, request, pk=None):
+        """Provide a presigned s3 url for a given client method."""
         s3_client = boto3.client(
             's3',
             aws_access_key_id=settings.AWS_S3_ACCESS_KEY_ID,
