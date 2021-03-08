@@ -23,6 +23,7 @@ class ReportFileViewSet(
     viewsets.GenericViewSet,
 ):
     """Report file views."""
+
     queryset = User.objects.select_related("stt")
 
     def get_permissions(self):
