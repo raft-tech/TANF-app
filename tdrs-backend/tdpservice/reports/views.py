@@ -1,13 +1,12 @@
 """Check if user is authorized."""
 import logging
+from boto3 import client
 
 from django.conf import settings
 from rest_framework import mixins, viewsets
 from rest_framework.response import Response
 
 from ..users.permissions import CanUploadReport
-
-import boto3
 
 from .serializers import ReportFileSerializer, PresignedUrlInputSerializer
 from .models import User
@@ -44,7 +43,7 @@ class ReportFileViewSet(
     @action(methods=["POST"], detail=False)
     def signed_url(self, request, pk=None):
         """Provide a presigned s3 url for a given client method."""
-        s3_client = boto3.client(
+        s3_client = client(
             's3',
             aws_access_key_id=settings.AWS_S3_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_S3_SECRET_ACCESS_KEY,
