@@ -37,6 +37,7 @@ class ReportFileSerializer(serializers.ModelSerializer):
         """Throw an error if a user tries to update a report."""
         raise ImmutabilityError(instance, validated_data)
 
+
 class PresignedUrlInputSerializer(serializers.Serializer):
     """Serializer for presigned url view."""
 
