@@ -40,6 +40,6 @@ class ReportFileSerializer(serializers.ModelSerializer):
 class PresignedUrlInputSerializer(serializers.Serializer):
     """Serializer for presigned url view."""
 
-    client_method = serializers.CharField(max_length=30)
+    client_method = serializers.ChoiceField(choices=['get_object', 'put_object'])
     file_name = serializers.CharField(max_length=200)
     file_type = serializers.CharField(max_length=50)

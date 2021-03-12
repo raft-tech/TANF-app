@@ -42,7 +42,13 @@ class ReportFileViewSet(
 
     @action(methods=["POST"], detail=False)
     def signed_url(self, request, pk=None):
-        """Provide a presigned s3 url for a given client method."""
+        """Provide a pre-signed s3 url for a given client method.
+
+        Accepts an aws client method string, a file name, and a file type.
+        File type is not used if client method is not `put_object`.
+        Produces a signed s3 url, which is used to temporarily grant
+        permission to access an s3 resource.
+        """
         s3_client = client(
             's3',
             aws_access_key_id=settings.AWS_S3_ACCESS_KEY_ID,
