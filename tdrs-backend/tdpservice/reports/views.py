@@ -69,5 +69,5 @@ class ReportFileViewSet(
         return Response({
             "signed_url": s3_client.generate_presigned_url(
                 serializer.data['client_method'],
-                Params=s3_params, ExpiresIn=500)
+                Params=s3_params, ExpiresIn=30)
         })
