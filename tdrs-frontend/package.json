@@ -35,7 +35,7 @@
     "uswds": "2.9.0"
   },
   "resolutions": {
-    "lodash": "^4.17.20",
+    "lodash": "^4.17.21",
     "bl": "^4.0.3",
     "node-forge": "0.10.0"
   },
