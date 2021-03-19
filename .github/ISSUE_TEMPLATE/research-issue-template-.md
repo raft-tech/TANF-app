@@ -2,7 +2,7 @@
 name: Research issue template
 about: Issue template for creating new research issues
 title: ''
-labels: research
+labels: ''
 assignees: ''
 
 ---
