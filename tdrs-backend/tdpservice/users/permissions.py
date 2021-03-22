@@ -5,7 +5,8 @@ from rest_framework import permissions
 
 def is_own_stt(request, view):
     """Verify user belongs to requested STT."""
-    if (requested_stt := request.data.get('stt')) is None:
+    requested_stt = request.data.get('stt')
+    if requested_stt is None:
         return True
     else:
         return is_in_group(request.user, "Data Prepper") and (
