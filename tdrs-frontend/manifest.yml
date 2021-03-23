@@ -6,6 +6,4 @@ applications:
   instances: 1
   disk_quota: 256M
   timeout: 180
-  docker:
-    image: ((docker-frontend))
 

@@ -4,5 +4,3 @@ applications:
   memory: 256M
   instances: 1
   disk_quota: 2G
-  docker:
-    image: ((docker-backend))
