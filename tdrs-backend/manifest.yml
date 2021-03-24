@@ -4,3 +4,6 @@ applications:
   memory: 256M
   instances: 1
   disk_quota: 2G
+  buildpacks:
+  - python_buildpack
+  command: "./gunicorn_start.sh"
