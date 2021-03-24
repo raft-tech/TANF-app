@@ -34,30 +34,41 @@ echo
 echo "to log into the site, you will want to go to https://${CGHOSTNAME_FRONTEND}.app.cloud.gov/"
 echo 'Have fun!'
 
+# function to check if a service exists
+service_exists()
+{
+    cf service "$1" >/dev/null 2>&1
+}
+
 # Performs a normal deployment unless rolling is specified in the fucntion call
 update_frontend()
 {
-  cd tdrs-frontend && npm run dist && cd ..
+
+  cd tdrs-frontend
+  npm run build
+  0
 	if [ "$1" = "rolling" ] ; then
 		# Do a zero downtime deploy.  This requires enough memory for
 		# two apps to exist in the org/space at one time.
-		cf push $CGHOSTNAME_FRONTEND --no-route -f tdrs-frontend/manifest.yml --strategy rolling || exit 1
+		cf push $CGHOSTNAME_FRONTEND --no-route -f manifest.yml --strategy rolling || exit 1
 	else
-		cf push $CGHOSTNAME_FRONTEND --no-route -f tdrs-frontend/manifest.yml
+		cf push $CGHOSTNAME_FRONTEND --no-route -f manifest.yml
 	fi
 	cf map-route $CGHOSTNAME_FRONTEND app.cloud.gov --hostname "${CGHOSTNAME_FRONTEND}"
+  cd ..
 }
 
 # Performs a normal deployment unless rolling is specified in the fucntion call
 update_backend()
 {
+cd tdrs-backend
 	if [ "$1" = "rolling" ] ; then
 		# Do a zero downtime deploy.  This requires enough memory for
 		# two apps to exist in the org/space at one time.
-		cf push $CGHOSTNAME_BACKEND --no-route -f tdrs-backend/manifest.yml  --strategy rolling || exit 1
+		cf push $CGHOSTNAME_BACKEND --no-route -f manifest.yml  --strategy rolling || exit 1
 
 	else
-		cf push $CGHOSTNAME_BACKEND --no-route -f tdrs-backend/manifest.yml
+		cf push $CGHOSTNAME_BACKEND --no-route -f manifest.yml
 		# set up JWT key if needed
 		if cf e $CGHOSTNAME_BACKEND | grep -q JWT_KEY ; then
 		   echo jwt cert already created
@@ -66,11 +77,12 @@ update_backend()
 	   fi
 	fi
 	cf map-route $CGHOSTNAME_BACKEND app.cloud.gov --hostname "$CGHOSTNAME_BACKEND"
+  cd ..
 }
 
 # perform a rolling update for the backend and frontend deployments if specifed,
 # otherwise perform a normal deployment 
-if [ $DEPLOY_STRATEGY = "rolling" ] ; then
+if [ "$DEPLOY_STRATEGY" = "rolling" ] ; then
 
 	update_backend 'rolling'
 	update_frontend 'rolling'
