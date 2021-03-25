@@ -4,7 +4,7 @@ applications:
 - name: tdp-frontend
   buildpacks:
     - staticfile_buildpack
-  memory: 512M
+  memory: 32M
   instances: 1
   disk_quota: 256M
   timeout: 180
