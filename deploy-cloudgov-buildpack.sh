@@ -80,6 +80,27 @@ cd tdrs-backend
   cd ..
 }
 
+#Helper method to generate JWT cert and keys for new environment
+generate_jwt_cert() 
+{
+	  echo "regenerating JWT cert/key"
+	  yes 'XX' | openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -sha256
+	  cf set-env $CGHOSTNAME_BACKEND JWT_CERT "$(cat cert.pem)"
+	  cf set-env $CGHOSTNAME_BACKEND JWT_KEY "$(cat key.pem)"
+
+	  # make sure that we have something set that you can later override with the
+	  # proper value so that the app can start up
+	  if cf e $CGHOSTNAME_BACKEND | grep -q OIDC_RP_CLIENT_ID ; then
+		    echo OIDC_RP_CLIENT_ID already set up
+	  else
+		    echo "once you have gotten your client ID set up with login.gov, you will need to set the OIDC_RP_CLIENT_ID to the proper value"
+		    echo "you can do this by running: cf set-env tdp-backend OIDC_RP_CLIENT_ID 'your_client_id'"
+		    echo "login.gov will need this cert when you are creating the app:"
+		    cat cert.pem
+		    cf set-env $CGHOSTNAME_BACKEND OIDC_RP_CLIENT_ID "XXX"
+	  fi
+}
+
 # perform a rolling update for the backend and frontend deployments if specifed,
 # otherwise perform a normal deployment 
 if [ "$DEPLOY_STRATEGY" = "rolling" ] ; then
@@ -122,11 +143,22 @@ if [ "$1" = "setup" ] ; then  echo
 	  fi
 	fi
 
+  if service_exists "tdp-db" ; then
+    else
+  fi
+
 	# set up backend
 	if cf app $CGHOSTNAME_BACKEND >/dev/null 2>&1 ; then
 		echo $CGHOSTNAME_BACKEND app already set up
 	else
-	    update_backend
+
+      ## Remember you are only doing it this way to confirm that the logic to do a full deployment exists in
+      ## Some semblance. Don't over think this.
+
+    update_backend
+		cf bind-service $CGHOSTNAME_BACKEND tdp-django-static-sandbox
+		cf bind-service $CGHOSTNAME_BACKEND tdp-storage-sandbox
+		cf bind-service $CGHOSTNAME_BACKEND tanf-storage
 		cf bind-service $CGHOSTNAME_BACKEND tdp-db
 		cf restage $CGHOSTNAME_BACKEND
 	fi
@@ -139,26 +171,6 @@ if [ "$1" = "setup" ] ; then  echo
 	fi
 fi
 
-#Helper method to generate JWT cert and keys for new environment
-generate_jwt_cert() 
-{
-	echo "regenerating JWT cert/key"
-	yes 'XX' | openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -sha256
-	cf set-env $CGHOSTNAME_BACKEND JWT_CERT "$(cat cert.pem)"
-	cf set-env $CGHOSTNAME_BACKEND JWT_KEY "$(cat key.pem)"
-
-	# make sure that we have something set that you can later override with the
-	# proper value so that the app can start up
-	if cf e $CGHOSTNAME_BACKEND | grep -q OIDC_RP_CLIENT_ID ; then
-		echo OIDC_RP_CLIENT_ID already set up
-	else
-		echo "once you have gotten your client ID set up with login.gov, you will need to set the OIDC_RP_CLIENT_ID to the proper value"
-		echo "you can do this by running: cf set-env tdp-backend OIDC_RP_CLIENT_ID 'your_client_id'"
-		echo "login.gov will need this cert when you are creating the app:"
-		cat cert.pem
-		cf set-env $CGHOSTNAME_BACKEND OIDC_RP_CLIENT_ID "XXX"
-	fi
-}
 
 # Tell people where to go
 echo
