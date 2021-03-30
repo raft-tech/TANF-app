@@ -10,15 +10,35 @@ DEPLOY_ENV=${2}
 
 #The application name  defined via the manifest yml for the frontend
 CGHOSTNAME_FRONTEND=${3}
+CGHOSTNAME_BACKEND=${4}
 
-#The Github Branch triggered to execure this script if triggered in circleci
-CIRCLE_BRANCH=${4}
 
-echo DEPLOY_STRATEGY: $DEPLOY_STRATEGY
-echo DEPLOY_ENV=$DEPLOY_ENV
-echo BACKEND_HOST: $CGHOSTNAME_BACKEND
-echo FRONTEND_HOST: $CGHOSTNAME_FRONTEND
-echo CIRCLE_BRANCH=$CIRCLE_BRANCH
+update_frontend()
+{
+
+
+    echo DEPLOY_STRATEGY: $DEPLOY_STRATEGY
+    echo DEPLOY_ENV: $DEPLOY_ENV
+    echo FRONTEND_HOST: $CGHOSTNAME_FRONTEND
+    echo BACKEND_HOST: $CGHOSTNAME_BACKEND
+    cd tdrs-frontend
+
+    echo "REACT_APP_BACKEND_URL=https://$CGHOSTNAME_BACKEND.app.cloud.gov/v1" >> .env.production
+    echo "REACT_APP_BACKEND_HOST=https://$CGHOSTNAME_BACKEND.app.cloud.gov" >> .env.production
+    npm run build
+    unlink .env.production
+    cp manifest.yml build/manifest.yml
+    cd build
+	  if [ "$1" = "rolling" ] ; then
+		    # Do a zero downtime deploy.  This requires enough memory for
+		    # two apps to exist in the org/space at one time.
+		    cf push $CGHOSTNAME_FRONTEND --no-route -f manifest.yml --strategy rolling || exit 1
+	  else
+		    cf push $CGHOSTNAME_FRONTEND --no-route -f manifest.yml
+	  fi
+	  cf map-route $CGHOSTNAME_FRONTEND app.cloud.gov --hostname "${CGHOSTNAME_FRONTEND}"
+    cd ../..
+}
 
 
 # perform a rolling update for the backend and frontend deployments if specifed,
