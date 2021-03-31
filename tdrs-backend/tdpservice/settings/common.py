@@ -110,8 +110,10 @@ class Common(Configuration):
     # Email Server
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
-    # AWS access keys
+    # Whether to use localstack in place of a live AWS S3 environment
+    USE_LOCALSTACK = bool(os.getenv("USE_LOCALSTACK", 0))
 
+    # AWS Access Keys
     AWS_S3_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY")
     AWS_S3_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
     AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_BUCKET")
