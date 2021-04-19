@@ -18,7 +18,7 @@ docker-compose up -d --build
 
 	echo "================== OWASP ZAP tests =================="
 	docker exec \
-      -v $(pwd)/reports:/zap/wrk:rw
+      -v $(pwd)/reports:/zap/wrk:rw \
 	  "$CONTAINER" zap-full-scan.py \
 	  -t http://web:8080/ \
 	  -m 5 \
