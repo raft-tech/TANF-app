@@ -16,11 +16,7 @@ docker-compose up -d --build
 	  -config spider.postform=true"
 
 	echo "================== OWASP ZAP tests =================="
-	docker-compose exec zaproxy zap-full-scan.py \
-	  -t http://web:8080/ \
-	  -m 5 \
-	  -z "${ZAP_CONFIG}" \
-	  -r owasp_report.html | tee owasp_report.html
+	docker-compose run zaproxy zap-full-scan.py -t http://web:8080/ -m 5 -z "${ZAP_CONFIG}" -r owasp_report.html
 	if grep 'FAIL-NEW: 0' owasp_report.html >/dev/null ; then
 		ZAPEXIT=0
 	else

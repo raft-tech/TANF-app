@@ -6,7 +6,7 @@ services:
     image: owasp/zap2docker-weekly
     command: sleep 3600
     volumes:
-      - .:/reports
+      - ./reports:/zap/wrk/:rw
   postgres:
     image: postgres:11.6
     environment:
