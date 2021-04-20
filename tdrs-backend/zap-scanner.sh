@@ -17,9 +17,7 @@ docker-compose up -d --build
 	  -config spider.postform=true"
 
 	echo "================== OWASP ZAP tests =================="
-	docker run \
-      -v $(pwd)/reports:/zap/wrk:rw \
-	  "$CONTAINER" zap-full-scan.py \
+	docker exec "$CONTAINER" zap-full-scan.py \
 	  -t http://web:8080/ \
 	  -m 5 \
 	  -z "${ZAP_CONFIG}" \
