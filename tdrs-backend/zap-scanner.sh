@@ -23,8 +23,8 @@ docker-compose up -d --build
 	  -t http://web:8080/ \
 	  -m 5 \
 	  -z "${ZAP_CONFIG}" \
-	  -r owasp_report.html | tee /tmp/zap.out
-	if grep 'FAIL-NEW: 0' /tmp/zap.out >/dev/null ; then
+	  -r owasp_report.html | tee owasp_report.html
+	if grep 'FAIL-NEW: 0' owasp_report.html >/dev/null ; then
 		ZAPEXIT=0
 	else
 		ZAPEXIT=1
