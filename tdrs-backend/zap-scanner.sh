@@ -16,7 +16,7 @@ docker-compose up -d --build
       -config spider.postform=true"
 
     echo "================== OWASP ZAP tests =================="
-    chmod g+w reports
+    chmod 777 $(pwd)/reports
     docker-compose run zaproxy zap-full-scan.py \
         -t http://web:8080/ \
         -m 5 \
