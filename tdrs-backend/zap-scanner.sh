@@ -17,7 +17,8 @@ docker-compose up -d --build
 
 	echo "================== OWASP ZAP tests =================="
 	docker-compose run zaproxy zap-full-scan.py -t http://web:8080/ -m 5 \
-	  -z "${ZAP_CONFIG}" -r owasp_report.html | grep -q "FAIL-NEW: 0" ZAPEXIT=$?
+	  -z "${ZAP_CONFIG}" -r owasp_report.html | grep -q "FAIL-NEW: 0"
+	ZAPEXIT=$?
 EXIT=0
 
 if [ "$ZAPEXIT" = 1 ] ; then
