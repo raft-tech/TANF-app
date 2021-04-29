@@ -26,6 +26,8 @@ function Reports() {
     user && user.roles.some((role) => role.name === 'OFA Admin')
   const sttList = useSelector((state) => state.stts.sttList)
 
+  const userProfileStt = user?.stt?.name
+
   const dispatch = useDispatch()
   const [isUploadReportToggled, setIsToggled] = useState(false)
 
@@ -39,12 +41,15 @@ function Reports() {
     Q4: 'Quarter 4 (July - September)',
   }
 
+  const currentStt = isOFAAdmin ? selectedStt : userProfileStt
+
   const handleSearch = () => {
     if (!isUploadReportToggled) {
       // Clear previous errors
       setFormValidationState({})
       // Filter out non-truthy values
-      const form = [selectedYear, selectedStt, selectedQuarter].filter(Boolean)
+
+      const form = [selectedYear, currentStt, selectedQuarter].filter(Boolean)
 
       if (form.length === 3) {
         setIsToggled(true)
@@ -52,7 +57,7 @@ function Reports() {
         // create error state
         setFormValidationState({
           year: !selectedYear,
-          stt: !selectedStt,
+          stt: !currentStt,
           quarter: !selectedQuarter,
           errors: 3 - form.length,
         })
@@ -87,7 +92,7 @@ function Reports() {
 
   useEffect(() => {
     if (!isUploadReportToggled) {
-      const form = [selectedYear, selectedStt, selectedQuarter].filter(Boolean)
+      const form = [selectedYear, currentStt, selectedQuarter].filter(Boolean)
       const touchedFields = Object.keys(touched).length
 
       const errors = touchedFields === 3 ? 3 - form.length : 0
@@ -95,12 +100,13 @@ function Reports() {
       setFormValidationState((currentState) => ({
         ...currentState,
         year: touched.year && !selectedYear,
-        stt: touched.stt && !selectedStt,
+        stt: touched.stt && !currentStt,
         quarter: touched.quarter && !selectedQuarter,
         errors,
       }))
     }
   }, [
+    currentStt,
     isUploadReportToggled,
     selectedYear,
     selectedStt,
@@ -109,9 +115,12 @@ function Reports() {
     touched,
   ])
 
-  const reportHeader = `${
+  console.log(currentStt, sttList)
+
+  const sttName =
+    currentStt ??
     sttList?.find((stt) => stt?.name?.toLowerCase() === selectedStt)?.name
-  } - Fiscal Year ${selectedYear} - ${quarters[selectedQuarter]}`
+  const reportHeader = `${sttName} - Fiscal Year ${selectedYear} - ${quarters[selectedQuarter]}`
 
   const errorsCount = formValidation.errors
 
