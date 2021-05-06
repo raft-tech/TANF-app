@@ -71,10 +71,6 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
             self, username=subject
         )
 
-        # user = CustomAuthentication.authenticate(
-        #     self, username=decoded_payload["email"]
-        # )
-
         if user and user.is_active:
             # User's are able to update their emails on login.gov
             # Update the User with the latest email from the decoded_payload.
@@ -87,6 +83,29 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
             raise InactiveUser(
                 f'Login failed, user account is inactive: {user.username}'
             )
+        elif (su_username := os.environ.get('DJANGO_SU_NAME')) and su_username == email:
+            # If this is the initial login for the initial superuser,
+            # we must tie their subject UUID to this model's primary key.
+            # To do so we need to clone it.
+            User = get_user_model()
+            initial_user = User.objects.get(username=email)
+            initial_pk = initial_user.pk
+            # Create a clone with the proper unique login.gov pk. This new instance
+            # is not saved to the db until calling `.save`, hence the _state.adding
+            # flag.
+            # https://docs.djangoproject.com/en/dev/topics/db/queries/#copying-model-instances
+            initial_user.pk = subject
+            initial_user._state.adding = True
+            initial_user.id = subject
+            # Nullify the initial (email) username to avoid an IntegrityError
+            initial_user.username = subject
+            initial_user.save()
+
+            # Delete the old instance
+            User.objects.get(pk=initial_pk).delete()
+
+            # Login with the new instance of the initial superuser.
+            self.login_user(request, initial_user, "User Created")
         else:
             User = get_user_model()
             user = User.objects.create_user(subject, email=email, id=subject)
