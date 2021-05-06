@@ -53,7 +53,6 @@ class UserSerializer(serializers.ModelSerializer):
             "username",
             "first_name",
             "last_name",
-            "email",
         )
         read_only_fields = ("username",)
 
@@ -86,4 +85,4 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def get_email(self, obj):
         """Return the user's email address."""
-        return obj.email
+        return obj.username
