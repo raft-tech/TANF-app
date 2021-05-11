@@ -9,17 +9,19 @@ import Button from '../Button'
 import FileUpload from '../FileUpload'
 import axiosInstance from '../../axios-instance'
 import { clearError } from '../../actions/reports'
+import { useEventLogger } from '../../utils/eventLogger'
 
-function UploadReport({ handleCancel, header }) {
+function UploadReport({ handleCancel, header, stt }) {
   // The currently selected year from the reportingYears dropdown
   const selectedYear = useSelector((state) => state.reports.year)
-
+  // The selected quarter in the dropdown tied to our redux `reports` state
+  const selectedQuarter = useSelector((state) => state.reports.quarter)
   // The set of uploaded files in our Redux state
   const files = useSelector((state) => state.reports.files)
   // The logged in user in our Redux state
   const user = useSelector((state) => state.auth.user)
 
-  const [localAlert, setlocalAlertState] = useState({
+  const [localAlert, setLocalAlertState] = useState({
     active: false,
     type: null,
     message: null,
@@ -29,6 +31,8 @@ function UploadReport({ handleCancel, header }) {
   // else it won't be read be screen readers.
   const headerRef = useRef(null)
   const dispatch = useDispatch()
+
+  const logger = useEventLogger()
 
   useEffect(() => {
     headerRef.current.focus()
@@ -69,7 +73,7 @@ function UploadReport({ handleCancel, header }) {
     event.preventDefault()
 
     if (filteredFiles.length === 0) {
-      setlocalAlertState({
+      setLocalAlertState({
         active: true,
         type: 'error',
         message: 'No changes have been made to data files',
@@ -79,16 +83,14 @@ function UploadReport({ handleCancel, header }) {
 
     const uploadRequests = filteredFiles.map((file) =>
       axiosInstance.post(
-        // update to `process.env.REACT_APP_BACKEND_URL` and
-        // remove mirage route when ready
-        `/mock_api/reports/`,
+        `${process.env.REACT_APP_BACKEND_URL}/reports/`,
         {
           original_filename: file.fileName,
           slug: file.uuid,
           user: user.id,
           year: selectedYear,
-          stt: '1',
-          quarter: 'Q1',
+          stt,
+          quarter: selectedQuarter,
           section: file.section,
         },
         { withCredentials: true }
@@ -97,12 +99,13 @@ function UploadReport({ handleCancel, header }) {
 
     Promise.all(uploadRequests)
       .then(() => {
-        setlocalAlertState({
+        setLocalAlertState({
           active: true,
           type: 'success',
           message: `Successfully submitted section(s): ${formattedSections} on ${new Date().toDateString()}`,
         })
         clearErrorState()
+        logger.alert(`Submitted data files`)
       })
       .catch((error) => console.error(error))
   }
@@ -143,7 +146,7 @@ function UploadReport({ handleCancel, header }) {
           <FileUpload
             key={name}
             section={`${index + 1} - ${name}`}
-            setlocalAlertState={setlocalAlertState}
+            setLocalAlertState={setLocalAlertState}
           />
         ))}
 
@@ -163,6 +166,7 @@ function UploadReport({ handleCancel, header }) {
 UploadReport.propTypes = {
   handleCancel: PropTypes.func.isRequired,
   header: PropTypes.string.isRequired,
+  stt: PropTypes.number,
 }
 
 export default UploadReport

@@ -409,88 +409,6 @@ describe('EditProfile', () => {
     expect(select.value).toEqual('alaska')
   })
 
-  it('should reset Select element value to an empty string when there is no selected stt', () => {
-    const store = mockStore({
-      ...initialState,
-      stts: {
-        sttList: [
-          {
-            id: 1,
-            type: 'state',
-            code: 'AL',
-            name: 'Alabama',
-          },
-          {
-            id: 2,
-            type: 'state',
-            code: 'AK',
-            name: 'Alaska',
-          },
-          {
-            id: 140,
-            type: 'tribe',
-            code: 'AK',
-            name: 'Aleutian/Pribilof Islands Association, Inc.',
-          },
-        ],
-      },
-    })
-    const wrapper = mount(
-      <Provider store={store}>
-        <EditProfile />
-      </Provider>
-    )
-
-    const select = wrapper.find('.usa-select')
-
-    select.simulate('change', {
-      target: { value: '' },
-    })
-
-    expect(select.instance().value).toEqual('')
-  })
-
-  it('should reset Select element value to an empty string when there is no stt that matches the value passed in', () => {
-    const store = mockStore({
-      ...initialState,
-      stts: {
-        sttList: [
-          {
-            id: 1,
-            type: 'state',
-            code: 'AL',
-            name: 'Alabama',
-          },
-          {
-            id: 2,
-            type: 'state',
-            code: 'AK',
-            name: 'Alaska',
-          },
-          {
-            id: 140,
-            type: 'tribe',
-            code: 'AK',
-            name: 'Aleutian/Pribilof Islands Association, Inc.',
-          },
-        ],
-      },
-    })
-    const wrapper = mount(
-      <Provider store={store}>
-        <EditProfile />
-      </Provider>
-    )
-
-    const select = wrapper.find('.usa-select')
-
-    select.simulate('change', {
-      target: { value: 'colorado' },
-    })
-
-    expect(select.instance().value).toEqual('')
-  })
-
   it('routes "/edit-profile" to the Request page when user has requested access', () => {
     const store = mockStore({
       ...initialState,
@@ -592,15 +510,16 @@ describe('EditProfile', () => {
       target: { name: 'stt', value: 'alaska' },
     })
 
-    // Account for the internal dispatch to fetch stts
-    expect(store.dispatch).toHaveBeenCalledTimes(2)
+    // There should be four dispatches, three called `onChange` during
+    // the above selections, and 1 to fetch the STT list
+    expect(store.dispatch).toHaveBeenCalledTimes(4)
 
     const form = wrapper.find('.usa-form').hostNodes()
     form.simulate('submit', {
       preventDefault: () => {},
     })
 
-    expect(store.dispatch).toHaveBeenCalledTimes(3)
+    expect(store.dispatch).toHaveBeenCalledTimes(6)
   })
 
   it('should dispatch "setAlert" when form is submitted and there is an error', () => {
@@ -642,6 +561,6 @@ describe('EditProfile', () => {
       </Provider>
     )
     // Account for the internal dispatch to fetch stts
-    expect(store.dispatch).toHaveBeenCalledTimes(3)
+    expect(store.dispatch).toHaveBeenCalledTimes(2)
   })
 })

@@ -1,3 +1,5 @@
+import { logErrorToServer } from '../utils/eventLogger'
+
 import { v4 as uuidv4 } from 'uuid'
 
 export const SET_FILE = 'SET_FILE'
@@ -30,6 +32,8 @@ export const upload = ({ file, section }) => async (dispatch) => {
       type: SET_FILE_ERROR,
       payload: { error: Error({ message: 'something went wrong' }), section },
     })
+    logErrorToServer(SET_FILE_ERROR)
+    dispatch({ type: SET_FILE_ERROR, payload: { error, section } })
     return false
   }
 
@@ -38,10 +42,15 @@ export const upload = ({ file, section }) => async (dispatch) => {
 
 export const SET_SELECTED_STT = 'SET_SELECTED_STT'
 export const SET_SELECTED_YEAR = 'SET_SELECTED_YEAR'
+export const SET_SELECTED_QUARTER = 'SET_SELECTED_QUARTER'
 
 export const setStt = (stt) => (dispatch) => {
   dispatch({ type: SET_SELECTED_STT, payload: { stt } })
 }
 export const setYear = (year) => (dispatch) => {
   dispatch({ type: SET_SELECTED_YEAR, payload: { year } })
+}
+
+export const setQuarter = (quarter) => (dispatch) => {
+  dispatch({ type: SET_SELECTED_QUARTER, payload: { quarter } })
 }

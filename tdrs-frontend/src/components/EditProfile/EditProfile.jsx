@@ -11,7 +11,7 @@ import Button from '../Button'
 import FormGroup from '../FormGroup'
 
 import STTComboBox from '../STTComboBox'
-
+import { useEventLogger } from '../../utils/eventLogger'
 /**
  *
  * @param {string} fieldName - The name of the element that is being validated
@@ -58,6 +58,7 @@ function EditProfile() {
   )
   const requestAccessError = useSelector((state) => state.requestAccess.error)
   const sttAssigned = useSelector((state) => state.auth.user.stt)
+  const sttList = useSelector((state) => state.stts.sttList)
 
   const dispatch = useDispatch()
 
@@ -71,14 +72,17 @@ function EditProfile() {
 
   const [touched, setTouched] = useState({})
 
+  const logger = useEventLogger()
+
   useEffect(() => {
     if (requestAccessError) {
       dispatch(
         setAlert({ heading: requestAccessError.message, type: ALERT_ERROR })
       )
+      logger.error(requestAccessError.message)
     }
     dispatch(fetchSttList())
-  }, [dispatch, requestAccessError])
+  }, [dispatch, requestAccessError, logger])
 
   const setStt = (sttName) => {
     setProfileInfo((currentState) => ({
@@ -131,7 +135,14 @@ function EditProfile() {
     setTouched(formValidation.touched)
 
     if (!Object.values(formValidation.errors).length) {
-      return dispatch(requestAccess(profileInfo))
+      return dispatch(
+        requestAccess({
+          ...profileInfo,
+          stt: sttList.find(
+            (stt) => stt.name.toLowerCase() === profileInfo.stt
+          ),
+        })
+      )
     }
     return setTimeout(() => errorRef.current.focus(), 0)
   }
@@ -182,12 +193,8 @@ function EditProfile() {
         >
           <STTComboBox
             selectStt={setStt}
-            error={errors.stt}
-            selectedStt={
-              profileInfo.stt &&
-              profileInfo.stt.name &&
-              profileInfo.stt.name.toLowerCase()
-            }
+            error={Boolean(errors.stt)}
+            selectedStt={profileInfo?.stt?.toLowerCase()}
             handleBlur={handleBlur}
           />
         </div>
