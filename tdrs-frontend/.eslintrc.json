@@ -18,6 +18,9 @@
     "cypress/globals": true
   },
   "rules": {
+    "prettier/prettier": ["error",{
+      "endOfLine": "auto"}
+    ],
     "jsx-a11y/href-no-hash": ["off"],
     "react/jsx-filename-extension": ["warn", { "extensions": [".js", ".jsx", ".ts", ".tsx"] }],
     "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
