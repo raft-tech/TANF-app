@@ -18,7 +18,7 @@ pyparsing = "*"
 pygraphviz = "*"
 
 [packages]
-boto3 = "~=1.17.79"
+boto3 = "~=1.17.102"
 cryptography = "~=3.4.7"
 django = "~=3.2"
 django-configurations = "~=2.2"
