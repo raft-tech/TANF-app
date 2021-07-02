@@ -23,6 +23,10 @@ RUN pip install --upgrade pip pipenv && pipenv install --dev --system --deploy
 COPY . /tdpapp
 WORKDIR /tdpapp/
 
+RUN pip install /tdpapp/django-admin-interface/dist/django-admin-interface-0.16.3.tar.gz
+
+WORKDIR /tdpapp/
+
 RUN groupadd -g ${gid} ${group} && useradd -u ${uid} -g ${group} -s /bin/sh ${user}
 
 RUN chown -R tdpuser /tdpapp && chmod u+x gunicorn_start.sh wait_for_services.sh

@@ -1,0 +1,82 @@
+{% extends 'admin/base.html' %}
+{% load i18n static admin_interface_tags %}
+
+{% block title %}
+{% get_admin_interface_theme as theme %}
+{% if title %}{{ title }} | {% endif %}{% if theme.title %}{% trans theme.title %}{% else %}{{ site_title|default:_('Django administration') }}{% endif %}
+{% endblock %}
+
+{% block extrastyle %}
+{% get_admin_interface_theme as theme %}
+{% get_admin_interface_version as version %}
+{% get_current_language as current_lang %}
+<style type="text/css">
+/*
+django-admin-interface {{ version }}
+https://github.com/fabiocaccamo/django-admin-interface
+*/
+{% include "admin_interface/css/admin-interface.css" %}
+{% include "admin_interface/css/admin-interface-fix.css" %}
+{% include "admin_interface/css/form-controls.css" %}
+{% include "admin_interface/css/list-filter-dropdown.css" %}
+{% include "admin_interface/css/recent-actions.css" %}
+{% include "admin_interface/css/related-modal.css" %}
+{% include "admin_interface/css/jquery.ui.tabs.css" %}
+{% include "admin_interface/css/modeltranslation.css" %}
+{% include "admin_interface/css/sorl-thumbnail.css" %}
+{% include "admin_interface/css/tabbed-admin.css" %}
+{% include "admin_interface/css/ckeditor.css" %}
+{% include "admin_interface/css/tinymce.css" %}
+{% include "admin_interface/css/json-widget.css" %}
+{% include "admin_interface/css/rtl.css" %}
+
+{% if theme.css %}
+    {{ theme.css|safe }}
+{% endif %}
+
+</style>
+
+{% if current_lang == 'fa' %}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v27.2.2/dist/font-face.css" />
+{% endif %}
+
+{% endblock %}
+
+{% block blockbots %}
+{{ block.super }}
+{% get_admin_interface_theme as theme %}
+{% get_admin_interface_version as version %}
+{# https://github.com/elky/django-flat-responsive#important-note #}
+<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/responsive.css' %}?v={{ version }}">
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/responsive_rtl.css' %}?v={{ version }}" />
+{% include "admin_interface/favicon.html" %}
+{% include "admin_interface/related-modal.html" %}
+{% endblock %}
+
+{% block bodyclass %}admin-interface flat-theme {% get_admin_interface_theme as theme %}{% if theme.name %}{{ theme.name|slugify }}-theme{% endif %}{% if theme.form_submit_sticky %} sticky-submit {% endif %}{% if theme.form_pagination_sticky %} sticky-pagination {% endif %}{% endblock %}
+
+{% block branding %}
+{% get_admin_interface_theme as theme %}
+<h1 id="site-name">
+    {% if theme.logo_visible %}
+        {% if theme.logo %}
+        <img class="logo" style="display:none;" src="{{ theme.logo.url }}" {% if theme.logo.width %}width="{{ theme.logo.width }}"{% endif %} {% if theme.logo.height %}height="{{ theme.logo.height }}"{% endif %}>
+        {% else %}
+        <img class="logo default" style="display:none;" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" width="104" height="36">
+        {% endif %}
+    {% endif %}
+    {% if theme.title_visible %}
+    <span>{% if theme.title %}{% trans theme.title %}{% else %}{{ site_header|default:_('Django administration') }}{% endif %}</span>
+    {% endif %}
+</h1>
+{% endblock %}
+
+{% block welcome-msg %}
+{% get_admin_interface_theme as theme %}
+{% if theme.language_chooser_active %}
+    {% get_admin_interface_languages as languages %}
+    {% include "admin_interface/language_chooser.html" %}
+{% endif %}
+{% if theme.env_visible_in_header %}<span class="environment-label {{ theme.env_name }}"></span><br>{% endif %}{{ block.super }}<br>
+{% endblock %}
