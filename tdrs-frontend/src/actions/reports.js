@@ -1,10 +1,15 @@
-import { logErrorToServer } from '../utils/eventLogger'
-
 import { v4 as uuidv4 } from 'uuid'
 import axios from 'axios'
 
+import axiosInstance from '../axios-instance'
+import { logErrorToServer } from '../utils/eventLogger'
+import removeFileInputErrorState from '../utils/removeFileInputErrorState'
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL
+
 export const SET_FILE = 'SET_FILE'
 export const CLEAR_FILE = 'CLEAR_FILE'
+export const CLEAR_FILE_LIST = 'CLEAR_FILE_LIST'
 export const SET_FILE_ERROR = 'SET_FILE_ERROR'
 export const CLEAR_ERROR = 'CLEAR_ERROR'
 
@@ -20,27 +25,35 @@ export const clearFile = ({ section }) => (dispatch) => {
   dispatch({ type: CLEAR_FILE, payload: { section } })
 }
 
+export const clearFileList = () => (dispatch) => {
+  dispatch({ type: CLEAR_FILE_LIST })
+}
+
 export const clearError = ({ section }) => (dispatch) => {
   dispatch({ type: CLEAR_ERROR, payload: { section } })
 }
+
 /**
    Get a list of files that can be downloaded, mainly used to decide
    if the download button should be present.
 */
-export const getAvailableFileList = ({ year, quarter = 'Q1' }) => async (
+export const getAvailableFileList = ({ quarter = 'Q1', stt, year }) => async (
   dispatch
 ) => {
   dispatch({
     type: FETCH_FILE_LIST,
   })
   try {
-    const response = await axios.get(`/mock_api/reports/${year}/${quarter}`, {
-      responseType: 'json',
-    })
+    const response = await axios.get(
+      `${BACKEND_URL}/reports/?year=${year}&quarter=${quarter}&stt=${stt.id}`,
+      {
+        responseType: 'json',
+      }
+    )
     dispatch({
       type: SET_FILE_LIST,
       payload: {
-        data: response.data,
+        data: response?.data?.results,
       },
     })
   } catch (error) {
@@ -55,19 +68,16 @@ export const getAvailableFileList = ({ year, quarter = 'Q1' }) => async (
   }
 }
 
-export const download = ({ year, quarter = 'Q1', section }) => async (
+export const download = ({ id, quarter = 'Q1', section, year }) => async (
   dispatch
 ) => {
   try {
-    if (!year) throw new Error('No year was provided to download action.')
+    if (!id) throw new Error('No id was provided to download action.')
     dispatch({ type: START_FILE_DOWNLOAD })
 
-    const response = await axios.get(
-      `/mock_api/reports/data-files/${year}/${quarter}/${section}`,
-      {
-        responseType: 'blob',
-      }
-    )
+    const response = await axios.get(`${BACKEND_URL}/reports/${id}/download/`, {
+      responseType: 'blob',
+    })
     const data = response.data
 
     // Create a link and associate it with the blob returned from the file
@@ -103,6 +113,7 @@ export const upload = ({ file, section }) => async (dispatch) => {
     dispatch({
       type: SET_FILE,
       payload: {
+        file: file,
         fileName: file.name,
         fileType: file.type,
         section,
@@ -110,16 +121,75 @@ export const upload = ({ file, section }) => async (dispatch) => {
       },
     })
   } catch (error) {
-    dispatch({
-      type: SET_FILE_ERROR,
-      payload: { error: Error({ message: 'something went wrong' }), section },
-    })
     logErrorToServer(SET_FILE_ERROR)
     dispatch({ type: SET_FILE_ERROR, payload: { error, section } })
     return false
   }
 
   return true
+}
+
+export const submit = ({
+  formattedSections,
+  logger,
+  quarter,
+  setLocalAlertState,
+  stt,
+  uploadedFiles,
+  user,
+  year,
+}) => async (dispatch) => {
+  const submissionRequests = uploadedFiles.map((file) => {
+    const formData = new FormData()
+    const dataFile = {
+      file: file.file,
+      original_filename: file.fileName,
+      slug: file.uuid,
+      user: user.id,
+      section: file.section,
+      year,
+      stt,
+      quarter,
+    }
+    for (const [key, value] of Object.entries(dataFile)) {
+      formData.append(key, value)
+    }
+    return axiosInstance.post(
+      `${process.env.REACT_APP_BACKEND_URL}/reports/`,
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        withCredentials: true,
+      }
+    )
+  })
+
+  Promise.all(submissionRequests)
+    .then((responses) => {
+      setLocalAlertState({
+        active: true,
+        type: 'success',
+        message: `Successfully submitted section(s): ${formattedSections} on ${new Date().toDateString()}`,
+      })
+      removeFileInputErrorState()
+
+      const submittedFiles = responses.map(
+        (response) =>
+          `${response?.data?.original_filename} (${response?.data?.extension})`
+      )
+
+      // Create LogEntries in Django for each created ReportFile
+      logger.alert(
+        `Submitted ${submittedFiles.length} data file(s): ${submittedFiles.join(
+          ', '
+        )}`,
+        {
+          files: responses.map((response) => response?.data?.id),
+          activity: 'upload',
+        }
+      )
+    })
+    .catch((error) => console.error(error))
 }
 
 export const SET_SELECTED_STT = 'SET_SELECTED_STT'
