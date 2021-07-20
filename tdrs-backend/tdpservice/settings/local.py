@@ -10,8 +10,6 @@ class Local(Common):
     """Define class for local configuration settings."""
 
     DEBUG = True
-    # Testing
-    INSTALLED_APPS = Common.INSTALLED_APPS
 
     # Mail
     EMAIL_HOST = "localhost"
@@ -19,9 +17,12 @@ class Local(Common):
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
     if Common.USE_LOCALSTACK:
-        AWS_S3_ACCESS_KEY_ID = "test"
-        AWS_S3_SECRET_ACCESS_KEY = "test"
-        AWS_S3_ENDPOINT_URL = "http://localstack:4566"
+        localstack_dummy_key = "test"
+        AWS_S3_DATAFILES_ACCESS_KEY = localstack_dummy_key
+        AWS_S3_DATAFILES_SECRET_KEY = localstack_dummy_key
+        AWS_S3_DATAFILES_BUCKET_NAME = 'tdp-datafiles-localstack'
+        AWS_S3_DATAFILES_ENDPOINT = 'http://localstack:4566'
+        AWS_S3_DATAFILES_REGION_NAME = 'us-gov-west-1'
 
     Common.LOGGING['loggers']['root'] = {
         'level': 'DEBUG',
