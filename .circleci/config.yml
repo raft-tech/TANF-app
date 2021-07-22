@@ -365,12 +365,6 @@ jobs:
     steps:
       - deploy-infrastructure
 
-  deploy-dev:
-    executor: docker-executor
-    working_directory: ~/tdp-deploy
-    steps:
-      - deploy-cloud-dot-gov
-
   deploy-infrastructure-staging:
     executor: terraform/default
     working_directory: ~/tdp-deploy
@@ -439,14 +433,6 @@ workflows:
     jobs:
       - test-backend
       - test-frontend
-      - deploy-dev:
-          requires:
-            - test-backend
-            - test-frontend
-          filters:
-            branches:
-              only:
-                - raft-review
       - deploy-infrastructure-staging:
           filters:
             branches:
