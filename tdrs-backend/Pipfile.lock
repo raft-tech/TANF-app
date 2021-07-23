@@ -691,11 +691,11 @@
         },
         "awscli": {
             "hashes": [
-                "sha256:34cf8504f251c7ae9a2a4f8b374703480a6b735c73ecb29b6ff44c217831d4aa",
-                "sha256:5786c8ea93a20cdff012a50e6cdb4275b7c363fea4c1ee985c9f45a878f5af96"
+                "sha256:8aa2e94468a6fef88074ee5b57a54625db77ca850092b951a4f640012ea5d2a2",
+                "sha256:dab78e90f14a801d598c4a5e9df02ff0fb5eaa134dc77329b1b4c43ad8b9c477"
             ],
             "index": "pypi",
-            "version": "==1.20.3"
+            "version": "==1.20.5"
         },
         "awscli-local": {
             "hashes": [
