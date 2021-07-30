@@ -691,11 +691,11 @@
         },
         "awscli": {
             "hashes": [
-                "sha256:004e60fe009544a022ef0bfa51d6ae2d9eed11a9ae562e388eb05ef9216602d0",
-                "sha256:b3e38404d340fb355ef4025f5bc4ff28772c11be716d6b71b69eebb9488d44b3"
+                "sha256:09b87fec15d2f1de6fa3e4cf361ef4e7c93e5c2ebeeeaa2b304cc3dc0cd73241",
+                "sha256:c8da7218c229957b3a6f7cf2c4a430469818e28af22b8aa988880cc47fc4919e"
             ],
             "index": "pypi",
-            "version": "==1.20.9"
+            "version": "==1.20.10"
         },
         "awscli-local": {
             "hashes": [
@@ -800,7 +800,7 @@
                 "sha256:f0b278ce10936db1a37e6954e15a3730bea96a0997c26d7fee88e6c396c2086d",
                 "sha256:f11642dddbb0253cc8853254301b51390ba0081750a8ac03f20ea8103f0c56b6"
             ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4.0'",
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4'",
             "version": "==5.5"
         },
         "docutils": {
@@ -1151,7 +1151,7 @@
                 "sha256:78f9a9bf4e7be0c5ded4583326e7461e3a3c5aae24073648b4bdfa797d78c9d2",
                 "sha256:9d689e6ca1b3038bc82bf8d23e944b6b6037bc02301a574935b2dd946e0353b9"
             ],
-            "markers": "python_version >= '3.5' and python_version < '4.0'",
+            "markers": "python_version >= '3.5' and python_version < '4'",
             "version": "==4.7.2"
         },
         "s3transfer": {
