@@ -592,11 +592,11 @@
         },
         "ruamel.yaml": {
             "hashes": [
-                "sha256:106bc8d6dc6a0ff7c9196a47570432036f41d556b779c6b4e618085f57e39e67",
-                "sha256:ffb9b703853e9e8b7861606dfdab1026cf02505bade0653d1880f4b2db47f815"
+                "sha256:505d0c2d7d0ccc2b68eca0e23fb78a86504c2a7e95ec5f2ccb216557c380e152",
+                "sha256:b5e96c0a6619830a7733099f0599b56556a963c6114ef64d0ddb4673347b426f"
             ],
             "markers": "python_version >= '3'",
-            "version": "==0.17.10"
+            "version": "==0.17.11"
         },
         "ruamel.yaml.clib": {
             "hashes": [
@@ -713,11 +713,11 @@
         },
         "awscli": {
             "hashes": [
-                "sha256:00bc6cf4a4c4029185b6133aa04e361853eef3b0480b66ff53ac0a0ea5a02fcf",
-                "sha256:c7683ad28d94361522c8b77436ee1e0f352e3f2d3db73c0c071c5354b8ea226a"
+                "sha256:5563359a618fd724710d31f265c0258f9b3c8813f2cb0e2df8a54d4997bc7118",
+                "sha256:e0308c51806aadcd61c08e4211b7b569124b3d208c8be66c928aa569de0a56ed"
             ],
             "index": "pypi",
-            "version": "==1.20.21"
+            "version": "==1.20.24"
         },
         "awscli-local": {
             "hashes": [
