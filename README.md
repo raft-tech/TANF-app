@@ -1,4 +1,4 @@
-# Temporary Assistance for Needy Families (TANF) Data Portal - TDP
+# temporary Assistance for Needy Families (TANF) Data Portal - TDP
 
 || Raft-Tech(raft-tdp-main) |  HHS(main) |
 |---|---|---|
