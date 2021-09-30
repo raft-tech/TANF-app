@@ -33,13 +33,36 @@ jobs:
     name: Initiate checks in circleci
     steps:
     - uses: actions/checkout@v2
-    - name: Extract Deploy ENV
-      id: extract-deploy-env
+    - name: Extract OWASP Label
+      id: extract-owasp-label
+      if: contains( github.event.pull_request.labels.*.name, 'run-owasp')
       run: |
-        read -ra ADDR <<< "${{ github.event.label.name }}"   # str is read into an array as tokens separated by IFS
-        DEPLOY_ENV="${ADDR[1]}"
-        echo "::set-output name=DEPLOY_ENV::$DEPLOY_ENV"
-        IFS=' '
+        echo "::set-output name=OWASP::true"
+        
+    - name: Extract Frontend Label
+      id: extract-owasp-label
+      if: contains( github.event.pull_request.labels.*.name, 'run-frontend')
+      run: |
+        echo "::set-output name=FRONTEND::true"
+
+    - name: Extract Backend Label
+      id: extract-owasp-label
+      if: contains( github.event.pull_request.labels.*.name, 'run-backend')
+      run: |
+        echo "::set-output name=BACKEND::true"
+
+    - name: Extract Pa11y Label
+      id: extract-owasp-label
+      if: contains( github.event.pull_request.labels.*.name, 'run-pa11y')
+      run: |
+        echo "::set-output name=PA11y::true"
+
+    - name: Extract QASP Label
+      id: extract-owasp-label
+      if: contains( github.event.pull_request.labels.*.name, 'run-qasp')
+      run: |
+        echo "::set-output name=PA11Y::true"
+
     - name: Get PR Status Checks
       id: get-pr-checks
       uses: octokit/request-action@v2.x
@@ -50,13 +73,15 @@ jobs:
         ref: ${{ github.event.pull_request.head.ref }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Extract current PR state
       id: get-pr-state
       run: |
         STATE=${{ fromJson(steps.get-pr-checks.outputs.data).state }}
         echo "::set-output name=STATE::$STATE"
         echo "Current PR state: $STATE"
-    - name: Circle CI Deployment Trigger
+
+    - name: Circle CI checks Trigger
       id: curl-circle-ci
       if: steps.get-pr-state.outputs.STATE == 'success'
       uses: promiseofcake/circleci-trigger-action@v1
@@ -64,5 +89,12 @@ jobs:
         user-token: ${{ secrets.CIRCLE_CI_V2_API_TOKEN }}
         project-slug: raft-tech/TANF-app
         branch: ${{ github.head_ref }}
-        payload: '{"frontend":${{}}}'
+        payload: |
+          {
+            "frontend":${{steps.extract-frontend-label.outputs.FRONTEND}},
+            "backend":${{steps.extract-frontend-label.outputs.BACKEND}},
+            "pa11y": ${{steps.extract-pa11y-label.outputs.PA11Y}},
+            "owasp": ${{steps.extract-owasp-label.outputs.OWASP}},
+            "qasp": ${{steps.extract-qasp-label.outputs.QASP}}
+          }
 

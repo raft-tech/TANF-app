@@ -325,14 +325,14 @@ jobs:
           command: |
             cd tdrs-backend;
             docker-compose run --rm web bash -c "./wait_for_services.sh && pytest --cov-report=xml"
-      - upload-codecov:
-          component: backend
-          coverage-report: ./tdrs-backend/coverage.xml
-      - run:
-          name:  "Test: Execute Python OWASP ZAP Vulnerability Scan"
-          command: "./scripts/zap-scanner.sh backend circle"
-      - store_artifacts:
-          path: tdrs-backend/reports/owasp_report.html
+      # - upload-codecov:
+      #     component: backend
+      #     coverage-report: ./tdrs-backend/coverage.xml
+      # - run:
+      #     name:  "Test: Execute Python OWASP ZAP Vulnerability Scan"
+      #     command: "./scripts/zap-scanner.sh backend circle"
+      # - store_artifacts:
+      #     path: tdrs-backend/reports/owasp_report.html
 
   prod-owasp-scan:
     executor: machine-executor
@@ -367,45 +367,45 @@ jobs:
       - run:
           name: "Run ESLint"
           command: "cd tdrs-frontend; yarn lint"
-      - run:
-          name: "Run Pa11y Accessibility Tests"
-          command: "cd tdrs-frontend; mkdir pa11y-screenshots/; yarn test:accessibility"
+      # - run:
+      #     name: "Run Pa11y Accessibility Tests"
+      #     command: "cd tdrs-frontend; mkdir pa11y-screenshots/; yarn test:accessibility"
       - run:
           name: "Run Jest Unit Tests"
           command: "cd tdrs-frontend; yarn test:ci"
       - upload-codecov:
           component: frontend
           coverage-report: ./tdrs-frontend/coverage/lcov.info
-      - run:
-          name: "Install lib bindings for Cypress"
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y libgbm-dev
-      - run:
-          name: "Run Cypress Integration Tests"
-          command: "cd tdrs-frontend; yarn cy:run:ci"
-      - run:
-          name:  "Test: Execute Frontend  OWASP ZAP Vulnerability Scan"
-          command: "./scripts/zap-scanner.sh frontend circle"
-      - store_artifacts:
-          path: tdrs-frontend/reports/owasp_report.html
-      - store_artifacts:
-          path: tdrs-frontend/pa11y-screenshots/homepage.png
+      # - run:
+      #     name: "Install lib bindings for Cypress"
+      #     command: |
+      #       sudo apt-get update
+      #       sudo apt-get install -y libgbm-dev
+      # - run:
+      #     name: "Run Cypress Integration Tests"
+      #     command: "cd tdrs-frontend; yarn cy:run:ci"
+      # - run:
+      #     name:  "Test: Execute Frontend  OWASP ZAP Vulnerability Scan"
+      #     command: "./scripts/zap-scanner.sh frontend circle"
+      # - store_artifacts:
+      #     path: tdrs-frontend/reports/owasp_report.html
+      # - store_artifacts:
+      #     path: tdrs-frontend/pa11y-screenshots/homepage.png
 
-      - store_artifacts:
-          path: tdrs-frontend/pa11y-screenshots/edit-profile.png
+      # - store_artifacts:
+      #     path: tdrs-frontend/pa11y-screenshots/edit-profile.png
 
-      - store_artifacts:
-          path: tdrs-frontend/pa11y-screenshots/request.png
+      # - store_artifacts:
+      #     path: tdrs-frontend/pa11y-screenshots/request.png
 
-      - store_artifacts:
-          path: tdrs-frontend/pa11y-screenshots/login.png
+      # - store_artifacts:
+      #     path: tdrs-frontend/pa11y-screenshots/login.png
 
-      - store_artifacts:
-          path: tdrs-frontend/pa11y-screenshots/data-files.png
+      # - store_artifacts:
+      #     path: tdrs-frontend/pa11y-screenshots/data-files.png
 
-      - store_artifacts:
-          path: tdrs-frontend/pa11y-screenshots/welcome.png
+      # - store_artifacts:
+      #     path: tdrs-frontend/pa11y-screenshots/welcome.png
 
   deploy-infrastructure-dev:
     executor: terraform/default
@@ -453,7 +453,7 @@ jobs:
           backend-appname: tdp-backend-prod
           cf-password: CF_PASSWORD_PROD
           cf-space: tanf-prod
-          cf-username: CF_USERNAME_PROD
+          uf-username: CF_USERNAME_PROD
           frontend-appname: tdp-frontend-prod
 
 parameters:
@@ -464,6 +464,27 @@ parameters:
   target-env:
     type: string
     default: ''
+
+  frontend:
+    type: boolean
+    default: false
+
+  backend:
+    type: boolean
+    default: false
+
+  owasp:
+    type: boolean
+    default: false
+
+  pa11y:
+    type: boolean
+    default: false
+
+  qasp:
+    type: boolean
+    default: false
+  
 
 workflows:
   nightly:
@@ -482,6 +503,7 @@ workflows:
     jobs:
       - secrets-check
       - test-backend:
+          if: << pipe.parameters.
           requires: 
             - secrets-check
       - test-frontend:
