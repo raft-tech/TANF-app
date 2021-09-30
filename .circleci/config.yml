@@ -515,11 +515,11 @@ workflows:
     jobs:
       - secrets-check
       - test-backend:
-          if: << pipe.parameters.backend >>
+          if: << pipeline.parameters.backend >>
           requires: 
             - secrets-check
       - test-frontend:
-          if: << pipe.parameters.frontend >>
+          if: << pipeline.parameters.frontend >>
           requires: 
             - secrets-check
       - deploy-infrastructure-staging:
