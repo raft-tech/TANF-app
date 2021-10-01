@@ -309,6 +309,9 @@ jobs:
           name: "trufflehog: Scan repository for committed secrets"
           command: ./scripts/trufflehog-check.sh $CIRCLE_BRANCH
   test-backend:
+    parameters:
+      owasp:
+        type: boolean
     executor: machine-executor
     branches:
     steps:
@@ -330,7 +333,7 @@ jobs:
           coverage-report: ./tdrs-backend/coverage.xml
       - when:
           condition:
-            -  << pipline.parameters.owasp >>
+            -  << parameters.owasp >>
           steps:
             - run:
                 name:  "Test: Execute Python OWASP ZAP Vulnerability Scan"
@@ -356,6 +359,14 @@ jobs:
       - store_artifacts:
           path: tdrs-backend/reports/owasp_report.html
   test-frontend:
+    parameters:
+      owasp:
+        type: boolean
+      pa11y:
+        type: boolean
+      cypress:
+        type: boolean
+      
     executor: machine-executor
     working_directory: ~/tdp-apps
     steps:
@@ -523,10 +534,14 @@ workflows:
       - secrets-check
       - test-backend:
           if: << pipeline.parameters.backend >>
+          owasp: << pipeline.parameters.owasp >>
           requires: 
             - secrets-check
       - test-frontend:
           if: << pipeline.parameters.frontend >>
+          owasp: << pipeline.parameters.owasp >>
+          pa11y: << pipeline.parameters.pa11y >>
+          cypress: << pipeline.parameters.cypress >>
           requires: 
             - secrets-check
       - deploy-infrastructure-staging:
