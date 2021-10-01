@@ -373,8 +373,7 @@ jobs:
           command: "cd tdrs-frontend; yarn lint"
 
       - when:
-          condition:
-            -  << pipe.parameters.pa11y >>
+          condition:  << pipe.parameters.pa11y >>
           steps:
             - run:
                 name: "Run Pa11y Accessibility Tests"
@@ -387,8 +386,7 @@ jobs:
           coverage-report: ./tdrs-frontend/coverage/lcov.info
 
       - when:
-          condition:
-            -  << pipe.parameters.cypress >>
+          condition: << pipe.parameters.cypress >>
           steps:
             - run:
                 name: "Run Cypress Integration Tests"
@@ -399,8 +397,7 @@ jobs:
                   yarn cy:run:ci
 
       - when:
-          condition:
-            -  << pipe.parameters.cypress >>
+          condition: << pipe.parameters.cypress >>
           steps:
             - run:
                 name:  "Test: Execute Frontend  OWASP ZAP Vulnerability Scan"
@@ -471,7 +468,7 @@ jobs:
           backend-appname: tdp-backend-prod
           cf-password: CF_PASSWORD_PROD
           cf-space: tanf-prod
-          uf-username: CF_USERNAME_PROD
+          cf-username: CF_USERNAME_PROD
           frontend-appname: tdp-frontend-prod
 
 parameters:
@@ -500,6 +497,10 @@ parameters:
     default: false
 
   qasp:
+    type: boolean
+    default: false
+
+  cypress:
     type: boolean
     default: false
   
