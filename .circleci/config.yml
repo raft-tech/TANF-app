@@ -330,7 +330,7 @@ jobs:
           coverage-report: ./tdrs-backend/coverage.xml
       - when:
           condition:
-            -  << pipe.parameters.owasp >>
+            -  << pipline.parameters.owasp >>
           steps:
             - run:
                 name:  "Test: Execute Python OWASP ZAP Vulnerability Scan"
@@ -373,7 +373,7 @@ jobs:
           command: "cd tdrs-frontend; yarn lint"
 
       - when:
-          condition:  << pipe.parameters.pa11y >>
+          condition:  << pipline.parameters.pa11y >>
           steps:
             - run:
                 name: "Run Pa11y Accessibility Tests"
@@ -386,7 +386,7 @@ jobs:
           coverage-report: ./tdrs-frontend/coverage/lcov.info
 
       - when:
-          condition: << pipe.parameters.cypress >>
+          condition: << pipline.parameters.cypress >>
           steps:
             - run:
                 name: "Run Cypress Integration Tests"
@@ -397,7 +397,7 @@ jobs:
                   yarn cy:run:ci
 
       - when:
-          condition: << pipe.parameters.cypress >>
+          condition: << pipline.parameters.cypress >>
           steps:
             - run:
                 name:  "Test: Execute Frontend  OWASP ZAP Vulnerability Scan"
