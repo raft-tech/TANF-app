@@ -532,12 +532,12 @@ workflows:
     jobs:
       - secrets-check
       - test-backend:
-          if: << pipeline.parameters.backend >>
+          when: << pipeline.parameters.backend >>
           owasp: << pipeline.parameters.owasp >>
           requires: 
             - secrets-check
       - test-frontend:
-          if: << pipeline.parameters.frontend >>
+          when: << pipeline.parameters.frontend >>
           owasp: << pipeline.parameters.owasp >>
           pa11y: << pipeline.parameters.pa11y >>
           cypress: << pipeline.parameters.cypress >>
