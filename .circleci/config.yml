@@ -332,8 +332,7 @@ jobs:
           component: backend
           coverage-report: ./tdrs-backend/coverage.xml
       - when:
-          condition:
-            -  << parameters.owasp >>
+          condition: << parameters.owasp >>
           steps:
             - run:
                 name:  "Test: Execute Python OWASP ZAP Vulnerability Scan"
