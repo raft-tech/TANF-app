@@ -255,6 +255,7 @@ commands:
       cf-org:
         type: env_var_name
         default: CF_ORG
+
     steps:
       - checkout
       - run:
@@ -308,7 +309,60 @@ jobs:
       - run:
           name: "trufflehog: Scan repository for committed secrets"
           command: ./scripts/trufflehog-check.sh $CIRCLE_BRANCH
-  test-backend:
+
+  frontend-lint-check:
+    executor: machine-executor
+    working_directory: ~/tdp-apps
+    steps:
+      - checkout
+      - docker-compose-check
+      - install-nodejs-machine
+      - node/install-yarn
+      - run:
+          name: "Run ESLint"
+          command: "cd tdrs-frontend; yarn lint"
+
+  cypress-check:
+    executor: machine-executor
+    working_directory: ~/tdp-apps
+    steps:
+      - when:
+          condition: << pipline.parameters.cypress >>
+          steps:
+            - run:
+                name: "Run Cypress Integration Tests"
+                command: |
+                  sudo apt-get update
+                  sudo apt-get install -y libgbm-dev
+                  cd tdrs-frontend;
+                  yarn cy:run:ci
+  jest-check:
+    executor: machine-executor
+    working_directory: ~/tdp-apps
+    steps:
+      - checkout
+      - docker-compose-check
+      - install-nodejs-machine
+      - node/install-yarn
+      - install-nodejs-packages:
+          app-dir: tdrs-frontend
+          cache-path: ~/.cache
+          cache-version: v2
+          pkg-manager: yarn
+
+      # - when:
+     #     condition:  << pipline.parameters.pa11y >>
+      #     steps:
+      #       - run:
+      #           name: "Run Pa11y Accessibility Tests"
+      #           command: "cd tdrs-frontend; mkdir pa11y-screenshots/; yarn test:accessibility"
+      - run:
+          name: "Run Jest Unit Tests"
+          command: "cd tdrs-frontend; yarn test:ci"
+      - upload-codecov:
+          component: frontend
+          coverage-report: ./tdrs-frontend/coverage/lcov.info
+  pytest-check:
     parameters:
       owasp:
         type: boolean
@@ -318,12 +372,6 @@ jobs:
       - checkout
       - docker-compose-check
       - run:
-          name: "Test: Build and Spin-up Django API Service"
-          command: "cd tdrs-backend; docker-compose up -d --build"
-      - run:
-          name:  "Test: Execute Python Linting Test"
-          command: "cd tdrs-backend; docker-compose run --rm web bash -c \"flake8 .\""
-      - run:
           name: "Test: Run Unit Tests And Create Code Coverage Report"
           command: |
             cd tdrs-backend;
@@ -332,9 +380,40 @@ jobs:
           component: backend
           coverage-report: ./tdrs-backend/coverage.xml
 
+  frontend-owasp-check:
+    executor: machine-executor
+    steps:
+      - run:
+          name:  "Test: Execute Frontend  OWASP ZAP Vulnerability Scan"
+          command: "./scripts/zap-scanner.sh frontend circle"
+      - store_artifacts:
+          path: tdrs-frontend/reports/owasp_report.html
+      - store_artifacts:
+          path: tdrs-frontend/pa11y-screenshots/homepage.png
+
+      - store_artifacts:
+          path: tdrs-frontend/pa11y-screenshots/edit-profile.png
+
+      - store_artifacts:
+          path: tdrs-frontend/pa11y-screenshots/request.png
+
+      - store_artifacts:
+          path: tdrs-frontend/pa11y-screenshots/login.png
+
+      - store_artifacts:
+          path: tdrs-frontend/pa11y-screenshots/data-files.png
+
+      - store_artifacts:
+          path: tdrs-frontend/pa11y-screenshots/welcome.png
+
   backend-owasp-check:
     executor: machine-executor
     steps:
+      - checkout
+      - docker-compose-check
+      - run:
+          name: "Test: Build and Spin-up Django API Service"
+          command: "cd tdrs-backend; docker-compose up -d --build"
       - run:
           name:  "Test: Execute Python OWASP ZAP Vulnerability Scan"
           command: "./scripts/zap-scanner.sh backend circle"
@@ -352,89 +431,9 @@ jobs:
           command: "./scripts/zap-scanner.sh frontend nightly"
       - store_artifacts:
           path: tdrs-frontend/reports/owasp_report.html
-  frontent-lint-check:
-    executor: machine-executor
-    working_directory: ~/tdp-apps
-  steps:
-    - checkout
-    - docker-compose-check
-    - install-nodejs-machine
-    - node/install-yarn
-    - run:
-        name: "Run ESLint"
-        command: "cd tdrs-frontend; yarn lint"
 
-  jest-check:
-    parameters:
-      owasp:
-        type: boolean
-      pa11y:
-        type: boolean
-      cypress:
-        type: boolean
-      
-    executor: machine-executor
-    working_directory: ~/tdp-apps
-    steps:
-      - checkout
-      - docker-compose-check
-      - install-nodejs-machine
-      - node/install-yarn
-      - install-nodejs-packages:
-          app-dir: tdrs-frontend
-          cache-path: ~/.cache
-          cache-version: v2
-          pkg-manager: yarn
 
-      # - when:
-      #     condition:  << pipline.parameters.pa11y >>
-      #     steps:
-      #       - run:
-      #           name: "Run Pa11y Accessibility Tests"
-      #           command: "cd tdrs-frontend; mkdir pa11y-screenshots/; yarn test:accessibility"
-      - run:
-          name: "Run Jest Unit Tests"
-          command: "cd tdrs-frontend; yarn test:ci"
-      - upload-codecov:
-          component: frontend
-          coverage-report: ./tdrs-frontend/coverage/lcov.info
 
-      - when:
-          condition: << pipline.parameters.cypress >>
-          steps:
-            - run:
-                name: "Run Cypress Integration Tests"
-                command: |
-                  sudo apt-get update
-                  sudo apt-get install -y libgbm-dev
-                  cd tdrs-frontend;
-                  yarn cy:run:ci
-
-      - when:
-          condition: << pipline.parameters.cypress >>
-          steps:
-            - run:
-                name:  "Test: Execute Frontend  OWASP ZAP Vulnerability Scan"
-                command: "./scripts/zap-scanner.sh frontend circle"
-            - store_artifacts:
-                path: tdrs-frontend/reports/owasp_report.html
-            - store_artifacts:
-                path: tdrs-frontend/pa11y-screenshots/homepage.png
-
-            - store_artifacts:
-                path: tdrs-frontend/pa11y-screenshots/edit-profile.png
-
-            - store_artifacts:
-                path: tdrs-frontend/pa11y-screenshots/request.png
-
-            - store_artifacts:
-                path: tdrs-frontend/pa11y-screenshots/login.png
-
-            - store_artifacts:
-                path: tdrs-frontend/pa11y-screenshots/data-files.png
-
-            - store_artifacts:
-                path: tdrs-frontend/pa11y-screenshots/welcome.png
 
   deploy-infrastructure-dev:
     executor: terraform/default
@@ -536,14 +535,15 @@ workflows:
     jobs:
       - secrets-check
       - backend-lint:
-          when: << pipeline.parameters.backend >>
           requires: 
             - secrets-check
-      - test-backend:
+
+      - pytest-check:
           when: << pipeline.parameters.backend >>
           requires: 
             - backend-lint
-      - backend-owasp:
+
+      - backend-owasp-check:
           when:
             and:
               - << pipeline.parameters.owasp >>
@@ -555,10 +555,11 @@ workflows:
           when: << pipeline.parameters.frontend >>
           requires:
             - secret-check
-          
+
       - jest-check:
           when: << pipeline.parameters.frontend >>
           requires: 
+            - secret-check
             - frontend-lint-check
 
       - frontend-owasp-check:
@@ -567,14 +568,16 @@ workflows:
               - << pipeline.parameters.owasp >>
               - << pipeline.parameters.frontend >>
           requires:
+            - secret-check
             - jest-check
 
-      - frontend-pa11y-check:
+      - pa11y-check:
           when:
             and:
               - << pipeline.parameters.pa11y >>
               - << pipeline.parameters.frontend >>
           requires:
+            - secret-check
             - jest-check
       
       - cypress-check:
@@ -583,6 +586,7 @@ workflows:
               - << pipeline.parameters.cypress >>
               - << pipeline.parameters.frontend >>
           requires:
+            - secret-check
             - jest-check
 
       - deploy-infrastructure-staging:
@@ -590,6 +594,7 @@ workflows:
             branches:
               only:
                 - raft-tdp-main
+
       - deploy-staging:
           requires:
             - deploy-infrastructure-staging
