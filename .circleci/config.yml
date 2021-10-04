@@ -365,17 +365,20 @@ jobs:
   pytest-check:
     executor: machine-executor
     branches:
-    steps:
-      - checkout
-      - docker-compose-check
-      - run:
-          name: "Test: Run Unit Tests And Create Code Coverage Report"
-          command: |
-            cd tdrs-backend;
-            docker-compose run --rm web bash -c "./wait_for_services.sh && pytest --cov-report=xml"
-      - upload-codecov:
-          component: backend
-          coverage-report: ./tdrs-backend/coverage.xml
+    
+    when:
+      condition: << pipeline.parameters.backend >>
+      steps:
+        - checkout
+        - docker-compose-check
+        - run:
+            name: "Test: Run Unit Tests And Create Code Coverage Report"
+            command: |
+              cd tdrs-backend;
+              docker-compose run --rm web bash -c "./wait_for_services.sh && pytest --cov-report=xml"
+        - upload-codecov:
+            component: backend
+            coverage-report: ./tdrs-backend/coverage.xml
 
   backend-lint-check:
     executor: machine-executor
@@ -545,59 +548,57 @@ workflows:
             - secrets-check
 
       - pytest-check:
-          when:
-            condition: << pipeline.parameters.backend >>
           requires: 
             - backend-lint-check
 
-      - backend-owasp-check:
-          when:
-            condition:
-              and:
-                - << pipeline.parameters.owasp >>
-                - << pipeline.parameters.backend >>
-          requires:
-            - test-backend
+      # - backend-owasp-check:
+      #     when:
+      #       condition:
+      #         and:
+      #           - << pipeline.parameters.owasp >>
+      #           - << pipeline.parameters.backend >>
+      #     requires:
+      #       - test-backend
 
-      - frontend-lint-check:
-          when:
-            condition: << pipeline.parameters.frontend >>
+      # - frontend-lint-check:
+      #     when:
+      #       condition: << pipeline.parameters.frontend >>
 
-          requires:
-            - secret-check
+      #     requires:
+      #       - secret-check
 
-      - jest-check:
-          when: << pipeline.parameters.frontend >>
-          requires: 
-            - secret-check
-            - frontend-lint-check
+      # - jest-check:
+      #     when: << pipeline.parameters.frontend >>
+      #     requires: 
+      #       - secret-check
+      #       - frontend-lint-check
 
-      - frontend-owasp-check:
-          when:
-            and:
-              - << pipeline.parameters.owasp >>
-              - << pipeline.parameters.frontend >>
-          requires:
-            - secret-check
-            - jest-check
+      # - frontend-owasp-check:
+      #     when:
+      #       and:
+      #         - << pipeline.parameters.owasp >>
+      #         - << pipeline.parameters.frontend >>
+      #     requires:
+      #       - secret-check
+      #       - jest-check
 
-      - pa11y-check:
-          when:
-            and:
-              - << pipeline.parameters.pa11y >>
-              - << pipeline.parameters.frontend >>
-          requires:
-            - secret-check
-            - jest-check
+      # - pa11y-check:
+      #     when:
+      #       and:
+      #         - << pipeline.parameters.pa11y >>
+      #         - << pipeline.parameters.frontend >>
+      #     requires:
+      #       - secret-check
+      #       - jest-check
       
-      - cypress-check:
-          when:
-            and:
-              - << pipeline.parameters.cypress >>
-              - << pipeline.parameters.frontend >>
-          requires:
-            - secret-check
-            - jest-check
+      # - cypress-check:
+      #     when:
+      #       and:
+      #         - << pipeline.parameters.cypress >>
+      #         - << pipeline.parameters.frontend >>
+      #     requires:
+      #       - secret-check
+      #       - jest-check
 
       - deploy-infrastructure-staging:
           filters:
