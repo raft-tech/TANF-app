@@ -370,6 +370,8 @@ jobs:
         default: false
     branches:
     steps:
+      - checkout
+      - docker-compose-check
       - when: << parameters.backend-check >> 
         steps:
           - checkout
