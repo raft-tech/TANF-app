@@ -545,20 +545,24 @@ workflows:
             - secrets-check
 
       - pytest-check:
-          when: << pipeline.parameters.backend >>
+          when:
+            condition: << pipeline.parameters.backend >>
           requires: 
             - backend-lint-check
 
       - backend-owasp-check:
           when:
-            and:
-              - << pipeline.parameters.owasp >>
-              - << pipeline.parameters.backend >>
+            condition:
+              and:
+                - << pipeline.parameters.owasp >>
+                - << pipeline.parameters.backend >>
           requires:
             - test-backend
 
       - frontend-lint-check:
-          when: << pipeline.parameters.frontend >>
+          when:
+            condition: << pipeline.parameters.frontend >>
+
           requires:
             - secret-check
 
