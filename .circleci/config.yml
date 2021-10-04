@@ -370,7 +370,7 @@ jobs:
         default: false
     branches:
     steps:
-      when:
+      - when:
         condition: [ << parameters.backend-check >> ]
         steps:
           - checkout
