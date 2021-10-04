@@ -387,7 +387,7 @@ jobs:
       - docker-compose-check
       - run:
           name: "Test: Execute Python Linting Test"
-          command: "cd tdrs-backend; docker-compose run --rm web bash -c \"flake8 . \"
+          command: "cd tdrs-backend; docker-compose run --rm web bash -c \"flake8 . \""
 
 
   frontend-owasp-check:
