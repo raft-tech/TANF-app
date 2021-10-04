@@ -379,6 +379,16 @@ jobs:
       - upload-codecov:
           component: backend
           coverage-report: ./tdrs-backend/coverage.xml
+  backend-lint-check:
+    executor: machine-executor
+    branches:
+    steps:
+      - checkout
+      - docker-compose-check
+      - run:
+          name: "Test: Execute Python Linting Test"
+          command: "cd tdrs-backend; docker-compose run --rm web bash -c \"flake8 . \"
+
 
   frontend-owasp-check:
     executor: machine-executor
@@ -431,8 +441,6 @@ jobs:
           command: "./scripts/zap-scanner.sh frontend nightly"
       - store_artifacts:
           path: tdrs-frontend/reports/owasp_report.html
-
-
 
 
   deploy-infrastructure-dev:
@@ -534,14 +542,14 @@ workflows:
     unless: << pipeline.parameters.run_dev_deployment >>
     jobs:
       - secrets-check
-      - backend-lint:
+      - backend-lint-check:
           requires: 
             - secrets-check
 
       - pytest-check:
           when: << pipeline.parameters.backend >>
           requires: 
-            - backend-lint
+            - backend-lint-check
 
       - backend-owasp-check:
           when:
