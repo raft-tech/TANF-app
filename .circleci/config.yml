@@ -369,21 +369,20 @@ jobs:
         type: boolean
         default: false
     branches:
-    
-    when:
-      condition: << parameters.backend-check >>
-
     steps:
-      - checkout
-      - docker-compose-check
-      - run:
-          name: "Test: Run Unit Tests And Create Code Coverage Report"
-          command: |
-            cd tdrs-backend;
-            docker-compose run --rm web bash -c "./wait_for_services.sh && pytest --cov-report=xml"
-      - upload-codecov:
-          component: backend
-          coverage-report: ./tdrs-backend/coverage.xml
+      when:
+        condition: << parameters.backend-check >>
+        steps:
+          - checkout
+          - docker-compose-check
+          - run:
+              name: "Test: Run Unit Tests And Create Code Coverage Report"
+              command: |
+                cd tdrs-backend;
+                docker-compose run --rm web bash -c "./wait_for_services.sh && pytest --cov-report=xml"
+          - upload-codecov:
+              component: backend
+              coverage-report: ./tdrs-backend/coverage.xml
 
   backend-lint-check:
     executor: machine-executor
