@@ -331,12 +331,13 @@ jobs:
       - upload-codecov:
           component: backend
           coverage-report: ./tdrs-backend/coverage.xml
-      - when:
-          condition: << parameters.owasp >>
-          steps:
-            - run:
-                name:  "Test: Execute Python OWASP ZAP Vulnerability Scan"
-                command: "./scripts/zap-scanner.sh backend circle"
+
+  backend-owasp-check:
+    executor: machine-executor
+    steps:
+      - run:
+          name:  "Test: Execute Python OWASP ZAP Vulnerability Scan"
+          command: "./scripts/zap-scanner.sh backend circle"
       - store_artifacts:
           path: tdrs-backend/reports/owasp_report.html
 
@@ -351,13 +352,19 @@ jobs:
           command: "./scripts/zap-scanner.sh frontend nightly"
       - store_artifacts:
           path: tdrs-frontend/reports/owasp_report.html
+  frontent-lint-check:
+    executor: machine-executor
+    working_directory: ~/tdp-apps
+  steps:
+    - checkout
+    - docker-compose-check
+    - install-nodejs-machine
+    - node/install-yarn
+    - run:
+        name: "Run ESLint"
+        command: "cd tdrs-frontend; yarn lint"
 
-      - run:
-          name:  "Test: Execute Backend  OWASP ZAP Vulnerability Scan"
-          command: "./scripts/zap-scanner.sh backend nightly"
-      - store_artifacts:
-          path: tdrs-backend/reports/owasp_report.html
-  test-frontend:
+  jest-check:
     parameters:
       owasp:
         type: boolean
@@ -378,16 +385,13 @@ jobs:
           cache-path: ~/.cache
           cache-version: v2
           pkg-manager: yarn
-      - run:
-          name: "Run ESLint"
-          command: "cd tdrs-frontend; yarn lint"
 
-      - when:
-          condition:  << pipline.parameters.pa11y >>
-          steps:
-            - run:
-                name: "Run Pa11y Accessibility Tests"
-                command: "cd tdrs-frontend; mkdir pa11y-screenshots/; yarn test:accessibility"
+      # - when:
+      #     condition:  << pipline.parameters.pa11y >>
+      #     steps:
+      #       - run:
+      #           name: "Run Pa11y Accessibility Tests"
+      #           command: "cd tdrs-frontend; mkdir pa11y-screenshots/; yarn test:accessibility"
       - run:
           name: "Run Jest Unit Tests"
           command: "cd tdrs-frontend; yarn test:ci"
@@ -531,18 +535,56 @@ workflows:
     unless: << pipeline.parameters.run_dev_deployment >>
     jobs:
       - secrets-check
+      - backend-lint:
+          when: << pipeline.parameters.backend >>
+          requires: 
+            - secrets-check
       - test-backend:
           when: << pipeline.parameters.backend >>
-          owasp: << pipeline.parameters.owasp >>
           requires: 
-            - secrets-check
-      - test-frontend:
+            - backend-lint
+      - backend-owasp:
+          when:
+            and:
+              - << pipeline.parameters.owasp >>
+              - << pipeline.parameters.backend >>
+          requires:
+            - test-backend
+
+      - frontend-lint-check:
           when: << pipeline.parameters.frontend >>
-          owasp: << pipeline.parameters.owasp >>
-          pa11y: << pipeline.parameters.pa11y >>
-          cypress: << pipeline.parameters.cypress >>
+          requires:
+            - secret-check
+          
+      - jest-check:
+          when: << pipeline.parameters.frontend >>
           requires: 
-            - secrets-check
+            - frontend-lint-check
+
+      - frontend-owasp-check:
+          when:
+            and:
+              - << pipeline.parameters.owasp >>
+              - << pipeline.parameters.frontend >>
+          requires:
+            - jest-check
+
+      - frontend-pa11y-check:
+          when:
+            and:
+              - << pipeline.parameters.pa11y >>
+              - << pipeline.parameters.frontend >>
+          requires:
+            - jest-check
+      
+      - cypress-check:
+          when:
+            and:
+              - << pipeline.parameters.cypress >>
+              - << pipeline.parameters.frontend >>
+          requires:
+            - jest-check
+
       - deploy-infrastructure-staging:
           filters:
             branches:
