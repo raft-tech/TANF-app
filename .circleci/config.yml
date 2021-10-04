@@ -363,9 +363,6 @@ jobs:
           component: frontend
           coverage-report: ./tdrs-frontend/coverage/lcov.info
   pytest-check:
-    parameters:
-      owasp:
-        type: boolean
     executor: machine-executor
     branches:
     steps:
@@ -379,6 +376,7 @@ jobs:
       - upload-codecov:
           component: backend
           coverage-report: ./tdrs-backend/coverage.xml
+
   backend-lint-check:
     executor: machine-executor
     branches:
