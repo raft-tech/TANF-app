@@ -364,22 +364,26 @@ jobs:
           coverage-report: ./tdrs-frontend/coverage/lcov.info
   pytest-check:
     executor: machine-executor
+    parameters:
+      backend-check:
+        type: boolean
+        default: false
     branches:
     
+    when:
+      condition: << parameters.backend-check >>
+
     steps:
-      when:
-        condition: << pipeline.parameters.backend >>
-        steps:
-          - checkout
-          - docker-compose-check
-          - run:
-              name: "Test: Run Unit Tests And Create Code Coverage Report"
-              command: |
-                cd tdrs-backend;
-                docker-compose run --rm web bash -c "./wait_for_services.sh && pytest --cov-report=xml"
-          - upload-codecov:
-              component: backend
-              coverage-report: ./tdrs-backend/coverage.xml
+      - checkout
+      - docker-compose-check
+      - run:
+          name: "Test: Run Unit Tests And Create Code Coverage Report"
+          command: |
+            cd tdrs-backend;
+            docker-compose run --rm web bash -c "./wait_for_services.sh && pytest --cov-report=xml"
+      - upload-codecov:
+          component: backend
+          coverage-report: ./tdrs-backend/coverage.xml
 
   backend-lint-check:
     executor: machine-executor
@@ -549,6 +553,7 @@ workflows:
             - secrets-check
 
       - pytest-check:
+          backend-check: << pipeline.parameters.backend >>
           requires: 
             - backend-lint-check
 
