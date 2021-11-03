@@ -41,4 +41,4 @@
 *.gif binary
 *.pdf binary
 
-**/users.tf filter=git-crypt diff=git-crypt
+terraform/dev/users.tf filter=crypt diff=crypt merge=crypt 
