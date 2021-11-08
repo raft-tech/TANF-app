@@ -243,6 +243,9 @@ commands:
       tf-path:
         type: string
         default: ./terraform/dev
+      transcrypt-password:
+        type: env_var_name
+        default: TRANSCRYPT_PASSWORD
       cf-password:
         type: env_var_name
         default: CF_PASSWORD_DEV
@@ -281,6 +284,12 @@ commands:
               echo "cf_user = \"$<<parameters.cf-username>>\""
               echo "cf_space_name = \"<<parameters.cf-space>>\""
             } >> ./variables.tfvars
+
+      - run:
+          name: Decrypt user file using Transcrypt
+          command: |
+            git clone https://github.com/elasticdog/transcrypt.git
+            ./transcrypt/transcrypt -c aes-256-cbc -p '$<<parameters.transcrypt-password>>'
 
       - terraform/init:
           path: <<parameters.tf-path>>
@@ -532,6 +541,14 @@ parameters:
     default: false
 
 workflows:
+  dev-deployment:
+    when: << pipeline.parameters.run_dev_deployment >>
+    jobs:
+      - deploy-infrastructure-dev
+      - deploy-dev:
+          target-env: << pipeline.parameters.target-env >>
+          requires:
+            - deploy-infrastructure-dev
   nightly:
     jobs:
       - nightly-owasp-scan
@@ -620,11 +637,3 @@ workflows:
               only:
                 - raft-tdp-main
 
-  dev-deployment:
-    when: << pipeline.parameters.run_dev_deployment >>
-    jobs:
-      - deploy-infrastructure-dev
-      - deploy-dev:
-          target-env: << pipeline.parameters.target-env >>
-          requires:
-            - deploy-infrastructure-dev
