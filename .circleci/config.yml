@@ -269,6 +269,11 @@ commands:
             apk add util-linux
             apk add bash
             apk add openssl
+            grep --help
+            mktemp --help
+            openssl --help
+            sed --help
+            tee --help
             column --help
       - login-cloud-dot-gov
       - run:
