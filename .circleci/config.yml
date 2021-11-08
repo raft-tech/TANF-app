@@ -541,14 +541,10 @@ parameters:
     default: false
 
 workflows:
-  dev-deployment:
-    when: << pipeline.parameters.run_dev_deployment >>
+  temp-deployment:
     jobs:
       - deploy-infrastructure-dev
-      - deploy-dev:
-          target-env: << pipeline.parameters.target-env >>
-          requires:
-            - deploy-infrastructure-dev
+
   nightly:
     jobs:
       - nightly-owasp-scan
@@ -636,4 +632,13 @@ workflows:
             branches:
               only:
                 - raft-tdp-main
+
+  dev-deployment:
+    when: << pipeline.parameters.run_dev_deployment >>
+    jobs:
+      - deploy-infrastructure-dev
+      - deploy-dev:
+          target-env: << pipeline.parameters.target-env >>
+          requires:
+            - deploy-infrastructure-dev
 
