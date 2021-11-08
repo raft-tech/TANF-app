@@ -303,8 +303,8 @@ commands:
           backend_config_file: ./backend_config.tfvars
       - terraform/validate:
           path: <<parameters.tf-path>>
-      - terraform/fmt:
-          path: <<parameters.tf-path>>
+      # - terraform/fmt:
+      #     path: <<parameters.tf-path>>
       - terraform/plan:
           path: <<parameters.tf-path>>
           var_file: ./variables.tfvars
