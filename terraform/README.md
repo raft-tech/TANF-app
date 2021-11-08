@@ -154,6 +154,18 @@ These instructions describe the creation of a new S3 bucket to hold Terraform's 
    cf service-key tdp-tf-states tdp-tf-key
    ```
    
+### Encrypted user files with transcrypt
+
+install transcrypt according to the [INSTALL.md](https://github.com/elasticdog/transcrypt/blob/main/INSTALL.md)
+We are using a password, it must be sent privately.
+
+```
+cd TANF-app
+transcrypt -c aes-256-cbc -p <password>
+```
+
+
+   
 #### Security
    
    The Terraform State S3 instance is set to be encrypted (see `main.tf#backend`). Amazon S3 [protects data at rest][s3] using 256-bit Advanced Encryption Standard. 
