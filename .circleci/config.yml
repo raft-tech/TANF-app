@@ -270,8 +270,6 @@ commands:
             apk add bash
             apk add openssl
             grep --help
-            mktemp --help
-            openssl --help
             sed --help
             tee --help
             column --help
