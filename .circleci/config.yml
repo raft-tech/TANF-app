@@ -246,6 +246,9 @@ commands:
       transcrypt-password:
         type: env_var_name
         default: TRANSCRYPT_PASSWORD
+      cf-space-guid:
+        type: env_var_name
+        default: CF_SPACE_GUID
       cf-password:
         type: env_var_name
         default: CF_PASSWORD_DEV
@@ -290,6 +293,7 @@ commands:
               echo "cf_password = \"$<<parameters.cf-password>>\""
               echo "cf_user = \"$<<parameters.cf-username>>\""
               echo "cf_space_name = \"<<parameters.cf-space>>\""
+              echo "cf_space_guid= \"$<<parameters.cf-space-guid>>\""
             } >> ./variables.tfvars
 
       - run:
