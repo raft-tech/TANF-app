@@ -289,7 +289,7 @@ commands:
           name: Decrypt user file using Transcrypt
           command: |
             git clone https://github.com/elasticdog/transcrypt.git
-            ./transcrypt/transcrypt -c aes-256-cbc -p '$<<parameters.transcrypt-password>>'
+            sh ./transcrypt/transcrypt -c aes-256-cbc -p '$<<parameters.transcrypt-password>>'
 
       - terraform/init:
           path: <<parameters.tf-path>>
