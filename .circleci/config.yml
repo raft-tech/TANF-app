@@ -249,6 +249,9 @@ commands:
       cf-space-guid:
         type: env_var_name
         default: CF_SPACE_GUID
+      cf-org-guid:
+        type: env_var_name
+        default: CF_ORG_GUID
       cf-password:
         type: env_var_name
         default: CF_PASSWORD_DEV
@@ -294,6 +297,7 @@ commands:
               echo "cf_user = \"$<<parameters.cf-username>>\""
               echo "cf_space_name = \"<<parameters.cf-space>>\""
               echo "cf_space_guid= \"$<<parameters.cf-space-guid>>\""
+              echo "cf_org_guid= \"$<<parameters.cf-org-guid>>\""
             } >> ./variables.tfvars
 
       - run:
