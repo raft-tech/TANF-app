@@ -268,6 +268,7 @@ commands:
             apk add cloudfoundry-cli --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/
             apk add bash
             apk add openssl
+            column --help
       - login-cloud-dot-gov
       - run:
           name: Export S3 Credentials for TFState
