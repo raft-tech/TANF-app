@@ -368,7 +368,6 @@ jobs:
           cache-version: v2
           pkg-manager: yarn
           override-ci-command: "--ignore-engines"
-      - get-app-deploy-strategy:
       - run:
           name: Run ESLint
           command: cd tdrs-frontend; yarn lint
