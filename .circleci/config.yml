@@ -371,7 +371,7 @@ jobs:
           override-ci-command: "nvm use v16.13 && yarn install --frozen-lockfile --ignore-engines"
       - run:
           name: Run ESLint
-          command: cd tdrs-frontend; yarn lint
+          command: cd tdrs-frontend; nvm use v16.13; yarn lint
       - run:
           name: Run Pa11y Accessibility Tests
           command: cd tdrs-frontend; mkdir pa11y-screenshots/; yarn test:accessibility
