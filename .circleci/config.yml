@@ -368,7 +368,7 @@ jobs:
           cache-path: ~/.cache
           cache-version: v2
           pkg-manager: yarn
-          override-ci-command: "yarn install --frozen-lockfile --ignore-engines"
+          override-ci-command: "nvm use v16.13 && yarn install --frozen-lockfile --ignore-engines"
       - run:
           name: Run ESLint
           command: cd tdrs-frontend; yarn lint
