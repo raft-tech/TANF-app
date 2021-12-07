@@ -1,0 +1,21 @@
+yarn add -D eslint-plugin-flowtype@latest eslint-plugin-import@latest eslint-plugin-react-hooks@next --force
+   10  yarn lint
+   11  rm -f yarn.lock ; yarn install
+   12  yarn lint
+   13  yarn install --dev && yarn lint
+   14  rm -f yarn.lock 
+   15  yarn install --dev && yarn lint
+   16  vim package.json 
+   17  yarn add eslint-config-react-app --dev
+   18  rm -f yarn.lock; yarn install --dev && yarn lint
+   19  yarn install eslint-plugin-jsx-a11y@latest --dev
+   20  yarn add eslint-plugin-jsx-a11y@latest --dev
+   21  vim .eslintrc.json 
+   22  rm -f yarn.lock; yarn install --dev && yarn lint
+   23  rm -rf node_modules/
+   24  rm -f yarn.lock; yarn install --dev && yarn lint
+   25  yarn add babel-eslint -D
+   26  rm -f yarn.lock; yarn install --dev && yarn lint
+   27  yarn add eslint-plugin-react@latest -D
+   28  rm -f yarn.lock; yarn install --dev && yarn lint
+
