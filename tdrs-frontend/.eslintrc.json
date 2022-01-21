@@ -1,14 +1,10 @@
 {
   "extends": [
-    "airbnb",
     "react-app",
-    "prettier/react",
-    "plugin:prettier/recommended",
-    "plugin:cypress/recommended",
-    "plugin:jsx-a11y/recommended"
+    "plugin:jsx-a11y/recommended",
+    "plugin:prettier/recommended"
   ],
   "plugins": [
-    "cypress",
     "jsx-a11y"
   ],
   "env": {
@@ -16,14 +12,14 @@
     "commonjs": true,
     "es6": true,
     "jest": true,
-    "node": true,
-    "cypress/globals": true
+    "node": true
   },
   "rules": {
     "jsx-a11y/href-no-hash": ["off"],
     "react/jsx-filename-extension": ["warn", { "extensions": [".js", ".jsx", ".ts", ".tsx"] }],
     "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
     "react/jsx-props-no-spreading": ["off"],
+    "jsx-a11y/no-noninteractive-tabindex": "off",
     "max-len": [
       "warn",
       {

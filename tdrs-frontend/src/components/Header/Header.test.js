@@ -4,12 +4,19 @@ import { mount } from 'enzyme'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
 
+import { render } from '@testing-library/react'
 import Header from './Header'
 
 describe('Header', () => {
-  let initialState = {
+  const initialState = {
     router: { location: { pathname: '/edit-profile' } },
-    auth: { user: { email: 'test@test.com' }, authenticated: true },
+    auth: {
+      user: {
+        email: 'test@test.com',
+        roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
+      },
+      authenticated: true,
+    },
   }
   const mockStore = configureStore([thunk])
 
@@ -38,16 +45,16 @@ describe('Header', () => {
     expect(welcomeLink).toIncludeText('Welcome')
   })
 
-  it('should have a navigation link for Reports', () => {
+  it('should have a navigation link for dataFiles', () => {
     const store = mockStore(initialState)
     const wrapper = mount(
       <Provider store={store}>
         <Header />
       </Provider>
     )
-    const reportsLink = wrapper.find('#reports')
-    expect(reportsLink).toExist()
-    expect(reportsLink).toIncludeText('Reports')
+    const dataFilesLink = wrapper.find('#data-files')
+    expect(dataFilesLink).toExist()
+    expect(dataFilesLink).toIncludeText('Data Files')
   })
 
   it('should have a navigation link for Profile', () => {
@@ -62,7 +69,7 @@ describe('Header', () => {
     expect(profileLink).toIncludeText('Profile')
   })
 
-  it('should have a navigation link for Admin', () => {
+  it('should have a navigation link for Admin when user is a OFA System Admin', () => {
     const store = mockStore(initialState)
     const wrapper = mount(
       <Provider store={store}>
@@ -72,6 +79,28 @@ describe('Header', () => {
     const adminLink = wrapper.find('#admin')
     expect(adminLink).toExist()
     expect(adminLink).toIncludeText('Admin')
+  })
+
+  it('should NOT have a navigation link for Admin when user is NOT a OFA System Admin', () => {
+    const store = mockStore({
+      ...initialState,
+      auth: {
+        authenticated: true,
+        user: {
+          email: 'test@test.com',
+          roles: [{ id: 2, name: 'Data Prepper', permissions: [] }],
+        },
+      },
+    })
+
+    const wrapper = mount(
+      <Provider store={store}>
+        <Header />
+      </Provider>
+    )
+    const adminLink = wrapper.find('#admin')
+    expect(adminLink).not.toExist()
+    expect(adminLink).not.toIncludeText('Admin')
   })
 
   it('should find menu button', () => {
@@ -101,10 +130,10 @@ describe('Header', () => {
     expect(welcomeTab.hasClass('usa-current')).toEqual(true)
   })
 
-  it("should add usa-current class to Reports tab when on '/reports'", () => {
+  it("should add usa-current class to Data Files tab when on '/data-files'", () => {
     const store = mockStore({
       ...initialState,
-      router: { location: { pathname: '/reports' } },
+      router: { location: { pathname: '/data-files' } },
     })
     const wrapper = mount(
       <Provider store={store}>
@@ -112,25 +141,9 @@ describe('Header', () => {
       </Provider>
     )
 
-    const reportsTab = wrapper.find('#reports')
+    const dataFilesTab = wrapper.find('#data-files')
 
-    expect(reportsTab.hasClass('usa-current')).toEqual(true)
-  })
-
-  it("should add usa-current class to Reports tab when on '/reports/*'", () => {
-    const store = mockStore({
-      ...initialState,
-      router: { location: { pathname: '/reports/upload' } },
-    })
-    const wrapper = mount(
-      <Provider store={store}>
-        <Header />
-      </Provider>
-    )
-
-    const reportsTab = wrapper.find('#reports')
-
-    expect(reportsTab.hasClass('usa-current')).toEqual(true)
+    expect(dataFilesTab.hasClass('usa-current')).toEqual(true)
   })
 
   it("should add usa-current class to Profile tab when on '/edit-profile'", () => {
@@ -146,25 +159,9 @@ describe('Header', () => {
     expect(profileTab.hasClass('usa-current')).toEqual(true)
   })
 
-  it("should add usa-current class to Admin tab when on '/admin'", () => {
-    const store = mockStore({
-      ...initialState,
-      router: { location: { pathname: '/admin' } },
-    })
-    const wrapper = mount(
-      <Provider store={store}>
-        <Header />
-      </Provider>
-    )
-
-    const adminTab = wrapper.find('#admin')
-
-    expect(adminTab.hasClass('usa-current')).toEqual(true)
-  })
-
   it("should not add usa-current class to Welcome tab when not on '/'", () => {
-    initialState = { ...initialState, router: { location: { pathname: '/' } } }
-    const store = mockStore(initialState)
+    const state = { ...initialState, router: { location: { pathname: '/' } } }
+    const store = mockStore(state)
     const wrapper = mount(
       <Provider store={store}>
         <Header />
@@ -174,28 +171,6 @@ describe('Header', () => {
     const welcomeTab = wrapper.find('#welcome')
 
     expect(welcomeTab.hasClass('usa-current')).toEqual(false)
-  })
-
-  it('should log out user when sign out button is clicked', () => {
-    const store = mockStore(initialState)
-    const url = 'http://localhost:8080/v1/logout/oidc'
-    global.window = Object.create(window)
-    Object.defineProperty(window, 'location', {
-      value: {
-        href: url,
-      },
-    })
-    const wrapper = mount(
-      <Provider store={store}>
-        <Header />
-      </Provider>
-    )
-
-    const signOutLink = wrapper.find('.sign-out-link').first()
-
-    signOutLink.simulate('click')
-
-    expect(window.location.href).toEqual(url)
   })
 
   it('should have secondaryItems when user is logged in', () => {
@@ -210,24 +185,25 @@ describe('Header', () => {
 
     expect(secondaryLinks.length).toEqual(2)
     expect(secondaryLinks.first().text()).toEqual('test@test.com')
-    expect(secondaryLinks.last().text()).toEqual('Sign Out')
   })
 
-  it('should have one visible secondaryItem when user is logged out', () => {
-    initialState = {
+  it('should NOT show any nav items when the user is NOT logged in', () => {
+    const state = {
       ...initialState,
       auth: { user: {}, authenticated: false },
     }
-    const store = mockStore(initialState)
-    const wrapper = mount(
+
+    const store = mockStore(state)
+
+    const { queryByText } = render(
       <Provider store={store}>
         <Header />
       </Provider>
     )
 
-    const secondaryLinks = wrapper.find('.usa-nav__secondary-item')
-
-    expect(secondaryLinks.first().hasClass('display-none')).toBeTruthy()
-    expect(secondaryLinks.last().text()).toEqual('Sign In')
+    expect(queryByText('Welcome')).not.toBeInTheDocument()
+    expect(queryByText('Data Files')).not.toBeInTheDocument()
+    expect(queryByText('Profile')).not.toBeInTheDocument()
+    expect(queryByText('Admin')).not.toBeInTheDocument()
   })
 })

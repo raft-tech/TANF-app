@@ -1,9 +1,9 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
-
 import closeIcon from 'uswds/dist/img/close.svg'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSignOutAlt, faUserCircle } from '@fortawesome/free-solid-svg-icons'
+
 import NavItem from '../NavItem/NavItem'
 
 /**
@@ -19,6 +19,11 @@ import NavItem from '../NavItem/NavItem'
 function HeaderComp() {
   const pathname = useSelector((state) => state.router.location.pathname)
   const user = useSelector((state) => state.auth.user)
+  const authenticated = useSelector((state) => state.auth.authenticated)
+
+  const isOFASystemAdmin = () => {
+    return user?.roles?.some((role) => role.name === 'OFA System Admin')
+  }
 
   return (
     <>
@@ -32,9 +37,11 @@ function HeaderComp() {
               </a>
             </em>
           </div>
-          <button type="button" className="usa-menu-btn">
-            Menu
-          </button>
+          {authenticated && (
+            <button type="button" className="usa-menu-btn">
+              Menu
+            </button>
+          )}
         </div>
         <nav aria-label="Primary navigation" className="usa-nav">
           <div className="usa-nav__inner">
@@ -42,14 +49,32 @@ function HeaderComp() {
               <img src={closeIcon} alt="close" />
             </button>
             <ul className="usa-nav__primary usa-accordion">
-              <NavItem pathname={pathname} tabTitle="Welcome" href="/welcome" />
-              <NavItem pathname={pathname} tabTitle="Reports" href="/reports" />
-              <NavItem
-                pathname={pathname}
-                tabTitle="Profile"
-                href="/edit-profile"
-              />
-              <NavItem pathname={pathname} tabTitle="Admin" href="/admin" />
+              {authenticated && (
+                <>
+                  <NavItem
+                    pathname={pathname}
+                    tabTitle="Welcome"
+                    href="/welcome"
+                  />
+                  <NavItem
+                    pathname={pathname}
+                    tabTitle="Data Files"
+                    href="/data-files"
+                  />
+                  <NavItem
+                    pathname={pathname}
+                    tabTitle="Profile"
+                    href="/edit-profile"
+                  />
+                  {isOFASystemAdmin() && (
+                    <NavItem
+                      pathname={pathname}
+                      tabTitle="Admin"
+                      href={`${process.env.REACT_APP_BACKEND_HOST}/admin/`}
+                    />
+                  )}
+                </>
+              )}
             </ul>
             <div className="usa-nav__secondary">
               <ul className="usa-nav__secondary-links">
@@ -68,22 +93,20 @@ function HeaderComp() {
                     </a>
                   )}
                 </li>
-                <li className="usa-nav__secondary-item">
-                  <a
-                    className="sign-out-link"
-                    href={
-                      user && user.email
-                        ? `${process.env.REACT_APP_BACKEND_URL}/logout/oidc`
-                        : `${process.env.REACT_APP_BACKEND_URL}/login/oidc`
-                    }
-                  >
-                    <FontAwesomeIcon
-                      className="margin-right-1"
-                      icon={faSignOutAlt}
-                    />
-                    {user && user.email ? 'Sign Out' : 'Sign In'}
-                  </a>
-                </li>
+                {authenticated && (
+                  <li className="usa-nav__secondary-item">
+                    <a
+                      className="sign-out-link"
+                      href={`${process.env.REACT_APP_BACKEND_URL}/logout/oidc`}
+                    >
+                      <FontAwesomeIcon
+                        className="margin-right-1"
+                        icon={faSignOutAlt}
+                      />
+                      Sign Out
+                    </a>
+                  </li>
+                )}
               </ul>
             </div>
           </div>

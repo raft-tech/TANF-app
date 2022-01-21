@@ -26,7 +26,7 @@ Frontend API Service for TDP. Deployed to Cloud.gov at https://tdp-frontend.app.
 Execute the command below from `tdrs-frontend/` folder to access the frontend at `http://localhost:3000`
 
 ```
-$ docker-compose up
+$ docker-compose -f docker-compose.yml -f docker-compose.local.yml up --build -d
 ```
 
 The above command will bring up two docker containers
@@ -50,10 +50,10 @@ All of these `.env` files can be checked in to source control, with the exceptio
 The order of inheritance for env files depends on how the application was built/launched.
 
 #### Docker
-Currently the Dockerfile.local utilizes `yarn build` and serves the React app over nginx. Due to this React assigns `NODE_ENV=production` and uses this order of inheritance:
-* .env.production.local
+When running this app with Docker on localhost React will assign `NODE_ENV=development` and use this inheritance order:
+* .env.development.local
 * .env.local
-* .env.production
+* .env.development
 * .env
 
 #### `npm start` / `yarn start`
@@ -93,9 +93,9 @@ If you use [VSCode](https://code.visualstudio.com/) as an [IDE](https://en.wikip
 
 ----
 
-### Unit and Integration Testing
+### Unit and Accessibility Testing
 
-This project uses [Jest](https://jestjs.io/) for unit tests and [Cypress](https://www.cypress.io/) for end-to-end (e2e) tests.
+This project uses [Jest](https://jestjs.io/) for unit tests and [pa11y](https://pa11y.org/) for automated accessibility tests.
 
 **Unit Tests with Jest**
 
@@ -122,41 +122,13 @@ $ open coverage/lcov-report/index.html
 
 In addition to [Jest's matchers](https://jestjs.io/docs/en/expect), this project uses [enzyme-matchers](https://github.com/FormidableLabs/enzyme-matchers) to simplify tests and make them more readable. Enzyme matchers is integrated with Jest using the [`jest-enzyme` package](https://github.com/FormidableLabs/enzyme-matchers/blob/master/packages/jest-enzyme/README.md#assertions) which provides many useful assertions for testing React components.
 
-**End-to-End Tests with Cypress**
-
-It is required to run the application locally for Cypress to run, since it actually navigates to the URL and performs tests on the rendered UI.
-Cypress requires that the application is running locally in order to perform its tests, since it navigates to the URL and performs tests on the rendered UI.
-- Run the app (see docs [to run locally](#to-run-locally))
-- Open the Cypress app:
-  ```bash
-  $ yarn cy:open
-  ```
-- The Cypress Test Runner immediately displays a list of Integration Tests. Click on one to run it, or run all tests.
-- Alternatively the tests can all be run from the command line without the interactive browser window:
-  ```bash
-  $ yarn cy:run
-  ```
-
-The [Cypress guides](https://docs.cypress.io/guides/getting-started/writing-your-first-test.html#Add-a-test-file) are helpful.
-
 ----
 
 ### Cloud.gov Deployments:
 
 Although CircleCi is [set up to auto deploy](https://github.com/raft-tech/TANF-app/blob/raft-tdp-main/.circleci/config.yml#L131) frontend and backend to Cloud.gov, if there is a need to do a manual deployment, the instructions below can be followed:
 
-1.) Build and push a tagged docker image while on the the target Github branch:
-
- (**Please note you need to be logged into docker for these operations**)
-
-```
-docker build -t lfrohlich/tdp-frontend:local . -f Dockerfile.dev
-
-docker push lfrohlich/tdp-frontend:local
-```
-
-
-2.) Log into your cloud.gov account and set your space and organization:
+1.) Log into your cloud.gov account and set your space and organization:
 
 ##### - **ORG: The target deployment organization as defined in cloud.gov Applications** 
 
@@ -181,12 +153,10 @@ Space (enter to skip): 1
 Targeted space <SPACE-1>.
 ```
 
-3.) Push the image to Cloud.gov (  you will need to be in the same directory as`tdrs-frontend/manifest.yml`):
-
-( **The `--var` parameter ingests a value into the ``((docker-frontend))`` environment variable in the manifest.yml**)
+2.) Push the image to Cloud.gov (  you will need to be in the same directory as`tdrs-frontend/manifest.yml`):
 
 ```bash
- cf push tdp-frontend -f manifest.yml --var docker-frontend=lfrohlich/tdp-frontend:local
+ cf push tdp-frontend -f manifest.yml
 ```
 
 4.) To apply any changes made to environment variables you will need to restage the application:

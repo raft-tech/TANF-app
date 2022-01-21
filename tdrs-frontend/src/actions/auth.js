@@ -1,9 +1,12 @@
 import axiosInstance from '../axios-instance'
+import { logErrorToServer } from '../utils/eventLogger'
 
 export const FETCH_AUTH = 'FETCH_AUTH'
 export const SET_AUTH = 'SET_AUTH'
 export const SET_AUTH_ERROR = 'SET_AUTH_ERROR'
 export const CLEAR_AUTH = 'CLEAR_AUTH'
+export const SET_DEACTIVATED = 'SET_DEACTIVATED'
+export const SET_MOCK_LOGIN_STATE = 'SET_MOCK_LOGIN_STATE'
 
 /**
  * This action fires an HTTP GET request to the API
@@ -40,21 +43,35 @@ export const fetchAuth = () => async (dispatch) => {
   dispatch({ type: FETCH_AUTH })
   try {
     const URL = `${process.env.REACT_APP_BACKEND_URL}/auth_check`
-    const {
-      data: { user, csrf },
-    } = await axiosInstance.get(URL, {
+    const { data } = await axiosInstance.get(URL, {
       withCredentials: true,
     })
 
-    // Work around for csrf cookie issue we encountered in production.
-    axiosInstance.defaults.headers['X-CSRFToken'] = csrf
+    if (data?.inactive) {
+      dispatch({ type: SET_DEACTIVATED })
+    } else if (data?.user) {
+      const { user, csrf } = data
 
-    if (user) {
+      // Work around for csrf cookie issue we encountered in production.
+      axiosInstance.defaults.headers['X-CSRFToken'] = csrf
       dispatch({ type: SET_AUTH, payload: { user } })
     } else {
       dispatch({ type: CLEAR_AUTH })
     }
   } catch (error) {
+    logErrorToServer(SET_AUTH_ERROR)
     dispatch({ type: SET_AUTH_ERROR, payload: { error } })
   }
+}
+
+/* istanbul ignore next  */
+export const setMockLoginState = () => async (dispatch) => {
+  // This doesn't need to be tested as it will never be reached by jest.
+  const loginState = window.localStorage.getItem('loggedIn')
+
+  // localStorage converts all values to strings, so to get a falsy value
+  // we pass in a blank string
+  window.localStorage.setItem('loggedIn', loginState ? '' : true)
+  dispatch({ type: SET_MOCK_LOGIN_STATE })
+  window.location.reload()
 }

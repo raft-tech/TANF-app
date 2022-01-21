@@ -24,6 +24,10 @@ class BaseUserFactory(factory.django.DjangoModelFactory):
     is_staff = False
     is_superuser = False
     stt = factory.SubFactory(STTFactory)
+    login_gov_uuid = factory.Faker("uuid4")
+    deactivated = False
+    # For testing convenience, though most users won't have both a login_gov_uuid and hhs_id
+    hhs_id = factory.Faker("uuid4")
 
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
@@ -40,10 +44,12 @@ class BaseUserFactory(factory.django.DjangoModelFactory):
             for group in extracted:
                 self.groups.add(group)
 
+
 class UserFactory(BaseUserFactory):
     """General purpose user factory used through out most tests."""
 
     stt = factory.SubFactory(STTFactory)
+
 
 class STTUserFactory(BaseUserFactory):
     """User factory for use in STT tests."""
@@ -53,6 +59,13 @@ class STTUserFactory(BaseUserFactory):
     # Our solution was to not set the STT specifically for the STT tests that
     # were calling the `populate_stt` command.
     stt = None
+
+class AdminSTTUserFactory(STTUserFactory):
+    """Generate an admin user who has no stt assigned."""
+
+    is_staff = True
+    is_superuser = True
+
 
 class AdminUserFactory(UserFactory):
     """Generate Admin User."""
@@ -65,3 +78,15 @@ class StaffUserFactory(UserFactory):
     """Generate Staff User."""
 
     is_staff = True
+
+
+class InactiveUserFactory(UserFactory):
+    """Generate inactive user, from Django's context."""
+
+    is_active = False
+
+
+class DeactivatedUserFactory(UserFactory):
+    """Generate user with account deemed `inactive`."""
+
+    deactivated = True

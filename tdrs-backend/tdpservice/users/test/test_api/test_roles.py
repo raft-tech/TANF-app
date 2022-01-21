@@ -23,14 +23,20 @@ def test_role_list(api_client, create_test_users):
     response = api_client.get("/v1/roles/")
     assert response.status_code == status.HTTP_200_OK
     role_names = {group["name"] for group in response.data}
-    assert role_names == {"OFA Admin", "Data Prepper"}
+    assert role_names == {
+        "OFA Regional Staff",
+        "Developer",
+        "OFA Admin",
+        "Data Analyst",
+        "OFA System Admin"
+    }
 
 
 @pytest.mark.django_db
 def test_role_list_unauthorized(api_client, create_test_users):
-    """Data prepper does not have access."""
+    """Data Analyst does not have access."""
     # Groups are populated in a data migrations, so are already available.
-    api_client.login(username="test__data_prepper", password="test_password")
+    api_client.login(username="test__data_analyst", password="test_password")
     response = api_client.get("/v1/roles/")
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -40,13 +46,13 @@ def test_role_create_forbidden(api_client, create_test_users):
     """Test creating a role is no longer allowed."""
     api_client.login(username="test__ofa_admin", password="test_password")
     response = api_client.post("/v1/roles/", {"name": "Test Role"})
-    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db
 def test_role_create_unauthorized(api_client, create_test_users):
-    """Test data prepper does not have access."""
-    api_client.login(username="test__data_prepper", password="test_password")
+    """Test data analyst does not have access."""
+    api_client.login(username="test__data_analyst", password="test_password")
     response = api_client.post("/v1/roles/", {"name": "Test Role"})
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -59,7 +65,7 @@ def test_role_create_with_permission_forbidden(api_client, create_test_users):
     response = api_client.post(
         "/v1/roles/", {"name": "Test Role", "permissions": [permission.id]}
     )
-    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db
@@ -71,15 +77,6 @@ def test_role_update_not_found(api_client, create_test_users):
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-# @pytest.mark.django_db
-# def test_role_update_unauthorized(api_client, create_test_users):
-#     """Test data prepper does not have access."""
-#     group = Group.objects.get(name="Data Prepper")
-#     api_client.login(username="test__data_prepper", password="test_password")
-#     response = api_client.patch(f"/v1/roles/{group.id}/", {"name": "staff"})
-#     assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
 @pytest.mark.django_db
 def test_role_delete_not_found(api_client, create_test_users):
     """Test role deletion no longer exists."""
@@ -87,12 +84,3 @@ def test_role_delete_not_found(api_client, create_test_users):
     api_client.login(username="test__ofa_admin", password="test_password")
     response = api_client.delete(f"/v1/roles/{group.id}/")
     assert response.status_code == status.HTTP_404_NOT_FOUND
-
-
-# @pytest.mark.django_db
-# def test_role_delete_unauthorized(api_client, create_test_users):
-#     """Test data prepper does not have access."""
-#     group = Group.objects.get(name="Data Prepper")
-#     api_client.login(username="test__data_prepper", password="test_password")
-#     response = api_client.delete(f"/v1/roles/{group.id}/")
-#     assert response.status_code == status.HTTP_403_FORBIDDEN

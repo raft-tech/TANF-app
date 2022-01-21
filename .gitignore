@@ -11,6 +11,8 @@ tdrs-frontend/yarn-debug.log*
 tdrs-frontend/yarn-error.log*
 tdrs-frontend/vars-frontend.yml
 tdrs-frontend/pa11y-screenshots/*
+.eslintcache
+
 # Don't commit local environment override files
 tdrs-frontend/.env*.local
 
@@ -19,6 +21,7 @@ tdrs-backend/vars-backend.yml
 tdrs-backend/coverage.xml
 tdrs-backend/htmlcov/*
 tdrs-backend/.env
+tdrs-backend/.env.production
 *.pyc
 /backend/db.sqlite3
 .DS_Store
@@ -89,3 +92,10 @@ tdrs-backend/htmlcov/*
 
 # VIM
 *.swp
+
+# Terraform
+.terraform
+tfapply
+*.tfvars
+*.lock.hcl
+*.tfstate

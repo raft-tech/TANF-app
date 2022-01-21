@@ -2,7 +2,6 @@
 
 import binascii
 import logging
-import os
 import secrets
 import time
 import datetime
@@ -19,8 +18,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from django.conf import settings
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger = logging.getLogger(__name__)
+
 now = datetime.datetime.now()
 timeout = now + datetime.timedelta(minutes=settings.SESSION_TIMEOUT)
 
@@ -37,26 +36,25 @@ originated by the request
 """
 
 
-def validate_nonce_and_state(decoded_nonce, state, nonce_validator, state_validator):
-    """Validate nonce and state are correct values."""
+def validate_nonce_and_state(request, state, decoded_id_token):
+    """Get the validation keys to confirm generated nonce and state are correct values."""
+    nonce_and_state = get_nonce_and_state(request.session)
+    nonce_validator = nonce_and_state.get("nonce", "not_nonce")
+    state_validator = nonce_and_state.get("state", "not_state")
+
+    decoded_nonce = decoded_id_token["nonce"]
+
     return decoded_nonce == nonce_validator and state == state_validator
 
 
 """
 Generate the client_assertion parameter needed by the login.gov/token endpoint
-
-:param self: parameter to permit django python to call a method within its own class
 """
 
 
 def generate_client_assertion():
-    """
-    Generate client assertion parameters.
-
-    :param JWT_KEY: private key expected by the login.gov application
-    :param CLIENT_ID: Issuer as defined login.gov application
-    """
-    private_key = os.environ["JWT_KEY"]
+    """Generate client assertion parameters for login.gov."""
+    private_key = settings.LOGIN_GOV_JWT_KEY
 
     # We allow the JWT_KEY to be passed in as base64 encoded or as the
     # raw PEM format to support docker-compose env_file where there are
@@ -70,15 +68,14 @@ def generate_client_assertion():
         pass
 
     payload = {
-        "iss": os.environ["CLIENT_ID"],
-        "aud": os.environ["OIDC_OP_TOKEN_ENDPOINT"],
-        "sub": os.environ["CLIENT_ID"],
+        "iss": settings.LOGIN_GOV_CLIENT_ID,
+        "aud": settings.LOGIN_GOV_TOKEN_ENDPOINT,
+        "sub": settings.LOGIN_GOV_CLIENT_ID,
         "jti": secrets.token_urlsafe(32)[:32],
         # set token expiration to be 1 minute from current time
         "exp": int(round(time.time() * 1000)) + 60000,
     }
-    encoded_jwt = jwt.encode(payload, key=private_key, algorithm="RS256")
-    return encoded_jwt.decode("UTF-8")
+    return jwt.encode(payload, key=private_key, algorithm="RS256")
 
 
 """
@@ -90,14 +87,12 @@ Generate a token to be passed to the login.gov/token endpoint
 """
 
 
-def generate_token_endpoint_parameters(code):
+def generate_token_endpoint_parameters(code, options={}):
     """Generate token parameters."""
-    client_assertion = generate_client_assertion()
     params = {
-        "client_assertion": client_assertion,
-        "client_assertion_type": os.environ["CLIENT_ASSERTION_TYPE"],
         "code": code,
         "grant_type": "authorization_code",
+        **options
     }
     encoded_params = urlencode(params, quote_via=quote_plus)
     return encoded_params
@@ -111,9 +106,8 @@ from the login.gov/certs endpoint
 """
 
 
-def generate_jwt_from_jwks():
+def generate_jwt_from_jwks(certs_endpoint):
     """Generate JWT."""
-    certs_endpoint = os.environ["OIDC_OP_JWKS_ENDPOINT"]
     certs_response = requests.get(certs_endpoint)
     public_cert = jwk.JWK(**certs_response.json().get("keys")[0])
     public_pem = public_cert.export_to_pem()
@@ -121,7 +115,7 @@ def generate_jwt_from_jwks():
 
 
 """
-Get the original nonce and state from the user session
+Get the original nonce and state from the user session.
 
 :param self: parameter to permit django python to call a method within its own class
 :param request: retains current user session keeping track original the state
@@ -136,6 +130,9 @@ def get_nonce_and_state(session):
         raise SuspiciousOperation(msg)
 
     openid_authenticity_tracker = session.get("state_nonce_tracker", None)
+
+    if "ams" in openid_authenticity_tracker:
+        session["ams"] = openid_authenticity_tracker["ams"]
 
     if "state" not in openid_authenticity_tracker:
         msg = "OIDC callback state was not found in session."
@@ -188,7 +185,7 @@ def response_redirect(self, id_token):
     :param self: parameter to permit django python to call a method within its own class
     :param id_token: encoded token returned by login.gov/token
     """
-    response = HttpResponseRedirect(os.environ["FRONTEND_BASE_URL"] + "/login")
+    response = HttpResponseRedirect(settings.FRONTEND_BASE_URL + "/login")
     response.set_cookie(
         "id_token",
         value=id_token,

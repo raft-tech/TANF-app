@@ -1,6 +1,8 @@
-import React from 'react'
-import { useSelector } from 'react-redux'
+import React, { useEffect, useRef } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
 import { Redirect } from 'react-router-dom'
+
+import { setMockLoginState } from '../../actions/auth'
 
 import loginLogo from '../../assets/login-gov-logo.svg'
 import Button from '../Button'
@@ -13,14 +15,46 @@ import Button from '../Button'
 function SplashPage() {
   const authenticated = useSelector((state) => state.auth.authenticated)
   const authLoading = useSelector((state) => state.auth.loading)
+  const isInactive = useSelector((state) => state.auth.inactive)
+  const alertRef = useRef(null)
+  const dispatch = useDispatch()
 
-  const handleClick = (event) => {
-    event.preventDefault()
-    window.location.href = `${process.env.REACT_APP_BACKEND_URL}/login/oidc`
+  const signInWithLoginDotGov = (event) => {
+    /* istanbul ignore if */
+    if (
+      !window.location.href.match(/https:\/\/.*\.app\.cloud\.gov/) &&
+      process.env.REACT_APP_USE_MIRAGE
+    ) {
+      // This doesn't need to be tested, it will never be reached by jest.
+      event.preventDefault()
+      dispatch(setMockLoginState())
+    } else {
+      event.preventDefault()
+      window.location.href = `${process.env.REACT_APP_BACKEND_URL}/login/dotgov`
+    }
   }
 
-  if (authenticated) {
-    return <Redirect to="/edit-profile" />
+  const signInWithAMS = (event) => {
+    event.preventDefault()
+    window.location.href = `${process.env.REACT_APP_BACKEND_URL}/login/ams`
+  }
+
+  useEffect(() => {
+    if (isInactive) {
+      setTimeout(() => alertRef?.current?.focus(), 2)
+    }
+  }, [alertRef, isInactive])
+
+  // Generate a random index for the splash page on every refresh
+  const randomIndex = () => {
+    return Math.floor(Math.random() * 3 + 1)
+  }
+
+  // Pa11y is not testing out authentication logic, by passing all auth checks
+  // during Pa11y tests allows us to just point to a page in the config like
+  // we have been doing.
+  if (authenticated && !process.env.REACT_APP_PA11Y_TEST) {
+    return <Redirect to="/welcome" />
   }
 
   if (authLoading) {
@@ -29,8 +63,32 @@ function SplashPage() {
 
   return (
     <>
-      <section className="usa-hero" aria-label="Introduction">
+      <section
+        className={`usa-hero usa-hero${randomIndex()}`}
+        aria-label="Introduction"
+      >
         <div className="grid-container">
+          {isInactive && (
+            <div className="usa-alert usa-alert--slim usa-alert--error margin-bottom-4">
+              <div className="usa-alert__body">
+                <h3
+                  tabIndex="-1"
+                  className="usa-alert__heading"
+                  ref={alertRef}
+                  aria-describedby="errorLabel"
+                >
+                  Inactive Account
+                </h3>
+                <p className="usa-alert__text" id="errorLabel">
+                  Please email{' '}
+                  <a className="usa-link" href="mailto: tanfdata@acf.hhs.gov">
+                    tanfdata@acf.hhs.gov
+                  </a>{' '}
+                  to reactivate your account.
+                </p>
+              </div>
+            </div>
+          )}
           <div className="usa-hero__callout">
             <h1 className="usa-hero__heading">
               <span className="usa-hero__heading--alt font-serif-2xl margin-bottom-5">
@@ -47,16 +105,29 @@ function SplashPage() {
             <Button
               className="width-full sign-in-button"
               type="button"
-              onClick={handleClick}
+              id="loginDotGovSignIn"
+              onClick={signInWithLoginDotGov}
             >
               <div className="mobile:margin-x-auto mobile-lg:margin-0">
-                Sign in with{' '}
+                Sign in with
+                <img
+                  className="mobile:margin-x-auto mobile:padding-top-1 mobile-lg:margin-0 mobile-lg:padding-top-0 width-15 padding-left-1"
+                  src={loginLogo}
+                  alt="Login.gov"
+                />
+                for grantees
               </div>
-              <img
-                className="mobile:margin-x-auto mobile:padding-top-1 mobile-lg:margin-0 mobile-lg:padding-top-0 width-15 padding-left-1"
-                src={loginLogo}
-                alt="Login.gov"
-              />
+              <span className="visually-hidden">Opens in a new website</span>
+            </Button>
+            <Button
+              className="width-full sign-in-button margin-top-3"
+              type="button"
+              id="acfAmsSignIn"
+              onClick={signInWithAMS}
+            >
+              <div className="mobile:margin-x-auto mobile-lg:margin-0">
+                Sign in with ACF AMS for ACF staff
+              </div>
               <span className="visually-hidden">Opens in a new website</span>
             </Button>
           </div>
