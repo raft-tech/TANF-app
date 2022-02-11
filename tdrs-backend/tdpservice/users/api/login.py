@@ -39,12 +39,15 @@ class UnverifiedEmail(Exception):
 
     pass
 
+class ACFUserLoginDotGov(Exception):
+    """Exception for catching ACF Users using Login.gov."""
+
+    pass
 
 class ExpiredToken(Exception):
     """Expired Token Error Handler."""
 
     pass
-
 
 class TokenAuthorizationOIDC(ObtainAuthToken):
     """Define abstract methods for handling OIDC login requests."""
@@ -104,6 +107,10 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
     def get_auth_options(self, access_token: Optional[str], sub: Optional[str]) -> Dict[str, str]:
         """Set auth options to handle payloads appropriately."""
 
+    def verify_email(self, email):
+        """Handle user email exceptions."""
+        pass
+
     def handle_user(self, request, id_token, decoded_token_data):
         """Handle the incoming user."""
         # get user from database if they exist. if not, create a new one
@@ -116,6 +123,9 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
         # UUID from the id_token payload.
         sub = decoded_id_token["sub"]
         email = decoded_id_token["email"]
+
+        # Setting this message as default for all below branches
+        login_msg = "User Found"
 
         # First account for the initial superuser
         if email == settings.DJANGO_SUPERUSER_NAME:
@@ -131,13 +141,14 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
                 initial_user.save()
 
                 # Login with the new superuser.
-                self.login_user(request, initial_user, "User Found")
+                self.login_user(request, initial_user, login_msg)
                 return initial_user
 
         auth_options = self.get_auth_options(access_token=access_token, sub=sub)
 
         # Authenticate with `sub` and not username, as user's can change their
         # corresponding emails externally.
+
         logger.info("AUTH_OPTIONS")
         logger.info(auth_options)
         user = CustomAuthentication.authenticate(**auth_options)
@@ -152,9 +163,8 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
                 user.save()
 
             if user.deactivated:
-                self.login_user(request, user, "Inactive User Found")
-            else:
-                self.login_user(request, user, "User Found")
+                login_msg = "Inactive User Found"
+
         elif user and not user.is_active:
             raise InactiveUser(
                 f'Login failed, user account is inactive: {user.username}'
@@ -170,8 +180,10 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
             user = User.objects.create_user(email, email=email, **auth_options)
             user.set_unusable_password()
             user.save()
-            self.login_user(request, user, "User Created")
+            login_msg = "User Created"
 
+        self.verify_email(user)
+        self.login_user(request, user, login_msg)
         return user
 
     @staticmethod
@@ -226,6 +238,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
                 },
                 status=status.HTTP_401_UNAUTHORIZED
             )
+
         except UnverifiedEmail as e:
             logger.exception(e)
             return Response(
@@ -233,6 +246,15 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
                     "error": str(e)
                 },
                 status=status.HTTP_400_BAD_REQUEST
+            )
+
+        except ACFUserLoginDotGov as e:
+            logger.exception(e)
+            return Response(
+                {
+                    "error": str(e)
+                },
+                status=status.HTTP_403_FORBIDDEN
             )
 
         except SuspiciousOperation as e:
@@ -291,6 +313,13 @@ class TokenAuthorizationLoginDotGov(TokenAuthorizationOIDC):
         auth_options = {"login_gov_uuid": sub}
         return auth_options
 
+    def verify_email(self, user):
+        """Handle user email exception to disallow ACF staff to utilize non-AMS authentication."""
+        if "@acf.hhs.gov" in user.email:
+            user_groups = list(user.groups.values_list('name', flat=True))
+            raise ACFUserLoginDotGov(
+                '{} attempted Login.gov authentication with role(s): {}'.format(user.email, user_groups)
+            )
 
 class TokenAuthorizationAMS(TokenAuthorizationOIDC):
     """Define methods for handling login request from HHS AMS."""
