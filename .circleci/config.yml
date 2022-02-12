@@ -86,7 +86,8 @@ commands:
     steps:
       - run:
           name: Execute OWASP ZAP vulnerability scan
-          no_output_timeout: 20m
+          #wait up to 15 minutes for zap results
+          no_output_timeout: 15m
           command: ./scripts/zap-scanner.sh <<parameters.target>> <<parameters.environment>>
       - store_artifacts:
           path: tdrs-<<parameters.target>>/reports/owasp_report.html
@@ -581,7 +582,8 @@ workflows:
       - nightly-owasp-scan
     triggers:
       - schedule:
-          cron: "30 * * * *"
+      #run nightly workflow at 130a and 130p everyday
+          cron: "30 1,13 * * *"
           filters:
             branches:
               only:
