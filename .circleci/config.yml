@@ -395,6 +395,7 @@ jobs:
       - docker-compose-up-backend
       - run:
           name: Wait for Django to become available
+          no_output_timeout: 20m
           command: |
             cd tdrs-backend;
             docker-compose run --rm zaproxy bash -c \
@@ -578,7 +579,6 @@ workflows:
   nightly:
     jobs:
       - nightly-owasp-scan
-    no_output_timeout: 20m
     triggers:
       - schedule:
           cron: "15 * * * *"
