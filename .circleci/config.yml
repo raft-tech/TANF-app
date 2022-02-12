@@ -395,7 +395,6 @@ jobs:
       - docker-compose-up-backend
       - run:
           name: Wait for Django to become available
-          no_output_timeout: 20m
           command: |
             cd tdrs-backend;
             docker-compose run --rm zaproxy bash -c \
@@ -439,6 +438,7 @@ jobs:
           cf-username: CF_USERNAME_STAGING
       - run:
           name: Run post-processing task to record OWASP ZAP results
+          no_output_timeout: 20m
           command: |
             # These environment variables are exported to Circle CI's BASH_ENV
             # by the zap-scanner.sh script for each respective app target.
@@ -581,7 +581,7 @@ workflows:
       - nightly-owasp-scan
     triggers:
       - schedule:
-          cron: "15 * * * *"
+          cron: "46 * * * *"
           filters:
             branches:
               only:
