@@ -587,7 +587,7 @@ workflows:
           filters:
             branches:
               only:
-               - main
+               - adp-tdp-main
 
   owasp-scan:
     when: << pipeline.parameters.run_owasp_scan >>
