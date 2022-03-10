@@ -1,8 +1,8 @@
 version: 2.1
 
 orbs:
-  node: circleci/node@4.7.0
-  terraform: circleci/terraform@2.1.0
+  node: circleci/node@5.0.0
+  terraform: circleci/terraform@3.0.1
   jq: circleci/jq@2.2.0
 
 executors:
