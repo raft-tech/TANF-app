@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 
 logger = logging.getLogger()
 
+
 class User(AbstractUser):
     """Define user fields and methods."""
 
@@ -43,9 +44,9 @@ class User(AbstractUser):
 
     # Unique `xid` user claim for NextGenXMS users.
     nextgen_xid = models.UUIDField(editable=False,
-                              blank=True,
-                              null=True,
-                              unique=True)
+                                   blank=True,
+                                   null=True,
+                                   unique=True)
 
     # Note this is handled differently than `is_active`, which comes from AbstractUser.
     # Django will totally prevent a user with is_active=True from authorizing.
