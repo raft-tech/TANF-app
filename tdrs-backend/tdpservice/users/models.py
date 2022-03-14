@@ -107,6 +107,11 @@ class User(AbstractUser):
         return self.is_in_group('Data Analyst')
 
     @property
+    def is_ocio_staff(self) -> bool:
+        """Return whether or not the user is in the ACF OCIO Group."""
+        return self.is_in_group('ACF OCIO')
+
+    @property
     def stt(self):
         """Return the location if the location is an STT."""
         if self.location and self.location_type.model == 'stt':
