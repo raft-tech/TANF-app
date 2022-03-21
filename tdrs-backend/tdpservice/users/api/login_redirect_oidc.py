@@ -4,7 +4,7 @@ import logging
 import requests
 import secrets
 import time
-from urllib.parse import quote_plus, urlencode
+from urllib.parse import quote_plus, urlencode, quote
 
 from django.conf import settings
 from django.http import HttpResponseRedirect
@@ -136,6 +136,7 @@ class LoginRedirectAMS(RedirectView):
 
         return HttpResponseRedirect(auth_endpoint_with_scope)
 
+
 class LoginRedirectLoginXMS(RedirectView):
     """Handle login workflow for login.gov clients."""
 
@@ -172,7 +173,7 @@ class LoginRedirectLoginXMS(RedirectView):
         }
 
         # escape params dict into a url encoded query string
-        encoded_params = urlencode(auth_params, quote_via=quote_plus)
+        encoded_params = urlencode(auth_params, quote_via=quote, safe=":/")
 
         # build out full API GET call to authorize endpoint
         auth_endpoint = (

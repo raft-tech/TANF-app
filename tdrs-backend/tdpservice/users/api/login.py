@@ -206,6 +206,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
     def get(self, request, *args, **kwargs):
         """Handle decoding auth token and authenticate user."""
         print('TokenAuthorizationOIDC.9')
+        print(request.GET)
         code = request.GET.get("code", None)
         print('code:',code)
         state = request.GET.get("state", None)
