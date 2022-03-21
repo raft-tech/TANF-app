@@ -208,9 +208,9 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
         print('TokenAuthorizationOIDC.9')
         print(request.GET)
         code = request.GET.get("code", None)
-        print('code:',code)
+        print('code:', code)
         state = request.GET.get("state", None)
-        print('state:',state)
+        print('state:', state)
         if code is None:
             logger.info("Redirecting call to main page. No code provided.")
             return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
