@@ -39,7 +39,7 @@ const initialState = {
 const mockStore = configureStore([thunk])
 
 describe('SplashPage', () => {
-  const OLD_ENV = process.env;
+  const OLD_ENV = process.env
   beforeEach(() => {
     jest.spyOn(global.Math, 'random').mockReturnValue(0)
   })
@@ -49,12 +49,12 @@ describe('SplashPage', () => {
   })
   beforeEach(() => {
     jest.resetModules() // Most important - it clears the cache
-    process.env = { ...OLD_ENV }; // Make a copy
-  });
+    process.env = { ...OLD_ENV } // Make a copy
+  })
 
   afterAll(() => {
-    process.env = OLD_ENV; // Restore old environment
-  });
+    process.env = OLD_ENV // Restore old environment
+  })
 
   it('renders a sign in header', () => {
     const store = mockStore(initialState)
