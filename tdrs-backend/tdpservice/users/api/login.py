@@ -55,11 +55,9 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
     @abstractmethod
     def decode_payload(self, token_data, options=None):
         """Decode the payload."""
-        print('TokenAuthorizationOIDC.decode_payload')
 
     def validate_and_decode_payload(self, request, state, token_data):
         """Perform validation and error handling on the payload once decoded with abstract method."""
-        print('TokenAuthorizationOIDC.validate_and_decode_payload')
         id_token = token_data.get("id_token")
 
         decoded_payload = self.decode_payload(token_data)
@@ -83,12 +81,10 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
     @abstractmethod
     def get_token_endpoint_response(self, code):
         """Check the request origin to handle login appropriately."""
-        print('TokenAuthorizationOIDC.3')
 
     @staticmethod
     def decode_jwt(payload, issuer, audience, cert_sr, options=None):
         """Decode jwt payloads."""
-        print('TokenAuthorizationOIDC.4')
         if not options:
             options = {'verify_nbf': False}
 
@@ -110,15 +106,12 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
     @abstractmethod
     def get_auth_options(self, access_token: Optional[str], sub: Optional[str]) -> Dict[str, str]:
         """Set auth options to handle payloads appropriately."""
-        print('TokenAuthorizationOIDC.5')
 
     def verify_email(self, email):
         """Handle user email exceptions."""
-        print('TokenAuthorizationOIDC.6')
 
     def handle_user(self, request, id_token, decoded_token_data):
         """Handle the incoming user."""
-        print('TokenAuthorizationOIDC.7')
         # get user from database if they exist. if not, create a new one
         if "token" not in request.session:
             request.session["token"] = id_token
@@ -195,7 +188,6 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
     @staticmethod
     def login_user(request, user, user_status):
         """Create a session for the associated user."""
-        print('TokenAuthorizationOIDC.8')
         login(
             request,
             user,
@@ -205,12 +197,8 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
 
     def get(self, request, *args, **kwargs):
         """Handle decoding auth token and authenticate user."""
-        print('TokenAuthorizationOIDC.9')
-        print(request.GET)
         code = request.GET.get("code", None)
-        print('code:', code)
         state = request.GET.get("state", None)
-        print('state:', state)
         if code is None:
             logger.info("Redirecting call to main page. No code provided.")
             return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
@@ -289,7 +277,6 @@ class TokenAuthorizationLoginDotGov(TokenAuthorizationOIDC):
 
     def decode_payload(self, token_data, options=None):
         """Decode the payload with keys for login.gov."""
-        print('in TokenAuthorizationLoginDotGov')
         id_token = token_data.get("id_token")
 
         certs_endpoint = settings.LOGIN_GOV_JWKS_ENDPOINT
@@ -301,7 +288,6 @@ class TokenAuthorizationLoginDotGov(TokenAuthorizationOIDC):
 
     def get_token_endpoint_response(self, code):
         """Build out the query string params and full URL path for token endpoint."""
-        print('in get_token_endpoint_response')
         try:
             options = {
                 "client_assertion": generate_client_assertion(),
@@ -322,13 +308,11 @@ class TokenAuthorizationLoginDotGov(TokenAuthorizationOIDC):
 
     def get_auth_options(self, access_token, sub):
         """Add specific auth properties for the CustomAuthentication handler."""
-        print('in get_auth_options')
         auth_options = {"login_gov_uuid": sub}
         return auth_options
 
     def verify_email(self, user):
         """Handle user email exception to disallow ACF staff to utilize non-AMS authentication."""
-        print('in verify_email')
         if "@acf.hhs.gov" in user.email:
             user_groups = list(user.groups.values_list('name', flat=True))
             raise ACFUserLoginDotGov(
@@ -341,7 +325,6 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
     def decode_payload(self, token_data, options=None):
         """Decode the payload with keys for XMS."""
-        print(' in decode_payload')
         id_token = token_data.get("id_token")
 
         certs_endpoint = settings.XMS_JWKS_ENDPOINT
@@ -349,27 +332,22 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
         decoded_id_token = self.decode_jwt(id_token, settings.XMS_ISSUER, settings.XMS_CLIENT_ID, cert_str,
                                            options)
-        print(decoded_id_token)
+        logging.debug("Decoded Token:" + str(decoded_id_token))
         return {"id_token": decoded_id_token}
 
     def get_token_endpoint_response(self, code):
         """Build out the query string params and full URL path for token endpoint."""
-        print('in get_token_endpoint_response')
         try:
-            print('in try')
             options = {
                 "client_assertion": generate_client_assertion(),
-                "client_assertion_type": settings.XMS_GOV_CLIENT_ASSERTION_TYPE
+                "client_assertion_type": settings.XMS_CLIENT_ASSERTION_TYPE
             }
             token_params = generate_token_endpoint_parameters(code, options)
             token_endpoint = settings.XMS_TOKEN_ENDPOINT + "?" + token_params
-            print(token_endpoint)
             return requests.post(token_endpoint)
 
         except ValueError as e:
-            print('in exception')
             logger.exception(e)
-            print(e)
             return Response(
                 {
                     "error": str(e)
@@ -379,20 +357,93 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
     def get_auth_options(self, access_token, sub):
         """Add specific auth properties for the CustomAuthentication handler."""
-        print('in get_auth_options')
         auth_options = {"login_gov_uuid": sub}
-        print(sub)
         return auth_options
 
     def verify_email(self, user):
         """Handle user email exception to disallow ACF staff to utilize non-AMS authentication."""
-        print('in verify_email')
         if "@acf.hhs.gov" in user.email:
             user_groups = list(user.groups.values_list('name', flat=True))
             raise ACFUserLoginDotGov(
                 '{} attempted XMS authentication with role(s): {}'.format(user.email, user_groups)
             )
 
+    def post(self, request, *args, **kwargs):
+        """Handle decoding auth token and authenticate user."""
+        code = request.POST.get("code", None)
+        state = request.POST.get("state", None)
+        logging.debug('XMS:state:', state)
+        if code is None:
+            logger.info("Redirecting call to main page. No code provided.")
+            return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
+
+        if state is None:
+            logger.info("Redirecting call to main page. No state provided.")
+            return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
+
+        token_endpoint_response = self.get_token_endpoint_response(code)
+
+        if token_endpoint_response.status_code != 200:
+            return Response(
+                {
+                    "error": (
+                        "Invalid Validation Code Or OpenID Connect Authenticator "
+                        "Down!"
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        token_data = token_endpoint_response.json()
+        id_token = token_data.get("id_token")
+
+        try:
+            decoded_payload = self.validate_and_decode_payload(request, state, token_data)
+            user = self.handle_user(request, id_token, decoded_payload)
+            return response_redirect(user, id_token)
+
+        except (InactiveUser, ExpiredToken) as e:
+            logger.exception(e)
+            return Response(
+                {
+                    "error": str(e)
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        except UnverifiedEmail as e:
+            logger.exception(e)
+            return Response(
+                {
+                    "error": str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        except ACFUserLoginDotGov as e:
+            logger.exception(e)
+            return Response(
+                {
+                    "error": str(e)
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        except SuspiciousOperation as e:
+            logger.exception(e)
+            raise e
+
+        except Exception as e:
+            logger.exception(f"Error attempting to login/register user:  {e} at...")
+            return Response(
+                {
+                    "error": (
+                        "Email verified, but experienced internal issue "
+                        "with login/registration."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 class TokenAuthorizationAMS(TokenAuthorizationOIDC):
     """Define methods for handling login request from HHS AMS."""
