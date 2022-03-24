@@ -381,69 +381,16 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
             logger.info("Redirecting call to main page. No state provided.")
             return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
 
-        token_endpoint_response = self.get_token_endpoint_response(code)
-
-        if token_endpoint_response.status_code != 200:
-            return Response(
+        # TODO: Need to refactor/add code to handle login
+        return Response(
                 {
                     "error": (
-                        "Invalid Validation Code Or OpenID Connect Authenticator "
-                        "Down!"
+                        "Unhandled error"
                     )
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        token_data = token_endpoint_response.json()
-        id_token = token_data.get("id_token")
-
-        try:
-            decoded_payload = self.validate_and_decode_payload(request, state, token_data)
-            user = self.handle_user(request, id_token, decoded_payload)
-            return response_redirect(user, id_token)
-
-        except (InactiveUser, ExpiredToken) as e:
-            logger.exception(e)
-            return Response(
-                {
-                    "error": str(e)
-                },
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-
-        except UnverifiedEmail as e:
-            logger.exception(e)
-            return Response(
-                {
-                    "error": str(e)
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        except ACFUserLoginDotGov as e:
-            logger.exception(e)
-            return Response(
-                {
-                    "error": str(e)
-                },
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        except SuspiciousOperation as e:
-            logger.exception(e)
-            raise e
-
-        except Exception as e:
-            logger.exception(f"Error attempting to login/register user:  {e} at...")
-            return Response(
-                {
-                    "error": (
-                        "Email verified, but experienced internal issue "
-                        "with login/registration."
-                    )
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
 class TokenAuthorizationAMS(TokenAuthorizationOIDC):
     """Define methods for handling login request from HHS AMS."""
