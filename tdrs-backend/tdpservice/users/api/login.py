@@ -36,18 +36,18 @@ class InactiveUser(Exception):
 
 class UnverifiedEmail(Exception):
     """Unverified Email Error Handler."""
-
     pass
+
 
 class ACFUserLoginDotGov(Exception):
     """Exception for catching ACF Users using Login.gov."""
-
     pass
+
 
 class ExpiredToken(Exception):
     """Expired Token Error Handler."""
-
     pass
+
 
 class TokenAuthorizationOIDC(ObtainAuthToken):
     """Define abstract methods for handling OIDC login requests."""
@@ -55,6 +55,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
     @abstractmethod
     def decode_payload(self, token_data, options=None):
         """Decode the payload."""
+        pass
 
     def validate_and_decode_payload(self, request, state, token_data):
         """Perform validation and error handling on the payload once decoded with abstract method."""
@@ -109,6 +110,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
 
     def verify_email(self, email):
         """Handle user email exceptions."""
+        pass
 
     def handle_user(self, request, id_token, decoded_token_data):
         """Handle the incoming user."""

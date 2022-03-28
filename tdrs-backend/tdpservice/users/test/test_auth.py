@@ -361,6 +361,13 @@ def create_session(request, states):
     return request
 
 
+class TestLoginRedirectLoginXMS:
+
+    def test_get(self, request):
+        print(request)
+        assert True
+
+
 @pytest.mark.django_db
 class TestLogin:
     """Associate a set of related tests into a class for shared mock fixtures."""
@@ -477,7 +484,6 @@ def test_generate_token_endpoint_parameters(patch_login_gov_jwt_key):
     assert "client_assertion" in login_gov_token_params
     assert "client_assertion_type" in login_gov_token_params
     assert "grant_type=authorization_code" in login_gov_token_params
-
 
 def test_token_auth_decode_payload(mock_token):
     """Test ID token decoding functionality."""

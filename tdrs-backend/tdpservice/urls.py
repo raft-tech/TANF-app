@@ -31,7 +31,6 @@ urlpatterns = [
     path("login/xms", LoginRedirectLoginXMS.as_view(), name="login-xms"),
     path("login/dotgov", LoginRedirectLoginDotGov.as_view(), name="login-dotgov"),
     path("login/ams", LoginRedirectAMS.as_view(), name="login-ams"),
-
     path("logout", LogoutUser.as_view(), name="logout"),
     path("logout/oidc", LogoutRedirectOIDC.as_view(), name="oidc-logout"),
     path("auth_check", AuthorizationCheck.as_view(), name="authorization-check"),
