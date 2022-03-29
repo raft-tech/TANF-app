@@ -361,13 +361,6 @@ def create_session(request, states):
     return request
 
 
-class TestLoginRedirectLoginXMS:
-
-    def test_get(self, request):
-        print(request)
-        assert True
-
-
 @pytest.mark.django_db
 class TestLogin:
     """Associate a set of related tests into a class for shared mock fixtures."""
