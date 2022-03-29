@@ -478,6 +478,7 @@ def test_generate_token_endpoint_parameters(patch_login_gov_jwt_key):
     assert "client_assertion_type" in login_gov_token_params
     assert "grant_type=authorization_code" in login_gov_token_params
 
+
 def test_token_auth_decode_payload(mock_token):
     """Test ID token decoding functionality."""
     decoded_token = TokenAuthorizationLoginDotGov.decode_jwt(
