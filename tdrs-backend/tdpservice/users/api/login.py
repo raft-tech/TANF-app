@@ -36,16 +36,19 @@ class InactiveUser(Exception):
 
 class UnverifiedEmail(Exception):
     """Unverified Email Error Handler."""
+
     pass
 
 
 class ACFUserLoginDotGov(Exception):
     """Exception for catching ACF Users using Login.gov."""
+
     pass
 
 
 class ExpiredToken(Exception):
     """Expired Token Error Handler."""
+
     pass
 
 
