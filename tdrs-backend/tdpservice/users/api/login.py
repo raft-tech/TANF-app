@@ -326,7 +326,7 @@ class TokenAuthorizationLoginDotGov(TokenAuthorizationOIDC):
 
 
 class TokenAuthorizationXMS(TokenAuthorizationOIDC):
-    """Define methods for handling login request from XMS"""
+    """Define methods for handling login request from XMS."""
 
     def decode_payload(self, token_data, options=None):
         """Decode the payload with keys for XMS."""
