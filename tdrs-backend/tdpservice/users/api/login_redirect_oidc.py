@@ -1,14 +1,15 @@
 """Handle login requests."""
 
 import logging
-import requests
 import secrets
 import time
-from urllib.parse import quote_plus, urlencode, quote
+from urllib.parse import quote, quote_plus, urlencode
 
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.views.generic.base import RedirectView
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ class LoginRedirectLoginDotGov(RedirectView):
         )
 
         # login.gov expects unescaped '+' value for scope parameter
-        auth_endpoint_with_scope = auth_endpoint + "&scope=openid+email"
+        auth_endpoint_with_scope = auth_endpoint + "&scope=openid+Email"
 
         # update the user session so OIDC logout URL has token_hint
         request.session["state_nonce_tracker"] = {

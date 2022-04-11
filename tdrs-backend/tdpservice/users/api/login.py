@@ -332,7 +332,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
         try:
             print(f'code:{code}')
             options = {
-                "scope": "openid+email",
+                "scope": "openid+Email",
                 "code": code,
                 "grant_type": "authorization_code",
                 "redirect_uri": settings.BASE_URL + "/oidc/xms"
