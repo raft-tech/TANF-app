@@ -332,8 +332,6 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
         try:
             print(f'code:{code}')
             options = {
-                "client_id": settings.XMS_CLIENT_ID,
-                "client_secret": settings.XMS_JWT_KEY,
                 "scope": "openid+email",
                 "code": code,
                 "grant_type": "authorization_code",
