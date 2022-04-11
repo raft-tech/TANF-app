@@ -331,7 +331,6 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
         """Build out the query string params and full URL path for token endpoint."""
         try:
             options = {
-                "client_assertion_type": settings.XMS_CLIENT_ASSERTION_TYPE,
                 "client_id": settings.XMS_CLIENT_ID,
                 "client_secret": settings.XMS_JWT_KEY,
                 "scope": "openid+email+profile",
