@@ -1,6 +1,7 @@
 """Login.gov/authorize is redirected to this endpoint to start a django user session."""
 import logging
 from abc import abstractmethod
+from typing import Dict, Optional
 
 from django.conf import settings
 from django.contrib.auth import get_user_model, login
@@ -13,20 +14,24 @@ import requests
 from rest_framework import status
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.response import Response
-from typing import Dict, Optional
 
-from .login_redirect_oidc import LoginRedirectAMS
 from ..authentication import CustomAuthentication
+from .login_redirect_oidc import LoginRedirectAMS
 from .utils import (
-    generate_token_endpoint_parameters,
-    generate_jwt_from_jwks,
-    validate_nonce_and_state,
-    response_redirect,
     generate_client_assertion,
+    generate_jwt_from_jwks,
+    generate_token_endpoint_parameters,
+    response_redirect,
+    validate_nonce_and_state,
 )
 
 logger = logging.getLogger(__name__)
 
+
+def error_response(e, status, message=None):
+    """Produce an error response from an error message and status code."""
+    logger.exception(e)
+    return Response({"error": message or str(e)}, status=status)
 
 class InactiveUser(Exception):
     """Inactive User Error Handler."""
@@ -58,6 +63,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
     @abstractmethod
     def decode_payload(self, token_data, options=None):
         """Decode the payload."""
+        pass
 
     def validate_and_decode_payload(self, request, state, token_data):
         """Perform validation and error handling on the payload once decoded with abstract method."""
@@ -140,6 +146,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
 
             if initial_user.login_gov_uuid is None:
                 # Save the `sub` to the superuser.
+                # TODO: Update in the future when login.gov goes away.
                 initial_user.login_gov_uuid = sub
                 initial_user.save()
 
@@ -203,7 +210,6 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
         """Handle decoding auth token and authenticate user."""
         code = request.GET.get("code", None)
         state = request.GET.get("state", None)
-
         if code is None:
             logger.info("Redirecting call to main page. No code provided.")
             return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
@@ -234,31 +240,13 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
             return response_redirect(user, id_token)
 
         except (InactiveUser, ExpiredToken) as e:
-            logger.exception(e)
-            return Response(
-                {
-                    "error": str(e)
-                },
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+            return error_response(e, status.HTTP_401_UNAUTHORIZED)
 
         except UnverifiedEmail as e:
-            logger.exception(e)
-            return Response(
-                {
-                    "error": str(e)
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return error_response(e, status.HTTP_400_BAD_REQUEST)
 
         except ACFUserLoginDotGov as e:
-            logger.exception(e)
-            return Response(
-                {
-                    "error": str(e)
-                },
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return error_response(e, status.HTTP_403_FORBIDDEN)
 
         except SuspiciousOperation as e:
             logger.exception(e)
@@ -322,6 +310,121 @@ class TokenAuthorizationLoginDotGov(TokenAuthorizationOIDC):
             user_groups = list(user.groups.values_list('name', flat=True))
             raise ACFUserLoginDotGov(
                 '{} attempted Login.gov authentication with role(s): {}'.format(user.email, user_groups)
+            )
+
+
+class TokenAuthorizationXMS(TokenAuthorizationOIDC):
+    """Define methods for handling login request from XMS."""
+
+    def decode_payload(self, token_data, options=None):
+        """Decode the payload with keys for login.gov."""
+        id_token = token_data.get("id_token")
+
+        certs_endpoint = settings.XMS_JWKS_ENDPOINT
+        cert_str = generate_jwt_from_jwks(certs_endpoint)
+
+        decoded_id_token = self.decode_jwt(id_token, settings.XMS_ISSUER, settings.XMS_CLIENT_ID, cert_str,
+                                           options)
+        return {"id_token": decoded_id_token}
+
+    def get_token_endpoint_response(self, code):
+        """Build out the query string params and full URL path for token endpoint."""
+        try:
+            options = {
+                "client_assertion_type": settings.XMS_CLIENT_ASSERTION_TYPE,
+                "client_id": settings.XMS_CLIENT_ID,
+                "client_secret": settings.XMS_JWT_KEY,
+                "scope": "openid+email+profile",
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": settings.BASE_URL + "/oidc/xms"
+            }
+            token_params = generate_token_endpoint_parameters(code, options)
+            token_endpoint = settings.XMS_TOKEN_ENDPOINT + "?" + token_params
+            return requests.post(token_endpoint)
+
+        except ValueError as e:
+            logger.exception(e)
+            return Response(
+                {
+                    "error": str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def get_auth_options(self, access_token, sub):
+        """Add specific auth properties for the CustomAuthentication handler."""
+        auth_options = {"login_gov_uuid": sub} 
+        return auth_options 
+
+    def verify_email(self, user):
+        """Handle user email exception to disallow ACF staff to utilize non-AMS authentication."""
+        if "@acf.hhs.gov" in user.email:
+            user_groups = list(user.groups.values_list('name', flat=True))
+            raise ACFUserLoginDotGov(
+                '{} attempted Login.gov authentication with role(s): {}'.format(user.email, user_groups)
+            )
+
+    def post(self, request, *args, **kwargs):
+        """Handle decoding auth token and authenticate user."""
+        code = request.POST.get("code", None)
+        state = request.POST.get("state", None)
+        logger.debug('XMS:state:', state)
+        if code is None:
+            logger.info("Redirecting call to main page. No code provided.")
+            return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
+
+        if state is None:
+            logger.info("Redirecting call to main page. No state provided.")
+            return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
+
+        token_endpoint_response = self.get_token_endpoint_response(code)
+
+        if token_endpoint_response.status_code != 200:
+            return Response(
+                {
+                    "error": (
+                        "Invalid Validation Code Or OpenID Connect Authenticator "
+                        "Down!"
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        token_data = token_endpoint_response.json()
+        # if token_data['error']:
+        #     return error_response(token_data,500)
+
+        id_token = token_data.get("id_token")
+
+        try:
+            decoded_payload = self.validate_and_decode_payload(request, state, token_data)
+            user = self.handle_user(request, id_token, decoded_payload)
+            return response_redirect(user, id_token)
+
+        except (InactiveUser, ExpiredToken) as e:
+            return error_response(e, status.HTTP_401_UNAUTHORIZED)
+
+        except UnverifiedEmail as e:
+            return error_response(e, status.HTTP_400_BAD_REQUEST)
+
+        except ACFUserLoginDotGov as e:
+            return error_response(e, status.HTTP_403_FORBIDDEN)
+
+        except SuspiciousOperation as e:
+            logger.exception(e)
+            raise e
+
+        except Exception as e:
+            logger.exception(f"Error attempting to login/register user:  {e} at...")
+            return Response(
+                {
+                    "error": (
+                        "Email verified, but experienced internal issue "
+                        "with login/registration."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
 
