@@ -330,6 +330,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
     def get_token_endpoint_response(self, code):
         """Build out the query string params and full URL path for token endpoint."""
         try:
+            print(f'code:{code}')
             options = {
                 "client_id": settings.XMS_CLIENT_ID,
                 "client_secret": settings.XMS_JWT_KEY,
