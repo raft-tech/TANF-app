@@ -334,7 +334,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
             options = {
                 "client_id": settings.XMS_CLIENT_ID,
                 "client_secret": settings.XMS_JWT_KEY,
-                "scope": "openid+email+profile",
+                "scope": "openid+email",
                 "code": code,
                 "grant_type": "authorization_code",
                 "redirect_uri": settings.BASE_URL + "/oidc/xms"
