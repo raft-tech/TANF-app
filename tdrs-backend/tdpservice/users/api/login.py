@@ -354,7 +354,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
     def get_auth_options(self, access_token, sub):
         """Add specific auth properties for the CustomAuthentication handler."""
-        auth_options = {"login_gov_uuid": sub} 
+        auth_options = {"login_gov_uuid": sub}
         return auth_options
 
     def verify_email(self, user):
