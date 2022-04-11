@@ -9,7 +9,7 @@ class CustomAuthentication(BaseAuthentication):
     """Define authentication and get user functions for custom authentication."""
 
     @staticmethod
-    def authenticate(username=None, login_gov_uuid=None, hhs_id=None):
+    def authenticate(username=None, login_gov_uuid=None, hhs_id=None, nextgen_xid=None):
         """Authenticate user with the request and username."""
         User = get_user_model()
 
@@ -18,6 +18,8 @@ class CustomAuthentication(BaseAuthentication):
                 return User.objects.get(login_gov_uuid=login_gov_uuid)
             elif hhs_id:
                 return User.objects.get(hhs_id=hhs_id)
+            elif nextgen_xid:
+                return User.objects.get(nextgen_xid=nextgen_xid)
             else:
                 return User.objects.get(username=username)
         except User.DoesNotExist:

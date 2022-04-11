@@ -42,6 +42,12 @@ class User(AbstractUser):
                               null=True,
                               unique=True)
 
+    # Unique `xid` user claim for NextGenXMS users.
+    nextgen_xid = models.UUIDField(editable=False,
+                                   blank=True,
+                                   null=True,
+                                   unique=True)
+
     # Note this is handled differently than `is_active`, which comes from AbstractUser.
     # Django will totally prevent a user with is_active=True from authorizing.
     # This field `deactivated` helps us to notify the user client-side of their status
