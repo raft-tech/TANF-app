@@ -1,13 +1,14 @@
 """Define utility methods for users test_api."""
 
 import binascii
+import datetime
 import logging
 import secrets
 import time
-import datetime
 from base64 import b64decode
 from urllib.parse import quote_plus, urlencode
 
+from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.http import HttpResponseRedirect
 
@@ -16,7 +17,6 @@ import requests
 from jwcrypto import jwk
 from rest_framework import status
 from rest_framework.response import Response
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -52,15 +52,19 @@ Generate the client_assertion parameter needed by the login.gov/token endpoint
 """
 
 
-def generate_client_assertion():
+def generate_client_assertion(
+        private_key=settings.LOGIN_GOV_JWT_KEY,
+        iss=settings.LOGIN_GOV_CLIENT_ID,
+        aud=settings.LOGIN_GOV_TOKEN_ENDPOINT,
+        sub=settings.LOGIN_GOV_CLIENT_ID
+):
     """Generate client assertion parameters for login.gov."""
-    private_key = settings.LOGIN_GOV_JWT_KEY
-
     # We allow the JWT_KEY to be passed in as base64 encoded or as the
     # raw PEM format to support docker-compose env_file where there are
     # issues with newlines in env vars
     # https://github.com/moby/moby/issues/12997
     try:
+        print("stuff")
         private_key = b64decode(private_key).decode("utf-8")
     except (UnicodeDecodeError, binascii.Error):
         # If the private_key couldn't be Base64 decoded then just try it as
@@ -68,9 +72,9 @@ def generate_client_assertion():
         pass
 
     payload = {
-        "iss": settings.LOGIN_GOV_CLIENT_ID,
-        "aud": settings.LOGIN_GOV_TOKEN_ENDPOINT,
-        "sub": settings.LOGIN_GOV_CLIENT_ID,
+        "iss": iss,
+        "aud": aud,
+        "sub": sub,
         "jti": secrets.token_urlsafe(32)[:32],
         # set token expiration to be 1 minute from current time
         "exp": int(round(time.time() * 1000)) + 60000,
