@@ -39,12 +39,21 @@ const initialState = {
 const mockStore = configureStore([thunk])
 
 describe('SplashPage', () => {
+  const OLD_ENV = process.env
   beforeEach(() => {
     jest.spyOn(global.Math, 'random').mockReturnValue(0)
   })
 
   afterEach(() => {
     jest.spyOn(global.Math, 'random').mockRestore()
+  })
+  beforeEach(() => {
+    jest.resetModules() // Most important - it clears the cache
+    process.env = { ...OLD_ENV } // Make a copy
+  })
+
+  afterAll(() => {
+    process.env = OLD_ENV // Restore old environment
   })
 
   it('renders a sign in header', () => {
@@ -84,7 +93,29 @@ describe('SplashPage', () => {
   it('redirects to API login endpoint when login.gov sign-in button is clicked', () => {
     const store = mockStore(initialState)
 
+    process.env.REACT_APP_LOGIN_XMS_USED = 0
     const url = 'http://localhost:8080/v1/login/dotgov'
+    global.window = Object.create(window)
+    Object.defineProperty(window, 'location', {
+      value: {
+        href: url,
+      },
+    })
+
+    const wrapper = mount(
+      <Provider store={store}>
+        <SplashPage />
+      </Provider>
+    )
+    wrapper.find('#loginDotGovSignIn').simulate('click', {
+      preventDefault: () => {},
+    })
+    expect(window.location.href).toEqual(url)
+  })
+  it('redirects to API login endpoint when xms sign-in button is clicked', () => {
+    const store = mockStore(initialState)
+    process.env.REACT_APP_LOGIN_XMS_USED = 1
+    const url = 'http://localhost:8080/v1/login/xms'
     global.window = Object.create(window)
     Object.defineProperty(window, 'location', {
       value: {

@@ -19,7 +19,7 @@ function SplashPage() {
   const alertRef = useRef(null)
   const dispatch = useDispatch()
 
-  const signInWithLoginDotGov = (event) => {
+  const signInGrantee = (event) => {
     /* istanbul ignore if */
     if (
       !window.location.href.match(/https:\/\/.*\.app\.cloud\.gov/) &&
@@ -28,6 +28,9 @@ function SplashPage() {
       // This doesn't need to be tested, it will never be reached by jest.
       event.preventDefault()
       dispatch(setMockLoginState())
+    } else if (process.env.REACT_APP_LOGIN_XMS_USED) {
+      event.preventDefault()
+      window.location.href = `${process.env.REACT_APP_BACKEND_URL}/login/xms`
     } else {
       event.preventDefault()
       window.location.href = `${process.env.REACT_APP_BACKEND_URL}/login/dotgov`
@@ -106,7 +109,7 @@ function SplashPage() {
               className="width-full sign-in-button"
               type="button"
               id="loginDotGovSignIn"
-              onClick={signInWithLoginDotGov}
+              onClick={signInGrantee}
             >
               <div className="mobile:margin-x-auto mobile-lg:margin-0">
                 Sign in with
