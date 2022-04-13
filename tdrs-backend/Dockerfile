@@ -15,9 +15,11 @@ RUN apt-get -y update
 # Upgrade already installed packages:
 RUN apt-get -y upgrade
 # Install a new package:
-RUN apt-get install -y gcc && apt-get install -y graphviz && apt-get install -y graphviz-dev
+RUN apt-get install -y gcc graphviz graphviz-dev curl wget
 # Install pipenv
-RUN pip install --upgrade pip pipenv && pipenv install --dev --system --deploy
+RUN pip install --upgrade pip pipenv
+
+
 
 # Adds our application code to the image
 COPY . /tdpapp
@@ -25,7 +27,6 @@ WORKDIR /tdpapp/
 
 RUN groupadd -g ${gid} ${group} && useradd -u ${uid} -g ${group} -s /bin/sh ${user}
 
-RUN chown -R tdpuser /tdpapp && chmod u+x gunicorn_start.sh wait_for_services.sh
+RUN chown -R tdpuser /tdpapp && chmod u+x gunicorn_start.sh wait_for_services.sh pm2_start.sh install_nvm.sh
 
-
-CMD ["./gunicorn_start.sh"]
+CMD ["bash", "./install_nvm.sh"]

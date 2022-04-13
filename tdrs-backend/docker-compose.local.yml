@@ -2,6 +2,13 @@
 version: "3.4"
 
 services:
+
+  clamav-rest:
+    image: rafttech/clamav-rest:0.103.2
+    environment:
+      - MAX_FILE_SIZE=200M
+    ports:
+      - "9000:9000"
   postgres:
     image: postgres:11.6
     environment:
@@ -48,18 +55,16 @@ services:
       - DJANGO_SU_NAME
       - JWT_CERT_TEST
       - JWT_KEY
-      - USE_LOCALSTACK
+      - USE_LOCALSTACK=yes
       - LOGGING_LEVEL
       - AMS_CLIENT_ID
       - AMS_CLIENT_SECRET
       - AMS_CONFIGURATION_ENDPOINT
     volumes:
       - .:/tdpapp
+      - ../../django-admin-508:/tdpapp/django-admin-508
     image: tdp
     build: .
-    command: >
-      bash -c "./wait_for_services.sh &&
-               ./gunicorn_start.sh"
     ports:
       - "8080:8080"
     depends_on:
