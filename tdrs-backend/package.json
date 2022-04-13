@@ -1,0 +1,21 @@
+{
+  "name": "tdrs-backend",
+  "version": "1.0.0",
+  "description": "Backend API Service for TDP. Deployed to Cloud.gov at https://tdp-backend.app.cloud.gov/ .",
+  "main": "ecosystem.config.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "global": "^4.4.0",
+    "pm2": "^5.2.0",
+    "tern": "^0.24.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
