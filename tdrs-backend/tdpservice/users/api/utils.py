@@ -129,6 +129,7 @@ Get the original nonce and state from the user session.
 
 def get_nonce_and_state(session):
     """Get the nonce and state values."""
+    logger.debug(session)
     if "state_nonce_tracker" not in session:
         msg = "error: Could not find session store for nonce and state"
         raise SuspiciousOperation(msg)
