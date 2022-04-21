@@ -131,6 +131,9 @@ def get_nonce_and_state(session):
     """Get the nonce and state values."""
     print("session:")
     print(session)
+    for key, value in session.items():
+        print('{} => {}'.format(key, value))
+
     if "state_nonce_tracker" not in session:
         msg = "error: Could not find session store for nonce and state"
         raise SuspiciousOperation(msg)
