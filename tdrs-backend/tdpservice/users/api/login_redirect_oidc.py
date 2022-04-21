@@ -190,4 +190,9 @@ class LoginRedirectLoginXMS(RedirectView):
             "added_on": time.time(),
         }
 
+        print("session:")
+        for key, value in request.session.items():
+            print('{} => {}'.format(key, value))
+
+
         return HttpResponseRedirect(auth_endpoint_with_scope)
