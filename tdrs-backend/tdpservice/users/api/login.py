@@ -342,7 +342,9 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
             }
             token_params = generate_token_endpoint_parameters(code, options)
             token_endpoint = settings.XMS_TOKEN_ENDPOINT + "?" + token_params
-            return requests.post(token_endpoint)
+            return requests.post(token_endpoint, headers = {
+                "Authorization":settings.XMS_JWT_KEY
+            })
 
         except ValueError as e:
             logger.exception(e)
