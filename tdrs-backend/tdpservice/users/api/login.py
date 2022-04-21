@@ -72,6 +72,11 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
         decoded_payload = self.decode_payload(token_data)
         decoded_id_token = decoded_payload['id_token']
 
+        print("validate_and_decode_payload:request.session:")
+        print(request.session)
+        for key, value in request.session.items():
+            print('{} => {}'.format(key, value))
+
         if decoded_id_token == {"error": "The token is expired."}:
             raise ExpiredToken("The token is expired.")
 

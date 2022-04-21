@@ -129,7 +129,7 @@ Get the original nonce and state from the user session.
 
 def get_nonce_and_state(session):
     """Get the nonce and state values."""
-    print("session:")
+    print("get_nonce_and_state:session:")
     print(session)
     for key, value in session.items():
         print('{} => {}'.format(key, value))

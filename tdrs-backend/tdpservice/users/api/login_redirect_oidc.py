@@ -190,7 +190,7 @@ class LoginRedirectLoginXMS(RedirectView):
             "added_on": time.time(),
         }
 
-        print("session:")
+        print("login_redirect_xms:session:")
         for key, value in request.session.items():
             print('{} => {}'.format(key, value))
 
