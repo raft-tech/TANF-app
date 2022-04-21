@@ -75,14 +75,14 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
         if decoded_id_token == {"error": "The token is expired."}:
             raise ExpiredToken("The token is expired.")
 
-        if request.session["state_nonce_tracker"]:
+        if request.session.get("state_nonce_tracker"):
             request.session["token"] = id_token
 
         if not validate_nonce_and_state(request, state, decoded_id_token):
             msg = "Could not validate nonce and state"
             raise SuspiciousOperation(msg)
 
-        if not decoded_id_token["email_verified"]:
+        if not decoded_id_token.get("email_verified"):
             raise UnverifiedEmail("Unverified email!")
 
         return decoded_payload
