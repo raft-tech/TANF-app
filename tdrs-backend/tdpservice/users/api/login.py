@@ -395,7 +395,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
             )
 
         token_data = token_endpoint_response.json()
-        if token_data['error']:
+        if token_data.get('error'):
             return error_response(token_data,500)
 
         id_token = token_data.get("id_token")
