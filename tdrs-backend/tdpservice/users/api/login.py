@@ -405,7 +405,17 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
         id_token = token_data.get("id_token")
 
+        print("token_endpoint_response")
+        print(": {}".format(token_endpoint_response))
+
+        print("req: {}".format(request))
+        print("dir req: {}".format(dir(request)))
+
+        print("token_data: {}".format(dir(token_data)))
+        print("COOKIES {}".format(dir(request.COOKIES)))
+
         try:
+            print("req.sess: {}".format(dir(request.session)))
             decoded_payload = self.validate_and_decode_payload(request, state, token_data)
             user = self.handle_user(request, id_token, decoded_payload)
             return response_redirect(user, id_token)
