@@ -28,6 +28,12 @@ from .utils import (
 logger = logging.getLogger(__name__)
 
 
+def print_better(message, table):
+    print(message)
+    print(table)
+    for key, value in table.items():
+        print('{} => {}'.format(key, value))
+
 def error_response(e, status, message=None):
     """Produce an error response from an error message and status code."""
     logger.exception(e)
@@ -377,7 +383,6 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
         """Handle decoding auth token and authenticate user."""
         code = request.POST.get("code", None)
         state = request.POST.get("state", None)
-        logger.debug('XMS:state:', state)
         if code is None:
             logger.info("Redirecting call to main page. No code provided.")
             return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
@@ -405,17 +410,13 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
         id_token = token_data.get("id_token")
 
-        print("token_endpoint_response")
-        print(": {}".format(token_endpoint_response))
+        print_better("token_data",token_endpoint_response)
+        print_better("COOKIES",request.COOKIES)
+        print_better("POST",request.POST)
 
-        print("req: {}".format(request))
-        print("dir req: {}".format(dir(request)))
-
-        print("token_data: {}".format(dir(token_data)))
-        print("COOKIES {}".format(dir(request.COOKIES)))
 
         try:
-            print("req.sess: {}".format(dir(request.session)))
+            print_better("session", request.session)
             decoded_payload = self.validate_and_decode_payload(request, state, token_data)
             user = self.handle_user(request, id_token, decoded_payload)
             return response_redirect(user, id_token)
