@@ -410,7 +410,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
         id_token = token_data.get("id_token")
 
-        print_better("token_data",token_endpoint_response)
+        print_better("token_data",token_data)
         print_better("COOKIES",request.COOKIES)
         print_better("POST",request.POST)
 
