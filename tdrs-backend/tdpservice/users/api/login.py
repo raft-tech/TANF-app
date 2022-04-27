@@ -1,4 +1,5 @@
 """Login.gov/authorize is redirected to this endpoint to start a django user session."""
+import base64
 import logging
 from abc import abstractmethod
 from typing import Dict, Optional
@@ -354,7 +355,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
             token_params = generate_token_endpoint_parameters(code, options)
             token_endpoint = settings.XMS_TOKEN_ENDPOINT + "?" + token_params
             return requests.post(token_endpoint, headers = {
-                "Authorization":"Basic "+settings.XMS_JWT_KEY
+                "Authorization":"Basic " + base64.b64encode(str(settings.XMS_CLIENT_ID+ ":" + settings.XMS_JWT_KEY).encode("utf8"))
             })
 
         except ValueError as e:
