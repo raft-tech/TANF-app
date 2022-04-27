@@ -355,7 +355,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
             token_params = generate_token_endpoint_parameters(code, options)
             token_endpoint = settings.XMS_TOKEN_ENDPOINT + "?" + token_params
             return requests.post(token_endpoint, headers = {
-                "Authorization":"Basic " + base64.b64encode(str(settings.XMS_CLIENT_ID+ ":" + settings.XMS_JWT_KEY).encode("utf8"))
+                "Authorization":"Basic " + str(base64.b64encode(str(settings.XMS_CLIENT_ID+ ":" + settings.XMS_JWT_KEY).encode("utf8")))
             })
 
         except ValueError as e:
