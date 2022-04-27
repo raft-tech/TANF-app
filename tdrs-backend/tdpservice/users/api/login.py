@@ -398,15 +398,17 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        token_data = token_endpoint_response.json()
-        if token_data.get('error'):
-            return error_response(token_data,500)
 
-        id_token = token_data.get("id_token")
+        token_data = token_endpoint_response.json()
 
         print_better("token_data",token_data)
         print_better("COOKIES",request.COOKIES)
         print_better("POST",request.POST)
+
+        if token_data.get('error'):
+            return error_response(token_data,500)
+
+        id_token = token_data.get("id_token")
 
 
         try:
