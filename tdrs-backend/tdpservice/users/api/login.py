@@ -343,14 +343,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
         """Build out the query string params and full URL path for token endpoint."""
         try:
             options = {
-                "client_assertion": generate_client_assertion(
-                    # private_key=settings.XMS_JWT_KEY,
-                    # iss=settings.XMS_CLIENT_ID,
-                    # aud=settings.XMS_TOKEN_ENDPOINT,
-                    # sub=settings.XMS_CLIENT_ID
-                ),
                 "redirect_uri": settings.BASE_URL + "/oidc/xms",
-                "client_assertion_type": settings.XMS_CLIENT_ASSERTION_TYPE
             }
             token_params = generate_token_endpoint_parameters(code, options)
             token_endpoint = settings.XMS_TOKEN_ENDPOINT + "?" + token_params
