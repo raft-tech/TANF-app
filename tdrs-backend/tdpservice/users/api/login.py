@@ -1,9 +1,9 @@
 """Login.gov/authorize is redirected to this endpoint to start a django user session."""
 import base64
 import logging
+import urllib
 from abc import abstractmethod
 from typing import Dict, Optional
-from urllib.parse import quote_plus, urlencode
 
 from django.conf import settings
 from django.contrib.auth import get_user_model, login
@@ -350,7 +350,10 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
             token_endpoint = settings.XMS_TOKEN_ENDPOINT + "?" + token_params
             return requests.post(token_endpoint, headers = {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                "Authorization":"Basic " + str(base64.b64encode(str(urlencode(settings.XMS_CLIENT_ID)+ ":" + urlencode(settings.XMS_JWT_KEY)).encode("utf8")))
+                "Authorization":"Basic " +
+                str(base64.b64encode(str(urllib.parse.quote_plus(settings.XMS_CLIENT_ID)+ ":" +
+                                         urllib.parse.quote_plus(settings.XMS_JWT_KEY)).encode("utf8")
+                                     ))
             })
 
         except ValueError as e:
