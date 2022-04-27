@@ -352,8 +352,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
             }
             token_params = generate_token_endpoint_parameters(code, options)
             token_endpoint = settings.XMS_TOKEN_ENDPOINT + "?" + token_params
-            auth_string= str(base64.b64encode(str(settings.XMS_CLIENT_ID+ ":" +
-                                                  settings.XMS_JWT_KEY,'utf-8').encode("utf-8")), 'utf-8')
+            auth_string= base64.b64encode(settings.XMS_CLIENT_ID+ ":" + settings.XMS_JWT_KEY).decode('utf-8')
             print_better("auth string", auth_string)
             return requests.post(token_endpoint, headers = {
                 'Content-Type': 'application/x-www-form-urlencoded',
