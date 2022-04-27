@@ -1,7 +1,6 @@
 """Login.gov/authorize is redirected to this endpoint to start a django user session."""
 import base64
 import logging
-import urllib
 from abc import abstractmethod
 from typing import Dict, Optional
 
@@ -40,6 +39,10 @@ def error_response(e, status, message=None):
     """Produce an error response from an error message and status code."""
     logger.exception(e)
     return Response({"error": message or str(e)}, status=status)
+
+def print_dir(d):
+    for key, value in d.items():
+        print('{} => {}'.format(key, value))
 
 class InactiveUser(Exception):
     """Inactive User Error Handler."""
@@ -80,6 +83,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
         decoded_payload = self.decode_payload(token_data)
         decoded_id_token = decoded_payload['id_token']
 
+        print(decoded_id_token)
         print("validate_and_decode_payload:request.session:")
         print(request.session)
         for key, value in request.session.items():
@@ -349,7 +353,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
             token_params = generate_token_endpoint_parameters(code, options)
             token_endpoint = settings.XMS_TOKEN_ENDPOINT + "?" + token_params
             auth_string= str(base64.b64encode(str(settings.XMS_CLIENT_ID+ ":" +
-                                                  settings.XMS_JWT_KEY).encode("utf-8")))
+                                                  settings.XMS_JWT_KEY,'utf-8').encode("utf-8")), 'utf-8')
             print_better("auth string", auth_string)
             return requests.post(token_endpoint, headers = {
                 'Content-Type': 'application/x-www-form-urlencoded',
