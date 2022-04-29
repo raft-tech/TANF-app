@@ -93,7 +93,6 @@ describe('SplashPage', () => {
   it('redirects to API login endpoint when login.gov sign-in button is clicked', () => {
     const store = mockStore(initialState)
 
-
     const url = process.env.REACT_APP_LOGIN_XMS_USED
       ? 'http://localhost:8080/v1/login/xms'
       : 'http://localhost:8080/v1/login/dotgov'
