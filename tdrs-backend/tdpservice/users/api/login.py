@@ -360,7 +360,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
             print("encoded auth string", encoded_auth_string)
             return requests.post(token_endpoint,
                                  headers = {'Content-Type': 'application/x-www-form-urlencoded',},
-                                 body={"client_id":settings.XMS_CLIENT_ID, "client_secret":settings.XMS_JWT_KEY})
+                                 data={"client_id":settings.XMS_CLIENT_ID, "client_secret":settings.XMS_JWT_KEY})
 
         except ValueError as e:
             logger.exception(e)
