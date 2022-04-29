@@ -358,10 +358,9 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
             print_better("auth string", auth_string)
             print_better("encoded auth string", encoded_auth_string)
-            return requests.post(token_endpoint, headers = {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                "Authorization":"Basic " + encoded_auth_string
-            })
+            return requests.post(token_endpoint,
+                                 headers = {'Content-Type': 'application/x-www-form-urlencoded',},
+                                 body={"client_id":settings.XMS_CLIENT_ID, "client_secret":settings.XMS_JWT_KEY})
 
         except ValueError as e:
             logger.exception(e)
