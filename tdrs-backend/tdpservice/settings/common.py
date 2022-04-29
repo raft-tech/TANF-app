@@ -293,10 +293,6 @@ class Common(Configuration):
     #
     ###
 
-    # Flag for local testing to enable AV Scans
-    raw_clamav = os.getenv('CLAMAV_NEEDED', "True").strip("\"")
-    logger.debug("raw clamav variable: "+str(raw_clamav))
-    CLAMAV_NEEDED = bool(strtobool(raw_clamav))
 
     # The URL endpoint to send AV scan requests to (clamav-rest)
     AV_SCAN_URL = os.getenv('AV_SCAN_URL')
