@@ -93,9 +93,32 @@ describe('SplashPage', () => {
   it('redirects to API login endpoint when login.gov sign-in button is clicked', () => {
     const store = mockStore(initialState)
 
+
     const url = process.env.REACT_APP_LOGIN_XMS_USED
       ? 'http://localhost:8080/v1/login/xms'
       : 'http://localhost:8080/v1/login/dotgov'
+
+    global.window = Object.create(window)
+    Object.defineProperty(window, 'location', {
+      value: {
+        href: url,
+      },
+    })
+
+    const wrapper = mount(
+      <Provider store={store}>
+        <SplashPage />
+      </Provider>
+    )
+    wrapper.find('#loginDotGovSignIn').simulate('click', {
+      preventDefault: () => {},
+    })
+    expect(window.location.href).toEqual(url)
+  })
+  it('redirects to API login endpoint when xms sign-in button is clicked', () => {
+    const store = mockStore(initialState)
+    process.env.REACT_APP_LOGIN_XMS_USED = 1
+    const url = 'http://localhost:8080/v1/login/xms'
 
     global.window = Object.create(window)
     Object.defineProperty(window, 'location', {
