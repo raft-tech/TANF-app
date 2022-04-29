@@ -6,7 +6,7 @@
 
 ### Step 1: Authentication & Authorization Request
 * User clicks Sign In button on site OR navigates to Django Admin unauthenticated
-* Call is made to ../login/xms - which initiates [LoginRedirectOIDC view](https://github.com/raft-tech/TANF-app/blob/raft-tdp-main/tdrs-backend/tdpservice/users/api/login_redirect_oidc.py)
+* Call is made to /login/xms - which initiates [LoginRedirectOIDC view](https://github.com/raft-tech/TANF-app/blob/develop/tdrs-backend/tdpservice/users/api/login_redirect_oidc.py)
 * Backend constructs a URL encoded query string for redirect to XMS login, which consists of:
   * ACR_VALUES - Authentication Context Class Reference, used to determine the identity + authorization assurance level needed (IAL + AAL) (derived from environment variable) 
   * CLIENT_ID - the ID of our client in XMS (derived from environment variable)
@@ -22,7 +22,7 @@
 * NOTE: Any `redirect_uri` used must be defined in XMS or it will be rejected
 
 ### Step 3: Authorization Code
-* User is redirected to ../oidc/xms - which correlates to the [TokenAuthorizationOIDC view](https://github.com/raft-tech/TANF-app/blob/raft-tdp-main/tdrs-backend/tdpservice/users/api/login.py)
+* User is redirected to /oidc/xms - which correlates to the [TokenAuthorizationOIDC view](https://github.com/raft-tech/TANF-app/blob/develop/tdrs-backend/tdpservice/users/api/login.py)
 * The Authorization Code (`code`), Nonce and State are extracted from the query parameters supplied to the POST request
 * The expected `nonce` and `state` are pulled from the request `session` so that they can be compared further in the flow for integrity.
 
