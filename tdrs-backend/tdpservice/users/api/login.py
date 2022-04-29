@@ -356,8 +356,8 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
             auth_string= settings.XMS_CLIENT_ID+ ":" + settings.XMS_JWT_KEY
             encoded_auth_string= base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
 
-            print_better("auth string", auth_string)
-            print_better("encoded auth string", encoded_auth_string)
+            print("auth string", auth_string)
+            print("encoded auth string", encoded_auth_string)
             return requests.post(token_endpoint,
                                  headers = {'Content-Type': 'application/x-www-form-urlencoded',},
                                  body={"client_id":settings.XMS_CLIENT_ID, "client_secret":settings.XMS_JWT_KEY})
