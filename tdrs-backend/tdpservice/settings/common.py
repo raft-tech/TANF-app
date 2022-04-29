@@ -6,8 +6,9 @@ from distutils.util import strtobool
 from os.path import join
 from typing import Any, Optional
 
-from configurations import Configuration
 from django.core.exceptions import ImproperlyConfigured
+
+from configurations import Configuration
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -240,6 +241,12 @@ class Common(Configuration):
     # Sessions
     SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
     SESSION_COOKIE_HTTPONLY = True
+
+    # XMS uses a POST instead of a GET like the rest of our OIDC implementations,
+    # The default value of "Lax" Blocks session cookies from cross site origins unless
+    # they are GET
+    # https://docs.djangoproject.com/en/4.0/ref/settings/#session-cookie-samesite
+    SESSION_COOKIE_SAMESITE = 'None'
     SESSION_TIMEOUT = 30
 
     # The CSRF token Cookie holds no security benefits when confined to HttpOnly.
