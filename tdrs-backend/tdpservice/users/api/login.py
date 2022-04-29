@@ -344,7 +344,6 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
         # TODO: Refactor to XMS login
         pass
 
-
     def post(self, request, *args, **kwargs):
         """Handle decoding auth token and authenticate user."""
         code = request.POST.get("code", None)
