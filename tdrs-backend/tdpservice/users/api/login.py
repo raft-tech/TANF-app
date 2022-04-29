@@ -344,10 +344,6 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
         # TODO: Refactor to XMS login
         pass
 
-    def verify_email(self, user):
-        """Handle user email exception to disallow ACF staff to utilize non-AMS authentication."""
-        # TODO: Refactor to XMS login
-        pass
 
     def post(self, request, *args, **kwargs):
         """Handle decoding auth token and authenticate user."""
