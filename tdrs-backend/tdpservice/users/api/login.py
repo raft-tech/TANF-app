@@ -99,8 +99,9 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
             msg = "Could not validate nonce and state"
             raise SuspiciousOperation(msg)
 
-        if not decoded_id_token.get("email_verified"):
-            raise UnverifiedEmail("Unverified email!")
+        # this may not be included in xms
+        # if not decoded_id_token.get("email_verified"):
+        #     raise UnverifiedEmail("Unverified email!")
 
         return decoded_payload
 
