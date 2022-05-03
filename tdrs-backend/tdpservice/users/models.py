@@ -43,7 +43,8 @@ class User(AbstractUser):
                               unique=True)
 
     # Unique `xid` user claim for NextGenXMS users.
-    nextgen_xid = models.UUIDField(editable=False,
+    nextgen_xid = models.CharField(editable=False,
+                                   max_length=12,
                                    blank=True,
                                    null=True,
                                    unique=True)
