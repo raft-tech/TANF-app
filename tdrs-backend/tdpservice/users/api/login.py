@@ -375,7 +375,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
     def get_auth_options(self, access_token, sub):
         """Add specific auth properties for the CustomAuthentication handler."""
-        return {}
+        return { "nextgen_xid": sub }
 
     def verify_email(self, user):
         """Handle user email exception to disallow ACF staff to utilize non-AMS authentication."""
