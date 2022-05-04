@@ -1,9 +1,11 @@
 """Define custom authentication class."""
 
+import logging
+
 from django.contrib.auth import get_user_model
 
 from rest_framework.authentication import BaseAuthentication
-import logging
+
 logger = logging.getLogger(__name__)
 
 class CustomAuthentication(BaseAuthentication):
@@ -27,6 +29,13 @@ class CustomAuthentication(BaseAuthentication):
                     logging.debug("Updated user {} with hhs_id {}.".format(username, hhs_id))
                 return User.objects.get(hhs_id=hhs_id)
             elif nextgen_xid:
+                try:
+                    return User.objects.get(nextgen_xid=nextgen_xid)
+                except User.DoesNotExist:
+                    # If below line also fails with User.DNE, will bubble up and return None
+                    user = User.objects.filter(username=username)
+                    user.update(nextgen_xid=nextgen_xid)
+                    logging.debug("Updated user {} with nextgen_xid {}.".format(username, nextgen_xid))
                 return User.objects.get(nextgen_xid=nextgen_xid)
             elif login_gov_uuid:
                 return User.objects.get(login_gov_uuid=login_gov_uuid)
