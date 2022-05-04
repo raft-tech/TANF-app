@@ -29,20 +29,17 @@ from .utils import (
 logger = logging.getLogger(__name__)
 
 
-def print_better(message, table):
-    print(message)
-    print(table)
-    for key, value in table.items():
-        print('{} => {}'.format(key, value))
+# def print_better(message, table):
+#     print(message)
+#     print(table)
+#     for key, value in table.items():
+#         print('{} => {}'.format(key, value))
 
 def error_response(e, status, message=None):
     """Produce an error response from an error message and status code."""
     logger.exception(e)
     return Response({"error": message or str(e)}, status=status)
 
-def print_dir(d):
-    for key, value in d.items():
-        print('{} => {}'.format(key, value))
 
 class InactiveUser(Exception):
     """Inactive User Error Handler."""
@@ -82,12 +79,6 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
 
         decoded_payload = self.decode_payload(token_data)
         decoded_id_token = decoded_payload['id_token']
-
-        print(decoded_id_token)
-        print("validate_and_decode_payload:request.session:")
-        print(request.session)
-        for key, value in request.session.items():
-            print('{} => {}'.format(key, value))
 
         if decoded_id_token == {"error": "The token is expired."}:
             raise ExpiredToken("The token is expired.")
@@ -162,10 +153,10 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
             # authenticate later.
             initial_user = CustomAuthentication.authenticate(username=email)
 
-            if initial_user.login_gov_uuid is None:
+            if initial_user.nextgen_xid is None:
                 # Save the `sub` to the superuser.
                 # TODO: Update in the future when login.gov goes away.
-                initial_user.login_gov_uuid = sub
+                initial_user.nextgen_xid = sub
                 initial_user.save()
 
                 # Login with the new superuser.
@@ -361,8 +352,6 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
             auth_string= settings.XMS_CLIENT_ID+ ":" + settings.XMS_JWT_KEY
             encoded_auth_string= base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
 
-            print("auth string", auth_string)
-            print("encoded auth string", encoded_auth_string)
             return requests.post(token_endpoint, headers = {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 "Authorization":"Basic " + encoded_auth_string
@@ -417,10 +406,6 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
         token_data = token_endpoint_response.json()
 
-        print_better("token_data",token_data)
-        print_better("COOKIES",request.COOKIES)
-        print_better("POST",request.POST)
-
         if token_data.get('error'):
             return error_response(token_data,500)
 
@@ -428,7 +413,6 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
 
         try:
-            print_better("session", request.session)
             decoded_payload = self.validate_and_decode_payload(request, state, token_data)
             user = self.handle_user(request, id_token, decoded_payload)
             return response_redirect(user, id_token)
