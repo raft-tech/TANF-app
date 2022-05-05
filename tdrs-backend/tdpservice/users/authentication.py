@@ -26,6 +26,8 @@ class CustomAuthentication(BaseAuthentication):
                     user.update(hhs_id=hhs_id)
                     logging.debug("Updated user {} with hhs_id {}.".format(username, hhs_id))
                 return User.objects.get(hhs_id=hhs_id)
+            elif login_gov_uuid:
+                return User.objects.get(login_gov_uuid=login_gov_uuid)
             elif nextgen_xid:
                 return User.objects.get(nextgen_xid=nextgen_xid)
             else:
