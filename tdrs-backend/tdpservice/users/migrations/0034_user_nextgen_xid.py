@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0032_ocio_permissions_group'),
+        ('users', '0033_alter_user_hhs_id'),
     ]
 
     operations = [
