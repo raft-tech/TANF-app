@@ -58,6 +58,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
     @abstractmethod
     def decode_payload(self, token_data, options=None):
         """Decode the payload."""
+        pass
 
     def validate_and_decode_payload(self, request, state, token_data):
         """Perform validation and error handling on the payload once decoded with abstract method."""
@@ -140,6 +141,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
 
             if initial_user.login_gov_uuid is None:
                 # Save the `sub` to the superuser.
+                # TODO: Update in the future when login.gov goes away.
                 initial_user.login_gov_uuid = sub
                 initial_user.save()
 
@@ -207,7 +209,6 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
         """Handle decoding auth token and authenticate user."""
         code = request.GET.get("code", None)
         state = request.GET.get("state", None)
-
         if code is None:
             logger.info("Redirecting call to main page. No code provided.")
             return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
@@ -326,6 +327,48 @@ class TokenAuthorizationLoginDotGov(TokenAuthorizationOIDC):
             user_groups = list(user.groups.values_list('name', flat=True))
             raise ACFUserLoginDotGov(
                 '{} attempted Login.gov authentication with role(s): {}'.format(user.email, user_groups)
+            )
+
+
+class TokenAuthorizationXMS(TokenAuthorizationOIDC):
+    """Define methods for handling login request from XMS."""
+
+    def decode_payload(self, token_data, options=None):
+        """Decode the payload with keys for XMS."""
+        # TODO: Refactor to XMS login
+        pass
+
+    def get_token_endpoint_response(self, code):
+        """Build out the query string params and full URL path for token endpoint."""
+        # TODO: Refactor to XMS login
+        pass
+
+    def get_auth_options(self, access_token, sub):
+        """Add specific auth properties for the CustomAuthentication handler."""
+        # TODO: Refactor to XMS login
+        pass
+
+    def post(self, request, *args, **kwargs):
+        """Handle decoding auth token and authenticate user."""
+        code = request.POST.get("code", None)
+        state = request.POST.get("state", None)
+        logging.debug('XMS:state:', state)
+        if code is None:
+            logger.info("Redirecting call to main page. No code provided.")
+            return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
+
+        if state is None:
+            logger.info("Redirecting call to main page. No state provided.")
+            return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
+
+        # TODO: Need to refactor/add code to handle login
+        return Response(
+                {
+                    "error": (
+                        "Unhandled error"
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
 
