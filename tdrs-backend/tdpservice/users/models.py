@@ -45,8 +45,6 @@ class User(AbstractUser):
     # Unique `xid` user claim for NextGenXMS users.
     nextgen_xid = models.CharField(editable=False,
                                    max_length=12,
-                                   blank=True,
-                                   null=True,
                                    unique=True)
 
     # Note this is handled differently than `is_active`, which comes from AbstractUser.

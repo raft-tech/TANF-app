@@ -4,7 +4,6 @@ import logging
 import secrets
 import time
 from urllib.parse import quote, quote_plus, urlencode
-
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.views.generic.base import RedirectView
@@ -189,10 +188,5 @@ class LoginRedirectLoginXMS(RedirectView):
             "state": state,
             "added_on": time.time(),
         }
-
-        print("login_redirect_xms:session:")
-        for key, value in request.session.items():
-            print('{} => {}'.format(key, value))
-
 
         return HttpResponseRedirect(auth_endpoint_with_scope)

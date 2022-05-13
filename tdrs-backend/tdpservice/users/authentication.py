@@ -37,8 +37,11 @@ class CustomAuthentication(BaseAuthentication):
                     user.update(nextgen_xid=nextgen_xid)
                     logging.debug("Updated user {} with nextgen_xid {}.".format(username, nextgen_xid))
                 return User.objects.get(nextgen_xid=nextgen_xid)
+
             elif login_gov_uuid:
                 return User.objects.get(login_gov_uuid=login_gov_uuid)
+            elif nextgen_xid:
+                return User.objects.get(nextgen_xid=nextgen_xid)
             else:
                 return User.objects.get(username=username)
         except User.DoesNotExist:

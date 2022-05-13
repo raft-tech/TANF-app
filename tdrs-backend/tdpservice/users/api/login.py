@@ -157,6 +157,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
                 # Save the `sub` to the superuser.
                 # TODO: Update in the future when login.gov goes away.
                 initial_user.nextgen_xid = sub
+                initial_user.login_gov_uuid = sub
                 initial_user.save()
 
                 # Login with the new superuser.
