@@ -378,10 +378,10 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
                 '{} attempted Login.gov authentication with role(s): {}'.format(user.email, user_groups)
             )
 
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         """Handle decoding auth token and authenticate user."""
-        code = request.POST.get("code", None)
-        state = request.POST.get("state", None)
+        code = request.GET.get("code", None)
+        state = request.GET.get("state", None)
         if code is None:
             logger.info("Redirecting call to main page. No code provided.")
             return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
