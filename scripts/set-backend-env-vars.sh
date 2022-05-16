@@ -6,12 +6,12 @@ CG_SPACE=$2
 # Determine the appropriate BASE_URL for the deployed instance based on the
 # provided Cloud.gov App Name
 DEFAULT_ROUTE="https://$CGAPPNAME_BACKEND.app.cloud.gov"
-if [ "$CG_SPACE" = "tanf-prod" ]; then
-  # Keep the base url set explicitly for production.
-  BASE_URL="$BASE_URL/v1"
-elif [ -n "$BASE_URL" ]; then
+if [ -n "$BASE_URL" ]; then
   # Use Shell Parameter Expansion to replace localhost in the URL
   BASE_URL="${BASE_URL//http:\/\/localhost:8080/$DEFAULT_ROUTE}"
+elif [ "$CG_SPACE" = "tanf-prod" ]; then
+  # Keep the base url set explicitly for production.
+  BASE_URL="$BASE_URL"
 else
   # Default to the route formed with the cloud.gov env for the lower environments.
   BASE_URL="$DEFAULT_ROUTE/v1"
