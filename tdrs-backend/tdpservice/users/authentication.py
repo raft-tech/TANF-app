@@ -18,34 +18,28 @@ class CustomAuthentication(BaseAuthentication):
         logging.debug("CustomAuthentication::authenticate:hhs_id {}".format(hhs_id))
         logging.debug("CustomAuthentication::authenticate:login_gov_uuid {}".format(login_gov_uuid))
         logging.debug("CustomAuthentication::authenticate:username {}".format(username))
-        try:
-            if hhs_id:
-                try:
-                    return User.objects.get(hhs_id=hhs_id)
-                except User.DoesNotExist:
-                    # If below line also fails with User.DNE, will bubble up and return None
-                    user = User.objects.filter(username=username)
-                    user.update(hhs_id=hhs_id)
-                    logging.debug("Updated user {} with hhs_id {}.".format(username, hhs_id))
-                return User.objects.get(hhs_id=hhs_id)
-            elif nextgen_xid:
-                try:
-                    return User.objects.get(nextgen_xid=nextgen_xid)
-                except User.DoesNotExist:
-                    # If below line also fails with User.DNE, will bubble up and return None
-                    user = User.objects.filter(username=username)
-                    user.update(nextgen_xid=nextgen_xid)
-                    logging.debug("Updated user {} with nextgen_xid {}.".format(username, nextgen_xid))
-                return User.objects.get(nextgen_xid=nextgen_xid)
 
-            elif login_gov_uuid:
-                return User.objects.get(login_gov_uuid=login_gov_uuid)
-            elif nextgen_xid:
-                return User.objects.get(nextgen_xid=nextgen_xid)
-            else:
-                return User.objects.get(username=username)
+        user_search=None
+        id_type=None
+
+        if hhs_id:
+            id_type="hhs_id"
+            user_search= { hhs_id: hhs_id }
+        elif nextgen_xid:
+            id_type="nextgen_xid"
+            user_search= { nextgen_xid: nextgen_xid }
+        else:
+            id_type="username"
+            user_search= { username: username }
+        try:
+            return User.objects.get(**user_search)
         except User.DoesNotExist:
-            return None
+            # If below line also fails with User.DNE, will bubble up and return None
+            if  id_type != "username":
+                user = User.objects.filter(username=username)
+                user.update(**user_search)
+                logging.debug("Updated user {} with {} {}.".format(username,id_type, user_search[id_type]))
+
 
     @staticmethod
     def get_user(user_id):

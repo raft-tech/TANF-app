@@ -343,12 +343,12 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
             }
             token_params = generate_token_endpoint_parameters(code, options)
             token_endpoint = settings.XMS_TOKEN_ENDPOINT + "?" + token_params
-            auth_string= settings.XMS_CLIENT_ID+ ":" + settings.XMS_JWT_KEY
-            encoded_auth_string= base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
+            auth_string = settings.XMS_CLIENT_ID + ":" + settings.XMS_JWT_KEY
+            encoded_auth_string = base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
 
             return requests.post(token_endpoint, headers = {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                "Authorization":"Basic " + encoded_auth_string
+                'Content-Type' : 'application/x-www-form-urlencoded',
+                "Authorization" : "Basic " + encoded_auth_string
             })
 
         except ValueError as e:
