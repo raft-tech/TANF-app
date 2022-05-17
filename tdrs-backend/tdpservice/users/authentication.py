@@ -38,7 +38,7 @@ class CustomAuthentication(BaseAuthentication):
             if id_type != "username":
                 user = User.objects.filter(username=username)
                 user.update(**user_search)
-                logging.debug("Updated user {} with {} {}.".format(username,id_type, user_search[id_type]))
+                logging.debug("Updated user {} with {} {}.".format(username, id_type, user_search[id_type]))
 
     @staticmethod
     def get_user(user_id):
