@@ -25,7 +25,7 @@ class BaseUserFactory(factory.django.DjangoModelFactory):
     login_gov_uuid = factory.Faker("uuid4")
     deactivated = False
     # For testing convenience, though most users won't have both a login_gov_uuid and hhs_id
-    nextgen_xid = factory.Faker("uuid4")
+    nextgen_xid = factory.fuzzy.FuzzyText(length=12, chars="1234567890")
 
     hhs_id = factory.fuzzy.FuzzyText(length=12, chars="1234567890")
 

@@ -24,13 +24,13 @@ class CustomAuthentication(BaseAuthentication):
 
         if hhs_id:
             id_type = "hhs_id"
-            user_search = {hhs_id: hhs_id}
+            user_search = {"hhs_id": hhs_id}
         elif nextgen_xid:
             id_type = "nextgen_xid"
-            user_search = {nextgen_xid: nextgen_xid}
+            user_search = {"nextgen_xid": nextgen_xid}
         else:
             id_type = "username"
-            user_search = {username: username}
+            user_search = {"username": username}
         try:
             return User.objects.get(**user_search)
         except User.DoesNotExist:
