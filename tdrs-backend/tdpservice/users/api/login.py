@@ -374,14 +374,12 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
     def get(self, request, *args, **kwargs):
         """Handle decoding auth token and authenticate user."""
+
         code = request.GET.get("code", None)
         state = request.GET.get("state", None)
-        if code is None:
-            logger.info("Redirecting call to main page. No code provided.")
-            return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
 
-        if state is None:
-            logger.info("Redirecting call to main page. No state provided.")
+        if code is None or state is None:
+            logger.info("Redirecting call to main page. No state or code provided.")
             return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
 
         token_endpoint_response = self.get_token_endpoint_response(code)
@@ -397,28 +395,25 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-
         token_data = token_endpoint_response.json()
-
         if token_data.get('error'):
-            return error_response(token_data,500)
+            return error_response(token_data, 500)
 
         id_token = token_data.get("id_token")
-
 
         try:
             decoded_payload = self.validate_and_decode_payload(request, state, token_data)
             user = self.handle_user(request, id_token, decoded_payload)
-            return response_redirect(user, id_token)
+            res = response_redirect(user, id_token)
 
         except (InactiveUser, ExpiredToken) as e:
-            return error_response(e, status.HTTP_401_UNAUTHORIZED)
+            res = error_response(e, status.HTTP_401_UNAUTHORIZED)
 
         except UnverifiedEmail as e:
-            return error_response(e, status.HTTP_400_BAD_REQUEST)
+            res = error_response(e, status.HTTP_400_BAD_REQUEST)
 
         except ACFUserLoginDotGov as e:
-            return error_response(e, status.HTTP_403_FORBIDDEN)
+            res = error_response(e, status.HTTP_403_FORBIDDEN)
 
         except SuspiciousOperation as e:
             logger.exception(e)
@@ -426,7 +421,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
         except Exception as e:
             logger.exception(f"Error attempting to login/register user:  {e} at...")
-            return Response(
+            res = Response(
                 {
                     "error": (
                         "Email verified, but experienced internal issue "
@@ -435,6 +430,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        return res
 
 
 class TokenAuthorizationAMS(TokenAuthorizationOIDC):
