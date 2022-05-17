@@ -373,7 +373,7 @@ class Common(Configuration):
     # AMS OpenID #
     AMS_CONFIGURATION_ENDPOINT = os.getenv(
         'AMS_CONFIGURATION_ENDPOINT',
-        'hhttps://sso.acf.hhs.gov/auth/realms/ACF-AMS/.well-known/openid-configuration'
+        'https://sso-stage.acf.hhs.gov/auth/realms/ACF-SSO/.well-known/openid-configuration'
     )
 
     # The CLIENT_ID and SECRET must be set for the AMS authentication flow to work.
