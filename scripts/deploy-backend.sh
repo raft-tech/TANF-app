@@ -47,7 +47,7 @@ update_backend()
         fi
     fi
     cf map-route "$CGHOSTNAME_BACKEND" app.cloud.gov --hostname "$CGHOSTNAME_BACKEND"
-    cf map-route "$CGHOSTNAME_BACKEND" api.tanfdata.acf.hhs.gov --hostname "$CGHOSTNAME_BACKEND"
+    cf map-route api.tanfdata.acf.hhs.gov --hostname "$CGHOSTNAME_BACKEND"
     cd ..
 }
 
