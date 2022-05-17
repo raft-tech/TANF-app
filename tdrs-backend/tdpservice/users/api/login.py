@@ -374,7 +374,6 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
     def get(self, request, *args, **kwargs):
         """Handle decoding auth token and authenticate user."""
-
         code = request.GET.get("code", None)
         state = request.GET.get("state", None)
 
