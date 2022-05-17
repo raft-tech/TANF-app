@@ -346,9 +346,9 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
             auth_string = settings.XMS_CLIENT_ID + ":" + settings.XMS_JWT_KEY
             encoded_auth_string = base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
 
-            return requests.post(token_endpoint, headers = {
-                'Content-Type' : 'application/x-www-form-urlencoded',
-                "Authorization" : "Basic " + encoded_auth_string
+            return requests.post(token_endpoint, headers={
+                'Content-Type': 'application/x-www-form-urlencoded',
+                "Authorization": "Basic " + encoded_auth_string
             })
 
         except ValueError as e:
@@ -362,7 +362,7 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
     def get_auth_options(self, access_token, sub):
         """Add specific auth properties for the CustomAuthentication handler."""
-        return { "nextgen_xid": sub }
+        return {"nextgen_xid": sub}
 
     def verify_email(self, user):
         """Handle user email exception to disallow ACF staff to utilize non-AMS authentication."""
@@ -397,14 +397,11 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-
         token_data = token_endpoint_response.json()
-
         if token_data.get('error'):
-            return error_response(token_data,500)
+            return error_response(token_data, 500)
 
         id_token = token_data.get("id_token")
-
 
         try:
             decoded_payload = self.validate_and_decode_payload(request, state, token_data)
