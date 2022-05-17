@@ -65,7 +65,7 @@
     "eslint-config-react-app": "^7.0.0",
     "eslint-plugin-flowtype": "^8.0.3",
     "eslint-plugin-prettier": "^4.0.0",
-    "faker": "^5.5.3",
+    "faker": "^6.6.6",
     "jest-enzyme": "^7.1.2",
     "pa11y-ci": "^3.0.1",
     "prettier": "^2.6.0",
