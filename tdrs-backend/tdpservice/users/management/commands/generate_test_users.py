@@ -51,15 +51,15 @@ class Command(BaseCommand):
             email = f"test_{group.name.replace(' ', '_').lower()}" + "@example.com"
 
             try:
-                with transaction.atomic():
-                    user = User.objects.create_user(
-                        username=username,
-                        email=email,
-                        password=password,
-                        first_name=first_name,
-                        last_name=last_name,
-                    )
-                    user.groups.add(group)
+                # with transaction.atomic():
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=password,
+                    first_name=first_name,
+                    last_name=last_name,
+                )
+                user.groups.add(group)
             except IntegrityError:  # pragma: nocover
                 # User already exists.
                 pass

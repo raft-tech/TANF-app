@@ -153,10 +153,20 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
             # authenticate later.
             initial_user = CustomAuthentication.authenticate(username=email)
 
-            if initial_user.nextgen_xid is None:
+            # print(f"HERE YOU GO {self.__name__}")
+            if initial_user.nextgen_xid is None and self.auth_type == "xms":
                 # Save the `sub` to the superuser.
                 # TODO: Update in the future when login.gov goes away.
                 initial_user.nextgen_xid = sub
+                initial_user.save()
+
+                # Login with the new superuser.
+                self.login_user(request, initial_user, login_msg)
+                return initial_user
+
+            if initial_user.login_gov_uuid is None and self.auth_type == "logingov":
+                # Save the `sub` to the superuser.
+                # TODO: Update in the future when login.gov goes away.
                 initial_user.login_gov_uuid = sub
                 initial_user.save()
 
@@ -275,6 +285,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
 
 class TokenAuthorizationLoginDotGov(TokenAuthorizationOIDC):
     """Define methods for handling login request from login.gov."""
+    auth_type = "logingov"
 
     def decode_payload(self, token_data, options=None):
         """Decode the payload with keys for login.gov."""
@@ -323,6 +334,8 @@ class TokenAuthorizationLoginDotGov(TokenAuthorizationOIDC):
 
 class TokenAuthorizationXMS(TokenAuthorizationOIDC):
     """Define methods for handling login request from XMS."""
+
+    auth_type = "xms"
 
     def decode_payload(self, token_data, options=None):
         """Decode the payload with keys for login.gov."""
@@ -434,6 +447,8 @@ class TokenAuthorizationXMS(TokenAuthorizationOIDC):
 
 class TokenAuthorizationAMS(TokenAuthorizationOIDC):
     """Define methods for handling login request from HHS AMS."""
+
+    auth_type = "ams"
 
     def decode_payload(self, token_data, options=None):
         """Decode the payload with keys for AMS."""

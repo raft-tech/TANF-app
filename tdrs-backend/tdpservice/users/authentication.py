@@ -39,6 +39,9 @@ class CustomAuthentication(BaseAuthentication):
                 user = User.objects.filter(username=username)
                 user.update(**user_search)
                 logging.debug("Updated user {} with {} {}.".format(username, id_type, user_search[id_type]))
+                return User.objects.get(**user_search)
+            else:
+                return None
 
     @staticmethod
     def get_user(user_id):
