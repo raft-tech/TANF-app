@@ -240,6 +240,8 @@ class Common(Configuration):
     # Sessions
     SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
     SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = 'None'
     SESSION_TIMEOUT = 30
 
     # The CSRF token Cookie holds no security benefits when confined to HttpOnly.
@@ -248,6 +250,9 @@ class Common(Configuration):
     # https://docs.djangoproject.com/en/2.2/ref/settings/#csrf-cookie-httponly
     CSRF_COOKIE_HTTPONLY = False
     CSRF_TRUSTED_ORIGINS = ['.app.cloud.gov', '.acf.hhs.gov']
+    CRSF_COOKIE_SECURE = True
+    CRSF_COOKIE_SAMESITE = 'None'
+
 
     SESSION_COOKIE_PATH = "/;HttpOnly"
 
