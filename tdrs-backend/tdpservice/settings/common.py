@@ -323,7 +323,7 @@ class Common(Configuration):
     CSP_SCRIPT_SRC = ("'self'", s3_src)
     CSP_IMG_SRC = ("'self'", "data:", s3_src)
     CSP_FONT_SRC = ("'self'", s3_src)
-    CSP_CONNECT_SRC = ("'self'", "*.cloud.gov")
+    CSP_CONNECT_SRC = ("'self'", "*.cloud.gov", "*acf.hhs.gov")
     CSP_MANIFEST_SRC = ("'self'")
     CSP_OBJECT_SRC = ("'none'")
     CSP_FRAME_ANCESTORS = ("'none'")
