@@ -47,6 +47,7 @@ class Common(Configuration):
         "corsheaders",
         "django_extensions",
         "drf_yasg",
+        "django_celery_beat",
         "storages",
         "django_celery_beat",
         # Local apps
@@ -55,6 +56,7 @@ class Common(Configuration):
         "tdpservice.stts",
         "tdpservice.data_files",
         "tdpservice.security",
+        "tdpservice.scheduling",
     )
 
     # https://docs.djangoproject.com/en/2.0/topics/http/middleware/
