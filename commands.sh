@@ -13,7 +13,7 @@ alias cd-tdrs-backend='cd "$TDRS_HOME/tdrs-backend"'
 
 # shortcut for applying all relavent compose files for local development
 # I.E. `cd-tdrs-frontend && tdrs-compose-local up`
-alias tdrs-compose-local='docker-compose -f docker-compose.yml -f docker-compose.local.yml'
+alias tdrs-compose-local='docker-compose -f docker-compose.local.yml'
 
 # Stop tdrs backend entirely, then start it up again
 alias tdrs-backend-hard-restart='tdrs-stop-backend && tdrs-start-backend'
@@ -54,6 +54,9 @@ alias tdrs-restart-backend='tdrs-compose-backend restart'
 # to restart just django, keeping the other containers intact.
 alias tdrs-restart-django='tdrs-compose-backend restart web'
 
+# starts containers with the optional clamav image
+alias tdrs-start-av='tdrs-start-frontend --remove-orphans && cd-tdrs-backend && tdrs-compose-local up -d --remove-orphans && docker-compose up -d clamav-rest && cd ..'
+
 # Run frontend unit tests through jest
 alias tdrs-run-jest='tdrs-npm-run test'
 
@@ -61,10 +64,10 @@ alias tdrs-run-jest='tdrs-npm-run test'
 alias tdrs-run-jest-cov='tdrs-npm-run test:cov'
 
 # run any new migrations for django backend
-alias tdrs-run-migrations='tdrs-compose-backend run web sh -c "python manage.py migrate"'
+alias tdrs-run-migrations='tdrs-compose-backend run web python manage.py migrate'
 
 # Generate new migrations from changes to models for django backend
-alias tdrs-run-migrations='tdrs-compose-backend run web sh -c "python manage.py makemigrations"'
+alias tdrs-make-migrations='tdrs-compose-backend run --rm web python manage.py makemigrations'
 
 # Nuke all non running docker data
 alias tdrs-prune-all-docker-data='docker system prune -a && docker system prune --volumes'
@@ -102,7 +105,7 @@ tdrs-rebuild-backend() {
     cd ..
 }
 
-# Fix all automaticly fixable linting errors for the frontend
+# Fix all automatically fixable linting errors for the frontend
 tdrs-fix-lint-frontend() {
     cd-tdrs-frontend
     eslint --fix ./src
@@ -127,6 +130,7 @@ tdrs-run-pa11y() {
 tdrs-run-pytest () {
 
     cd-tdrs
+    tdrs-start-av
     cd tdrs-backend/
 
     # to escape quoted arguements that would be passed to docker inside of a quote
@@ -170,3 +174,6 @@ tdrs-run-frontend-owasp() {
 
 # List all aliases and functions associated with tdrs
 alias tdrs-functions='declare -F|grep tdrs && alias|grep tdrs|cut -d" " -f1 --complement'
+
+# Get logs on backend
+alias tdrs-backend-log="docker logs $(docker ps|grep web|awk '{print $1}')"

@@ -37,6 +37,7 @@ class CloudGov(Common):
 
     cloudgov_space = cloudgov_app.get('space_name', 'tanf-dev')
     cloudgov_space_suffix = cloudgov_space.strip('tanf-')
+    cloudgov_name = cloudgov_app.get('name').split("-")[-1]  # converting "tdp-backend-name" to just "name"
 
     database_creds = get_cloudgov_service_creds_by_instance_name(
         cloudgov_services['aws-rds'],
@@ -57,10 +58,14 @@ class CloudGov(Common):
     ###
     # Dynamic Database configuration based on cloud.gov services
     #
+    env_based_db_name = f'tdp_db_{cloudgov_space_suffix}_{cloudgov_name}'
+
+    db_name = database_creds['db_name'] if cloudgov_space_suffix == "prod" else env_based_db_name
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': database_creds['db_name'],
+            'NAME': db_name,
             'USER': database_creds['username'],
             'PASSWORD': database_creds['password'],
             'HOST': database_creds['host'],
@@ -71,7 +76,7 @@ class CloudGov(Common):
     # Username or email for initial Django Super User
     DJANGO_SUPERUSER_NAME = os.getenv(
         'DJANGO_SU_NAME',
-        'lauren.frohlich@acf.hhs.gov'
+        'alexandra.pennington@acf.hhs.gov'
     )
 
     # Localstack is always disabled in a cloud.gov environment
@@ -131,7 +136,7 @@ class Production(CloudGov):
     """Settings for applications deployed in the Cloud.gov production space."""
 
     # TODO: Add production ACF domain when known
-    ALLOWED_HOSTS = ['tdp-backend-production.app.cloud.gov']
+    ALLOWED_HOSTS = ['api-tanfdata.acf.hhs.gov', 'tdp-backend-prod.app.cloud.gov']
 
     LOGIN_GOV_CLIENT_ID = os.getenv(
         'OIDC_RP_CLIENT_ID',

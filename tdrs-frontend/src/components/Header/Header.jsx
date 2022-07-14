@@ -16,10 +16,26 @@ import NavItem from '../NavItem/NavItem'
  * @param {object} authenticated - whether the user is authenticated or not
  * @param {object} user - the current user's information
  */
-function HeaderComp() {
+function Header() {
   const pathname = useSelector((state) => state.router.location.pathname)
   const user = useSelector((state) => state.auth.user)
   const authenticated = useSelector((state) => state.auth.authenticated)
+  const userAccessRequestPending = Boolean(user?.['access_request'])
+  const userAccessRequestApproved =
+    Boolean(user?.['access_request']) && user.roles.length > 0
+
+  const isMemberOfOne = (...groupNames) =>
+    user?.roles?.some((role) => groupNames.includes(role.name))
+
+  const hasPermission = (permissionName) =>
+    user?.roles?.[0]?.permissions?.some(
+      (perm) => perm.codename === permissionName
+    )
+
+  const canViewAdmin =
+    userAccessRequestApproved &&
+    isMemberOfOne('Developer', 'OFA System Admin', 'ACF OCIO')
+  const canViewDataFiles = hasPermission('view_datafile')
 
   const menuRef = useRef()
 
@@ -72,10 +88,6 @@ function HeaderComp() {
     return () => document.removeEventListener('keydown', keyListener)
   }, [keyListenersMap])
 
-  const isOFASystemAdmin = () => {
-    return user?.roles?.some((role) => role.name === 'OFA System Admin')
-  }
-
   return (
     <>
       <div className="usa-overlay" />
@@ -107,22 +119,22 @@ function HeaderComp() {
             <ul className="usa-nav__primary usa-accordion">
               {authenticated && (
                 <>
-                  <NavItem
-                    pathname={pathname}
-                    tabTitle="Welcome"
-                    href="/welcome"
-                  />
-                  <NavItem
-                    pathname={pathname}
-                    tabTitle="Data Files"
-                    href="/data-files"
-                  />
-                  <NavItem
-                    pathname={pathname}
-                    tabTitle="Profile"
-                    href="/edit-profile"
-                  />
-                  {isOFASystemAdmin() && (
+                  <NavItem pathname={pathname} tabTitle="Home" href="/home" />
+                  {canViewDataFiles && (
+                    <NavItem
+                      pathname={pathname}
+                      tabTitle="Data Files"
+                      href="/data-files"
+                    />
+                  )}
+                  {userAccessRequestPending && (
+                    <NavItem
+                      pathname={pathname}
+                      tabTitle="Profile"
+                      href="/profile"
+                    />
+                  )}
+                  {canViewAdmin && (
                     <NavItem
                       pathname={pathname}
                       tabTitle="Admin"
@@ -172,4 +184,4 @@ function HeaderComp() {
   )
 }
 
-export default HeaderComp
+export default Header

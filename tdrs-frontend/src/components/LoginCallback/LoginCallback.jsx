@@ -27,6 +27,8 @@ function LoginCallback() {
   const authLoading = useSelector((state) => state.auth.loading)
   const authenticated = useSelector((state) => state.auth.authenticated)
   const dispatch = useDispatch()
+  const user = useSelector((state) => state.auth.user)
+  const isACFOCIO = user?.roles?.some((role) => role.name === 'ACF OCIO')
 
   useEffect(() => {
     if (authLoading) {
@@ -36,11 +38,15 @@ function LoginCallback() {
     }
   }, [authenticated, authLoading, dispatch])
 
-  if (!authenticated && !authLoading) {
-    return <Navigate to="/" />
+  if (!authLoading) {
+    if (!authenticated) {
+      return <Navigate to="/" />
+    } else if (isACFOCIO) {
+      window.location = `${process.env.REACT_APP_BACKEND_HOST}/admin/`
+    }
   }
 
-  return authenticated ? <Navigate to="/welcome" /> : null
+  return authenticated ? <Navigate to="/home" /> : null
 }
 
 export default LoginCallback
