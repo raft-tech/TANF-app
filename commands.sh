@@ -2,6 +2,8 @@
 # You will need to set this variable to match your local directory structure
 # TDRS_HOME="$HOME/Where/Ever/You/Want/TANF-app"
 
+alias tdrs-ssh-backend='docker exec -it tdrs-backend_web_1 /bin/bash'
+
 # navigate terminal to tdrs home if $TDRS_HOME is set
 alias cd-tdrs='cd "$TDRS_HOME"'
 

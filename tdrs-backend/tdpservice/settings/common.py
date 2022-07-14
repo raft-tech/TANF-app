@@ -5,7 +5,7 @@ import os
 from distutils.util import strtobool
 from os.path import join
 from typing import Any, Optional
-
+import django_celery_beat
 from django.core.exceptions import ImproperlyConfigured
 
 from configurations import Configuration
@@ -48,6 +48,7 @@ class Common(Configuration):
         "django_extensions",
         "drf_yasg",
         "storages",
+        "django_celery_beat",
         # Local apps
         "tdpservice.core.apps.CoreConfig",
         "tdpservice.users",
