@@ -287,6 +287,7 @@ class Common(Configuration):
         "django.contrib.auth.backends.ModelBackend",
     )
 
+    # Need a deployment
     # CORS
     CORS_ALLOW_CREDENTIALS = True
 
