@@ -3,8 +3,10 @@
 set -e
 
 echo "Starting Celery"
-celery -A tdpservice.scheduling worker -l info &
-celery -A tdpservice.scheduling beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler &
+python manage.py migrate django_celery_beat
+celery -A tdpservice.settings worker -l info &
+celery -A tdpservice.settings --broker=redis://redis-server:6379 flower &
+celery -A tdpservice.settings beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler &
 
 echo "Applying database migrations"
 python manage.py makemigrations

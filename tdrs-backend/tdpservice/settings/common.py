@@ -49,7 +49,6 @@ class Common(Configuration):
         "drf_yasg",
         "django_celery_beat",
         "storages",
-        "django_celery_beat",
         # Local apps
         "tdpservice.core.apps.CoreConfig",
         "tdpservice.users",
@@ -399,3 +398,17 @@ class Common(Configuration):
         'AMS_CLIENT_SECRET',
         ''
     )
+
+    CELERY_RESULT_BACKEND = 'django-db'
+    CELERY_CACHE_BACKEND = 'django-cache'
+
+    CELERY_BEAT_SCHEDULE = {
+        'name': {
+            'task': 'tdpservice.scheduling.tasks.echo',
+            'schedule': 10.0,
+            'args': '',
+            'options': {
+                'expires': 15.0,
+            },
+        },
+    }
