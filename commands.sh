@@ -2,6 +2,7 @@
 # You will need to set this variable to match your local directory structure
 # TDRS_HOME="$HOME/Where/Ever/You/Want/TANF-app"
 
+# ssh into backend
 alias tdrs-ssh-backend='docker exec -it tdrs-backend_web_1 /bin/bash'
 
 # navigate terminal to tdrs home if $TDRS_HOME is set
@@ -29,8 +30,10 @@ alias tdrs-django-shell='tdrs-compose-backend run --rm web bash -c "python manag
 # start both the frontend and backend
 alias tdrs-start='tdrs-start-backend && tdrs-start-frontend'
 
+alias tdrs-kill-av="docker kill tdrs-backend_clamav-rest_1"
+
 # Stop both the frontend and the backend
-alias tdrs-stop='tdrs-stop-frontend && tdrs-stop-backend'
+alias tdrs-stop='tdrs-stop-frontend && tdrs-stop-backend && tdrs-kill-av'
 
 # Restart frontend and backend
 alias tdrs-restart='tdrs-restart-backend && tdrs-restart-frontend' 
@@ -73,6 +76,9 @@ alias tdrs-make-migrations='tdrs-compose-backend run --rm web python manage.py m
 
 # Nuke all non running docker data
 alias tdrs-prune-all-docker-data='docker system prune -a && docker system prune --volumes'
+
+# TODO: can we make a smarter prune? like deleting the volumes and containers and backend
+#  but not redownloading localstack/redis/python/etc.
 
 # Run eslint against frontend source from frontend container
 alias tdrs-lint-frontend='tdrs-npm-run lint'
