@@ -676,13 +676,13 @@ workflows:
           filters:
             branches:
               only:
-                - develop
+                - feat/1754-owasp-on-aditional-branches
       - nightly-owasp-scan:
           target_env: staging
           filters:
             branches:
               only:
-                - feat/1754-owasp-on-aditional-branches
+                - main
       - nightly-owasp-scan:
           target_env: prod
           filters:
