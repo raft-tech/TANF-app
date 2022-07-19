@@ -672,7 +672,7 @@ workflows:
   test-nightly-owasp:
     jobs:
       - nightly-owasp-scan:
-          target_env: staging
+          target_env: develop
           filters:
             branches:
               only:
@@ -683,6 +683,12 @@ workflows:
             branches:
               only:
                 - feat/1754-owasp-on-aditional-branches
+      - nightly-owasp-scan:
+          target_env: prod
+          filters:
+            branches:
+              only:
+                - master
 
   erd:
     jobs:
