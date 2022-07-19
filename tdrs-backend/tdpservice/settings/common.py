@@ -5,9 +5,9 @@ import os
 from distutils.util import strtobool
 from os.path import join
 from typing import Any, Optional
-import django_celery_beat
 from django.core.exceptions import ImproperlyConfigured
-
+import django_celery_beat
+from celery.schedules import crontab
 from configurations import Configuration
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -399,16 +399,22 @@ class Common(Configuration):
         ''
     )
 
-    CELERY_RESULT_BACKEND = 'django-db'
-    CELERY_CACHE_BACKEND = 'django-cache'
+'''
+    'name': {
+        'task': 'tdpservice.scheduling.tasks.echo',
+        'schedule': 10.0,
+        'args': '',
+        'options': {
+            'expires': 15.0,
+        }
+    },
+'''
 
-    CELERY_BEAT_SCHEDULE = {
-        'name': {
-            'task': 'tdpservice.scheduling.tasks.echo',
-            'schedule': 10.0,
-            'args': '',
-            'options': {
-                'expires': 15.0,
-            },
-        },
-    }
+CELERY_BEAT_SCHEDULE = {
+    'nightly_db_backup': {
+        'task': 'tdpservice.scheduling.tasks.db_backup',
+        'schedule': crontab(hour=0, minute='*/1', day_of_week='*'),
+        'args': 'b',
+        'options': {},
+    },
+}
