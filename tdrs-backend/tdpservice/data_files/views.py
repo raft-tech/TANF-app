@@ -52,9 +52,7 @@ class DataFileViewSet(ModelViewSet):
     ordering = ['-version']
 
     def perform_create(self):
-        """
-        TODO: create has to be done here
-        """
+        """TODO: create has to be done here."""
 
     def filter_queryset(self, queryset):
         """Only apply filters to the list action."""

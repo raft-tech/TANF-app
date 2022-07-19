@@ -27,6 +27,7 @@ app.autodiscover_tasks()
 def debug_task(self):
     print('Request: {0!r}'.format(self.request))
 
+
 '''
 Uses "tdrs-backend/scripts/db_backup.py" to perform a pg_dump of the existing PostGres database to a standard
 location within our S3 bucket for this instance.
