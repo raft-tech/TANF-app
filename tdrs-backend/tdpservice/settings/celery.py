@@ -10,8 +10,8 @@ os.environ.setdefault("DJANGO_CONFIGURATION", "Local")
 
 import configurations
 configurations.setup()
-# CELERY_RESULT_BACKEND = 'django-db'
-# CELERY_CACHE_BACKEND = 'django-cache'
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_CACHE_BACKEND = 'django-cache'
 app = Celery('settings')
 
 # Using a string here means the worker doesn't have to serialize

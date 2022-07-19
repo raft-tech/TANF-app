@@ -13,7 +13,7 @@ import sys
 import boto3
 
 
-#TODO: make the below try/except a func to return dict
+# TODO: make the below try/except a func to return dict
 OS_ENV = os.environ
 
 try:

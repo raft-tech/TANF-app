@@ -399,7 +399,10 @@ class Common(Configuration):
         ''
     )
 
-'''
+
+
+
+CELERY_BEAT_SCHEDULE = {
     'name': {
         'task': 'tdpservice.scheduling.tasks.echo',
         'schedule': 10.0,
@@ -408,9 +411,6 @@ class Common(Configuration):
             'expires': 15.0,
         }
     },
-'''
-
-CELERY_BEAT_SCHEDULE = {
     'nightly_db_backup': {
         'task': 'tdpservice.scheduling.tasks.db_backup',
         'schedule': crontab(hour=0, minute='*/1', day_of_week='*'),
