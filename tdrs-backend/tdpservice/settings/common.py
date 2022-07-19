@@ -411,10 +411,10 @@ CELERY_BEAT_SCHEDULE = {
             'expires': 15.0,
         }
     },
-    'nightly_db_backup': {
-        'task': 'tdpservice.scheduling.tasks.db_backup',
-        'schedule': crontab(hour=0, minute='*/1', day_of_week='*'),
-        'args': 'b',
-        'options': {},
-    },
+    # 'nightly_db_backup': {
+    #     'task': 'tdpservice.scheduling.tasks.db_backup',
+    #     'schedule': crontab(hour=0, minute='*/1', day_of_week='*'),
+    #     'args': 'b',
+    #     'options': {},
+    # },
 }

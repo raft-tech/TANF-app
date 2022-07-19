@@ -51,7 +51,7 @@ class DataFileViewSet(ModelViewSet):
     # we will be able to appropriately refer to the latest versions only.
     ordering = ['-version']
 
-    def perform_create(self):
+    def perform_create(self, queryset):
         """TODO: create has to be done here."""
 
     def filter_queryset(self, queryset):
