@@ -61,12 +61,12 @@ class Common(Configuration):
     MIDDLEWARE = (
         "django.middleware.security.SecurityMiddleware",
         "django.contrib.sessions.middleware.SessionMiddleware",
+        "corsheaders.middleware.CorsMiddleware",
         "django.middleware.common.CommonMiddleware",
         "django.middleware.csrf.CsrfViewMiddleware",
         "django.contrib.auth.middleware.AuthenticationMiddleware",
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
-        "corsheaders.middleware.CorsMiddleware",
         "tdpservice.users.api.middleware.AuthUpdateMiddleware",
         "csp.middleware.CSPMiddleware",
         "tdpservice.middleware.NoCacheMiddleware",
@@ -250,6 +250,8 @@ class Common(Configuration):
     # Sessions
     SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
     SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = 'None'
     SESSION_TIMEOUT = 30
 
     # The CSRF token Cookie holds no security benefits when confined to HttpOnly.
@@ -257,7 +259,10 @@ class Common(Configuration):
     # of API POST calls to prevent false negative authorization errors.
     # https://docs.djangoproject.com/en/2.2/ref/settings/#csrf-cookie-httponly
     CSRF_COOKIE_HTTPONLY = False
-    CSRF_TRUSTED_ORIGINS = ['.app.cloud.gov', '.acf.hhs.gov']
+    CSRF_TRUSTED_ORIGINS = ['.app.cloud.gov', 'tanfdata.acf.hhs.gov']
+    CRSF_COOKIE_SECURE = True
+    CRSF_COOKIE_SAMESITE = 'None'
+
 
     SESSION_COOKIE_PATH = "/;HttpOnly"
 
@@ -291,6 +296,7 @@ class Common(Configuration):
         "django.contrib.auth.backends.ModelBackend",
     )
 
+    # Need a deployment
     # CORS
     CORS_ALLOW_CREDENTIALS = True
 
@@ -328,7 +334,7 @@ class Common(Configuration):
     CSP_SCRIPT_SRC = ("'self'", s3_src)
     CSP_IMG_SRC = ("'self'", "data:", s3_src)
     CSP_FONT_SRC = ("'self'", s3_src)
-    CSP_CONNECT_SRC = ("'self'", "*.cloud.gov")
+    CSP_CONNECT_SRC = ("'self'", "*.cloud.gov", "tanfdata.acf.hhs.gov")
     CSP_MANIFEST_SRC = ("'self'")
     CSP_OBJECT_SRC = ("'none'")
     CSP_FRAME_ANCESTORS = ("'none'")
