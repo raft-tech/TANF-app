@@ -10,6 +10,6 @@ axiosCookieJarSupport(axios)
 // us thus far, and this implementation is functionally equivalent to
 // using cookies.
 export default axios.create({
-  jar:new tough.CookieJar(),
-  withCredentials:true
+  jar: new tough.CookieJar(),
+  withCredentials: true,
 })
