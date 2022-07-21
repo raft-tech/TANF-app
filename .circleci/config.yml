@@ -1,45 +1,56 @@
 version: 2.1
 
 orbs:
+  node: circleci/node@4.7.0
+  terraform: circleci/terraform@2.1.0
+  jq: circleci/jq@2.2.0
   setup-orb:
+    orbs:
+      node: circleci/node@4.7.0
     jobs:
       setup:
-        when: ${CIRCLE_BRANCH} == "develop"
-          steps:
-            - run:
-              environment:
-                TARGET_ENV: "develop"
-                CF_PASSWORD: CF_PASSWORD_STAGING
-                CF_USERNAME: CF_USERNAME_STAGING
-                CF_SPACE: tanf-staging
-                TF_PATH: ./terraform/staging
-        when: ${CIRCLE_BRANCH} == "main"
-          steps:
-            - run:
-              environment:
-                TARGET_ENV: "staging"
-                CF_PASSWORD: CF_PASSWORD_STAGING
-                CF_USERNAME: CF_USERNAME_STAGING
-                CF_SPACE: tanf-staging
-                TF_PATH: ./terraform/staging
-        when: ${CIRCLE_BRANCH} == "master"
-          steps:
-            - run:
-              environment:
-                TARGET_ENV: "prod"
-                CF_PASSWORD: CF_PASSWORD_PROD
-                CF_USERNAME: CF_USERNAME_PROD
-                CF_SPACE: tanf-prod
-                TF_PATH: ./terraform/production
+        executor: docker-executor
+        steps:
+          - checkout
+          - when:
+              condition: 
+                equal: [$CIRCLE_BRANCH, develop]
+              steps:
+                - environment:
+                    TARGET_ENV: "develop"
+                    CF_PASSWORD: CF_PASSWORD_STAGING
+                    CF_USERNAME: CF_USERNAME_STAGING
+                    CF_SPACE: tanf-staging
+                    TF_PATH: ./terraform/staging      
+          - when: 
+              condition: 
+                equal: [$CIRCLE_BRANCH, main]
+              steps:
+                - environment:
+                    TARGET_ENV: "staging"
+                    CF_PASSWORD: CF_PASSWORD_STAGING
+                    CF_USERNAME: CF_USERNAME_STAGING
+                    CF_SPACE: tanf-staging
+                    TF_PATH: ./terraform/staging
+          - when: 
+              condition: 
+                equal: [$CIRCLE_BRANCH, master]
+              steps:
+                - environment:
+                    TARGET_ENV: "prod"
+                    CF_PASSWORD: CF_PASSWORD_PROD
+                    CF_USERNAME: CF_USERNAME_PROD
+                    CF_SPACE: tanf-prod
+                    TF_PATH: ./terraform/production
       infastructure:
         executor: terraform/default
         working_directory: ~/tdp-deploy
         steps:
           - deploy-infrastructure:
-            cf-password: ${CF_PASSWORD}
-            cf-username: ${CF_USERNAME}
-            cf-space: ${CF_SPACE}
-            tf-path: ${TF_PATH}
+              cf-password: ${CF_PASSWORD}
+              cf-username: ${CF_USERNAME}
+              cf-space: ${CF_SPACE}
+              tf-path: ${TF_PATH}
       deploy:
         executor: docker-executor
         working_directory: ~/tdp-deploy
@@ -47,15 +58,11 @@ orbs:
           - infastructure
         steps:
           - deploy-cloud-dot-gov:
-            backend-appname: tdp-backend-${TARGET_ENV}
-            frontend-appname: tdp-frontend-${TARGET_ENV}
-            cf-password: ${CF_PASSWORD}
-            cf-username: ${CF_USERNAME}
-            cf-space: ${CF_SPACE}
-
-  node: circleci/node@4.7.0
-  terraform: circleci/terraform@2.1.0
-  jq: circleci/jq@2.2.0
+              backend-appname: tdp-backend-${TARGET_ENV}
+              frontend-appname: tdp-frontend-${TARGET_ENV}
+              cf-password: ${CF_PASSWORD}
+              cf-username: ${CF_USERNAME}
+              cf-space: ${CF_SPACE}
 
 executors:
   docker-executor:
