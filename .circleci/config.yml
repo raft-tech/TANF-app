@@ -1,6 +1,58 @@
 version: 2.1
 
 orbs:
+  setup-orb:
+    jobs:
+      setup:
+        when: ${CIRCLE_BRANCH} == "develop"
+          steps:
+            - run:
+              environment:
+                TARGET_ENV: "develop"
+                CF_PASSWORD: CF_PASSWORD_STAGING
+                CF_USERNAME: CF_USERNAME_STAGING
+                CF_SPACE: tanf-staging
+                TF_PATH: ./terraform/staging
+        when: ${CIRCLE_BRANCH} == "main"
+          steps:
+            - run:
+              environment:
+                TARGET_ENV: "staging"
+                CF_PASSWORD: CF_PASSWORD_STAGING
+                CF_USERNAME: CF_USERNAME_STAGING
+                CF_SPACE: tanf-staging
+                TF_PATH: ./terraform/staging
+        when: ${CIRCLE_BRANCH} == "master"
+          steps:
+            - run:
+              environment:
+                TARGET_ENV: "prod"
+                CF_PASSWORD: CF_PASSWORD_PROD
+                CF_USERNAME: CF_USERNAME_PROD
+                CF_SPACE: tanf-prod
+                TF_PATH: ./terraform/production
+      infastructure:
+        executor: terraform/default
+        working_directory: ~/tdp-deploy
+        steps:
+          - deploy-infrastructure:
+            cf-password: ${CF_PASSWORD}
+            cf-username: ${CF_USERNAME}
+            cf-space: ${CF_SPACE}
+            tf-path: ${TF_PATH}
+      deploy:
+        executor: docker-executor
+        working_directory: ~/tdp-deploy
+        requires:
+          - infastructure
+        steps:
+          - deploy-cloud-dot-gov:
+            backend-appname: tdp-backend-${TARGET_ENV}
+            frontend-appname: tdp-frontend-${TARGET_ENV}
+            cf-password: ${CF_PASSWORD}
+            cf-username: ${CF_USERNAME}
+            cf-space: ${CF_SPACE}
+
   node: circleci/node@4.7.0
   terraform: circleci/terraform@2.1.0
   jq: circleci/jq@2.2.0
@@ -504,16 +556,6 @@ jobs:
               --command "$CMD" \
               --name nightly-owasp-scan
 
-  deploy-infrastructure-dev:
-    executor: terraform/default
-    working_directory: ~/tdp-deploy
-    parameters:
-      target_env:
-        type: string
-    steps:
-      - deploy-infrastructure:
-          cf-app: << parameters.target_env >>
-
   deploy-dev:
     executor: docker-executor
     parameters:
@@ -525,47 +567,15 @@ jobs:
           backend-appname: tdp-backend-<< parameters.target_env >>
           frontend-appname: tdp-frontend-<< parameters.target_env >>
 
-  deploy-infrastructure-staging:
+  deploy-infrastructure-dev:
     executor: terraform/default
     working_directory: ~/tdp-deploy
+    parameters:
+      target_env:
+        type: string
     steps:
       - deploy-infrastructure:
-          cf-password: CF_PASSWORD_STAGING
-          cf-username: CF_USERNAME_STAGING
-          cf-space: tanf-staging
-          tf-path: ./terraform/staging
-
-  deploy-staging:
-    executor: docker-executor
-    working_directory: ~/tdp-deploy
-    steps:
-      - deploy-cloud-dot-gov:
-          backend-appname: tdp-backend-staging
-          frontend-appname: tdp-frontend-staging
-          cf-password: CF_PASSWORD_STAGING
-          cf-space: tanf-staging
-          cf-username: CF_USERNAME_STAGING
-
-  deploy-infrastructure-develop:
-    executor: terraform/default
-    working_directory: ~/tdp-deploy
-    steps:
-      - deploy-infrastructure:
-          cf-password: CF_PASSWORD_STAGING
-          cf-username: CF_USERNAME_STAGING
-          cf-space: tanf-staging
-          tf-path: ./terraform/staging
-
-  deploy-develop:
-    executor: docker-executor
-    working_directory: ~/tdp-deploy
-    steps:
-      - deploy-cloud-dot-gov:
-          backend-appname: tdp-backend-develop
-          frontend-appname: tdp-frontend-develop
-          cf-password: CF_PASSWORD_STAGING
-          cf-space: tanf-staging
-          cf-username: CF_USERNAME_STAGING
+          cf-app: << parameters.target_env >>
 
   deploy-project-updates-site:
     parameters:
@@ -595,27 +605,6 @@ jobs:
       - run:
           name: Deploy TDP Project Updates Site
           command: ./scripts/deploy-tdp-product-update-site.sh rolling tdp-project-updates
-
-  deploy-infrastructure-production:
-    executor: terraform/default
-    working_directory: ~/tdp-deploy
-    steps:
-      - deploy-infrastructure:
-          cf-password: CF_PASSWORD_PROD
-          cf-username: CF_USERNAME_PROD
-          cf-space: tanf-prod
-          tf-path: ./terraform/production
-
-  deploy-production:
-    executor: docker-executor
-    working_directory: ~/tdp-deploy
-    steps:
-      - deploy-cloud-dot-gov:
-          backend-appname: tdp-backend-prod
-          frontend-appname: tdp-frontend-prod
-          cf-password: CF_PASSWORD_PROD
-          cf-space: tanf-prod
-          cf-username: CF_USERNAME_PROD
 
 parameters:
   run_dev_deployment:
@@ -654,11 +643,31 @@ workflows:
           target_env: << pipeline.parameters.target_env >>
           requires:
             - deploy-infrastructure-dev
+  
+  staging-deployment:
+    unless: << pipeline.parameters.run_dev_deployment >>
+    jobs:
+      - setup-orb/setup
+      - setup-orb/infrastructure
+      - setup-orb/deploy
+      - deploy-project-updates-site:
+          filters:
+            branches:
+              only:
+                - develop
+
+  production-deployment:
+    unless: << pipeline.parameters.run_dev_deployment >>
+    jobs:
+      - setup-orb/setup
+      - setup-orb/infrastructure
+      - setup-orb/deploy
 
   nightly:
     jobs:
+      - setup-orb/setup
       - nightly-owasp-scan:
-          target_env: << pipeline.parameters.target_env >>
+          target_env: ${TARGET_ENV}
     triggers:
       - schedule:
           cron: "0 0 * * *"
@@ -671,25 +680,10 @@ workflows:
   
   test-nightly-owasp:
     jobs:
+      - setup-orb/setup
       - nightly-owasp-scan:
-          target_env: develop
-          filters:
-            branches:
-              only:
-                - feat/1754-owasp-on-aditional-branches
-      - nightly-owasp-scan:
-          target_env: staging
-          filters:
-            branches:
-              only:
-                - main
-      - nightly-owasp-scan:
-          target_env: prod
-          filters:
-            branches:
-              only:
-                - master
-
+          target_env: ${TARGET_ENV}
+      
   erd:
     jobs:
       - make_erd:
@@ -703,52 +697,3 @@ workflows:
     jobs:
       - backend-owasp-scan
       - frontend-owasp-scan
-
-  staging-deployment:
-    unless: << pipeline.parameters.run_dev_deployment >>
-    jobs:
-      - deploy-project-updates-site:
-          filters:
-            branches:
-              only:
-                - develop
-      - deploy-infrastructure-staging:
-          filters:
-            branches:
-              only:
-                - main
-      - deploy-staging:
-          requires:
-            - deploy-infrastructure-staging
-          filters:
-            branches:
-              only:
-                - main
-      - deploy-infrastructure-develop:
-          filters:
-            branches:
-              only:
-                - develop
-      - deploy-develop:
-          requires:
-            - deploy-infrastructure-develop
-          filters:
-            branches:
-              only:
-                - develop
-
-  production-deployment:
-    unless: << pipeline.parameters.run_dev_deployment >>
-    jobs:
-      - deploy-infrastructure-production:
-          filters:
-            branches:
-              only:
-                - master
-      - deploy-production:
-          requires:
-            - deploy-infrastructure-production
-          filters:
-            branches:
-              only:
-                - master
