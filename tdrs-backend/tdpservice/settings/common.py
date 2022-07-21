@@ -364,7 +364,7 @@ class Common(Configuration):
     )
     LOGIN_GOV_AUTHORIZATION_ENDPOINT = os.getenv(
         'OIDC_OP_AUTHORIZATION_ENDPOINT',
-        'https://idp.int.identitysandbox.gov/openid_connect/authorize'
+        'https://secure.login.gov/openid_connect/authorize'
     )
     LOGIN_GOV_CLIENT_ASSERTION_TYPE = os.getenv(
         'CLIENT_ASSERTION_TYPE',
@@ -376,11 +376,11 @@ class Common(Configuration):
     )
     LOGIN_GOV_ISSUER = os.getenv(
         'OIDC_OP_ISSUER',
-        'https://idp.int.identitysandbox.gov/'
+        'https://secure.login.gov/'
     )
     LOGIN_GOV_JWKS_ENDPOINT = os.getenv(
         'OIDC_OP_JWKS_ENDPOINT',
-        'https://idp.int.identitysandbox.gov/api/openid_connect/certs'
+        'https://secure.login.gov/api/openid_connect/certs'
     )
     # JWT_KEY must be set, there is no functional default.
     LOGIN_GOV_JWT_KEY = get_required_env_var_setting(
@@ -389,11 +389,11 @@ class Common(Configuration):
     )
     LOGIN_GOV_LOGOUT_ENDPOINT = os.getenv(
         'OIDC_OP_LOGOUT_ENDPOINT',
-        'https://idp.int.identitysandbox.gov/openid_connect/logout'
+        'https://secure.login.gov/openid_connect/logout'
     )
     LOGIN_GOV_TOKEN_ENDPOINT = os.getenv(
         'OIDC_OP_TOKEN_ENDPOINT',
-        'https://idp.int.identitysandbox.gov/api/openid_connect/token'
+        'https://secure.login.gov/api/openid_connect/token'
     )
 
     ENABLE_DEVELOPER_GROUP = True
