@@ -2,17 +2,18 @@
 # Apply database migrations
 set -e
 
+echo "Applying database migrations"
+python manage.py makemigrations
+python manage.py migrate
+python manage.py populate_stts
+python manage.py collectstatic --noinput
+
 echo "Starting Celery"
 python manage.py migrate django_celery_beat
 celery -A tdpservice.settings worker -l info &
 celery -A tdpservice.settings --broker=redis://redis-server:6379 flower &
 celery -A tdpservice.settings beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler &
 
-echo "Applying database migrations"
-python manage.py makemigrations
-python manage.py migrate
-python manage.py populate_stts
-python manage.py collectstatic --noinput
 
 echo "Starting Gunicorn"
 if [[ "$DJANGO_CONFIGURATION" = "Development" || "$DJANGO_CONFIGURATION" = "Local" ]]; then
