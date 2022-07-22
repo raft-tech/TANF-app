@@ -259,7 +259,7 @@ class Common(Configuration):
     # of API POST calls to prevent false negative authorization errors.
     # https://docs.djangoproject.com/en/2.2/ref/settings/#csrf-cookie-httponly
     CSRF_COOKIE_HTTPONLY = False
-    CSRF_TRUSTED_ORIGINS = ['.app.cloud.gov', 'tanfdata.acf.hhs.gov']
+    CSRF_TRUSTED_ORIGINS = ['.app.cloud.gov', 'tanfdata.acf.hhs.gov','api-tanfdata.acf.hhs.gov']
     CRSF_COOKIE_SECURE = True
     CRSF_COOKIE_SAMESITE = 'None'
     CRSF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
@@ -331,11 +331,11 @@ class Common(Configuration):
 
     s3_src = "s3-us-gov-west-1.amazonaws.com"
 
-    CSP_DEFAULT_SRC = ("'self'", "*.cloud.gov", "tanfdata.acf.hhs.gov")
+    CSP_DEFAULT_SRC = ("'self'", "*.cloud.gov", "tanfdata.acf.hhs.gov", "api-tanfdata.acf.hhs.gov")
     CSP_SCRIPT_SRC = ("'self'", s3_src)
     CSP_IMG_SRC = ("'self'", "data:", s3_src)
     CSP_FONT_SRC = ("'self'", s3_src)
-    CSP_CONNECT_SRC = ("'self'", "*.cloud.gov", "tanfdata.acf.hhs.gov")
+    CSP_CONNECT_SRC = ("'self'", "*.cloud.gov", "tanfdata.acf.hhs.gov","api-tanfdata.acf.hhs.gov")
     CSP_MANIFEST_SRC = ("'self'")
     CSP_OBJECT_SRC = ("'none'")
     CSP_FRAME_ANCESTORS = ("'none'")
