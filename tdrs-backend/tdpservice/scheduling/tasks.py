@@ -4,10 +4,6 @@ from django.conf import settings
 
 import paramiko
 
-SERVER_ADDRESS = settings.SERVER_ADDRESS
-LOCAL_KEY = settings.LOCAL_KEY
-USERNAME = settings.USERNAME
-
 '''
 
 from django.utils import timezone
@@ -34,29 +30,6 @@ if not, then either directory exists, or something else happened.
 NEW: Do not need this anymore. Should schedule an upload to the server as soon as the file is uploaded.
 However, we will need the file information, to know where it is being uploaded.
 '''
-
-
-@shared_task
-def upload(
-           source,                      # includes the file name
-           destination                  # includes the file name
-           ):
-    server_address = SERVER_ADDRESS
-    local_key = LOCAL_KEY
-    username = USERNAME
-    transport = paramiko.SSHClient()
-    transport.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    transport.connect(server_address, key_filename=local_key, username=username)
-
-    # Upload file
-    try:
-        # sftp = transport.open_sftp()
-        sftp = transport.open_sftp()
-        sftp.put(source, destination)
-        return True
-    except Exception as e:
-        print(e)
-        return False
 
 import logging
 logger = logging.getLogger(__name__)
