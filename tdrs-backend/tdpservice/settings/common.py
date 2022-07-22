@@ -262,7 +262,7 @@ class Common(Configuration):
     # of API POST calls to prevent false negative authorization errors.
     # https://docs.djangoproject.com/en/2.2/ref/settings/#csrf-cookie-httponly
     CSRF_COOKIE_HTTPONLY = False
-    CSRF_TRUSTED_ORIGINS = ['*.app.cloud.gov', 'tanfdata.acf.hhs.gov']
+    CSRF_TRUSTED_ORIGINS = ['.app.cloud.gov', 'tanfdata.acf.hhs.gov']
     # Prevents cookie from working without https
     CRSF_COOKIE_SECURE = True
     # We may not be allowed to set this to none, django doesn't seem to like cross origin csrf
