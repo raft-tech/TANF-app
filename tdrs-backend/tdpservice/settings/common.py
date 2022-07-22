@@ -259,13 +259,12 @@ class Common(Configuration):
     # of API POST calls to prevent false negative authorization errors.
     # https://docs.djangoproject.com/en/2.2/ref/settings/#csrf-cookie-httponly
     CSRF_COOKIE_HTTPONLY = False
-    CSRF_TRUSTED_ORIGINS = ['.app.cloud.gov', 'tanfdata.acf.hhs.gov']
+    CSRF_TRUSTED_ORIGINS = ['*.app.cloud.gov', 'tanfdata.acf.hhs.gov']
     CRSF_COOKIE_SECURE = True
     CRSF_COOKIE_SAMESITE = 'None'
     CRSF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
 
 
-    SESSION_COOKIE_PATH = "/;HttpOnly"
 
     # Django Rest Framework
     REST_FRAMEWORK = {
