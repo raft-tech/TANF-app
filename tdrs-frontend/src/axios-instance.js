@@ -1,7 +1,8 @@
 import axios from 'axios'
 import tough from 'tough-cookie'
-import axiosCookieJarSupport from 'axios-cookiejar-support'
-axiosCookieJarSupport(axios)
+import { wrapper } from 'axios-cookiejar-support'
+
+wrapper(axios)
 
 // Need a custom instance of axios so we can set the csrf keys on auth_check
 // Work around for csrf cookie issue we encountered in production.
