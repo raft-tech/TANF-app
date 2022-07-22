@@ -2,6 +2,8 @@ from __future__ import absolute_import
 import os
 from celery import Celery, shared_task
 from django.conf import settings
+import logging
+logger = logging.getLogger(__name__)
 
 # Set the default Django settings module for the 'celery' program.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tdpservice.settings.local")
@@ -37,9 +39,8 @@ def setup_periodic_tasks(sender, **kwargs):
         run_backup.s('Happy Mondays!'),
     )
 
-"""
 @app.task
 def run_backup(b):
     
     logger.debug("my arg was" + b)
-"""
+
