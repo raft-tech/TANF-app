@@ -89,7 +89,7 @@ def backup_database(file_name,
         return False
 
 
-def restore_database(file_name, postgres_client, database_uri=DATABASE_URI):
+def restore_database(file_name, postgres_client, database_uri):
     """Restore the database from filename."""
     """
     :param file_name: database backup filename
@@ -223,7 +223,7 @@ def handle_args(argv, sys_values):
         # upload backup file
         upload_file(file_name=arg_file,
                     bucket=sys_values['S3_BUCKET'],
-                    region=sys_values['S3_REGION']',
+                    region=sys_values['S3_REGION'],
                     object_name="/backup"+arg_file)
 
         os.system('rm ' + arg_file)
