@@ -252,7 +252,7 @@ class Common(Configuration):
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = 'None'
-    SESSION_TIMEOUT = 30
+    SESSION_EXPIRE_SECONDS = 1800
 
     # The CSRF token Cookie holds no security benefits when confined to HttpOnly.
     # Setting this to false to allow the frontend to include it in the header
@@ -260,7 +260,9 @@ class Common(Configuration):
     # https://docs.djangoproject.com/en/2.2/ref/settings/#csrf-cookie-httponly
     CSRF_COOKIE_HTTPONLY = False
     CSRF_TRUSTED_ORIGINS = ['*.app.cloud.gov', 'tanfdata.acf.hhs.gov']
+    # Prevents cookie from working without https
     CRSF_COOKIE_SECURE = True
+    # We may not be allowed to set this to none, django doesn't seem to like cross origin csrf
     CRSF_COOKIE_SAMESITE = 'None'
     CRSF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
 
