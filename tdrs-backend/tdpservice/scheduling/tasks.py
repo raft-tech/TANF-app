@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from celery import shared_task
 from django.conf import settings
-
+from .db_backup import *
 import paramiko
 
 '''
@@ -35,6 +35,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 @shared_task
-def run_backup(b):
+def run_backup(backup_params):
     """    No params, setup for actual backup call. """
-    logger.debug("my arg was" + b)
+    logger.debug("Input arg(s) are: " + backup_params)
+    # TODO: check if we're local
+    # db_backup.main(backup_params)

@@ -2,6 +2,8 @@ from __future__ import absolute_import
 import os
 from celery import Celery, shared_task
 from django.conf import settings
+from celery.schedules import crontab
+from tdpservice.scheduling.tasks import run_backup
 import logging
 logger = logging.getLogger(__name__)
 
@@ -27,20 +29,32 @@ def debug_task(self):
     print('Request: {0!r}'.format(self.request))
 
 
-from celery.schedules import crontab
-from tdpservice.scheduling.tasks import run_backup
 
-@app.on_after_configure.connect
-def setup_periodic_tasks(sender, **kwargs):
 
-    # Executes every Monday morning at 7:30 a.m.
-    sender.add_periodic_task(
-        crontab(hour='*', minute='*/1', day_of_week='*'),
-        run_backup.s('Happy Mondays!'),
-    )
 
+app.conf.beat_schedule = {
+    'pg_backup': {
+        'task': 'tdpservice.scheduling.tasks.run_backup',
+        'schedule': crontab(day_of_week='*', hour='0', minute='0'),
+        'args': ['-b'],
+    },
+}
+
+# @app.on_after_configure.connect
+# def setup_periodic_tasks(sender, **kwargs):
+#
+#     # Executes every Monday morning at 7:30 a.m.
+#     sender.add_periodic_task(
+#         crontab(hour='*', minute='*/1', day_of_week='*'),
+#         run_backup.s('-b'),
+#     )
+
+"""
 @app.task
 def run_backup(b):
-    
+    '''
+    @params
+    b : This argument will run
+    '''
     logger.debug("my arg was" + b)
-
+"""
