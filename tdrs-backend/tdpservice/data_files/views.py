@@ -12,10 +12,12 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
 from wsgiref.util import FileWrapper
+from rest_framework import status
 
 from tdpservice.data_files.serializers import DataFileSerializer
 from tdpservice.data_files.models import DataFile
 from tdpservice.users.permissions import DataFilePermissions
+from tdpservice.scheduling import tasks
 
 logger = logging.getLogger()
 
@@ -39,7 +41,7 @@ class DataFileViewSet(ModelViewSet):
     http_method_names = ['get', 'post', 'head']
     filterset_class = DataFileFilter
     parser_classes = [MultiPartParser]
-    #permission_classes = [DataFilePermissions]
+    permission_classes = [DataFilePermissions]
     serializer_class = DataFileSerializer
 
     # TODO: Handle versioning in queryset
@@ -51,6 +53,16 @@ class DataFileViewSet(ModelViewSet):
     # we will be able to appropriately refer to the latest versions only.
     ordering = ['-version']
 
+    def create(self, request, *args, **kwargs):
+        """Override create to upload in case of successful scan."""
+        response = super().create(request, *args, **kwargs)
+
+        # Upload to ACF-TITAN only if file is passed the virus scan and created
+        if response.status_code == status.HTTP_201_CREATED:
+            tasks.upload.delay(
+                data_file_pk=response.data.get('id')
+            )
+        return response
 
     def filter_queryset(self, queryset):
         """Only apply filters to the list action."""
