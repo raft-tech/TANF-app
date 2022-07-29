@@ -10,7 +10,7 @@ python manage.py collectstatic --noinput
 echo "Starting celery"
 celery -A tdpservice.settings worker -l info &
 sleep 5
-celery -A tdpservice.settings --broker=redis://redis-server:6379 flower &
+celery -A tdpservice.settings flower & # --broker=redis://redis-server:6379
 python manage.py migrate django_celery_beat
 celery -A tdpservice.settings beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler &
 
