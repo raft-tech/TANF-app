@@ -7,6 +7,7 @@ python manage.py migrate
 python manage.py populate_stts
 python manage.py collectstatic --noinput
 
+
 echo "Starting celery"
 celery -A tdpservice.settings worker -l info &
 sleep 5

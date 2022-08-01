@@ -6,11 +6,11 @@ from celery import Celery, shared_task
 from django.conf import settings
 from celery.schedules import crontab
 from tdpservice.scheduling.tasks import run_backup
+import configurations
 import logging
 logger = logging.getLogger(__name__)
 
 
-import configurations
 
 
 # Set the default Django settings module for the 'celery' program.
@@ -29,7 +29,6 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks()
 
-
 app.conf.beat_schedule = {
     'pg_backup': {
         'task': 'tdpservice.scheduling.tasks.run_backup',
@@ -37,3 +36,4 @@ app.conf.beat_schedule = {
         'args': ['-b'],
     },
 }
+
