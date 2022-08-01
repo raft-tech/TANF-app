@@ -10,11 +10,18 @@ from .db_backup import *
 import datetime
 import paramiko
 import logging
-from tdpservice.data_files.models import DataFile, LegacyFileTransfer
+#from tdpservice.data_files.models import DataFile, LegacyFileTransfer
 
 logger = logging.getLogger(__name__)
 
+@shared_task
+def run_backup(backup_params):
+    """    No params, setup for actual backup call. """
+    logger.debug("Input arg(s) are: " + backup_params)
+    # TODO: check if we're local
+    # db_backup.main(backup_params)
 
+'''
 server_address = settings.SERVER_ADDRESS
 local_key = settings.LOCAL_KEY
 username = settings.USERNAME
@@ -27,13 +34,6 @@ def write_key_to_file(private_key):
         f.close()
     return 'temp_key_file'
 
-
-@shared_task
-def run_backup(backup_params):
-    """    No params, setup for actual backup call. """
-    logger.debug("Input arg(s) are: " + backup_params)
-    # TODO: check if we're local
-    # db_backup.main(backup_params)
 
 @shared_task
 def upload(data_file_pk):
@@ -86,3 +86,4 @@ def upload(data_file_pk):
         file_transfer_record.result = LegacyFileTransfer.Result.ERROR
         file_transfer_record.save()
         return False
+'''
