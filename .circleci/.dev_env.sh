@@ -1,0 +1,7 @@
+TARGET_ENV = develop
+CF_PASSWORD = CF_PASSWORD_STAGING
+CF_USERNAME = CF_USERNAME_STAGING
+CF_SPACE = tanf-staging
+TF_PATH = ./terraform/staging 
+RUN_ENVIRONMENT = develop
+APP_TARGET = frontend
