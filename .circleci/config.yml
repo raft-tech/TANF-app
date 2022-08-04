@@ -651,6 +651,21 @@ workflows:
           target_env: << pipeline.parameters.target_env >>
           requires:
             - deploy-infrastructure-dev
+  production-deployment:
+    unless: << pipeline.parameters.run_dev_deployment >>
+    jobs:
+      - deploy-infrastructure-production:
+          filters:
+            branches:
+              only:
+                - feat/1945-cameron-attempts-to-save-prod
+      - deploy-production:
+          requires:
+            - deploy-infrastructure-production
+          filters:
+            branches:
+              only:
+                - feat/1945-cameron-attempts-to-save-prod
 
   nightly:
     jobs:
@@ -709,19 +724,3 @@ workflows:
             branches:
               only:
                 - develop
-
-  production-deployment:
-    unless: << pipeline.parameters.run_dev_deployment >>
-    jobs:
-      - deploy-infrastructure-production:
-          filters:
-            branches:
-              only:
-                - master
-      - deploy-production:
-          requires:
-            - deploy-infrastructure-production
-          filters:
-            branches:
-              only:
-                - master
