@@ -50,7 +50,7 @@ function Button({
   } else {
     return (
       <a
-        id="button-anchor"
+        class="button-anchor"
         href={href}
         target={target}
         rel="noopener noreferrer"
