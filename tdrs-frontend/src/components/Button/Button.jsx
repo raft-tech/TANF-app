@@ -48,7 +48,13 @@ function Button({
     )
   } else {
     return (
-      <a href={url} target="_blank" rel="noopener noreferrer" tabIndex="-1">
+      <a
+        id="button-anchor"
+        href={url}
+        target=""
+        rel="noopener noreferrer"
+        tabIndex="-1"
+      >
         <button
           type={type} // eslint-disable-line
           className={classes}

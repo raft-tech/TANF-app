@@ -155,12 +155,6 @@ describe('SplashPage', () => {
 
     const url =
       'https://www.acf.hhs.gov/sites/default/files/documents/ofa/tanf_data_reports_tan_ssp_instructions_definitions.pdf'
-    global.window = Object.create(window)
-    Object.defineProperty(window, 'location', {
-      value: {
-        href: url,
-      },
-    })
 
     const wrapper = mount(
       <Provider store={store}>

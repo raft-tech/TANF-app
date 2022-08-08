@@ -15,9 +15,6 @@ function Profile() {
 
   const isAMSUser = user?.email?.includes('@acf.hhs.gov')
 
-  const { REACT_APP_LOGIN_GOV_URL } = process.env
-  console.log(`==================${REACT_APP_LOGIN_GOV_URL}==================`)
-
   if (missingAccessRequest) {
     return <Navigate to="/home" />
   }
@@ -75,7 +72,7 @@ function Profile() {
               className="sign-in-button"
               type="button"
               id="loginDotGovSignIn"
-              url={REACT_APP_LOGIN_GOV_URL}
+              url={`${process.env.REACT_APP_LOGIN_GOV_URL}`}
             >
               <div className="mobile:margin-x-auto mobile-lg:margin-0">
                 Manage Your Account at{' '}

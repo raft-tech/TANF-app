@@ -1,7 +1,8 @@
 import React from 'react'
 import thunk from 'redux-thunk'
+import { mount } from 'enzyme'
 import { Provider } from 'react-redux'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 
 import Profile from './Profile'
 import configureStore from 'redux-mock-store'
@@ -115,28 +116,32 @@ describe('Profile', () => {
     expect(screen.getByText('Region 9999')).toBeInTheDocument()
   })
 
-  // it('should navigate to external login client settings', () => {
-  //   const store = mockStore({
-  //     auth: {
-  //       authenticated: true,
-  //       user: {
-  //         roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
-  //         access_request: true,
-  //       },
-  //     },
-  //   })
+  it('should navigate to external login client settings', () => {
+    const store = mockStore({
+      auth: {
+        authenticated: true,
+        user: {
+          roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
+          access_request: true,
+        },
+      },
+    })
 
-  //   render(
-  //     <Provider store={store}>
-  //       <Profile />
-  //     </Provider>
-  //   )
+    const url = 'https://idp.int.identitysandbox.gov/account'
 
-  //   fireEvent.click(screen.getByText('Manage Your Account at'))
-  //   expect(window.location.href).toBe(
-  //     'https://idp.int.identitysandbox.gov/account'
-  //   )
-  // })
+
+    const wrapper = mount(
+      <Provider store={store}>
+        <Profile />
+      </Provider>
+    )
+
+    const link = wrapper.find('#loginDotGovSignIn').getElement().props[
+      'url'
+    ]
+
+    expect(link).toEqual(url)
+  })
 
   it("should display user's info during the pending approval state", () => {
     const store = mockStore(initialState)

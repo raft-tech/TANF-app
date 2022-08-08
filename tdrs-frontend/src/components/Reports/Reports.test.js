@@ -97,7 +97,7 @@ describe('Reports', () => {
     const yearNum = fiscalYear - 2021 + 1
 
     const select = getByLabelText('Fiscal Year (October - September)')
-    screen.debug(select)
+
     expect(select).toBeInTheDocument()
 
     const options = select.children
