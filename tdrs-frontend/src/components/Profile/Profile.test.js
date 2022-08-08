@@ -115,28 +115,28 @@ describe('Profile', () => {
     expect(screen.getByText('Region 9999')).toBeInTheDocument()
   })
 
-  it('should navigate to external login client settings', () => {
-    const store = mockStore({
-      auth: {
-        authenticated: true,
-        user: {
-          roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
-          access_request: true,
-        },
-      },
-    })
+  // it('should navigate to external login client settings', () => {
+  //   const store = mockStore({
+  //     auth: {
+  //       authenticated: true,
+  //       user: {
+  //         roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
+  //         access_request: true,
+  //       },
+  //     },
+  //   })
 
-    render(
-      <Provider store={store}>
-        <Profile />
-      </Provider>
-    )
+  //   render(
+  //     <Provider store={store}>
+  //       <Profile />
+  //     </Provider>
+  //   )
 
-    fireEvent.click(screen.getByText('Manage Your Account at'))
-    expect(window.location.href).toBe(
-      'https://idp.int.identitysandbox.gov/account'
-    )
-  })
+  //   fireEvent.click(screen.getByText('Manage Your Account at'))
+  //   expect(window.location.href).toBe(
+  //     'https://idp.int.identitysandbox.gov/account'
+  //   )
+  // })
 
   it("should display user's info during the pending approval state", () => {
     const store = mockStore(initialState)
