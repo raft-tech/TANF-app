@@ -12,6 +12,8 @@ services:
       - ./reports:/zap/wrk/:rw
       - ../scripts/zap-hook.py:/zap/scripts/zap-hook.py:ro
   tdp-frontend:
+    env_file:
+      - .env.development
     stdin_open: true # docker run -i
     tty: true        # docker run -t
     build:
