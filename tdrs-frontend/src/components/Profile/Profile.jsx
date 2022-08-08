@@ -72,7 +72,8 @@ function Profile() {
               className="sign-in-button"
               type="button"
               id="loginDotGovSignIn"
-              url={`${process.env.REACT_APP_LOGIN_GOV_URL}`}
+              target={'_self'}
+              href={`${process.env.REACT_APP_LOGIN_GOV_URL}`}
             >
               <div className="mobile:margin-x-auto mobile-lg:margin-0">
                 Manage Your Account at{' '}

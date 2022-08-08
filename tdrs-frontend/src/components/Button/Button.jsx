@@ -15,7 +15,8 @@ function Button({
   onClick,
   className,
   disabled,
-  url,
+  target,
+  href,
 }) {
   const isBig = size ? size === 'big' : false
   const isSmall = size ? size === 'small' : false
@@ -34,7 +35,7 @@ function Button({
     },
     className
   )
-  if (url === undefined) {
+  if (href === undefined) {
     return (
       <button
         type={type} // eslint-disable-line
@@ -50,8 +51,8 @@ function Button({
     return (
       <a
         id="button-anchor"
-        href={url}
-        target=""
+        href={href}
+        target={target}
         rel="noopener noreferrer"
         tabIndex="-1"
       >
@@ -82,7 +83,8 @@ Button.propTypes = {
   onClick: PropTypes.func,
   className: PropTypes.string,
   disabled: PropTypes.bool,
-  url: PropTypes.string,
+  target: PropTypes.string,
+  href: PropTypes.string,
 }
 Button.defaultProps = {
   secondary: false,
@@ -95,6 +97,7 @@ Button.defaultProps = {
   onClick: null,
   className: null,
   disabled: false,
+  target: '_blank',
 }
 
 export default Button

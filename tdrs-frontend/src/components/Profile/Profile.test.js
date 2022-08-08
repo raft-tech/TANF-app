@@ -129,16 +129,13 @@ describe('Profile', () => {
 
     const url = 'https://idp.int.identitysandbox.gov/account'
 
-
     const wrapper = mount(
       <Provider store={store}>
         <Profile />
       </Provider>
     )
 
-    const link = wrapper.find('#loginDotGovSignIn').getElement().props[
-      'url'
-    ]
+    const link = wrapper.find('#loginDotGovSignIn').getElement().props['url']
 
     expect(link).toEqual(url)
   })
