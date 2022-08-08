@@ -135,7 +135,7 @@ describe('Profile', () => {
       </Provider>
     )
 
-    const link = wrapper.find('#loginDotGovSignIn').getElement().props['url']
+    const link = wrapper.find('#loginDotGovSignIn').getElement().props['href']
 
     expect(link).toEqual(url)
   })
