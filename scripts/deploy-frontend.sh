@@ -26,6 +26,7 @@ update_frontend()
     fi
 
     echo "REACT_APP_CF_SPACE=$CF_SPACE" >> .env.production
+    echo "REACT_APP_LOGIN_GOV_URL=https://secure.login.gov/" >> .env.production
     npm run build
     unlink .env.production
     mkdir deployment
