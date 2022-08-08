@@ -369,6 +369,10 @@ class Common(Configuration):
         'OIDC_RP_CLIENT_ID',
         'urn:gov:gsa:openidconnect.profiles:sp:sso:hhs:tanf-proto-dev'
     )
+    LOGIN_GOV_ISSUER = os.getenv(
+        'OIDC_OP_ISSUER',
+        'https://idp.int.identitysandbox.gov/'
+    )
     LOGIN_GOV_JWKS_ENDPOINT = os.getenv(
         'OIDC_OP_JWKS_ENDPOINT',
         'https://idp.int.identitysandbox.gov/api/openid_connect/certs'
