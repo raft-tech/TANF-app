@@ -76,6 +76,7 @@ Button.propTypes = {
   onClick: PropTypes.func,
   className: PropTypes.string,
   disabled: PropTypes.bool,
+  url: PropTypes.string,
 }
 Button.defaultProps = {
   secondary: false,
