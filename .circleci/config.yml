@@ -781,13 +781,11 @@ workflows:
           filters:
             branches:
               only:
-                - master
-                - feat/1945-back-out-axios
+                - bug/2035-manage-account-button-incorrect-link
       - deploy-production:
           requires:
             - deploy-infrastructure-production
           filters:
             branches:
               only:
-                - master
-                - feat/1945-back-out-axios
+                - bug/2035-manage-account-button-incorrect-link
