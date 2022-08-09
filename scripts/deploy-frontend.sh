@@ -28,11 +28,8 @@ update_frontend()
 
     echo "REACT_APP_CF_SPACE=$CF_SPACE" >> .env.production
     echo "REACT_APP_LOGIN_GOV_URL=https://secure.login.gov/" >> .env.production
-    if [ "$ENVIRONMENT" = "production" ]; then
-        npm run build
-    else
-        npm run start
-    fi
+    
+    npm run build:$ENVIRONMENT
     unlink .env.production
     mkdir deployment
 

@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, fireEvent, waitFor, screen } from '@testing-library/react'
+import { render, fireEvent, waitFor } from '@testing-library/react'
 
 import { Provider } from 'react-redux'
 import thunk from 'redux-thunk'
