@@ -222,6 +222,11 @@ commands:
 
   deploy-frontend:
     parameters:
+      environment:
+        description: The environment to deploy to.
+        type: enum
+        enum: [ "development", "production" ]
+        default: development
       backend-appname:
         default: tdp-backend
         type: string
@@ -250,10 +255,16 @@ commands:
               $DEPLOY_STRATEGY \
               <<parameters.frontend-appname>> \
               <<parameters.backend-appname>> \
-              <<parameters.cf-space>> 
+              <<parameters.cf-space>> \
+              <<parameters.environment>>
 
   deploy-cloud-dot-gov:
     parameters:
+      environment:
+        description: The environment to deploy to.
+        type: enum
+        enum: [ "development", "production" ]
+        default: development
       backend-appname:
         default: tdp-backend
         type: string
@@ -289,6 +300,7 @@ commands:
           cf-org: <<parameters.cf-org>>
           cf-space: <<parameters.cf-space>>
       - deploy-frontend:
+          environment: <<parameters.environment>>
           backend-appname: <<parameters.backend-appname>>
           frontend-appname: <<parameters.frontend-appname>>
           cf-space: <<parameters.cf-space>>
@@ -637,6 +649,7 @@ jobs:
     working_directory: ~/tdp-deploy
     steps:
       - deploy-cloud-dot-gov:
+          environment: production
           backend-appname: tdp-backend-prod
           frontend-appname: tdp-frontend-prod
           cf-password: CF_PASSWORD_PROD

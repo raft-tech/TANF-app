@@ -30,7 +30,8 @@
   "scripts": {
     "start": "react-scripts start",
     "start:ci": "CI=true HOST=localhost BROWSER=none npm run start",
-    "build": "SASS_PATH=node_modules:src react-scripts build",
+    "build:development": "env-cmd -f .env.development SASS_PATH=node_modules:src react-scripts build",
+    "build:production": "env-cmd -f .env.production SASS_PATH=node_modules:src react-scripts build",
     "test": "react-scripts test",
     "test:cov": "react-scripts test --coverage --watchAll",
     "test:ci": "CI=1 react-scripts test --coverage",

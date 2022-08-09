@@ -9,6 +9,7 @@ DEPLOY_STRATEGY=${1}
 CGHOSTNAME_FRONTEND=${2}
 CGHOSTNAME_BACKEND=${3}
 CF_SPACE=${4}
+ENVIRONMENT=${5}
 
 update_frontend()
 {
@@ -27,7 +28,7 @@ update_frontend()
 
     echo "REACT_APP_CF_SPACE=$CF_SPACE" >> .env.production
     echo "REACT_APP_LOGIN_GOV_URL=https://secure.login.gov/" >> .env.production
-    npm run build
+    npm run build:$ENVIRONMENT
     unlink .env.production
     mkdir deployment
 
