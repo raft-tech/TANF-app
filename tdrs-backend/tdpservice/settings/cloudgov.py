@@ -5,7 +5,6 @@ import os
 
 from tdpservice.settings.common import Common
 
-
 def get_json_env_var(variable_name):
     """Retrieve and serialize a JSON environment variable."""
     return json.loads(
@@ -39,6 +38,7 @@ class CloudGov(Common):
 
     cloudgov_space = cloudgov_app.get('space_name', 'tanf-dev')
     cloudgov_space_suffix = cloudgov_space.strip('tanf-')
+    AV_SCAN_URL = f'http://tanf-{cloudgov_space_suffix}-clamav-rest.apps.internal:9000/scan'
     cloudgov_name = cloudgov_app.get('name').split("-")[-1]  # converting "tdp-backend-name" to just "name"
     services_basename = cloudgov_name if (
         cloudgov_name == "develop" and cloudgov_space_suffix == "staging"
@@ -126,11 +126,13 @@ class Development(CloudGov):
     # https://docs.djangoproject.com/en/2.0/ref/settings/#allowed-hosts
     ALLOWED_HOSTS = ['.app.cloud.gov']
     AV_SCAN_URL = os.getenv('AV_SCAN_URL', 'http://tanf-dev-clamav-rest.apps.internal:9000')
+    MIDDLEWARE = ('django.contrib.sessions.middleware.SessionMiddleware', *Common.MIDDLEWARE)
 
 
 class Staging(CloudGov):
     """Settings for applications deployed in the Cloud.gov staging space."""
 
+    # TODO: why not just 'appcloudgov'?
     ALLOWED_HOSTS = ['tdp-backend-staging.app.cloud.gov', 'tdp-backend-develop.app.cloud.gov']
 
     LOGIN_GOV_CLIENT_ID = os.getenv(
@@ -138,16 +140,35 @@ class Staging(CloudGov):
         'urn:gov:gsa:openidconnect.profiles:sp:sso:hhs:tanf-proto-staging'
     )
     AV_SCAN_URL = os.getenv('AV_SCAN_URL', 'http://tanf-staging-clamav-rest.apps.internal:9000')
+    MIDDLEWARE = ('django.contrib.sessions.middleware.SessionMiddleware', *Common.MIDDLEWARE)
 
 class Production(CloudGov):
     """Settings for applications deployed in the Cloud.gov production space."""
 
-    # TODO: Add production ACF domain when known
     ALLOWED_HOSTS = ['api.tanfdata.acf.hhs.gov']
+    CSP_DEFAULT_SRC = ("'self'", "*.cloud.gov",  "*.acf.hhs.gov")
+    CSP_CONNECT_SRC = ("'self'", "*.cloud.gov", "*.acf.hhs.gov")
+    CRSF_COOKIE_SECURE = True
+    CRSF_COOKIE_SAMESITE = 'None'
+    CRSF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+    CRSF_COOKIE_DOMAIN = ['.acf.hhs.gov', 'app.cloud.gov']
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = 'None'
+    SESSION_COOKIE_DOMAIN = ['.acf.hhs.gov', 'app.cloud.gov']
+    SESSION_COOKIE_PATH = "/;HttpOnly"
+    CORS_ALLOW_HEADERS = (
+       'x-requested-with',
+       'content-type',
+       'accept',
+       'origin',
+       'authorization',
+       'X-CSRFToken'
+    )
+
+    MIDDLEWARE = ('tdpservice.middleware.SessionMiddleware', *Common.MIDDLEWARE)
 
     LOGIN_GOV_CLIENT_ID = os.getenv(
         'OIDC_RP_CLIENT_ID',
         'urn:gov:gsa:openidconnect.profiles:sp:sso:hhs:tanf-prod'
     )
-    AV_SCAN_URL = os.getenv('AV_SCAN_URL', 'http://tanf-prod-clamav-rest.apps.internal:9000')
     ENABLE_DEVELOPER_GROUP = False
