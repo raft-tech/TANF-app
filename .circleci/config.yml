@@ -736,14 +736,14 @@ workflows:
           filters:
             branches:
               only:
-                - main
+                - feat/2038
       - deploy-staging:
           requires:
             - deploy-infrastructure-staging
           filters:
             branches:
               only:
-                - main
+                - feat/2038
       - deploy-infrastructure-develop:
           filters:
             branches:
