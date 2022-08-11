@@ -458,6 +458,16 @@ jobs:
       - checkout
       - docker-compose-check
       - docker-compose-up-frontend
+      - run:
+          name: Wait for frontend to become available
+          command: |
+            cd tdrs-frontend;
+            docker-compose run --rm zaproxy bash -c \
+              "PATH=$PATH:/home/zap/.local/bin &&
+               pip install wait-for-it &&
+               wait-for-it --service http://web:3000 \
+                           --timeout 60 \
+                           -- echo \"Frontend is ready\""
       - run-owasp-scan:
           environment: circle
           target: frontend
@@ -465,6 +475,19 @@ jobs:
   nightly-owasp-scan:
     executor: machine-executor
     working_directory: ~/tdp-apps
+    parameters:
+      cf_password:
+        type: string
+        default: CF_PASSWORD_STAGING
+      cf_username:
+        type: string
+        default: CF_USERNAME_STAGING
+      cf_space:
+        type: string
+        default: tanf-staging
+      target_env:
+        type: enum
+        enum: [ "staging", "develop", "prod" ]
     steps:
       - checkout
       - sudo-check
