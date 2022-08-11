@@ -496,13 +496,15 @@ jobs:
       - run-owasp-scan:
           environment: nightly
           target: backend
+          target_env: <<parameters.target_env>>
       - run-owasp-scan:
           environment: nightly
           target: frontend
+          target_env: <<parameters.target_env>>
       - login-cloud-dot-gov:
-          cf-password: CF_PASSWORD_STAGING
-          cf-space: tanf-staging
-          cf-username: CF_USERNAME_STAGING
+          cf-password: <<parameters.cf_password>>
+          cf-space: <<parameters.cf_space>>
+          cf-username: <<parameters.cf_username>>
       - run:
           name: Run post-processing task to record OWASP ZAP results
           command: |
