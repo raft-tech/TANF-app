@@ -15,7 +15,8 @@ function Button({
   onClick,
   className,
   disabled,
-  url,
+  target,
+  href,
 }) {
   const isBig = size ? size === 'big' : false
   const isSmall = size ? size === 'small' : false
