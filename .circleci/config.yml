@@ -71,24 +71,28 @@ commands:
             nvm alias default v16.13
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
             echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
-
   run-owasp-scan:
     description: Runs OWASP ZAP scanner and stores resulting artifacts.
     parameters:
       environment:
         description: The environment this script is being run for.
         type: enum
-        enum: [ "circle", "nightly" ]
+        enum: ["circle", "nightly"] 
       target:
         description: The target application to be scanned.
         type: enum
-        enum: [ "backend", "frontend" ]
+        enum: ["backend", "frontend"]
+      target_env:
+        description: The target environment to be scanned.
+        type: enum
+        default: "develop"
+        enum: ["staging", "develop", "prod"]
     steps:
       - run:
           name: Execute OWASP ZAP vulnerability scan
           #wait up to 60min for scan
           no_output_timeout: 60m
-          command: ./scripts/zap-scanner.sh <<parameters.target>> <<parameters.environment>>
+          command: ./scripts/zap-scanner.sh <<parameters.target>> <<parameters.environment>> <<parameters.target_env>>
       - store_artifacts:
           path: tdrs-<<parameters.target>>/reports/owasp_report.html
 
