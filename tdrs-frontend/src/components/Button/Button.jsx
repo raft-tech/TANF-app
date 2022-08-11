@@ -49,7 +49,13 @@ function Button({
     )
   } else {
     return (
-      <a href={url} target="_blank" rel="noopener noreferrer" tabIndex="-1">
+      <a
+        class="button-anchor"
+        href={href}
+        target={target}
+        rel="noopener noreferrer"
+        tabIndex="-1"
+      >
         <button
           type={type} // eslint-disable-line
           className={classes}
@@ -77,6 +83,8 @@ Button.propTypes = {
   onClick: PropTypes.func,
   className: PropTypes.string,
   disabled: PropTypes.bool,
+  target: PropTypes.string,
+  href: PropTypes.string,
 }
 Button.defaultProps = {
   secondary: false,
@@ -89,6 +97,7 @@ Button.defaultProps = {
   onClick: null,
   className: null,
   disabled: false,
+  target: '_blank',
 }
 
 export default Button
