@@ -26,9 +26,9 @@ update_frontend()
         cf set-env "$CGAPPNAME_FRONTEND" ALLOWED_ORIGIN 'https://tanfdata.acf.hhs.gov'
         cf set-env "$CGAPPNAME_FRONTEND" CONNECT_SRC '*.acf.hhs.gov'
     else
-        echo "REACT_APP_BACKEND_URL=https://$CGAPPNAME_BACKEND.app.cloud.gov/v1" >> .env.production
-        echo "REACT_APP_BACKEND_HOST=https://$CGAPPNAME_BACKEND.app.cloud.gov" >> .env.production
-        echo "REACT_APP_CF_SPACE=$CF_SPACE" >> .env.production
+        echo "REACT_APP_BACKEND_URL=https://$CGAPPNAME_BACKEND.app.cloud.gov/v1" >> .env.development
+        echo "REACT_APP_BACKEND_HOST=https://$CGAPPNAME_BACKEND.app.cloud.gov" >> .env.development
+        echo "REACT_APP_CF_SPACE=$CF_SPACE" >> .env.development
 
         cf set-env "$CGAPPNAME_FRONTEND" ALLOWED_ORIGIN "https://$CGAPPNAME_FRONTEND.app.cloud.gov"
         cf set-env "$CGAPPNAME_FRONTEND" CONNECT_SRC '*.app.cloud.gov'
