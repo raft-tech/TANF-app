@@ -35,7 +35,7 @@ function Button({
     },
     className
   )
-  if (url === undefined) {
+  if (href === undefined) {
     return (
       <button
         type={type} // eslint-disable-line
