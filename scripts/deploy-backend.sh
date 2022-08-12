@@ -62,7 +62,6 @@ set_cf_envs()
   "PROD_OIDC_OP_JWKS_ENDPOINT"
   "PROD_OIDC_OP_LOGOUT_ENDPOINT"
   "PROD_OIDC_OP_TOKEN_ENDPOINT"
-  "STAGING_JWT_KEY"
   )
 
   for var_name in ${var_list[@]}; do
@@ -70,15 +69,13 @@ set_cf_envs()
     if [[ -z "${!var_name}" ]]; then
         echo "WARNING: Empty value for $var_name. It will now be unset."
         cf_cmd="cf unset-env $CGAPPNAME_BACKEND $var_name"
+        $cf_cmd
         continue
     fi
 
-    if [ "$CF_SPACE" =~ "tanf-prod" && "$var_name" =~ "PROD_" ]; then
+    if [[ "$CF_SPACE" =~ "tanf-prod" ]] && [[ "$var_name" =~ "PROD_" ]]; then
       prod_var_name=$(echo $var_name | sed -e 's/PROD_//g')
       cf_cmd="cf set-env $CGAPPNAME_BACKEND $prod_var_name ${!var_name}"
-    elif [ "$CF_SPACE" =~ "tanf-staging" &&  "$var_name" =~ "STAGING_" ]; then
-      staging_var_name=$(echo $var_name | sed -e 's/STAGING_//g')
-      cf_cmd="cf set-env $CGAPPNAME_BACKEND $staging_var_name ${!var_name}"
     else
       cf_cmd="cf set-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
     fi
