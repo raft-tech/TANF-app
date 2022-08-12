@@ -68,7 +68,8 @@ set_cf_envs()
   for var_name in ${var_list[@]}; do
     # Intentionally not setting variable if empty
     if [[ -z "${!var_name}" ]]; then
-        echo "WARNING: Empty value for $var_name"
+        echo "WARNING: Empty value for $var_name. It will now be unset."
+        cf_cmd="cf unset-env $CGAPPNAME_BACKEND $var_name"
         continue
     fi
 
