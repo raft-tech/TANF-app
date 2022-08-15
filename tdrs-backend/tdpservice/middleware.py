@@ -2,6 +2,7 @@
 from django.utils.cache import add_never_cache_headers
 from django.conf import settings
 from django.contrib.sessions.middleware import SessionMiddleware
+import os
 
 class NoCacheMiddleware(object):
     """Disable client caching with a Cache-Control header."""
@@ -22,7 +23,7 @@ class SessionMiddleware(SessionMiddleware):
         """Augment the behavior of SessionMiddleware to ensure CSRF cookies are correct."""
         response = super(SessionMiddleware, self).process_response(request, response)
 
-        response["Access-Control-Allow-Origin"] = "https://tanfdata.acf.hhs.gov"
+        response["Access-Control-Allow-Origin"] = os.getenv("FRONTEND_BASE_URL")
         response["Access-Control-Allow-Headers"] = "xsrf-token, \
                         X-CSRFToken, \
                         X-XSRF-token, \
