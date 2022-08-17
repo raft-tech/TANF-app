@@ -12,7 +12,6 @@ from configurations import Configuration
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 def get_required_env_var_setting(
     env_var_name: str,
     setting_name: Optional[str] = None
@@ -69,7 +68,7 @@ class Common(Configuration):
         "corsheaders.middleware.CorsMiddleware",
         "tdpservice.users.api.middleware.AuthUpdateMiddleware",
         "csp.middleware.CSPMiddleware",
-        "tdpservice.middleware.NoCacheMiddleware",
+        "tdpservice.middleware.NoCacheMiddleware"
     )
 
     APP_NAME = "dev"
@@ -397,3 +396,16 @@ class Common(Configuration):
         'AMS_CLIENT_SECRET',
         ''
     )
+
+    # CELERY CONFIG
+    REDIS_URI = os.getenv(
+        'REDIS_URI',
+        'redis://localhost:6379'
+    )
+
+    CELERY_BROKER_URL = REDIS_URI
+    CELERY_RESULT_BACKEND = REDIS_URI
+    CELERY_ACCEPT_CONTENT = ['application/json']
+    CELERY_TASK_SERIALIZER = 'json'
+    CELERY_RESULT_SERIALIZER = 'json'
+    CELERY_TIMEZONE = 'UTC'
