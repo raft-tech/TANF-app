@@ -1,4 +1,4 @@
-"""Celey configuration file."""
+"""Celery configuration file."""
 from __future__ import absolute_import
 import os
 import configurations
@@ -22,5 +22,6 @@ app.autodiscover_tasks()
 
 @app.task(bind=True)
 def debug_task(self):
+    """Will automatically run on startup."""
     print("Test first startup task.")
     print('Request: {0!r}'.format(self.request))
