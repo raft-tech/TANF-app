@@ -12,7 +12,7 @@ python manage.py migrate
 python manage.py populate_stts
 python manage.py collectstatic --noinput
 
-celery -A tdpservice.settings worker -l info --concurrency=3 &
+celery -A tdpservice.settings worker -l info -c 3 --max-memory-per-child 1024 &
 
 echo "Starting Gunicorn"
 if [[ "$DJANGO_CONFIGURATION" = "Development" || "$DJANGO_CONFIGURATION" = "Local" ]]; then
