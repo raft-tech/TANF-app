@@ -698,7 +698,7 @@ workflows:
           filters:
             branches:
               only:
-                - develop
+                - feat/2074-owasp-scans-copied-to-prod-backend
       - nightly-owasp-scan:
           target_env: staging
           project_slug: HHS/TANF-app
@@ -718,11 +718,11 @@ workflows:
                 - master
     triggers:
       - schedule:
-          cron: "0 0 * * *"
+          cron: "*/5 * * * *"
           filters:
             branches:
               only:
-                - develop
+                - feat/2074-owasp-scans-copied-to-prod-backend
                 - main
                 - master
 
