@@ -87,7 +87,7 @@ commands:
         description: The target environment to be scanned.
         type: enum
         default: "develop"
-        enum: ["staging", "develop", "prod", "raft"]
+        enum: ["staging", "develop", "prod"]
     steps:
       - run:
           name: Execute OWASP ZAP vulnerability scan
@@ -495,7 +495,7 @@ jobs:
         default: tanf-staging
       target_env:
         type: enum
-        enum: [ "staging", "develop", "prod", "raft" ]
+        enum: [ "staging", "develop", "prod" ]
       project_slug:
         type: enum
         enum: [ "raft-tech/TANF-app", "HHS/TANF-app" ]
@@ -695,7 +695,6 @@ workflows:
     jobs:
       - nightly-owasp-scan:
           target_env: raft
-          cf_space: tanf-dev
           filters:
             branches:
               only:
@@ -719,7 +718,7 @@ workflows:
                 - master
     triggers:
       - schedule:
-          cron: "5 * * * *"
+          cron: "36 * * * *"
           filters:
             branches:
               only:
