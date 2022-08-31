@@ -695,6 +695,7 @@ workflows:
     jobs:
       - nightly-owasp-scan:
           target_env: raft
+          cf_space: tanf-dev
           filters:
             branches:
               only:
@@ -718,7 +719,7 @@ workflows:
                 - master
     triggers:
       - schedule:
-          cron: "15 * * * *"
+          cron: "5 * * * *"
           filters:
             branches:
               only:
