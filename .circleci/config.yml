@@ -694,7 +694,7 @@ workflows:
   nightly:
     jobs:
       - nightly-owasp-scan:
-          target_env: raft
+          target_env: develop
           filters:
             branches:
               only:
