@@ -17,8 +17,12 @@ executors:
 
 jobs:
   test:
+    executor: machine-executor
+    parameters:
+      project-slug:
+        default: echo << pipeline.project.git_url >> | sed 's/https:\/\/github.com\///g'
     steps:
-      - echo << pipeline.project.git_url >>
+      - run: echo << parameters.project-slug >>
 
 workflows:
   pipeline-test:
