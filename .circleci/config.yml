@@ -11,7 +11,8 @@ jobs:
     executor: machine-executor
     parameters:
       project-slug:
-        default: echo << pipeline.project.git_url >> | sed 's/https:\/\/github.com\///g'
+        type: string
+        default: $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
     steps:
       - run: echo << parameters.project-slug >>
 
