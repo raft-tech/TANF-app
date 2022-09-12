@@ -8,11 +8,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 @shared_task
 def send_email(subject: str, message: str, recipient_list: list) -> bool:
     """Send an email to a list of recipients."""
     valid_emails = validate_emails(recipient_list)
+    print(f'======================= {valid_emails} =======================')
     response = send_mail(
         subject=subject,
         message=message,
