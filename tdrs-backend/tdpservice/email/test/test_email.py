@@ -7,9 +7,9 @@ This is a Django test case that tests the send_email function in the email.py fi
 """
 
 class EmailTest(TestCase):
-
+    """Email test class."""
     def test_send_email(self):
-        """Test email"""
+        """Test email."""
         subject = "Test email"
         message = "This is a test email."
         sender = "test_user@hhs.gov"
