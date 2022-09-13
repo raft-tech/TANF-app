@@ -1,4 +1,4 @@
-"""This is a Django test case that tests the send_email function in the email.py file."""
+"""Django test case that tests the send_email function in the email.py file."""
 
 from tdpservice.email.email import send_email
 from django.core import mail
