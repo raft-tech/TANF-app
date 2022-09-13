@@ -24,15 +24,14 @@ variable "cf_space_name" {
 
 variable "cf_user" {
   type        = string
-  description = "secret; cloud.gov deployer account user"
+  description = "User from Cloud.gov deployer service account"
+  default     = ""
+  sensitive   = true
 }
 
 variable "cf_password" {
   type        = string
-  description = "secret; cloud.gov deployer account password"
-}
-
-variable "cf_app_name" {
-  type        = string
-  description = "name of app"
+  description = "Password from Cloud.gov deployer service account"
+  default     = ""
+  sensitive   = true
 }
