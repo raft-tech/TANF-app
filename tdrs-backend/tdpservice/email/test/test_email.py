@@ -12,10 +12,9 @@ class EmailTest(TestCase):
         """Test email."""
         subject = "Test email"
         message = "This is a test email."
-        sender = "test_user@hhs.gov"
         recipient_list = ["test_user@hhs.gov"]
 
-        send_email(subject, message, sender, recipient_list)
+        send_email(subject, message, recipient_list)
 
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].subject, subject)

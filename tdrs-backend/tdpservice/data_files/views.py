@@ -19,8 +19,6 @@ from tdpservice.data_files.models import DataFile
 from tdpservice.users.permissions import DataFilePermissions
 from tdpservice.scheduling import sftp_task
 
-from tdpservice.scheduling.email import send_email
-
 
 class DataFileFilter(filters.FilterSet):
     """Filters that can be applied to GET requests as query parameters."""
@@ -66,8 +64,6 @@ class DataFileViewSet(ModelViewSet):
                 username=settings.ACFTITAN_USERNAME,
                 port=22
             )
-        if send_email('test', 'test', ['csmart@goraft.tech']):
-            print('======================= email sent =======================')
 
         return response
 
