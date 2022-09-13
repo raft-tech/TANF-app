@@ -12,15 +12,14 @@ logger = logging.getLogger(__name__)
 def send_email(subject: str, message: str, recipient_list: list) -> bool:
     """Send an email to a list of recipients."""
     valid_emails = validate_emails(recipient_list)
-    print(f'======================= {valid_emails} =======================')
-    response = send_mail(
+
+    send_mail(
         subject=subject,
         message=message,
         from_email='test_user@hhs.gov',
         recipient_list=valid_emails,
         fail_silently=False,
     )
-    print(response)
     return True
 
 @shared_task
