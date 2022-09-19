@@ -396,3 +396,15 @@ class Common(Configuration):
         'AMS_CLIENT_SECRET',
         ''
     )
+
+    # Elastic
+    ELASTICSEARCH_DSL = {
+        'default': {
+            'hosts': os.getenv('ELASTIC_HOST', 'localhost:9200')
+        },
+    }
+
+    ELASTICSEARCH_INDEX_NAMES = {
+        # 'search_indexes.documents.book': 'book',
+        # 'search_indexes.documents.publisher': 'publisher',
+    }
