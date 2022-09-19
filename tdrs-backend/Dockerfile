@@ -1,4 +1,4 @@
-FROM python:3.10.1-slim-buster
+FROM python:3.10.4-slim-buster
 ENV PYTHONUNBUFFERED 1
 
 ARG user=tdpuser
@@ -17,7 +17,8 @@ RUN apt-get -y upgrade
 # Install a new package:
 RUN apt-get install -y gcc && apt-get install -y graphviz && apt-get install -y graphviz-dev
 # Install pipenv
-RUN pip install --upgrade pip pipenv && pipenv install --dev --system --deploy
+RUN pip install --upgrade pip pipenv
+RUN pipenv install --dev --system --deploy
 
 # Adds our application code to the image
 COPY . /tdpapp
