@@ -104,7 +104,7 @@ Sometimes a developer will need to run Terraform locally to perform manual opera
 
    **Get Remote S3 Credentials:**
    
-   In the `/terraform` directory, you can run the `create_backend_vars.sh` script which can be modified with details of your current environment, and will yield a `backend_config.tfvars` file which must be later passed in to Terraform. For more on this, check out [terraform variable definitions][tf-vars].
+   In the `/infrastructure` directory, you can run the `create_backend_vars.sh` script which can be modified with details of your current environment, and will yield a `backend_config.tfvars` file which must be later passed in to Terraform. For more on this, check out [terraform variable definitions][tf-vars].
 
    ```bash
    ./create_backend_vars.sh

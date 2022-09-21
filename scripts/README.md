@@ -181,7 +181,7 @@ scripts/deploy-infrastructure-dev.sh
  CF_PASSWORD_DEV
 
 ### Description
-This script will manually run CircleCI's job `deploy-infrastructure-dev` which deploys the default Terraform codebase to a desired Cloud.gov application name in the tanf-dev space. Please see [Terraform docs](../terraform/README.md) for more information.
+This script will manually run CircleCI's job `deploy-infrastructure-dev` which deploys the default Terraform codebase to a desired Cloud.gov application name in the tanf-dev space. Please see [Terraform docs](../infrastructure/README.md) for more information.
 
 Requires local client to have CloudFoundry and CircleCI CLI tools to be configured and logged in.
 
