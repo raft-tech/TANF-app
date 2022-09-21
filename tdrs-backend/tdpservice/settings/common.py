@@ -49,12 +49,15 @@ class Common(Configuration):
         "django_extensions",
         "drf_yasg",
         "storages",
+        "django_elasticsearch_dsl",
+        "django_elasticsearch_dsl_drf",
         # Local apps
         "tdpservice.core.apps.CoreConfig",
         "tdpservice.users",
         "tdpservice.stts",
         "tdpservice.data_files",
         "tdpservice.security",
+        "tdpservice.search_indexes",
     )
 
     # https://docs.djangoproject.com/en/2.0/topics/http/middleware/
@@ -402,9 +405,4 @@ class Common(Configuration):
         'default': {
             'hosts': os.getenv('ELASTIC_HOST', 'localhost:9200')
         },
-    }
-
-    ELASTICSEARCH_INDEX_NAMES = {
-        # 'search_indexes.documents.book': 'book',
-        # 'search_indexes.documents.publisher': 'publisher',
     }
