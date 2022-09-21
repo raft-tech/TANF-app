@@ -1,6 +1,6 @@
 # 19. Key Encryption Strategy
 
-Date: 2022-09-14 (_updated 2022-09-14_)
+Date: 2022-09-14 (_updated 2022-09-21_)
 
 ## Status
 
