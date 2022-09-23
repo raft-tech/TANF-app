@@ -11,18 +11,35 @@ services:
     volumes:
       - ./reports:/zap/wrk/:rw
       - ../scripts/zap-hook.py:/zap/scripts/zap-hook.py:ro
+  client:
+    image: nginx:stable-alpine
+    volumes:
+      - ./nginx:/etc/nginx
+      - shared-content:/usr/share/nginx/html
+    ports:
+      - "80:80"     # Serve frontend
+      - "8081:8081"
+    environment:
+      #- NGINX_ENVSUBST_TEMPLATE_SUFFIX=".conf"
+      - FRONT_END=localhost
+      - BACK_END=web
   tdp-frontend:
     stdin_open: true # docker run -i
     tty: true        # docker run -t
     build:
       context: .
-      target: nginx
+      target: build
     ports:
-      - 3000:80
+      - "3000:80"
     volumes:
-      - ./:/home/node/app
+      - shared-content:/home/node/app/build
     networks:
       - local
+
 networks:
   local:
     driver: bridge
+
+volumes:
+  shared-content:
+

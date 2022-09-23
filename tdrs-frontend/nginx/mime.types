@@ -1,10 +1,12 @@
 types {
   text/html html htm shtml;
   text/css css;
+  text/css chunk.css;
   text/xml xml;
   image/gif gif;
   image/jpeg jpeg jpg;
   application/x-javascript js;
+  application/x-javascript chunk.js;
   application/atom+xml atom;
   application/rss+xml rss;
   font/ttf ttf;
