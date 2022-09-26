@@ -135,7 +135,7 @@ class CloudGov(Common):
     awsauth = AWS4Auth(
         AWS_ELASTIC_ACCESS_KEY,
         AWS_ELASTIC_SECRET,
-        'us-gov-west-1', 
+        'us-gov-west-1',
         'es'
     )
 
