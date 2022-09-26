@@ -1,16 +1,26 @@
+"""Elasticsearch document mappings for Django models."""
+
 from django_elasticsearch_dsl import Document
 from django_elasticsearch_dsl.registries import registry
 from .models import T1, T2, T3, T4, T5, T6, T7
 
+
 @registry.register_document
 class T1DataSubmissionDocument(Document):
+    """Elastic search model mapping for a parsed T1 data file."""
+
     class Index:
+        """ElasticSearch index generation settings."""
+
         name = 't1_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
         }
+
     class Django:
+        """Django model reference and field mapping."""
+
         model = T1
         fields = [
             'record',
@@ -63,9 +73,14 @@ class T1DataSubmissionDocument(Document):
             'blank',
         ]
 
+
 @registry.register_document
 class T2DataSubmissionDocument(Document):
+    """Elastic search model mapping for a parsed T2 data file."""
+
     class Index:
+        """ElasticSearch index generation settings."""
+
         name = 't2_submissions'
         settings = {
             'number_of_shards': 1,
@@ -73,6 +88,8 @@ class T2DataSubmissionDocument(Document):
         }
 
     class Django:
+        """Django model reference and field mapping."""
+
         model = T2
         fields = [
             'record',
@@ -149,16 +166,23 @@ class T2DataSubmissionDocument(Document):
             'other_unearned_income',
         ]
 
+
 @registry.register_document
 class T3DataSubmissionDocument(Document):
+    """Elastic search model mapping for a parsed T3 data file."""
+
     class Index:
+        """ElasticSearch index generation settings."""
+
         name = 't3_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
         }
-    
+
     class Django:
+        """Django model reference and field mapping."""
+
         model = T3
         fields = [
             'record',
@@ -190,14 +214,20 @@ class T3DataSubmissionDocument(Document):
 
 @registry.register_document
 class T4DataSubmissionDocument(Document):
+    """Elastic search model mapping for a parsed T4 data file."""
+
     class Index:
+        """ElasticSearch index generation settings."""
+
         name = 't4_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
         }
-    
+
     class Django:
+        """Django model reference and field mapping."""
+
         model = T4
         fields = [
             'record',
@@ -220,14 +250,20 @@ class T4DataSubmissionDocument(Document):
 
 @registry.register_document
 class T5DataSubmissionDocument(Document):
+    """Elastic search model mapping for a parsed T5 data file."""
+
     class Index:
+        """ElasticSearch index generation settings."""
+
         name = 't5_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
         }
-    
+
     class Django:
+        """Django model reference and field mapping."""
+
         model = T5
         fields = [
             'record',
@@ -267,14 +303,20 @@ class T5DataSubmissionDocument(Document):
 
 @registry.register_document
 class T6DataSubmissionDocument(Document):
+    """Elastic search model mapping for a parsed T6 data file."""
+
     class Index:
+        """ElasticSearch index generation settings."""
+
         name = 't6_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
         }
-    
+
     class Django:
+        """Django model reference and field mapping."""
+
         model = T6
         fields = [
             'record',
@@ -304,14 +346,20 @@ class T6DataSubmissionDocument(Document):
 
 @registry.register_document
 class T7DataSubmissionDocument(Document):
+    """Elastic search model mapping for a parsed T7 data file."""
+
     class Index:
+        """ElasticSearch index generation settings."""
+
         name = 't7_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
         }
-    
+
     class Django:
+        """Django model reference and field mapping."""
+
         model = T7
         fields = [
             'record',

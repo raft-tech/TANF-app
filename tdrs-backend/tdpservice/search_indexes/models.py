@@ -1,19 +1,32 @@
+"""Models representing parsed data file records submitted to TDP."""
+
 from django.db import models
 
+# Create your models here.
+
+
 class ParsedDataRecord(models.Model):
+    """Inheritable Django Model with fields shared by subtypes."""
+
     record = models.CharField(max_length=156, null=False, blank=False)
-    rpt_month_year = models.IntegerField(null=False, blank=False) # convert to date time?
+    rpt_month_year = models.IntegerField(null=False, blank=False)
     case_number = models.CharField(max_length=100, null=False, blank=False)
     disposition = models.IntegerField(null=False, blank=False)
     fips_code = models.CharField(max_length=100, null=False, blank=False)
 
-    @property
-    def record_length(self):
-        return len(self.record)
 
-# Create your models here.
 class T1(ParsedDataRecord):
-    county_fips_code = models.CharField(max_length=100, null=False, blank=False)
+    """
+    Parsed record representing a T1 data submission.
+
+    Mapped to an elastic search index.
+    """
+
+    county_fips_code = models.CharField(
+        max_length=100,
+        null=False,
+        blank=False
+    )
     stratum = models.IntegerField(null=False, blank=False)
     zip_code = models.CharField(max_length=100, null=False, blank=False)
     funding_stream = models.IntegerField(null=False, blank=False)
@@ -56,7 +69,14 @@ class T1(ParsedDataRecord):
     family_new_child = models.IntegerField(null=False, blank=False)
     blank = models.CharField(max_length=100, null=False, blank=False)
 
+
 class T2(ParsedDataRecord):
+    """
+    Parsed record representing a T2 data submission.
+
+    Mapped to an elastic search index.
+    """
+
     family_affiliation = models.IntegerField(null=False, blank=False)
     noncustodial_parent = models.IntegerField(null=False, blank=False)
     date_of_birth = models.CharField(max_length=100, null=False, blank=False)
@@ -124,7 +144,14 @@ class T2(ParsedDataRecord):
     unearned_workers_comp = models.IntegerField(null=False, blank=False)
     other_unearned_income = models.IntegerField(null=False, blank=False)
 
+
 class T3(ParsedDataRecord):
+    """
+    Parsed record representing a T3 data submission.
+
+    Mapped to an elastic search index.
+    """
+
     family_affiliation = models.IntegerField(null=False, blank=False)
     date_of_birth = models.CharField(max_length=100, null=False, blank=False)
     ssn = models.CharField(max_length=100, null=False, blank=False)
@@ -144,8 +171,19 @@ class T3(ParsedDataRecord):
     unearned_ssi = models.IntegerField(null=False, blank=False)
     other_unearned_income = models.IntegerField(null=False, blank=False)
 
+
 class T4(ParsedDataRecord):
-    county_fips_code = models.CharField(max_length=100, null=False, blank=False)
+    """
+    Parsed record representing a T4 data submission.
+
+    Mapped to an elastic search index.
+    """
+
+    county_fips_code = models.CharField(
+        max_length=100,
+        null=False,
+        blank=False
+    )
     stratum = models.IntegerField(null=False, blank=False)
     zip_code = models.CharField(max_length=100, null=False, blank=False)
     closure_reason = models.IntegerField(null=False, blank=False)
@@ -155,7 +193,14 @@ class T4(ParsedDataRecord):
     rec_sub_cc = models.IntegerField(null=False, blank=False)
     blank = models.CharField(max_length=100, null=False, blank=False)
 
+
 class T5(ParsedDataRecord):
+    """
+    Parsed record representing a T5 data submission.
+
+    Mapped to an elastic search index.
+    """
+
     family_affiliation = models.IntegerField(null=False, blank=False)
     date_of_birth = models.CharField(max_length=100, null=False, blank=False)
     ssn = models.CharField(max_length=100, null=False, blank=False)
@@ -183,7 +228,14 @@ class T5(ParsedDataRecord):
     amount_earned_income = models.IntegerField(null=False, blank=False)
     amount_unearned_income = models.IntegerField(null=False, blank=False)
 
+
 class T6(ParsedDataRecord):
+    """
+    Parsed record representing a T6 data submission.
+
+    Mapped to an elastic search index.
+    """
+
     calendar_quarter = models.IntegerField(null=False, blank=False)
     applications = models.IntegerField(null=False, blank=False)
     approved = models.IntegerField(null=False, blank=False)
@@ -201,8 +253,19 @@ class T6(ParsedDataRecord):
     outwedlock_births = models.IntegerField(null=False, blank=False)
     closed_cases = models.IntegerField(null=False, blank=False)
 
+
 class T7(ParsedDataRecord):
+    """
+    Parsed record representing a T7 data submission.
+
+    Mapped to an elastic search index.
+    """
+
     calendar_quarter = models.IntegerField(null=False, blank=False)
-    tdrs_section_ind = models.CharField(max_length=100, null=False, blank=False)
+    tdrs_section_ind = models.CharField(
+        max_length=100,
+        null=False,
+        blank=False
+    )
     stratum = models.CharField(max_length=100, null=False, blank=False)
     families = models.IntegerField(null=False, blank=False)
