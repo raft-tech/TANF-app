@@ -2,7 +2,7 @@
 
 import json
 import os
-import boto3
+# import boto3
 from requests_aws4auth import AWS4Auth
 from elasticsearch import RequestsHttpConnection
 
