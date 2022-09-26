@@ -130,14 +130,9 @@ class CloudGov(Common):
         aws_access_key_id=AWS_ELASTIC_ACCESS_KEY,
         aws_secret_access_key=AWS_ELASTIC_SECRET,
         region_name='us-gov-west-1'
-    )
-    awsauth = AWS4Auth(
-        creds.access_key,
-        creds.secret_key,
-        'us-gov-west-1',
-        'es',  # service,
-        session_token=creds.token,
-    )
+    ).get_credentials()
+
+    awsauth = AWS4Auth(creds, 'us-gov-west-1')
 
     # Elastic
     ELASTICSEARCH_DSL = {
