@@ -68,8 +68,31 @@ def test_ofa_system_admin_permissions(ofa_system_admin):
         'users.view_user',
         'data_files.view_legacyfiletransfer',
         'data_files.add_legacyfiletransfer',
-        'data_files.change_legacyfiletransfer'
-
+        'data_files.change_legacyfiletransfer',
+        'search_indexes.add_parseddatarecord',
+        'search_indexes.view_parseddatarecord',
+        'search_indexes.change_parseddatarecord',
+        'search_indexes.add_t1',
+        'search_indexes.view_t1',
+        'search_indexes.change_t1',
+        'search_indexes.add_t2',
+        'search_indexes.view_t2',
+        'search_indexes.change_t2',
+        'search_indexes.add_t3',
+        'search_indexes.view_t3',
+        'search_indexes.change_t3',
+        'search_indexes.add_t4',
+        'search_indexes.view_t4',
+        'search_indexes.change_t4',
+        'search_indexes.add_t5',
+        'search_indexes.view_t5',
+        'search_indexes.change_t5',
+        'search_indexes.add_t6',
+        'search_indexes.view_t6',
+        'search_indexes.change_t6',
+        'search_indexes.add_t7',
+        'search_indexes.view_t7',
+        'search_indexes.change_t7',
     }
     group_permissions = ofa_system_admin.get_group_permissions()
     assert group_permissions == expected_permissions
