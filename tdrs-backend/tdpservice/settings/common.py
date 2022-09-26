@@ -403,6 +403,6 @@ class Common(Configuration):
     # Elastic
     ELASTICSEARCH_DSL = {
         'default': {
-            'hosts': os.getenv('ELASTIC_HOST', 'localhost:9200')
+            'hosts': os.getenv('ELASTIC_HOST', '')
         },
     }
