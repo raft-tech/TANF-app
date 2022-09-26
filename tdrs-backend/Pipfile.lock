@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "79b0091b829dfdb6edc2bd20668935fb0419f39d0e1491c9cb13f0bf52a75ea3"
+            "sha256": "c256a75b40234ece6a2aa78831acdc5008076eeab39b7106074710297866eef6"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -48,11 +48,11 @@
         },
         "botocore": {
             "hashes": [
-                "sha256:a6229f9b31f7fe372475c0ee60483b3ec827e4b76275d5239fbfd590cd0b217f",
-                "sha256:f8b1da2b41e88c58db51db0c6eff6ca564258948ce4a5ac7e96ac35a469b0d4f"
+                "sha256:b45ae0680699ce100386ac1478e03fd3f29ef22d6bfb5a19169ffee6e67c5293",
+                "sha256:fc2ffdafce66c051c69ae6ac50599d6da11e84371c704ae9b7cf9e2742a4dc77"
             ],
             "markers": "python_version >= '3.7'",
-            "version": "==1.27.75"
+            "version": "==1.27.78"
         },
         "certifi": {
             "hashes": [
@@ -745,6 +745,14 @@
             "index": "pypi",
             "version": "==2.27.1"
         },
+        "requests-aws4auth": {
+            "hashes": [
+                "sha256:23b7a054326f80f86caf87e3eaf54ea41aa27adbed4297bd3456b1fa38f06a52",
+                "sha256:ebde0662dccda5023546055ec4cbe4470cae017ecbfce8d368b80b5e4a94d619"
+            ],
+            "index": "pypi",
+            "version": "==1.1.2"
+        },
         "requests-mock": {
             "hashes": [
                 "sha256:0a2d38a117c08bb78939ec163522976ad59a6b7fdd82b709e23bb98004a44970",
@@ -965,11 +973,11 @@
         },
         "awscli": {
             "hashes": [
-                "sha256:0e664aa01cbbf9d061c9df2776588fbce96e7ade2e84febe3a11ee6095cda554",
-                "sha256:3d2af4cd91065c5c5c15237b410e54c74678682c309bd9dafb6848bff811ebeb"
+                "sha256:2db74be3683a530465a076874ef03aadb4b4fb098f0b68c9da6982558b71a99e",
+                "sha256:ef7496aeec3a3b599b0592301d996a371c577fb36d3964399eadd4372f9b50f9"
             ],
             "index": "pypi",
-            "version": "==1.25.76"
+            "version": "==1.25.79"
         },
         "awscli-local": {
             "hashes": [
@@ -988,11 +996,11 @@
         },
         "botocore": {
             "hashes": [
-                "sha256:a6229f9b31f7fe372475c0ee60483b3ec827e4b76275d5239fbfd590cd0b217f",
-                "sha256:f8b1da2b41e88c58db51db0c6eff6ca564258948ce4a5ac7e96ac35a469b0d4f"
+                "sha256:b45ae0680699ce100386ac1478e03fd3f29ef22d6bfb5a19169ffee6e67c5293",
+                "sha256:fc2ffdafce66c051c69ae6ac50599d6da11e84371c704ae9b7cf9e2742a4dc77"
             ],
             "markers": "python_version >= '3.7'",
-            "version": "==1.27.75"
+            "version": "==1.27.78"
         },
         "click": {
             "hashes": [
@@ -1424,7 +1432,7 @@
                 "sha256:78f9a9bf4e7be0c5ded4583326e7461e3a3c5aae24073648b4bdfa797d78c9d2",
                 "sha256:9d689e6ca1b3038bc82bf8d23e944b6b6037bc02301a574935b2dd946e0353b9"
             ],
-            "markers": "python_version >= '3.5' and python_version < '4.0'",
+            "markers": "python_version >= '3.5' and python_version < '4'",
             "version": "==4.7.2"
         },
         "s3transfer": {

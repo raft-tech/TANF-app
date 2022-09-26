@@ -2,6 +2,9 @@
 
 import json
 import os
+import boto3
+from requests_aws4auth import AWS4Auth
+from elasticsearch import RequestsHttpConnection
 
 from tdpservice.settings.common import Common
 
@@ -118,6 +121,25 @@ class CloudGov(Common):
     # TODO: Determine if this is still necessary
     AWS_HEADERS = {
         "Cache-Control": "max-age=86400, s-maxage=86400, must-revalidate",
+    }
+
+    creds = boto3.Session().get_credentials()
+    awsauth = AWS4Auth(
+        creds.access_key,
+        creds.secret_key,
+        'region',
+        'es',  # service,
+        session_token=creds.token,
+    )
+
+    # Elastic
+    ELASTICSEARCH_DSL = {
+        'default': {
+            'hosts': os.getenv('ELASTIC_HOST', ''),
+            'http_auth': awsauth,
+            'use_ssl': True,
+            'connection_class': RequestsHttpConnection,
+        },
     }
 
 
