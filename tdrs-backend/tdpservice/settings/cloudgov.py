@@ -123,11 +123,18 @@ class CloudGov(Common):
         "Cache-Control": "max-age=86400, s-maxage=86400, must-revalidate",
     }
 
-    creds = boto3.Session().get_credentials()
+    AWS_ELASTIC_ACCESS_KEY = os.getenv('AWS_ELASTIC_ACCESS_KEY', '')
+    AWS_ELASTIC_SECRET = os.getenv('AWS_ELASTIC_SECRET', '')
+
+    creds = boto3.Session(
+        aws_access_key_id=AWS_ELASTIC_ACCESS_KEY,
+        aws_secret_access_key=AWS_ELASTIC_SECRET,
+        region_name='us-gov-west-1'
+    )
     awsauth = AWS4Auth(
         creds.access_key,
         creds.secret_key,
-        'region',
+        'us-gov-west-1',
         'es',  # service,
         session_token=creds.token,
     )
