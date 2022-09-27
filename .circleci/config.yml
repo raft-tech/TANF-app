@@ -671,7 +671,6 @@ workflows:
                 develop
 
   owasp-scan:
-    when: << pipeline.parameters.run_owasp_scan >>
     jobs:
       - backend-owasp-scan
       - frontend-owasp-scan
