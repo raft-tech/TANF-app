@@ -19,8 +19,6 @@ services:
       target: nginx
     ports:
       - 3000:80
-    volumes:
-      - ./:/home/node/app
     networks:
       - local
 networks:
