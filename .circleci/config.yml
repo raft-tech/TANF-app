@@ -467,6 +467,16 @@ jobs:
       - checkout
       - docker-compose-check
       - docker-compose-up-frontend
+      - run:
+          name: Wait for frontend to become available
+          command: |
+            cd tdrs-frontend;
+            docker-compose run --rm zaproxy bash -c \
+              "PATH=$PATH:/home/zap/.local/bin:/home/node/app &&
+               pip install wait-for-it &&
+               wait-for-it --service http://tdp-frontend:80 \
+                           --timeout 60 \
+                           -- echo \"Frontend is ready\""
       - run-owasp-scan:
           environment: circle
           target: frontend
