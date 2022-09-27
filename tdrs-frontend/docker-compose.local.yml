@@ -12,6 +12,8 @@ services:
     command: npm run start
     ports:
       - 3000:80
+    volumes:
+      - ./:/home/node/app
     networks:
       - local
 networks:
