@@ -155,7 +155,7 @@ class DataFile(FileRecord):
                 None)
         else:
             return self.stt.filenames.get(self.section, None)
-    
+ 
     @classmethod
     def create_new_version(self, data):
         """Create a new version of a data file with an incremented version."""
