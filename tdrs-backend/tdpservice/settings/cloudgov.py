@@ -2,7 +2,6 @@
 
 import json
 import os
-# import boto3
 from requests_aws4auth import AWS4Auth
 from elasticsearch import RequestsHttpConnection
 
@@ -125,12 +124,6 @@ class CloudGov(Common):
 
     AWS_ELASTIC_ACCESS_KEY = os.getenv('AWS_ELASTIC_ACCESS_KEY', '')
     AWS_ELASTIC_SECRET = os.getenv('AWS_ELASTIC_SECRET', '')
-
-    # creds = boto3.Session(
-    #     aws_access_key_id=AWS_ELASTIC_ACCESS_KEY,
-    #     aws_secret_access_key=AWS_ELASTIC_SECRET,
-    #     region_name='us-gov-west-1'
-    # ).get_credentials()
 
     awsauth = AWS4Auth(
         AWS_ELASTIC_ACCESS_KEY,
