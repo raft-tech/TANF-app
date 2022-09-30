@@ -5,6 +5,7 @@
 	patterns = (\"|')?(AWS|aws|Aws)?_?(ACCOUNT|account|Account)_?(ID|id|Id)?(\"|')?\\s*(:|=>|=)\\s*(\"|')?[0-9]{4}\\-?[0-9]{4}\\-?[0-9]{4}(\"|')?
 	patterns = .+_KEY=.+
 	allowed = [A-Z]+_KEY=..echo \".{S3_CREDENTIALS}\" [|] jq -r .+
+	allowed = [A-Z]+_KEY=$(terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)
 	allowed = ./tdrs-backend/.env.example:.*
 	allowed = ./tdrs-backend/docker-compose.yml:57:.*
 	allowed = regexes.json:.*
