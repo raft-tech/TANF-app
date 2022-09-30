@@ -51,11 +51,12 @@ data "cloudfoundry_service" "rds" {
   name = "aws-rds"
 }
 
+
 resource "cloudfoundry_service_instance" "database" {
-  name             = "tdp-db-dev"
-  service_plan     = data.cloudfoundry_service.rds.service_plans["micro-psql"]
-  space            = data.cloudfoundry_space.space.id
-  recursive_delete = true
+name             = "tdp-db-dev"
+service_plan     = data.cloudfoundry_service.rds.service_plans["micro-psql"]
+space            = data.cloudfoundry_space.space.id
+recursive_delete = true
 }
 
 ###
@@ -63,19 +64,24 @@ resource "cloudfoundry_service_instance" "database" {
 ###
 
 data "cloudfoundry_service" "s3" {
-  name = "s3"
+name = "s3"
 }
 
 resource "cloudfoundry_service_instance" "staticfiles" {
-  name             = "tdp-staticfiles-dev"
-  service_plan     = data.cloudfoundry_service.s3.service_plans["basic-public-sandbox"]
-  space            = data.cloudfoundry_space.space.id
-  recursive_delete = true
+name             = "tdp-staticfiles-dev"
+service_plan     = data.cloudfoundry_service.s3.service_plans["basic-public-sandbox"]
+space            = data.cloudfoundry_space.space.id
+recursive_delete = true
 }
 
 resource "cloudfoundry_service_instance" "datafiles" {
-  name             = "tdp-datafiles-dev"
-  space            = data.cloudfoundry_space.space.id
-  service_plan     = data.cloudfoundry_service.s3.service_plans["basic-sandbox"]
-  recursive_delete = true
+name             = "tdp-datafiles-dev"
+space            = data.cloudfoundry_space.space.id
+service_plan     = data.cloudfoundry_service.s3.service_plans["basic-sandbox"]
+recursive_delete = true
+}
+
+data "cloudfoundry_app" "tdp_backend_raft" {
+  name_or_id = var.cf_app_backend_raft_name
+  space = data.cloudfoundry_space.space.id
 }

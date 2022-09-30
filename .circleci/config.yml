@@ -370,7 +370,11 @@ commands:
       - terraform/apply:
           path: <<parameters.tf-path>>
           var_file: ./variables.tfvars
-
+      - run:
+          name: Output terraform Example
+          command: echo NON_PROD_JWT_KEY=$(terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY) >> tf_vars.env
+      - store_artifacts:
+          path: tdrs-backend/tf_vars.env/
 jobs:
   secrets-check:
     executor: docker-executor
