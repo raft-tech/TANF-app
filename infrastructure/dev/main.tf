@@ -19,8 +19,6 @@ terraform {
 #    bucket  = "tdp-state-do-not-delete"
 #    dynamodb_table = "tdp-state-do-not-delete-lock"`
   }
-
-  required_version  = ">= 0.15"
 }
 
 provider "cloudfoundry" {
