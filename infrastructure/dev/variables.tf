@@ -37,7 +37,7 @@ variable "cf_password" {
 }
 
 variable "cf_app_backend_raft_name" {
-  type = string
+  type        = string
   description = "Name of backend-raft app"
-  default = "tdp-backend-raft"
+  default     = "tdp-backend-raft"
 }

@@ -11,13 +11,13 @@ terraform {
   }
 
   backend "s3" {
-    key     = "terraform.tfstate.dev"
-    region  = "us-gov-west-1"
-    bucket  = "cg-5940b4e1-0f70-44fc-b8df-9ec9be33c3a2"
+    key    = "terraform.tfstate.dev"
+    region = "us-gov-west-1"
+    bucket = "cg-5940b4e1-0f70-44fc-b8df-9ec9be33c3a2"
 
     # Want to give this bucket a more unique name + have a dynamodb table for state-locks
-#    bucket  = "tdp-state-do-not-delete"
-#    dynamodb_table = "tdp-state-do-not-delete-lock"`
+    #    bucket  = "tdp-state-do-not-delete"
+    #    dynamodb_table = "tdp-state-do-not-delete-lock"`
   }
 }
 
@@ -51,10 +51,10 @@ data "cloudfoundry_service" "rds" {
 
 
 resource "cloudfoundry_service_instance" "database" {
-name             = "tdp-db-dev"
-service_plan     = data.cloudfoundry_service.rds.service_plans["micro-psql"]
-space            = data.cloudfoundry_space.space.id
-recursive_delete = true
+  name             = "tdp-db-dev"
+  service_plan     = data.cloudfoundry_service.rds.service_plans["micro-psql"]
+  space            = data.cloudfoundry_space.space.id
+  recursive_delete = true
 }
 
 ###
@@ -62,24 +62,24 @@ recursive_delete = true
 ###
 
 data "cloudfoundry_service" "s3" {
-name = "s3"
+  name = "s3"
 }
 
 resource "cloudfoundry_service_instance" "staticfiles" {
-name             = "tdp-staticfiles-dev"
-service_plan     = data.cloudfoundry_service.s3.service_plans["basic-public-sandbox"]
-space            = data.cloudfoundry_space.space.id
-recursive_delete = true
+  name             = "tdp-staticfiles-dev"
+  service_plan     = data.cloudfoundry_service.s3.service_plans["basic-public-sandbox"]
+  space            = data.cloudfoundry_space.space.id
+  recursive_delete = true
 }
 
 resource "cloudfoundry_service_instance" "datafiles" {
-name             = "tdp-datafiles-dev"
-space            = data.cloudfoundry_space.space.id
-service_plan     = data.cloudfoundry_service.s3.service_plans["basic-sandbox"]
-recursive_delete = true
+  name             = "tdp-datafiles-dev"
+  space            = data.cloudfoundry_space.space.id
+  service_plan     = data.cloudfoundry_service.s3.service_plans["basic-sandbox"]
+  recursive_delete = true
 }
 
 data "cloudfoundry_app" "tdp_backend_raft" {
   name_or_id = var.cf_app_backend_raft_name
-  space = data.cloudfoundry_space.space.id
+  space      = data.cloudfoundry_space.space.id
 }
