@@ -3,6 +3,9 @@
 import logging
 import uuid
 
+from tdpservice.email.email import mail
+from tdpservice.email.email_enums import EmailType
+
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -172,3 +175,59 @@ class User(AbstractUser):
     def is_deactivated(self):
         """Check if the user's account status has been set to 'Deactivated'."""
         return self.account_approval_status == AccountApprovalStatusChoices.DEACTIVATED
+
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        """
+        Override the django Model from_db method.
+        Populates instances of User with a `_loaded_values` member,
+        useful for accessing current values for the object before updates
+        https://docs.djangoproject.com/en/4.1/ref/models/instances/#customizing-model-loading
+        """
+
+        instance = super().from_db(db, field_names, values)
+        instance._state.adding = False
+        instance._state.db = db
+        instance._loaded_values = dict(zip(field_names, values))
+        return instance
+
+    def save(self, *args, **kwargs):
+        """
+        Override the django Model save method.
+        The existing values can be accessed using `self._loaded_values`
+        which are set by `from_db`
+        """
+
+        if not self._state.adding:
+            current_status = self._loaded_values['account_approval_status']
+            new_status = self.account_approval_status
+
+            if new_status != current_status:
+                """Send account status update emails after save."""
+
+                super(User, self).save(*args, **kwargs)
+
+                match new_status:
+                    case AccountApprovalStatusChoices.INITIAL:
+                        print('initial')
+                        pass
+                    case AccountApprovalStatusChoices.ACCESS_REQUEST:
+                        mail(EmailType.ACCESS_REQUEST_SUBMITTED.value, self.email, email_context={'first_name': self.first_name})
+                        pass
+                    case AccountApprovalStatusChoices.PENDING:
+                        print('pending')
+                        pass
+                    case AccountApprovalStatusChoices.APPROVED:
+                        print('approved')
+                        pass
+                    case AccountApprovalStatusChoices.DENIED:
+                        print('denied')
+                        pass
+                    case AccountApprovalStatusChoices.DEACTIVATED:
+                        print('deactivated')
+                        pass
+
+                return
+
+        super(User, self).save(*args, **kwargs)
