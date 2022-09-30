@@ -213,7 +213,7 @@ class User(AbstractUser):
                         print('initial')
                         pass
                     case AccountApprovalStatusChoices.ACCESS_REQUEST:
-                        mail(EmailType.ACCESS_REQUEST_SUBMITTED.value, self.email, email_context={'first_name': self.first_name})
+                        mail(EmailType.ACCESS_REQUEST_SUBMITTED.value, self.email, "account requested", email_context={'first_name': self.first_name, 'text_message': 'Your account has been requested'})
                         pass
                     case AccountApprovalStatusChoices.PENDING:
                         print('pending')
