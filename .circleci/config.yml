@@ -1,22 +1,435 @@
 version: 2.1
 
+
+orbs:
+  node: circleci/node@4.7.0
+  terraform: circleci/terraform@2.1.0
+  jq: circleci/jq@2.2.0
+
 executors:
+  docker-executor:
+    docker:
+      - image: cimg/python:3.10.1
+        user: root
   machine-executor:
     machine:
       docker_layer_caching: false
       image: ubuntu-2004:202104-01
 
-jobs:
-  test:
-    executor: machine-executor
-    parameters:
-      project-slug:
-        type: string
-        default: $CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
+commands:
+  ###
+  # General re-usable commands
+  #
+  cf-check:
     steps:
-      - run: echo << parameters.project-slug >>
+      - run:
+          name: Ensure cf cli is installed, otherwise install it.
+          command: sudo ./scripts/cf-check.sh
+          
+  docker-compose-check:
+    steps:
+      - run:
+          name: Ensure docker-compose exists, otherwise install it.
+          command: ./scripts/docker-compose-check.sh
+
+  docker-compose-up-backend:
+    steps:
+      - run:
+          name: Build and spin-up Django API service
+          command: cd tdrs-backend; docker-compose up -d --build
+
+  login-cloud-dot-gov:
+    description: Authenticates with Cloud.gov and sets org and space targets
+    parameters:
+      cf-password:
+        type: env_var_name
+        default: CF_PASSWORD_DEV
+      cf-org:
+        type: env_var_name
+        default: CF_ORG
+      cf-space:
+        type: string
+        default: tanf-dev
+      cf-username:
+        type: env_var_name
+        default: CF_USERNAME_DEV
+    steps:
+      - run:
+          name: Login to Cloud.gov and set application targets
+          command: |
+            cf login -a https://api.fr.cloud.gov \
+              -u ${<<parameters.cf-username>>} \
+              -p ${<<parameters.cf-password>>} \
+              -o ${<<parameters.cf-org>>} \
+              -s <<parameters.cf-space>>
+
+
+  deploy-cloud-dot-gov:
+    parameters:
+      backend-appname:
+        default: tdp-backend
+        type: string
+      cf-password:
+        default: CF_PASSWORD_DEV
+        type: env_var_name
+      cf-org:
+        default: CF_ORG
+        type: env_var_name
+      cf-space:
+        default: tanf-dev
+        type: string
+      cf-username:
+        default: CF_USERNAME_DEV
+        type: env_var_name
+      frontend-appname:
+        default: tdp-frontend
+        type: string
+    steps:
+      - checkout
+      - sudo-check
+      - cf-check
+      - login-cloud-dot-gov:
+          cf-password: <<parameters.cf-password>>
+          cf-org: <<parameters.cf-org>>
+          cf-space: <<parameters.cf-space>>
+          cf-username: <<parameters.cf-username>>
+      - deploy-backend:
+          backend-appname: <<parameters.backend-appname>>
+          cf-space: <<parameters.cf-space>>
+      - deploy-clamav:
+          backend-appname: <<parameters.backend-appname>>
+          cf-org: <<parameters.cf-org>>
+          cf-space: <<parameters.cf-space>>
+      - deploy-frontend:
+          backend-appname: <<parameters.backend-appname>>
+          frontend-appname: <<parameters.frontend-appname>>
+          cf-space: <<parameters.cf-space>>
+
+
+  deploy-backend:
+    parameters:
+      backend-appname:
+        default: tdp-backend
+        type: string
+      cf-space:
+        default: tanf-dev
+        type: string
+    steps:
+      - get-app-deploy-strategy:
+          appname: <<parameters.backend-appname>>
+      - run:
+          name: Deploy backend application
+          command: |
+            bash ./scripts/deploy-backend.sh \
+              $DEPLOY_STRATEGY \
+              <<parameters.backend-appname>> \
+              <<parameters.cf-space>>
+
+  deploy-clamav:
+    parameters:
+      backend-appname:
+        default: tdp-backend
+        type: string
+      cf-org:
+        default: CF_ORG
+        type: env_var_name
+      cf-space:
+        default: tanf-dev
+        type: string
+    steps:
+      - run:
+          name: Deploy ClamAV REST application
+          command: |
+            cf push clamav-rest -f tdrs-backend/manifest.clamav.yml \
+              --var cf-space=<<parameters.cf-space>> \
+      - run:
+          name: Enable internal route between backend and clamav-rest app
+          command: |
+            cf add-network-policy <<parameters.backend-appname>> clamav-rest \
+              -s <<parameters.cf-space>> \
+              -o ${<<parameters.cf-org>>} \
+              --protocol tcp \
+              --port 9000
+
+  deploy-frontend:
+    parameters:
+      backend-appname:
+        default: tdp-backend
+        type: string
+      frontend-appname:
+        default: tdp-frontend
+        type: string
+# So the frontend knows what space its in for the banner.
+# I am unclear if the domain is a reliable metric to make this function 
+# It seems like it might not be working
+      cf-space:
+        default: dev 
+        type: string
+    steps:
+      - install-nodejs:
+          node-version: "16.13"
+      - disable-npm-audit
+      - install-nodejs-packages:
+          app-dir: tdrs-frontend
+      - get-app-deploy-strategy:
+          appname: <<parameters.frontend-appname>>
+      - run:
+          name: Deploy frontend application
+          command: |
+            bash ./scripts/deploy-frontend.sh \
+              $DEPLOY_STRATEGY \
+              <<parameters.frontend-appname>> \
+              <<parameters.backend-appname>> \
+              <<parameters.cf-space>> 
+
+  get-app-deploy-strategy:
+    parameters:
+      appname:
+        type: string
+    steps:
+      - run:
+          name: Determine deploy strategy
+          command: |
+            # NOTE: The || true is a no-op included to suppress exit codes which
+            #       would cause the step to exit early due to use of pipefail
+            APP_GUID=$(cf app <<parameters.appname>> --guid || true)
+            if [ "$APP_GUID" == "FAILED" ]; then
+              echo "export DEPLOY_STRATEGY=initial" >> $BASH_ENV
+            else
+              echo "export DEPLOY_STRATEGY=rolling" >> $BASH_ENV
+            fi
+
+  disable-npm-audit:
+    steps:
+      - run:
+          name: Disable npm audit warnings in CI
+          command: npm set audit false
+
+  # This allows us to use the orb stanza for node/install within other commands
+  # NOTE: This doesn't work correctly on machine executors
+  install-nodejs: node/install
+
+  # This allows us to use the node orb to install packages within other commands
+  install-nodejs-packages: node/install-packages
+
+  sudo-check:
+    steps:
+      - run:
+          name: Ensure sudo is installed, otherwise install it.
+          command: ./scripts/sudo-check.sh
+  
+  upload-codecov:
+    description: Uploads testing code coverage results to Codecov
+    parameters:
+      component:
+        description: The component of the application being tested, either backend or frontend.
+        type: enum
+        enum: [ "backend", "frontend" ]
+      coverage-report:
+        description: The path to the coverage report being uploaded.
+        type: string
+    steps:
+      - run:
+          name: Ensure Codecov uploader is installed, otherwise install it.
+          command: ./scripts/codecov-check.sh
+      - run:
+          name: Determine Codecov metric flag
+          command: |
+            if [ "$CIRCLE_BRANCH" == "main" ] ; then
+              CURRENT_FLAG=main-<<parameters.component>>
+            else
+              CURRENT_FLAG=dev-<<parameters.component>>
+            fi
+            echo "export CURRENT_FLAG=$CURRENT_FLAG" >> $BASH_ENV
+      - run:
+          name: Upload code coverage report if target branch
+          command: codecov -t "$CODECOV_TOKEN" -f <<parameters.coverage-report>> -F "$CURRENT_FLAG"
+
+  install-nodejs-machine:
+    description: |
+      Installs our target version of Node.JS using NVM (Node Version Manager)
+      from the install location provided by machine executor images.
+    steps:
+      - run:
+          name: Install Node.JS
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y libgbm-dev
+            source /opt/circleci/.nvm/nvm.sh
+            nvm install v16.13
+            nvm alias default v16.13
+            echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
+            echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
+
+jobs:
+  deploy-infrastructure:
+    executor: terraform/default
+    working_directory: ~/tdp-deploy
+    parameters:
+      tf-path:
+        type: string
+        default: ./terraform/dev
+      cf-password:
+        type: env_var_name
+        default: CF_PASSWORD_DEV
+      cf-username:
+        type: env_var_name
+        default: CF_USERNAME_DEV
+      cf-space:
+        type: string
+        default: tanf-dev
+      cf-org:
+        type: env_var_name
+        default: CF_ORG
+      cf-app:
+        type: string
+        default: CF_APP
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apk update
+            apk add jq
+            apk add curl
+            # TODO: Add Signature check
+            curl -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github" | tar -zx
+            mv cf7 /usr/local/bin/cf
+      - login-cloud-dot-gov:
+          cf-password: <<parameters.cf-password>>
+          cf-username: <<parameters.cf-username>>
+          cf-space: <<parameters.cf-space>>
+      - run:
+          name: Export S3 Credentials for TFState
+          command: |
+            S3_CREDENTIALS=$(cf service-key tdp-tf-states tdp-tf-key | tail -n +2)
+            {
+              echo "access_key = \"$(echo "${S3_CREDENTIALS}" | jq -r .access_key_id)\""
+              echo "secret_key = \"$(echo "${S3_CREDENTIALS}" | jq -r .secret_access_key)\""
+              echo "region = \"$(echo "${S3_CREDENTIALS}" | jq -r '.region')\""
+              echo "bucket = \"$(echo "${S3_CREDENTIALS}" | jq -r '.bucket')\""
+            } >> ./backend_config.tfvars
+      - run:
+          name: Prepare Terraform Variables
+          command: |
+            S3_CREDENTIALS=$(cf service-key tdp-tf-states tdp-tf-key | tail -n +2)
+            {
+              echo "cf_password = \"$<<parameters.cf-password>>\""
+              echo "cf_user = \"$<<parameters.cf-username>>\""
+              echo "cf_space_name = \"<<parameters.cf-space>>\""
+              echo "cf_app_name = \"<<parameters.cf-app>>\""
+            } >> ./variables.tfvars
+      - terraform/init:
+          path: <<parameters.tf-path>>
+          backend_config_file: ./backend_config.tfvars
+      - terraform/validate:
+          path: <<parameters.tf-path>>
+      - terraform/fmt:
+          path: <<parameters.tf-path>>
+      - terraform/plan:
+          path: <<parameters.tf-path>>
+          var_file: ./variables.tfvars
+      - terraform/apply:
+          path: <<parameters.tf-path>>
+          var_file: ./variables.tfvars
+
+
+  deploy:
+    executor: docker-executor
+    parameters:
+      target_env:
+        type: string
+    working_directory: ~/tdp-deploy
+    steps:
+      - deploy-cloud-dot-gov:
+          backend-appname: tdp-backend-<< parameters.target_env >>
+          frontend-appname: tdp-frontend-<< parameters.target_env >>
+
+  secrets-check:
+    executor: docker-executor
+    steps:
+      - checkout
+      - run:
+          name: "git-secrets: Scan repository for committed secrets"
+          command: ./scripts/git-secrets-check.sh
+      - run:
+          name: "trufflehog: Scan repository for committed secrets"
+          command: ./scripts/trufflehog-check.sh $CIRCLE_BRANCH
+
+  test-backend:
+    executor: machine-executor
+    steps:
+      - checkout
+      - docker-compose-check
+      - docker-compose-up-backend
+      - run:
+          name: Execute Python Linting Test
+          command: cd tdrs-backend; docker-compose run --rm web bash -c "flake8 ."
+      - run:
+          name: Run Unit Tests And Create Code Coverage Report
+          command: |
+            cd tdrs-backend;
+            docker-compose run --rm web bash -c "./wait_for_services.sh && pytest --cov-report=xml"
+      - upload-codecov:
+          component: backend
+          coverage-report: ./tdrs-backend/coverage.xml
+
+  test-frontend:
+    executor: machine-executor
+    working_directory: ~/tdp-apps
+    steps:
+      - checkout
+      - install-nodejs-machine
+      - disable-npm-audit
+      - install-nodejs-packages:
+          app-dir: tdrs-frontend
+      - run:
+          name: Run ESLint
+          command: cd tdrs-frontend; npm run lint
+      - run:
+          name: Run Pa11y Accessibility Tests
+          command: cd tdrs-frontend; mkdir pa11y-screenshots/; npm run test:accessibility
+      - run:
+          name: Run Jest Unit Tests
+          command: cd tdrs-frontend; npm run test:ci
+      - upload-codecov:
+          component: frontend
+          coverage-report: ./tdrs-frontend/coverage/lcov.info
+      - store_artifacts:
+          path: tdrs-frontend/pa11y-screenshots/
+
+parameters:
+  run_dev_deployment:
+    type: boolean
+    default: false
+
+  run_owasp_scan:
+    type: boolean
+    default: false
+
+  target_env:
+    type: string
+    default: ''
 
 workflows:
-  pipeline-test:
+  build-and-test:
+    unless:
+      or:
+        - << pipeline.parameters.run_dev_deployment >>
+        - << pipeline.parameters.run_owasp_scan >>
     jobs:
-      - test
+      - secrets-check
+      - test-frontend:
+          requires:
+            - secrets-check
+      - test-backend:
+          requires:
+            - secrets-check
+
+  dev-deployment:
+    jobs:
+      - deploy-infrastructure
+      - deploy:
+          target_env: raft
+          requires:
+            - deploy-infrastructure
