@@ -213,21 +213,20 @@ class User(AbstractUser):
                         print('initial')
                         pass
                     case AccountApprovalStatusChoices.ACCESS_REQUEST:
-                        mail(EmailType.ACCESS_REQUEST_SUBMITTED.value, self.email, "account requested", email_context={'first_name': self.first_name, 'text_message': 'Your account has been requested'})
+                        mail.delay(email_path=EmailType.ACCESS_REQUEST_SUBMITTED.value, recipient_email=self.email, subject="Account requested", email_context={'first_name': self.first_name, 'stt_name': str(self.stt), 'text_message': 'Your account has been requested.'})
                         pass
                     case AccountApprovalStatusChoices.PENDING:
                         print('pending')
                         pass
                     case AccountApprovalStatusChoices.APPROVED:
-                        print('approved')
+                        mail.delay(email_path=EmailType.REQUEST_APPROVED.value, recipient_email=self.email, subject="Request approved", email_context={'first_name': self.first_name, 'stt_name': str(self.stt), 'group_permission': str(self.groups.first()), 'text_message': 'Your account request has been approved.'})
                         pass
                     case AccountApprovalStatusChoices.DENIED:
-                        print('denied')
+                        mail.delay(email_path=EmailType.REQUEST_DENIED.value, recipient_email=self.email, subject="Request denied", email_context={'first_name': self.first_name, 'stt_name': str(self.stt), 'group_permission': str(self.groups.first()), 'text_message': 'Your account request has been approved.'})
                         pass
                     case AccountApprovalStatusChoices.DEACTIVATED:
                         print('deactivated')
                         pass
-
                 return
 
         super(User, self).save(*args, **kwargs)

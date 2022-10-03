@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 @shared_task
 def mail(email_path, recipient_email, subject, email_context):
     """Send an automated email to a user. Use mail.delay() to send asynchronously."""
-    subject = email_context["subject"]
     html_message = construct_email(email_path, email_context)
 
     if "text_message" in email_context.keys():
