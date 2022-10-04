@@ -370,11 +370,11 @@ commands:
       - terraform/apply:
           path: <<parameters.tf-path>>
           var_file: ./variables.tfvars
-      - run:
-          name: Output terraform Example
-          command: echo NON_PROD_JWT_KEY=\"$(terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)\" >> tf_vars.env
-      - store_artifacts:
-          path: tdrs-backend/tf_vars.env/
+      # - run:
+          # name: Output terraform Example
+          # command: echo NON_PROD_JWT_KEY=\"$(terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)\" >> tf_vars.env
+      # - store_artifacts:
+          # path: tdrs-backend/tf_vars.env/
 jobs:
   secrets-check:
     executor: docker-executor
@@ -550,7 +550,6 @@ jobs:
     parameters:
       target_env:
         type: string
-        default: develop
     steps:
       - deploy-infrastructure:
           cf-app: << parameters.target_env >>
@@ -560,7 +559,6 @@ jobs:
     parameters:
       target_env:
         type: string
-        default: develop
     working_directory: ~/tdp-deploy
     steps:
       - deploy-cloud-dot-gov:
@@ -692,9 +690,9 @@ workflows:
 #    when: << pipeline.parameters.run_dev_deployment >>
     jobs:
       - deploy-infrastructure-dev:
-         target_env: << pipeline.parameters.target_env >>
+        target_env: << pipeline.parameters.target_env >>
       - deploy-dev:
-         target_env: << pipeline.parameters.target_env >>
+        target_env: << pipeline.parameters.target_env >>
           requires:
             - deploy-infrastructure-dev
 
