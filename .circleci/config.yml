@@ -550,6 +550,7 @@ jobs:
     parameters:
       target_env:
         type: string
+        default: develop
     steps:
       - deploy-infrastructure:
           cf-app: << parameters.target_env >>
@@ -559,6 +560,7 @@ jobs:
     parameters:
       target_env:
         type: string
+        default: develop
     working_directory: ~/tdp-deploy
     steps:
       - deploy-cloud-dot-gov:
