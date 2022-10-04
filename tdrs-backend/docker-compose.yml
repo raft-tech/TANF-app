@@ -84,3 +84,8 @@ services:
 volumes:
   localstack_data:
   postgres_data:
+
+networks:
+  default:
+    external:
+      name: external-example

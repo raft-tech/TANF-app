@@ -13,6 +13,7 @@ else
     gunicorn_params="--bind 0.0.0.0:8080 --timeout 10 --workers 3 --log-level $LOGGING_LEVEL"
 fi
 
-gunicorn_cmd="gunicorn tdpservice.wsgi:application $gunicorn_params"
+# gunicorn_cmd="gunicorn tdpservice.wsgi:application $gunicorn_params"
+gunicorn_cmd="gunicorn -c gunicorn.py --log-file=-"
 
 exec $gunicorn_cmd
