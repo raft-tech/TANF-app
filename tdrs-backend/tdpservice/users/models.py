@@ -220,13 +220,11 @@ class User(AbstractUser):
         """
         
         if not self._adding:
-            print('===================================---------------------after adding--===========================')
             current_status = self._loaded_values["account_approval_status"]
             new_status = self.account_approval_status
 
             if new_status != current_status:
                 """Send account status update emails after save."""
-                print('===================================---------------------after status--===========================')
 
                 super(User, self).save(*args, **kwargs)
 
