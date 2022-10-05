@@ -45,7 +45,7 @@ pyjwt = "==2.4.0"
 requests = "==2.27.1"
 wait-for-it = "==2.2.0"
 requests-mock = "==1.9.3"
-elasticsearch = "==7.13.4"
+elasticsearch = "==7.13.4" # REQUIRED - v7.14.0 introduces breaking changes
 django-elasticsearch-dsl = "==7.1.1"
 django-elasticsearch-dsl-drf = "==0.22.5"
 requests-aws4auth = "==1.1.2"
