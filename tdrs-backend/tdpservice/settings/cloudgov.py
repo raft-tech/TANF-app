@@ -66,8 +66,8 @@ class CloudGov(Common):
     #
     env_based_db_name = f'tdp_db_{cloudgov_space_suffix}_{cloudgov_name}'
 
-    db_name = database_creds['db_name'] if (cloudgov_space_suffix in ["prod",  "staging"]) else env_based_db_name
-
+    # db_name = database_creds['db_name'] if (cloudgov_space_suffix in ["prod",  "staging"]) else env_based_db_name
+    db_name = f'tdp-db-dev'
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
