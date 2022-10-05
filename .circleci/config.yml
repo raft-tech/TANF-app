@@ -692,8 +692,7 @@ workflows:
       - deploy-infrastructure-dev:
           target_env: << pipeline.parameters.target_env >>
       - deploy-dev:
-#          target_env: << pipeline.parameters.target_env >>
-          target_env: develop
+          target_env: << pipeline.parameters.target_env >>
           requires:
             - deploy-infrastructure-dev
 
