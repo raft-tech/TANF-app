@@ -373,7 +373,7 @@ commands:
       - run:
           name: Output terraform Example
           path: <<parameters.tf-path>>
-          command: echo NON_PROD_JWT_KEY=\"$(terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)\" > /tdrs-backend/tf_vars.env;
+          command: mkdir /tmp/artifacts && echo NON_PROD_JWT_KEY=\"$(terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)\" > /tdrs-backend/tf_vars.env;
       - store_artifacts:
           path: /tdrs-backend/tf_vars.env
           destination: artifact-file
