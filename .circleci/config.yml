@@ -690,9 +690,11 @@ workflows:
 #    when: << pipeline.parameters.run_dev_deployment >>
     jobs:
       - deploy-infrastructure-dev:
-          target_env: << pipeline.parameters.target_env >>
+#          target_env: << pipeline.parameters.target_env >>
+          target_env: develop
       - deploy-dev:
-          target_env: << pipeline.parameters.target_env >>
+#          target_env: << pipeline.parameters.target_env >>
+          target_env: develop
           requires:
             - deploy-infrastructure-dev
 
