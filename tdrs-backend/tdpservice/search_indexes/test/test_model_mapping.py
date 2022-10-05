@@ -13,6 +13,7 @@ fake = Faker()
 
 @pytest.mark.django_db
 def test_does_not_create_index_if_model_creation_fails():
+    """Index creation shouldn't happen if saving a model errors."""
     record_num = fake.uuid4()
 
     with pytest.raises(IntegrityError):
@@ -34,6 +35,7 @@ def test_does_not_create_index_if_model_creation_fails():
 
 @pytest.mark.django_db
 def test_can_create_and_index_t1_submission(user):
+    """T1 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
     submission = T1.objects.create(
@@ -100,6 +102,7 @@ def test_can_create_and_index_t1_submission(user):
 
 @pytest.mark.django_db
 def test_can_create_and_index_t2_submission(regional_user, stt):
+    """T2 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
     submission = T2.objects.create(
@@ -190,6 +193,7 @@ def test_can_create_and_index_t2_submission(regional_user, stt):
 
 @pytest.mark.django_db
 def test_can_create_and_index_t3_submission(data_analyst, region):
+    """T3 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
     submission = T3.objects.create(
@@ -232,6 +236,7 @@ def test_can_create_and_index_t3_submission(data_analyst, region):
 
 @pytest.mark.django_db
 def test_can_create_and_index_t4_submission(data_analyst, regional_user):
+    """T4 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
     submission = T4.objects.create(
@@ -265,6 +270,7 @@ def test_can_create_and_index_t4_submission(data_analyst, regional_user):
 
 @pytest.mark.django_db
 def test_can_create_and_index_t5_submission(data_analyst, regional_user):
+    """T5 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
     submission = T5.objects.create(
@@ -315,6 +321,7 @@ def test_can_create_and_index_t5_submission(data_analyst, regional_user):
 
 @pytest.mark.django_db
 def test_can_create_and_index_t6_submission(user, deactivated_user):
+    """T6 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
     submission = T6.objects.create(
@@ -355,6 +362,7 @@ def test_can_create_and_index_t6_submission(user, deactivated_user):
 
 @pytest.mark.django_db
 def test_can_create_and_index_t7_submission(user, deactivated_user):
+    """T7 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
     submission = T7.objects.create(
