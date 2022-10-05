@@ -17,7 +17,7 @@ def test_access_request_sends_email(user, mocker):
     user.save()
 
     assert user.account_approval_status == 'Access request'
-    tdpservice.email.email.mail.delay.assert_called_once()  
+    tdpservice.email.email.mail.delay.assert_called_once()
 
 
 @pytest.mark.django_db
@@ -32,7 +32,7 @@ def test_access_request_approved_sends_email(user, mocker):
     user.save()
 
     assert user.account_approval_status == 'Approved'
-    tdpservice.email.email.mail.delay.assert_called_once()    
+    tdpservice.email.email.mail.delay.assert_called_once()
 
 @pytest.mark.django_db
 def test_access_denied_sends_email(user, mocker):
@@ -46,7 +46,7 @@ def test_access_denied_sends_email(user, mocker):
     user.save()
 
     assert user.account_approval_status == 'Denied'
-    tdpservice.email.email.mail.delay.assert_called_once()    
+    tdpservice.email.email.mail.delay.assert_called_once()
 
 @pytest.mark.django_db
 def test_deactivating_user_sends_email(user, mocker):
@@ -60,4 +60,4 @@ def test_deactivating_user_sends_email(user, mocker):
     user.save()
 
     assert user.account_approval_status == 'Deactivated'
-    tdpservice.email.email.mail.delay.assert_called_once()    
+    tdpservice.email.email.mail.delay.assert_called_once()

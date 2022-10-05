@@ -3,8 +3,7 @@
 import logging
 import uuid
 
-from tdpservice.email.email import mail
-from tdpservice.email.email_enums import EmailType
+from tdpservice.email.email import send_approval_status_update_email
 
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -218,7 +217,6 @@ class User(AbstractUser):
         The existing values can be accessed using `self._loaded_values`
         which are set by `from_db`
         """
-        
         if not self._adding:
             current_status = self._loaded_values["account_approval_status"]
             new_status = self.account_approval_status
@@ -228,61 +226,16 @@ class User(AbstractUser):
 
                 super(User, self).save(*args, **kwargs)
 
-                match new_status:
-                    case AccountApprovalStatusChoices.INITIAL:
-                        print("initial")
-                        pass
-                    case AccountApprovalStatusChoices.ACCESS_REQUEST:
-                        mail.delay(
-                            email_path=EmailType.ACCESS_REQUEST_SUBMITTED.value,
-                            recipient_email=self.email,
-                            subject="Account requested",
-                            email_context={
-                                "first_name": self.first_name,
-                                "stt_name": str(self.stt),
-                                "text_message": "Your account has been requested.",
-                            },
-                        )
-                        pass
-                    case AccountApprovalStatusChoices.PENDING:
-                        print("pending")
-                        pass
-                    case AccountApprovalStatusChoices.APPROVED:
-                        mail.delay(
-                            email_path=EmailType.REQUEST_APPROVED.value,
-                            recipient_email=self.email,
-                            subject="Request approved",
-                            email_context={
-                                "first_name": self.first_name,
-                                "stt_name": str(self.stt),
-                                "group_permission": str(self.groups.first()),
-                                "text_message": "Your account request has been approved.",
-                            },
-                        )
-                        pass
-                    case AccountApprovalStatusChoices.DENIED:
-                        mail.delay(
-                            email_path=EmailType.REQUEST_DENIED.value,
-                            recipient_email=self.email,
-                            subject="Request denied",
-                            email_context={
-                                "first_name": self.first_name,
-                                "text_message": "Your account request has been denied.",
-                            },
-                        )
-                        pass
-                    case AccountApprovalStatusChoices.DEACTIVATED:
-                        print('Deactivating')
-                        mail.delay(
-                            email_path=EmailType.REQUEST_DENIED.value,
-                            recipient_email=self.email,
-                            subject="Account deactivated",
-                            email_context={
-                                "first_name": self.first_name,
-                                "text_message": "Your account has been deactivated.",
-                            },
-                        )
-                        pass
+                send_approval_status_update_email(
+                    new_status,
+                    self.email,
+                    {
+                        "first_name": self.first_name,
+                        "stt_name": str(self.stt),
+                        "group_permission": str(self.groups.first()),
+                    }
+                )
+
                 return
 
         super(User, self).save(*args, **kwargs)
