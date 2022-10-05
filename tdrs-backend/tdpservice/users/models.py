@@ -99,6 +99,8 @@ class User(AbstractUser):
             "Users in an approved state are allowed access."
         ),
     )
+    _loaded_values = None
+    _adding = True
 
     def __str__(self):
         """Return the username as the string representation of the object."""
@@ -206,8 +208,7 @@ class User(AbstractUser):
         https://docs.djangoproject.com/en/4.1/ref/models/instances/#customizing-model-loading
         """
         instance = super().from_db(db, field_names, values)
-        instance._state.adding = False
-        instance._state.db = db
+        instance._adding = False
         instance._loaded_values = dict(zip(field_names, values))
         return instance
 
@@ -217,12 +218,15 @@ class User(AbstractUser):
         The existing values can be accessed using `self._loaded_values`
         which are set by `from_db`
         """
-        if not self._state.adding:
+        
+        if not self._adding:
+            print('===================================---------------------after adding--===========================')
             current_status = self._loaded_values["account_approval_status"]
             new_status = self.account_approval_status
 
             if new_status != current_status:
                 """Send account status update emails after save."""
+                print('===================================---------------------after status--===========================')
 
                 super(User, self).save(*args, **kwargs)
 
@@ -270,10 +274,11 @@ class User(AbstractUser):
                         )
                         pass
                     case AccountApprovalStatusChoices.DEACTIVATED:
+                        print('Deactivating')
                         mail.delay(
                             email_path=EmailType.REQUEST_DENIED.value,
                             recipient_email=self.email,
-                            subject="Request denied",
+                            subject="Account deactivated",
                             email_context={
                                 "first_name": self.first_name,
                                 "text_message": "Your account has been deactivated.",
