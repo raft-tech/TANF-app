@@ -1,0 +1,82 @@
+  get-app-deploy-strategy:
+    steps:
+      - run:
+          name: Determine deploy strategy
+          command: |
+            # NOTE: The || true is a no-op included to suppress exit codes which
+            #       would cause the step to exit early due to use of pipefail
+            APP_GUID=$(cf app tdp-frontend-sandbox --guid || true)
+            if [ "$APP_GUID" == "FAILED" ]; then
+              echo "export DEPLOY_STRATEGY=initial" >> $BASH_ENV
+            else
+              echo "export DEPLOY_STRATEGY=rolling" >> $BASH_ENV
+            fi
+
+  disable-npm-audit:
+    steps:
+      - run:
+          name: Disable npm audit warnings in CI
+          command: npm set audit false
+
+  # This allows us to use the orb stanza for node/install within other commands
+  # NOTE: This doesn't work correctly on machine executors
+  install-nodejs: node/install
+
+  # This allows us to use the node orb to install packages within other commands
+  install-nodejs-packages: node/install-packages
+
+  cf-check:
+    steps:
+      - run:
+          name: Ensure cf cli is installed, otherwise install it.
+          command: sudo ./scripts/cf-check.sh
+
+  deploy-clamav:
+    steps:
+      - run:
+          name: Deploy ClamAV REST application
+          command: |
+            cf push clamav-rest -f tdrs-backend/manifest.clamav.yml \
+              --var cf-space=tanf-dev \
+      - run:
+          name: Enable internal route between backend and clamav-rest app
+          command: |
+            cf add-network-policy tdp-backend-sandbox clamav-rest \
+              -s tanf-dev \
+              -o ${CF_ORG} \
+              --protocol tcp \
+              --port 9000
+
+  sudo-check:
+    steps:
+      - run:
+          name: Ensure sudo is installed, otherwise install it.
+          command: ./scripts/sudo-check.sh
+ 
+  deploy-backend:
+    steps:
+      - get-app-deploy-strategy
+      - run:
+          name: Deploy backend application
+          command: |
+            bash ./scripts/deploy-backend.sh \
+              $DEPLOY_STRATEGY \
+              tdp-backend-sandbox \
+              tanf-dev
+
+  deploy-frontend:
+    steps:
+      - install-nodejs:
+          node-version: "16.13"
+      - disable-npm-audit
+      - install-nodejs-packages:
+          app-dir: tdrs-frontend
+      - get-app-deploy-strategy
+      - run:
+          name: Deploy frontend application
+          command: |
+            bash ./scripts/deploy-frontend.sh \
+              $DEPLOY_STRATEGY \
+              tdp-frontend-sandbox \
+              tdp-backend-sandbox \
+              tanf-dev

@@ -1,0 +1,48 @@
+  deploy-infrastructure:
+    executor: terraform/default
+    working_directory: ~/tdp-deploy
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apk update
+            apk add jq
+            apk add curl
+            # TODO: Add Signature check
+            curl -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github" | tar -zx
+            mv cf7 /usr/local/bin/cf
+      - login-cloud-dot-gov
+      - run:
+          name: Export S3 Credentials for TFState
+          command: |
+            S3_CREDENTIALS=$(cf service-key tdp-tf-states tdp-tf-key | tail -n +2)
+            {
+              echo "access_key = \"$(echo "${S3_CREDENTIALS}" | jq -r .access_key_id)\""
+              echo "secret_key = \"$(echo "${S3_CREDENTIALS}" | jq -r .secret_access_key)\""
+              echo "region = \"$(echo "${S3_CREDENTIALS}" | jq -r '.region')\""
+              echo "bucket = \"$(echo "${S3_CREDENTIALS}" | jq -r '.bucket')\""
+            } >> ./backend_config.tfvars
+      - run:
+          name: Prepare Terraform Variables
+          command: |
+            S3_CREDENTIALS=$(cf service-key tdp-tf-states tdp-tf-key | tail -n +2)
+            {
+              echo "cf_password = \"$CF_PASSWORD_DEV\""
+              echo "cf_user = \"$CF_USERNAME_DEV\""
+              echo "cf_space_name = \"tanf-dev\""
+              echo "cf_app_name = \"CF_APP\""
+            } >> ./variables.tfvars
+      - terraform/init:
+          path: ./terraform/dev
+          backend_config_file: ./backend_config.tfvars
+      - terraform/validate:
+          path: ./terraform/dev
+      - terraform/fmt:
+          path: ./terraform/dev
+      - terraform/plan:
+          path: ./terraform/dev
+          var_file: ./variables.tfvars
+      - terraform/apply:
+          path: ./terraform/dev
+          var_file: ./variables.tfvars

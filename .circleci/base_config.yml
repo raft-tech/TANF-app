@@ -1,0 +1,49 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@4.7.0
+  terraform: circleci/terraform@2.1.0
+  jq: circleci/jq@2.2.0
+
+executors:
+  docker-executor:
+    docker:
+      - image: cimg/python:3.10.1
+        user: root
+  machine-executor:
+    machine:
+      docker_layer_caching: false
+      image: ubuntu-2004:202104-01
+
+parameters:
+  run_dev_deployment:
+    type: boolean
+    default: false
+  run_owasp_scan:
+    type: boolean
+    default: false
+  target_env:
+    type: string
+    default: ''
+
+workflows:
+  build-and-test:
+    unless:
+      or:
+        - << pipeline.parameters.run_dev_deployment >>
+        - << pipeline.parameters.run_owasp_scan >>
+    jobs:
+      - secrets-check
+      - test-frontend:
+          requires:
+            - secrets-check
+      - test-backend:
+          requires:
+            - secrets-check
+
+  dev-deployment:
+    jobs:
+      - deploy-infrastructure
+      - deploy:
+          requires:
+            - deploy-infrastructure

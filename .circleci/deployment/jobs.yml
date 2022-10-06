@@ -1,0 +1,11 @@
+  deploy:
+    executor: docker-executor
+    working_directory: ~/tdp-deploy
+    steps:
+      - checkout
+      - sudo-check
+      - cf-check
+      - login-cloud-dot-gov
+      - deploy-backend
+      - deploy-clamav
+      - deploy-frontend    

@@ -1,0 +1,11 @@
+  login-cloud-dot-gov:
+    description: Authenticates with Cloud.gov and sets org and space targets
+    steps:
+      - run:
+          name: Login to Cloud.gov and set application targets
+          command: |
+            cf login -a https://api.fr.cloud.gov \
+              -u ${CF_USERNAME_DEV} \
+              -p ${CF_PASSWORD_DEV} \
+              -o ${CF_ORG} \
+              -s tanf-dev
