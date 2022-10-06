@@ -40,159 +40,78 @@ commands:
 
   login-cloud-dot-gov:
     description: Authenticates with Cloud.gov and sets org and space targets
-    parameters:
-      cf-password:
-        type: env_var_name
-        default: CF_PASSWORD_DEV
-      cf-org:
-        type: env_var_name
-        default: CF_ORG
-      cf-space:
-        type: string
-        default: tanf-dev
-      cf-username:
-        type: env_var_name
-        default: CF_USERNAME_DEV
     steps:
       - run:
           name: Login to Cloud.gov and set application targets
           command: |
             cf login -a https://api.fr.cloud.gov \
-              -u ${<<parameters.cf-username>>} \
-              -p ${<<parameters.cf-password>>} \
-              -o ${<<parameters.cf-org>>} \
-              -s <<parameters.cf-space>>
-
+              -u ${CF_USERNAME_DEV} \
+              -p ${CF_PASSWORD_DEV} \
+              -o ${CF_ORG} \
+              -s tanf-dev
 
   deploy-cloud-dot-gov:
-    parameters:
-      backend-appname:
-        default: tdp-backend
-        type: string
-      cf-password:
-        default: CF_PASSWORD_DEV
-        type: env_var_name
-      cf-org:
-        default: CF_ORG
-        type: env_var_name
-      cf-space:
-        default: tanf-dev
-        type: string
-      cf-username:
-        default: CF_USERNAME_DEV
-        type: env_var_name
-      frontend-appname:
-        default: tdp-frontend
-        type: string
     steps:
       - checkout
       - sudo-check
       - cf-check
-      - login-cloud-dot-gov:
-          cf-password: <<parameters.cf-password>>
-          cf-org: <<parameters.cf-org>>
-          cf-space: <<parameters.cf-space>>
-          cf-username: <<parameters.cf-username>>
-      - deploy-backend:
-          backend-appname: <<parameters.backend-appname>>
-          cf-space: <<parameters.cf-space>>
-      - deploy-clamav:
-          backend-appname: <<parameters.backend-appname>>
-          cf-org: <<parameters.cf-org>>
-          cf-space: <<parameters.cf-space>>
-      - deploy-frontend:
-          backend-appname: <<parameters.backend-appname>>
-          frontend-appname: <<parameters.frontend-appname>>
-          cf-space: <<parameters.cf-space>>
-
+      - login-cloud-dot-gov
+      - deploy-backend
+      - deploy-clamav
+      - deploy-frontend
 
   deploy-backend:
-    parameters:
-      backend-appname:
-        default: tdp-backend
-        type: string
-      cf-space:
-        default: tanf-dev
-        type: string
     steps:
-      - get-app-deploy-strategy:
-          appname: <<parameters.backend-appname>>
+      - get-app-deploy-strategy
       - run:
           name: Deploy backend application
           command: |
             bash ./scripts/deploy-backend.sh \
               $DEPLOY_STRATEGY \
-              <<parameters.backend-appname>> \
-              <<parameters.cf-space>>
-
-  deploy-clamav:
-    parameters:
-      backend-appname:
-        default: tdp-backend
-        type: string
-      cf-org:
-        default: CF_ORG
-        type: env_var_name
-      cf-space:
-        default: tanf-dev
-        type: string
-    steps:
-      - run:
-          name: Deploy ClamAV REST application
-          command: |
-            cf push clamav-rest -f tdrs-backend/manifest.clamav.yml \
-              --var cf-space=<<parameters.cf-space>> \
-      - run:
-          name: Enable internal route between backend and clamav-rest app
-          command: |
-            cf add-network-policy <<parameters.backend-appname>> clamav-rest \
-              -s <<parameters.cf-space>> \
-              -o ${<<parameters.cf-org>>} \
-              --protocol tcp \
-              --port 9000
+              tdp-backend-sandbox \
+              tanf-dev
 
   deploy-frontend:
-    parameters:
-      backend-appname:
-        default: tdp-backend
-        type: string
-      frontend-appname:
-        default: tdp-frontend
-        type: string
-# So the frontend knows what space its in for the banner.
-# I am unclear if the domain is a reliable metric to make this function 
-# It seems like it might not be working
-      cf-space:
-        default: dev 
-        type: string
     steps:
       - install-nodejs:
           node-version: "16.13"
       - disable-npm-audit
       - install-nodejs-packages:
           app-dir: tdrs-frontend
-      - get-app-deploy-strategy:
-          appname: <<parameters.frontend-appname>>
+      - get-app-deploy-strategy
       - run:
           name: Deploy frontend application
           command: |
             bash ./scripts/deploy-frontend.sh \
               $DEPLOY_STRATEGY \
-              <<parameters.frontend-appname>> \
-              <<parameters.backend-appname>> \
-              <<parameters.cf-space>> 
+              tdp-frontend-sandbox \
+              tdp-backend-sandbox \
+              tanf-dev
+
+  deploy-clamav:
+    steps:
+      - run:
+          name: Deploy ClamAV REST application
+          command: |
+            cf push clamav-rest -f tdrs-backend/manifest.clamav.yml \
+              --var cf-space=tanf-dev \
+      - run:
+          name: Enable internal route between backend and clamav-rest app
+          command: |
+            cf add-network-policy tdp-backend-sandbox clamav-rest \
+              -s tanf-dev \
+              -o ${CF_ORG} \
+              --protocol tcp \
+              --port 9000
 
   get-app-deploy-strategy:
-    parameters:
-      appname:
-        type: string
     steps:
       - run:
           name: Determine deploy strategy
           command: |
             # NOTE: The || true is a no-op included to suppress exit codes which
             #       would cause the step to exit early due to use of pipefail
-            APP_GUID=$(cf app <<parameters.appname>> --guid || true)
+            APP_GUID=$(cf app tdp-frontend-sandbox --guid || true)
             if [ "$APP_GUID" == "FAILED" ]; then
               echo "export DEPLOY_STRATEGY=initial" >> $BASH_ENV
             else
@@ -265,25 +184,6 @@ jobs:
   deploy-infrastructure:
     executor: terraform/default
     working_directory: ~/tdp-deploy
-    parameters:
-      tf-path:
-        type: string
-        default: ./terraform/dev
-      cf-password:
-        type: env_var_name
-        default: CF_PASSWORD_DEV
-      cf-username:
-        type: env_var_name
-        default: CF_USERNAME_DEV
-      cf-space:
-        type: string
-        default: tanf-dev
-      cf-org:
-        type: env_var_name
-        default: CF_ORG
-      cf-app:
-        type: string
-        default: CF_APP
     steps:
       - checkout
       - run:
@@ -295,10 +195,7 @@ jobs:
             # TODO: Add Signature check
             curl -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github" | tar -zx
             mv cf7 /usr/local/bin/cf
-      - login-cloud-dot-gov:
-          cf-password: <<parameters.cf-password>>
-          cf-username: <<parameters.cf-username>>
-          cf-space: <<parameters.cf-space>>
+      - login-cloud-dot-gov
       - run:
           name: Export S3 Credentials for TFState
           command: |
@@ -314,36 +211,30 @@ jobs:
           command: |
             S3_CREDENTIALS=$(cf service-key tdp-tf-states tdp-tf-key | tail -n +2)
             {
-              echo "cf_password = \"$<<parameters.cf-password>>\""
-              echo "cf_user = \"$<<parameters.cf-username>>\""
-              echo "cf_space_name = \"<<parameters.cf-space>>\""
-              echo "cf_app_name = \"<<parameters.cf-app>>\""
+              echo "cf_password = \"$CF_PASSWORD_DEV\""
+              echo "cf_user = \"$CF_USERNAME_DEV\""
+              echo "cf_space_name = \"tanf-dev\""
+              echo "cf_app_name = \"CF_APP\""
             } >> ./variables.tfvars
       - terraform/init:
-          path: <<parameters.tf-path>>
+          path: ./terraform/dev
           backend_config_file: ./backend_config.tfvars
       - terraform/validate:
-          path: <<parameters.tf-path>>
+          path: ./terraform/dev
       - terraform/fmt:
-          path: <<parameters.tf-path>>
+          path: ./terraform/dev
       - terraform/plan:
-          path: <<parameters.tf-path>>
+          path: ./terraform/dev
           var_file: ./variables.tfvars
       - terraform/apply:
-          path: <<parameters.tf-path>>
+          path: ./terraform/dev
           var_file: ./variables.tfvars
-
 
   deploy:
     executor: docker-executor
-    parameters:
-      target_env:
-        type: string
     working_directory: ~/tdp-deploy
     steps:
-      - deploy-cloud-dot-gov:
-          backend-appname: tdp-backend-<< parameters.target_env >>
-          frontend-appname: tdp-frontend-<< parameters.target_env >>
+      - deploy-cloud-dot-gov
 
   secrets-check:
     executor: docker-executor
@@ -430,6 +321,5 @@ workflows:
     jobs:
       - deploy-infrastructure
       - deploy:
-          target_env: raft
           requires:
             - deploy-infrastructure
