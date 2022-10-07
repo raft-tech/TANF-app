@@ -14,6 +14,7 @@ from tdpservice.backends import DataFilesS3Storage
 from tdpservice.stts.models import STT
 from tdpservice.users.models import User
 
+
 logger = logging.getLogger(__name__)
 
 def get_file_shasum(file: Union[File, StringIO]) -> str:

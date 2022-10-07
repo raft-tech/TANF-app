@@ -14,6 +14,29 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def send_data_submitted_email(recipient_email, upload_result):
+    """Send an email to a user when their data has been submitted."""
+    from tdpservice.data_files.models import LegacyFileTransfer
+
+    match upload_result:
+        case LegacyFileTransfer.Result.COMPLETED:
+            template_path = EmailType.DATA_SUBMITTED.value
+            subject = 'Data submitted'
+            text_message = 'Your data has been submitted.'
+        case LegacyFileTransfer.Result.ERROR:
+            template_path = EmailType.DATA_SUBMISSION_FAILED.value
+            subject = 'Data submission failed'
+            text_message = 'Your data submission has failed.'
+    
+    mail.delay(
+        recipient_email,
+        subject,
+        template_path,
+        text_message,
+        upload_result
+    )
+        
+
 def send_approval_status_update_email(
     new_approval_status,
     recipient_email,
@@ -67,7 +90,6 @@ def send_approval_status_update_email(
 @shared_task
 def mail(email_path, recipient_email, subject, email_context, text_message):
     """Send email to user."""
-    subject = email_context['subject']
     html_message = construct_email(email_path, email_context)
 
     if not text_message:
