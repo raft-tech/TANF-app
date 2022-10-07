@@ -14,26 +14,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def send_data_submitted_email(recipient_email, upload_result):
+def send_data_submitted_email(recipient_email, upload_result, context):
     """Send an email to a user when their data has been submitted."""
     from tdpservice.data_files.models import LegacyFileTransfer
 
     match upload_result:
         case LegacyFileTransfer.Result.COMPLETED:
             template_path = EmailType.DATA_SUBMITTED.value
-            subject = 'Data submitted'
+            subject = 'Data Submitted'
             text_message = 'Your data has been submitted.'
         case LegacyFileTransfer.Result.ERROR:
             template_path = EmailType.DATA_SUBMISSION_FAILED.value
-            subject = 'Data submission failed'
+            subject = 'Data Submission Failed'
             text_message = 'Your data submission has failed.'
     
-    mail.delay(
-        recipient_email,
-        subject,
-        template_path,
-        text_message,
-        upload_result
+    automated_email.delay(
+        email_path=template_path,
+        recipient_email=recipient_email,
+        subject=subject,
+        email_context=context,
+        text_message=text_message
     )
         
 
