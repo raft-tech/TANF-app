@@ -344,8 +344,8 @@ commands:
             {
               echo "access_key = \"$(echo "${S3_CREDENTIALS}" | jq -r .access_key_id)\""
               echo "secret_key = \"$(echo "${S3_CREDENTIALS}" | jq -r .secret_access_key)\""
-              echo "region = \"$(echo "${S3_CREDENTIALS}" | jq -r '.region')\""
-              echo "bucket = \"$(echo "${S3_CREDENTIALS}" | jq -r '.bucket')\""
+              echo "region     = \"$(echo "${S3_CREDENTIALS}" | jq -r '.region')\""
+              echo "bucket     = \"$(echo "${S3_CREDENTIALS}" | jq -r '.bucket')\""
             } >> ./infrastructure/dev/backend_config.tfvars
       - run:
           name: Prepare Terraform Variables
@@ -362,7 +362,7 @@ commands:
           backend_config_file: ./backend_config.tfvars
       - terraform/validate:
           path: <<parameters.tf-path>>
-      - terraform/fmt:
+      - terraform/fmt: #this terraform fmt should be in a pre-commit job or linter job in ci/cd pipline NOT HERE!!!!!
           path: <<parameters.tf-path>>
       - terraform/plan:
           path: <<parameters.tf-path>>
