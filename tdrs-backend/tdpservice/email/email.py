@@ -9,10 +9,34 @@ from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.template.loader import get_template
 
+from datetime import datetime, timedelta, timezone
 import logging
 
 logger = logging.getLogger(__name__)
 
+
+def send_deactivation_warning_email(users, days):
+    """Send an email to users that are about to be deactivated."""
+    template_path = EmailType.DEACTIVATION_WARNING.value
+    text_message = f'Your account will be deactivated in {days} days.'
+    subject = f'Account Deactivation Warning: {days} days remaining'
+    deactivation_date = datetime.now(timezone.utc) + timedelta(days=days)
+
+    for user in users:
+        recipient_email = user.email
+        context = {
+            'first_name': user.first_name,
+            'days': days,
+            'deactivation_date': deactivation_date
+        }
+
+        automated_email.delay(
+            email_path=template_path,
+            recipient_email=recipient_email,
+            subject=subject,
+            email_context=context,
+            text_message=text_message
+        )
 
 def send_approval_status_update_email(
     new_approval_status,
