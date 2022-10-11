@@ -424,3 +424,14 @@ class Common(Configuration):
     CELERY_TASK_SERIALIZER = 'json'
     CELERY_RESULT_SERIALIZER = 'json'
     CELERY_TIMEZONE = 'UTC'
+
+    CELERY_BEAT_SCHEDULE = {
+        'name': {
+            'task': 'tdpservice.scheduling.tasks.nightly_postgres',
+            'schedule': 10.0, # crontab(minute='*', hour='*'),
+            'args': "-b",
+            'options': {
+                'expires': 15.0,
+            },
+        },     
+    }
