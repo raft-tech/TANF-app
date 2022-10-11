@@ -63,6 +63,7 @@ class DataFileViewSet(ModelViewSet):
         context['user'] = self.request.user
         return context
 
+
     @action(methods=["get"], detail=True)
     def download(self, request, pk=None):
         """Retrieve a file from s3 then stream it to the client."""
