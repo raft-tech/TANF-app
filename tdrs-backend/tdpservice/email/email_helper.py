@@ -1,7 +1,6 @@
 """Helper methods for email.py."""
 from tdpservice.email.email_enums import EmailType
 from tdpservice.email.email import automated_email
-from tdpservice.users.models import User
 
 from datetime import datetime, timedelta, timezone
 import logging
@@ -85,6 +84,8 @@ def send_approval_status_update_email(
 
 def send_data_submitted_email(context):
     """Send an email to a user when their data has been submitted."""
+    from tdpservice.users.models import User
+    
     template_path = EmailType.DATA_SUBMITTED.value
     subject = 'Data Submitted'
     text_message = 'Your data has been submitted.'
