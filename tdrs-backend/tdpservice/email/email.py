@@ -7,7 +7,6 @@ from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.template.loader import get_template
 
-import datetime
 import logging
 
 logger = logging.getLogger(__name__)

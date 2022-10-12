@@ -1,6 +1,7 @@
 """Helper methods for email.py."""
 from tdpservice.email.email_enums import EmailType
 from tdpservice.email.email import automated_email
+from tdpservice.users.models import User
 
 from datetime import datetime, timedelta, timezone
 import logging
@@ -89,15 +90,17 @@ def send_data_submitted_email(context):
     text_message = 'Your data has been submitted.'
     context.update({'fiscal_year': fiscal_year()})
 
-    #TODO use stt from context to get all useres associated with stt. See issue 1845.
+    stt = context['stt_name']
+    users = User.objects.filter(stt__name=stt)
 
-    automated_email.delay(
-        email_path=template_path,
-        recipient_email=recipient_email,
-        subject=subject,
-        email_context=context,
-        text_message=text_message
-    )
+    for user in users:
+        automated_email.delay(
+            email_path=template_path,
+            recipient_email=user.email,
+            subject=subject,
+            email_context=context,
+            text_message=text_message
+        )
 
 def fiscal_year():
     """Get the current fiscal year."""
