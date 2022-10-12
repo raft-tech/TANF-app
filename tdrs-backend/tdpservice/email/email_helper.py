@@ -105,7 +105,8 @@ def send_data_submitted_email(context):
 
 def fiscal_year():
     """Get the current fiscal year."""
-    today = datetime.date.today()
+    # user datetime to get current date
+    today = datetime.now()
     if today.month >= 10:
         return f"{today.year} - Q1 (Oct - Dec)"
     elif today.month >= 7:
