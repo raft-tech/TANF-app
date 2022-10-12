@@ -85,7 +85,7 @@ def send_approval_status_update_email(
 def send_data_submitted_email(context):
     """Send an email to a user when their data has been submitted."""
     from tdpservice.users.models import User
-    
+
     template_path = EmailType.DATA_SUBMITTED.value
     subject = 'Data Submitted'
     text_message = 'Your data has been submitted.'
