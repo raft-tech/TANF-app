@@ -15,13 +15,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def send_data_submitted_email(recipient_email, context):
+def send_data_submitted_email(context):
     """Send an email to a user when their data has been submitted."""
-    from tdpservice.data_files.models import LegacyFileTransfer
-
     template_path = EmailType.DATA_SUBMITTED.value
     subject = 'Data Submitted'
     text_message = 'Your data has been submitted.'
+    context.update({'fiscal_year': fiscal_year()})
+
+    #TODO use stt from context to get all useres associated with stt. See issue 1845.
 
     automated_email.delay(
         email_path=template_path,
@@ -37,11 +38,11 @@ def fiscal_year():
     if today.month >= 10:
         return f"{today.year} - Q1 (Oct - Dec)"
     elif today.month >= 7:
-        return f"{today.year} - Q4 (Jul - Sep)"
+        return f"{today.year - 1} - Q4 (Jul - Sep)"
     elif today.month >= 4:
-        return f"{today.year} - Q3 (Apr - Jun)"
+        return f"{today.year - 1} - Q3 (Apr - Jun)"
     else:
-        return f"{today.year} - Q2 (Jan - Mar)"
+        return f"{today.year - 1} - Q2 (Jan - Mar)"
 
 def send_approval_status_update_email(
     new_approval_status,

@@ -56,10 +56,7 @@ class DataFileViewSet(ModelViewSet):
         """Override create to upload in case of successful scan."""
         response = super().create(request, *args, **kwargs)
         user = DataFile.objects.get(id=response.data.get('id')).user
-        print(user)
 
-        user = DataFile.objects.get(id=response.data.get('id')).user
-        upload_result = None
         # Upload to ACF-TITAN only if file is passed the virus scan and created
         if response.status_code == status.HTTP_201_CREATED or response.status_code == status.HTTP_200_OK:
             sftp_task.upload.delay(
@@ -71,7 +68,12 @@ class DataFileViewSet(ModelViewSet):
             )
             upload_result = LegacyFileTransfer.Result.COMPLETED
             # Send email to user to notify them of the file upload status
-            send_data_submitted_email(user)
+            email_context = {
+                'stt_name': str(user.stt),
+                'submission_date': response.data.get('created_at'),
+                'submitted_by': user.get_full_name(),
+                }
+            send_data_submitted_email(email_context)
 
         return response
 
