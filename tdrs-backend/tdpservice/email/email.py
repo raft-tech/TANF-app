@@ -9,25 +9,20 @@ from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.template.loader import get_template
 
+import datetime
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def send_data_submitted_email(recipient_email, upload_result, context):
+def send_data_submitted_email(recipient_email, context):
     """Send an email to a user when their data has been submitted."""
     from tdpservice.data_files.models import LegacyFileTransfer
 
-    match upload_result:
-        case LegacyFileTransfer.Result.COMPLETED:
-            template_path = EmailType.DATA_SUBMITTED.value
-            subject = 'Data Submitted'
-            text_message = 'Your data has been submitted.'
-        case LegacyFileTransfer.Result.ERROR:
-            template_path = EmailType.DATA_SUBMISSION_FAILED.value
-            subject = 'Data Submission Failed'
-            text_message = 'Your data submission has failed.'
-    
+    template_path = EmailType.DATA_SUBMITTED.value
+    subject = 'Data Submitted'
+    text_message = 'Your data has been submitted.'
+
     automated_email.delay(
         email_path=template_path,
         recipient_email=recipient_email,
@@ -35,7 +30,18 @@ def send_data_submitted_email(recipient_email, upload_result, context):
         email_context=context,
         text_message=text_message
     )
-        
+
+def fiscal_year():
+    """Get the current fiscal year."""
+    today = datetime.date.today()
+    if today.month >= 10:
+        return f"{today.year} - Q1 (Oct - Dec)"
+    elif today.month >= 7:
+        return f"{today.year} - Q4 (Jul - Sep)"
+    elif today.month >= 4:
+        return f"{today.year} - Q3 (Apr - Jun)"
+    else:
+        return f"{today.year} - Q2 (Jan - Mar)"
 
 def send_approval_status_update_email(
     new_approval_status,

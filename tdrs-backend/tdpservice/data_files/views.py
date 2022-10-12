@@ -71,10 +71,7 @@ class DataFileViewSet(ModelViewSet):
             )
             upload_result = LegacyFileTransfer.Result.COMPLETED
             # Send email to user to notify them of the file upload status
-            send_data_submitted_email(user, upload_result)
-        else:
-            upload_result = LegacyFileTransfer.Result.ERROR
-            send_data_submitted_email(user, upload_result)
+            send_data_submitted_email(user)
 
         return response
 
