@@ -1,7 +1,5 @@
 """Wrapper to send emails with Django."""
 
-from tdpservice.email.email_enums import EmailType
-
 from celery import shared_task
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -15,88 +13,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def send_data_submitted_email(context):
-    """Send an email to a user when their data has been submitted."""
-    template_path = EmailType.DATA_SUBMITTED.value
-    subject = 'Data Submitted'
-    text_message = 'Your data has been submitted.'
-    context.update({'fiscal_year': fiscal_year()})
-
-    #TODO use stt from context to get all useres associated with stt. See issue 1845.
-
-    automated_email.delay(
-        email_path=template_path,
-        recipient_email=recipient_email,
-        subject=subject,
-        email_context=context,
-        text_message=text_message
-    )
-
-def fiscal_year():
-    """Get the current fiscal year."""
-    today = datetime.date.today()
-    if today.month >= 10:
-        return f"{today.year} - Q1 (Oct - Dec)"
-    elif today.month >= 7:
-        return f"{today.year - 1} - Q4 (Jul - Sep)"
-    elif today.month >= 4:
-        return f"{today.year - 1} - Q3 (Apr - Jun)"
-    else:
-        return f"{today.year - 1} - Q2 (Jan - Mar)"
-
-def send_approval_status_update_email(
-    new_approval_status,
-    recipient_email,
-    context
-):
-    """Send an email to a user when their account approval status is updated."""
-    from tdpservice.users.models import AccountApprovalStatusChoices
-
-    template_path = None
-    subject = None
-    text_message = None
-
-    match new_approval_status:
-        case AccountApprovalStatusChoices.INITIAL:
-            print("initial")
-            return
-
-        case AccountApprovalStatusChoices.ACCESS_REQUEST:
-            template_path = EmailType.ACCESS_REQUEST_SUBMITTED.value
-            subject = 'Access Request Submitted'
-            text_message = 'Your account has been requested.'
-
-        case AccountApprovalStatusChoices.PENDING:
-            print("pending")
-            return
-
-        case AccountApprovalStatusChoices.APPROVED:
-            template_path = EmailType.REQUEST_APPROVED.value
-            subject = 'Access Request Approved'
-            text_message = 'Your account request has been approved.'
-
-        case AccountApprovalStatusChoices.DENIED:
-            template_path = EmailType.REQUEST_DENIED.value
-            subject = 'Access Request Denied'
-            text_message = 'Your account request has been denied.'
-
-        case AccountApprovalStatusChoices.DEACTIVATED:
-            template_path = EmailType.ACCOUNT_DEACTIVATED.value
-            subject = 'Account is Deactivated'
-            text_message = 'Your account has been deactivated.'
-    context.update({'subject': subject})
-    automated_email.delay(
-        email_path=template_path,
-        recipient_email=recipient_email,
-        subject=subject,
-        email_context=context,
-        text_message=text_message
-    )
-
-
 @shared_task
 def automated_email(email_path, recipient_email, subject, email_context, text_message):
     """Send email to user."""
+    logger.info(f"Starting celery task to send email to {recipient_email}")
     html_message = construct_email(email_path, email_context)
 
     send_email(subject, text_message, html_message, [recipient_email])
@@ -104,12 +24,16 @@ def automated_email(email_path, recipient_email, subject, email_context, text_me
 
 def construct_email(email_path, context):
     """Get email template."""
+    logger.info(f"Constructing email from template {email_path}")
     template = get_template(email_path)
+    logger.info(f"Email template rendered from the path {email_path}")
+
     return template.render(context)
 
 
 def send_email(subject, message, html_message, recipient_list):
     """Send an email to a list of recipients."""
+    logger.info(f"Envoked send_email with subject {subject}")
     valid_emails = filter_valid_emails(recipient_list)
     email = EmailMultiAlternatives(
         subject=subject,
@@ -124,6 +48,8 @@ def send_email(subject, message, html_message, recipient_list):
             f"Emails were attempted to the following email list: {valid_emails}. \
         But none were sent. They may be invalid."
         )
+
+    logger.info(f"{num_emails_sent} email(s) sent to {valid_emails}.")
 
 
 def filter_valid_emails(emails):

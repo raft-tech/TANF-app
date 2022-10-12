@@ -18,7 +18,7 @@ from tdpservice.data_files.serializers import DataFileSerializer
 from tdpservice.data_files.models import DataFile, LegacyFileTransfer
 from tdpservice.users.permissions import DataFilePermissions
 from tdpservice.scheduling import sftp_task
-from tdpservice.email.email import send_data_submitted_email
+from tdpservice.email.email_helper import send_data_submitted_email
 
 
 class DataFileFilter(filters.FilterSet):
