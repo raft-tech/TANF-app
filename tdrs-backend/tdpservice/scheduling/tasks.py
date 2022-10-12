@@ -14,11 +14,14 @@ logger = logging.getLogger(__name__)
 @shared_task
 def check_for_accounts_needing_deactivation_warning():
     """Check for accounts that need deactivation warning emails."""
-    deactivate_in_10_days = User.objects.filter(last_login__lte=datetime.now(tz=timezone.utc) - timedelta(days=170)).filter(
+    deactivate_in_10_days = User.objects.filter(
+        last_login__lte=datetime.now(tz=timezone.utc) - timedelta(days=170)).filter(
         last_login__gte=datetime.now(tz=timezone.utc) - timedelta(days=171))
-    deactivate_in_3_days = User.objects.filter(last_login__lte=datetime.now(tz=timezone.utc) - timedelta(days=177)).filter(
+    deactivate_in_3_days = User.objects.filter(
+        last_login__lte=datetime.now(tz=timezone.utc) - timedelta(days=177)).filter(
         last_login__gte=datetime.now(tz=timezone.utc) - timedelta(days=178))
-    deactivate_in_1_day = User.objects.filter(last_login__lte=datetime.now(tz=timezone.utc) - timedelta(days=179)).filter(
+    deactivate_in_1_day = User.objects.filter(
+        last_login__lte=datetime.now(tz=timezone.utc) - timedelta(days=179)).filter(
         last_login__gte=datetime.now(tz=timezone.utc) - timedelta(days=180))
 
     if deactivate_in_10_days:

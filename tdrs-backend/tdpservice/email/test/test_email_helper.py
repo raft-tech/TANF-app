@@ -2,7 +2,7 @@
 import pytest
 
 import tdpservice
-from tdpservice.email.email_helper import send_deactivation_warning_email, send_approval_status_update_email
+from tdpservice.email.email_helper import send_deactivation_warning_email
 
 
 @pytest.mark.django_db
