@@ -11,13 +11,7 @@ terraform {
   }
 
   backend "s3" {
-    key    = "terraform.tfstate.dev"
-    region = "us-gov-west-1"
-    bucket = "cg-5940b4e1-0f70-44fc-b8df-9ec9be33c3a2"
-
-    # Want to give this bucket a more unique name + have a dynamodb table for state-locks
-    #    bucket  = "tdp-state-do-not-delete"
-    #    dynamodb_table = "tdp-state-do-not-delete-lock"`
+    # S3 key, region, bucket are specified in each <env>/backend.tfvars
   }
 }
 
