@@ -17,6 +17,10 @@ def test_deactivation_email_10_days(user, mocker):
         'tdpservice.email.email_helper.send_deactivation_warning_email',
         return_value=None
     )
+    mocker.patch(
+        'tdpservice.scheduling.tasks.users_to_deactivate',
+        return_value=[user]
+    )
 
     user.last_login = datetime.now(tz=timezone.utc) - timedelta(days=170)
     user.first_name = 'UniqueName'
@@ -31,6 +35,10 @@ def test_deactivation_email_3_days(user, mocker):
         'tdpservice.email.email_helper.send_deactivation_warning_email',
         return_value=None
     )
+    mocker.patch(
+        'tdpservice.scheduling.tasks.users_to_deactivate',
+        return_value=[user]
+    )
 
     user.last_login = datetime.now(tz=timezone.utc) - timedelta(days=177)
     user.first_name = 'UniqueName'
@@ -44,6 +52,10 @@ def test_deactivation_email_1_days(user, mocker):
     mocker.patch(
         'tdpservice.email.email_helper.send_deactivation_warning_email',
         return_value=None
+    )
+    mocker.patch(
+        'tdpservice.scheduling.tasks.users_to_deactivate',
+        return_value=[user]
     )
 
     user.last_login = datetime.now(tz=timezone.utc) - timedelta(days=179)
@@ -60,9 +72,22 @@ def test_no_users_to_warn(user, mocker):
         'tdpservice.email.email_helper.send_deactivation_warning_email',
         return_value=None
     )
+    mocker.patch(
+        'tdpservice.scheduling.tasks.users_to_deactivate',
+        return_value=[user]
+    )
 
     user.last_login = datetime.now() - timedelta(days=169)
     user.first_name = 'UniqueName'
     user.save()
     check_for_accounts_needing_deactivation_warning()
     tdpservice.email.email_helper.send_deactivation_warning_email.assert_not_called()
+
+@pytest.mark.django_db
+def test_users_to_deactivate(user):
+    """Test that the users_to_deactivate function returns the correct users."""
+    user.last_login = datetime.now() - timedelta(days=170)
+    user.first_name = 'UniqueName'
+    user.save()
+    users = tdpservice.scheduling.tasks.users_to_deactivate(170)
+    assert users[0].first_name == user.first_name
