@@ -306,7 +306,7 @@ commands:
     parameters:
       tf-path:
         type: string
-        default: ./infrastructure/dev
+        default: ./infrastructure
       cf-password:
         type: env_var_name
         default: CF_PASSWORD_DEV
