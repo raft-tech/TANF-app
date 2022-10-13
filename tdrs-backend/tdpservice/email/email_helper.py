@@ -92,7 +92,9 @@ def send_data_submitted_email(context):
     context.update({'fiscal_year': fiscal_year()})
 
     stt = context['stt_name']
-    users = User.objects.filter(stt__name=stt)
+    print(stt)
+    print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+    users = User.objects.filter(location=stt)
 
     for user in users:
         automated_email.delay(
