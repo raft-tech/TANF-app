@@ -362,7 +362,7 @@ commands:
           backend_config_file: ./backend_config.tfvars
       - terraform/validate:
           path: <<parameters.tf-path>>
-      - terraform/fmt: #this terraform fmt should be in a pre-commit job or linter job in ci/cd pipline NOT HERE!!!!!
+      - terraform/fmt:
           path: <<parameters.tf-path>>
       - terraform/plan:
           path: <<parameters.tf-path>>
