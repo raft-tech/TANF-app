@@ -82,38 +82,18 @@ def send_approval_status_update_email(
         text_message=text_message
     )
 
-def send_data_submitted_email(context):
+def send_data_submitted_email(recipients, context):
     """Send an email to a user when their data has been submitted."""
-    from tdpservice.users.models import User
-
     template_path = EmailType.DATA_SUBMITTED.value
     subject = 'Data Submitted'
     text_message = 'Your data has been submitted.'
-    context.update({'fiscal_year': fiscal_year()})
 
-    stt = context['stt_name']
-    print(stt)
-    print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-    users = User.objects.filter(location=stt)
+    print('fmltt')
 
-    for user in users:
-        automated_email.delay(
-            email_path=template_path,
-            recipient_email=user.email,
-            subject=subject,
-            email_context=context,
-            text_message=text_message
-        )
-
-def fiscal_year():
-    """Get the current fiscal year."""
-    # user datetime to get current date
-    today = datetime.now()
-    if today.month >= 10:
-        return f"{today.year} - Q1 (Oct - Dec)"
-    elif today.month >= 7:
-        return f"{today.year - 1} - Q4 (Jul - Sep)"
-    elif today.month >= 4:
-        return f"{today.year - 1} - Q3 (Apr - Jun)"
-    else:
-        return f"{today.year - 1} - Q2 (Jan - Mar)"
+    automated_email.delay(
+        email_path=template_path,
+        recipient_email=recipients,
+        subject=subject,
+        email_context=context,
+        text_message=text_message
+    )

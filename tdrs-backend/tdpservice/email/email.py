@@ -1,5 +1,6 @@
 """Wrapper to send emails with Django."""
 
+from array import array
 from celery import shared_task
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -14,11 +15,19 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def automated_email(email_path, recipient_email, subject, email_context, text_message):
-    """Send email to user."""
-    logger.info(f"Starting celery task to send email to {recipient_email}")
+    """
+    Send email to user.
+    recipient_email can be either a string (single recipient) or a array of strings.
+    """
+    print('fmls')
+    recipients = [recipient_email] if type(recipient_email) == str else recipient_email
+
+    print('fmls')
+
+    logger.info(f"Starting celery task to send email to {recipients}")
     html_message = construct_email(email_path, email_context)
 
-    send_email(subject, text_message, html_message, [recipient_email])
+    send_email(subject, text_message, html_message, recipients)
 
 
 def construct_email(email_path, context):

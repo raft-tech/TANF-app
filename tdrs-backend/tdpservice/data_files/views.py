@@ -1,6 +1,7 @@
 """Check if user is authorized."""
 
 from django.http import FileResponse
+from django.contrib.auth.models import Group
 from django_filters import rest_framework as filters
 from django.conf import settings
 from drf_yasg.openapi import Parameter
@@ -14,6 +15,7 @@ from rest_framework.decorators import action
 from wsgiref.util import FileWrapper
 from rest_framework import status
 
+from tdpservice.users.models import AccountApprovalStatusChoices, User
 from tdpservice.data_files.serializers import DataFileSerializer
 from tdpservice.data_files.models import DataFile
 from tdpservice.users.permissions import DataFilePermissions
@@ -55,7 +57,6 @@ class DataFileViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Override create to upload in case of successful scan."""
         response = super().create(request, *args, **kwargs)
-        user = DataFile.objects.get(id=response.data.get('id')).user
 
         # Upload to ACF-TITAN only if file is passed the virus scan and created
         if response.status_code == status.HTTP_201_CREATED or response.status_code == status.HTTP_200_OK:
@@ -67,13 +68,24 @@ class DataFileViewSet(ModelViewSet):
                 port=22
             )
 
+            user = request.user
+            data_file = DataFile.objects.get(id=response.data.get('id'))
+
             # Send email to user to notify them of the file upload status
             email_context = {
-                'stt_name': str(user.stt),
-                'submission_date': response.data.get('created_at'),
+                'stt_name': str(data_file.stt),
+                'submission_date': data_file.created_at,
                 'submitted_by': user.get_full_name(),
-                }
-            send_data_submitted_email(email_context)
+                'fiscal_year': data_file.fiscal_year
+            }
+
+            recipients = User.objects.filter(
+                location_id=data_file.stt.id,
+                account_approval_status=AccountApprovalStatusChoices.APPROVED,
+                groups=Group.objects.get(name='Data Analyst')
+            ).values_list('username', flat=True).distinct()
+
+            send_data_submitted_email(list(recipients), email_context)
 
         return response
 

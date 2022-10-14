@@ -157,6 +157,22 @@ class DataFile(FileRecord):
         else:
             return self.stt.filenames.get(self.section, self.create_filename())
 
+    @property
+    def fiscal_year(self):
+        quarter_month_str = ""
+
+        match self.quarter:
+            case DataFile.Quarter.Q1:
+                quarter_month_str = "(Oct - Dec)"
+            case DataFile.Quarter.Q2:
+                quarter_month_str = "(Jul - Sep)"
+            case DataFile.Quarter.Q3:
+                quarter_month_str = "(Apr - Jun)"
+            case DataFile.Quarter.Q4:
+                quarter_month_str = "(Jan - Mar)"
+
+        return f"{self.year} - {self.quarter} {quarter_month_str}"
+
     def create_filename(self, prefix='ADS.E2J'):
         """Return a valid file name for sftp transfer."""
         """TODO: This method has to be removed"""
