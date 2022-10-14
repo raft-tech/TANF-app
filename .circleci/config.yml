@@ -359,7 +359,7 @@ commands:
             } >> << parameters.tf-path >>/variables.tfvars
       - terraform/init:
           path: <<parameters.tf-path>>
-          backend_config_file: ./backend_config.tfvars
+          backend_config_file: << parameters.tf-path >>/backend_config.tfvars
       - terraform/validate:
           path: <<parameters.tf-path>>
       - terraform/fmt:
