@@ -107,5 +107,4 @@ def upload(data_file_pk,
         file_transfer_record.file_size = 0
         file_transfer_record.result = LegacyFileTransfer.Result.ERROR
         file_transfer_record.save()
-        transport.close()
         return False
