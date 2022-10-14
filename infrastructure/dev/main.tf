@@ -12,7 +12,7 @@ terraform {
 
   backend "s3" {
     # S3 region, bucket are specified in each <env>/backend.tfvars
-    key    = "terraform.tfstate.dev"
+    key = "terraform.tfstate.dev"
   }
 }
 
