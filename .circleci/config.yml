@@ -352,10 +352,10 @@ commands:
           command: |
             S3_CREDENTIALS=$(cf service-key tdp-tf-states tdp-tf-key | tail -n +2)
             {
-              echo "cf_password = \"$<<parameters.cf-password>>\""
-              echo "cf_user = \"$<<parameters.cf-username>>\""
+              echo "cf_password   = \"$<<parameters.cf-password>>\""
+              echo "cf_user       = \"$<<parameters.cf-username>>\""
               echo "cf_space_name = \"<<parameters.cf-space>>\""
-              echo "cf_app_name = \"<<parameters.cf-app>>\""
+              echo "cf_app_name   = \"<<parameters.cf-app>>\""
             } >> << parameters.tf-path >>/variables.tfvars
       - terraform/init:
           path: <<parameters.tf-path>>
