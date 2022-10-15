@@ -363,7 +363,7 @@ commands:
             cd /root/tdp-deploy/infrastructure/dev
             terraform init -backend-config=./backend_config.tfvars
             terraform plan -var-file=./variables.tfvars
-            terraform apply -var-file=./variables.tfvars
+            terraform apply -var-file=./variables.tfvars -auto-approve
       - run:
           name: Export cf app env vars to artifact
           command: |
