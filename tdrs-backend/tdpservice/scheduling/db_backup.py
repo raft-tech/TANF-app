@@ -173,7 +173,7 @@ def upload_file(file_name, bucket, sys_values, object_name=None, region='us-gov-
     if object_name is None:
         object_name = os.path.basename(file_name)
 
-    if settings.REDIS_SERVER_LOCAL is True:
+    if settings.USE_LOCALSTACK is True:
         s3_client = boto3.client('s3',
                                  region_name=region,
                                  aws_secret_access_key=sys_values['AWS_SECRET_ACCESS_KEY'],
