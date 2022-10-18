@@ -32,7 +32,10 @@ def get_system_values():
             sys_values['S3_ACCESS_KEY_ID'] = settings.AWS_S3_DATAFILES_ACCESS_KEY 
             sys_values['S3_SECRET_ACCESS_KEY'] = settings.AWS_S3_DATAFILES_SECRET_KEY 
             sys_values['S3_BUCKET'] = settings.AWS_S3_DATAFILES_BUCKET_NAME 
-            sys_values['S3_REGION'] = settings.AWS_S3_DATAFILES_REGION_NAME 
+            sys_values['S3_REGION'] = settings.AWS_S3_DATAFILES_REGION_NAME
+            sys_values['AWS_ACCESS_KEY_ID'] = 'test'
+            sys_values['AWS_SECRET_ACCESS_KEY'] = 'test'
+
 
 
             # Set Database connection info
@@ -58,6 +61,9 @@ def get_system_values():
                         + sys_values['DATABASE_PASSWORD'])
             os.environ['PGPASSFILE'] = '/root/.pgpass'
             os.system('chmod 0600 /root/.pgpass')
+            os.environ['AWS_S3_ENDPOINT']='http://localstack:4566'
+            logger.info('_____1_____'+str(os.environ))
+            logger.info('_____2_____'+str(sys_values))
             return sys_values
     else:
         try:
@@ -170,10 +176,17 @@ def upload_file(file_name, bucket, sys_values, object_name=None, region='us-gov-
     :param region: s3 AWS region to be used. defaults to government west
     :return: True is file is uploaded, False if not successful
     """
+    logger.info('_____3_____'+str(file_name))
+    logger.info('_____4_____'+str(bucket))
+    logger.info('_____5_____'+str(object_name))
     if object_name is None:
         object_name = os.path.basename(file_name)
     # upload the file
-    s3_client = boto3.client('s3', region_name=region, aws_secret_access_key=sys_values['S3_SECRET_ACCESS_KEY'], aws_access_key_id=sys_values['S3_ACCESS_KEY_ID'])
+    s3_client = boto3.client('s3',
+                        region_name=region,
+                        aws_secret_access_key=sys_values['S3_SECRET_ACCESS_KEY'],
+                        aws_access_key_id=sys_values['S3_ACCESS_KEY_ID'],
+                        endpoint_url='http://localstack:4566')
     try:
         s3_client.upload_file(file_name, bucket, object_name)
         print("Uploaded {} to S3:{}{}".format(file_name, bucket, object_name))
@@ -268,7 +281,7 @@ def main(argv, sys_values):
                     bucket=sys_values['S3_BUCKET'],
                     sys_values=sys_values,
                     region=sys_values['S3_REGION'],
-                    object_name="/backup"+arg_file)
+                    object_name="backup"+arg_file)
         os.system('rm ' + arg_file)
         sys.exit(0)
 
