@@ -23,7 +23,7 @@ def get_system_values():
     """Return dict of keys and settings to use whether local or deployed."""
     sys_values = {}
 
-    if settings.REDIS_SERVER_LOCAL is True:
+    if settings.USE_LOCALSTACK is True:
 
         # TODO: ensure pg_client is available in docker images
 
