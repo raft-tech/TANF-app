@@ -6,7 +6,6 @@ from django.db.utils import IntegrityError
 from tdpservice.search_indexes.models import T1, T2, T3, T4, T5, T6, T7
 from tdpservice.search_indexes import documents
 
-# Create your tests here.
 
 fake = Faker()
 
