@@ -181,11 +181,7 @@ def upload_file(file_name, bucket, sys_values, object_name=None, region='us-gov-
                                  aws_access_key_id=sys_values['AWS_ACCESS_KEY_ID'],
                                  endpoint_url='http://localstack:4566')
     else:
-        s3_client = boto3.client('s3',
-                                 region_name=region,
-                                 aws_secret_access_key=sys_values['S3_SECRET_ACCESS_KEY'],
-                                 aws_access_key_id=sys_values['S3_ACCESS_KEY_ID'],
-                                 endpoint_url=sys_values['S3_URI'])
+        s3_client = boto3.client('s3', region_name=sys_values['S3_REGION'])
 
     s3_client.upload_file(file_name, bucket, object_name)
     print("Uploaded {} to S3:{}{}".format(file_name, bucket, object_name))
@@ -296,7 +292,10 @@ def main(argv, sys_values):
 
 def run_backup(arg):
     """No params, setup for actual backup call."""
-    main([arg], sys_values=get_system_values())
+    if settings.USE_LOCALSTACK is True:
+        logging.info("Won't backup locally")
+    else:
+        main([arg], sys_values=get_system_values())
 
 
 if __name__ == '__main__':
