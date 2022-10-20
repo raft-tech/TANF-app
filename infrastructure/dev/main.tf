@@ -75,19 +75,7 @@ resource "cloudfoundry_service_instance" "datafiles" {
   recursive_delete = true
 }
 
-#data "cloudfoundry_app" "tdp_backend_raft" {
-#  name_or_id = var.cf_app_backend_raft_name
-#  space      = data.cloudfoundry_space.space.id
-#}
-
-resource "cloudfoundry_app" "testapp" {
-  name      = "test-app"
-  space     = data.cloudfoundry_space.space.id
-  buildpack = "https://github.com/cloudfoundry/python-buildpack.git#v1.7.55"
-  command   = "./tdrs-backend/gunicorn_start.sh"
-  environment = {
-    Key = "Value"
-    Num = 77
-  }
-
+data "cloudfoundry_app" "tdp_backend_raft" {
+  name_or_id = var.cf_app_backend_raft_name
+  space      = data.cloudfoundry_space.space.id
 }
