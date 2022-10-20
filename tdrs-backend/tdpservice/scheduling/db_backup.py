@@ -81,6 +81,7 @@ def get_system_values():
 
             sys_values['S3_ENV_VARS'] = json.loads(OS_ENV['VCAP_SERVICES'])['s3']
             sys_values['S3_CREDENTIALS'] = sys_values['S3_ENV_VARS'][0]['credentials']
+            sys_values['S3_URI'] = sys_values['S3_CREDENTIALS']['uri']
             sys_values['S3_ACCESS_KEY_ID'] = sys_values['S3_CREDENTIALS']['access_key_id']
             sys_values['S3_SECRET_ACCESS_KEY'] = sys_values['S3_CREDENTIALS']['secret_access_key']
             sys_values['S3_BUCKET'] = sys_values['S3_CREDENTIALS']['bucket']
@@ -107,7 +108,7 @@ def get_system_values():
                         + sys_values['DATABASE_USERNAME'] + ":"
                         + sys_values['DATABASE_PASSWORD'])
             os.environ['PGPASSFILE'] = '/home/vcap/.pgpass'
-            os.system('chmod 0600 ~/.pgpass')
+            os.system('chmod 0600 /home/vcap/.pgpass')
             return sys_values
 
         except Exception as e:
@@ -184,7 +185,7 @@ def upload_file(file_name, bucket, sys_values, object_name=None, region='us-gov-
                                  region_name=region,
                                  aws_secret_access_key=sys_values['S3_SECRET_ACCESS_KEY'],
                                  aws_access_key_id=sys_values['S3_ACCESS_KEY_ID'],
-                                 endpoint_url='http://localstack:4566')
+                                 endpoint_url=)
 
     s3_client.upload_file(file_name, bucket, object_name)
     print("Uploaded {} to S3:{}{}".format(file_name, bucket, object_name))
