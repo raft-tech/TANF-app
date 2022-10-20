@@ -12,8 +12,8 @@ terraform {
 
   backend "s3" {
     # S3 region, bucket are specified in each <env>/backend.tfvars
-    key = "terraform.tfstate.dev"
-    prefix  = var.cf_app_name
+    key    = "terraform.tfstate.dev"
+    prefix = var.cf_app_name
   }
 }
 
@@ -81,11 +81,11 @@ resource "cloudfoundry_service_instance" "datafiles" {
 #}
 
 resource "cloudfoundry_app" "testapp" {
-  name = "test-app"
-  space = data.cloudfoundry_space.space.id
+  name      = "test-app"
+  space     = data.cloudfoundry_space.space.id
   buildpack = "https://github.com/cloudfoundry/python-buildpack.git#v1.7.55"
-  command = "./tdrs-backend/gunicorn_start.sh"
-  enviornment = {
+  command   = "./tdrs-backend/gunicorn_start.sh"
+  environment = {
     Key = "Value"
     Num = 77
   }
