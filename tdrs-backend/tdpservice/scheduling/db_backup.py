@@ -155,7 +155,7 @@ def restore_database(file_name, postgres_client, database_uri):
     with open('/home/vcap/.pgpass', 'w') as f:
         f.write(DATABASE_HOST+":"+DATABASE_PORT+":"+DATABASE_DB_NAME+":"+DATABASE_USERNAME+":"+DATABASE_PASSWORD)
     os.environ['PGPASSFILE'] = '/home/vcap/.pgpass'
-    os.system('chmod 0600 ~/.pgpass')
+    os.system('chmod 0600 /home/vcap/.pgpass')
 
     os.system(postgres_client + "pg_restore" + " -p " + DATABASE_PORT + " -h " +
               DATABASE_HOST + " -U " + DATABASE_USERNAME + " -d " + DATABASE_DB_NAME + " " + file_name)
@@ -185,7 +185,7 @@ def upload_file(file_name, bucket, sys_values, object_name=None, region='us-gov-
                                  region_name=region,
                                  aws_secret_access_key=sys_values['S3_SECRET_ACCESS_KEY'],
                                  aws_access_key_id=sys_values['S3_ACCESS_KEY_ID'],
-                                 endpoint_url=)
+                                 endpoint_url=sys_values['S3_URI'])
 
     s3_client.upload_file(file_name, bucket, object_name)
     print("Uploaded {} to S3:{}{}".format(file_name, bucket, object_name))
