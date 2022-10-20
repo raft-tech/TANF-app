@@ -368,8 +368,7 @@ commands:
           name: Export cf app env vars to artifact
           command: |
             cd /root/tdp-deploy/infrastructure/dev
-            NON_PROD_JWT_KEY=$(terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)
-#            echo NON_PROD_JWT_KEY=\"$(terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)\"
+            NON_PROD_JWT_KEY=\"$(terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)\"
 jobs:
   secrets-check:
     executor: docker-executor
