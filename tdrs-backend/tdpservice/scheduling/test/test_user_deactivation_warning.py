@@ -5,6 +5,7 @@ import pytest
 import tdpservice
 from datetime import datetime, timedelta
 from tdpservice.scheduling.tasks import check_for_accounts_needing_deactivation_warning
+from tdpservice.users.models import AccountApprovalStatusChoices
 
 import logging
 logger = logging.getLogger(__name__)
@@ -88,6 +89,7 @@ def test_users_to_deactivate(user):
     """Test that the users_to_deactivate function returns the correct users."""
     user.last_login = datetime.now() - timedelta(days=170)
     user.first_name = 'UniqueName'
+    user.account_approval_status = AccountApprovalStatusChoices.APPROVED
     user.save()
-    users = tdpservice.scheduling.tasks.users_to_deactivate(170)
+    users = tdpservice.scheduling.tasks.users_to_deactivate(10)
     assert users[0].first_name == user.first_name
