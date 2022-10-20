@@ -21,6 +21,10 @@ variable "cf_space_name" {
   description = "cloud.gov space name"
   default     = "tanf-dev"
 }
+variable "cf_app_name" {
+  type        = string
+  description = "name of app"
+}
 
 variable "cf_user" {
   type        = string
@@ -41,3 +45,4 @@ variable "cf_app_backend_raft_name" {
   description = "Name of backend-raft app"
   default     = "tdp-backend-raft"
 }
+

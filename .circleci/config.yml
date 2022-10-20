@@ -373,26 +373,7 @@ commands:
           path: /tmp/tf_vars.env
           destination: artifact-file
 
-#      - terraform/init:
-#          path: <<parameters.tf-path>>
-#          backend_config_file: << parameters.tf-path >>/backend_config.tfvars
-#      - terraform/validate:
-#          path: <<parameters.tf-path>>
-#      - terraform/fmt:
-#          path: <<parameters.tf-path>>
-#      - terraform/plan:
-#          path: <<parameters.tf-path>>
-#          var_file: ./variables.tfvars
-#      - terraform/apply:
-#          path: <<parameters.tf-path>>
-#          var_file: ./variables.tfvars
-#      - run:
-#          name: Output terraform Example
-#          path: <<parameters.tf-path>>
-#          command: echo NON_PROD_JWT_KEY=\"$(terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)\" >> ./tf_vars.env;
-#      - store_artifacts:
-#          path: ./tf_vars.env
-#          destination: artifact-file
+
 
 jobs:
   secrets-check:
