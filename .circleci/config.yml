@@ -367,9 +367,8 @@ commands:
       - run:
           name: Export JWT_KEY token to BASH ENV
           command: |
-            cd /root/tdp-deploy/infrastructure/dev
-            echo 'export NON_PROD_JWT_KEY=$(terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "$BASH_ENV"
-#            export NON_PROD_JWT_KEY=\"$(terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)\"
+            echo 'export NON_PROD_JWT_KEY=$(cd /root/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "$BASH_ENV"
+
 jobs:
   secrets-check:
     executor: docker-executor
