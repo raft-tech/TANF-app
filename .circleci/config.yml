@@ -187,6 +187,10 @@ commands:
       - get-app-deploy-strategy:
           appname: <<parameters.backend-appname>>
       - run:
+          name: Echo NON_PROD_JWT_KEY
+          command: |
+            echo $NON_PROD_JWT_KEY
+      - run:
           name: Deploy backend application
           command: |
             bash ./scripts/deploy-backend.sh \
