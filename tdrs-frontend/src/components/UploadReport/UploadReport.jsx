@@ -90,6 +90,7 @@ function UploadReport({ handleCancel, header, stt }) {
         ref={headerRef}
         className="font-serif-xl margin-top-5 margin-bottom-0 text-normal"
         tabIndex="-1"
+        data-testid="upload-report-header"
       >
         {header}
       </h2>

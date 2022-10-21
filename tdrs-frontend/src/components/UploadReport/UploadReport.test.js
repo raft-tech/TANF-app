@@ -2,7 +2,7 @@ import React from 'react'
 import thunk from 'redux-thunk'
 import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
-import { fireEvent, render } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import axios from 'axios'
 
 import { v4 as uuidv4 } from 'uuid'
@@ -248,5 +248,28 @@ describe('UploadReport', () => {
     })
 
     expect(fileInput.value).toStrictEqual('')
+  })
+
+  // test UploadReport component with a header, change the header prop, then test again
+  it('should render a header when the header prop is passed', () => {
+    const store = mockStore(initialState)
+    const { rerender } = render(
+      <Provider store={store}>
+        <UploadReport handleCancel={handleCancel} header="Some header" />
+      </Provider>
+    )
+    expect(screen.getByTestId('upload-report-header')).toHaveTextContent(
+      'Some header'
+    )
+
+    rerender(
+      <Provider store={store}>
+        <UploadReport handleCancel={handleCancel} header="Some other header" />
+      </Provider>
+    )
+
+    expect(screen.getByTestId('upload-report-header')).toHaveTextContent(
+      'Some other header'
+    )
   })
 })
