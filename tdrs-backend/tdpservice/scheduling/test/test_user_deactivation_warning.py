@@ -27,7 +27,8 @@ def test_deactivation_email_10_days(user, mocker):
     user.first_name = 'UniqueName'
     user.save()
     check_for_accounts_needing_deactivation_warning()
-    assert tdpservice.email.helpers.account_deactivation_warning.send_deactivation_warning_email.called_once_with(users=[user], days=10)
+    assert tdpservice.email.helpers.account_deactivation_warning.send_deactivation_warning_email.called_once_with(
+        users=[user], days=10)
 
 @pytest.mark.django_db
 def test_deactivation_email_3_days(user, mocker):
@@ -45,7 +46,8 @@ def test_deactivation_email_3_days(user, mocker):
     user.first_name = 'UniqueName'
     user.save()
     check_for_accounts_needing_deactivation_warning()
-    assert tdpservice.email.helpers.account_deactivation_warning.send_deactivation_warning_email.called_once_with(users=[user], days=3)
+    assert tdpservice.email.helpers.account_deactivation_warning.send_deactivation_warning_email.called_once_with(
+        users=[user], days=3)
 
 @pytest.mark.django_db
 def test_deactivation_email_1_days(user, mocker):
@@ -63,7 +65,8 @@ def test_deactivation_email_1_days(user, mocker):
     user.first_name = 'UniqueName'
     user.save()
     check_for_accounts_needing_deactivation_warning()
-    assert tdpservice.email.helpers.account_deactivation_warning.send_deactivation_warning_email.called_once_with(users=[user], days=1)
+    assert tdpservice.email.helpers.account_deactivation_warning.send_deactivation_warning_email.called_once_with(
+        users=[user], days=1)
 
 
 @pytest.mark.django_db
