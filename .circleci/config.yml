@@ -665,7 +665,7 @@ parameters:
 
   target_env:
     type: string
-    default: 'raft'
+    default: ''
 
 workflows:
   build-and-test:
