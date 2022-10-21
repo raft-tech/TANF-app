@@ -189,8 +189,7 @@ commands:
       - run:
           name: Deploy backend application
           command: |
-              echo $NON_PROD_JWT_KEY &&
-              bash ./scripts/deploy-backend.sh \
+            bash ./scripts/deploy-backend.sh \
               $DEPLOY_STRATEGY \
               <<parameters.backend-appname>> \
               <<parameters.cf-space>>
