@@ -677,6 +677,7 @@ workflows:
           requires:
             - secrets-check
       - test-backend:
+          context: build and test
           requires:
             - secrets-check
 
@@ -686,6 +687,7 @@ workflows:
       - deploy-infrastructure-dev:
           target_env: << pipeline.parameters.target_env >>
       - deploy-dev:
+          context: deploy
           target_env: << pipeline.parameters.target_env >>
           requires:
             - deploy-infrastructure-dev
