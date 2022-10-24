@@ -384,20 +384,9 @@ jobs:
   test-backend:
     executor: machine-executor
     steps:
-      - checkout
-      - docker-compose-check
-      - docker-compose-up-backend
       - run:
-          name: Execute Python Linting Test
-          command: cd tdrs-backend; docker-compose run --rm web bash -c "flake8 ."
-      - run:
-          name: Run Unit Tests And Create Code Coverage Report
-          command: |
-            cd tdrs-backend;
-            docker-compose run --rm web bash -c "./wait_for_services.sh && pytest --cov-report=xml"
-      - upload-codecov:
-          component: backend
-          coverage-report: ./tdrs-backend/coverage.xml
+          name: log redis uri
+          command: echo $REDIS_URI
 
   test-frontend:
     executor: machine-executor
@@ -555,9 +544,9 @@ jobs:
         type: string
     working_directory: ~/tdp-deploy
     steps:
-      - deploy-cloud-dot-gov:
-          backend-appname: tdp-backend-<< parameters.target_env >>
-          frontend-appname: tdp-frontend-<< parameters.target_env >>
+      - run:
+          name: log redis uri
+          command: echo $REDIS_URI
 
   deploy-infrastructure-staging:
     executor: terraform/default
@@ -672,10 +661,6 @@ workflows:
         - << pipeline.parameters.run_dev_deployment >>
         - << pipeline.parameters.run_owasp_scan >>
     jobs:
-      - secrets-check
-      - test-frontend:
-          requires:
-            - secrets-check
       - test-backend:
           context: build and test
           requires:
@@ -684,8 +669,6 @@ workflows:
   dev-deployment:
     when: << pipeline.parameters.run_dev_deployment >>
     jobs:
-      - deploy-infrastructure-dev:
-          target_env: << pipeline.parameters.target_env >>
       - deploy-dev:
           context: deploy
           target_env: << pipeline.parameters.target_env >>
