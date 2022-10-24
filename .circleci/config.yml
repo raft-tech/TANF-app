@@ -663,17 +663,12 @@ workflows:
     jobs:
       - test-backend:
           context: build and test
-          requires:
-            - secrets-check
 
   dev-deployment:
-    when: << pipeline.parameters.run_dev_deployment >>
     jobs:
       - deploy-dev:
           context: deploy
           target_env: << pipeline.parameters.target_env >>
-          requires:
-            - deploy-infrastructure-dev
 
   nightly:
     jobs:
