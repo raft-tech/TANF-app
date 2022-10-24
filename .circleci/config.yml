@@ -669,7 +669,7 @@ parameters:
 
   target_env:
     type: string
-    default: ''
+    default: 'sandbox'
 
 workflows:
   build-and-test:
