@@ -47,7 +47,6 @@ def get_system_values():
     sys_values['S3_BUCKET'] = sys_values['S3_CREDENTIALS']['bucket']
     sys_values['S3_REGION'] = sys_values['S3_CREDENTIALS']['region']
     sys_values['DATABASE_URI'] = OS_ENV['DATABASE_URL']
-
     # Set AWS credentials in env, Boto3 uses the env variables for connection
     os.environ["AWS_ACCESS_KEY_ID"] = sys_values['S3_ACCESS_KEY_ID']
     os.environ["AWS_SECRET_ACCESS_KEY"] = sys_values['S3_SECRET_ACCESS_KEY']
@@ -242,7 +241,7 @@ def main(argv, sys_values):
 def run_backup(arg):
     """No params, setup for actual backup call."""
     if settings.USE_LOCALSTACK is True:
-        logging.info("Won't backup locally")
+        logger.info("Won't backup locally")
     else:
         main([arg], sys_values=get_system_values())
 

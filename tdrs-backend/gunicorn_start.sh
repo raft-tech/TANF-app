@@ -6,7 +6,7 @@ echo "REDIS_SERVER"
 echo "redis local: $REDIS_SERVER_LOCAL"
 if [[ "$REDIS_SERVER_LOCAL" = "TRUE" || "$CIRCLE_JOB" = "backend-owasp-scan" ]]; then
     echo "Run redis server on docker"
-   export REDIS_URI="redis://redis-server:6379"
+    export REDIS_URI="redis://redis-server:6379"
 else
     echo "Run redis server locally"
     export LD_LIBRARY_PATH=/home/vcap/deps/0/lib/:/home/vcap/deps/1/lib:$LD_LIBRARY_PATH
