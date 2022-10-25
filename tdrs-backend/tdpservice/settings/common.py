@@ -415,6 +415,7 @@ class Common(Configuration):
         'REDIS_URI',
         'redis://redis-server:6379'
     )
+    logger.debug("REDIS_URI: " + REDIS_URI)
 
     CELERY_BROKER_URL = REDIS_URI
     CELERY_RESULT_BACKEND = REDIS_URI
@@ -424,7 +425,7 @@ class Common(Configuration):
     CELERY_TIMEZONE = 'UTC'
     CELERY_BEAT_SCHEDULE = {
         'name': {
-            'task': 'tdpservice.scheduling.tasks.nightly_postgres',
+            'task': 'tdpservice.scheduling.tasks.postgres_backup',
             'schedule': 10.0, # crontab(minute='*', hour='*'),
             'args': "-b",
             'options': {

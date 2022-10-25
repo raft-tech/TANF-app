@@ -7,7 +7,7 @@ from .db_backup import run_backup
 logger = logging.getLogger(__name__)
 
 @shared_task
-def nightly_postgres(*args):
+def postgres_backup(*args):
     """Run nightly postgres backup."""
     arg = ''.join(args)
     logger.debug("We have nightly registered w/ arg: " + arg)
