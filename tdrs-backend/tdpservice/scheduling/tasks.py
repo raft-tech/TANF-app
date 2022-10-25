@@ -10,6 +10,6 @@ logger = logging.getLogger(__name__)
 def postgres_backup(*args):
     """Run nightly postgres backup."""
     arg = ''.join(args)
-    logger.debug("We have nightly registered w/ arg: " + arg)
+    logger.debug("postgres_backup::run_backup() run with arg: " + arg)
     run_backup(arg)
     return True
