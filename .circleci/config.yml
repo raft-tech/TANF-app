@@ -547,7 +547,7 @@ jobs:
               --name nightly-owasp-scan
   deploy-infrastructure-dev:
 #    executor: terraform/default
-    executor: rafttw/tanf-cicd:0.0.1
+    executor: docker-executor
     working_directory: ~/tdp-deploy
     parameters:
       target_env:
@@ -557,8 +557,7 @@ jobs:
           cf-app: << parameters.target_env >>
 
   deploy-dev:
-#    executor: docker-executor
-    executor: rafttw/tanf-cicd:0.0.1
+    executor: docker-executor
     parameters:
       target_env:
         type: string
