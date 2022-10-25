@@ -11,18 +11,21 @@ FROM hashicorp/terraform:${TERRAFORM_VERSION} as terraform-builder
 FROM alpine:${ALPINE_LINUX_VERSION}
 
 # Preserve the entrypoint even when the image is used for a primary container
-LABEL com.circleci.preserve-entrypoint=true
+LABEL com.circleci.preserve-entrypoint=true \
+      maintainer="Raft LLC"
 
 ENV SOPS_VERSION='3.7.3'
 
 # Install required tools for custom uitlity CircleCI image
 RUN apk add bash git openssh tar gzip ca-certificates
 
+SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
+
 # Install python3 deps, parsers and other tools
 RUN apk add jq curl python3 py3-pip
 
-RUN pip3 install --upgrade pip \
-    pip3 install awscli botocore boto3
+RUN pip3 install --upgrade pip
+#     pip3 install awscli botocore boto3
 
 # Install SOPS, other ci/cd tools
 RUN export SOPS_VERSION=${SOPS_VERSION} \
@@ -34,6 +37,10 @@ RUN export SOPS_VERSION=${SOPS_VERSION} \
 COPY --from=terraform-builder /bin/terraform /usr/local/bin/terraform
 
 # Add non-root user && switch context to non-root user
-RUN addgroup -g 1001 circleci && adduser -u 1001 -s /bin/bash -h /circleci -D circleci -G circleci
+RUN addgroup -g 1001 circleci && adduser -u 1001 -s /bin/bash -h /home/circleci -D circleci -G circleci
+
+WORKDIR /home/circleci
 
 USER circleci
+
+CMD ["bash"]
