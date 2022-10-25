@@ -11,29 +11,7 @@ fake = Faker()
 
 
 @pytest.mark.django_db
-def test_does_not_create_index_if_model_creation_fails():
-    """Index creation shouldn't happen if saving a model errors."""
-    record_num = fake.uuid4()
-
-    with pytest.raises(IntegrityError):
-        submission = T7.objects.create(
-            record=record_num
-            # leave out a bunch of required fields
-        )
-
-        assert submission.id is None
-
-    search = documents.T7DataSubmissionDocument.search().query(
-        'match',
-        record=record_num
-    )
-    response = search.execute()
-
-    assert response.hits.total.value == 0
-
-
-@pytest.mark.django_db
-def test_can_create_and_index_t1_submission(user):
+def test_can_create_and_index_t1_submission():
     """T1 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
@@ -100,7 +78,7 @@ def test_can_create_and_index_t1_submission(user):
 
 
 @pytest.mark.django_db
-def test_can_create_and_index_t2_submission(regional_user, stt):
+def test_can_create_and_index_t2_submission():
     """T2 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
@@ -191,7 +169,7 @@ def test_can_create_and_index_t2_submission(regional_user, stt):
 
 
 @pytest.mark.django_db
-def test_can_create_and_index_t3_submission(data_analyst, region):
+def test_can_create_and_index_t3_submission():
     """T3 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
@@ -234,7 +212,7 @@ def test_can_create_and_index_t3_submission(data_analyst, region):
 
 
 @pytest.mark.django_db
-def test_can_create_and_index_t4_submission(data_analyst, regional_user):
+def test_can_create_and_index_t4_submission():
     """T4 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
@@ -268,7 +246,7 @@ def test_can_create_and_index_t4_submission(data_analyst, regional_user):
 
 
 @pytest.mark.django_db
-def test_can_create_and_index_t5_submission(data_analyst, regional_user):
+def test_can_create_and_index_t5_submission():
     """T5 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
@@ -319,7 +297,7 @@ def test_can_create_and_index_t5_submission(data_analyst, regional_user):
 
 
 @pytest.mark.django_db
-def test_can_create_and_index_t6_submission(user, deactivated_user):
+def test_can_create_and_index_t6_submission():
     """T6 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
@@ -360,7 +338,7 @@ def test_can_create_and_index_t6_submission(user, deactivated_user):
 
 
 @pytest.mark.django_db
-def test_can_create_and_index_t7_submission(user, deactivated_user):
+def test_can_create_and_index_t7_submission():
     """T7 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
@@ -386,3 +364,26 @@ def test_can_create_and_index_t7_submission(user, deactivated_user):
     response = search.execute()
 
     assert response.hits.total.value == 1
+
+
+@pytest.mark.django_db
+def test_does_not_create_index_if_model_creation_fails():
+    """Index creation shouldn't happen if saving a model errors."""
+    record_num = fake.uuid4()
+
+    with pytest.raises(IntegrityError):
+        submission = T7.objects.create(
+            record=record_num
+            # leave out a bunch of required fields
+        )
+
+        assert submission.id is None
+
+    search = documents.T7DataSubmissionDocument.search().query(
+        'match',
+        record=record_num
+    )
+
+    response = search.execute()
+
+    assert response.hits.total.value == 0
