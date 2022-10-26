@@ -9,8 +9,6 @@ executors:
   docker-executor:
     docker:
       - image: rafttw/tanf-cicd:0.0.1
-      - image: cimg/python:3.10.1
-        user: root
   machine-executor:
     machine:
       docker_layer_caching: false
@@ -547,7 +545,6 @@ jobs:
               --command "$CMD" \
               --name nightly-owasp-scan
   deploy-infrastructure-dev:
-#    executor: terraform/default
     executor: docker-executor
     working_directory: ~/tdp-deploy
     parameters:
