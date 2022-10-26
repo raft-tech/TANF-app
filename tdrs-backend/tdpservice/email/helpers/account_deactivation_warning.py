@@ -19,10 +19,17 @@ def send_deactivation_warning_email(users, days):
             'deactivation_date': deactivation_date
         }
 
+        logger_context = {
+           'user_id': user.id,
+           'object_id': user.id,
+           'object_repr': user.email
+       }
+
         automated_email.delay(
             email_path=template_path,
             recipient_email=recipient_email,
             subject=subject,
             email_context=context,
-            text_message=text_message
+            text_message=text_message,
+            logger_context=logger_context
         )
