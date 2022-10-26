@@ -365,14 +365,14 @@ commands:
       - run:
           name: Terraform All
           command: |
-            cd /root/tdp-deploy/infrastructure/dev
+            cd ~/tdp-deploy/infrastructure/dev
             terraform init -backend-config=./backend_config.tfvars
             terraform plan -var-file=./variables.tfvars
             terraform apply -var-file=./variables.tfvars -auto-approve
       - run:
           name: Export JWT_KEY token to BASH ENV
           command: |
-            echo 'export NON_PROD_JWT_KEY=$(cd /root/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "$BASH_ENV"
+            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "$BASH_ENV"
 #            alias get-dev-jwt-key = 'cd /root/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY'
 #            echo 'export NON_PROD_JWT_KEY=$(get-dev-jwt-key)' >> "$BASH_ENV"
 
