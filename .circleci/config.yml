@@ -287,8 +287,8 @@ commands:
         type: string
     steps:
       - checkout
-      - sudo-check
-      - cf-check
+#      - sudo-check
+#      - cf-check
       - login-cloud-dot-gov:
           cf-password: <<parameters.cf-password>>
           cf-org: <<parameters.cf-org>>
