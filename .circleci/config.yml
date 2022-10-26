@@ -9,9 +9,7 @@ executors:
   docker-executor:
     docker:
       - image: cimg/python:3.10.1
-      - user: root
-
-#      - image: rafttw/tanf-cicd:0.0.1
+        user: root
   machine-executor:
     machine:
       docker_layer_caching: false
