@@ -3,7 +3,7 @@ import Button from '../Button'
 
 const Modal = ({ title, message, buttons = [], isVisible = false }) =>
   isVisible ? (
-    <div id="errorModal" className="modal display-block">
+    <div id="modal" className="modal display-block">
       <div className="modal-content">
         <h1
           className="font-serif-xl margin-4 margin-bottom-0 text-normal"
@@ -16,7 +16,7 @@ const Modal = ({ title, message, buttons = [], isVisible = false }) =>
           {buttons.map((b) => (
             <Button
               type="button"
-              className="renew-session mobile:margin-bottom-1 mobile-lg:margin-bottom-0"
+              className="mobile:margin-bottom-1 mobile-lg:margin-bottom-0"
               onClick={b.onClick}
             >
               {b.text}
