@@ -13,6 +13,7 @@ import {
 import UploadReport from '../UploadReport'
 import STTComboBox from '../STTComboBox'
 import { fetchSttList } from '../../actions/sttList'
+import Modal from '../Modal'
 
 /**
  * Reports is the home page for users to file a report.
@@ -314,48 +315,29 @@ function Reports() {
           handleCancel={() => setIsToggled(false)}
         />
       )}
-      {errorModalVisible && (
-        <div id="errorModal" className="modal display-block">
-          <div className="modal-content">
-            <h1
-              className="font-serif-xl margin-4 margin-bottom-0 text-normal"
-              tabIndex="-1"
-            >
-              Files have not been submitted.
-            </h1>
-            <p className="margin-4 margin-top-1">
-              Files have not been submitted. Searching without submitting will
-              discard your changes and remove any uploaded files.
-            </p>
-            <div className="margin-x-4 margin-bottom-4">
-              <Button
-                type="button"
-                className="renew-session mobile:margin-bottom-1 mobile-lg:margin-bottom-0"
-                onClick={() => {
-                  setErrorModalVisible(false)
-                  dispatch(setYear(previouslySelectedYear || selectedYear))
-                  dispatch(
-                    setQuarter(previouslySelectedQuarter || selectedQuarter)
-                  )
-                  dispatch(setStt(previouslySelectedStt || selectStt))
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                className="sign-out"
-                onClick={() => {
-                  setErrorModalVisible(false)
-                  handleSearch()
-                }}
-              >
-                Discard and search
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        title="Files Not Submitted"
+        message="Your files have not been submitted. Searching without submitting will discard your changes and remove any uploaded files."
+        isVisible={errorModalVisible}
+        buttons={[
+          {
+            text: 'Cancel',
+            onClick: () => {
+              setErrorModalVisible(false)
+              dispatch(setYear(previouslySelectedYear || selectedYear))
+              dispatch(setQuarter(previouslySelectedQuarter || selectedQuarter))
+              dispatch(setStt(previouslySelectedStt || selectStt))
+            },
+          },
+          {
+            text: 'Discard and search',
+            onClick: () => {
+              setErrorModalVisible(false)
+              handleSearch()
+            },
+          },
+        ]}
+      />
     </>
   )
 }
