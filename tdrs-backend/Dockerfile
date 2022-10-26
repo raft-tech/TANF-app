@@ -7,6 +7,7 @@ ARG uid=1000
 ARG gid=1000
 ENV DJANGO_SETTINGS_MODULE=tdpservice.settings.local
 ENV DJANGO_CONFIGURATION=Local
+ENV REDIS_URI="redis://redis-server:6379"
 # Allows docker to cache installed dependencies between builds
 COPY Pipfile Pipfile.lock /tdpapp/
 WORKDIR /tdpapp/
