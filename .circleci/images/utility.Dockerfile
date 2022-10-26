@@ -16,6 +16,10 @@ LABEL com.circleci.preserve-entrypoint=true \
 
 ENV SOPS_VERSION='3.7.3'
 
+ENV CF_VERSION='7'
+
+WORKDIR /home/circleci
+
 # Install required tools for custom uitlity CircleCI image
 RUN apk add bash git openssh tar gzip ca-certificates
 
@@ -33,13 +37,18 @@ RUN export SOPS_VERSION=${SOPS_VERSION} \
   && curl -sSL -o /usr/local/bin/sops ${SOPS_URL} \
   && chmod +x /usr/local/bin/sops
 
+RUN export CF_VERSION=${CF_VERSION} \
+    && export CF_URL='https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github' \
+    && curl -L ${CF_URL} | tar -zx \
+    && mv cf${CF_VERSION} cf \
+    && mv cf /usr/local/bin/ \
+    && rm -rf ./*
+
 # Copy over binaries from other images
 COPY --from=terraform-builder /bin/terraform /usr/local/bin/terraform
 
 # Add non-root user && switch context to non-root user
 RUN addgroup -g 1001 circleci && adduser -u 1001 -s /bin/bash -h /home/circleci -D circleci -G circleci
-
-WORKDIR /home/circleci
 
 USER circleci
 
