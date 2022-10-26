@@ -8,7 +8,10 @@ orbs:
 executors:
   docker-executor:
     docker:
-      - image: rafttw/tanf-cicd:0.0.1
+      - image: cimg/python:3.10.1
+      - user: root
+
+#      - image: rafttw/tanf-cicd:0.0.1
   machine-executor:
     machine:
       docker_layer_caching: false
@@ -545,7 +548,7 @@ jobs:
               --command "$CMD" \
               --name nightly-owasp-scan
   deploy-infrastructure-dev:
-    executor: machine-executor
+    executor: docker-executor
 #    executor: docker-executor
     working_directory: ~/tdp-deploy
     parameters:
@@ -556,7 +559,7 @@ jobs:
           cf-app: << parameters.target_env >>
 
   deploy-dev:
-    executor: machine-executor
+    executor: docker-executor
 #    executor: docker-executor
     parameters:
       target_env:
