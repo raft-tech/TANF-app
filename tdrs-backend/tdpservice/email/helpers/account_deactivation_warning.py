@@ -23,7 +23,7 @@ def send_deactivation_warning_email(users, days):
            'user_id': user.id,
            'object_id': user.id,
            'object_repr': user.email
-       }
+        }
 
         automated_email.delay(
             email_path=template_path,
