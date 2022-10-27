@@ -1,6 +1,5 @@
 import React from 'react'
 import { render, fireEvent, waitFor } from '@testing-library/react'
-import { screen } from '@testing-library/dom'
 
 import { Provider } from 'react-redux'
 import thunk from 'redux-thunk'
@@ -451,8 +450,7 @@ describe('Reports', () => {
     }
 
     it('should update the report header when search selections are changed, without clicking search', async () => {
-      const { getByText, queryByText, getByLabelText } =
-        await setUpSearchFormBehaviors()
+      const { getByText, getByLabelText } = await setUpSearchFormBehaviors()
 
       // search
       fireEvent.click(getByText(/Search/, { selector: 'button' }))
