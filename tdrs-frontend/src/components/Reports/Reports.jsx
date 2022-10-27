@@ -51,6 +51,7 @@ function Reports() {
   const currentStt = isOFAAdmin ? selectedStt : userProfileStt
   const stt = sttList?.find((stt) => stt?.name === currentStt)
   const [submittedHeader, setSubmittedHeader] = useState('')
+  const [fileType, setFileType] = useState('tanf')
 
   const errorsCount = formValidation.errors
 
@@ -193,24 +194,11 @@ function Reports() {
           </div>
         )}
         <form>
-          {isOFAAdmin && (
-            <div
-              className={classNames('usa-form-group maxw-mobile margin-top-4', {
-                'usa-form-group--error': formValidation.stt,
-              })}
-            >
-              <STTComboBox
-                selectedStt={selectedStt}
-                selectStt={selectStt}
-                error={formValidation.stt}
-              />
-            </div>
-          )}
           {(stt?.ssp ? stt.ssp : false) && (
             // USWDS radio button with options for TANF and SSP-MOE
             <div className="usa-form-group margin-top-4">
               <fieldset className="usa-fieldset">
-                <label className="usa-label text-bold">File Type</label>
+                <legend className="usa-label text-bold">File Type</legend>
                 <div className="usa-radio">
                   <input
                     className="usa-radio__input"
@@ -219,7 +207,7 @@ function Reports() {
                     name="reportType"
                     value="tanf"
                     checked
-                    //onChange={() => setReportType('tanf')}
+                    onChange={() => setFileType('tanf')}
                   />
                   <label className="usa-radio__label" htmlFor="tanf">
                     TANF
@@ -232,13 +220,26 @@ function Reports() {
                     type="radio"
                     name="reportType"
                     value="ssp-moe"
-                    //onChange={() => setReportType('ssp-moe')}
+                    onChange={() => setFileType('ssp-moe')}
                   />
                   <label className="usa-radio__label" htmlFor="ssp-moe">
                     SSP-MOE
                   </label>
                 </div>
               </fieldset>
+            </div>
+          )}
+          {isOFAAdmin && (
+            <div
+              className={classNames('usa-form-group maxw-mobile margin-top-4', {
+                'usa-form-group--error': formValidation.stt,
+              })}
+            >
+              <STTComboBox
+                selectedStt={selectedStt}
+                selectStt={selectStt}
+                error={formValidation.stt}
+              />
             </div>
           )}
           <div
@@ -321,6 +322,7 @@ function Reports() {
       {isUploadReportToggled && (
         <UploadReport
           stt={stt?.id}
+          ssp={fileType === 'ssp-moe'}
           header={submittedHeader}
           handleCancel={() => setIsToggled(false)}
         />

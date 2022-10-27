@@ -54,7 +54,7 @@ class DataFileViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Override create to upload in case of successful scan."""
         response = super().create(request, *args, **kwargs)
-
+        
         # Upload to ACF-TITAN only if file is passed the virus scan and created
         if response.status_code == status.HTTP_201_CREATED or response.status_code == status.HTTP_200_OK:
             sftp_task.upload.delay(

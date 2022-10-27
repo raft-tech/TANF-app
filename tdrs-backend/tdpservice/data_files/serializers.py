@@ -35,7 +35,8 @@ class DataFileSerializer(serializers.ModelSerializer):
             "year",
             "quarter",
             "section",
-            "created_at"
+            "created_at",
+            "ssp",
         ]
 
     def create(self, validated_data):
