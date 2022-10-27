@@ -8,8 +8,9 @@ orbs:
 executors:
   docker-executor:
     docker:
-      - image: cimg/python:3.10.1
-        user: root
+      - image: rafttw/tanf-cicd:0.0.2
+#      - image: cimg/python:3.10.1
+#        user: root
   machine-executor:
     machine:
       docker_layer_caching: false
@@ -286,8 +287,8 @@ commands:
         type: string
     steps:
       - checkout
-      - sudo-check
-      - cf-check
+#      - sudo-check
+#      - cf-check
       - login-cloud-dot-gov:
           cf-password: <<parameters.cf-password>>
           cf-org: <<parameters.cf-org>>
@@ -328,15 +329,15 @@ commands:
         default: CF_APP
     steps:
       - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            apk update
-            apk add jq
-            apk add curl
-            # TODO: Add Signature check
-            curl -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github" | tar -zx
-            mv cf7 /usr/local/bin/cf
+#      - run:
+#          name: Install dependencies
+#          command: |
+#            apk update
+#            apk add jq
+#            apk add curl
+#            # TODO: Add Signature check
+#            curl -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github" | tar -zx
+#            mv cf7 /usr/local/bin/cf
       - login-cloud-dot-gov:
           cf-password: <<parameters.cf-password>>
           cf-username: <<parameters.cf-username>>
