@@ -555,6 +555,7 @@ jobs:
       - deploy-infrastructure:
           cf-app: << parameters.target_env >>
       - persist_to_workspace:
+          root: workspace-dev
           paths:
             - /tmp
 
