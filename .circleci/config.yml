@@ -8,7 +8,7 @@ orbs:
 executors:
   docker-executor:
     docker:
-      - image: rafttw/tanf-cicd:0.0.4
+      - image: rafttw/tanf-cicd:0.0.5
 #      - image: cimg/python:3.10.1
 #        user: root
   machine-executor:
@@ -555,9 +555,9 @@ jobs:
       - deploy-infrastructure:
           cf-app: << parameters.target_env >>
       - persist_to_workspace:
-          root: workspace-dev
+          root: /tmp
           paths:
-            - /tmp
+            - .bash_env
 
   deploy-dev:
     executor: docker-executor
