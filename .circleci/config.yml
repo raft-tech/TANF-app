@@ -372,7 +372,8 @@ commands:
       - run:
           name: Export JWT_KEY token to BASH ENV
           command: |
-            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "$BASH_ENV"
+            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "$BASH_ENV" \
+            && . $BASH_ENV
 #            alias get-dev-jwt-key = 'cd /root/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY'
 #            echo 'export NON_PROD_JWT_KEY=$(get-dev-jwt-key)' >> "$BASH_ENV"
 
