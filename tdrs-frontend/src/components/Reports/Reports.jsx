@@ -71,7 +71,9 @@ function Reports() {
     // Clear previous errors
     setFormValidationState({})
 
-    // Filter out non-truthy values
+    // Filter out non-truthy values]
+    console.log('handleSearch')
+    console.log([selectedYear, currentStt, selectedQuarter])
     const form = [selectedYear, currentStt, selectedQuarter].filter(Boolean)
 
     if (form.length === 3) {
@@ -317,10 +319,11 @@ function Reports() {
       )}
       <Modal
         title="Files Not Submitted"
-        message="Your files have not been submitted. Searching without submitting will discard your changes and remove any uploaded files."
+        message="Your files have not been submitted. Searching without submitting will discard your changes and remove any uploaded"
         isVisible={errorModalVisible}
         buttons={[
           {
+            key: 1,
             text: 'Cancel',
             onClick: () => {
               setErrorModalVisible(false)
@@ -330,7 +333,8 @@ function Reports() {
             },
           },
           {
-            text: 'Discard and search',
+            key: 2,
+            text: 'Discard and Search',
             onClick: () => {
               setErrorModalVisible(false)
               handleSearch()

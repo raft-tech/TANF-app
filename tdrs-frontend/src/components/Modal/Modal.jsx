@@ -15,6 +15,7 @@ const Modal = ({ title, message, buttons = [], isVisible = false }) =>
         <div className="margin-x-4 margin-bottom-4">
           {buttons.map((b) => (
             <Button
+              key={b.key}
               type="button"
               className="mobile:margin-bottom-1 mobile-lg:margin-bottom-0"
               onClick={b.onClick}
