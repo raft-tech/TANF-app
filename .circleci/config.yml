@@ -555,9 +555,8 @@ jobs:
       - deploy-infrastructure:
           cf-app: << parameters.target_env >>
       - persist_to_workspace:
-          root: workspace
           paths:
-            - new-env-vars
+            - /tmp
 
   deploy-dev:
     executor: docker-executor
@@ -570,7 +569,7 @@ jobs:
           backend-appname: tdp-backend-<< parameters.target_env >>
           frontend-appname: tdp-frontend-<< parameters.target_env >>
       - attach_workspace:
-          at: /tmp/cci-test/workspace
+          at: /tmp
 
   deploy-infrastructure-staging:
     executor: terraform/default
