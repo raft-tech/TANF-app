@@ -49,7 +49,6 @@ function Reports() {
   }
 
   const currentStt = isOFAAdmin ? selectedStt : userProfileStt
-
   const stt = sttList?.find((stt) => stt?.name === currentStt)
   const [submittedHeader, setSubmittedHeader] = useState('')
 
@@ -207,7 +206,41 @@ function Reports() {
               />
             </div>
           )}
-
+          {(stt?.ssp ? stt.ssp : false) && (
+            // USWDS radio button with options for TANF and SSP-MOE
+            <div className="usa-form-group margin-top-4">
+              <fieldset className="usa-fieldset">
+                <label className="usa-label text-bold">File Type</label>
+                <div className="usa-radio">
+                  <input
+                    className="usa-radio__input"
+                    id="tanf"
+                    type="radio"
+                    name="reportType"
+                    value="tanf"
+                    checked
+                    //onChange={() => setReportType('tanf')}
+                  />
+                  <label className="usa-radio__label" htmlFor="tanf">
+                    TANF
+                  </label>
+                </div>
+                <div className="usa-radio">
+                  <input
+                    className="usa-radio__input"
+                    id="ssp-moe"
+                    type="radio"
+                    name="reportType"
+                    value="ssp-moe"
+                    //onChange={() => setReportType('ssp-moe')}
+                  />
+                  <label className="usa-radio__label" htmlFor="ssp-moe">
+                    SSP-MOE
+                  </label>
+                </div>
+              </fieldset>
+            </div>
+          )}
           <div
             className={classNames('usa-form-group maxw-mobile margin-top-4', {
               'usa-form-group--error': formValidation.year,
