@@ -372,8 +372,7 @@ commands:
       - run:
           name: Export JWT_KEY token to BASH ENV
           command: |
-            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "$BASH_ENV" \
-            && . $BASH_ENV
+            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "$BASH_ENV"
 #            alias get-dev-jwt-key = 'cd /root/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY'
 #            echo 'export NON_PROD_JWT_KEY=$(get-dev-jwt-key)' >> "$BASH_ENV"
 
@@ -548,7 +547,6 @@ jobs:
               --name nightly-owasp-scan
   deploy-infrastructure-dev:
     executor: docker-executor
-#    executor: docker-executor
     working_directory: ~/tdp-deploy
     parameters:
       target_env:
@@ -556,10 +554,13 @@ jobs:
     steps:
       - deploy-infrastructure:
           cf-app: << parameters.target_env >>
+      - persist_to_workspace:
+          root: workspace
+          paths:
+            - new-env-vars
 
   deploy-dev:
     executor: docker-executor
-#    executor: docker-executor
     parameters:
       target_env:
         type: string
@@ -568,6 +569,8 @@ jobs:
       - deploy-cloud-dot-gov:
           backend-appname: tdp-backend-<< parameters.target_env >>
           frontend-appname: tdp-frontend-<< parameters.target_env >>
+      - attach_workspace:
+          at: /tmp/cci-test/workspace
 
   deploy-infrastructure-staging:
     executor: terraform/default
