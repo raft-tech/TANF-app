@@ -8,7 +8,7 @@ orbs:
 executors:
   docker-executor:
     docker:
-      - image: rafttw/tanf-cicd:0.0.7
+      - image: rafttw/tanf-cicd:0.0.8
 #      - image: cimg/python:3.10.1
 #        user: root
   machine-executor:
@@ -372,9 +372,8 @@ commands:
       - run:
           name: Export JWT_KEY token to BASH ENV
           command: |
-            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "$BASH_ENV"
-#            alias get-dev-jwt-key = 'cd /root/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY'
-#            echo 'export NON_PROD_JWT_KEY=$(get-dev-jwt-key)' >> "$BASH_ENV"
+#            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "$BASH_ENV"
+            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "~/tdp-deploy/bash_env/.tmp_bash_env"
 
 jobs:
   secrets-check:
@@ -555,9 +554,9 @@ jobs:
       - deploy-infrastructure:
           cf-app: << parameters.target_env >>
       - persist_to_workspace:
-          root: /tmp
+          root: bash_env
           paths:
-            - .bash_env
+            - .tmp_bash_env
 
   deploy-dev:
     executor: docker-executor
@@ -569,8 +568,8 @@ jobs:
       - deploy-cloud-dot-gov:
           backend-appname: tdp-backend-<< parameters.target_env >>
           frontend-appname: tdp-frontend-<< parameters.target_env >>
-#      - attach_workspace:
-#          at: /tmp
+      - attach_workspace:
+          at: /tmp/test-dir/bash_env
 
   deploy-infrastructure-staging:
     executor: terraform/default
