@@ -43,6 +43,7 @@ function Button({
         onClick={onClick}
         data-testid="button"
         disabled={disabled}
+        aria-disabled={disabled}
       >
         {children}
       </button>
