@@ -55,7 +55,7 @@ def test_user_can_request_access(api_client, user, stt):
             "last_name": "Bloggs",
             "access_request": False,  # old value no longer touched
             "account_approval_status": "Access request",  # new value updated
-            "stt": {"id": stt.id, "type": stt.type, "code": stt.code, "name": stt.name, "region": stt.region.id},
+            "stt": {"id": stt.id, "type": stt.type, "code": stt.code, "name": stt.name, "region": stt.region.id, "ssp": False},
             "region": None,
             "roles": [],
         }
