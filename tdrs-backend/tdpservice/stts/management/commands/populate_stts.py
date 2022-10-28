@@ -33,7 +33,6 @@ def _get_states():
                 type=STT.EntityType.STATE,
                 filenames=json.loads(row["filenames"].replace('\'', '"')),
                 stt_code=row["STT_CODE"],
-                ssp=False,
             )
             for row in reader
         ]
@@ -50,7 +49,6 @@ def _get_territories():
                 type=STT.EntityType.TERRITORY,
                 filenames=json.loads(row["filenames"].replace('\'', '"')),
                 stt_code=row["STT_CODE"],
-                ssp=False,
             )
             for row in reader
         ]
@@ -67,7 +65,6 @@ def _populate_tribes():
                 type=STT.EntityType.TRIBE,
                 filenames=json.loads(row["filenames"].replace('\'', '"')),
                 stt_code=row["STT_CODE"],
-                ssp=False,
             )
             for row in reader
         ]
