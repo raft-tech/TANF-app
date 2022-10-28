@@ -24,14 +24,13 @@ import Modal from '../Modal'
 function Reports() {
   // The selected year in the dropdown tied to our redux `reports` state
   const selectedYear = useSelector((state) => state.reports.year)
-  const [previouslySelectedYear, setPreviouslySelectedYear] = useState(null)
+  const [yearInputValue, setYearInputValue] = useState(selectedYear)
   // The selected stt in the dropdown tied to our redux `reports` state
   const selectedStt = useSelector((state) => state.reports.stt)
-  const [previouslySelectedStt, setPreviouslySelectedStt] = useState(null)
+  const [sttInputValue, setSttInputValue] = useState(selectedStt)
   // The selected quarter in the dropdown tied to our redux `reports` state
   const selectedQuarter = useSelector((state) => state.reports.quarter)
-  const [previouslySelectedQuarter, setPreviouslySelectedQuarter] =
-    useState(null)
+  const [quarterInputValue, setQuarterInputValue] = useState(selectedQuarter)
   // The logged in user saved in our redux `auth` state object
   const user = useSelector((state) => state.auth.user)
   const isOFAAdmin =
@@ -57,10 +56,9 @@ function Reports() {
     Q4: 'Quarter 4 (July - September)',
   }
 
-  const currentStt = isOFAAdmin ? selectedStt : userProfileStt
+  const currentStt = isOFAAdmin ? sttInputValue : userProfileStt
 
   const stt = sttList?.find((stt) => stt?.name === currentStt)
-  const [submittedHeader, setSubmittedHeader] = useState('')
 
   const errorsCount = formValidation.errors
 
@@ -69,25 +67,17 @@ function Reports() {
   const errorsRef = useRef(null)
 
   const resetPreviousValues = () => {
-    setPreviouslySelectedQuarter(null)
-    setPreviouslySelectedYear(null)
-    setPreviouslySelectedStt(null)
+    setQuarterInputValue(selectedQuarter || '')
+    setYearInputValue(selectedYear || '')
+    setSttInputValue(selectedStt || '')
   }
-
-  const searchFormChanged = () =>
-    !(
-      previouslySelectedQuarter === null &&
-      previouslySelectedStt === null &&
-      previouslySelectedYear === null
-    )
 
   const handleSearch = () => {
     // Clear previous errors
     setFormValidationState({})
 
     // Filter out non-truthy values]
-    const reportHeader = `${currentStt} - Fiscal Year ${selectedYear} - ${quarters[selectedQuarter]}`
-    const form = [selectedYear, currentStt, selectedQuarter].filter(Boolean)
+    const form = [yearInputValue, currentStt, quarterInputValue].filter(Boolean)
 
     if (form.length === 3) {
       // Hide upload sections while submitting search
@@ -98,6 +88,12 @@ function Reports() {
       // Clear existing file list from state to ensure fresh results
       dispatch(clearFileList())
 
+      // update state to the new search values
+      dispatch(setYear(yearInputValue))
+      dispatch(setQuarter(quarterInputValue))
+      dispatch(setStt(sttInputValue))
+      // resetPreviousValues()
+
       // Retrieve the files matching the selected year and quarter.
       dispatch(
         getAvailableFileList({
@@ -106,9 +102,6 @@ function Reports() {
           stt,
         })
       )
-
-      setSubmittedHeader(reportHeader)
-      resetPreviousValues()
 
       // Restore upload sections to the page
       setTimeout(() => setIsToggled(true), 0)
@@ -131,34 +124,19 @@ function Reports() {
   }
 
   const selectYear = ({ target: { value } }) => {
-    if (value === previouslySelectedYear) {
-      setPreviouslySelectedYear(null)
-    } else if (selectedYear !== '') {
-      setPreviouslySelectedYear(selectedYear)
-    }
-    dispatch(setYear(value))
+    setYearInputValue(value)
     setTouched((currentForm) => ({ ...currentForm, year: true }))
   }
 
   const selectQuarter = ({ target: { value } }) => {
-    if (value === previouslySelectedQuarter) {
-      setPreviouslySelectedQuarter(null)
-    } else if (selectedQuarter !== '') {
-      setPreviouslySelectedQuarter(selectedQuarter)
-    }
-    dispatch(setQuarter(value))
+    setQuarterInputValue(value)
     setTouched((currentForm) => ({ ...currentForm, quarter: true }))
   }
   // Non-OFA Admin users will be unable to select an STT
   // prefer => `auth.user.stt`
 
   const selectStt = (value) => {
-    if (value === previouslySelectedStt) {
-      setPreviouslySelectedStt(null)
-    } else if (selectedStt !== '') {
-      setPreviouslySelectedStt(selectedStt)
-    }
-    dispatch(setStt(value))
+    setSttInputValue(value)
     setTouched((currentForm) => ({ ...currentForm, stt: true }))
   }
 
@@ -188,25 +166,27 @@ function Reports() {
 
   useEffect(() => {
     if (!isUploadReportToggled) {
-      const form = [selectedYear, currentStt, selectedQuarter].filter(Boolean)
+      const form = [yearInputValue, currentStt, quarterInputValue].filter(
+        Boolean
+      )
       const touchedFields = Object.keys(touched).length
 
       const errors = touchedFields === 3 ? 3 - form.length : 0
 
       setFormValidationState((currentState) => ({
         ...currentState,
-        year: touched.year && !selectedYear,
+        year: touched.year && !yearInputValue,
         stt: touched.stt && !currentStt,
-        quarter: touched.quarter && !selectedQuarter,
+        quarter: touched.quarter && !quarterInputValue,
         errors,
       }))
     }
   }, [
     currentStt,
     isUploadReportToggled,
-    selectedYear,
+    yearInputValue,
     selectedStt,
-    selectedQuarter,
+    quarterInputValue,
     setFormValidationState,
     touched,
   ])
@@ -238,7 +218,7 @@ function Reports() {
               })}
             >
               <STTComboBox
-                selectedStt={selectedStt}
+                selectedStt={sttInputValue}
                 selectStt={selectStt}
                 error={formValidation.stt}
               />
@@ -268,7 +248,7 @@ function Reports() {
                 name="reportingYears"
                 id="reportingYears"
                 onChange={selectYear}
-                value={selectedYear}
+                value={yearInputValue}
                 aria-describedby="years-error-alert"
               >
                 <option value="" disabled hidden>
@@ -301,7 +281,7 @@ function Reports() {
                 name="quarter"
                 id="quarter"
                 onChange={selectQuarter}
-                value={selectedQuarter}
+                value={quarterInputValue}
                 aria-describedby="quarter-error-alert"
               >
                 <option value="" disabled hidden>
@@ -335,12 +315,11 @@ function Reports() {
       {isUploadReportToggled && (
         <UploadReport
           stt={stt?.id}
-          header={submittedHeader}
+          header={`${currentStt} - Fiscal Year ${selectedYear} - ${quarters[selectedQuarter]}`}
           handleCancel={() => {
             setIsToggled(false)
             resetPreviousValues()
           }}
-          submitEnabled={uploadedFiles.length > 0 && !searchFormChanged()}
         />
       )}
       <Modal
@@ -353,9 +332,6 @@ function Reports() {
             text: 'Cancel',
             onClick: () => {
               setErrorModalVisible(false)
-              dispatch(setYear(previouslySelectedYear || selectedYear))
-              dispatch(setQuarter(previouslySelectedQuarter || selectedQuarter))
-              dispatch(setStt(previouslySelectedStt || selectedStt))
               resetPreviousValues()
             },
           },

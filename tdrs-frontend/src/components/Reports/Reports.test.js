@@ -319,7 +319,7 @@ describe('Reports', () => {
         },
       })
     })
-    expect(store.dispatch).toHaveBeenCalledTimes(10)
+    expect(store.dispatch).toHaveBeenCalledTimes(13)
 
     // There should be 4 more dispatches upon making the submission,
     // one request to /reports for each file
@@ -328,7 +328,7 @@ describe('Reports', () => {
     )
     fireEvent.click(getByText('Submit Data Files'))
     await waitFor(() => getByRole('alert'))
-    expect(store.dispatch).toHaveBeenCalledTimes(15)
+    expect(store.dispatch).toHaveBeenCalledTimes(18)
   })
 
   it('should add files to the redux state when dispatching uploads', async () => {
