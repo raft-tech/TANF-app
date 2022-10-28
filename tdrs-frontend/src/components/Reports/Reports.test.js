@@ -274,7 +274,7 @@ describe('Reports', () => {
   })
 
   it('should make a request with the selections and upload payloads after clicking Submit Data Files', async () => {
-    const store = mockStore({
+    const store = appConfigureStore({
       ...initialState,
       reports: {
         ...initialState.reports,
@@ -323,9 +323,12 @@ describe('Reports', () => {
 
     // There should be 4 more dispatches upon making the submission,
     // one request to /reports for each file
+    await waitFor(() =>
+      expect(getByText('Submit Data Files')).toBeInTheDocument()
+    )
     fireEvent.click(getByText('Submit Data Files'))
     await waitFor(() => getByRole('alert'))
-    expect(store.dispatch).toHaveBeenCalledTimes(14)
+    expect(store.dispatch).toHaveBeenCalledTimes(15)
   })
 
   it('should add files to the redux state when dispatching uploads', async () => {
@@ -449,8 +452,9 @@ describe('Reports', () => {
       return { getByText, queryByText, getByLabelText }
     }
 
-    it('should update the report header when search selections are changed, without clicking search', async () => {
-      const { getByText, getByLabelText } = await setUpSearchFormBehaviors()
+    it('should only update the report header when search selections are changed after clicking search', async () => {
+      const { getByText, getByLabelText, queryByText } =
+        await setUpSearchFormBehaviors()
 
       // search
       fireEvent.click(getByText(/Search/, { selector: 'button' }))
@@ -477,6 +481,17 @@ describe('Reports', () => {
       fireEvent.select(getByLabelText(/Quarter/), {
         target: { value: 'Q2' },
       })
+
+      // the header should not update
+      await waitFor(() =>
+        expect(
+          queryByText('Alaska - Fiscal Year 2022 - Quarter 2 (January - March)')
+        ).not.toBeInTheDocument()
+      )
+
+      // click search and assert the header updates
+      fireEvent.click(getByText(/Search/, { selector: 'button' }))
+
       await waitFor(() =>
         expect(
           getByText('Alaska - Fiscal Year 2022 - Quarter 2 (January - March)')
