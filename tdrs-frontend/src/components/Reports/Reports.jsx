@@ -60,6 +60,7 @@ function Reports() {
   const currentStt = isOFAAdmin ? selectedStt : userProfileStt
 
   const stt = sttList?.find((stt) => stt?.name === currentStt)
+  const [submittedHeader, setSubmittedHeader] = useState('')
 
   const errorsCount = formValidation.errors
 
@@ -72,8 +73,7 @@ function Reports() {
     setFormValidationState({})
 
     // Filter out non-truthy values]
-    console.log('handleSearch')
-    console.log([selectedYear, currentStt, selectedQuarter])
+    const reportHeader = `${currentStt} - Fiscal Year ${selectedYear} - ${quarters[selectedQuarter]}`
     const form = [selectedYear, currentStt, selectedQuarter].filter(Boolean)
 
     if (form.length === 3) {
@@ -94,6 +94,7 @@ function Reports() {
         })
       )
 
+      setSubmittedHeader(reportHeader)
       // Restore upload sections to the page
       setTimeout(() => setIsToggled(true), 0)
     } else {
@@ -313,8 +314,7 @@ function Reports() {
       {isUploadReportToggled && (
         <UploadReport
           stt={stt?.id}
-          header={`${currentStt} - Fiscal Year ${selectedYear} - ${quarters[selectedQuarter]}`}
-          handleCancel={() => setIsToggled(false)}
+          header={submittedHeader}
         />
       )}
       <Modal
