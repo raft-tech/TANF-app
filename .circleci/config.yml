@@ -8,7 +8,7 @@ orbs:
 executors:
   docker-executor:
     docker:
-      - image: rafttw/tanf-cicd:0.0.5
+      - image: rafttw/tanf-cicd:0.0.7
 #      - image: cimg/python:3.10.1
 #        user: root
   machine-executor:
@@ -569,8 +569,8 @@ jobs:
       - deploy-cloud-dot-gov:
           backend-appname: tdp-backend-<< parameters.target_env >>
           frontend-appname: tdp-frontend-<< parameters.target_env >>
-      - attach_workspace:
-          at: /tmp
+#      - attach_workspace:
+#          at: /tmp
 
   deploy-infrastructure-staging:
     executor: terraform/default
