@@ -546,8 +546,9 @@ jobs:
               --command "$CMD" \
               --name nightly-owasp-scan
   deploy-infrastructure-dev:
-    executor: executors.docker-executor.docker[1]
-#    executor: docker-executor
+    docker:
+      - image: rafttw/tanf-cicd:0.0.8
+#    executor: executors.docker-executor.docker[1]
     working_directory: ~/tdp-deploy
     parameters:
       target_env:
@@ -561,7 +562,8 @@ jobs:
             - .tmp_bash_env
 
   deploy-dev:
-    executor: executors.docker-executor.docker[1]
+    docker:
+      - image: rafttw/tanf-cicd:0.0.8
     parameters:
       target_env:
         type: string
