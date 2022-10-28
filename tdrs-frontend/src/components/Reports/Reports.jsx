@@ -194,6 +194,19 @@ function Reports() {
           </div>
         )}
         <form>
+          {isOFAAdmin && (
+            <div
+              className={classNames('usa-form-group maxw-mobile margin-top-4', {
+                'usa-form-group--error': formValidation.stt,
+              })}
+            >
+              <STTComboBox
+                selectedStt={selectedStt}
+                selectStt={selectStt}
+                error={formValidation.stt}
+              />
+            </div>
+          )}
           {(stt?.ssp ? stt.ssp : false) && (
             <div className="usa-form-group margin-top-4">
               <fieldset className="usa-fieldset">
@@ -226,19 +239,6 @@ function Reports() {
                   </label>
                 </div>
               </fieldset>
-            </div>
-          )}
-          {isOFAAdmin && (
-            <div
-              className={classNames('usa-form-group maxw-mobile margin-top-4', {
-                'usa-form-group--error': formValidation.stt,
-              })}
-            >
-              <STTComboBox
-                selectedStt={selectedStt}
-                selectStt={selectStt}
-                error={formValidation.stt}
-              />
             </div>
           )}
           <div
