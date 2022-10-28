@@ -373,10 +373,10 @@ commands:
       - run:
           name: Export JWT_KEY token to BASH ENV
           command: |
-            mkdir ~/tdp-deploy/bash_env
-            touch ~/tdp-deploy/bash_env/.tmp_bash_env
-            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "~/tdp-deploy/bash_env/.tmp_bash_env"
-#            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "$BASH_ENV"
+            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "$BASH_ENV"
+#            mkdir ~/tdp-deploy/bash_env
+#            touch ~/tdp-deploy/bash_env/.tmp_bash_env
+#            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "~/tdp-deploy/bash_env/.tmp_bash_env"
 jobs:
   secrets-check:
     executor: docker-executor
@@ -557,9 +557,9 @@ jobs:
       - deploy-infrastructure:
           cf-app: << parameters.target_env >>
       - persist_to_workspace:
-          root: bash_env
+          root: /tmp
           paths:
-            - .tmp_bash_env
+            - $BASH_ENV
 
   deploy-dev:
     docker:
@@ -573,7 +573,7 @@ jobs:
           backend-appname: tdp-backend-<< parameters.target_env >>
           frontend-appname: tdp-frontend-<< parameters.target_env >>
       - attach_workspace:
-          at: /tmp/test-dir/bash_env
+          at: $BASH_ENV
 
   deploy-infrastructure-staging:
     executor: terraform/default
