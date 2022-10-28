@@ -73,6 +73,14 @@ function Reports() {
     setPreviouslySelectedYear(null)
     setPreviouslySelectedStt(null)
   }
+
+  const searchFormChanged = () =>
+    !(
+      previouslySelectedQuarter === null &&
+      previouslySelectedStt === null &&
+      previouslySelectedYear === null
+    )
+
   const handleSearch = () => {
     // Clear previous errors
     setFormValidationState({})
@@ -332,6 +340,7 @@ function Reports() {
             setIsToggled(false)
             resetPreviousValues()
           }}
+          submitEnabled={uploadedFiles.length > 0 && !searchFormChanged()}
         />
       )}
       <Modal

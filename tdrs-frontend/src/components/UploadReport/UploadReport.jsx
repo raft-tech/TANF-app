@@ -10,7 +10,7 @@ import { submit } from '../../actions/reports'
 import { useEventLogger } from '../../utils/eventLogger'
 import { fileUploadSections } from '../../reducers/reports'
 
-function UploadReport({ handleCancel, header, stt }) {
+function UploadReport({ handleCancel, header, stt, submitEnabled }) {
   // The currently selected year from the reportingYears dropdown
   const selectedYear = useSelector((state) => state.reports.year)
   // The selected quarter in the dropdown tied to our redux `reports` state
@@ -114,9 +114,12 @@ function UploadReport({ handleCancel, header, stt }) {
         ))}
 
         <div className="buttonContainer margin-y-4">
-          <Button className="card:margin-y-1" type="submit">
-            Submit Data Files
-          </Button>
+          {submitEnabled && (
+            <Button className="card:margin-y-1" type="submit">
+              Submit Data Files
+            </Button>
+          )}
+
           <Button className="cancel" type="button" onClick={handleCancel}>
             Cancel
           </Button>
