@@ -8,9 +8,10 @@ orbs:
 executors:
   docker-executor:
     docker:
+      - image: cimg/python:3.10.1
+        user: root
       - image: rafttw/tanf-cicd:0.0.8
-#      - image: cimg/python:3.10.1
-#        user: root
+        name: tarf-cicd
   machine-executor:
     machine:
       docker_layer_caching: false
@@ -372,8 +373,7 @@ commands:
       - run:
           name: Export JWT_KEY token to BASH ENV
           command: |
-            mkdir -p ~/tdp-deploy/bash_env/
-            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "~/tdp-deploy/bash_env/.tmp_bash_env"
+            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "${WORKDIR}/tdp-deploy/bash_env/.tmp_bash_env"
 #            echo 'export NON_PROD_JWT_KEY=$(cd ~/tdp-deploy/infrastructure/dev; terraform output -json tdp_backend_raft_env | jq -r .JWT_KEY)' >> "$BASH_ENV"
 
 jobs:
@@ -546,7 +546,8 @@ jobs:
               --command "$CMD" \
               --name nightly-owasp-scan
   deploy-infrastructure-dev:
-    executor: docker-executor
+    executor: executors.docker-executor.docker[1]
+#    executor: docker-executor
     working_directory: ~/tdp-deploy
     parameters:
       target_env:
@@ -560,7 +561,7 @@ jobs:
             - .tmp_bash_env
 
   deploy-dev:
-    executor: docker-executor
+    executor: executors.docker-executor.docker[1]
     parameters:
       target_env:
         type: string
