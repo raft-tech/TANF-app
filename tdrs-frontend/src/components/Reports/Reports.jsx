@@ -56,7 +56,7 @@ function Reports() {
     Q4: 'Quarter 4 (July - September)',
   }
 
-  const currentStt = isOFAAdmin ? sttInputValue : userProfileStt
+  const currentStt = isOFAAdmin ? selectedStt : userProfileStt
 
   const stt = sttList?.find((stt) => stt?.name === currentStt)
 
@@ -77,7 +77,9 @@ function Reports() {
     setFormValidationState({})
 
     // Filter out non-truthy values]
-    const form = [yearInputValue, currentStt, quarterInputValue].filter(Boolean)
+    const form = [yearInputValue, sttInputValue, quarterInputValue].filter(
+      Boolean
+    )
 
     if (form.length === 3) {
       // Hide upload sections while submitting search
@@ -109,7 +111,7 @@ function Reports() {
       // create error state
       setFormValidationState({
         year: !selectedYear,
-        stt: !currentStt,
+        stt: !sttInputValue,
         quarter: !selectedQuarter,
         errors: 3 - form.length,
       })
@@ -166,7 +168,7 @@ function Reports() {
 
   useEffect(() => {
     if (!isUploadReportToggled) {
-      const form = [yearInputValue, currentStt, quarterInputValue].filter(
+      const form = [yearInputValue, sttInputValue, quarterInputValue].filter(
         Boolean
       )
       const touchedFields = Object.keys(touched).length
@@ -176,13 +178,13 @@ function Reports() {
       setFormValidationState((currentState) => ({
         ...currentState,
         year: touched.year && !yearInputValue,
-        stt: touched.stt && !currentStt,
+        stt: touched.stt && !sttInputValue,
         quarter: touched.quarter && !quarterInputValue,
         errors,
       }))
     }
   }, [
-    currentStt,
+    sttInputValue,
     isUploadReportToggled,
     yearInputValue,
     selectedStt,
