@@ -114,11 +114,13 @@ function UploadReport({ handleCancel, header, stt, submitEnabled }) {
         ))}
 
         <div className="buttonContainer margin-y-4">
-          {submitEnabled && (
-            <Button className="card:margin-y-1" type="submit">
-              Submit Data Files
-            </Button>
-          )}
+          <Button
+            className="card:margin-y-1"
+            type="submit"
+            disabled={!submitEnabled}
+          >
+            Submit Data Files
+          </Button>
 
           <Button className="cancel" type="button" onClick={handleCancel}>
             Cancel
