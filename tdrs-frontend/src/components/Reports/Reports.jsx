@@ -68,6 +68,11 @@ function Reports() {
 
   const errorsRef = useRef(null)
 
+  const resetPreviousValues = () => {
+    setPreviouslySelectedQuarter(null)
+    setPreviouslySelectedYear(null)
+    setPreviouslySelectedStt(null)
+  }
   const handleSearch = () => {
     // Clear previous errors
     setFormValidationState({})
@@ -95,6 +100,8 @@ function Reports() {
       )
 
       setSubmittedHeader(reportHeader)
+      resetPreviousValues()
+
       // Restore upload sections to the page
       setTimeout(() => setIsToggled(true), 0)
     } else {
@@ -116,7 +123,9 @@ function Reports() {
   }
 
   const selectYear = ({ target: { value } }) => {
-    if (selectedYear !== '') {
+    if (value === previouslySelectedYear) {
+      setPreviouslySelectedYear(null)
+    } else if (selectedYear !== '') {
       setPreviouslySelectedYear(selectedYear)
     }
     dispatch(setYear(value))
@@ -124,7 +133,9 @@ function Reports() {
   }
 
   const selectQuarter = ({ target: { value } }) => {
-    if (selectedQuarter !== '') {
+    if (value === previouslySelectedQuarter) {
+      setPreviouslySelectedQuarter(null)
+    } else if (selectedQuarter !== '') {
       setPreviouslySelectedQuarter(selectedQuarter)
     }
     dispatch(setQuarter(value))
@@ -134,7 +145,9 @@ function Reports() {
   // prefer => `auth.user.stt`
 
   const selectStt = (value) => {
-    if (selectedStt !== '') {
+    if (value === previouslySelectedStt) {
+      setPreviouslySelectedStt(null)
+    } else if (selectedStt !== '') {
       setPreviouslySelectedStt(selectedStt)
     }
     dispatch(setStt(value))
@@ -315,6 +328,10 @@ function Reports() {
         <UploadReport
           stt={stt?.id}
           header={submittedHeader}
+          handleCancel={() => {
+            setIsToggled(false)
+            resetPreviousValues()
+          }}
         />
       )}
       <Modal
@@ -329,7 +346,8 @@ function Reports() {
               setErrorModalVisible(false)
               dispatch(setYear(previouslySelectedYear || selectedYear))
               dispatch(setQuarter(previouslySelectedQuarter || selectedQuarter))
-              dispatch(setStt(previouslySelectedStt || selectStt))
+              dispatch(setStt(previouslySelectedStt || selectedStt))
+              resetPreviousValues()
             },
           },
           {
