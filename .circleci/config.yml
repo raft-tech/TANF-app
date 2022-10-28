@@ -13,7 +13,7 @@ executors:
   machine-executor:
     machine:
       docker_layer_caching: false
-      image: ubuntu-2204
+      image: ubuntu-2204:current
 
 commands:
   ###
