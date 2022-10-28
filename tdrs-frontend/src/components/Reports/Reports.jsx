@@ -345,7 +345,7 @@ function Reports() {
       )}
       <Modal
         title="Files Not Submitted"
-        message="Your files have not been submitted. Searching without submitting will discard your changes and remove any uploaded"
+        message="Your uploaded files have not been submitted. Searching without submitting will discard your changes and remove any uploaded files."
         isVisible={errorModalVisible}
         buttons={[
           {
