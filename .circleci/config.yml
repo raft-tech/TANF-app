@@ -10,7 +10,7 @@ executors:
     docker:
       - image: cimg/python:3.10.1
         user: root
-      - image: rafttw/tanf-cicd:0.0.8
+      - image: rafttw/tanf-cicd:0.0.1
         name: tarf-cicd
   machine-executor:
     machine:
@@ -548,7 +548,7 @@ jobs:
               --name nightly-owasp-scan
   deploy-infrastructure-dev:
     docker:
-      - image: rafttw/tanf-cicd:0.0.8
+      - image: rafttw/tanf-cicd:0.0.1
     working_directory: ~/tdp-deploy
     parameters:
       target_env:
@@ -559,11 +559,11 @@ jobs:
       - persist_to_workspace:
           root: /tmp
           paths:
-            - $BASH_ENV
+            - .bash_env
 
   deploy-dev:
     docker:
-      - image: rafttw/tanf-cicd:0.0.8
+      - image: rafttw/tanf-cicd:0.0.1
     parameters:
       target_env:
         type: string
@@ -573,7 +573,7 @@ jobs:
           backend-appname: tdp-backend-<< parameters.target_env >>
           frontend-appname: tdp-frontend-<< parameters.target_env >>
       - attach_workspace:
-          at: $BASH_ENV
+          at: /tmp/.bash_env
 
   deploy-infrastructure-staging:
     executor: terraform/default
