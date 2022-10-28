@@ -450,10 +450,8 @@ describe('Reports', () => {
   })
 
   it('Non OFA Admin should show the data files section when the user has an stt with ssp set to true', () => {
-    //add ssp set to true to the stt in sttList with the id 1
     const store = mockStore({
       ...initialState,
-      //in autset user role to Developer
       auth: {
         ...initialState.auth,
         user: {
@@ -479,7 +477,6 @@ describe('Reports', () => {
   it('Non OFA Admin should not show the data files section when the user has an stt with ssp set to false', () => {
     const store = mockStore({
       ...initialState,
-      //in autset user role to Developer
       auth: {
         ...initialState.auth,
         user: {
@@ -504,7 +501,6 @@ describe('Reports', () => {
   it('OFA Admin should see the data files section when they select a stt with ssp set to true', () => {
     const store = mockStore({
       ...initialState,
-      //in reports set the stt to Alabama
       reports: {
         ...initialState.reports,
         stt: 'Alabama',

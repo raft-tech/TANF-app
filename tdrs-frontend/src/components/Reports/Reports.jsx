@@ -195,7 +195,6 @@ function Reports() {
         )}
         <form>
           {(stt?.ssp ? stt.ssp : false) && (
-            // USWDS radio button with options for TANF and SSP-MOE
             <div className="usa-form-group margin-top-4">
               <fieldset className="usa-fieldset">
                 <legend className="usa-label text-bold">File Type</legend>
@@ -206,7 +205,7 @@ function Reports() {
                     type="radio"
                     name="reportType"
                     value="tanf"
-                    checked
+                    defaultChecked
                     onChange={() => setFileType('tanf')}
                   />
                   <label className="usa-radio__label" htmlFor="tanf">
