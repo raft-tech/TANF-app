@@ -8,12 +8,12 @@ orbs:
 executors:
   docker-executor:
     docker:
-      - image: cimg/python:3.10.1
+      - image: cimg/python:3.10.4
         user: root
   machine-executor:
     machine:
       docker_layer_caching: false
-      image: ubuntu-2004:202104-01
+      image: ubuntu-2204:2022.10.1
 
 commands:
   ###
@@ -683,7 +683,8 @@ workflows:
             - secrets-check
 
   dev-deployment:
-    when: << pipeline.parameters.run_dev_deployment >>
+    when:
+      << pipeline.parameters.run_dev_deployment >>
     jobs:
       - deploy-infrastructure-dev:
           target_env: << pipeline.parameters.target_env >>
