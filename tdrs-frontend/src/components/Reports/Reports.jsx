@@ -77,9 +77,11 @@ function Reports() {
     setFormValidationState({})
 
     // Filter out non-truthy values]
-    const form = [yearInputValue, sttInputValue, quarterInputValue].filter(
-      Boolean
-    )
+    const form = [
+      yearInputValue,
+      sttInputValue || currentStt,
+      quarterInputValue,
+    ].filter(Boolean)
 
     if (form.length === 3) {
       // Hide upload sections while submitting search
@@ -94,7 +96,6 @@ function Reports() {
       dispatch(setYear(yearInputValue))
       dispatch(setQuarter(quarterInputValue))
       dispatch(setStt(sttInputValue))
-      // resetPreviousValues()
 
       // Retrieve the files matching the selected year and quarter.
       dispatch(
@@ -111,7 +112,7 @@ function Reports() {
       // create error state
       setFormValidationState({
         year: !selectedYear,
-        stt: !sttInputValue,
+        stt: !(sttInputValue || currentStt),
         quarter: !selectedQuarter,
         errors: 3 - form.length,
       })
