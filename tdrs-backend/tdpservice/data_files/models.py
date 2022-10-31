@@ -136,7 +136,6 @@ class DataFile(FileRecord):
     stt = models.ForeignKey(
         STT, on_delete=models.CASCADE, related_name="sttRef", blank=False, null=False
     )
-    ssp = models.BooleanField(default=True)
 
     # NOTE: `file` is only temporarily nullable until we complete the issue:
     # https://github.com/raft-tech/TANF-app/issues/755

@@ -19,6 +19,7 @@ class DataFileSerializer(serializers.ModelSerializer):
     file = serializers.FileField(write_only=True)
     stt = serializers.PrimaryKeyRelatedField(queryset=STT.objects.all())
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    ssp = serializers.BooleanField(write_only=True)
 
     class Meta:
         """Metadata."""
@@ -41,8 +42,10 @@ class DataFileSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Create a new entry with a new version number."""
+        ssp = validated_data.pop('ssp')
+        if ssp:
+            validated_data['section'] = 'SSP ' + validated_data['section']
         data_file = DataFile.create_new_version(validated_data)
-
         # Determine the matching ClamAVFileScan for this DataFile.
         av_scan = ClamAVFileScan.objects.filter(
             file_name=data_file.original_filename,

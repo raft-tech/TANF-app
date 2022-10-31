@@ -203,6 +203,24 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
+    def test_data_files_data_upload_ssp(
+        self, api_client, data_file_data,
+    ):
+        """Test that when Data Analysts upload file with ssp true the section name is updated."""
+        data_file_data['ssp'] = True
+
+        response = self.post_data_file_file(api_client, data_file_data)
+        assert response.data['section'] == 'SSP Active Case Data'
+
+    def test_data_files_data_upload_tanf(
+        self, api_client, data_file_data,
+    ):
+        """Test that when Data Analysts upload file with ssp true the section name is updated."""
+        data_file_data['ssp'] = False
+
+        response = self.post_data_file_file(api_client, data_file_data)
+        assert response.data['section'] == 'Active Case Data'
+
 
 class TestDataFileAPIAsInactiveUser(DataFileAPITestBase):
     """Test DataFileViewSet as an inactive user."""

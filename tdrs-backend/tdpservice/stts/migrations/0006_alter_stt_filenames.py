@@ -47,7 +47,7 @@ def add_filenames(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stts', '0007_stt_ssp'),
+        ('stts', '0005_stt_stt_code'),
     ]
 
     operations = [
