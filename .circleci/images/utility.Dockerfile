@@ -29,7 +29,6 @@ SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
 RUN apk add jq curl python3 py3-pip
 
 RUN pip3 install --upgrade pip
-#     pip3 install awscli botocore boto3
 
 # Install SOPS, other ci/cd tools
 RUN export SOPS_VERSION=${SOPS_VERSION} \
