@@ -1,8 +1,11 @@
 """Tests for DataFiles Application."""
+from unittest.mock import ANY, patch
 from rest_framework import status
 import pytest
 
 from tdpservice.data_files.models import DataFile
+from tdpservice.email.email_enums import EmailType
+from tdpservice.users.models import AccountApprovalStatusChoices
 
 
 @pytest.mark.usefixtures('db')
@@ -220,6 +223,25 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
 
         response = self.post_data_file_file(api_client, data_file_data)
         assert response.data['section'] == 'Active Case Data'
+
+    def test_data_analyst_gets_email_when_user_uploads_report_for_their_stt(
+        self, api_client, data_file_data, user
+    ):
+        """Test that an STT Data Analyst gets emails after uploads for their location."""
+        user.account_approval_status = AccountApprovalStatusChoices.APPROVED
+        user.location_id = data_file_data['stt']
+        user.save()
+
+        with patch('tdpservice.email.email.automated_email.delay') as mock_automated_email:
+            response = self.post_data_file_file(api_client, data_file_data)
+            mock_automated_email.assert_called_once_with(
+                email_path=EmailType.DATA_SUBMITTED.value,
+                recipient_email=[user.username],
+                subject='Data Submitted for Active Case Data',
+                email_context=ANY,
+                text_message=ANY
+            )
+            assert response.status_code == status.HTTP_201_CREATED
 
 
 class TestDataFileAPIAsInactiveUser(DataFileAPITestBase):
