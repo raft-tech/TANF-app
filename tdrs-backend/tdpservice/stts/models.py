@@ -39,6 +39,8 @@ class STT(models.Model):
     state = models.ForeignKey("self", on_delete=models.CASCADE, blank=True, null=True)
     ssp = models.BooleanField(default=True)
 
+    ssp = models.BooleanField(blank=True, null=True, default=False, editable=True)
+
     class Meta:
         """Metadata."""
 

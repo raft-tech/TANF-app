@@ -148,6 +148,7 @@ export const submit =
     uploadedFiles,
     user,
     year,
+    ssp,
   }) =>
   async (dispatch) => {
     const submissionRequests = uploadedFiles.map((file) => {
@@ -161,6 +162,7 @@ export const submit =
         year,
         stt,
         quarter,
+        ssp,
       }
       for (const [key, value] of Object.entries(dataFile)) {
         formData.append(key, value)

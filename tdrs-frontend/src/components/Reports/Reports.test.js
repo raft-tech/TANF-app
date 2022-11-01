@@ -56,12 +56,14 @@ describe('Reports', () => {
           type: 'state',
           code: 'AL',
           name: 'Alabama',
+          ssp: true,
         },
         {
           id: 2,
           type: 'state',
           code: 'AK',
           name: 'Alaska',
+          ssp: false,
         },
       ],
       loading: false,
@@ -445,5 +447,90 @@ describe('Reports', () => {
     const expected = options.item(1).value
 
     expect(expected).toEqual(currentYear.toString())
+  })
+
+  it('Non OFA Admin should show the data files section when the user has an stt with ssp set to true', () => {
+    const store = mockStore({
+      ...initialState,
+      auth: {
+        ...initialState.auth,
+        user: {
+          ...initialState.auth.user,
+          roles: [],
+          stt: {
+            name: 'Alabama',
+          },
+        },
+      },
+    })
+
+    const { getByText } = render(
+      <Provider store={store}>
+        <Reports />
+      </Provider>
+    )
+
+    expect(getByText('File Type')).toBeInTheDocument()
+  })
+
+  // should not reder the File Type section if the user is not an OFA Admin and the stt has ssp set to false
+  it('Non OFA Admin should not show the data files section when the user has an stt with ssp set to false', () => {
+    const store = mockStore({
+      ...initialState,
+      auth: {
+        ...initialState.auth,
+        user: {
+          ...initialState.auth.user,
+          roles: [],
+          stt: {
+            name: 'Alaska',
+          },
+        },
+      },
+    })
+
+    const { queryByText } = render(
+      <Provider store={store}>
+        <Reports />
+      </Provider>
+    )
+
+    expect(queryByText('File Type')).not.toBeInTheDocument()
+  })
+
+  it('OFA Admin should see the data files section when they select a stt with ssp set to true', () => {
+    const store = mockStore({
+      ...initialState,
+      reports: {
+        ...initialState.reports,
+        stt: 'Alabama',
+      },
+    })
+
+    const { getByText } = render(
+      <Provider store={store}>
+        <Reports />
+      </Provider>
+    )
+
+    expect(getByText('File Type')).toBeInTheDocument()
+  })
+
+  it('OFA Admin should not see the data files section when they select a stt with ssp set to false', () => {
+    const store = mockStore({
+      ...initialState,
+      reports: {
+        ...initialState.reports,
+        stt: 'Alaska',
+      },
+    })
+
+    const { queryByText } = render(
+      <Provider store={store}>
+        <Reports />
+      </Provider>
+    )
+
+    expect(queryByText('File Type')).not.toBeInTheDocument()
   })
 })
