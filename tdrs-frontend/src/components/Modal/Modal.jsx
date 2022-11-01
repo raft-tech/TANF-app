@@ -6,9 +6,7 @@ const Modal = ({ title, message, buttons = [], isVisible = false }) => {
   useEffect(
     () =>
       isVisible && modalRef && modalRef.current
-        ? modalRef.current
-            .querySelector(`button[buttonkey="${buttons[0].key}"]`)
-            .focus()
+        ? modalRef.current.querySelector('h1').focus()
         : undefined,
     [isVisible, modalRef, buttons]
   )

@@ -61,22 +61,26 @@ describe('Modal tests', () => {
   }
 
   describe('Acessability trap', () => {
-    it('should focus first button when displayed', async () => {
+    it('should focus modal header when displayed', async () => {
       const { queryByText } = await setup()
-      expect(document.activeElement).toHaveTextContent('Cancel')
+      expect(document.activeElement).toHaveTextContent('Test')
     })
 
     it('Should trap focus to modal buttons when tabbing', async () => {
       const { container } = await setup()
       const modal = container.querySelector('#modal')
 
+      expect(document.activeElement).toHaveTextContent('Test')
+
+      // tabbing focuses the first button
+      fireEvent.keyDown(modal, { key: 'Tab' })
       expect(document.activeElement).toHaveTextContent('Cancel')
 
-      // tabbing focuses the next button
+      // tabbing again focuses the next button
       fireEvent.keyDown(modal, { key: 'Tab' })
       expect(document.activeElement).toHaveTextContent('Uncancel')
 
-      // tabbing again should focus the first button again
+      // tabbing another time should focus the first button again
       fireEvent.keyDown(modal, { key: 'Tab' })
       expect(document.activeElement).toHaveTextContent('Cancel')
     })
