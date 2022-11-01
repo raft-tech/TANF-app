@@ -22,7 +22,6 @@ const Modal = ({ title, message, buttons = [], isVisible = false }) => {
     let nextButtonIndex = 0
 
     if (selectedButtonKey !== null) {
-      console.log('yaasss?')
       const selectedButtonIndex = buttons.findIndex(
         (b) => b.key === selectedButtonKey
       )
