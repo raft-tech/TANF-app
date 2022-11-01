@@ -70,10 +70,14 @@ const Modal = ({ title, message, buttons = [], isVisible = false }) => {
         <h1
           className="font-serif-xl margin-4 margin-bottom-0 text-normal"
           tabIndex="-1"
+          id="modalHeader"
+          aria-describedby="modalDescription"
         >
           {title}
         </h1>
-        <p className="margin-4 margin-top-1">{message}</p>
+        <p id="modalDescription" className="margin-4 margin-top-1">
+          {message}
+        </p>
         <div className="margin-x-4 margin-bottom-4">
           {buttons.map((b) => (
             <Button
