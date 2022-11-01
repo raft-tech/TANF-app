@@ -332,7 +332,7 @@ function Reports() {
         isVisible={errorModalVisible}
         buttons={[
           {
-            key: 1,
+            key: '1',
             text: 'Cancel',
             onClick: () => {
               setErrorModalVisible(false)
@@ -340,7 +340,7 @@ function Reports() {
             },
           },
           {
-            key: 2,
+            key: '2',
             text: 'Discard and Search',
             onClick: () => {
               setErrorModalVisible(false)
