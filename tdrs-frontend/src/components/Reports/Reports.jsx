@@ -322,6 +322,7 @@ function Reports() {
           handleCancel={() => {
             setIsToggled(false)
             resetPreviousValues()
+            dispatch(clearFileList())
           }}
         />
       )}
