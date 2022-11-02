@@ -27,7 +27,7 @@ def _update_stts(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stts', '0006_alter_stt_filenames'),
+        ('stts', '0007_stt_ssp'),
     ]
 
     operations = [

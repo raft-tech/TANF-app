@@ -4,7 +4,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    run_before = [
+    dependencies = [
         ('stts', '0006_alter_stt_filenames'),
     ]
 
