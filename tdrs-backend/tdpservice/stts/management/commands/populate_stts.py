@@ -70,6 +70,7 @@ def _populate_tribes():
         ]
         STT.objects.bulk_create(stts, ignore_conflicts=True)
 
+
 class Command(BaseCommand):
     """Command class."""
 
