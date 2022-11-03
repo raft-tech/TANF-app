@@ -9,6 +9,7 @@ import {
   SET_FILE_LIST,
   CLEAR_FILE_LIST,
   SET_FILE_SUBMITTED,
+  SET_FILE_TYPE,
 } from '../actions/reports'
 
 const getFileIndex = (files, section) =>
@@ -143,6 +144,10 @@ const reports = (state = initialState, action) => {
     case SET_SELECTED_QUARTER: {
       const { quarter } = payload
       return { ...state, quarter }
+    }
+    case SET_FILE_TYPE: {
+      const { fileType } = payload
+      return { ...state, fileType }
     }
     default:
       return state

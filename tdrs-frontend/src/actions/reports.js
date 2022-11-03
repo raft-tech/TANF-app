@@ -232,3 +232,9 @@ export const setYear = (year) => (dispatch) => {
 export const setQuarter = (quarter) => (dispatch) => {
   dispatch({ type: SET_SELECTED_QUARTER, payload: { quarter } })
 }
+
+export const SET_FILE_TYPE = 'SET_FILE_TYPE'
+
+export const setFileType = (fileType) => (dispatch) => {
+  dispatch({ type: SET_FILE_TYPE, payload: { fileType } })
+}

@@ -9,6 +9,7 @@ import {
   setStt,
   setQuarter,
   getAvailableFileList,
+  setFileType,
 } from '../../actions/reports'
 import UploadReport from '../UploadReport'
 import STTComboBox from '../STTComboBox'
@@ -59,7 +60,8 @@ function Reports() {
   const currentStt = isOFAAdmin ? selectedStt : userProfileStt
 
   const stt = sttList?.find((stt) => stt?.name === currentStt)
-  const [fileType, setFileType] = useState('tanf')
+  const [fileTypeInputValue, setFileTypeInputValue] = useState('tanf')
+  const selectedFileType = useSelector((state) => state.reports.fileType)
 
   const errorsCount = formValidation.errors
 
@@ -71,6 +73,7 @@ function Reports() {
     setQuarterInputValue(selectedQuarter || '')
     setYearInputValue(selectedYear || '')
     setSttInputValue(selectedStt || '')
+    setFileTypeInputValue(selectedFileType || 'tanf')
   }
 
   const handleSearch = () => {
@@ -97,12 +100,14 @@ function Reports() {
       dispatch(setYear(yearInputValue))
       dispatch(setQuarter(quarterInputValue))
       dispatch(setStt(sttInputValue))
+      dispatch(setFileType(fileTypeInputValue))
 
-      // Retrieve the files matching the selected year and quarter.
+      // Retrieve the files matching the selected year, quarter, and ssp.
       dispatch(
         getAvailableFileList({
           quarter: selectedQuarter,
           year: selectedYear,
+          file_type: selectedFileType,
           stt,
         })
       )
@@ -240,7 +245,7 @@ function Reports() {
                     name="reportType"
                     value="tanf"
                     defaultChecked
-                    onChange={() => setFileType('tanf')}
+                    onChange={() => setFileTypeInputValue('tanf')}
                   />
                   <label className="usa-radio__label" htmlFor="tanf">
                     TANF
@@ -253,7 +258,7 @@ function Reports() {
                     type="radio"
                     name="reportType"
                     value="ssp-moe"
-                    onChange={() => setFileType('ssp-moe')}
+                    onChange={() => setFileTypeInputValue('ssp-moe')}
                   />
                   <label className="usa-radio__label" htmlFor="ssp-moe">
                     SSP-MOE
@@ -352,7 +357,7 @@ function Reports() {
       {isUploadReportToggled && (
         <UploadReport
           stt={stt?.id}
-          ssp={fileType === 'ssp-moe'}
+          ssp={fileTypeInputValue === 'ssp-moe'}
           header={`${currentStt} - Fiscal Year ${selectedYear} - ${quarters[selectedQuarter]}`}
           handleCancel={() => {
             setIsToggled(false)
