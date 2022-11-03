@@ -60,8 +60,9 @@ function Reports() {
   const currentStt = isOFAAdmin ? selectedStt : userProfileStt
 
   const stt = sttList?.find((stt) => stt?.name === currentStt)
-  const [fileTypeInputValue, setFileTypeInputValue] = useState('tanf')
+
   const selectedFileType = useSelector((state) => state.reports.fileType)
+  const [fileTypeInputValue, setFileTypeInputValue] = useState(selectedFileType)
 
   const errorsCount = formValidation.errors
 
@@ -357,8 +358,9 @@ function Reports() {
       {isUploadReportToggled && (
         <UploadReport
           stt={stt?.id}
-          ssp={fileTypeInputValue === 'ssp-moe'}
-          header={`${currentStt} - Fiscal Year ${selectedYear} - ${quarters[selectedQuarter]}`}
+          header={`${currentStt} - ${selectedFileType.toUpperCase()} Fiscal Year ${selectedYear} - ${
+            quarters[selectedQuarter]
+          }`}
           handleCancel={() => {
             setIsToggled(false)
             resetPreviousValues()

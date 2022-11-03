@@ -10,11 +10,14 @@ import { submit } from '../../actions/reports'
 import { useEventLogger } from '../../utils/eventLogger'
 import { fileUploadSections } from '../../reducers/reports'
 
-function UploadReport({ handleCancel, header, stt, ssp }) {
+function UploadReport({ handleCancel, header, stt }) {
   // The currently selected year from the reportingYears dropdown
   const selectedYear = useSelector((state) => state.reports.year)
   // The selected quarter in the dropdown tied to our redux `reports` state
   const selectedQuarter = useSelector((state) => state.reports.quarter)
+  // The selected File Type value from redux
+  const selectedFileType = useSelector((state) => state.reports.fileType)
+
   // The set of uploaded files in our Redux state
   const files = useSelector((state) => state.reports.files)
   // The logged in user in our Redux state
@@ -75,7 +78,7 @@ function UploadReport({ handleCancel, header, stt, ssp }) {
         stt,
         uploadedFiles,
         user,
-        ssp,
+        ssp: selectedFileType === 'ssp-moe',
       })
     )
   }
