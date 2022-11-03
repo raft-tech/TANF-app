@@ -49,6 +49,7 @@ function Reports() {
   }
 
   const currentStt = isOFAAdmin ? selectedStt : userProfileStt
+
   const stt = sttList?.find((stt) => stt?.name === currentStt)
   const [submittedHeader, setSubmittedHeader] = useState('')
   const [fileType, setFileType] = useState('tanf')

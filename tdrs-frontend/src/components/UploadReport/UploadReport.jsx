@@ -27,6 +27,7 @@ function UploadReport({ handleCancel, header, stt, ssp }) {
     type: null,
     message: null,
   })
+  const alertRef = useRef(null)
 
   // Ensure newly rendered header is focused,
   // else it won't be read be screen readers.
@@ -85,6 +86,12 @@ function UploadReport({ handleCancel, header, stt, ssp }) {
     fileInput.init()
   }, [])
 
+  useEffect(() => {
+    if (localAlert.active && alertRef && alertRef.current) {
+      alertRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [localAlert, alertRef])
+
   return (
     <>
       <h2
@@ -96,6 +103,7 @@ function UploadReport({ handleCancel, header, stt, ssp }) {
       </h2>
       {localAlert.active && (
         <div
+          ref={alertRef}
           className={classNames('usa-alert usa-alert--slim', {
             [`usa-alert--${localAlert.type}`]: true,
           })}

@@ -41,6 +41,7 @@ class RegionPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
 
     def to_representation(self, value):
         """Return full Region object on outgoing serialization."""
+
         instance = self.queryset.get(pk=value.pk)
         return RegionSerializer(instance).data
 
