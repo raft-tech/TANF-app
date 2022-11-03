@@ -286,6 +286,8 @@ describe('Reports', () => {
     const origDispatch = store.dispatch
     store.dispatch = jest.fn(origDispatch)
 
+    window.HTMLElement.prototype.scrollIntoView = jest.fn(() => null)
+
     const { getByText, getByLabelText, getByRole } = render(
       <Provider store={store}>
         <Reports />
