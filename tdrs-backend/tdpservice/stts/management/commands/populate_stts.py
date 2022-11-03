@@ -21,63 +21,13 @@ def _populate_regions():
             Region.objects.get_or_create(id=row["Id"])
         Region.objects.get_or_create(id=1000)
 
-
-def _get_states():
-    with open(DATA_DIR / "states.csv") as csvfile:
-        reader = csv.DictReader(csvfile)
-        return [
-            STT(
-                code=row["Code"],
-                name=row["Name"],
-                region_id=row["Region"],
-                type=STT.EntityType.STATE,
-                filenames=json.loads(row["filenames"].replace('\'', '"')),
-                stt_code=row["STT_CODE"],
-            )
-            for row in reader
-        ]
-
-
-
-def _get_territories():
-    with open(DATA_DIR / "territories.csv") as csvfile:
-        reader = csv.DictReader(csvfile)
-        return [
-            STT(
-                code=row["Code"],
-                name=row["Name"],
-                region_id=row["Region"],
-                type=STT.EntityType.TERRITORY,
-                filenames=json.loads(row["filenames"].replace('\'', '"')),
-                stt_code=row["STT_CODE"],
-            )
-            for row in reader
-        ]
-
-
-def _populate_tribes():
-    with open(DATA_DIR / "tribes.csv") as csvfile:
-        reader = csv.DictReader(csvfile)
-        stts = [
-            STT(
-                name=row["Name"],
-                region_id=row["Region"],
-                state=STT.objects.get(code=row["Code"]),
-                type=STT.EntityType.TRIBE,
-                filenames=json.loads(row["filenames"].replace('\'', '"')),
-                stt_code=row["STT_CODE"],
-            )
-            for row in reader
-        ]
-        STT.objects.bulk_create(stts, ignore_conflicts=True)
-
 def _load_csv(filename, entity):
     with open(DATA_DIR / filename) as csvfile:
         reader = csv.DictReader(csvfile)
 
         for row in reader:
             stt, stt_created = STT.objects.get_or_create(name=row["Name"])
-            if stt_created:
+            if stt_created:  # These lines are spammy, should remove before merge
                 logger.debug("Created new entry for " + row["Name"])
             else:
                 logger.debug("Found STT " + row["Name"] + ", will sync with data csv.")
@@ -107,19 +57,13 @@ class Command(BaseCommand):
         """Populate the various regions, states, territories, and tribes."""
         _populate_regions()
 
-
         stt_map = [
             ("states.csv", STT.EntityType.STATE),
             ("territories.csv", STT.EntityType.TERRITORY),
             ("tribes.csv", STT.EntityType.TRIBE)
         ]
 
-        for csv, entity in stt_map:
-            stts = _load_csv(csv, entity)
+        for datafile, entity in stt_map:
+            _load_csv(datafile, entity)
 
-        #stts = _get_states()
-        #stts.extend(_get_territories())
-        #STT.objects.bulk_create(stts, ignore_conflicts=True)
-
-        #_populate_tribes()
         logger.info("STT import executed by Admin at %s", timezone.now())
