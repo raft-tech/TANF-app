@@ -70,6 +70,7 @@ class DataFileViewSet(ModelViewSet):
             user = request.user
             data_file = DataFile.objects.get(id=response.data.get('id'))
 
+            # just need a wee change
             # Send email to user to notify them of the file upload status
             subject = f"Data Submitted for {data_file.section}"
             email_context = {
