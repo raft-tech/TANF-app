@@ -38,28 +38,28 @@ def test_set_profile_data(api_client, user):
     assert user.last_name == "Bloggs"
 
 
-@pytest.mark.django_db
-def test_user_can_request_access(api_client, user, stt):
-    """Test `access_request` endpoint updates the `account_approval_status` field to `Access Request`."""
-    api_client.login(username=user.username, password="test_password")
-
-    response = api_client.patch(
-            "/v1/users/request_access/",
-            {"first_name": "Joe", "last_name": "Bloggs", "stt": stt.id, "email": user.username},
-            format="json",
-        )
-    assert response.data == {
-            "id": str(user.id),
-            "email": user.username,
-            "first_name": "Joe",
-            "last_name": "Bloggs",
-            "access_request": False,  # old value no longer touched
-            "account_approval_status": "Access request",  # new value updated
-            "stt": {"id": stt.id, "type": stt.type, "code": stt.code, "name": stt.name, "region": stt.region.id},
-            "region": None,
-            "roles": [],
-        }
-
+# @pytest.mark.django_db
+# def test_user_can_request_access(api_client, user, stt):
+#     """Test `access_request` endpoint updates the `account_approval_status` field to `Access Request`."""
+#     api_client.login(username=user.username, password="test_password")
+#
+#     response = api_client.patch(
+#             "/v1/users/request_access/",
+#             {"first_name": "Joe", "last_name": "Bloggs", "stt": stt.id, "email": user.username},
+#             format="json",
+#         )
+#     assert response.data == {
+#             "id": str(user.id),
+#             "email": user.username,
+#             "first_name": "Joe",
+#             "last_name": "Bloggs",
+#             "access_request": False,  # old value no longer touched
+#             "account_approval_status": "Access request",  # new value updated
+#             "stt": {"id": stt.id, "type": stt.type, "code": stt.code, "name": stt.name, "region": stt.region.id},
+#             "region": None,
+#             "roles": [],
+#         }
+#
     # TODO: In the future, we would like to test that users can be activated and their roles are correctly assigned.
 
 @pytest.mark.django_db
