@@ -15,4 +15,9 @@ class Migration(migrations.Migration):
             name='stt_code',
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
+        migrations.AddField(
+            model_name='stt',
+            name='ssp',
+            field=models.BooleanField(default=False),
+        ),
     ]
