@@ -37,6 +37,7 @@ class DataFileSerializer(serializers.ModelSerializer):
             "quarter",
             "section",
             "created_at",
+            "file_type",
             "ssp",
         ]
 

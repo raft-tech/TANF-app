@@ -33,7 +33,7 @@ class DataFileFilter(filters.FilterSet):
         """Class metadata linking to the DataFile and fields accepted."""
 
         model = DataFile
-        fields = ['stt', 'quarter', 'year']
+        fields = ['stt', 'quarter', 'year', 'file_type']
 
 
 class DataFileViewSet(ModelViewSet):
@@ -56,6 +56,9 @@ class DataFileViewSet(ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Override create to upload in case of successful scan."""
+        print('======================================')
+        print(request.data)
+        print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
         response = super().create(request, *args, **kwargs)
 
         # Upload to ACF-TITAN only if file is passed the virus scan and created

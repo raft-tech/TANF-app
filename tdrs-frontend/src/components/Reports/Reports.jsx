@@ -108,7 +108,7 @@ function Reports() {
         getAvailableFileList({
           quarter: selectedQuarter,
           year: selectedYear,
-          file_type: selectedFileType,
+          file_type: fileTypeInputValue,
           stt,
         })
       )

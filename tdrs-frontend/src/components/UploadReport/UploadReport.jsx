@@ -72,6 +72,7 @@ function UploadReport({ handleCancel, header, stt }) {
       submit({
         quarter: selectedQuarter,
         year: selectedYear,
+        file_type: selectedFileType,
         formattedSections,
         logger,
         setLocalAlertState,

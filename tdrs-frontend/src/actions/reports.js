@@ -149,6 +149,7 @@ export const submit =
     uploadedFiles,
     user,
     year,
+    file_type,
     ssp,
   }) =>
   async (dispatch) => {
@@ -161,6 +162,7 @@ export const submit =
         user: user.id,
         section: file.section,
         year,
+        file_type,
         stt,
         quarter,
         ssp,

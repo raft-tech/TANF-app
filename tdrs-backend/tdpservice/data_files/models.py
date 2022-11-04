@@ -137,6 +137,8 @@ class DataFile(FileRecord):
         STT, on_delete=models.CASCADE, related_name="sttRef", blank=False, null=False
     )
 
+    file_type = models.CharField(max_length=32, default='tanf', null=False)
+
     # NOTE: `file` is only temporarily nullable until we complete the issue:
     # https://github.com/raft-tech/TANF-app/issues/755
     file = models.FileField(
