@@ -735,7 +735,7 @@ describe('Reports', () => {
     expect(getByText('File Type')).toBeInTheDocument()
   })
 
-  // should not reder the File Type section if the user is not an OFA Admin and the stt has ssp set to false
+  // should not render the File Type section if the user is not an OFA Admin and the stt has ssp set to false
   it('Non OFA Admin should not show the data files section when the user has an stt with ssp set to false', () => {
     const store = mockStore({
       ...initialState,
