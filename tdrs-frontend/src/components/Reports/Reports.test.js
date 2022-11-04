@@ -467,7 +467,9 @@ describe('Reports', () => {
       await waitFor(() => {
         expect(getByText('Section 1 - Active Case Data')).toBeInTheDocument()
         expect(
-          getByText('Alaska - TANF Fiscal Year 2021 - Quarter 3 (April - June)')
+          getByText(
+            'Alaska - TANF - Fiscal Year 2021 - Quarter 3 (April - June)'
+          )
         ).toBeInTheDocument()
       })
 
@@ -491,7 +493,7 @@ describe('Reports', () => {
       await waitFor(() =>
         expect(
           queryByText(
-            'Alaska - TANF Fiscal Year 2022 - Quarter 2 (January - March)'
+            'Alaska -  - Fiscal Year 2022 - Quarter 2 (January - March)'
           )
         ).not.toBeInTheDocument()
       )
@@ -502,7 +504,7 @@ describe('Reports', () => {
       await waitFor(() =>
         expect(
           getByText(
-            'Alaska - TANF Fiscal Year 2022 - Quarter 2 (January - March)'
+            'Alaska - TANF - Fiscal Year 2022 - Quarter 2 (January - March)'
           )
         ).toBeInTheDocument()
       )

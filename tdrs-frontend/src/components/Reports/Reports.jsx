@@ -358,7 +358,7 @@ function Reports() {
       {isUploadReportToggled && (
         <UploadReport
           stt={stt?.id}
-          header={`${currentStt} - ${selectedFileType.toUpperCase()} Fiscal Year ${selectedYear} - ${
+          header={`${currentStt} - ${selectedFileType.toUpperCase()} - Fiscal Year ${selectedYear} - ${
             quarters[selectedQuarter]
           }`}
           handleCancel={() => {
