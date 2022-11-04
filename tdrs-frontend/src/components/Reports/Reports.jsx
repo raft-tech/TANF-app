@@ -106,10 +106,10 @@ function Reports() {
       // Retrieve the files matching the selected year, quarter, and ssp.
       dispatch(
         getAvailableFileList({
-          quarter: selectedQuarter,
-          year: selectedYear,
-          file_type: selectedFileType,
+          quarter: quarterInputValue,
+          year: yearInputValue,
           stt,
+          file_type: fileTypeInputValue,
         })
       )
 

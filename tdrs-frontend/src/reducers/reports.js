@@ -13,9 +13,9 @@ import {
 } from '../actions/reports'
 
 const getFileIndex = (files, section) =>
-  files.findIndex((currentFile) => currentFile.section === section)
+  files.findIndex((currentFile) => currentFile.section.includes(section))
 const getFile = (files, section) =>
-  files.find((currentFile) => currentFile.section === section)
+  files.find((currentFile) => currentFile.section.includes(section))
 
 export const fileUploadSections = [
   'Active Case Data',
@@ -103,7 +103,7 @@ const reports = (state = initialState, action) => {
       return {
         ...state,
         files: state.files.map((file) =>
-          file.section === submittedFile?.section
+          submittedFile?.section.includes(file.section)
             ? serializeApiDataFile(submittedFile)
             : file
         ),
