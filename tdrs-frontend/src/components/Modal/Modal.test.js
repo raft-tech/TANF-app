@@ -62,6 +62,7 @@ describe('Modal tests', () => {
 
   describe('Acessability trap', () => {
     it('should focus modal header when displayed', async () => {
+      await setup()
       expect(document.activeElement).toHaveTextContent('Test')
     })
 

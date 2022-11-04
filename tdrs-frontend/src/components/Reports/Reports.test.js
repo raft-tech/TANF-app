@@ -49,6 +49,7 @@ describe('Reports', () => {
       year: '',
       stt: '',
       quarter: '',
+      fileType: 'tanf',
     },
     stts: {
       sttList: [
@@ -323,7 +324,7 @@ describe('Reports', () => {
         },
       })
     })
-    expect(store.dispatch).toHaveBeenCalledTimes(13)
+    expect(store.dispatch).toHaveBeenCalledTimes(14)
 
     // There should be 4 more dispatches upon making the submission,
     // one request to /reports for each file
@@ -332,7 +333,7 @@ describe('Reports', () => {
     )
     fireEvent.click(getByText('Submit Data Files'))
     await waitFor(() => getByRole('alert'))
-    expect(store.dispatch).toHaveBeenCalledTimes(18)
+    expect(store.dispatch).toHaveBeenCalledTimes(19)
   })
 
   it('should add files to the redux state when dispatching uploads', async () => {
@@ -466,7 +467,7 @@ describe('Reports', () => {
       await waitFor(() => {
         expect(getByText('Section 1 - Active Case Data')).toBeInTheDocument()
         expect(
-          getByText('Alaska - Fiscal Year 2021 - Quarter 3 (April - June)')
+          getByText('Alaska - TANF Fiscal Year 2021 - Quarter 3 (April - June)')
         ).toBeInTheDocument()
       })
 
@@ -489,7 +490,9 @@ describe('Reports', () => {
       // the header should not update
       await waitFor(() =>
         expect(
-          queryByText('Alaska - Fiscal Year 2022 - Quarter 2 (January - March)')
+          queryByText(
+            'Alaska - TANF Fiscal Year 2022 - Quarter 2 (January - March)'
+          )
         ).not.toBeInTheDocument()
       )
 
@@ -498,7 +501,9 @@ describe('Reports', () => {
 
       await waitFor(() =>
         expect(
-          getByText('Alaska - Fiscal Year 2022 - Quarter 2 (January - March)')
+          getByText(
+            'Alaska - TANF Fiscal Year 2022 - Quarter 2 (January - March)'
+          )
         ).toBeInTheDocument()
       )
     })
