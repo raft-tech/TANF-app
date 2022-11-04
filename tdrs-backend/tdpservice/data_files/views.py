@@ -102,7 +102,10 @@ class DataFileViewSet(ModelViewSet):
         print('is anybody out there')
         print(self.request.query_params)
         is_ssp_file_type = True if self.request.query_params.get('file_type') == 'ssp-moe' else False
-        filtered_queryset = queryset.filter(section__contains='SSP') if is_ssp_file_type else queryset.exclude(section__contains='SSP')
+        if is_ssp_file_type:
+            filtered_queryset = queryset.filter(section__contains='SSP')
+        else:
+            filtered_queryset = queryset.exclude(section__contains='SSP')
 
         return super().filter_queryset(filtered_queryset)
 
