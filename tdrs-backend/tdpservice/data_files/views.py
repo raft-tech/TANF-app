@@ -94,6 +94,7 @@ class DataFileViewSet(ModelViewSet):
         return response
 
     def get_queryset(self):
+        """Apply custom queryset filters."""
         queryset = super().get_queryset()
 
         if self.request.query_params.get('file_type') == 'ssp-moe':
