@@ -93,17 +93,22 @@ class DataFileViewSet(ModelViewSet):
 
         return response
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        if self.request.query_params.get('file_type') == 'ssp-moe':
+            queryset = queryset.filter(section__contains='SSP')
+        else:
+            queryset = queryset.exclude(section__contains='SSP')
+
+        return queryset
+
     def filter_queryset(self, queryset):
         """Only apply filters to the list action."""
         if self.action != 'list':
             self.filterset_class = None
 
-        if self.request.query_params.get('file_type') == 'ssp-moe':
-            filtered_queryset = queryset.filter(section__contains='SSP')
-        else:
-            filtered_queryset = queryset.exclude(section__contains='SSP')
-
-        return super().filter_queryset(filtered_queryset)
+        return super().filter_queryset(queryset)
 
     def get_serializer_context(self):
         """Retrieve additional context required by serializer."""
