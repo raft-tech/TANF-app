@@ -149,14 +149,7 @@ class DataFile(FileRecord):
     @property
     def filename(self):
         """Return the correct filename for this data file."""
-        if str(self.stt.type).lower() == 'tribe':
-            return self.stt.filenames.get(
-                ('Tribal ' if 'Tribal' not in self.section else '') + self.section, None)
-        elif self.stt.ssp:
-            return self.stt.filenames.get(
-                ('SSP ' if 'SSP' not in self.section else '') + self.section, None)
-        else:
-            return self.stt.filenames.get(self.section, None)
+        return self.stt.filenames.get(self.section, None)
 
     @property
     def fiscal_year(self):
