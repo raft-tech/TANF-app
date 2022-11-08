@@ -1,18 +1,12 @@
 """Tests for DataFiles Application."""
 from unittest.mock import ANY, patch
-import uuid
 
-from tdpservice.users.test.factories import UserFactory
 from rest_framework import status
 import pytest
 
-from django.contrib.auth.models import Group
-from tdpservice.stts.models import STT, Region
 from tdpservice.data_files.models import DataFile
 from tdpservice.email.email_enums import EmailType
 from tdpservice.users.models import AccountApprovalStatusChoices
-from tdpservice.data_files.test.factories import DataFileFactory
-
 
 
 @pytest.mark.usefixtures('db')
@@ -225,15 +219,13 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
     def test_data_file_data_upload_tribe(
         self, api_client, data_file_data, stt
     ):
+        """Test that when we upload a file for Tribe the section name is updated."""
         stt.type = 'tribe'
         stt.save()
         response = self.post_data_file_file(api_client, data_file_data)
-        data_file = DataFile.objects.all()
-        assert 'Tribal Active Case Data' == response.data['section'] 
-
+        assert 'Tribal Active Case Data' == response.data['section']
         stt.type = ''
-        stt.save()  
-
+        stt.save()
 
     def test_data_files_data_upload_tanf(
         self, api_client, data_file_data,
