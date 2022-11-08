@@ -45,15 +45,6 @@ class DataFileSerializer(serializers.ModelSerializer):
         ssp = validated_data.pop('ssp')
         if ssp:
             validated_data['section'] = 'SSP ' + validated_data['section']
-        logger.debug('______0_______')
-        logger.debug(str(validated_data))
-        logger.debug('______1_______')
-        logger.debug(str(validated_data.get('stt').__dict__))
-        print('______0_______')
-        print(str(validated_data))
-        print('______1_______')
-        print(str(validated_data.get('stt').__dict__))
-        print('+++++++++++++++')
         if validated_data.get('stt').type == 'tribe':
             validated_data['section'] = 'Tribal ' + validated_data['section']
         data_file = DataFile.create_new_version(validated_data)
