@@ -168,4 +168,45 @@ describe('Header', () => {
     expect(queryByText('Profile')).not.toBeInTheDocument()
     expect(queryByText('Admin')).not.toBeInTheDocument()
   })
+
+  it('should NOT show data-files nav item when the user does not have view_datafile and add_datafile permissions', () => {
+    const state = {
+      ...initialState,
+      auth: {
+        user: {
+          email: 'test@test.com',
+          roles: [{ id: 1, name: 'Developer', permissions: [] }],
+          access_request: true,
+          account_approval_status: 'Approved',
+        },
+        authenticated: true,
+      },
+    }
+
+    const store = mockStore(state)
+
+    const { queryByText } = render(
+      <Provider store={store}>
+        <Header />
+      </Provider>
+    )
+
+    expect(queryByText('Data Files')).not.toBeInTheDocument()
+    expect(queryByText('Profile')).toBeInTheDocument()
+    expect(queryByText('Admin')).toBeInTheDocument()
+  })
+
+  it('should show data-files nav item when the user has view_datafile and add_datafile permissions', () => {
+    const store = mockStore(initialState)
+
+    const { queryByText } = render(
+      <Provider store={store}>
+        <Header />
+      </Provider>
+    )
+
+    expect(queryByText('Data Files')).toBeInTheDocument()
+    expect(queryByText('Profile')).toBeInTheDocument()
+    expect(queryByText('Admin')).toBeInTheDocument()
+  })
 })
