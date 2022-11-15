@@ -13,7 +13,7 @@ executors:
   machine-executor:
     machine:
       docker_layer_caching: false
-      image: ubuntu-2204:2022.11
+      image: cimg/base:2022.11
 
 commands:
   ###
