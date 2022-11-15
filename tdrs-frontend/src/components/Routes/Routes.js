@@ -44,6 +44,7 @@ const AppRoutes = () => {
           <PrivateRoute
             title="Data Files"
             requiredPermissions={['view_datafile', 'add_datafile']}
+            requiresApproval
           >
             <Reports />
           </PrivateRoute>

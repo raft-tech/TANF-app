@@ -113,6 +113,7 @@ function Header() {
                 <>
                   <NavItem pathname={pathname} tabTitle="Home" href="/home" />
                   <PermissionGuard
+                    requiresApproval
                     requiredPermissions={['view_datafile', 'add_datafile']}
                   >
                     <NavItem

@@ -1,13 +1,24 @@
 import { useSelector } from 'react-redux'
-import { selectUserPermissions } from '../../selectors/auth'
+import {
+  accountStatusIsApproved,
+  selectUserPermissions,
+} from '../../selectors/auth'
 
-const isAllowed = (userPermissions, requiredPermissions) => {
+const isAllowed = (
+  { permissions, isApproved },
+  requiredPermissions,
+  requiresApproval
+) => {
+  if (requiresApproval && !isApproved) {
+    return false
+  }
+
   if (!requiredPermissions) {
     return true
   }
 
   for (var i = 0; i < requiredPermissions.length; i++) {
-    if (!userPermissions.includes(requiredPermissions[i])) {
+    if (!permissions.includes(requiredPermissions[i])) {
       return false
     }
   }
@@ -17,12 +28,18 @@ const isAllowed = (userPermissions, requiredPermissions) => {
 
 const PermissionGuard = ({
   children,
-  requiredPermissions,
+  requiresApproval = false,
+  requiredPermissions = [],
   notAllowedComponent = null,
 }) => {
-  const userPermissions = useSelector(selectUserPermissions)
+  const permissions = useSelector(selectUserPermissions)
+  const isApproved = useSelector(accountStatusIsApproved)
 
-  return isAllowed(userPermissions, requiredPermissions)
+  return isAllowed(
+    { permissions, isApproved },
+    requiredPermissions,
+    requiresApproval
+  )
     ? children
     : notAllowedComponent
 }

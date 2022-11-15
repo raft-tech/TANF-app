@@ -13,7 +13,12 @@ import PermissionGuard from '../PermissionGuard'
  * @param {string} title Page title passed in to PrivateTemplate
  * which is automatically passed via withRouter
  */
-function PrivateRoute({ children, title, requiredPermissions }) {
+function PrivateRoute({
+  children,
+  title,
+  requiredPermissions,
+  requiresApproval,
+}) {
   const authenticated = useSelector((state) => state.auth.authenticated)
   const authLoading = useSelector((state) => state.auth.loading)
 
@@ -38,6 +43,7 @@ function PrivateRoute({ children, title, requiredPermissions }) {
   if (authenticated) {
     return (
       <PermissionGuard
+        requiresApproval={requiresApproval}
         requiredPermissions={requiredPermissions}
         notAllowedComponent={<Navigate to="/home" />}
       >
