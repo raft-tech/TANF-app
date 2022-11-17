@@ -142,6 +142,7 @@ commands:
               -p ${<<parameters.cf-password>>} \
               -o ${<<parameters.cf-org>>} \
               -s <<parameters.cf-space>>
+  
   get-app-deploy-strategy:
     parameters:
       appname:
@@ -158,6 +159,7 @@ commands:
             else
               echo "export DEPLOY_STRATEGY=rolling" >> $BASH_ENV
             fi
+  
   deploy-backend:
     parameters:
       backend-appname:
@@ -176,6 +178,7 @@ commands:
               $DEPLOY_STRATEGY \
               <<parameters.backend-appname>> \
               <<parameters.cf-space>>
+
   deploy-clamav:
     parameters:
       backend-appname:
@@ -201,6 +204,7 @@ commands:
               -o ${<<parameters.cf-org>>} \
               --protocol tcp \
               --port 9000
+
   deploy-frontend:
     parameters:
       environment:
@@ -238,6 +242,7 @@ commands:
               <<parameters.backend-appname>> \
               <<parameters.cf-space>> \
               <<parameters.environment>>
+
   deploy-cloud-dot-gov:
     parameters:
       environment:

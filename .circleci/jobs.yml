@@ -167,6 +167,7 @@ jobs:
             cf run-task tdp-backend-<< parameters.target_env >> \
               --command "$CMD" \
               --name nightly-owasp-scan
+  
   deploy-infrastructure-dev:
     executor: terraform/default
     working_directory: ~/tdp-deploy

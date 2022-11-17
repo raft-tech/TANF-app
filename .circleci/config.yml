@@ -29,12 +29,20 @@ jobs:
     executor: continuation/default
     steps:
       - checkout # checkout code
+      - run:
+          name: TEST
+          command: |
+            echo $CIRCLE_BRANCH
       - run: # run a command
           name: Generate config
           command: |
             cd .circleci
             chmod +x generate_config.sh
             ./generate_config.sh
+            chmod +x generate_deploy_parameters.sh
+            ./generate_deploy_parameters.sh \
+              << pipeline.parameters.run_dev_deployment >> \
+              << pipeline.parameters.target_env >> 
       - continuation/continue:
           configuration_path: .circleci/generated_config.yml # use newly generated config to continue
 
