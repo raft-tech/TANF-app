@@ -5,22 +5,18 @@ from django.db import models
 # Create your models here.
 
 
-class ParsedDataRecord(models.Model):
-    """Inheritable Django Model with fields shared by subtypes."""
+class T1(models.Model):
+    """
+    Parsed record representing a T1 data submission.
+
+    Mapped to an elastic search index.
+    """
 
     record = models.CharField(max_length=156, null=False, blank=False)
     rpt_month_year = models.IntegerField(null=False, blank=False)
     case_number = models.CharField(max_length=100, null=False, blank=False)
     disposition = models.IntegerField(null=False, blank=False)
     fips_code = models.CharField(max_length=100, null=False, blank=False)
-
-
-class T1(ParsedDataRecord):
-    """
-    Parsed record representing a T1 data submission.
-
-    Mapped to an elastic search index.
-    """
 
     county_fips_code = models.CharField(
         max_length=100,
@@ -70,12 +66,17 @@ class T1(ParsedDataRecord):
     blank = models.CharField(max_length=100, null=False, blank=False)
 
 
-class T2(ParsedDataRecord):
+class T2(models.Model):
     """
     Parsed record representing a T2 data submission.
 
     Mapped to an elastic search index.
     """
+
+    record = models.CharField(max_length=156, null=False, blank=False)
+    rpt_month_year = models.IntegerField(null=False, blank=False)
+    case_number = models.CharField(max_length=100, null=False, blank=False)
+    fips_code = models.CharField(max_length=100, null=False, blank=False)
 
     family_affiliation = models.IntegerField(null=False, blank=False)
     noncustodial_parent = models.IntegerField(null=False, blank=False)
@@ -145,12 +146,17 @@ class T2(ParsedDataRecord):
     other_unearned_income = models.IntegerField(null=False, blank=False)
 
 
-class T3(ParsedDataRecord):
+class T3(models.Model):
     """
     Parsed record representing a T3 data submission.
 
     Mapped to an elastic search index.
     """
+
+    record = models.CharField(max_length=156, null=False, blank=False)
+    rpt_month_year = models.IntegerField(null=False, blank=False)
+    case_number = models.CharField(max_length=100, null=False, blank=False)
+    fips_code = models.CharField(max_length=100, null=False, blank=False)
 
     family_affiliation = models.IntegerField(null=False, blank=False)
     date_of_birth = models.CharField(max_length=100, null=False, blank=False)
@@ -172,12 +178,18 @@ class T3(ParsedDataRecord):
     other_unearned_income = models.IntegerField(null=False, blank=False)
 
 
-class T4(ParsedDataRecord):
+class T4(models.Model):
     """
     Parsed record representing a T4 data submission.
 
     Mapped to an elastic search index.
     """
+
+    record = models.CharField(max_length=156, null=False, blank=False)
+    rpt_month_year = models.IntegerField(null=False, blank=False)
+    case_number = models.CharField(max_length=100, null=False, blank=False)
+    disposition = models.IntegerField(null=False, blank=False)
+    fips_code = models.CharField(max_length=100, null=False, blank=False)
 
     county_fips_code = models.CharField(
         max_length=100,
@@ -194,12 +206,17 @@ class T4(ParsedDataRecord):
     blank = models.CharField(max_length=100, null=False, blank=False)
 
 
-class T5(ParsedDataRecord):
+class T5(models.Model):
     """
     Parsed record representing a T5 data submission.
 
     Mapped to an elastic search index.
     """
+
+    record = models.CharField(max_length=156, null=False, blank=False)
+    rpt_month_year = models.IntegerField(null=False, blank=False)
+    case_number = models.CharField(max_length=100, null=False, blank=False)
+    fips_code = models.CharField(max_length=100, null=False, blank=False)
 
     family_affiliation = models.IntegerField(null=False, blank=False)
     date_of_birth = models.CharField(max_length=100, null=False, blank=False)
@@ -229,12 +246,16 @@ class T5(ParsedDataRecord):
     amount_unearned_income = models.IntegerField(null=False, blank=False)
 
 
-class T6(ParsedDataRecord):
+class T6(models.Model):
     """
     Parsed record representing a T6 data submission.
 
     Mapped to an elastic search index.
     """
+
+    record = models.CharField(max_length=156, null=False, blank=False)
+    rpt_month_year = models.IntegerField(null=False, blank=False)
+    fips_code = models.CharField(max_length=100, null=False, blank=False)
 
     calendar_quarter = models.IntegerField(null=False, blank=False)
     applications = models.IntegerField(null=False, blank=False)
@@ -254,12 +275,16 @@ class T6(ParsedDataRecord):
     closed_cases = models.IntegerField(null=False, blank=False)
 
 
-class T7(ParsedDataRecord):
+class T7(models.Model):
     """
     Parsed record representing a T7 data submission.
 
     Mapped to an elastic search index.
     """
+
+    record = models.CharField(max_length=156, null=False, blank=False)
+    rpt_month_year = models.IntegerField(null=False, blank=False)
+    fips_code = models.CharField(max_length=100, null=False, blank=False)
 
     calendar_quarter = models.IntegerField(null=False, blank=False)
     tdrs_section_ind = models.CharField(
