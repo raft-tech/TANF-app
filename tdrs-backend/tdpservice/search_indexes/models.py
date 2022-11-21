@@ -269,3 +269,22 @@ class T7(ParsedDataRecord):
     )
     stratum = models.CharField(max_length=100, null=False, blank=False)
     families = models.IntegerField(null=False, blank=False)
+
+class ParserLog(models.Model):
+    """Stores the log of the parser and links to DataFile object."""
+
+    class Status(models.TextChoices):
+        """Possible statuses of the parser."""
+
+        ACCEPTED = 'Accepted'
+        PENDING = 'Pending'
+        ACCEPTED_WITH_ERRORS = 'Accepted with errors'
+        REJECTED = 'Rejected'
+
+    data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    # enum: Accepted, Accepted with errors, Rejected
+    status = models.CharField(max_length=20, null=False, blank=False) 
+
+    errors = models.JSONField(null=True, blank=True)
