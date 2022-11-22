@@ -431,7 +431,7 @@ class Common(Configuration):
     CELERY_BEAT_SCHEDULE = {
         'name': {
             'task': 'tdpservice.scheduling.tasks.postgres_backup',
-            'schedule': 10.0, # crontab(minute='*', hour='4'), # Runs at midnight EST
+            'schedule': crontab(minute='*', hour='4'), # Runs at midnight EST
             'args': "-b",
             'options': {
                 'expires': 15.0,
