@@ -18,18 +18,19 @@ services:
       context: .
       target: nginx
     ports:
-      #- 3000:80
-      - 80:80
-      - 8082:8082
+      - 3000:80
+      #- 80:80
+      - 8080:8080
+      #- 8089:8089
     volumes:
       - ./:/home/node/app
     environment:
-      - NGINX=tdp-frontend
+      - NGINX_FRONTEND=tdp-frontend
       - BACK_END=web
     command: >
       /bin/sh -c
       "envsubst '
-      $${BACK_END} $${NGINX}
+      $${BACK_END} $${NGINX_FRONTEND}
       '< /etc/nginx/default.conf.template
       > /etc/nginx/nginx.conf
       && nginx -g 'daemon off;'"
@@ -40,4 +41,4 @@ networks:
 
   default:
     external:
-      name: external-example
+      name: external-net

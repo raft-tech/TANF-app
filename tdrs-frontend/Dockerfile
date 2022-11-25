@@ -43,5 +43,6 @@ RUN rm /etc/nginx/nginx.conf
 #COPY nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
 COPY nginx/templates/default.conf.template /etc/nginx/default.conf.template
 COPY nginx/locations.conf /etc/nginx/locations.conf
+COPY nginx/ip_whitelist.conf /etc/nginx/ip_whitelist.conf
 #EXPOSE 80
 #CMD ["nginx", "-g", "daemon off;"]

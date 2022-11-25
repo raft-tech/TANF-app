@@ -74,8 +74,6 @@ services:
     command: >
       bash -c "./wait_for_services.sh &&
                ./gunicorn_start.sh"
-    ports:
-      - "8080:8080"
     depends_on:
       - clamav-rest
       - localstack
@@ -88,4 +86,4 @@ volumes:
 networks:
   default:
     external:
-      name: external-example
+      name: external-net
