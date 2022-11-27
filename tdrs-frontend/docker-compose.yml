@@ -19,18 +19,18 @@ services:
       target: nginx
     ports:
       - 3000:80
-      #- 80:80
       - 8080:8080
-      #- 8089:8089
+
     volumes:
       - ./:/home/node/app
     environment:
       - NGINX_FRONTEND=tdp-frontend
       - BACK_END=web
+      - LOCAL_DEV=true
     command: >
       /bin/sh -c
       "envsubst '
-      $${BACK_END} $${NGINX_FRONTEND}
+      $${BACK_END} $${NGINX_FRONTEND} $${LOCAL_DEV}
       '< /etc/nginx/default.conf.template
       > /etc/nginx/nginx.conf
       && nginx -g 'daemon off;'"

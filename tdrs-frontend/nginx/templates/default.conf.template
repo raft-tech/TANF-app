@@ -25,7 +25,7 @@ http {
         #add_header Strict-Transport-Security: max-age=31536000 ; includeSubDomains
 
         # Block all requests except ones listed in whitelist; disabled for local
-        include ip_whitelist.conf;
+        #include ip_whitelist.conf;
 
         # Enable caching
         # Note: Since Nginx is serving frontend, technically it has all files cached in
@@ -62,7 +62,7 @@ http {
 
         # The must-revalidate response directive indicates that the response can be stored in caches and can be
         # reused while fresh. If the response becomes stale, it must be validated with the origin server before reuse.
-        add_header Cache-Control: max-age=604800, must-revalidate;
+        add_header Cache-Control: max-age=604800;
 
         # prevent MIME sniffing
         add_header X-Content-Type-Options: nosniff;
@@ -74,7 +74,7 @@ http {
         set $CSP "${CSP}style-src 'self' 'unsafe-inline';";
         set $CSP "${CSP}img-src 'self' data:;";
         set $CSP "${CSP}font-src 'self';";
-        set $CSP "${CSP}connect-src 'self' localhost:8080/;";
+        set $CSP "${CSP}connect-src 'self' localhost:*;";
         set $CSP "${CSP}frame-src 'None';";
         set $CSP "${CSP}manifest-src 'self';";
         set $CSP "${CSP}object-src 'none';";
@@ -100,16 +100,18 @@ http {
                                '"request_body": "$request_body",'
                                '"http_x_forwarded_for": "$http_x_forwarded_for",'
                                '"host": "$host",'
-                               '"$http_referer" "$http_user_agent"';
+                               '"$http_referer" "$http_user_agent" "cookies=$http_cookie;"  "server=$server_name" "http_host=$http_host"';
 
     access_log /dev/stdout compression;
+    #access_log stderr compression;
 
     server {
-        listen                  8082;
+        listen                  8080;
         location / {
         proxy_pass              http://${BACK_END}:8080;
-        proxy_set_header        Host ${NGINX};
-        proxy_cache tdp_cache;
+        proxy_set_header        Host $host;
+        proxy_pass_header content-security-policy;
         }
     }
+
 }

@@ -35,7 +35,7 @@ commands:
     steps:
       - run:
           name: Build and spin-up Django API service
-          command: cd tdrs-backend; docker-compose up -d --build
+          command: docker network create external-net; cd tdrs-backend; docker-compose up -d --build
 
   docker-compose-up-frontend:
     steps:
