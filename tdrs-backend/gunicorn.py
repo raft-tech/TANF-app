@@ -1,4 +1,4 @@
-"""Gunicorn development config file"""
+"""Gunicorn development config file."""
 
 # WSGI application path MODULE_NAME:VARIABLE_NAME
 wsgi_app = "tdpservice.wsgi:application"
