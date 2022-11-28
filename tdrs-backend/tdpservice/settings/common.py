@@ -7,11 +7,12 @@ from os.path import join
 from typing import Any, Optional
 
 from django.core.exceptions import ImproperlyConfigured
+from celery.schedules import crontab
 
 from configurations import Configuration
+from celery.schedules import crontab
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 def get_required_env_var_setting(
     env_var_name: str,
@@ -48,6 +49,7 @@ class Common(Configuration):
         "corsheaders",
         "django_extensions",
         "drf_yasg",
+        "django_celery_beat",
         "storages",
         # Local apps
         "tdpservice.core.apps.CoreConfig",
@@ -55,6 +57,8 @@ class Common(Configuration):
         "tdpservice.stts",
         "tdpservice.data_files",
         "tdpservice.security",
+        "tdpservice.scheduling",
+        "tdpservice.email",
     )
 
     # https://docs.djangoproject.com/en/2.0/topics/http/middleware/
@@ -69,7 +73,7 @@ class Common(Configuration):
         "corsheaders.middleware.CorsMiddleware",
         "tdpservice.users.api.middleware.AuthUpdateMiddleware",
         "csp.middleware.CSPMiddleware",
-        "tdpservice.middleware.NoCacheMiddleware",
+        "tdpservice.middleware.NoCacheMiddleware"
     )
 
     APP_NAME = "dev"
@@ -85,7 +89,9 @@ class Common(Configuration):
 
     # Email Server
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-
+    EMAIL_HOST = "smtp.ees.hhs.gov"
+    EMAIL_HOST_USER = "no-reply@tanfdata.acf.hhs.gov"
+    
     # Whether to use localstack in place of a live AWS S3 environment
     USE_LOCALSTACK = bool(strtobool(os.getenv("USE_LOCALSTACK", "no")))
 
@@ -262,7 +268,7 @@ class Common(Configuration):
     # Django Rest Framework
     REST_FRAMEWORK = {
         "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-        "PAGE_SIZE": int(os.getenv("DJANGO_PAGINATION_LIMIT", 10)),
+        "PAGE_SIZE": int(os.getenv("DJANGO_PAGINATION_LIMIT", 32)),
         "DATETIME_FORMAT": "%Y-%m-%dT%H:%M:%S%z",
         "DEFAULT_RENDERER_CLASSES": (
             "rest_framework.renderers.JSONRenderer",
@@ -396,3 +402,47 @@ class Common(Configuration):
         'AMS_CLIENT_SECRET',
         ''
     )
+
+    # ------- SFTP CONFIG
+    ACFTITAN_SERVER_ADDRESS = os.getenv('ACFTITAN_HOST', '')
+    """
+    To be able to fit the PRIVATE KEY in one line as environment variable, we replace the EOL 
+    with an underscore char.
+    The next line replaces the _ with EOL before using the PRIVATE KEY
+    """
+    ACFTITAN_LOCAL_KEY = os.getenv('ACFTITAN_KEY', '').replace('_', '\n')
+    ACFTITAN_USERNAME = os.getenv('ACFTITAN_USERNAME', '')
+    ACFTITAN_DIRECTORY = os.getenv('ACFTITAN_DIRECTORY', '')
+
+    # -------- CELERY CONFIG
+    REDIS_URI = os.getenv(
+        'REDIS_URI',
+        'redis://redis-server:6379'
+    )
+    logger.debug("REDIS_URI: " + REDIS_URI)
+
+    CELERY_BROKER_URL = REDIS_URI
+    CELERY_RESULT_BACKEND = REDIS_URI
+    CELERY_ACCEPT_CONTENT = ['application/json']
+    CELERY_TASK_SERIALIZER = 'json'
+    CELERY_RESULT_SERIALIZER = 'json'
+    CELERY_TIMEZONE = 'UTC'
+
+    CELERY_BEAT_SCHEDULE = {
+        'name': {
+            'task': 'tdpservice.scheduling.tasks.postgres_backup',
+            'schedule': crontab(minute='*', hour='4'), # Runs at midnight EST
+            'args': "-b",
+            'options': {
+                'expires': 15.0,
+            },
+        },     
+        'name': {
+            'task': 'tdpservice.scheduling.tasks.check_for_accounts_needing_deactivation_warning',
+            'schedule': crontab(day_of_week='*', hour='13', minute='*'), # Every day at 1pm UTC (9am EST)
+
+            'options': {
+                'expires': 15.0,
+            },
+        },     
+    }

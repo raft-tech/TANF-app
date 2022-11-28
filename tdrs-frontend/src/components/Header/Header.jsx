@@ -3,12 +3,14 @@ import { useSelector } from 'react-redux'
 import closeIcon from 'uswds/dist/img/close.svg'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSignOutAlt, faUserCircle } from '@fortawesome/free-solid-svg-icons'
+import { canViewAdmin } from '../../utils/canViewAdmin'
 import {
   accountStatusIsApproved,
   accountIsInReview,
 } from '../../selectors/auth'
 
 import NavItem from '../NavItem/NavItem'
+import PermissionGuard from '../PermissionGuard'
 
 /**
  * This component is rendered on every page and contains the navigation bar.
@@ -26,19 +28,6 @@ function Header() {
   const authenticated = useSelector((state) => state.auth.authenticated)
   const userAccessRequestPending = useSelector(accountIsInReview)
   const userAccessRequestApproved = useSelector(accountStatusIsApproved)
-
-  const isMemberOfOne = (...groupNames) =>
-    user?.roles?.some((role) => groupNames.includes(role.name))
-
-  const hasPermission = (permissionName) =>
-    user?.roles?.[0]?.permissions?.some(
-      (perm) => perm.codename === permissionName
-    )
-
-  const canViewAdmin =
-    userAccessRequestApproved &&
-    isMemberOfOne('Developer', 'OFA System Admin', 'ACF OCIO')
-  const canViewDataFiles = hasPermission('view_datafile')
 
   const menuRef = useRef()
 
@@ -123,13 +112,16 @@ function Header() {
               {authenticated && (
                 <>
                   <NavItem pathname={pathname} tabTitle="Home" href="/home" />
-                  {canViewDataFiles && (
+                  <PermissionGuard
+                    requiresApproval
+                    requiredPermissions={['view_datafile', 'add_datafile']}
+                  >
                     <NavItem
                       pathname={pathname}
                       tabTitle="Data Files"
                       href="/data-files"
                     />
-                  )}
+                  </PermissionGuard>
                   {(userAccessRequestPending || userAccessRequestApproved) && (
                     <NavItem
                       pathname={pathname}
@@ -137,7 +129,7 @@ function Header() {
                       href="/profile"
                     />
                   )}
-                  {canViewAdmin && (
+                  {canViewAdmin(user) && (
                     <NavItem
                       pathname={pathname}
                       tabTitle="Admin"
