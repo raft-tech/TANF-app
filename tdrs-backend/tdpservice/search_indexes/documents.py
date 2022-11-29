@@ -95,7 +95,6 @@ class T2DataSubmissionDocument(Document):
             'record',
             'rpt_month_year',
             'case_number',
-            'disposition',
             'fips_code',
 
             'family_affiliation',
@@ -188,7 +187,6 @@ class T3DataSubmissionDocument(Document):
             'record',
             'rpt_month_year',
             'case_number',
-            'disposition',
             'fips_code',
 
             'family_affiliation',
@@ -269,7 +267,6 @@ class T5DataSubmissionDocument(Document):
             'record',
             'rpt_month_year',
             'case_number',
-            'disposition',
             'fips_code',
 
             'family_affiliation',
@@ -321,8 +318,6 @@ class T6DataSubmissionDocument(Document):
         fields = [
             'record',
             'rpt_month_year',
-            'case_number',
-            'disposition',
             'fips_code',
 
             'calendar_quarter',
@@ -364,8 +359,6 @@ class T7DataSubmissionDocument(Document):
         fields = [
             'record',
             'rpt_month_year',
-            'case_number',
-            'disposition',
             'fips_code',
 
             'calendar_quarter',

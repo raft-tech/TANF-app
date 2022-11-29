@@ -102,7 +102,6 @@ class T6Admin(admin.ModelAdmin):
     list_display = [
         'record',
         'rpt_month_year',
-        'case_number',
     ]
 
     list_filter = [
@@ -119,7 +118,6 @@ class T7Admin(admin.ModelAdmin):
     list_display = [
         'record',
         'rpt_month_year',
-        'case_number',
     ]
 
     list_filter = [

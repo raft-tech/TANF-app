@@ -439,7 +439,7 @@ class Common(Configuration):
             'options': {
                 'expires': 15.0,
             },
-        },
+        },     
         'name': {
             'task': 'tdpservice.scheduling.tasks.check_for_accounts_needing_deactivation_warning',
             'schedule': crontab(day_of_week='*', hour='13', minute='*'), # Every day at 1pm UTC (9am EST)
@@ -449,7 +449,7 @@ class Common(Configuration):
             },
         },     
     }
-
+    
     # Elastic
     ELASTICSEARCH_DSL = {
         'default': {

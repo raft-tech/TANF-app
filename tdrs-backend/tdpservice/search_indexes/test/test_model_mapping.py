@@ -86,7 +86,6 @@ def test_can_create_and_index_t2_submission():
         record=record_num,
         rpt_month_year=1,
         case_number='1',
-        disposition=1,
         fips_code='1',
 
         family_affiliation=1,
@@ -177,7 +176,6 @@ def test_can_create_and_index_t3_submission():
         record=record_num,
         rpt_month_year=1,
         case_number='1',
-        disposition=1,
         fips_code='1',
 
         family_affiliation=1,
@@ -254,7 +252,6 @@ def test_can_create_and_index_t5_submission():
         record=record_num,
         rpt_month_year=1,
         case_number='1',
-        disposition=1,
         fips_code='1',
 
         family_affiliation=1,
@@ -304,8 +301,6 @@ def test_can_create_and_index_t6_submission():
     submission = T6.objects.create(
         record=record_num,
         rpt_month_year=1,
-        case_number='1',
-        disposition=1,
         fips_code='1',
 
         calendar_quarter=1,
@@ -345,8 +340,6 @@ def test_can_create_and_index_t7_submission():
     submission = T7.objects.create(
         record=record_num,
         rpt_month_year=1,
-        case_number='1',
-        disposition=1,
         fips_code='2',
 
         calendar_quarter=1,
