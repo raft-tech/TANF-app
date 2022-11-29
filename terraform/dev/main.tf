@@ -75,5 +75,13 @@ resource "cloudfoundry_service_instance" "datafiles" {
   space            = data.cloudfoundry_space.space.id
   service_plan     = data.cloudfoundry_service.s3.service_plans["basic-sandbox"]
   recursive_delete = true
-  json_params  = "{\"PutBucketVersioningConfiguration\":{\"VersioningConfiguration\":{\"Status\":\"Enabled\"}}}"
+  json_params      = <<JSON
+  {
+    "s3:PutBucketVersioningConfiguration": {
+      "VersioningConfiguration": {
+        "Status": "Enabled"
+      }
+    }
+  }
+  JSON
 }
