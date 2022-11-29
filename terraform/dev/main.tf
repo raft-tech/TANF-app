@@ -75,14 +75,9 @@ resource "cloudfoundry_service_instance" "datafiles" {
   space            = data.cloudfoundry_space.space.id
   service_plan     = data.cloudfoundry_service.s3.service_plans["basic-sandbox"]
   recursive_delete = true
-}
-
-resource "cloudfoundry_service" "datafiles" {
-  service_instance = cloudfoundry_service_instance.datafiles.id
   json_parameters = {
     VersioningConfiguration = {
       Status = "Enabled"
     }
   }
 }
-
