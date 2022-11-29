@@ -28,7 +28,7 @@ def preparse(datafile, data_type, section):
         logger.error("Preparse failed: %s", errors)
         return ParserLog.objects.create(
             data_file=args.file,
-            errors=errors,
+            errors=header_errors.extend(trailer_errors),
             status=ParserLog.Status.REJECTED,
         )
 

@@ -1,6 +1,6 @@
 """Transforms a TANF datafile into an search_index model."""
 
-from ..models import T1, T2, T3, T4, T5, T6, T7
+from ..models import T1, T2, T3, T4, T5, T6, T7, ParserLog
 from .preparser import get_row_type
 
 class Field:
@@ -116,52 +116,53 @@ def active_case_data(datafile):
     # split line into fields
     family_case_schema = RowSchema()
     family_case_schema.add_fields(
-        [('record_type', 2, 1, 2),
-        ('reporting_month', 6, 3, 8),
-        ('case_number', 11, 9, 19),
-        ('county_fips_code', 3, 20, 22),
-        ('stratum', 2, 23, 24),
-        ('zip_code', 5, 25, 29),
-        ('funding_stream', 1, 30, 30),
-        ('disposition', 1, 31, 31),
-        ('new_applicant', 1, 32, 32),
-        ('family_members', 2, 33, 34),
-        ('type_of_family', 1, 35, 35),
-        ('subsidized_housing', 1, 36, 36),
-        ('medical_assistance', 1, 37, 37),
-        ('food_stamps', 1, 38, 38),
-        ('food_stamp_amount', 4, 39, 42),
-        ('sub_child_care', 1, 43, 43),
-        ('amt_child_care', 4, 44, 47),
-        ('amt_chiild_support', 4, 48, 51),
-        ('families_cash', 4, 52, 55),
-        ('cash_amount', 4, 56, 59),
-        ('cash_nbr_month', 3, 60, 62),
-        ('tanf_child_care_amount', 4, 63, 66),
-        ('children_covered', 2, 67, 68),
-        ('child_care_nbr_months', 3, 69, 71),
-        ('transportation_amount', 4, 72, 75),
-        ('transport_nbr_months', 3, 76, 78),
-        ('transitional_services_amount', 4, 79, 82),
-        ('transitional_nbr_months', 3, 83, 85),
-        ('other_amount', 4, 86, 89),
-        ('other_nbr_months', 3, 90, 92),
-        ('reduction_amt', 4, 93, 96),
-        ('reduc_work_req', 1, 97, 97),
-        ('reduc_no_diploma', 1, 98, 98),
-        ('reduc_not_in_school', 1, 99, 99),
-        ('reduc_not_child_support', 1, 100, 100),
-        ('reduc_irp_failure', 1, 101, 101),
-        ('reduc_other_sanction', 1, 102, 102),
-        ('reduc_prior_overpayment', 4, 103, 106),
-        ('total_reduc_amount', 4, 107, 110),
-        ('reduc_family_cap', 1, 111, 111),
-        ('reduc_length_of_assist', 1, 112, 112),
-        ('other_non_sanction', 1, 113, 113),
-        ('waiver_control_grps', 1, 114, 114),
-        ('tanf_family_exempt_time_limits', 2, 115, 116),
-        ('child_only_family', 1, 117, 117),
-        ('blank', 39, 118, 156),
+        [
+            ('record_type', 2, 1, 2),
+            ('reporting_month', 6, 3, 8),
+            ('case_number', 11, 9, 19),
+            ('county_fips_code', 3, 20, 22),
+            ('stratum', 2, 23, 24),
+            ('zip_code', 5, 25, 29),
+            ('funding_stream', 1, 30, 30),
+            ('disposition', 1, 31, 31),
+            ('new_applicant', 1, 32, 32),
+            ('family_members', 2, 33, 34),
+            ('type_of_family', 1, 35, 35),
+            ('subsidized_housing', 1, 36, 36),
+            ('medical_assistance', 1, 37, 37),
+            ('food_stamps', 1, 38, 38),
+            ('food_stamp_amount', 4, 39, 42),
+            ('sub_child_care', 1, 43, 43),
+            ('amt_child_care', 4, 44, 47),
+            ('amt_chiild_support', 4, 48, 51),
+            ('families_cash', 4, 52, 55),
+            ('cash_amount', 4, 56, 59),
+            ('cash_nbr_month', 3, 60, 62),
+            ('tanf_child_care_amount', 4, 63, 66),
+            ('children_covered', 2, 67, 68),
+            ('child_care_nbr_months', 3, 69, 71),
+            ('transportation_amount', 4, 72, 75),
+            ('transport_nbr_months', 3, 76, 78),
+            ('transitional_services_amount', 4, 79, 82),
+            ('transitional_nbr_months', 3, 83, 85),
+            ('other_amount', 4, 86, 89),
+            ('other_nbr_months', 3, 90, 92),
+            ('reduction_amt', 4, 93, 96),
+            ('reduc_work_req', 1, 97, 97),
+            ('reduc_no_diploma', 1, 98, 98),
+            ('reduc_not_in_school', 1, 99, 99),
+            ('reduc_not_child_support', 1, 100, 100),
+            ('reduc_irp_failure', 1, 101, 101),
+            ('reduc_other_sanction', 1, 102, 102),
+            ('reduc_prior_overpayment', 4, 103, 106),
+            ('total_reduc_amount', 4, 107, 110),
+            ('reduc_family_cap', 1, 111, 111),
+            ('reduc_length_of_assist', 1, 112, 112),
+            ('other_non_sanction', 1, 113, 113),
+            ('waiver_control_grps', 1, 114, 114),
+            ('tanf_family_exempt_time_limits', 2, 115, 116),
+            ('child_only_family', 1, 117, 117),
+            ('blank', 39, 118, 156),
         ]
     )
 
@@ -170,11 +171,7 @@ def active_case_data(datafile):
             # create search_index model
             t1 = T1()
             for field in family_case_schema.get_all_fields():
-                try:
-                    setattr(t1, field.name, line[field.start:field.end])
-                except:
-                    logger.error('Error setting field %s' % field.name)
-
+                setattr(t1, field.name, line[field.start:field.end])
 
             
                 '''
@@ -227,8 +224,22 @@ def active_case_data(datafile):
             )
                 '''
             
-            t1.is_valid()
-            t1.save()
+            try:
+                t1.is_valid()
+                t1.save()
+                ParserLog.objects.create(
+                    data_file=datafile,
+                    status=ParserLog.Status.ACCEPTED,
+                )
+
+            except ValidationError as e:
+                return ParserLog.objects.create(
+                    data_file=datafile,
+                    status=ParserLog.Status.ACCEPTED_WITH_ERRORS,
+                    errors=e.message
+                )
+                 
+
 
 
 
