@@ -1,7 +1,11 @@
 import json, os
 import boto3
+import logging
 
 OS_ENV = os.environ
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def run():
     sys_values = {}    
@@ -18,13 +22,11 @@ def run():
     os.environ["AWS_ACCESS_KEY_ID"] = sys_values['S3_ACCESS_KEY_ID']
     os.environ["AWS_SECRET_ACCESS_KEY"] = sys_values['S3_SECRET_ACCESS_KEY']
     os.environ["AWS_DEFAULT_REGION"] = sys_values['S3_REGION']
-    
 
-    s3 = boto3.resource("s3")
-    for bucket in s3.buckets.all():
-        print('=================================================')
-        print(bucket.name)
-        print(bucket.Versioning().status)
-        print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+    logger.info("=============LOGER CHECK===============")
+
+    s3_client = boto3.client('s3', region_name=sys_values['S3_REGION'])
+    versioning = s3_client.get_bucket_versioning(Bucket=sys_values['S3_BUCKET'])
+    logger.info(f"Version: {versioning}")
 
 run()
