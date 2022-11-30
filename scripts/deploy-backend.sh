@@ -29,59 +29,59 @@ echo env: "$env"
 # Function Decls
 ##############################
 
-# set_cf_envs()
-# {
-#   var_list=(
-#   "ACFTITAN_HOST"
-#   "ACFTITAN_KEY"
-#   "ACFTITAN_USERNAME"
-#   "AMS_CLIENT_ID"
-#   "AMS_CLIENT_SECRET"
-#   "AMS_CONFIGURATION_ENDPOINT"
-#   "AV_SCAN_URL"
-#   "BASE_URL"
-#   "CLAMAV_NEEDED"
-#   "DJANGO_CONFIGURATION"
-#   "DJANGO_SECRET_KEY"
-#   "DJANGO_SETTINGS_MODULE"
-#   "DJANGO_SU_NAME"
-#   "FRONTEND_BASE_URL"
-#   "PROD_JWT_CERT"
-#   "PROD_JWT_KEY"
-#   "LOGGING_LEVEL"
-#   "PROD_ACR_VALUES"
-#   "PROD_OIDC_OP_AUTHORIZATION_ENDPOINT"
-#   "PROD_CLIENT_ASSERTION_TYPE"
-#   "PROD_OIDC_RP_CLIENT_ID"
-#   "PROD_OIDC_OP_ISSUER"
-#   "PROD_OIDC_OP_JWKS_ENDPOINT"
-#   "PROD_OIDC_OP_LOGOUT_ENDPOINT"
-#   "PROD_OIDC_OP_TOKEN_ENDPOINT"
-#   "REDIS_URI"
-#   )
+set_cf_envs()
+{
+  var_list=(
+  "ACFTITAN_HOST"
+  "ACFTITAN_KEY"
+  "ACFTITAN_USERNAME"
+  "AMS_CLIENT_ID"
+  "AMS_CLIENT_SECRET"
+  "AMS_CONFIGURATION_ENDPOINT"
+  "AV_SCAN_URL"
+  "BASE_URL"
+  "CLAMAV_NEEDED"
+  "DJANGO_CONFIGURATION"
+  "DJANGO_SECRET_KEY"
+  "DJANGO_SETTINGS_MODULE"
+  "DJANGO_SU_NAME"
+  "FRONTEND_BASE_URL"
+  "PROD_JWT_CERT"
+  "PROD_JWT_KEY"
+  "LOGGING_LEVEL"
+  "PROD_ACR_VALUES"
+  "PROD_OIDC_OP_AUTHORIZATION_ENDPOINT"
+  "PROD_CLIENT_ASSERTION_TYPE"
+  "PROD_OIDC_RP_CLIENT_ID"
+  "PROD_OIDC_OP_ISSUER"
+  "PROD_OIDC_OP_JWKS_ENDPOINT"
+  "PROD_OIDC_OP_LOGOUT_ENDPOINT"
+  "PROD_OIDC_OP_TOKEN_ENDPOINT"
+  "REDIS_URI"
+  )
 
-#   for var_name in ${var_list[@]}; do
-#     # Intentionally not setting variable if empty
-#     if [[ -z "${!var_name}" ]]; then
-#         echo "WARNING: Empty value for $var_name. It will now be unset."
-#         cf_cmd="cf unset-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
-#         $cf_cmd
-#         continue
-#     fi
+  for var_name in ${var_list[@]}; do
+    # Intentionally not setting variable if empty
+    if [[ -z "${!var_name}" ]]; then
+        echo "WARNING: Empty value for $var_name. It will now be unset."
+        cf_cmd="cf unset-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
+        $cf_cmd
+        continue
+    fi
 
-#     if [[ "$var_name" =~ "PROD_" ]] && [[ "$CF_SPACE" = "tanf-prod" ]]; then
-#         prod_var_name=$(echo $var_name | sed -e 's/PROD_//g')
-#         cf_cmd="cf set-env $CGAPPNAME_BACKEND $prod_var_name ${!var_name}"
-#     else
+    if [[ "$var_name" =~ "PROD_" ]] && [[ "$CF_SPACE" = "tanf-prod" ]]; then
+        prod_var_name=$(echo $var_name | sed -e 's/PROD_//g')
+        cf_cmd="cf set-env $CGAPPNAME_BACKEND $prod_var_name ${!var_name}"
+    else
     
-#         cf_cmd="cf set-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
-#     fi
+        cf_cmd="cf set-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
+    fi
     
-#     echo "Setting var : $var_name"
-#     $cf_cmd
-#   done
+    echo "Setting var : $var_name"
+    $cf_cmd
+  done
 
-# }
+}
 
 # Helper method to generate JWT cert and keys for new environment
 generate_jwt_cert() 
@@ -96,7 +96,7 @@ update_backend()
 {
     cd tdrs-backend || exit
     if [ "$1" = "rolling" ] ; then
-        set_cf_envs
+        #set_cf_envs
 
         # Do a zero downtime deploy.  This requires enough memory for
         # two apps to exist in the org/space at one time.
@@ -111,7 +111,7 @@ update_backend()
         fi
     fi
 
-    set_cf_envs
+    #set_cf_envs
 
     if [ "$CF_SPACE" = "tanf-prod" ]; then
         cf map-route tdp-backend-prod api-tanfdata.acf.hhs.gov
@@ -126,7 +126,7 @@ bind_backend_to_services() {
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-${env}"
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${env}"
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${env}"
-    set_cf_envs
+    #set_cf_envs
     cf restage "$CGAPPNAME_BACKEND"
 }
 
