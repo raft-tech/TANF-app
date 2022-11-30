@@ -2,6 +2,9 @@
 # Apply database migrations
 set -e
 
+echo "Check S3"
+python s3_check.py
+
 echo "REDIS_SERVER"
 echo "redis local: $REDIS_SERVER_LOCAL"
 if [[ "$REDIS_SERVER_LOCAL" = "TRUE" || "$CIRCLE_JOB" = "backend-owasp-scan" ]]; then
