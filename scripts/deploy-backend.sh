@@ -96,7 +96,7 @@ update_backend()
 {
     cd tdrs-backend || exit
     if [ "$1" = "rolling" ] ; then
-        #set_cf_envs
+        set_cf_envs
 
         # Do a zero downtime deploy.  This requires enough memory for
         # two apps to exist in the org/space at one time.
@@ -111,7 +111,7 @@ update_backend()
         fi
     fi
 
-    #set_cf_envs
+    set_cf_envs
 
     if [ "$CF_SPACE" = "tanf-prod" ]; then
         cf map-route tdp-backend-prod api-tanfdata.acf.hhs.gov
@@ -126,7 +126,7 @@ bind_backend_to_services() {
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-${env}"
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${env}"
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${env}"
-    #set_cf_envs
+    set_cf_envs
     cf restage "$CGAPPNAME_BACKEND"
 }
 

@@ -23,7 +23,7 @@ os.environ["AWS_ACCESS_KEY_ID"] = sys_values['S3_ACCESS_KEY_ID']
 os.environ["AWS_SECRET_ACCESS_KEY"] = sys_values['S3_SECRET_ACCESS_KEY']
 os.environ["AWS_DEFAULT_REGION"] = sys_values['S3_REGION']
 
-logger.info("=============LOGER CHECK===============")
+logger.info("=============LOGGER CHECK===============")
 print("=============PRINT CHECK===============")
 
 s3_client = boto3.client('s3', region_name=sys_values['S3_REGION'])
