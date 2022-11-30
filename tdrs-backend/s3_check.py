@@ -17,6 +17,8 @@ def run():
     # Set AWS credentials in env, Boto3 uses the env variables for connection
     os.environ["AWS_ACCESS_KEY_ID"] = sys_values['S3_ACCESS_KEY_ID']
     os.environ["AWS_SECRET_ACCESS_KEY"] = sys_values['S3_SECRET_ACCESS_KEY']
+    os.environ["AWS_DEFAULT_REGION"] = sys_values['S3_REGION']
+    
 
     s3 = boto3.resource("s3")
     for bucket in s3.buckets.all():
