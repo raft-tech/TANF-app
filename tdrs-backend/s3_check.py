@@ -6,6 +6,7 @@ OS_ENV = os.environ
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler())
 
 sys_values = {}    
 sys_values['S3_ENV_VARS'] = json.loads(OS_ENV['VCAP_SERVICES'])['s3']
@@ -23,7 +24,9 @@ os.environ["AWS_SECRET_ACCESS_KEY"] = sys_values['S3_SECRET_ACCESS_KEY']
 os.environ["AWS_DEFAULT_REGION"] = sys_values['S3_REGION']
 
 logger.info("=============LOGER CHECK===============")
+print("=============PRINT CHECK===============")
 
 s3_client = boto3.client('s3', region_name=sys_values['S3_REGION'])
 versioning = s3_client.get_bucket_versioning(Bucket=sys_values['S3_BUCKET'])
 logger.info(f"Version: {versioning}")
+print(f"Version: {versioning}")
