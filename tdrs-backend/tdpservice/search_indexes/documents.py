@@ -27,8 +27,6 @@ class T1DataSubmissionDocument(Document):
             'rpt_month_year',
             'case_number',
             'disposition',
-            'fips_code',
-
             'county_fips_code',
             'stratum',
             'zip_code',

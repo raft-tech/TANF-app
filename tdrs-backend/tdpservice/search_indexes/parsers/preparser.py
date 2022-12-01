@@ -1,8 +1,10 @@
 """Converts data files into a model that can be indexed by Elasticsearch."""
 
-
+import logging
 import argparse
 from tdpservice.data_files.models import DataFile
+
+logger = logging.getLogger(__name__)
 
 def validate_header(datafile):
     """Validate the header line of the datafile."""
