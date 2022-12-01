@@ -2,7 +2,9 @@
 
 from django.db import models
 from tdpservice.data_files.models import DataFile
-from tdpservice.search_indexes.parsers import validators
+from parsers.validators import record as record_validator
+from django.core.validators import RegexValidator
+
 
 class T1(models.Model):
     """
@@ -11,13 +13,12 @@ class T1(models.Model):
     Mapped to an elastic search index.
     """
 
-    record = models.CharField(max_length=156, null=False, blank=False, 
-                              validators=[RegexValidator(regex="^T1$", message="Record type format incorrect.", code="record_type")])
-    rpt_month_year = models.IntegerField(null=False, blank=False, validators=[parsers.validators.rpt_month_year])
+    record = models.CharField(max_length=156, null=False, blank=False, validators=[record_validator]) 
+                              #validators=[RegexValidator(regex="^T1$", message="Record type format incorrect.", code="record_type")])
+    rpt_month_year = models.IntegerField(null=False, blank=False, validators=[record])
     case_number = models.CharField(max_length=11, null=False, blank=False)
     disposition = models.IntegerField(null=False, blank=False)
     fips_code = models.CharField(max_length=100, null=False, blank=False)
-
     county_fips_code = models.CharField(
         max_length=3,
         null=False,

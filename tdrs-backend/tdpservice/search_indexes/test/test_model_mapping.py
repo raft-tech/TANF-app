@@ -20,7 +20,7 @@ def test_can_create_and_index_t1_submission():
         rpt_month_year=1,
         case_number='1',
         disposition=1,
-        fips_code='1',
+        #fips_code='1',
 
         county_fips_code='1',
         stratum=1,
