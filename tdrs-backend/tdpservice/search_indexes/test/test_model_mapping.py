@@ -66,6 +66,9 @@ def test_can_create_and_index_t1_submission():
         blank='1'
     )
 
+    submission.full_clean()
+    submission.save()
+
     assert submission.id is not None
 
     search = documents.T1DataSubmissionDocument.search().query(

@@ -2,7 +2,10 @@
 
 from django.db import models
 from tdpservice.data_files.models import DataFile
-from .parsers.validators import record as record_validator
+from .parsers.validators import (
+    record_validator,
+    rpt_month_year as month_year_validator,
+)
 from django.core.validators import RegexValidator
 
 
@@ -13,9 +16,14 @@ class T1(models.Model):
     Mapped to an elastic search index.
     """
 
+    #def __is_valid__():
+    # TODO: might need a correlating validator to check across fields
+    
+        
+
     record = models.CharField(max_length=156, null=False, blank=False, validators=[record_validator]) 
                               #validators=[RegexValidator(regex="^T1$", message="Record type format incorrect.", code="record_type")])
-    rpt_month_year = models.IntegerField(null=False, blank=False)
+    rpt_month_year = models.IntegerField(null=False, blank=False, validators=[RegexValidator(regex="^[0-9]{6}$", message="Report month/year format incorrect.", code="invalid")])
     case_number = models.CharField(max_length=11, null=False, blank=False)
     disposition = models.IntegerField(null=False, blank=False)
     county_fips_code = models.CharField(

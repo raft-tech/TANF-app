@@ -117,7 +117,7 @@ def active_case_data(datafile):
     family_case_schema = RowSchema()
     family_case_schema.add_fields(
         [
-            ('record_type', 2, 1, 2),
+            ('record_type', 2, 1, 2), # does it make sense to try to include regex here as fifth =r'^T1$'
             ('reporting_month', 6, 3, 8),
             ('case_number', 11, 9, 19),
             ('county_fips_code', 3, 20, 22),
@@ -225,7 +225,7 @@ def active_case_data(datafile):
                 '''
             
             try:
-                t1.is_valid()
+                t1.is_valid() # I think I need this to be full_clean()
                 t1.save()
                 ParserLog.objects.create(
                     data_file=datafile,
