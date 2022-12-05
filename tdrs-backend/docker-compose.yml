@@ -81,7 +81,7 @@ services:
       bash -c "./wait_for_services.sh &&
                ./gunicorn_start.sh && celery -A tdpservice.settings worker -l info"
     ports:
-      - "8080:8080"
+      #- "8080:8080"
       - "5555:5555"
     depends_on:
       - clamav-rest

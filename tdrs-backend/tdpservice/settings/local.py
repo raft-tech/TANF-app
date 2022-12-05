@@ -10,6 +10,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 class Local(Common):
     """Define class for local configuration settings."""
 
+
+    # Overwrite CORS allowed origins to allow for local development
+    CORS_ALLOWED_ORIGINS = ['http://localhost:3000']
+
     # Default DEBUG to True in local environments
     DEBUG = strtobool(os.getenv("DJANGO_DEBUG", "yes"))
 
