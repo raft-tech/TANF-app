@@ -1,18 +1,123 @@
 """Converts data files into a model that can be indexed by Elasticsearch."""
 
+import re
 import logging
 import argparse
+#from cerberus import Validator
 from tdpservice.data_files.models import DataFile
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
-def validate_header(datafile):
+def get_record_type(row):
+    """Get the record type from the row."""
+    
+    if re.match(r'^HEADER.*', row):
+        logger.debug('Matched following row as a header: %s' % row)
+        return 'HE'
+    elif re.match(r'^TRAILER.*', row):
+        logger.debug('Matched following row as a trailer: %s' % row)
+        return 'TR'
+    elif re.match(r'^T\[0-9]*@.*', row):
+        logger.debug('Matched following row as data: %s' % row)
+        return 'DATA'
+
+def validate_header(row, data_type, given_section):
     """Validate the header line of the datafile."""
-    return True
 
-def validate_trailer(datafile):
-    """Validate the trailer line of the datafile."""
-    return True
+    """ 
+    https://www.acf.hhs.gov/sites/default/files/documents/ofa/transmission_file_header_trailer_record.pdf
+    
+    DESCRIPTION		LENGTH	FROM	TO	COMMENT									
+    Title		    6	1	6	Value	=	HEADER							
+    YYYYQ	        5	7	11	Value	=	YYYYQ							
+											
+    Type 	        1	12	12	A=Active;	C=Closed;	G=Aggregate,	S=Stratum						
+    State Fips	    2	13	14	"2	digit	state	code	000	a	tribe"									
+    Tribe Code	    3	15	17	"3	digit	tribe	code	000	a	state"									
+    Program	Type	3	18	20	Value	=	TAN	(TANF)	or	Value	=	SSP	(SSP-MOE)	
+    Edit Indicator	1	21	21	1=Return	Fatal	&	Warning	Edits	2=Return	Fatal	Edits	only	
+    Encryption      1	22	22	E=SSN	is	encrypted	Blank	=	SSN	is	not	encrypted	
+    Update      	1	23	23	N	=	New	data	D	=	Delete	existing	data	U
+    QUARTERS:
+        Q=1	(Jan-Mar)
+        Q=2	(Apr-Jun)
+        Q=3	(Jul-Sep)
+        Q=4	(Oct-Dec)
+    Example:
+    HEADERYYYYQTFIPSSP1EN
+    """
+    logger.debug('Validating header row.')
+
+    section_map = {
+        'A': 'Active Cases',
+        'C': 'Closed Cases',
+        'G': 'Aggregate',
+        'S': 'Stratum',
+    }
+
+    # Validate the header row
+    with open(datafile, 'r') as f:
+        row = f.readline()
+
+        try:
+            header = {
+                'title':        row[0:6],
+                'year':         int(row[6:10]),
+                'quarter':      int(row[10:11]),
+                'type':         row[11:12],
+                'state_fips':   row[12:14],
+                'tribe_code':   row[14:17],
+                'program_type': row[17:20],
+                'edit':         row[20:21],
+                'encryption':   row[21:22],
+                'update':       row[22:23],
+            }
+
+            # TODO: Will need to be saved in parserLog
+            if given_section != section_map[header['type']]:
+                raise ValueError('Given section does not match header section.') 
+
+            # TODO: could import schema from a schemas folder/file, would be reusable for other sections
+            header_schema = {
+                'title':        {'type': 'string', 'required': True, 'allowed': ['HEADER']},
+                'year':         {'type': 'integer', 'required': True, 'min': 2016}, # '^[0-9]{4}$'},
+                'quarter':      {'type': 'integer', 'required': True, 'min': 1, 'max': 4},
+                'type':         {'type': 'string', 'required': True, 'allowed': ['A', 'C', 'G', 'S']},
+                'state_fips':   {'type': 'string', 'required': True, 'regex': '^[0-9]{2}$'},
+                'tribe_code':   {'type': 'string', 'required': True, 'regex': '^[0-9]{3}$'},
+                'program_type': {'type': 'string', 'required': True, 'allowed': ['TAN', 'SSP']},
+                'edit':         {'type': 'string', 'required': True, 'allowed': ['1', '2']},
+                'encryption':   {'type': 'string', 'required': True, 'allowed': ['E', '']},
+                'update':       {'type': 'string', 'required': True, 'allowed': ['N', 'D', 'U']},
+            }
+
+            v = Validator(header_schema)
+            return v.validate(header), v.errors
+
+        except Exception as e:
+            logger.error('Invalid header row, unknown cause.')
+            logger.error(e)
+            return False, e
+
+def validate_trailer(row):
+    """Validate the trailer row."""
+    """
+    https://www.acf.hhs.gov/sites/default/files/documents/ofa/transmission_file_header_trailer_record.pdf
+    length of 24
+    DESCRIPTION LENGTH FROM TO COMMENT
+    Title 7 1 7 Value = TRAILER
+    Number of Records 7 8 14 Right Adjusted
+    Blank 9 15 23 Value = spaces
+    Example:
+    'TRAILER0000001         '
+    """
+    
+    logger.info('Validating trailer row.')
+    # Validate the trailer row
+    is_valid = True # TODO: Implement validation logic with regex probably
+    errors = {}
+    return is_valid, errors
 
 
 def preparse(datafile, data_type, section):

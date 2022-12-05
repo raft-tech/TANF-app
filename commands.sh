@@ -78,6 +78,9 @@ alias tdrs-lint-frontend='tdrs-npm-run lint'
 # Opens up logs for backend
 alias tdrs-logs-backend='docker logs tdrs-backend-web-1 -f'
 
+# Update backend lockfile
+alias tdrs-piplock="tdrs-compose-backend run --rm web pipenv lock"
+
 # run flake8 against backend source from inside of web container
 tdrs-lint-backend() {
     tdrs-compose-backend run --rm web bash -c "flake8 ."
