@@ -7,7 +7,7 @@
       - docker-compose-up-backend
       - run:
           name: Execute Python Linting Test
-          command: cd tdrs-backend; docker network create external-net; docker-compose run --rm web bash -c "flake8 ."
+          command: cd tdrs-backend; docker-compose run --rm web bash -c "flake8 ."
       - run:
           name: Run Unit Tests And Create Code Coverage Report
           command: |
