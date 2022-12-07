@@ -392,6 +392,7 @@ class CypressLoginDotGovAuthenticationOverride(TokenAuthorizationOIDC):
     """Override Login.dov authentication for Cypress users."""
 
     def post(self, request):
+        """Create a session for the specified user, if they exist."""
         username = request.data.get('username', None)
         token = request.data.get('token', None)
 

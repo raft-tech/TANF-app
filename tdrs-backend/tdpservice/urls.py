@@ -12,7 +12,8 @@ from rest_framework.permissions import AllowAny
 
 
 from .users.api.authorization_check import AuthorizationCheck
-from .users.api.login import TokenAuthorizationLoginDotGov, TokenAuthorizationAMS, CypressLoginDotGovAuthenticationOverride
+from .users.api.login import TokenAuthorizationLoginDotGov, TokenAuthorizationAMS
+from .users.api.login import CypressLoginDotGovAuthenticationOverride
 from .users.api.login_redirect_oidc import LoginRedirectAMS, LoginRedirectLoginDotGov
 from .users.api.logout import LogoutUser
 from .users.api.logout_redirect_oidc import LogoutRedirectOIDC

@@ -4,13 +4,11 @@ from django.contrib.auth import get_user_model
 from django.core.management import BaseCommand
 from django.conf import settings
 
-
-import factory
-
 User = get_user_model()
 
 
 def get_or_create_user(username):
+    """Create a new user for a given username if one doesn't exist."""
     user = None
 
     try:
@@ -26,12 +24,11 @@ def get_or_create_user(username):
 class Command(BaseCommand):
     """Command class."""
 
-    help = "Generate a test user for each role."
+    help = "Generate test users if they don't exist."
 
     def handle(self, *args, **options):
-        """Generate a test user for each role."""
-
+        """Generate test users if they don't exist."""
         if settings.DEBUG:
-            cypress_new_user = get_or_create_user('new-cypress@goraft.tech')
+            get_or_create_user('new-cypress@goraft.tech')
         else:
             raise Exception('Cannot create cypress users in non-dev environments.')
