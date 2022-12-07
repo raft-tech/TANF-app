@@ -75,32 +75,33 @@ def validate_header(datafile, data_type, given_section):
             }
 
             for key, value in header.items():
-                print('Header key %s: "%s"' % (key, value))
+                logger.debug('Header key %s: "%s"' % (key, value))
 
             # TODO: Will need to be saved in parserLog
             if given_section != section_map[header['type']]:
                 raise ValueError('Given section does not match header section.') 
 
             # TODO: could import schema from a schemas folder/file, would be reusable for other sections
-            #tribe_code regex: '^[0-9]{3}$|^\w{3}$'},
+            
             header_schema = {
                 'title':        {'type': 'string', 'required': True, 'allowed': ['HEADER']},
                 'year':         {'type': 'integer', 'required': True, 'min': 2016}, # '^[0-9]{4}$'},
                 'quarter':      {'type': 'integer', 'required': True, 'min': 1, 'max': 4},
                 'type':         {'type': 'string', 'required': True, 'allowed': ['A', 'C', 'G', 'S']},
                 'state_fips':   {'type': 'string', 'required': True, 'regex': '^[0-9]{2}$'},
-                'tribe_code':   {'type': 'string', 'required': False, 'allow_unknown': True, 'regex': '   '}, 
+                'tribe_code':   {'type': 'string', 'required': False, 'allow_unknown': True, 'regex': '^([0-9]{3}|[ ]{3})$'}, 
                 'program_type': {'type': 'string', 'required': True, 'allowed': ['TAN', 'SSP']},
                 'edit':         {'type': 'string', 'required': True, 'allowed': ['1', '2']},
                 'encryption':   {'type': 'string', 'required': True, 'allowed': ['E', ' ']},
                 'update':       {'type': 'string', 'required': True, 'allowed': ['N', 'D', 'U']},
             }
 
-            v = Validator(header_schema)
-            return v.validate(header), v.errors
+            validator = Validator(header_schema)
+            is_valid = validator.validate(header)
+            return is_valid, validator
 
         except Exception as e:
-            logger.error('Invalid header row, unknown cause.')
+            logger.error('Exception validating header row, please see error.')
             logger.error(e)
             return False, e
 
