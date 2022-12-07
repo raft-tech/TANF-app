@@ -6,7 +6,7 @@ from .parsers.validators import (
     record_validator,
     rpt_month_year as month_year_validator,
 )
-from django.core.validators import RegexValidator
+# from django.core.validators import RegexValidator
 
 
 class T1(models.Model):
@@ -16,14 +16,11 @@ class T1(models.Model):
     Mapped to an elastic search index.
     """
 
-    #def __is_valid__():
+    # def __is_valid__():
     # TODO: might need a correlating validator to check across fields
-    
-        
 
-    record = models.CharField(max_length=156, null=False, blank=False, validators=[record_validator]) 
-                              #validators=[RegexValidator(regex="^T1$", message="Record type format incorrect.", code="record_type")])
-    rpt_month_year = models.IntegerField(null=False, blank=False, validators=[RegexValidator(regex="^[0-9]{6}$", message="Report month/year format incorrect.", code="invalid")])
+    record = models.CharField(max_length=156, null=False, blank=False, validators=[record_validator])
+    rpt_month_year = models.IntegerField(null=False, blank=False, validators=[month_year_validator])
     case_number = models.CharField(max_length=11, null=False, blank=False)
     disposition = models.IntegerField(null=False, blank=False)
     county_fips_code = models.CharField(
@@ -319,6 +316,6 @@ class ParserLog(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     # enum: Accepted, Accepted with errors, Rejected
-    status = models.CharField(max_length=20, null=False, blank=False) 
+    status = models.CharField(max_length=20, null=False, blank=False)
 
     errors = models.JSONField(null=True, blank=True)

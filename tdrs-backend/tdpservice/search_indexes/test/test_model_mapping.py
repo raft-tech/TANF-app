@@ -21,8 +21,6 @@ def test_can_create_and_index_t1_submission():
         rpt_month_year=1,
         case_number='1',
         disposition=1,
-        #fips_code='1',
-
         county_fips_code='1',
         stratum=1,
         zip_code='1',
@@ -67,8 +65,7 @@ def test_can_create_and_index_t1_submission():
         blank='1'
     )
 
-    #submission.full_clean()
-
+    # submission.full_clean()
 
     assert submission.id is not None
 
