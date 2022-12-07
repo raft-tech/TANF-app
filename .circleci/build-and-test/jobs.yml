@@ -50,8 +50,8 @@
       - docker-compose-up-backend
       - docker-compose-up-frontend
       - run:
-        name: Run Cypress e2e tests
-        command: cd tdrs-frontend; npm run test:e2e-ci
+          name: Run Cypress e2e tests
+          command: cd tdrs-frontend; npm run test:e2e-ci
 
   secrets-check:
     executor: docker-executor
