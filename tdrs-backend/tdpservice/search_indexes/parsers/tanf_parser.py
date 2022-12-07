@@ -1,7 +1,7 @@
 """Transforms a TANF datafile into an search_index model."""
 
 from ..models import T1, T2, T3, T4, T5, T6, T7, ParserLog
-from .preparser import get_row_type
+from .preparser import get_record_type
 
 class Field:
     """Provides a mapping between a field name and its position."""

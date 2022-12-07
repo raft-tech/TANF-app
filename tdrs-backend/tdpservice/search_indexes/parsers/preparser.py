@@ -3,7 +3,7 @@
 import re
 import logging
 import argparse
-#from cerberus import Validator
+from cerberus import Validator
 from tdpservice.data_files.models import DataFile
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ def get_record_type(row):
         logger.debug('Matched following row as data: %s' % row)
         return 'DATA'
 
-def validate_header(row, data_type, given_section):
+def validate_header(datafile, data_type, given_section):
     """Validate the header line of the datafile."""
 
     """ 
@@ -74,21 +74,25 @@ def validate_header(row, data_type, given_section):
                 'update':       row[22:23],
             }
 
+            for key, value in header.items():
+                print('Header key %s: "%s"' % (key, value))
+
             # TODO: Will need to be saved in parserLog
             if given_section != section_map[header['type']]:
                 raise ValueError('Given section does not match header section.') 
 
             # TODO: could import schema from a schemas folder/file, would be reusable for other sections
+            #tribe_code regex: '^[0-9]{3}$|^\w{3}$'},
             header_schema = {
                 'title':        {'type': 'string', 'required': True, 'allowed': ['HEADER']},
                 'year':         {'type': 'integer', 'required': True, 'min': 2016}, # '^[0-9]{4}$'},
                 'quarter':      {'type': 'integer', 'required': True, 'min': 1, 'max': 4},
                 'type':         {'type': 'string', 'required': True, 'allowed': ['A', 'C', 'G', 'S']},
                 'state_fips':   {'type': 'string', 'required': True, 'regex': '^[0-9]{2}$'},
-                'tribe_code':   {'type': 'string', 'required': True, 'regex': '^[0-9]{3}$'},
+                'tribe_code':   {'type': 'string', 'required': False, 'allow_unknown': True, 'regex': '   '}, 
                 'program_type': {'type': 'string', 'required': True, 'allowed': ['TAN', 'SSP']},
                 'edit':         {'type': 'string', 'required': True, 'allowed': ['1', '2']},
-                'encryption':   {'type': 'string', 'required': True, 'allowed': ['E', '']},
+                'encryption':   {'type': 'string', 'required': True, 'allowed': ['E', ' ']},
                 'update':       {'type': 'string', 'required': True, 'allowed': ['N', 'D', 'U']},
             }
 
