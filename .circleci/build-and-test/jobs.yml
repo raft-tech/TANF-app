@@ -49,6 +49,10 @@
       - docker-compose-check
       - docker-compose-up-backend
       - docker-compose-up-frontend
+      - install-nodejs-machine
+      - disable-npm-audit
+      - install-nodejs-packages:
+          app-dir: tdrs-frontend
       - run:
           name: Run Cypress e2e tests
           command: cd tdrs-frontend; npm run test:e2e-ci
