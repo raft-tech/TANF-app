@@ -42,6 +42,25 @@ def test_preparser_trailer(test_file):
     # TODO: test some value(s) in trailer to assert it was actually parsed correctly
     assert False
 
-def test_preparser_body():
+def test_preparser_body(test_file):
     """Test body preparser."""
+    # TODO:
+    # check it can handle header/trailer
+    # feed good/bad data_types, sections
+    # ensure it calls the correct parser
     assert False
+
+def test_tanf_t1_active(test_file):
+    """Test tanf_parser.activate_case_data."""
+
+    # maybe just give a test line instead of a whole file??
+    
+    # open file to specific line, send it to parser
+    # assign line to new var, pass to parse()
+    tanf_parser.parse(test_file, 'Active Cases')
+    assert False
+    # define expected values
+    # we get back a parser log object
+    # should we create a FK between parserlog and t1 model?
+    # were t1 models created
+
