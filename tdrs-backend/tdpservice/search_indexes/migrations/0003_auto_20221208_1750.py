@@ -135,6 +135,16 @@ class Migration(migrations.Migration):
             old_name='waiver_evalu_control_grps',
             new_name='waiver_control_grps',
         ),
+        migrations.RenameField(
+            model_name='t1',
+            old_name='other_nbr_of_months',
+            new_name='other_nbr_months',
+        ),
+        migrations.RenameField(
+            model_name='t1',
+            old_name='transp_nbr_months',
+            new_name='transport_nbr_months',
+        ),
         migrations.RemoveField(
             model_name='t1',
             name='blank',
