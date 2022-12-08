@@ -1,14 +1,15 @@
 """Transforms a TANF datafile into an search_index model."""
 
 import logging
-from ..models import T1, T2, T3, T4, T5, T6, T7, ParserLog
-from django.core.exceptions import ValidationError
+from ..models import T1  # , T2, T3, T4, T5, T6, T7, ParserLog
+# from django.core.exceptions import ValidationError
 from .preparser import get_record_type
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+
 class Field:
     """Provides a mapping between a field name and its position."""
+
     def __init__(self, name, length, start, end):
         self.name = name
         self.length = length
@@ -20,6 +21,7 @@ class Field:
         return Field(name, length, start, end)
 
     def __repr__(self):
+        """Return a string representation of the field."""
         return f"{self.name}({self.start}-{self.end})"
 
 class RowSchema:
@@ -29,15 +31,13 @@ class RowSchema:
         self.fields = []
         # self.section = section # intended for future use with multiple section objects
 
-
     def add_field(self, name, length, start, end):
         """Add a field to the schema."""
-
         self.fields.append(
             Field(name, length, start, end)
         )
 
-    def add_fields(self, fields:list):
+    def add_fields(self, fields: list):
         """Add multiple fields to the schema."""
         for field, length, start, end in fields:
             self.add_field(field, length, start, end)
@@ -56,8 +56,7 @@ class RowSchema:
 
 
 def active_case_data(line):
-    """Parses active case data, T1-3."""
-
+    """Parse active case data, T1-3."""
     '''
                     FAMILY CASE CHARACTERISTIC DATA
 
@@ -112,7 +111,7 @@ def active_case_data(line):
     LENGTH OF ASSIST    1       112     112 Alphanumeric
     OTHER, NON-SANCTION 1       113     113 Alphanumeric
     WAIVER_CONTROL_GRPS 1       114     114 Alphanumeric
-    TANF FAMILY 
+    TANF FAMILY
     EXEMPT TIME_LIMITS  2       115     116 Numeric
     CHILD ONLY FAMILY   1       117     117 Numeric
     BLANK               39      118     156 Spaces
@@ -121,12 +120,11 @@ def active_case_data(line):
     # all of the below is assumed T1, we will eventually expand this for other sections
     # via get_record_type(line)
 
-
     # split line into fields
     family_case_schema = RowSchema()
     family_case_schema.add_fields(
         [
-            ('record_type', 2, 1, 2), # does it make sense to try to include regex here as fifth =r'^T1$'
+            ('record_type', 2, 1, 2),  # does it make sense to try to include regex here as fifth =r'^T1$'
             ('reporting_month', 6, 3, 8),
             ('case_number', 11, 9, 19),
             ('county_fips_code', 3, 20, 22),
@@ -175,19 +173,27 @@ def active_case_data(line):
         ]
     )
 
-
     # create search_index model
     t1 = T1()
+    content_is_valid = True
     for field in family_case_schema.get_all_fields():
         if field.name == 'blank':
             break
-        content = line[field.start-1:field.end] # descriptor is off by one, could also adjust start values
+        content = line[field.start-1:field.end]  # descriptor is off by one, could also adjust start values
         if len(content) != field.length:
-            logger.error('Expected field "%s" with length %d, got: "%s"', field.name, field.length, content)
-        logger.debug('field: %s\t::content: "%s"\t::end: %s', field.name, content, field.end)
-        setattr(t1, field.name, content)
+            logger.warn('Expected field "%s" with length %d, got: "%s"', field.name, field.length, content)
+            content_is_valid = False
+            continue
+        # The below is extremely spammy, turn on selectively.
+        # logger.debug('field: %s\t::content: "%s"\t::end: %s', field.name, content, field.end)
 
-    
+        if content_is_valid:
+            setattr(t1, field.name, content)
+
+    if not content_is_valid:
+        logger.warn('Content is not valid, skipping model creation.')
+        return
+
         '''
         reporting_month=line[2:8],
         case_number=line[8:19],
@@ -237,9 +243,10 @@ def active_case_data(line):
         blank=line[117:156],
     )
         '''
-    
+
     # try:
-    t1.full_clean()
+    # t1.full_clean()
+    logger.info("about to run t1.save")
     t1.save()
     '''
     # holdovers for 1354
@@ -247,7 +254,7 @@ def active_case_data(line):
             data_file=datafile,
             status=ParserLog.Status.ACCEPTED,
         )
-        
+
     except ValidationError as e:
         return ParserLog.objects.create(
             data_file=datafile,
@@ -264,13 +271,21 @@ def active_case_data(line):
 
 def parse(datafile, section):
     """Parse the datafile into the search_index model."""
-
-    """ given section and get_record_type(), call the appropriate function with line as param."""
-
     with open(datafile, 'r') as f:
         for line in f:
-            logger.debug('line: %s', line)
-            if get_record_type(line) == 'HE':
+            record_type = get_record_type(line)
+            logger.debug('Parsing as type %s this line: "%s"', record_type, line)
+
+            if record_type == 'HE':
+                # This should have already been validated elsewhere, skipping to get to data.
                 continue
+            elif record_type == 'T1':
+                expected_line_length = 156  # we will need to adjust for other types
+                if len(line) != expected_line_length:
+                    logger.error('Expected line length of 156, got: %s', len(line))
+                    continue
+                else:
+                    active_case_data(line)
             else:
-                active_case_data(line)
+                logger.warn("Parsing for type %s not yet implemented", record_type)
+                continue

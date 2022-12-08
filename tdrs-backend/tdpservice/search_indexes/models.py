@@ -311,7 +311,7 @@ class ParserLog(models.Model):
     data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
     # TODO: foreignkey to list of t1 models? What about other 6? parent model for t1-t7?
-    
+
     # enum: Accepted, Accepted with errors, Rejected
     status = models.CharField(max_length=20, null=False, blank=False)
 

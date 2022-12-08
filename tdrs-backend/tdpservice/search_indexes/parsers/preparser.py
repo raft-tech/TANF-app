@@ -4,14 +4,15 @@ import re
 import logging
 import argparse
 from cerberus import Validator
-from tdpservice.data_files.models import DataFile
+from . import tanf_parser
+# from .models import ParserLog
+# from tdpservice.data_files.models import DataFile
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 def get_record_type(row):
     """Get the record type from the row."""
-    
     if re.match(r'^HEADER.*', row):
         logger.debug('Matched following row as a header: %s' % row)
         return 'HE'
@@ -20,7 +21,7 @@ def get_record_type(row):
         return 'TR'
     elif re.match(r'^T1.*', row):
         logger.debug('Matched following row as data: %s' % row)
-        #if len(row) != 156:
+        # if len(row) != 156:
         #    raise ValueError('T1 row length is not expected length of 156 characters.')
         return 'T1'
     elif re.match(r'^T2.*', row):
@@ -44,23 +45,22 @@ def get_record_type(row):
     else:
         logger.debug('No match for row: %s' % row)
         return None
-        
+
 def validate_header(datafile, data_type, given_section):
     """Validate the header line of the datafile."""
-
-    """ 
+    """
     https://www.acf.hhs.gov/sites/default/files/documents/ofa/transmission_file_header_trailer_record.pdf
-    
-    DESCRIPTION		LENGTH	FROM	TO	COMMENT									
-    Title		    6	1	6	Value	=	HEADER							
-    YYYYQ	        5	7	11	Value	=	YYYYQ							
-											
-    Type 	        1	12	12	A=Active;	C=Closed;	G=Aggregate,	S=Stratum						
-    State Fips	    2	13	14	"2	digit	state	code	000	a	tribe"									
-    Tribe Code	    3	15	17	"3	digit	tribe	code	000	a	state"									
-    Program	Type	3	18	20	Value	=	TAN	(TANF)	or	Value	=	SSP	(SSP-MOE)	
-    Edit Indicator	1	21	21	1=Return	Fatal	&	Warning	Edits	2=Return	Fatal	Edits	only	
-    Encryption      1	22	22	E=SSN	is	encrypted	Blank	=	SSN	is	not	encrypted	
+
+    DESCRIPTION		LENGTH	FROM	TO	COMMENT
+    Title		    6	1	6	Value	=	HEADER
+    YYYYQ	        5	7	11	Value	=	YYYYQ
+
+    Type 	        1	12	12	A=Active;	C=Closed;	G=Aggregate,	S=Stratum
+    State Fips	    2	13	14	"2	digit	state	code	000	a	tribe"
+    Tribe Code	    3	15	17	"3	digit	tribe	code	000	a	state"
+    Program	Type	3	18	20	Value	=	TAN	(TANF)	or	Value	=	SSP	(SSP-MOE)
+    Edit Indicator	1	21	21	1=Return	Fatal	&	Warning	Edits	2=Return	Fatal	Edits	only
+    Encryption      1	22	22	E=SSN	is	encrypted	Blank	=	SSN	is	not	encrypted
     Update      	1	23	23	N	=	New	data	D	=	Delete	existing	data	U
     QUARTERS:
         Q=1	(Jan-Mar)
@@ -102,17 +102,17 @@ def validate_header(datafile, data_type, given_section):
 
             # TODO: Will need to be saved in parserLog
             if given_section != section_map[header['type']]:
-                raise ValueError('Given section does not match header section.') 
+                raise ValueError('Given section does not match header section.')
 
             # TODO: could import schema from a schemas folder/file, would be reusable for other sections
-            
+
             header_schema = {
                 'title':        {'type': 'string', 'required': True, 'allowed': ['HEADER']},
-                'year':         {'type': 'integer', 'required': True, 'min': 2016}, # '^[0-9]{4}$'},
+                'year':         {'type': 'integer', 'required': True, 'min': 2016},  # '^[0-9]{4}$'},
                 'quarter':      {'type': 'integer', 'required': True, 'min': 1, 'max': 4},
                 'type':         {'type': 'string', 'required': True, 'allowed': ['A', 'C', 'G', 'S']},
                 'state_fips':   {'type': 'string', 'required': True, 'regex': '^[0-9]{2}$'},
-                'tribe_code':   {'type': 'string', 'required': False, 'allow_unknown': True, 'regex': '^([0-9]{3}|[ ]{3})$'}, 
+                'tribe_code':   {'type': 'string', 'required': False, 'regex': '^([0-9]{3}|[ ]{3})$'},
                 'program_type': {'type': 'string', 'required': True, 'allowed': ['TAN', 'SSP']},
                 'edit':         {'type': 'string', 'required': True, 'allowed': ['1', '2']},
                 'encryption':   {'type': 'string', 'required': True, 'allowed': ['E', ' ']},
@@ -142,65 +142,53 @@ def validate_trailer(row):
     Example:
     'TRAILER0000001         '
     """
-    
+
     logger.info('Validating trailer row.')
     # Validate the trailer row
-    is_valid = True # TODO: Implement validation logic with regex probably
+    is_valid = True  # TODO: Implement validation logic with regex probably
     errors = {}
     return is_valid, errors
 
 
 def preparse(datafile, data_type, section):
-    """Validates metadata then dispatches file to appropriate parser."""
-
+    """Validate metadata then dispatches file to appropriate parser."""
     # check file type and extension #TODO: this should be done by the frontend but let's verify here
 
     # validate header and trailer lines
     header_is_valid, header_errors = validate_header(datafile, data_type, section)
     trailer_is_valid, trailer_errors = validate_trailer(datafile, data_type, section)
-
+    errors = header_errors.extend(trailer_errors)
     if header_is_valid and trailer_is_valid:
         logger.info("Preparsing succeeded.")
     else:
         logger.error("Preparse failed: %s", errors)
-        return ParserLog.objects.create(
-            data_file=args.file,
-            errors=header_errors.extend(trailer_errors),
-            status=ParserLog.Status.REJECTED,
-        )
+        # return ParserLog.objects.create(
+        #    data_file=args.file,
+        #    errors=errors,
+        #    status=ParserLog.Status.REJECTED,
+        # )
 
     # validate datatype and section
-
 
     # given dict of data_type to parser function, call the correct one with arguments
     if data_type == 'TANF':
         tanf_parser.parse(datafile, section)
-    #elif data_type == 'SSP':
+    # elif data_type == 'SSP':
     #    ssp_parser.switch(datafile, section)
-    #elif data_type == 'Tribal TANF':
+    # elif data_type == 'Tribal TANF':
     #    tribal_tanf_parser.switch(datafile, section)
     else:
         raise Exception("Invalid data type.")
-        
-
 
 
 if __name__ == '__main__':
     """Take in command-line arguments and run the parser."""
 
     parser = argparse.ArgumentParser(description='Parse TANF active cases data.')
-    parser.add_argument('--file', type=argparse.FileType('r'), help='The file to parse.') # Does this give me a file object?
+    parser.add_argument('--file', type=argparse.FileType('r'), help='The file to parse.')
     parser.add_argument('--data_type', type=str, default='TANF', help='The type of data to parse.')
-    parser.add_argument('--section', type=str, default='Active Case Data', help='The section of data to parse.')
+    parser.add_argument('--section', type=str, default='Active Case Data', help='The section submitted.')
 
     args = parser.parse_args()
     logger.debug("Arguments: %s", args)
     preparse(args.file, data_type="TANF", section="Active Case Data")
-
-
-    
-    
-
-
-
-
