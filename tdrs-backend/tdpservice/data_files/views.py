@@ -1,5 +1,6 @@
 """Check if user is authorized."""
 
+import logging
 from django.http import FileResponse
 from django_filters import rest_framework as filters
 from django.conf import settings
@@ -19,9 +20,10 @@ from tdpservice.users.models import AccountApprovalStatusChoices, User
 from tdpservice.data_files.serializers import DataFileSerializer
 from tdpservice.data_files.models import DataFile
 from tdpservice.users.permissions import DataFilePermissions
-from tdpservice.scheduling import sftp_task
+from tdpservice.scheduling import sftp_task, parser_task
 from tdpservice.email.helpers.data_file import send_data_submitted_email
 
+logger = logging.getLogger(__name__)
 
 class DataFileFilter(filters.FilterSet):
     """Filters that can be applied to GET requests as query parameters."""
@@ -60,6 +62,16 @@ class DataFileViewSet(ModelViewSet):
 
         # Upload to ACF-TITAN only if file is passed the virus scan and created
         if response.status_code == status.HTTP_201_CREATED or response.status_code == status.HTTP_200_OK:
+            user = request.user
+            data_file = DataFile.objects.get(id=response.data.get('id'))
+
+            #logger.error("data_file: %s", dir(data_file))
+            logger.info("Beginning parsing of file '%s' of type '%s' and section '%s'", data_file.filename, "TANF", data_file.section)
+            logger.info("health check before parse.delay")
+            parser_task.parse.delay(response.data.get('id'))
+            logger.info("Submitted parse task to redis.")
+
+            ''' Just to simplify my testing, will remove block comment later.
             sftp_task.upload.delay(
                 data_file_pk=response.data.get('id'),
                 server_address=settings.ACFTITAN_SERVER_ADDRESS,
@@ -68,8 +80,6 @@ class DataFileViewSet(ModelViewSet):
                 port=22
             )
 
-            user = request.user
-            data_file = DataFile.objects.get(id=response.data.get('id'))
 
             # Send email to user to notify them of the file upload status
             subject = f"Data Submitted for {data_file.section}"
@@ -90,6 +100,7 @@ class DataFileViewSet(ModelViewSet):
 
             if len(recipients) > 0:
                 send_data_submitted_email(list(recipients), data_file, email_context, subject)
+            '''
 
         return response
 
