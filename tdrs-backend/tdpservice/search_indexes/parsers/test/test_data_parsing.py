@@ -50,11 +50,12 @@ def test_preparser_body(test_file):
     # ensure it calls the correct parser
     assert False
 
+@pytest.mark.django_db
 def test_tanf_t1_active(test_file):
     """Test tanf_parser.activate_case_data."""
 
     # maybe just give a test line instead of a whole file??
-    
+
     # open file to specific line, send it to parser
     # assign line to new var, pass to parse()
     tanf_parser.parse(test_file, 'Active Cases')
