@@ -4,6 +4,7 @@ import logging
 from ..models import T1  # , T2, T3, T4, T5, T6, T7, ParserLog
 # from django.core.exceptions import ValidationError
 from .util import get_record_type
+from tdpservice.data_files.models import DataFile
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ class RowSchema:
 
 
 def active_case_data(line):
-    """Parse active case data, T1-3."""
+    """Parse row as active case data, T1-3."""
     '''
                     FAMILY CASE CHARACTERISTIC DATA
 
@@ -195,6 +196,7 @@ def active_case_data(line):
         return
 
         '''
+        Old manual parsing w/o helper classes
         reporting_month=line[2:8],
         case_number=line[8:19],
         county_fips_code=line[19:22],
@@ -271,21 +273,23 @@ def active_case_data(line):
 
 def parse(datafile, section):
     """Parse the datafile into the search_index model."""
-    with open(datafile, 'r') as f:
-        for line in f:
-            record_type = get_record_type(line)
-            logger.debug('Parsing as type %s this line: "%s"', record_type, line)
+    for unstripped_line in datafile:
+        line = unstripped_line.strip('\r\n')
+        record_type = get_record_type(line)
+        logger.debug('Parsing as type %s this line: "%s"', record_type, line)
 
-            if record_type == 'HE':
-                # This should have already been validated elsewhere, skipping to get to data.
+        if record_type == 'HE':
+            # This should have already been validated elsewhere, skipping to get to data.
+            continue
+        elif record_type == 'T1':
+            expected_line_length = 156  # we will need to adjust for other types
+            actual_line_length = len(line.strip('\r\n'))
+            logger.debug('Expected line length of 156, got: %s', actual_line_length)
+            if actual_line_length != expected_line_length:
+                logger.error('Expected line length of 156, got: %s', actual_line_length)
                 continue
-            elif record_type == 'T1':
-                expected_line_length = 156  # we will need to adjust for other types
-                if len(line) != expected_line_length:
-                    logger.error('Expected line length of 156, got: %s', len(line))
-                    continue
-                else:
-                    active_case_data(line)
             else:
-                logger.warn("Parsing for type %s not yet implemented", record_type)
-                continue
+                active_case_data(line)
+        else:
+            logger.warn("Parsing for type %s not yet implemented", record_type)
+            continue

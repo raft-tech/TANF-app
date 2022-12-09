@@ -7,7 +7,7 @@ from cerberus import Validator
 from .util import get_record_type
 from . import tanf_parser
 # from .models import ParserLog
-# from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.models import DataFile
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -47,57 +47,61 @@ def validate_header(datafile, data_type, given_section):
     }
 
     # Validate the header row
-    with open(datafile, 'r') as f:
-        row = f.readline()
 
-        try:
-            header = {
-                'title':        row[0:6],
-                'year':         int(row[6:10]),
-                'quarter':      int(row[10:11]),
-                'type':         row[11:12],
-                'state_fips':   row[12:14],
-                'tribe_code':   row[14:17],
-                'program_type': row[17:20],
-                'edit':         row[20:21],
-                'encryption':   row[21:22],
-                'update':       row[22:23],
-            }
+    # Apparently accessing files from db yields FieldFile which doesn't need to be opened 
+    # and I was running into errors passing it through redis
+    # So the below is commented out as it's obsolete for both tests and the actual parser
+    # with open(datafile, 'r') as f:
+    row = datafile.readline()
 
-            for key, value in header.items():
-                logger.debug('Header key %s: "%s"' % (key, value))
+    try:
+        header = {
+            'title':        row[0:6],
+            'year':         int(row[6:10]),
+            'quarter':      int(row[10:11]),
+            'type':         row[11:12],
+            'state_fips':   row[12:14],
+            'tribe_code':   row[14:17],
+            'program_type': row[17:20],
+            'edit':         row[20:21],
+            'encryption':   row[21:22],
+            'update':       row[22:23],
+        }
 
-            # TODO: Will need to be saved in parserLog
-            if given_section != section_map[header['type']]:
-                raise ValueError('Given section does not match header section.')
+        for key, value in header.items():
+            logger.debug('Header key %s: "%s"' % (key, value))
 
-            # TODO: could import schema from a schemas folder/file, would be reusable for other sections
+        # TODO: Will need to be saved in parserLog
+        if given_section != section_map[header['type']]:
+            raise ValueError('Given section does not match header section.')
 
-            header_schema = {
-                'title':        {'type': 'string', 'required': True, 'allowed': ['HEADER']},
-                'year':         {'type': 'integer', 'required': True, 'min': 2016},  # '^[0-9]{4}$'},
-                'quarter':      {'type': 'integer', 'required': True, 'min': 1, 'max': 4},
-                'type':         {'type': 'string', 'required': True, 'allowed': ['A', 'C', 'G', 'S']},
-                'state_fips':   {'type': 'string', 'required': True, 'regex': '^[0-9]{2}$'},
-                'tribe_code':   {'type': 'string', 'required': False, 'regex': '^([0-9]{3}|[ ]{3})$'},
-                'program_type': {'type': 'string', 'required': True, 'allowed': ['TAN', 'SSP']},
-                'edit':         {'type': 'string', 'required': True, 'allowed': ['1', '2']},
-                'encryption':   {'type': 'string', 'required': True, 'allowed': ['E', ' ']},
-                'update':       {'type': 'string', 'required': True, 'allowed': ['N', 'D', 'U']},
-            }
+        # TODO: could import schema from a schemas folder/file, would be reusable for other sections
 
-            validator = Validator(header_schema)
-            is_valid = validator.validate(header)
+        header_schema = {
+            'title':        {'type': 'string', 'required': True, 'allowed': ['HEADER']},
+            'year':         {'type': 'integer', 'required': True, 'min': 2016},  # '^[0-9]{4}$'},
+            'quarter':      {'type': 'integer', 'required': True, 'min': 1, 'max': 4},
+            'type':         {'type': 'string', 'required': True, 'allowed': ['A', 'C', 'G', 'S']},
+            'state_fips':   {'type': 'string', 'required': True, 'regex': '^[0-9]{2}$'},
+            'tribe_code':   {'type': 'string', 'required': False, 'regex': '^([0-9]{3}|[ ]{3})$'},
+            'program_type': {'type': 'string', 'required': True, 'allowed': ['TAN', 'SSP']},
+            'edit':         {'type': 'string', 'required': True, 'allowed': ['1', '2']},
+            'encryption':   {'type': 'string', 'required': True, 'allowed': ['E', ' ']},
+            'update':       {'type': 'string', 'required': True, 'allowed': ['N', 'D', 'U']},
+        }
 
-            return is_valid, validator
+        validator = Validator(header_schema)
+        is_valid = validator.validate(header)
 
-        except Exception as e:
-            logger.error('Exception validating header row, please see error.')
-            logger.error(e)
-            return False, e
-        # should we close f?
+        return is_valid, validator
 
-def validate_trailer(row):
+    except Exception as e:
+        logger.error('Exception validating header row, please see error.')
+        logger.error(e)
+        return False, e
+    # should we close f?
+
+def validate_trailer(row, data_type, section):
     """Validate the trailer row."""
     """
     https://www.acf.hhs.gov/sites/default/files/documents/ofa/transmission_file_header_trailer_record.pdf
@@ -117,19 +121,22 @@ def validate_trailer(row):
     return is_valid, errors
 
 
-def preparse(datafile, data_type, section):
+def preparse(data_file_id, data_type, section):
     """Validate metadata then dispatches file to appropriate parser."""
-    # check file type and extension #TODO: this should be done by the frontend but let's verify here
+    datafile = DataFile.objects.get(id=data_file_id).file
+    logger.debug("type %s", type(datafile))
+    logger.error("whatdo %s", dir(datafile))
 
-    logger.info("whatwhatwhatwhat")
+    # check file type and extension #TODO: this should be done by the frontend but let's verify here
     # validate header and trailer lines
     header_is_valid, header_errors = validate_header(datafile, data_type, section)
     trailer_is_valid, trailer_errors = validate_trailer(datafile, data_type, section)
-    errors = header_errors.extend(trailer_errors)
+    errors = header_errors  # + trailer_errors (how to combine Exception and dict? or logic around it)
     if header_is_valid and trailer_is_valid:
         logger.info("Preparsing succeeded.")
     else:
         logger.error("Preparse failed: %s", errors)
+        return
         # return ParserLog.objects.create(
         #    data_file=args.file,
         #    errors=errors,

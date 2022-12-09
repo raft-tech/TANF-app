@@ -60,16 +60,14 @@ class DataFileViewSet(ModelViewSet):
         """Override create to upload in case of successful scan."""
         response = super().create(request, *args, **kwargs)
 
-        # Upload to ACF-TITAN only if file is passed the virus scan and created
+        # only if file is passed the virus scan and created successfully will we perform side-effects:
+        # * Send to parsing
+        # * Upload to ACF-TITAN
+        # * Send email to user
+        
         if response.status_code == status.HTTP_201_CREATED or response.status_code == status.HTTP_200_OK:
-            user = request.user
-            data_file = DataFile.objects.get(id=response.data.get('id'))
-
-            #logger.error("data_file: %s", dir(data_file))
-            logger.info("Beginning parsing of file '%s' of type '%s' and section '%s'", data_file.filename, "TANF", data_file.section)
-            logger.info("health check before parse.delay")
             parser_task.parse.delay(response.data.get('id'))
-            logger.info("Submitted parse task to redis.")
+            logger.info("Submitted parse task to redis for %s.", data_file.filename)
 
             ''' Just to simplify my testing, will remove block comment later.
             sftp_task.upload.delay(
@@ -80,6 +78,8 @@ class DataFileViewSet(ModelViewSet):
                 port=22
             )
 
+            user = request.user
+            data_file = DataFile.objects.get(id=response.data.get('id'))
 
             # Send email to user to notify them of the file upload status
             subject = f"Data Submitted for {data_file.section}"
