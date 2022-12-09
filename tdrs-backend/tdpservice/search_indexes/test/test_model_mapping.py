@@ -15,7 +15,6 @@ def test_can_create_and_index_t1_submission():
     """T1 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    # create
     submission = T1.objects.create(
         record=record_num,
         rpt_month_year=1,

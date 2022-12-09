@@ -8,7 +8,6 @@ from tdpservice.data_files.models import DataFile
 # )
 # from django.core.validators import RegexValidator
 
-
 class T1(models.Model):
     """
     Parsed record representing a T1 data submission.
@@ -208,6 +207,7 @@ class T4(models.Model):
     rec_food_stamps = models.IntegerField(null=False, blank=False)
     rec_sub_cc = models.IntegerField(null=False, blank=False)
 
+
 class T5(models.Model):
     """
     Parsed record representing a T5 data submission.
@@ -296,6 +296,7 @@ class T7(models.Model):
     )
     stratum = models.CharField(max_length=2, null=False, blank=False)
     families = models.IntegerField(null=False, blank=False)
+
 
 class ParserLog(models.Model):
     """Stores the log of the parser and links to DataFile object."""
