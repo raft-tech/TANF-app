@@ -24,11 +24,12 @@ update_frontend()
         echo "REACT_APP_LOGIN_GOV_URL=https://secure.login.gov/" >> .env.production
         echo "REACT_APP_CF_SPACE=$CF_SPACE" >> .env.production
     else
-        echo "REACT_APP_BACKEND_URL=https://$CGHOSTNAME_BACKEND.app.cloud.gov/v1" >> .env.development
-        echo "REACT_APP_BACKEND_HOST=https://$CGHOSTNAME_BACKEND.app.cloud.gov" >> .env.development
+        echo "REACT_APP_BACKEND_URL=localhost/v1:8080" >> .env.development
+        echo "REACT_APP_BACKEND_HOST=localhost:8080" >> .env.development
         echo "REACT_APP_CF_SPACE=$CF_SPACE" >> .env.development
 
         cf set-env "$CGHOSTNAME_FRONTEND" ALLOWED_ORIGIN "https://$CGHOSTNAME_FRONTEND.app.cloud.gov"
+        cf set-env "$CGHOSTNAME_FRONTEND" BACK_END "https://$CGHOSTNAME_BACKEND.app.cloud.gov"
         cf set-env "$CGHOSTNAME_FRONTEND" CONNECT_SRC '*.app.cloud.gov'
     fi
 
@@ -41,6 +42,7 @@ update_frontend()
     cp -r build deployment/public
     cp  nginx/buildpack.nginx.conf deployment/nginx.conf
     cp nginx/locations.conf deployment/locations.conf
+    cp nginx/ip_whitelist.conf deployment/ip_whitelist.conf
     cp  nginx/mime.types deployment/mime.types
 
     cp manifest.buildpack.yml deployment/manifest.buildpack.yml
