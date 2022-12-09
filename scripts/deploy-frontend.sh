@@ -24,8 +24,8 @@ update_frontend()
         echo "REACT_APP_LOGIN_GOV_URL=https://secure.login.gov/" >> .env.production
         echo "REACT_APP_CF_SPACE=$CF_SPACE" >> .env.production
     else
-        echo "REACT_APP_BACKEND_URL=http://localhost/v1:8080" >> .env.development
-        echo "REACT_APP_BACKEND_HOST=http://localhost:8080" >> .env.development
+        echo "REACT_APP_BACKEND_URL=https://$CGHOSTNAME_FRONTEND.app.cloud.gov:8080/v1" >> .env.development
+        echo "REACT_APP_BACKEND_HOST=https://$CGHOSTNAME_FRONTEND.app.cloud.gov:8080" >> .env.development
         echo "REACT_APP_CF_SPACE=$CF_SPACE" >> .env.development
 
         cf set-env "$CGHOSTNAME_FRONTEND" ALLOWED_ORIGIN "https://$CGHOSTNAME_FRONTEND.app.cloud.gov"
