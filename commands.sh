@@ -81,6 +81,11 @@ alias tdrs-logs-backend='docker logs tdrs-backend-web-1 -f'
 # Update backend lockfile
 alias tdrs-piplock="tdrs-compose-backend run --rm web pipenv lock"
 
+# I had to deal with the following issue:
+# https://stackoverflow.com/questions/27093746/django-stops-working-with-runtimeerror-populate-isnt-reentrant
+# So let's create an alias to ssh into container and sed the file
+alias tdrs-fix-django-populate='tdrs-backend-exec && sed -i "s/raise Runtime..populate.. isn.t reentrant../self.app_configs = {}/g" /usr/local/lib/python3.10/site-packages/django/apps/registry.py'
+
 # A recurring pattern I was doing to get a fresh setup
 alias tdrs-fresh-start='tdrs-stop && docker system prune --volumes && tdrs-start'
 

@@ -15,4 +15,4 @@ def parse(data_file_id):
     # for undetermined amount of time.
     data_file = DataFile.objects.get(id=data_file_id)
     logger.debug("Sending file '%s' of type '%s' and section '%s' to preparser.", data_file.filename, "TANF", data_file.section)
-    preparse(data_file_id, "TANF", data_file.section)  # data_file.type_ssp_something, data_file.section)
+    preparse(data_file, "TANF", data_file.section)  # data_file.type_ssp_something, data_file.section)

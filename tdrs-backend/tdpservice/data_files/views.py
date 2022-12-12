@@ -64,22 +64,34 @@ class DataFileViewSet(ModelViewSet):
         # * Send to parsing
         # * Upload to ACF-TITAN
         # * Send email to user
-        
+
         if response.status_code == status.HTTP_201_CREATED or response.status_code == status.HTTP_200_OK:
-            parser_task.parse.delay(response.data.get('id'))
+            user = request.user
+            data_file_id = response.data.get('id')
+            data_file = DataFile.objects.get(id=data_file_id)
+
+
+
+            #let's just check
+            dffo = data_file.file.open(mode='rb')
+            logger.debug("Type of data_file.file %s", type(dffo))
+            rl = dffo.readline()
+            logger.debug("First line of data_file.file %s", rl)
+            logger.debug("Type of rl %s", type(rl))
+
+
+
+            parser_task.parse.delay(data_file_id)
             logger.info("Submitted parse task to redis for %s.", data_file.filename)
 
             ''' Just to simplify my testing, will remove block comment later.
             sftp_task.upload.delay(
-                data_file_pk=response.data.get('id'),
+                data_file_pk=data_file_id,
                 server_address=settings.ACFTITAN_SERVER_ADDRESS,
                 local_key=settings.ACFTITAN_LOCAL_KEY,
                 username=settings.ACFTITAN_USERNAME,
                 port=22
             )
-
-            user = request.user
-            data_file = DataFile.objects.get(id=response.data.get('id'))
 
             # Send email to user to notify them of the file upload status
             subject = f"Data Submitted for {data_file.section}"

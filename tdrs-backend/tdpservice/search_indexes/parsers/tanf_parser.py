@@ -56,8 +56,8 @@ class RowSchema:
         return self.fields
 
 
-def active_case_data(line):
-    """Parse row as active case data, T1-3."""
+def active_t1(line):
+    """Parse row as active case data, T1 only."""
     '''
                     FAMILY CASE CHARACTERISTIC DATA
 
@@ -180,7 +180,7 @@ def active_case_data(line):
     for field in family_case_schema.get_all_fields():
         if field.name == 'blank':
             break
-        content = line[field.start-1:field.end]  # descriptor is off by one, could also adjust start values
+        content = line[field.start-1:field.end]  # descriptor pdfs were off by one, could also adjust start values
         if len(content) != field.length:
             logger.warn('Expected field "%s" with length %d, got: "%s"', field.name, field.length, content)
             content_is_valid = False
@@ -271,25 +271,32 @@ def active_case_data(line):
 
 # TODO: def stratum_data(datafile):
 
-def parse(datafile, section):
+def parse(datafile):
     """Parse the datafile into the search_index model."""
-    for unstripped_line in datafile:
-        line = unstripped_line.strip('\r\n')
+    # Section will 
+    for raw_line in datafile:
+        logger.debug('Parsing this line: "%s"', raw_line)
+        if isinstance(raw_line, bytes):
+            logger.info("Line is bytes, decoding to string...")
+            raw_line = raw_line.decode()
+        line = raw_line.strip('\r\n')
+
         record_type = get_record_type(line)
         logger.debug('Parsing as type %s this line: "%s"', record_type, line)
 
         if record_type == 'HE':
-            # This should have already been validated elsewhere, skipping to get to data.
+            # Headers do not differ between types, this is part of preparsing.
             continue
         elif record_type == 'T1':
             expected_line_length = 156  # we will need to adjust for other types
-            actual_line_length = len(line.strip('\r\n'))
+            actual_line_length = len(line)
             logger.debug('Expected line length of 156, got: %s', actual_line_length)
             if actual_line_length != expected_line_length:
                 logger.error('Expected line length of 156, got: %s', actual_line_length)
+                #should be added to parser log in #1354
                 continue
             else:
-                active_case_data(line)
+                active_t1(line)
         else:
             logger.warn("Parsing for type %s not yet implemented", record_type)
             continue

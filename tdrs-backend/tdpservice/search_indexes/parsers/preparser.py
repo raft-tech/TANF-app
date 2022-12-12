@@ -6,6 +6,8 @@ import argparse
 from cerberus import Validator
 from .util import get_record_type
 from . import tanf_parser
+from django.db.models import FileField
+from io import TextIOWrapper
 # from .models import ParserLog
 from tdpservice.data_files.models import DataFile
 
@@ -39,20 +41,21 @@ def validate_header(datafile, data_type, given_section):
     """
     logger.debug('Validating header row.')
 
+
     section_map = {
-        'A': 'Active Cases',
-        'C': 'Closed Cases',
-        'G': 'Aggregate',
-        'S': 'Stratum',
+        'A': 'Active Case Data',
+        'C': 'Closed Case Data',
+        'G': 'Aggregate Data',
+        'S': 'Stratum Data',
     }
 
-    # Validate the header row
-
-    # Apparently accessing files from db yields FieldFile which doesn't need to be opened 
-    # and I was running into errors passing it through redis
-    # So the below is commented out as it's obsolete for both tests and the actual parser
-    # with open(datafile, 'r') as f:
     row = datafile.readline()
+    # datafile when passed via redis/db is a FileField which returns bytes
+    if isinstance(row, bytes):
+        logger.info("Row is bytes, decoding to string...")
+        row = row.decode()
+
+    logger.debug("Header: %s", row)
 
     try:
         header = {
@@ -71,9 +74,19 @@ def validate_header(datafile, data_type, given_section):
         for key, value in header.items():
             logger.debug('Header key %s: "%s"' % (key, value))
 
-        # TODO: Will need to be saved in parserLog
-        if given_section != section_map[header['type']]:
-            raise ValueError('Given section does not match header section.')
+        # TODO: Will need to be saved in parserLog, #1354
+        
+        try:
+            logger.debug("Given section: '%s'\t Header section: '%s'", given_section, section_map[header['type']])
+            logger.debug("Given program type: '%s'\t Header program type: '%s'", data_type, header['program_type'])
+
+            if given_section != section_map[header['type']]:
+                raise ValueError('Given section does not match header section.')
+            elif data_type == 'TANF' and header['program_type'] != 'TAN':
+                logger.debug('Given data type ("%s") does not match header program type ("%s")', data_type, header['program_type'])
+                raise ValueError('Given data type ("%s") does not match header program type ("%s")', data_type, header['program_type'])
+        except KeyError as e:
+            logger.error('Ran into issue with header type: %s', e)
 
         # TODO: could import schema from a schemas folder/file, would be reusable for other sections
 
@@ -92,43 +105,53 @@ def validate_header(datafile, data_type, given_section):
 
         validator = Validator(header_schema)
         is_valid = validator.validate(header)
+        logger.debug(validator.errors)
 
         return is_valid, validator
 
-    except Exception as e:
-        logger.error('Exception validating header row, please see error.')
-        logger.error(e)
-        return False, e
-    # should we close f?
+    except KeyError as e:
+       logger.error('Exception validating header row, please see row and error.')
+       logger.error(row)
+       logger.error(e)
+       return False, e
+    except ValueError as f:
+        logger.error("Found value mismatch in header row.")
+        logger.error(f)
+        return False, f
 
 def validate_trailer(row, data_type, section):
     """Validate the trailer row."""
     """
     https://www.acf.hhs.gov/sites/default/files/documents/ofa/transmission_file_header_trailer_record.pdf
     length of 24
-    DESCRIPTION LENGTH FROM TO COMMENT
-    Title 7 1 7 Value = TRAILER
-    Number of Records 7 8 14 Right Adjusted
-    Blank 9 15 23 Value = spaces
+    DESCRIPTION LENGTH  FROM    TO  COMMENT
+    Title       7       1       7   Value = TRAILER
+    Record Count7       8       14  Right Adjusted
+    Blank       9       15      23  Value = spaces
     Example:
     'TRAILER0000001         '
     """
 
     logger.info('Validating trailer row.')
     # Validate the trailer row
-    is_valid = True  # TODO: Implement validation logic with regex probably
+    is_valid = True  # TODO: Implement validation logic with regex, simpler than header
     errors = {}
     return is_valid, errors
 
 
-def preparse(data_file_id, data_type, section):
+def preparse(data_file, data_type, section):
     """Validate metadata then dispatches file to appropriate parser."""
-    datafile = DataFile.objects.get(id=data_file_id).file
-    logger.debug("type %s", type(datafile))
-    logger.error("whatdo %s", dir(datafile))
+    if isinstance(data_file, DataFile):
+        datafile = data_file.file # do I need to open() this?
+    elif isinstance(data_file, TextIOWrapper):
+        datafile = data_file
+    else:
+        logger.error("Unexpected datafile type %s", type(data_file))
+        raise TypeError("datafile type %s", type(data_file))
 
-    # check file type and extension #TODO: this should be done by the frontend but let's verify here
-    # validate header and trailer lines
+    # TODO: check file type and extension
+
+    # validates header and trailer lines and the input data_type and section
     header_is_valid, header_errors = validate_header(datafile, data_type, section)
     trailer_is_valid, trailer_errors = validate_trailer(datafile, data_type, section)
     errors = header_errors  # + trailer_errors (how to combine Exception and dict? or logic around it)
@@ -136,29 +159,26 @@ def preparse(data_file_id, data_type, section):
         logger.info("Preparsing succeeded.")
     else:
         logger.error("Preparse failed: %s", errors)
-        return
+        return False
         # return ParserLog.objects.create(
         #    data_file=args.file,
         #    errors=errors,
         #    status=ParserLog.Status.REJECTED,
         # )
 
-    # validate datatype and section
-
-    # given dict of data_type to parser function, call the correct one with arguments
     if data_type == 'TANF':
-        tanf_parser.parse(datafile, section)
+        tanf_parser.parse(datafile)
     # elif data_type == 'SSP':
-    #    ssp_parser.switch(datafile, section)
+    #    ssp_parser.parse(datafile)
     # elif data_type == 'Tribal TANF':
-    #    tribal_tanf_parser.switch(datafile, section)
+    #    tribal_tanf_parser.parse(datafile)
     else:
         raise Exception("Invalid data type.")
 
+    return True
 
 if __name__ == '__main__':
     """Take in command-line arguments and run the parser."""
-
     parser = argparse.ArgumentParser(description='Parse TANF active cases data.')
     parser.add_argument('--file', type=argparse.FileType('r'), help='The file to parse.')
     parser.add_argument('--data_type', type=str, default='TANF', help='The type of data to parse.')
