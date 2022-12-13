@@ -119,7 +119,7 @@ def validate_header(datafile, data_type, given_section):
         logger.error(f)
         return False, f
 
-def validate_trailer(row, data_type, section):
+def validate_trailer(row):
     """Validate the trailer row."""
     """
     https://www.acf.hhs.gov/sites/default/files/documents/ofa/transmission_file_header_trailer_record.pdf
@@ -133,10 +133,36 @@ def validate_trailer(row, data_type, section):
     """
 
     logger.info('Validating trailer row.')
-    # Validate the trailer row
-    is_valid = True  # TODO: Implement validation logic with regex, simpler than header
-    errors = {}
-    return is_valid, errors
+
+    # certify/transform input row to be correct form/type
+    if isinstance(row, bytes):
+        row = row.decode()
+    if len(row) != 24:
+        raise ValueError("Trailer row is not 23 characters long.")
+    row = row.strip('\n')
+
+    trailer_schema = {
+        'title':        {'type': 'string', 'required': True, 'allowed': ['TRAILER']},
+        'record_count': {'type': 'integer', 'required': True, 'min': 1, 'max': 9999999},
+        'blank':        {'type': 'string', 'required': True, 'regex': '^[ ]{9}$'},
+    }
+
+    validator = Validator(trailer_schema)
+
+    trailer = {
+        'title':        row[0:7],
+        'record_count': int(row[7:14]),
+        'blank':        row[14:23],
+    }
+
+    is_valid = validator.validate(trailer)
+
+    logger.debug("Trailer title: '%s'", trailer['title'])
+    logger.debug("Trailer record count: '%s'", trailer['record_count'])
+    logger.debug("Trailer blank: '%s'", trailer['blank'])
+    logger.debug("Trailer errors: '%s'", validator.errors)
+
+    return is_valid, validator
 
 
 def preparse(data_file, data_type, section):
@@ -152,9 +178,9 @@ def preparse(data_file, data_type, section):
     # TODO: check file type and extension
 
     # validates header and trailer lines and the input data_type and section
-    header_is_valid, header_errors = validate_header(datafile, data_type, section)
-    trailer_is_valid, trailer_errors = validate_trailer(datafile, data_type, section)
-    errors = header_errors  # + trailer_errors (how to combine Exception and dict? or logic around it)
+    header_is_valid, header_validator = validate_header(datafile, data_type, section)
+    trailer_is_valid, trailer_validator = validate_trailer(datafile)
+    errors = header_validator  # + trailer_errors (how to combine Exception and dict? or logic around it)
     if header_is_valid and trailer_is_valid:
         logger.info("Preparsing succeeded.")
     else:

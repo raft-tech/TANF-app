@@ -5,16 +5,21 @@
 
 """Test preparser functions and tanf_parser."""
 import pytest
-import logging
 from pathlib import Path
-from tdpservice.search_indexes.parsers import tanf_parser, preparser
+import cerberus
+
+import tdpservice
+from tdpservice.search_indexes.parsers import tanf_parser, preparser, util
 from tdpservice.search_indexes import documents
 from tdpservice.search_indexes.models import T1
+
 from django.db.models import FileField
 from django.core.files.storage import FileSystemStorage
 
 from tdpservice.data_files.models import DataFile
 from tdpservice.data_files.test import factories as datafile_factories
+
+import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -76,10 +81,6 @@ def bad_test_file():
     test_filename = test_filepath + "/bad_TANF_S1.txt"
     yield open(test_filename, 'r')
 
-def test_get_record_type():
-    """Test get_record_type function."""
-    assert False
-
 @pytest.mark.django_db
 def test_preparser_header(test_file, bad_test_file):  # , small_file): # let's try to figure out ORM mocking.
     """Test header preparser."""
@@ -100,21 +101,50 @@ def test_preparser_header(test_file, bad_test_file):  # , small_file): # let's t
     assert not_validator.errors != {}
 
     # TODO: provide diff program type, section, etc.
+    not_valid, not_validator = preparser.validate_header(test_file, 'TANF', 'Active Casexs')
+    assert not_valid == False
+    # relevant error message
+
+    not_valid, not_validator = preparser.validate_header(test_file, 'GARBAGE', 'Active Case Data')
+    assert not_valid == False
+    # relevant error message
 
 def test_preparser_trailer(test_file):
     """Test trailer preparser."""
-    # is_valid, validator = preparser.validate_trailer(test_file)
-    # assert is_valid
-    # assert errors is {}
-    # TODO: test some value(s) in trailer to assert it was actually parsed correctly
-    assert False
+    for line in test_file:
+        if util.get_record_type(line) == 'TR':
+            trailer_row = line
+            break
+    is_valid, validator = preparser.validate_trailer(trailer_row)
+    assert is_valid
+    assert validator.errors == {}
+
+    logger.debug("validator: %s", validator)
+    logger.debug("validator dir: %s", dir(validator))
+    logger.debug("validator.document: %s", validator.document)
+    assert validator.document['record_count'] == 1
 
 @pytest.mark.django_db
-def test_preparser_body(test_file, bad_test_file):
-    """Test body preparser."""
+def test_preparser_body(test_file, bad_test_file, mocker):
+    """Test that preparse correctly calls lower parser functions...or doesn't."""
+    mocker.patch('tdpservice.search_indexes.parsers.preparser', return_value=True)
+    mocker.patch('tdpservice.search_indexes.parsers.preparser.validate_header', return_value=(True,cerberus.Validator({})))
+    mocker.patch('tdpservice.search_indexes.parsers.preparser.tanf_parser.parse', return_value=None)
+
     # TODO:
     # check it can handle header/trailer
-    assert preparser.preparse(test_file, 'TANF', 'Active Case Data') == True
+    retVal = tdpservice.search_indexes.parsers.preparser.preparse(test_file, 'TANF', 'Active Case Data')
+    # logger.error(dir(retVal))
+    # tdpservice.search_indexes.parsers.test.test_data_parsing:test_data_parsing.py:128 
+    #   ['assert_any_call', 'assert_called', 'assert_called_once', 'assert_called_once_with', 'assert_called_with', 
+    #   'assert_has_calls', 'assert_not_called', 'attach_mock', 'call_args', 'call_args_list', 'call_count', 'called', 
+    #   'configure_mock', 'method_calls', 'mock_add_spec', 'mock_calls', 'reset_mock', 'return_value', 'side_effect']
+
+
+    tdpservice.search_indexes.parsers.preparser.preparse.assert_called()
+    tdpservice.search_indexes.parsers.preparser.validate_header.assert_called_once()
+    tdpservice.search_indexes.parsers.preparser.tanf_parser.parse.assert_called_once()
+    tdpservice.search_indexes.parsers.preparser.tanf_parser.active_t1.assert_called()
     #assert preparser.preparse(test_big_file, 'TANF', 'Active Cases') == True
     
     
