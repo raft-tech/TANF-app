@@ -81,7 +81,7 @@ def test_get_record_type():
     assert False
 
 @pytest.mark.django_db
-def test_preparser_header(test_file):  # , small_file): # let's try to figure out ORM mocking.
+def test_preparser_header(test_file, bad_test_file):  # , small_file): # let's try to figure out ORM mocking.
     """Test header preparser."""
 
     logger.info("test_file type: %s", type(test_file))
@@ -96,6 +96,7 @@ def test_preparser_header(test_file):  # , small_file): # let's try to figure ou
     # negative case
     not_valid, not_validator = preparser.validate_header(bad_test_file, 'TANF', 'Active Case Data')
     assert not_valid == False
+    logger.debug("not_validator.errors: %s", not_validator.errors)
     assert not_validator.errors != {}
 
     # TODO: provide diff program type, section, etc.
