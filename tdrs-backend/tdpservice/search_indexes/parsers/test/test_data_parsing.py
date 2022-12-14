@@ -54,7 +54,7 @@ def test_preparser_header(test_file, bad_test_file):
 
     logger.info("is_valid: %s", is_valid)
     logger.info("errors: %s", validator.errors)
-    assert is_valid is False
+    assert is_valid is True
     assert validator.errors == {}
     assert validator.document['state_fips'] == '06'
 

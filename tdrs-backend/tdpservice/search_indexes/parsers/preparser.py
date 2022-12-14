@@ -146,21 +146,8 @@ def validate_trailer(row):
 
     return is_valid, validator
 
-
-def preparse(data_file, data_type, section):
-    """Validate metadata then dispatches file to appropriate parser."""
-    if isinstance(data_file, DataFile):
-        datafile = data_file.file  # do I need to open() this?
-    elif isinstance(data_file, BufferedReader):
-        datafile = data_file
-    else:
-        logger.error("Unexpected datafile type %s", type(data_file))
-        raise TypeError("Unexpected datafile type.")
-
-    # TODO: check file type and extension
-
-    # validates header and trailer lines and the input data_type and section
-
+def get_header_row(datafile):
+    """Alters header row into string."""
     # intentionally only reading first line of file
     datafile.seek(0)
     row = datafile.readline()
@@ -170,8 +157,6 @@ def preparse(data_file, data_type, section):
     if isinstance(row, bytes):
         row = row.decode()
 
-    logger.debug("Header: %s", row)
-
     if get_record_type(row) != 'HE':
         raise ValueError('First line in file not recognized as valid header.')
     elif len(row) != 24:
@@ -179,10 +164,10 @@ def preparse(data_file, data_type, section):
         return False, {'preparsing': 'Header length incorrect.'}
     row = row.strip('\n')
 
-    header_is_valid, header_validator = validate_header(row, data_type, section)
-    if isinstance(header_validator, Exception):
-        raise header_validator
+    return True, row
 
+def get_trailer_row(datafile):
+    """Alters the trailer row into usable string."""
     # certify/transform input row to be correct form/type
 
     # Don't want to read whole file, just last line, only possible with binary
@@ -208,6 +193,33 @@ def preparse(data_file, data_type, section):
         return False, {'preparsing': 'Trailer length incorrect.'}
     row = row.strip('\n')
 
+    return True, row
+
+
+def preparse(data_file, data_type, section):
+    """Validate metadata then dispatches file to appropriate parser."""
+    if isinstance(data_file, DataFile):
+        datafile = data_file.file  # do I need to open() this?
+    elif isinstance(data_file, BufferedReader):
+        datafile = data_file
+    else:
+        logger.error("Unexpected datafile type %s", type(data_file))
+        raise TypeError("Unexpected datafile type.")
+
+    # TODO: check file type and extension
+
+    header_preparsed, row = get_header_row(datafile)
+    if header_preparsed is False:
+        return False, row
+    logger.debug("Header: %s", row)
+
+    header_is_valid, header_validator = validate_header(row, data_type, section)
+    if isinstance(header_validator, Exception):
+        raise header_validator
+
+    trailer_preparsed, row = get_trailer_row(datafile)
+    if trailer_preparsed is False:
+        return False, row
     trailer_is_valid, trailer_validator = validate_trailer(row)
     if isinstance(trailer_validator, Exception):
         raise trailer_validator
@@ -219,7 +231,7 @@ def preparse(data_file, data_type, section):
     else:
         # TODO: should we end here or let parser run to collect more errors?
         logger.error("Preparse failed: %s", errors)
-        return False
+        return False, errors
         # return ParserLog.objects.create(
         #    data_file=args.file,
         #    errors=errors,

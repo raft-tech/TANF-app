@@ -297,8 +297,8 @@ def parse(datafile):
         record_type = get_record_type(line)
         logger.debug('Parsing as type %s this line: "%s"', record_type, line)
 
-        if record_type == 'HE':
-            # Headers do not differ between types, this is part of preparsing.
+        if record_type == 'HE' or record_type == 'TR':
+            # Header/trailers do not differ between types, this is part of preparsing.
             continue
         elif record_type == 'T1':
             expected_line_length = 156  # we will need to adjust for other types
