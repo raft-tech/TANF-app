@@ -197,7 +197,6 @@ def test_parsing_tanf_t1_bad(bad_test_file, big_bad_test_file):
     logger.info("t1_count_after: %s", t1_count_after)
     assert t1_count_after == t1_count_before
 
-
     t1_count_before = T1.objects.count()
     logger.info("t1_count_before: %s", t1_count_before)
 

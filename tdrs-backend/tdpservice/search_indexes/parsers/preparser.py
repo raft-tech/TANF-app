@@ -205,7 +205,6 @@ def preparse(data_file, data_type, section):
         logger.error("Unexpected datafile type %s", type(data_file))
         raise TypeError("Unexpected datafile type.")
 
-
     header_preparsed, row = get_header_row(datafile)
     if header_preparsed is False:
         return False, row
