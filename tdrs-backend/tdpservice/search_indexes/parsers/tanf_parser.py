@@ -4,7 +4,6 @@ import logging
 from ..models import T1  # , T2, T3, T4, T5, T6, T7, ParserLog
 # from django.core.exceptions import ValidationError
 from .util import get_record_type
-from tdpservice.data_files.models import DataFile
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -126,8 +125,8 @@ def active_t1(line):
     # split line into fields
     family_case_schema = RowSchema()
     family_case_schema.add_fields(
-        [
-            ('record_type', 2, 1, 2, "Alphanumeric"),  # does it make sense to try to include regex here as fifth =r'^T1$'
+        [  # does it make sense to try to include regex (e.g., =r'^T1$')
+            ('record_type', 2, 1, 2, "Alphanumeric"),
             ('reporting_month', 6, 3, 8, "Numeric"),
             ('case_number', 11, 9, 19, "Alphanumeric"),
             ('county_fips_code', 3, 20, 22, "Numeric"),
@@ -307,7 +306,7 @@ def parse(datafile):
             logger.debug('Expected line length of 156, got: %s', actual_line_length)
             if actual_line_length != expected_line_length:
                 logger.error('Expected line length of 156, got: %s', actual_line_length)
-                #should be added to parser log in #1354
+                # should be added to parser log in #1354
                 continue
             else:
                 active_t1(line)

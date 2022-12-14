@@ -6,7 +6,7 @@ import argparse
 from cerberus import Validator
 from .util import get_record_type
 from . import tanf_parser
-from django.db.models import FileField
+
 from io import BufferedReader
 # from .models import ParserLog
 from tdpservice.data_files.models import DataFile
@@ -66,7 +66,7 @@ def validate_header(row, data_type, given_section):
             logger.debug('Header key %s: "%s"' % (key, value))
 
         # TODO: Will need to be saved in parserLog, #1354
-        
+
         try:
             logger.debug("Given section: '%s'\t Header section: '%s'", given_section, section_map[header['type']])
             logger.debug("Given program type: '%s'\t Header program type: '%s'", data_type, header['program_type'])
@@ -88,7 +88,7 @@ def validate_header(row, data_type, given_section):
             'year':         {'type': 'string', 'required': True, 'regex': '^20[0-9]{2}$'},
             'quarter':      {'type': 'string', 'required': True, 'allowed': ['1', '2', '3', '4']},
             'type':         {'type': 'string', 'required': True, 'allowed': ['A', 'C', 'G', 'S']},
-            'state_fips':   {'type': 'string', 'required': True, 'regex': '^[0-9]{2}$'}, # even tribes will have state code
+            'state_fips':   {'type': 'string', 'required': True, 'regex': '^[0-9]{2}$'},
             'tribe_code':   {'type': 'string', 'required': False, 'regex': '^([0-9]{3}|[ ]{3})$'},
             'program_type': {'type': 'string', 'required': True, 'allowed': ['TAN', 'SSP']},
             'edit':         {'type': 'string', 'required': True, 'allowed': ['1', '2']},
@@ -103,10 +103,10 @@ def validate_header(row, data_type, given_section):
         return is_valid, validator
 
     except KeyError as e:
-       logger.error('Exception validating header row, please see row and error.')
-       logger.error(row)
-       logger.error(e)
-       return False, e
+        logger.error('Exception validating header row, please see row and error.')
+        logger.error(row)
+        logger.error(e)
+        return False, e
 
 def validate_trailer(row):
     """Validate the trailer row."""
@@ -150,7 +150,7 @@ def validate_trailer(row):
 def preparse(data_file, data_type, section):
     """Validate metadata then dispatches file to appropriate parser."""
     if isinstance(data_file, DataFile):
-        datafile = data_file.file # do I need to open() this?
+        datafile = data_file.file  # do I need to open() this?
     elif isinstance(data_file, BufferedReader):
         datafile = data_file
     else:
@@ -182,20 +182,20 @@ def preparse(data_file, data_type, section):
     header_is_valid, header_validator = validate_header(row, data_type, section)
     if isinstance(header_validator, Exception):
         raise header_validator
-    
+
     # certify/transform input row to be correct form/type
 
     # Don't want to read whole file, just last line, only possible with binary
     # Credit: https://openwritings.net/pg/python/python-read-last-line-file
     # https://stackoverflow.com/questions/46258499/
     try:
-        datafile.seek(-2, os.SEEK_END) # Jump to the second last byte.
-        while datafile.read(1) != b'\n': # Check if new line.
-            datafile.seek(-2, os.SEEK_CUR)  # Jump two bytes back
-    except OSError: # Either file is empty or contains one line.
+        datafile.seek(-2, os.SEEK_END)  # Jump to the second last byte.
+        while datafile.read(1) != b'\n':  # Check if new line.
+            datafile.seek(-2, os.SEEK_CUR)   # Jump two bytes back
+    except OSError:  # Either file is empty or contains one line.
         datafile.seek(0)
-        return False, {'preparsing':'File too short or missing trailer.'}
-    
+        return False, {'preparsing': 'File too short or missing trailer.'}
+
     # Having set the file pointer to the last line, read it in.
     row = datafile.readline().decode()
     datafile.seek(0)  # Reset file pointer to beginning of file.
@@ -211,7 +211,7 @@ def preparse(data_file, data_type, section):
     trailer_is_valid, trailer_validator = validate_trailer(row)
     if isinstance(trailer_validator, Exception):
         raise trailer_validator
-    
+
     errors = {'header': header_validator.errors, 'trailer': trailer_validator.errors}
 
     if header_is_valid and trailer_is_valid:
@@ -238,6 +238,7 @@ def preparse(data_file, data_type, section):
         raise ValueError('Preparser given invalid data_type parameter.')
 
     return True
+
 
 if __name__ == '__main__':
     """Take in command-line arguments and run the parser."""

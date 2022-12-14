@@ -2,11 +2,6 @@
 
 from django.db import models
 from tdpservice.data_files.models import DataFile
-# from .parsers.validators import (
-#    record_validator,
-#    rpt_month_year as month_year_validator,
-# )
-# from django.core.validators import RegexValidator
 
 class T1(models.Model):
     """

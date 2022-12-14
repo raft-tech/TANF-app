@@ -70,21 +70,9 @@ class DataFileViewSet(ModelViewSet):
             data_file_id = response.data.get('id')
             data_file = DataFile.objects.get(id=data_file_id)
 
-
-
-            #let's just check
-            dffo = data_file.file.open(mode='rb')
-            logger.debug("Type of data_file.file %s", type(dffo))
-            rl = dffo.readline()
-            logger.debug("First line of data_file.file %s", rl)
-            logger.debug("Type of rl %s", type(rl))
-
-
-
             parser_task.parse.delay(data_file_id)
             logger.info("Submitted parse task to redis for %s.", data_file.filename)
 
-            ''' Just to simplify my testing, will remove block comment later.
             sftp_task.upload.delay(
                 data_file_pk=data_file_id,
                 server_address=settings.ACFTITAN_SERVER_ADDRESS,
@@ -112,7 +100,6 @@ class DataFileViewSet(ModelViewSet):
 
             if len(recipients) > 0:
                 send_data_submitted_email(list(recipients), data_file, email_context, subject)
-            '''
 
         return response
 
