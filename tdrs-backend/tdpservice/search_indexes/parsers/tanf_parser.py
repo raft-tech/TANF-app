@@ -12,15 +12,16 @@ logger.setLevel(logging.DEBUG)
 class Field:
     """Provides a mapping between a field name and its position."""
 
-    def __init__(self, name, length, start, end):
+    def __init__(self, name, length, start, end, type):
         self.name = name
         self.length = length
         self.start = start
         self.end = end
+        self.type = type
 
-    def create(self, name, length, start, end):
+    def create(self, name, length, start, end, type):
         """Create a new field."""
-        return Field(name, length, start, end)
+        return Field(name, length, start, end, type)
 
     def __repr__(self):
         """Return a string representation of the field."""
@@ -33,16 +34,16 @@ class RowSchema:
         self.fields = []
         # self.section = section # intended for future use with multiple section objects
 
-    def add_field(self, name, length, start, end):
+    def add_field(self, name, length, start, end, type):
         """Add a field to the schema."""
         self.fields.append(
-            Field(name, length, start, end)
+            Field(name, length, start, end, type)
         )
 
     def add_fields(self, fields: list):
         """Add multiple fields to the schema."""
-        for field, length, start, end in fields:
-            self.add_field(field, length, start, end)
+        for field, length, start, end, type in fields:
+            self.add_field(field, length, start, end, type)
 
     def get_field(self, name):
         """Get a field from the schema."""
@@ -126,52 +127,52 @@ def active_t1(line):
     family_case_schema = RowSchema()
     family_case_schema.add_fields(
         [
-            ('record_type', 2, 1, 2),  # does it make sense to try to include regex here as fifth =r'^T1$'
-            ('reporting_month', 6, 3, 8),
-            ('case_number', 11, 9, 19),
-            ('county_fips_code', 3, 20, 22),
-            ('stratum', 2, 23, 24),
-            ('zip_code', 5, 25, 29),
-            ('funding_stream', 1, 30, 30),
-            ('disposition', 1, 31, 31),
-            ('new_applicant', 1, 32, 32),
-            ('family_size', 2, 33, 34),
-            ('family_type', 1, 35, 35),
-            ('receives_sub_housing', 1, 36, 36),
-            ('receives_medical_assistance', 1, 37, 37),
-            ('receives_food_stamps', 1, 38, 38),
-            ('food_stamp_amount', 4, 39, 42),
-            ('receives_sub_child_care', 1, 43, 43),
-            ('child_care_amount', 4, 44, 47),
-            ('child_support_amount', 4, 48, 51),
-            ('family_cash_recources', 4, 52, 55),
-            ('family_cash_amount', 4, 56, 59),
-            ('family_cash_nbr_month', 3, 60, 62),
-            ('tanf_child_care_amount', 4, 63, 66),
-            ('children_covered', 2, 67, 68),
-            ('child_care_nbr_months', 3, 69, 71),
-            ('transportation_amount', 4, 72, 75),
-            ('transport_nbr_months', 3, 76, 78),
-            ('transition_services_amount', 4, 79, 82),
-            ('transition_nbr_months', 3, 83, 85),
-            ('other_amount', 4, 86, 89),
-            ('other_nbr_months', 3, 90, 92),
-            ('reduction_amount', 4, 93, 96),
-            ('reduc_work_requirements', 1, 97, 97),
-            ('reduc_adult_no_hs_diploma', 1, 98, 98),
-            ('reduc_teen_not_in_school', 1, 99, 99),
-            ('reduc_noncooperation_child_support', 1, 100, 100),
-            ('reduc_irp_failure', 1, 101, 101),
-            ('reduc_other_sanction', 1, 102, 102),
-            ('reduc_prior_overpayment', 4, 103, 106),
-            ('total_reduc_amount', 4, 107, 110),
-            ('reduc_family_cap', 1, 111, 111),
-            ('reduc_length_of_assist', 1, 112, 112),
-            ('other_non_sanction', 1, 113, 113),
-            ('waiver_control_grps', 1, 114, 114),
-            ('tanf_family_exempt_time_limits', 2, 115, 116),
-            ('tanf_new_child_only_family', 1, 117, 117),
-            ('blank', 39, 118, 156),
+            ('record_type', 2, 1, 2, "Alphanumeric"),  # does it make sense to try to include regex here as fifth =r'^T1$'
+            ('reporting_month', 6, 3, 8, "Numeric"),
+            ('case_number', 11, 9, 19, "Alphanumeric"),
+            ('county_fips_code', 3, 20, 22, "Numeric"),
+            ('stratum', 2, 23, 24, "Numeric"),
+            ('zip_code', 5, 25, 29, "Alphanumeric"),
+            ('funding_stream', 1, 30, 30, "Numeric"),
+            ('disposition', 1, 31, 31, "Numeric"),
+            ('new_applicant', 1, 32, 32, "Numeric"),
+            ('family_size', 2, 33, 34, "Numeric"),
+            ('family_type', 1, 35, 35, "Numeric"),
+            ('receives_sub_housing', 1, 36, 36, "Numeric"),
+            ('receives_medical_assistance', 1, 37, 37, "Numeric"),
+            ('receives_food_stamps', 1, 38, 38, "Numeric"),
+            ('food_stamp_amount', 4, 39, 42, "Numeric"),
+            ('receives_sub_child_care', 1, 43, 43, "Numeric"),
+            ('child_care_amount', 4, 44, 47, "Numeric"),
+            ('child_support_amount', 4, 48, 51, "Numeric"),
+            ('family_cash_recources', 4, 52, 55, "Numeric"),
+            ('family_cash_amount', 4, 56, 59, "Numeric"),
+            ('family_cash_nbr_month', 3, 60, 62, "Numeric"),
+            ('tanf_child_care_amount', 4, 63, 66, "Numeric"),
+            ('children_covered', 2, 67, 68, "Numeric"),
+            ('child_care_nbr_months', 3, 69, 71, "Numeric"),
+            ('transportation_amount', 4, 72, 75, "Numeric"),
+            ('transport_nbr_months', 3, 76, 78, "Numeric"),
+            ('transition_services_amount', 4, 79, 82, "Numeric"),
+            ('transition_nbr_months', 3, 83, 85, "Numeric"),
+            ('other_amount', 4, 86, 89, "Numeric"),
+            ('other_nbr_months', 3, 90, 92, "Numeric"),
+            ('reduction_amount', 4, 93, 96, "Numeric"),
+            ('reduc_work_requirements', 1, 97, 97, "Numeric"),
+            ('reduc_adult_no_hs_diploma', 1, 98, 98, "Numeric"),
+            ('reduc_teen_not_in_school', 1, 99, 99, "Numeric"),
+            ('reduc_noncooperation_child_support', 1, 100, 100, "Numeric"),
+            ('reduc_irp_failure', 1, 101, 101, "Numeric"),
+            ('reduc_other_sanction', 1, 102, 102, "Numeric"),
+            ('reduc_prior_overpayment', 4, 103, 106, "Numeric"),
+            ('total_reduc_amount', 4, 107, 110, "Numeric"),
+            ('reduc_family_cap', 1, 111, 111, "Numeric"),
+            ('reduc_length_of_assist', 1, 112, 112, "Numeric"),
+            ('other_non_sanction', 1, 113, 113, "Numeric"),
+            ('waiver_control_grps', 1, 114, 114, "Numeric"),
+            ('tanf_family_exempt_time_limits', 2, 115, 116, "Numeric"),
+            ('tanf_new_child_only_family', 1, 117, 117, "Numeric"),
+            ('blank', 39, 118, 156, "Spaces"),
         ]
     )
 
@@ -186,6 +187,16 @@ def active_t1(line):
             logger.warn('Expected field "%s" with length %d, got: "%s"', field.name, field.length, content)
             content_is_valid = False
             continue
+        # check if content is type string or integer
+        if field.type == 'Numeric':
+            try:
+                content = int(content)
+            except ValueError:
+                logger.warn('Expected field "%s" to be numeric, got: "%s"', field.name, content)
+                content_is_valid = False
+                continue
+        elif field.type == 'Alphanumeric':
+            pass  # maybe we can regex check some of these later
         # The below is extremely spammy, turn on selectively.
         # logger.debug('field: %s\t::content: "%s"\t::end: %s', field.name, content, field.end)
 
@@ -275,7 +286,7 @@ def active_t1(line):
 def parse(datafile):
     """Parse the datafile into the search_index model."""
     logger.info('Parsing TANF datafile: %s', datafile)
-    logger.debug(dir(datafile))
+
     datafile.seek(0)  # ensure we are at the beginning of the file
     for raw_line in datafile:
         logger.debug('Parsing this line: "%s"', raw_line)

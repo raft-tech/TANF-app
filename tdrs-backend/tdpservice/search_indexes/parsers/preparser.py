@@ -155,7 +155,7 @@ def preparse(data_file, data_type, section):
         datafile = data_file
     else:
         logger.error("Unexpected datafile type %s", type(data_file))
-        raise TypeError("datafile type %s", type(data_file))
+        raise TypeError("Unexpected datafile type.")
 
     # TODO: check file type and extension
 
@@ -171,8 +171,13 @@ def preparse(data_file, data_type, section):
         row = row.decode()
 
     logger.debug("Header: %s", row)
+
     if get_record_type(row) != 'HE':
         raise ValueError('First line in file not recognized as valid header.')
+    elif len(row) != 24:
+        logger.debug("row: '%s' len: %d", row, len(row))
+        return False, {'preparsing': 'Header length incorrect.'}
+    row = row.strip('\n')
 
     header_is_valid, header_validator = validate_header(row, data_type, section)
     if isinstance(header_validator, Exception):
@@ -194,12 +199,15 @@ def preparse(data_file, data_type, section):
     # Having set the file pointer to the last line, read it in.
     row = datafile.readline().decode()
     datafile.seek(0)  # Reset file pointer to beginning of file.
+
     logger.info("Trailer row: '%s'", row)
-    
     if get_record_type(row) != 'TR':
         raise ValueError('Last row is not recognized as a trailer row.')
-
+    elif len(row) != 24:
+        logger.debug("row: '%s' len: %d", row, len(row))
+        return False, {'preparsing': 'Trailer length incorrect.'}
     row = row.strip('\n')
+
     trailer_is_valid, trailer_validator = validate_trailer(row)
     if isinstance(trailer_validator, Exception):
         raise trailer_validator

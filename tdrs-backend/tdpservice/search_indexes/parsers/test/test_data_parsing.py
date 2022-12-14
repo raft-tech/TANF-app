@@ -89,6 +89,7 @@ def test_preparser_header(test_file, bad_test_file):
 def test_preparser_trailer(test_file):
     """Test trailer preparser."""
     for line in test_file:
+        line = line.decode()
         if util.get_record_type(line) == 'TR':
             trailer_row = line
             break
@@ -97,9 +98,8 @@ def test_preparser_trailer(test_file):
     assert validator.errors == {}
 
     logger.debug("validator: %s", validator)
-    logger.debug("validator dir: %s", dir(validator))
     logger.debug("validator.document: %s", validator.document)
-    assert validator.document['record_count'] == 1
+    assert validator.document['record_count'] == '0000001'
 
 def spy_count_check(spies, expected_counts):
     """Run reduce against two lists, returning True if all functions were called the expected number of times"""
@@ -115,7 +115,7 @@ def test_preparser_body(test_file, mocker):
     spy_t1 = mocker.spy(tanf_parser, 'active_t1')
 
     spies = [ spy_preparse, spy_head, spy_tail, spy_parse, spy_t1 ]
-    preparser.preparse(test_file, 'TANF', 'Active Case Data')
+    assert preparser.preparse(test_file, 'TANF', 'Active Case Data')
 
     assert spy_count_check(spies, [ 1, 1, 1, 1, 1 ])
 
@@ -128,7 +128,7 @@ def test_preparser_big_file(test_big_file, mocker):
     spy_t1 = mocker.spy(tanf_parser, 'active_t1')
 
     spies = [ spy_preparse, spy_head, spy_tail, spy_parse, spy_t1 ]
-    preparser.preparse(test_big_file, 'TANF', 'Active Case Data')
+    assert preparser.preparse(test_big_file, 'TANF', 'Active Case Data')
 
     assert spy_count_check(spies, [ 1, 1, 1, 1, 815 ])
 
@@ -141,10 +141,11 @@ def test_preparser_bad_file(bad_test_file, mocker):
     spy_t1 = mocker.spy(tanf_parser, 'active_t1')
 
     spies = [ spy_preparse, spy_head, spy_tail, spy_parse, spy_t1 ]
-    with pytest.raises(ValueError):  # as e_info -- we can check individual error msgs, too minutae?
-        preparser.preparse(bad_test_file, 'TANF', 'Active Case Data')
+    is_valid, preparser_errors = preparser.preparse(bad_test_file, 'TANF', 'Active Case Data')
+    assert not is_valid
+    assert preparser_errors != {}
 
-    assert spy_count_check(spies, [1,1,1,0,0])
+    assert spy_count_check(spies, [1,1,0,0,0])
 
 @pytest.mark.django_db
 def test_preparser_bad_params(test_file, mocker):
@@ -166,8 +167,8 @@ def test_preparser_bad_params(test_file, mocker):
     assert spy_count_check(spies, [1,0,0,0,0])
 
     with pytest.raises(ValueError) as e_info:
-        preparser.preparse(test_file, 'SSP_MOE', 'Active Case Data')
-    assert str(e_info.value) == 'Preparser given invalid data_type parameter.'
+        preparser.preparse(test_file, 'GARBAGE', 'Active Case Data')
+    assert str(e_info.value) == "Given data type does not match header program type."
     logger.debug("test_preparser_bad_params::wrong program_type value:")
     for spy in spies:
         logger.debug("Spy: %s\tCount: %s", spy, spy.call_count)
@@ -175,7 +176,7 @@ def test_preparser_bad_params(test_file, mocker):
 
     with pytest.raises(ValueError) as e_info:
         preparser.preparse(test_file, 1234, 'Active Case Data')
-    assert str(e_info.value) == 'Preparser given invalid data_type parameter.'
+    assert str(e_info.value) == 'Given data type does not match header program type.'
     logger.debug("test_preparser_bad_params::wrong program_type type:")
     for spy in spies:
         logger.debug("Spy: %s\tCount: %s", spy, spy.call_count)

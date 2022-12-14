@@ -9,18 +9,12 @@ logger = logging.getLogger(__name__)
 def get_record_type(row):
     """Get the record type from the row."""
     if re.match(r'^HEADER.*', row):
-        if len(row) != 24:
-            raise ValueError("Header row is incorrect length.")
         logger.debug('Matched following row as a header: %s' % row)
         return 'HE'
     elif re.match(r'^TRAILER.*', row):
-        if len(row) != 24:
-            raise ValueError("Trailer row is incorrect length.")
         logger.debug('Matched following row as a trailer: %s' % row)
         return 'TR'
     elif re.match(r'^T1.*', row):
-        if len(row) != 156:
-           raise ValueError('T1 row length is not expected length of 156 characters.')
         logger.debug('Matched following row as data: %s' % row)
         return 'T1'
     elif re.match(r'^T2.*', row):
