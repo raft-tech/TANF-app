@@ -449,7 +449,6 @@ class Common(Configuration):
             },
         },     
     }
-
     # Elastic
     ELASTICSEARCH_DSL = {
         'default': {

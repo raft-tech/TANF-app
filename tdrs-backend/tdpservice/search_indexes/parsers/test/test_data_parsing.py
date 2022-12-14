@@ -1,8 +1,3 @@
-# TODO: how to write separate tests from `test_model_mapping.py`
-# certify that file -> model works
-# does the model have the same contents as we expect? we dont care about
-# correctness
-
 """Test preparser functions and tanf_parser."""
 import pytest
 from functools import reduce
@@ -62,7 +57,6 @@ def test_preparser_header(test_file, bad_test_file):
     bad_row = bad_test_file.readline().decode()
     not_valid, not_validator = preparser.validate_header(bad_row, 'TANF', 'Active Case Data')
     assert not_valid is False
-    logger.debug("not_validator.errors: %s", not_validator.errors)
     assert not_validator.errors != {}
 
     # Inserting a bad section type
@@ -155,7 +149,6 @@ def test_preparser_bad_params(test_file, mocker):
 
     spies = [spy_preparse, spy_head, spy_tail, spy_parse, spy_t1]
 
-    # feed good/bad data_types, sections and get it to error-handle this
     with pytest.raises(ValueError) as e_info:
         preparser.preparse(test_file, 'TANF', 'Garbage Cases')
     assert str(e_info.value) == 'Given section does not match header section.'
@@ -204,7 +197,6 @@ def test_parsing_tanf_t1_bad(bad_test_file, big_bad_test_file):
     logger.info("t1_count_after: %s", t1_count_after)
     assert t1_count_after == t1_count_before
 
-    ##########
 
     t1_count_before = T1.objects.count()
     logger.info("t1_count_before: %s", t1_count_before)
