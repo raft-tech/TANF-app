@@ -5,6 +5,7 @@
 
 """Test preparser functions and tanf_parser."""
 import pytest
+from functools import reduce
 from pathlib import Path
 import cerberus
 
@@ -58,7 +59,8 @@ def test_preparser_header(test_file, bad_test_file):
     """Test header preparser."""
 
     logger.info("test_file type: %s", type(test_file))
-    is_valid, validator = preparser.validate_header(test_file, 'TANF', 'Active Case Data')
+    test_row = test_file.readline().decode()
+    is_valid, validator = preparser.validate_header(test_row, 'TANF', 'Active Case Data')
 
     logger.info("is_valid: %s", is_valid)
     logger.info("errors: %s", validator.errors)
@@ -67,19 +69,22 @@ def test_preparser_header(test_file, bad_test_file):
     assert validator.document['state_fips'] == '06'
 
     # negative case
-    not_valid, not_validator = preparser.validate_header(bad_test_file, 'TANF', 'Active Case Data')
+    bad_row = bad_test_file.readline().decode()
+    not_valid, not_validator = preparser.validate_header(bad_row, 'TANF', 'Active Case Data')
     assert not_valid == False
     logger.debug("not_validator.errors: %s", not_validator.errors)
     assert not_validator.errors != {}
 
-    # TODO: provide diff program type, section, etc.
-    not_valid, not_validator = preparser.validate_header(test_file, 'TANF', 'Active Casexs')
-    assert not_valid == False
-    # relevant error message
+    # Inserting a bad section type
+    with pytest.raises(ValueError) as e_info:
+        preparser.validate_header(test_row, 'TANF', 'Active Casexs')
+    assert str(e_info.value) == "Given section does not match header section."
 
-    not_valid, not_validator = preparser.validate_header(test_file, 'GARBAGE', 'Active Case Data')
-    assert not_valid == False
-    # relevant error message
+    # Inserting a bad program type
+    with pytest.raises(ValueError) as e_info:
+        preparser.validate_header(test_row, 'GARBAGE', 'Active Case Data')
+    assert str(e_info.value) == "Given data type does not match header program type."
+    
 
 def test_preparser_trailer(test_file):
     """Test trailer preparser."""
@@ -96,57 +101,97 @@ def test_preparser_trailer(test_file):
     logger.debug("validator.document: %s", validator.document)
     assert validator.document['record_count'] == 1
 
+def spy_count_check(spies, expected_counts):
+    """Run reduce against two lists, returning True if all functions were called the expected number of times"""
+    return reduce(lambda bool_retVal, tuple:  bool_retVal and (lambda spy_count, expected: spy_count==expected), zip(spies, expected_counts), True)
+
 @pytest.mark.django_db
-def test_preparser_body(test_file, bad_test_file, mocker):
+def test_preparser_body(test_file, mocker):
     """Test that preparse correctly calls lower parser functions...or doesn't."""
-    '''
-    mocker.patch('tdpservice.search_indexes.parsers.preparser', return_value=True)
-    mocker.patch('tdpservice.search_indexes.parsers.preparser.validate_header', return_value=(True,cerberus.Validator({})))
-    mocker.patch('tdpservice.search_indexes.parsers.preparser.tanf_parser.parse', return_value=None)
-    mocker.patch('tdpservice.search_indexes.parsers.preparser.active_t1', return_value=None)
-    '''
+    spy_preparse = mocker.spy(preparser, 'preparse')
+    spy_head = mocker.spy(preparser, 'validate_header')
+    spy_tail = mocker.spy(preparser, 'validate_trailer')
+    spy_parse = mocker.spy(tanf_parser, 'parse')
+    spy_t1 = mocker.spy(tanf_parser, 'active_t1')
 
-    # TODO:
-    # check it can handle header/trailer
-    #retVal = tdpservice.search_indexes.parsers.preparser.preparse(test_file, 'TANF', 'Active Case Data')
-    # logger.error(dir(retVal))
-    # tdpservice.search_indexes.parsers.test.test_data_parsing:test_data_parsing.py:128 
-    #   ['assert_any_call', 'assert_called', 'assert_called_once', 'assert_called_once_with', 'assert_called_with', 
-    #   'assert_has_calls', 'assert_not_called', 'attach_mock', 'call_args', 'call_args_list', 'call_count', 'called', 
-    #   'configure_mock', 'method_calls', 'mock_add_spec', 'mock_calls', 'reset_mock', 'return_value', 'side_effect']
-
-    '''
-    tdpservice.search_indexes.parsers.preparser.preparse.assert_called()
-    assert tdpservice.search_indexes.parsers.preparser.validate_header.called_once()
-    assert tdpservice.search_indexes.parsers.preparser.tanf_parser.parse.called_once()
-    tdpservice.search_indexes.parsers.preparser.tanf_parser.active_t1.assert_called()
-    '''
-
-    spy = mocker.spy(preparser, 'preparse')
+    spies = [ spy_preparse, spy_head, spy_tail, spy_parse, spy_t1 ]
     preparser.preparse(test_file, 'TANF', 'Active Case Data')
-    logger.info("preparse call count: %s", spy.call_count)
-    assert False
-    
+
+    assert spy_count_check(spies, [ 1, 1, 1, 1, 1 ])
+
+@pytest.mark.django_db
+def test_preparser_big_file(test_big_file, mocker):
+    spy_preparse = mocker.spy(preparser, 'preparse')
+    spy_head = mocker.spy(preparser, 'validate_header')
+    spy_tail = mocker.spy(preparser, 'validate_trailer')
+    spy_parse = mocker.spy(tanf_parser, 'parse')
+    spy_t1 = mocker.spy(tanf_parser, 'active_t1')
+
+    spies = [ spy_preparse, spy_head, spy_tail, spy_parse, spy_t1 ]
+    preparser.preparse(test_big_file, 'TANF', 'Active Case Data')
+
+    assert spy_count_check(spies, [ 1, 1, 1, 1, 815 ])
+
+@pytest.mark.django_db
+def test_preparser_bad_file(bad_test_file, mocker):
+    spy_preparse = mocker.spy(preparser, 'preparse')
+    spy_head = mocker.spy(preparser, 'validate_header')
+    spy_tail = mocker.spy(preparser, 'validate_trailer')
+    spy_parse = mocker.spy(tanf_parser, 'parse')
+    spy_t1 = mocker.spy(tanf_parser, 'active_t1')
+
+    spies = [ spy_preparse, spy_head, spy_tail, spy_parse, spy_t1 ]
+    with pytest.raises(ValueError):  # as e_info -- we can check individual error msgs, too minutae?
+        preparser.preparse(bad_test_file, 'TANF', 'Active Case Data')
+
+    assert spy_count_check(spies, [1,1,1,0,0])
+
+@pytest.mark.django_db
+def test_preparser_bad_params(test_file, mocker):
+    spy_preparse = mocker.spy(preparser, 'preparse')
+    spy_head = mocker.spy(preparser, 'validate_header')
+    spy_tail = mocker.spy(preparser, 'validate_trailer')
+    spy_parse = mocker.spy(tanf_parser, 'parse')
+    spy_t1 = mocker.spy(tanf_parser, 'active_t1')
+
+    spies = [ spy_preparse, spy_head, spy_tail, spy_parse, spy_t1 ]
+
     # feed good/bad data_types, sections and get it to error-handle this
-    #assert preparser.preparse(test_file, 'TANF', 'Garbage Cases') == False
-    #assert preparser.preparse(test_file, 'SSP_MOE', 'Active Cases') == False
-    #assert preparser.preparse(bad_test_file, 'TANF', 'Active Cases') == False
-    # TODO: ensure it calls the correct parser
-    # TODO: assert that function parse() has (not) been called
-    # https://stackoverflow.com/questions/50165477/pytest-mock-assert-called-with-failed-for-class-function
-    # find a specific t1 model for the small_correct_file and assert it has the correct values
+    with pytest.raises(ValueError) as e_info:
+        preparser.preparse(test_file, 'TANF', 'Garbage Cases')
+    assert str(e_info.value) == 'Given section does not match header section.'
+    logger.debug("test_preparser_bad_params::garbage section value:")
+    for spy in spies:
+        logger.debug("Spy: %s\tCount: %s", spy, spy.call_count)
+    assert spy_count_check(spies, [1,0,0,0,0])
+
+    with pytest.raises(ValueError) as e_info:
+        preparser.preparse(test_file, 'SSP_MOE', 'Active Case Data')
+    assert str(e_info.value) == 'Preparser given invalid data_type parameter.'
+    logger.debug("test_preparser_bad_params::wrong program_type value:")
+    for spy in spies:
+        logger.debug("Spy: %s\tCount: %s", spy, spy.call_count)
+    assert spy_count_check(spies, [2,2,1,0,0])
+
+    with pytest.raises(ValueError) as e_info:
+        preparser.preparse(test_file, 1234, 'Active Case Data')
+    assert str(e_info.value) == 'Preparser given invalid data_type parameter.'
+    logger.debug("test_preparser_bad_params::wrong program_type type:")
+    for spy in spies:
+        logger.debug("Spy: %s\tCount: %s", spy, spy.call_count)
+    assert spy_count_check(spies, [3,3,2,0,0])
 
 @pytest.mark.django_db
 def test_parsing_tanf_t1_active(test_file):
     """Test tanf_parser.active_t1."""
     t1_count_before = T1.objects.count()
+    assert t1_count_before == 0
     tanf_parser.parse(test_file)
-    assert T1.objects.count() > t1_count_before
+    assert T1.objects.count() == t1_count_before + 1
 
     # define expected values
-    # we get back a parser log object
+    # we get back a parser log object for 1354
     # should we create a FK between parserlog and t1 model?
-    # were t1 models created?
 
 @pytest.mark.django_db
 def test_parsing_tanf_t1_bad(bad_test_file, big_bad_test_file):
@@ -170,8 +215,4 @@ def test_parsing_tanf_t1_bad(bad_test_file, big_bad_test_file):
     t1_count_after = T1.objects.count()
     logger.info("t1_count_after: %s", t1_count_after)
     assert t1_count_after == t1_count_before
-
-
-    
-
 

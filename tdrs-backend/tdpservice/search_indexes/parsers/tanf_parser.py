@@ -7,6 +7,7 @@ from .util import get_record_type
 from tdpservice.data_files.models import DataFile
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 class Field:
     """Provides a mapping between a field name and its position."""
@@ -273,7 +274,9 @@ def active_t1(line):
 
 def parse(datafile):
     """Parse the datafile into the search_index model."""
-    # Section will 
+    logger.info('Parsing TANF datafile: %s', datafile)
+    logger.debug(dir(datafile))
+    datafile.seek(0)  # ensure we are at the beginning of the file
     for raw_line in datafile:
         logger.debug('Parsing this line: "%s"', raw_line)
         if isinstance(raw_line, bytes):

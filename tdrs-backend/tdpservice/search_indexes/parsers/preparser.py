@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 
-def validate_header(datafile, data_type, given_section):
+def validate_header(row, data_type, given_section):
     """Validate the header line of the datafile."""
     """
     https://www.acf.hhs.gov/sites/default/files/documents/ofa/transmission_file_header_trailer_record.pdf
@@ -39,9 +39,8 @@ def validate_header(datafile, data_type, given_section):
     Example:
     HEADERYYYYQTFIPSSP1EN
     """
+
     logger.debug('Validating header row.')
-
-
     section_map = {
         'A': 'Active Case Data',
         'C': 'Closed Case Data',
@@ -49,23 +48,11 @@ def validate_header(datafile, data_type, given_section):
         'S': 'Stratum Data',
     }
 
-    # intentionally only reading first line of file
-    row = datafile.readline()
-
-    # datafile when passed via redis/db is a FileField which returns bytes
-    if isinstance(row, bytes):
-        logger.info("Row is bytes, decoding to string...")
-        row = row.decode()
-
-    logger.debug("Header: %s", row)
-    if get_record_type(row) != 'HE':
-        raise ValueError('First line in file not recognized as valid header.')
-
     try:
         header = {
             'title':        row[0:6],
-            'year':         int(row[6:10]),
-            'quarter':      int(row[10:11]),
+            'year':         row[6:10],
+            'quarter':      row[10:11],
             'type':         row[11:12],
             'state_fips':   row[12:14],
             'tribe_code':   row[14:17],
@@ -86,20 +73,22 @@ def validate_header(datafile, data_type, given_section):
 
             if given_section != section_map[header['type']]:
                 raise ValueError('Given section does not match header section.')
-            elif data_type == 'TANF' and header['program_type'] != 'TAN':
-                logger.debug('Given data type ("%s") does not match header program type ("%s")', data_type, header['program_type'])
-                raise ValueError('Given data type ("%s") does not match header program type ("%s")', data_type, header['program_type'])
+            if (data_type == 'TANF' and header['program_type'] != 'TAN')\
+                    or (data_type == 'SSP' and header['program_type'] != 'SSP')\
+                    or (data_type not in ['TANF', 'SSP']):
+                raise ValueError("Given data type does not match header program type.")
         except KeyError as e:
             logger.error('Ran into issue with header type: %s', e)
 
         # TODO: could import schema from a schemas folder/file, would be reusable for other sections
-
+        # ugh, seems like we're limited to string for all values otherwise we have to cast to int in header and it fails
+        # with a raised ValueError instead of in the validator.errors
         header_schema = {
             'title':        {'type': 'string', 'required': True, 'allowed': ['HEADER']},
-            'year':         {'type': 'integer', 'required': True, 'min': 2016},  # '^[0-9]{4}$'},
-            'quarter':      {'type': 'integer', 'required': True, 'min': 1, 'max': 4},
+            'year':         {'type': 'string', 'required': True, 'regex': '^20[0-9]{2}$'},
+            'quarter':      {'type': 'string', 'required': True, 'allowed': ['1', '2', '3', '4']},
             'type':         {'type': 'string', 'required': True, 'allowed': ['A', 'C', 'G', 'S']},
-            'state_fips':   {'type': 'string', 'required': True, 'regex': '^[0-9]{2}$'},
+            'state_fips':   {'type': 'string', 'required': True, 'regex': '^[0-9]{2}$'}, # even tribes will have state code
             'tribe_code':   {'type': 'string', 'required': False, 'regex': '^([0-9]{3}|[ ]{3})$'},
             'program_type': {'type': 'string', 'required': True, 'allowed': ['TAN', 'SSP']},
             'edit':         {'type': 'string', 'required': True, 'allowed': ['1', '2']},
@@ -118,12 +107,8 @@ def validate_header(datafile, data_type, given_section):
        logger.error(row)
        logger.error(e)
        return False, e
-    except ValueError as f:
-        logger.error("Found value mismatch in header row.")
-        logger.error(f)
-        return False, f
 
-def validate_trailer(datafile):
+def validate_trailer(row):
     """Validate the trailer row."""
     """
     https://www.acf.hhs.gov/sites/default/files/documents/ofa/transmission_file_header_trailer_record.pdf
@@ -138,41 +123,9 @@ def validate_trailer(datafile):
 
     logger.info('Validating trailer row.')
 
-    # certify/transform input row to be correct form/type
-    
-    logger.info("Type of datafile '%s'", type(datafile))
-    row = None
-    '''for row in datafile:
-        if get_record_type(row) == 'TR':
-            break
-        else:
-            continue
-    '''
-
-    # Don't want to read whole file, just last line, only possible with binary
-    # Credit: https://openwritings.net/pg/python/python-read-last-line-file
-    # https://stackoverflow.com/questions/46258499/
-    try:
-        datafile.seek(-2, os.SEEK_END) # Jump to the second last byte.
-        while datafile.read(1) != b'\n': # Check if new line.
-            datafile.seek(-2, os.SEEK_CUR)  # Jump two bytes back
-    except OSError: # Either file is empty or contains one line.
-        datafile.seek(0)
-        raise ValueError('File too short or missing trailer.')
-    
-    # Having set the file pointer to the last line, read it.
-    row = datafile.readline().decode()
-    logger.info("Trailer row: '%s'", row)
-    
-    if get_record_type(row) != 'TR':
-        raise ValueError('Last row is not a trailer row.')
-    if len(row) != 24:
-        raise ValueError("Trailer row is not 23 characters long.")
-    row = row.strip('\n')
-
     trailer_schema = {
         'title':        {'type': 'string', 'required': True, 'allowed': ['TRAILER']},
-        'record_count': {'type': 'integer', 'required': True, 'min': 1, 'max': 9999999},
+        'record_count': {'type': 'string', 'required': True, 'regex': '^[0-9]{7}$'},
         'blank':        {'type': 'string', 'required': True, 'regex': '^[ ]{9}$'},
     }
 
@@ -180,7 +133,7 @@ def validate_trailer(datafile):
 
     trailer = {
         'title':        row[0:7],
-        'record_count': int(row[7:14]),
+        'record_count': row[7:14],
         'blank':        row[14:23],
     }
 
@@ -207,12 +160,56 @@ def preparse(data_file, data_type, section):
     # TODO: check file type and extension
 
     # validates header and trailer lines and the input data_type and section
-    header_is_valid, header_validator = validate_header(datafile, data_type, section)
-    trailer_is_valid, trailer_validator = validate_trailer(datafile)
-    errors = header_validator  # + trailer_errors (how to combine Exception and dict? or logic around it)
+
+    # intentionally only reading first line of file
+    datafile.seek(0)
+    row = datafile.readline()
+    datafile.seek(0)  # reset file pointer to beginning of file
+
+    # datafile when passed via redis/db is a FileField which returns bytes
+    if isinstance(row, bytes):
+        row = row.decode()
+
+    logger.debug("Header: %s", row)
+    if get_record_type(row) != 'HE':
+        raise ValueError('First line in file not recognized as valid header.')
+
+    header_is_valid, header_validator = validate_header(row, data_type, section)
+    if isinstance(header_validator, Exception):
+        raise header_validator
+    
+    # certify/transform input row to be correct form/type
+
+    # Don't want to read whole file, just last line, only possible with binary
+    # Credit: https://openwritings.net/pg/python/python-read-last-line-file
+    # https://stackoverflow.com/questions/46258499/
+    try:
+        datafile.seek(-2, os.SEEK_END) # Jump to the second last byte.
+        while datafile.read(1) != b'\n': # Check if new line.
+            datafile.seek(-2, os.SEEK_CUR)  # Jump two bytes back
+    except OSError: # Either file is empty or contains one line.
+        datafile.seek(0)
+        return False, {'preparsing':'File too short or missing trailer.'}
+    
+    # Having set the file pointer to the last line, read it in.
+    row = datafile.readline().decode()
+    datafile.seek(0)  # Reset file pointer to beginning of file.
+    logger.info("Trailer row: '%s'", row)
+    
+    if get_record_type(row) != 'TR':
+        raise ValueError('Last row is not recognized as a trailer row.')
+
+    row = row.strip('\n')
+    trailer_is_valid, trailer_validator = validate_trailer(row)
+    if isinstance(trailer_validator, Exception):
+        raise trailer_validator
+    
+    errors = {'header': header_validator.errors, 'trailer': trailer_validator.errors}
+
     if header_is_valid and trailer_is_valid:
         logger.info("Preparsing succeeded.")
     else:
+        # TODO: should we end here or let parser run to collect more errors?
         logger.error("Preparse failed: %s", errors)
         return False
         # return ParserLog.objects.create(
@@ -221,14 +218,16 @@ def preparse(data_file, data_type, section):
         #    status=ParserLog.Status.REJECTED,
         # )
 
+    logger.debug("Data type: '%s'", data_type)
     if data_type == 'TANF':
+        logger.info("Dispatching to TANF parser.")
         tanf_parser.parse(datafile)
     # elif data_type == 'SSP':
     #    ssp_parser.parse(datafile)
     # elif data_type == 'Tribal TANF':
     #    tribal_tanf_parser.parse(datafile)
     else:
-        raise Exception("Invalid data type.")
+        raise ValueError('Preparser given invalid data_type parameter.')
 
     return True
 
