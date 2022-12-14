@@ -243,14 +243,14 @@ def parse(datafile):
     line_number = 0
     for raw_line in datafile:
         line_number += 1
-        logger.debug('Parsing this line: "%s"', raw_line)
+        # logger.debug('Parsing this line: "%s"', raw_line)
         if isinstance(raw_line, bytes):
-            logger.info("Line is bytes, decoding to string...")
+            # logger.info("Line is bytes, decoding to string...")
             raw_line = raw_line.decode()
         line = raw_line.strip('\r\n')
 
         record_type = get_record_type(line)
-        logger.debug('Parsing as type %s this line: "%s"', record_type, line)
+        # logger.debug('Parsing as type %s this line: "%s"', record_type, line)
 
         if record_type == 'HE' or record_type == 'TR':
             # Header/trailers do not differ between types, this is part of preparsing.
@@ -258,7 +258,6 @@ def parse(datafile):
         elif record_type == 'T1':
             expected_line_length = 156  # we will need to adjust for other types
             actual_line_length = len(line)
-            logger.debug('Expected line length of 156, got: %s', actual_line_length)
             if actual_line_length != expected_line_length:
                 logger.error('Expected line length of 156, got: %s', actual_line_length)
                 # should be added to parser log in #1354

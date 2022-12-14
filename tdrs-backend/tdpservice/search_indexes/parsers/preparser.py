@@ -68,8 +68,8 @@ def validate_header(row, data_type, given_section):
         # TODO: Will need to be saved in parserLog, #1354
 
         try:
-            logger.debug("Given section: '%s'\t Header section: '%s'", given_section, section_map[header['type']])
-            logger.debug("Given program type: '%s'\t Header program type: '%s'", data_type, header['program_type'])
+            # logger.debug("Given section: '%s'\t Header section: '%s'", given_section, section_map[header['type']])
+            # logger.debug("Given program type: '%s'\t Header program type: '%s'", data_type, header['program_type'])
 
             if given_section != section_map[header['type']]:
                 raise ValueError('Given section does not match header section.')
@@ -139,10 +139,10 @@ def validate_trailer(row):
 
     is_valid = validator.validate(trailer)
 
-    logger.debug("Trailer title: '%s'", trailer['title'])
-    logger.debug("Trailer record count: '%s'", trailer['record_count'])
-    logger.debug("Trailer blank: '%s'", trailer['blank'])
-    logger.debug("Trailer errors: '%s'", validator.errors)
+    # logger.debug("Trailer title: '%s'", trailer['title'])
+    # logger.debug("Trailer record count: '%s'", trailer['record_count'])
+    # logger.debug("Trailer blank: '%s'", trailer['blank'])
+    # logger.debug("Trailer errors: '%s'", validator.errors)
 
     return is_valid, validator
 
@@ -208,7 +208,7 @@ def preparse(data_file, data_type, section):
     header_preparsed, row = get_header_row(datafile)
     if header_preparsed is False:
         return False, row
-    logger.debug("Header: %s", row)
+    # logger.debug("Header: %s", row)
 
     header_is_valid, header_validator = validate_header(row, data_type, section)
     if isinstance(header_validator, Exception):
@@ -224,7 +224,7 @@ def preparse(data_file, data_type, section):
     errors = {'header': header_validator.errors, 'trailer': trailer_validator.errors}
 
     if header_is_valid and trailer_is_valid:
-        logger.info("Preparsing succeeded.")
+        logger.info("Preparsing succeeded on '%s'.", data_file.filename)
     else:
         # TODO: should we end here or let parser run to collect more errors?
         logger.error("Preparse failed: %s", errors)
