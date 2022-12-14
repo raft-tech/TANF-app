@@ -1,13 +1,13 @@
 """Converts data files into a model that can be indexed by Elasticsearch."""
 
-import re
+import os
 import logging
 import argparse
 from cerberus import Validator
 from .util import get_record_type
 from . import tanf_parser
 from django.db.models import FileField
-from io import TextIOWrapper
+from io import BufferedReader
 # from .models import ParserLog
 from tdpservice.data_files.models import DataFile
 
@@ -49,13 +49,17 @@ def validate_header(datafile, data_type, given_section):
         'S': 'Stratum Data',
     }
 
+    # intentionally only reading first line of file
     row = datafile.readline()
+
     # datafile when passed via redis/db is a FileField which returns bytes
     if isinstance(row, bytes):
         logger.info("Row is bytes, decoding to string...")
         row = row.decode()
 
     logger.debug("Header: %s", row)
+    if get_record_type(row) != 'HE':
+        raise ValueError('First line in file not recognized as valid header.')
 
     try:
         header = {
@@ -119,7 +123,7 @@ def validate_header(datafile, data_type, given_section):
         logger.error(f)
         return False, f
 
-def validate_trailer(row):
+def validate_trailer(datafile):
     """Validate the trailer row."""
     """
     https://www.acf.hhs.gov/sites/default/files/documents/ofa/transmission_file_header_trailer_record.pdf
@@ -135,8 +139,33 @@ def validate_trailer(row):
     logger.info('Validating trailer row.')
 
     # certify/transform input row to be correct form/type
-    if isinstance(row, bytes):
-        row = row.decode()
+    
+    logger.info("Type of datafile '%s'", type(datafile))
+    row = None
+    '''for row in datafile:
+        if get_record_type(row) == 'TR':
+            break
+        else:
+            continue
+    '''
+
+    # Don't want to read whole file, just last line, only possible with binary
+    # Credit: https://openwritings.net/pg/python/python-read-last-line-file
+    # https://stackoverflow.com/questions/46258499/
+    try:
+        datafile.seek(-2, os.SEEK_END) # Jump to the second last byte.
+        while datafile.read(1) != b'\n': # Check if new line.
+            datafile.seek(-2, os.SEEK_CUR)  # Jump two bytes back
+    except OSError: # Either file is empty or contains one line.
+        datafile.seek(0)
+        raise ValueError('File too short or missing trailer.')
+    
+    # Having set the file pointer to the last line, read it.
+    row = datafile.readline().decode()
+    logger.info("Trailer row: '%s'", row)
+    
+    if get_record_type(row) != 'TR':
+        raise ValueError('Last row is not a trailer row.')
     if len(row) != 24:
         raise ValueError("Trailer row is not 23 characters long.")
     row = row.strip('\n')
@@ -169,7 +198,7 @@ def preparse(data_file, data_type, section):
     """Validate metadata then dispatches file to appropriate parser."""
     if isinstance(data_file, DataFile):
         datafile = data_file.file # do I need to open() this?
-    elif isinstance(data_file, TextIOWrapper):
+    elif isinstance(data_file, BufferedReader):
         datafile = data_file
     else:
         logger.error("Unexpected datafile type %s", type(data_file))
