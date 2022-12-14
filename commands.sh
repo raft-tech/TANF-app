@@ -91,10 +91,7 @@ alias tdrs-fresh-start='tdrs-stop && docker system prune --volumes && tdrs-start
 
 # run flake8 against backend source from inside of web container
 tdrs-lint-backend() {
-    tdrs-compose-backend run --rm web bash -c "flake8 ."
-    if [ $? -eq 0 ]; then
-        echo "Flake8 linter found no issues"
-    fi
+    tdrs-compose-backend run --rm web bash -c "flake8 . && if [ $? -eq 0 ]; then echo 'Flake8 linter found no issues'; fi"
 }
 
 # short cut for running compose sub commands on backend
