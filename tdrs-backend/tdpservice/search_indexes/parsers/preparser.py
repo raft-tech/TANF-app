@@ -195,7 +195,6 @@ def get_trailer_row(datafile):
 
     return True, row
 
-
 def preparse(data_file, data_type, section):
     """Validate metadata then dispatches file to appropriate parser."""
     if isinstance(data_file, DataFile):

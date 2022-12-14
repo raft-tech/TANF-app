@@ -57,7 +57,7 @@ class RowSchema:
         return self.fields
 
 
-def active_t1(line):
+def active_t1(line, line_number):
     """Parse row as active case data, T1 only."""
     '''
                     FAMILY CASE CHARACTERISTIC DATA
@@ -183,7 +183,8 @@ def active_t1(line):
             break
         content = line[field.start-1:field.end]  # descriptor pdfs were off by one, could also adjust start values
         if len(content) != field.length:
-            logger.warn('Expected field "%s" with length %d, got: "%s"', field.name, field.length, content)
+            logger.warn('[LineNo:%d, col%d] Expected field "%s" with length %d, got: "%s"',
+                        line_number, field.start-1, field.name, field.length, content)
             content_is_valid = False
             continue
         # check if content is type string or integer
@@ -191,7 +192,8 @@ def active_t1(line):
             try:
                 content = int(content)
             except ValueError:
-                logger.warn('Expected field "%s" to be numeric, got: "%s"', field.name, content)
+                logger.warn('[LineNo:%d, col%d] Expected field "%s" to be numeric, got: "%s"',
+                            line_number, field.start-1, field.name, content)
                 content_is_valid = False
                 continue
         elif field.type == 'Alphanumeric':
@@ -202,7 +204,7 @@ def active_t1(line):
         if content_is_valid:
             setattr(t1, field.name, content)
 
-    if not content_is_valid:
+    if content_is_valid is False:
         logger.warn('Content is not valid, skipping model creation.')
         return
 
@@ -259,7 +261,6 @@ def active_t1(line):
 
     # try:
     # t1.full_clean()
-    logger.info("about to run t1.save")
     t1.save()
     '''
     # holdovers for 1354
@@ -287,7 +288,9 @@ def parse(datafile):
     logger.info('Parsing TANF datafile: %s', datafile)
 
     datafile.seek(0)  # ensure we are at the beginning of the file
+    line_number = 0
     for raw_line in datafile:
+        line_number += 1
         logger.debug('Parsing this line: "%s"', raw_line)
         if isinstance(raw_line, bytes):
             logger.info("Line is bytes, decoding to string...")
@@ -309,7 +312,7 @@ def parse(datafile):
                 # should be added to parser log in #1354
                 continue
             else:
-                active_t1(line)
+                active_t1(line, line_number)
         else:
             logger.warn("Parsing for type %s not yet implemented", record_type)
             continue

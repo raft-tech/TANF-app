@@ -71,7 +71,7 @@ class DataFileViewSet(ModelViewSet):
             data_file = DataFile.objects.get(id=data_file_id)
 
             parser_task.parse.delay(data_file_id)
-            logger.info("Submitted parse task to redis for %s.", data_file.filename)
+            logger.info("Submitted parse task to redis for datafile %s.", data_file_id)
 
             sftp_task.upload.delay(
                 data_file_pk=data_file_id,

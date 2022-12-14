@@ -16,7 +16,7 @@ def test_can_create_and_index_t1_submission():
     record_num = fake.uuid4()
 
     submission = T1.objects.create(
-        record=record_num,
+        record_type=record_num,
         rpt_month_year=1,
         case_number='1',
         disposition=1,
@@ -61,7 +61,6 @@ def test_can_create_and_index_t1_submission():
         waiver_evalu_control_grps=1,
         family_exempt_time_limits=1,
         family_new_child=1,
-        blank='1'
     )
 
     # submission.full_clean()
@@ -229,7 +228,6 @@ def test_can_create_and_index_t4_submission():
         rec_med_assist=1,
         rec_food_stamps=1,
         rec_sub_cc=1,
-        blank='1'
     )
 
     assert submission.id is not None
