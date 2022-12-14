@@ -81,6 +81,13 @@ def bad_test_file():
     test_filename = test_filepath + "/bad_TANF_S2.txt"
     yield open(test_filename, 'r')
 
+@pytest.fixture
+def big_bad_test_file():
+    """Open file pointer to bad test file."""
+    test_filepath = str(Path(__file__).parent.joinpath('data'))
+    test_filename = test_filepath + "/bad_TANF_S1.txt"
+    yield open(test_filename, 'r')
+
 @pytest.mark.django_db
 def test_preparser_header(test_file, bad_test_file):  # , small_file): # let's try to figure out ORM mocking.
     """Test header preparser."""
@@ -176,7 +183,7 @@ def test_parsing_tanf_t1_active(test_file):
     # were t1 models created
 
 @pytest.mark.django_db
-def test_parsing_tanf_t1_bad(bad_test_file):
+def test_parsing_tanf_t1_bad(bad_test_file, big_bad_test_file):
     """Test tanf_parser.active_case_data with bad data."""
     search = documents.T1DataSubmissionDocument.search().query()
     response_before = search.execute()
@@ -194,3 +201,27 @@ def test_parsing_tanf_t1_bad(bad_test_file):
     t1_count_after = T1.objects.count()
     logger.info("t1_count_after: %s", t1_count_after)
     assert t1_count_after == t1_count_before
+
+    ##########
+
+    search = documents.T1DataSubmissionDocument.search().query()
+    response_before = search.execute()
+    tally_before = response_before.hits.total.value
+    logger.info("tally_before: %s", tally_before)
+    t1_count_before = T1.objects.count()
+    logger.info("t1_count_before: %s", t1_count_before)
+
+    tanf_parser.parse(big_bad_test_file)
+
+    response_after = search.execute()
+    tally_after = response_after.hits.total.value
+    logger.info("tally_after: %s", tally_after)
+    assert tally_after == tally_before  # no models created
+    t1_count_after = T1.objects.count()
+    logger.info("t1_count_after: %s", t1_count_after)
+    assert t1_count_after == t1_count_before
+
+
+    
+
+
