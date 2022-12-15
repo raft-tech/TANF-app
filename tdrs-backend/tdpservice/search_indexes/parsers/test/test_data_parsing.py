@@ -92,7 +92,6 @@ def test_preparser_trailer(test_file):
     logger.debug("validator.document: %s", validator.document)
     assert validator.document['record_count'] == '0000001'
 
-
     with pytest.raises(ValueError) as e_info:
         preparser.get_trailer_row(b'T112341234\n')
 
@@ -101,7 +100,6 @@ def test_preparser_trailer(test_file):
     x, y = preparser.get_trailer_row(b'TRAILERoops\n')
     assert x is False
     assert y['preparsing'] == 'Trailer length incorrect.'
-    
 
 def spy_count_check(spies, expected_counts):
     """Run reduce against two lists, returning True if all functions were called the expected number of times."""
