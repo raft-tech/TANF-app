@@ -108,6 +108,9 @@ def test_ofa_system_admin_permissions(ofa_system_admin):
         'search_indexes.add_t7',
         'search_indexes.view_t7',
         'search_indexes.change_t7',
+        'search_indexes.view_parserlog',
+        'search_indexes.change_parserlog',
+        'search_indexes.add_parserlog'
     }
     group_permissions = ofa_system_admin.get_group_permissions()
     assert group_permissions == expected_permissions

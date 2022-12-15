@@ -198,6 +198,7 @@ def get_trailer_row(datafile):
 def preparse(data_file, data_type, section):
     """Validate metadata then dispatches file to appropriate parser."""
     if isinstance(data_file, DataFile):
+        logger.debug("Beginning preparsing on '%s'", data_file.file.name)
         datafile = data_file.file  # do I need to open() this?
     elif isinstance(data_file, BufferedReader):
         datafile = data_file
@@ -224,7 +225,7 @@ def preparse(data_file, data_type, section):
     errors = {'header': header_validator.errors, 'trailer': trailer_validator.errors}
 
     if header_is_valid and trailer_is_valid:
-        logger.info("Preparsing succeeded on '%s'.", data_file.filename)
+        logger.info("Preparsing succeeded.")
     else:
         # TODO: should we end here or let parser run to collect more errors?
         logger.error("Preparse failed: %s", errors)
