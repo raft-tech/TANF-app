@@ -47,6 +47,27 @@ def big_bad_test_file():
     test_filename = test_filepath + "/bad_TANF_S1.txt"
     yield open(test_filename, 'rb')
 
+@pytest.fixture
+def bad_trailer_file():
+    """Open file pointer to bad test file."""
+    test_filepath = str(Path(__file__).parent.joinpath('data'))
+    test_filename = test_filepath + "/bad_trailer_1.txt"
+    yield open(test_filename, 'rb')
+
+@pytest.fixture
+def bad_trailer_file_2():
+    """Open file pointer to bad test file."""
+    test_filepath = str(Path(__file__).parent.joinpath('data'))
+    test_filename = test_filepath + "/bad_trailer_2.txt"
+    yield open(test_filename, 'rb')
+
+@pytest.fixture
+def empty_file():
+    """Open file pointer to bad test file."""
+    test_filepath = str(Path(__file__).parent.joinpath('data'))
+    test_filename = test_filepath + "/empty_file"
+    yield open(test_filename, 'rb')
+
 @pytest.mark.django_db
 def test_preparser_header(test_file, bad_test_file):
     """Test header preparser."""
@@ -76,7 +97,6 @@ def test_preparser_header(test_file, bad_test_file):
         preparser.validate_header(test_row, 'GARBAGE', 'Active Case Data')
     assert str(e_info.value) == "Given data type does not match header program type."
 
-
 def test_preparser_trailer(test_file):
     """Test trailer preparser."""
     for line in test_file:
@@ -92,14 +112,19 @@ def test_preparser_trailer(test_file):
     logger.debug("validator.document: %s", validator.document)
     assert validator.document['record_count'] == '0000001'
 
+def test_preparser_trailer_bad(bad_trailer_file, bad_trailer_file_2, empty_file):
+    """Test trailer preparser with malformed trailers."""
+    status, err = preparser.get_trailer_row(empty_file)
+    assert status is False
+    assert err['preparsing'] == 'File too short or missing trailer.'
+
+    status, err = preparser.get_trailer_row(bad_trailer_file)
+    assert status is False
+    assert err['preparsing'] == 'Trailer length incorrect.'
+
     with pytest.raises(ValueError) as e_info:
-        preparser.get_trailer_row(b'T112341234\n')
-
+        logger.debug(preparser.get_trailer_row(bad_trailer_file_2))
     assert str(e_info.value) == 'Last row is not recognized as a trailer row.'
-
-    x, y = preparser.get_trailer_row(b'TRAILERoops\n')
-    assert x is False
-    assert y['preparsing'] == 'Trailer length incorrect.'
 
 def spy_count_check(spies, expected_counts):
     """Run reduce against two lists, returning True if all functions were called the expected number of times."""
@@ -157,7 +182,6 @@ def test_preparser_bad_file(bad_test_file, bad_file_missing_header, mocker):
     with pytest.raises(ValueError) as e_info:
         preparser.preparse(bad_file_missing_header, 'TANF', 'Active Case Data')
     assert str(e_info.value) == 'First line in file is not recognized as a valid header.'
-
 
 @pytest.mark.django_db
 def test_preparser_bad_params(test_file, mocker):
