@@ -158,7 +158,7 @@ def get_header_row(datafile):
         row = row.decode()
 
     if get_record_type(row) != 'HE':
-        raise ValueError('First line in file not recognized as valid header.')
+        raise ValueError('First line in file is not recognized as a valid header.')
     elif len(row) != 24:
         logger.debug("row: '%s' len: %d", row, len(row))
         return False, {'preparsing': 'Header length incorrect.'}

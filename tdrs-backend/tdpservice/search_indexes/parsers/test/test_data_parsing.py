@@ -34,6 +34,13 @@ def bad_test_file():
     yield open(test_filename, 'rb')
 
 @pytest.fixture
+def bad_file_missing_header():
+    """Open file pointer to bad test file."""
+    test_filepath = str(Path(__file__).parent.joinpath('data'))
+    test_filename = test_filepath + "/bad_missing_header.txt"
+    yield open(test_filename, 'rb')
+
+@pytest.fixture
 def big_bad_test_file():
     """Open file pointer to bad test file."""
     test_filepath = str(Path(__file__).parent.joinpath('data'))
@@ -85,6 +92,17 @@ def test_preparser_trailer(test_file):
     logger.debug("validator.document: %s", validator.document)
     assert validator.document['record_count'] == '0000001'
 
+
+    with pytest.raises(ValueError) as e_info:
+        preparser.get_trailer_row(b'T112341234\n')
+
+    assert str(e_info.value) == 'Last row is not recognized as a trailer row.'
+
+    x, y = preparser.get_trailer_row(b'TRAILERoops\n')
+    assert x is False
+    assert y['preparsing'] == 'Trailer length incorrect.'
+    
+
 def spy_count_check(spies, expected_counts):
     """Run reduce against two lists, returning True if all functions were called the expected number of times."""
     return reduce(
@@ -123,7 +141,7 @@ def test_preparser_big_file(test_big_file, mocker):
     assert spy_count_check(spies, [1, 1, 1, 1, 815])
 
 @pytest.mark.django_db
-def test_preparser_bad_file(bad_test_file, mocker):
+def test_preparser_bad_file(bad_test_file, bad_file_missing_header, mocker):
     """Test that preparse correctly catches issues in a bad file."""
     spy_preparse = mocker.spy(preparser, 'preparse')
     spy_head = mocker.spy(preparser, 'validate_header')
@@ -137,6 +155,11 @@ def test_preparser_bad_file(bad_test_file, mocker):
     assert preparser_errors != {}
 
     assert spy_count_check(spies, [1, 1, 0, 0, 0])
+
+    with pytest.raises(ValueError) as e_info:
+        preparser.preparse(bad_file_missing_header, 'TANF', 'Active Case Data')
+    assert str(e_info.value) == 'First line in file is not recognized as a valid header.'
+
 
 @pytest.mark.django_db
 def test_preparser_bad_params(test_file, mocker):
