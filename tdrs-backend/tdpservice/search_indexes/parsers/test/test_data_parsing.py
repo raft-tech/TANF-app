@@ -128,12 +128,13 @@ def test_preparser_trailer_bad(bad_trailer_file, bad_trailer_file_2, empty_file)
 
 def spy_count_check(spies, expected_counts):
     """Run reduce against two lists, returning True if all functions were called the expected number of times."""
-    return reduce(
-        lambda bool_retVal, tuple:  bool_retVal and (
-            lambda spy_count, expected: spy_count == expected
-            ),
-        zip(spies, expected_counts),
-        True)
+    return reduce(lambda carry, expected: carry == all(expected),
+                  [zip([spy.call_count for spy in spies], expected_counts)],
+                  True)
+    # logger.debug("reduceVal: %s", reduceVal)
+    # for spy, expected in zip(spies, expected_counts):
+    #    logger.debug("%s: spy called %s times\texpected\t%s", spy, spy.call_count, expected)
+    #    assert spy.call_count == expected
 
 @pytest.mark.django_db
 def test_preparser_body(test_file, mocker):
@@ -177,7 +178,7 @@ def test_preparser_bad_file(bad_test_file, bad_file_missing_header, mocker):
     assert not is_valid
     assert preparser_errors != {}
 
-    assert spy_count_check(spies, [1, 1, 0, 0, 0])
+    assert spy_count_check(spies, [1, 0, 0, 0, 0])
 
     with pytest.raises(ValueError) as e_info:
         preparser.preparse(bad_file_missing_header, 'TANF', 'Active Case Data')
@@ -200,7 +201,7 @@ def test_preparser_bad_params(test_file, mocker):
     logger.debug("test_preparser_bad_params::garbage section value:")
     for spy in spies:
         logger.debug("Spy: %s\tCount: %s", spy, spy.call_count)
-    assert spy_count_check(spies, [1, 0, 0, 0, 0])
+    assert spy_count_check(spies, [1, 1, 0, 0, 0])
 
     with pytest.raises(ValueError) as e_info:
         preparser.preparse(test_file, 'GARBAGE', 'Active Case Data')
@@ -208,7 +209,7 @@ def test_preparser_bad_params(test_file, mocker):
     logger.debug("test_preparser_bad_params::wrong program_type value:")
     for spy in spies:
         logger.debug("Spy: %s\tCount: %s", spy, spy.call_count)
-    assert spy_count_check(spies, [2, 2, 1, 0, 0])
+    assert spy_count_check(spies, [2, 2, 0, 0, 0])
 
     with pytest.raises(ValueError) as e_info:
         preparser.preparse(test_file, 1234, 'Active Case Data')
@@ -216,7 +217,8 @@ def test_preparser_bad_params(test_file, mocker):
     logger.debug("test_preparser_bad_params::wrong program_type type:")
     for spy in spies:
         logger.debug("Spy: %s\tCount: %s", spy, spy.call_count)
-    assert spy_count_check(spies, [3, 3, 2, 0, 0])
+    assert spy_count_check(spies, [3, 3, 0, 0, 0])
+
 
 @pytest.mark.django_db
 def test_parsing_tanf_t1_active(test_file):
