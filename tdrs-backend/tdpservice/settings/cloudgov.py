@@ -6,7 +6,9 @@ from requests_aws4auth import AWS4Auth
 from elasticsearch import RequestsHttpConnection
 
 from tdpservice.settings.common import Common
+import logging
 
+logger = logging.getLogger(__name__)
 
 def get_json_env_var(variable_name):
     """Retrieve and serialize a JSON environment variable."""
