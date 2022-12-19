@@ -139,7 +139,7 @@ class CloudGov(Common):
     # Elastic
     ELASTICSEARCH_DSL = {
         'default': {
-            'hosts': es_host, # os.getenv('ELASTIC_HOST', ''),
+            'hosts': es_host,
             'http_auth': awsauth,
             'use_ssl': True,
             'connection_class': RequestsHttpConnection,
