@@ -59,6 +59,54 @@ class CloudGov(Common):
         cloudgov_services['s3'],
         f'tdp-staticfiles-{services_basename}'
     )
+
+    # The following variables are used to configure the Django Elasticsearch
+    logger.debug("services: %s\t%s", cloudgov_services, type(cloudgov_services))
+    es_access_key = cloudgov_services['aws-elasticsearch']['credentials']['access_key']  # might need a [0]
+    es_secret_key = cloudgov_services['aws-elasticsearch']['credentials']['secret_key']
+
+    logger.debug("ES keys: %s\t%s", es_access_key, es_secret_key)
+
+    '''
+      "aws-elasticsearch": [
+    {
+      "binding_guid": "###",
+      "binding_name": null,
+      "credentials": {
+        "access_key": "#####
+        "current_elasticsearch_version": "Elasticsearch_7.4",
+        "host": "####
+        "secret_key": "###
+        "uri": ###
+      },
+      "instance_guid": "####",
+
+      "instance_name": "es-sandbox",
+
+      "label": "aws-elasticsearch",
+      "name": "es-sandbox",
+      "plan": "es-dev",
+      "provider": null,
+      "syslog_drain_url": null,
+      "tags": [
+        "elasticsearch",
+        "aws"
+      ],
+      "volume_mounts": []
+    }
+  ],
+  
+  ELASTIC_HOST: localhost:9200
+
+  '''
+
+    # Elastic
+    ELASTICSEARCH_DSL = {
+        'default': {
+            'hosts': os.getenv('ELASTIC_HOST', 'localhost:9200')
+        },
+    }
+
     ############################################################################
 
     INSTALLED_APPS = (*Common.INSTALLED_APPS, 'gunicorn')
