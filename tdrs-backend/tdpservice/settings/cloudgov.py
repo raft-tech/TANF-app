@@ -64,8 +64,8 @@ class CloudGov(Common):
 
     # The following variables are used to configure the Django Elasticsearch
     logger.debug("services: %s\t%s", cloudgov_services, type(cloudgov_services))
-    es_access_key = cloudgov_services['aws-elasticsearch']['credentials']['access_key']  # might need a [0]
-    es_secret_key = cloudgov_services['aws-elasticsearch']['credentials']['secret_key']
+    es_access_key = cloudgov_services['aws-elasticsearch'][0]['credentials']['access_key']  # might need a [0]
+    es_secret_key = cloudgov_services['aws-elasticsearch'][0]['credentials']['secret_key']
 
     logger.debug("ES keys: %s\t%s", es_access_key, es_secret_key)
 
