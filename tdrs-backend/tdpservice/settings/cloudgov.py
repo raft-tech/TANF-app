@@ -62,53 +62,6 @@ class CloudGov(Common):
         f'tdp-staticfiles-{services_basename}'
     )
 
-    # The following variables are used to configure the Django Elasticsearch
-    logger.debug("services: %s\t%s", cloudgov_services, type(cloudgov_services))
-    es_access_key = cloudgov_services['aws-elasticsearch']['credentials']['access_key']  # might need a [0]
-    es_secret_key = cloudgov_services['aws-elasticsearch']['credentials']['secret_key']
-
-    logger.debug("ES keys: %s\t%s", es_access_key, es_secret_key)
-
-    '''
-      "aws-elasticsearch": [
-    {
-      "binding_guid": "###",
-      "binding_name": null,
-      "credentials": {
-        "access_key": "#####
-        "current_elasticsearch_version": "Elasticsearch_7.4",
-        "host": "####
-        "secret_key": "###
-        "uri": ###
-      },
-      "instance_guid": "####",
-
-      "instance_name": "es-sandbox",
-
-      "label": "aws-elasticsearch",
-      "name": "es-sandbox",
-      "plan": "es-dev",
-      "provider": null,
-      "syslog_drain_url": null,
-      "tags": [
-        "elasticsearch",
-        "aws"
-      ],
-      "volume_mounts": []
-    }
-  ],
-  
-  ELASTIC_HOST: localhost:9200
-
-  '''
-
-    # Elastic
-    ELASTICSEARCH_DSL = {
-        'default': {
-            'hosts': os.getenv('ELASTIC_HOST', 'localhost:9200')
-        },
-    }
-
     ############################################################################
 
     INSTALLED_APPS = (*Common.INSTALLED_APPS, 'gunicorn')
@@ -171,13 +124,14 @@ class CloudGov(Common):
     AWS_HEADERS = {
         "Cache-Control": "max-age=86400, s-maxage=86400, must-revalidate",
     }
-
-    AWS_ELASTIC_ACCESS_KEY = os.getenv('AWS_ELASTIC_ACCESS_KEY', '')
-    AWS_ELASTIC_SECRET = os.getenv('AWS_ELASTIC_SECRET', '')
+    # The following variables are used to configure the Django Elasticsearch
+    es_access_key = cloudgov_services['aws-elasticsearch'][0]['credentials']['access_key']
+    es_secret_key = cloudgov_services['aws-elasticsearch'][0]['credentials']['secret_key']
+    es_host = cloudgov_services['aws-elasticsearch'][0]['credentials']['uri']
 
     awsauth = AWS4Auth(
-        AWS_ELASTIC_ACCESS_KEY,
-        AWS_ELASTIC_SECRET,
+        es_access_key,
+        es_secret_key,
         'us-gov-west-1',
         'es'
     )
@@ -185,7 +139,7 @@ class CloudGov(Common):
     # Elastic
     ELASTICSEARCH_DSL = {
         'default': {
-            'hosts': os.getenv('ELASTIC_HOST', ''),
+            'hosts': es_host, # os.getenv('ELASTIC_HOST', ''),
             'http_auth': awsauth,
             'use_ssl': True,
             'connection_class': RequestsHttpConnection,
