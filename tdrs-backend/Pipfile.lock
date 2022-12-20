@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "322699118331dcf3a09a31efd9d499c063c697afe5269ae0bf0484ac59dc6cdf"
+            "sha256": "8cc30ed1b8741ece011eab220765a3158e214d27a8ce3afa297193686bef073c"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -875,10 +875,11 @@
         },
         "python-crontab": {
             "hashes": [
-                "sha256:27b88de71016c31d73d86df7aadb81ff2f6753143aa43de97eb142f1e3cb237b",
-                "sha256:f22bdcc1474ff9f7720a234716ed46a677bcf727de31c5dde6d8e252eaebf243"
+                "sha256:1e35ed7a3cdc3100545b43e196d34754e6551e7f95e4caebbe0e1c0ca41c2f1b",
+                "sha256:f308a64b8b1d072da4a235e9320398a242e92d080c1d8143bd0c600b24e160f8"
             ],
-            "version": "==2.7.0"
+            "index": "pypi",
+            "version": "==2.6.0"
         },
         "python-dateutil": {
             "hashes": [
