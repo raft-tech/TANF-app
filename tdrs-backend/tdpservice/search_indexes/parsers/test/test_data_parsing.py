@@ -72,8 +72,8 @@ def empty_file():
 def test_preparser_header(test_file, bad_test_file):
     """Test header preparser."""
     logger.info("test_file type: %s", type(test_file))
-    test_row = test_file.readline().decode()
-    is_valid, validator = preparser.validate_header(test_row, 'TANF', 'Active Case Data')
+    test_line = test_file.readline().decode()
+    is_valid, validator = preparser.validate_header(test_line, 'TANF', 'Active Case Data')
 
     logger.info("is_valid: %s", is_valid)
     logger.info("errors: %s", validator.errors)
@@ -82,19 +82,19 @@ def test_preparser_header(test_file, bad_test_file):
     assert validator.document['state_fips'] == '06'
 
     # negative case
-    bad_row = bad_test_file.readline().decode()
-    not_valid, not_validator = preparser.validate_header(bad_row, 'TANF', 'Active Case Data')
+    bad_line = bad_test_file.readline().decode()
+    not_valid, not_validator = preparser.validate_header(bad_line, 'TANF', 'Active Case Data')
     assert not_valid is False
     assert not_validator.errors != {}
 
     # Inserting a bad section type
     with pytest.raises(ValueError) as e_info:
-        preparser.validate_header(test_row, 'TANF', 'Active Casexs')
+        preparser.validate_header(test_line, 'TANF', 'Active Casexs')
     assert str(e_info.value) == "Given section does not match header section."
 
     # Inserting a bad program type
     with pytest.raises(ValueError) as e_info:
-        preparser.validate_header(test_row, 'GARBAGE', 'Active Case Data')
+        preparser.validate_header(test_line, 'GARBAGE', 'Active Case Data')
     assert str(e_info.value) == "Given data type does not match header program type."
 
 def test_preparser_trailer(test_file):
@@ -102,9 +102,9 @@ def test_preparser_trailer(test_file):
     for line in test_file:
         line = line.decode()
         if util.get_record_type(line) == 'TR':
-            trailer_row = line
+            trailer_line = line
             break
-    is_valid, validator = preparser.validate_trailer(trailer_row)
+    is_valid, validator = preparser.validate_trailer(trailer_line)
     assert is_valid
     assert validator.errors == {}
 
@@ -114,17 +114,17 @@ def test_preparser_trailer(test_file):
 
 def test_preparser_trailer_bad(bad_trailer_file, bad_trailer_file_2, empty_file):
     """Test trailer preparser with malformed trailers."""
-    status, err = preparser.get_trailer_row(empty_file)
+    status, err = preparser.get_trailer_line(empty_file)
     assert status is False
     assert err['preparsing'] == 'File too short or missing trailer.'
 
-    status, err = preparser.get_trailer_row(bad_trailer_file)
+    status, err = preparser.get_trailer_line(bad_trailer_file)
     assert status is False
     assert err['preparsing'] == 'Trailer length incorrect.'
 
     with pytest.raises(ValueError) as e_info:
-        logger.debug(preparser.get_trailer_row(bad_trailer_file_2))
-    assert str(e_info.value) == 'Last row is not recognized as a trailer row.'
+        logger.debug(preparser.get_trailer_line(bad_trailer_file_2))
+    assert str(e_info.value) == 'Last line is not recognized as a trailer line.'
 
 def spy_count_check(spies, expected_counts):
     """Run reduce against two lists, returning True if all functions were called the expected number of times."""
@@ -143,7 +143,7 @@ def test_preparser_body(test_file, mocker):
     spy_head = mocker.spy(preparser, 'validate_header')
     spy_tail = mocker.spy(preparser, 'validate_trailer')
     spy_parse = mocker.spy(tanf_parser, 'parse')
-    spy_t1 = mocker.spy(tanf_parser, 'active_t1')
+    spy_t1 = mocker.spy(tanf_parser, 'active_t1_parser')
 
     spies = [spy_preparse, spy_head, spy_tail, spy_parse, spy_t1]
     assert preparser.preparse(test_file, 'TANF', 'Active Case Data')
@@ -157,7 +157,7 @@ def test_preparser_big_file(test_big_file, mocker):
     spy_head = mocker.spy(preparser, 'validate_header')
     spy_tail = mocker.spy(preparser, 'validate_trailer')
     spy_parse = mocker.spy(tanf_parser, 'parse')
-    spy_t1 = mocker.spy(tanf_parser, 'active_t1')
+    spy_t1 = mocker.spy(tanf_parser, 'active_t1_parser')
 
     spies = [spy_preparse, spy_head, spy_tail, spy_parse, spy_t1]
     assert preparser.preparse(test_big_file, 'TANF', 'Active Case Data')
@@ -171,7 +171,7 @@ def test_preparser_bad_file(bad_test_file, bad_file_missing_header, mocker):
     spy_head = mocker.spy(preparser, 'validate_header')
     spy_tail = mocker.spy(preparser, 'validate_trailer')
     spy_parse = mocker.spy(tanf_parser, 'parse')
-    spy_t1 = mocker.spy(tanf_parser, 'active_t1')
+    spy_t1 = mocker.spy(tanf_parser, 'active_t1_parser')
 
     spies = [spy_preparse, spy_head, spy_tail, spy_parse, spy_t1]
     is_valid, preparser_errors = preparser.preparse(bad_test_file, 'TANF', 'Active Case Data')
@@ -191,7 +191,7 @@ def test_preparser_bad_params(test_file, mocker):
     spy_head = mocker.spy(preparser, 'validate_header')
     spy_tail = mocker.spy(preparser, 'validate_trailer')
     spy_parse = mocker.spy(tanf_parser, 'parse')
-    spy_t1 = mocker.spy(tanf_parser, 'active_t1')
+    spy_t1 = mocker.spy(tanf_parser, 'active_t1_parser')
 
     spies = [spy_preparse, spy_head, spy_tail, spy_parse, spy_t1]
 
@@ -222,7 +222,7 @@ def test_preparser_bad_params(test_file, mocker):
 
 @pytest.mark.django_db
 def test_parsing_tanf_t1_active(test_file):
-    """Test tanf_parser.active_t1."""
+    """Test tanf_parser.active_t1_parser."""
     t1_count_before = T1.objects.count()
     assert t1_count_before == 0
     tanf_parser.parse(test_file)
