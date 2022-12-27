@@ -85,7 +85,8 @@ tdrs-lint-backend() {
 
 # create docker network for tdrs if it doesn't exist
 tdrs-docker-net() {
-    docker network create external-net
+    docker network inspect external-net >/dev/null 2>&1 \
+    || docker network create external-net
 }
 
 # short cut for running compose sub commands on backend
