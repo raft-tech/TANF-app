@@ -14,7 +14,7 @@ In general for TDRS, the *Nginx* handles incoming HTTP requests to both frontend
 
 *Nginx* serves the frontend built files placed in *```/usr/share/nginx/html```* which ensures not  only the static files are served efficiently, the security headers area added as defined in the conf file.
 
-- HTTP requests are first handled by Cloud.gov (.app.cloud.gov subnet) and then routed to frontend instance which has Nginx service.
+- HTTP requests are first handled by Cloud.gov (.app.cloud.gov subnet) and then routed to frontend instance
 - Nginx serves frontend requests directly and routes backend api requests to backend server.
 - The backend requests are distinguished by their specific URI.
 
