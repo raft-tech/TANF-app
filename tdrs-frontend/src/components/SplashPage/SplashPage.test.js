@@ -170,7 +170,7 @@ describe('SplashPage', () => {
   it('redirects to API login endpoint when login.gov sign-in button is clicked', () => {
     const store = mockStore(initialState)
 
-    const url = 'http://localhost:3000/v1/login/dotgov'
+    const url = 'http://localhost:8080/v1/login/dotgov'
     global.window = Object.create(window)
     Object.defineProperty(window, 'location', {
       value: {
@@ -192,7 +192,7 @@ describe('SplashPage', () => {
   it('redirects to API login endpoint when ACF AMS sign-in button is clicked', () => {
     const store = mockStore(initialState)
 
-    const url = 'http://localhost:3000/v1/login/ams'
+    const url = 'http://localhost:8080/v1/login/ams'
     global.window = Object.create(window)
     Object.defineProperty(window, 'location', {
       value: {
