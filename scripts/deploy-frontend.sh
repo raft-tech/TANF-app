@@ -31,6 +31,7 @@ update_frontend()
         cf set-env "$CGHOSTNAME_FRONTEND" ALLOWED_ORIGIN "https://$CGHOSTNAME_FRONTEND.app.cloud.gov"
         cf set-env "$CGHOSTNAME_FRONTEND" BACK_END "https://$CGHOSTNAME_BACKEND.app.cloud.gov"
         cf set-env "$CGHOSTNAME_FRONTEND" CONNECT_SRC '*.app.cloud.gov'
+        cf set-env "$CGHOSTNAME_FRONTEND" BACKEND_HOST "$CGHOSTNAME_BACKEND"
     fi
 
     
@@ -40,10 +41,10 @@ update_frontend()
     mkdir deployment
 
     cp -r build deployment/public
-    cp  nginx/buildpack.nginx.conf deployment/nginx.conf
-    cp nginx/locations.conf deployment/locations.conf
-    cp nginx/ip_whitelist.conf deployment/ip_whitelist.conf
-    cp  nginx/mime.types deployment/mime.types
+    cp nginx/cloud.gov/buildpack.nginx.conf deployment/nginx.conf
+    cp nginx/cloud.gov/locations.conf deployment/locations.conf
+    cp nginx/cloud.gov/ip_whitelist.conf deployment/ip_whitelist.conf
+    cp nginx/mime.types deployment/mime.types
 
     cp manifest.buildpack.yml deployment/manifest.buildpack.yml
     cd deployment || exit
