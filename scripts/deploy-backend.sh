@@ -117,7 +117,7 @@ update_backend()
         cf map-route tdp-backend-prod api-tanfdata.acf.hhs.gov
     else
         cf map-route "$CGAPPNAME_BACKEND" app.cloud.gov --hostname "$CGAPPNAME_BACKEND"
-        cf map-route "$CGAPPNAME_BACKEND" apps.local --hostname "$CGAPPNAME_BACKEND"
+        cf map-route "$CGAPPNAME_BACKEND" apps.internal --hostname "$CGAPPNAME_BACKEND"
     fi
 
     cd ..
