@@ -4,7 +4,7 @@
 wsgi_app = "tdpservice.wsgi:application"
 
 # The granularity of Error log outputs
-#loglevel = "debug"
+# loglevel = "debug"
 
 # The number of worker processes for handling requests
 workers = 2
