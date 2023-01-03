@@ -16,24 +16,24 @@ In general for TDRS, the *Nginx* handles incoming HTTP requests to both frontend
 
 - HTTP requests are first handled by Cloud.gov (.app.cloud.gov subnet) and then routed to frontend instance
 - Nginx serves frontend requests directly and routes backend api requests to backend server.
-- The backend requests are distinguished by their specific URI.
+- The backend requests are distinguished by their specific URI (e.g: addresses starting with ```/v1```) usinf location directive (see below).
 
-The Nginx configuration files are located in: *'/frontend/nginx/'*
+```
+location ^~ /v1/ {
+        proxy_pass         http://{{env "BACKEND_HOST"}}.apps.internal:8080/v1/;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto https;
 
-### Whitelist IPs
-A list of IP addresses has been added to ```ip_whitelist.conf```. This means any request from an ip address not in the subnets from file will be rejected. This list is created manualy and needs to be maintained to whitelist and include user IP subnets.
+        proxy_connect_timeout 60;
+        proxy_send_timeout    60;
+        proxy_buffer_size     4k;
+        proxy_temp_file_write_size 64k;
+}
+```
 
-### Security Headers
-All security headers following the best practices from [Mozilla](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers) and [OWASP](https://owasp.org/www-project-secure-headers/) are added with comments on the config files.
-
-##### CORS 
-
-Cross-Origin Resource Sharing (CORS) header allows a server to indicate any origin such as domain or port other than its own from which a browser can load resources. By adding HTTP headers that let server know which origins are permitted to read that information from the web browser. It should be noted that request might be passed without implications on CORS, this includes most form requests.  
-
-The frontend has to send requests to the backend server. The backend then checks the request origin and verifies that the request is coming from an origin existing in the list and consequently adds CORS header.
-
-The backend uses [django-cors-headers](https://github.com/adamchainz/django-cors-headers) to add CORS headers which allow the response to be accessed on other domains. The list of accepted domains are defined in settings file using ```CORS_ALLOWED_ORIGINS```
-
+The Nginx configuration files are located in: ```*'/frontend/nginx/'```*
 
 ## Backend
 
@@ -43,9 +43,9 @@ The frontend then sends processing requests to the *backend* Django server, whic
 
 ### Gunicorn
 
-Gunicorn is based on python and uses **worker [Worker Processes](https://docs.gunicorn.org/en/stable/design.html#choosing-a-worker-type)**. The number of workers is relative to server request load. 
+Gunicorn is WSGI HTTP server based on python and uses **worker [Worker Processes](https://docs.gunicorn.org/en/stable/design.html#choosing-a-worker-type)**. The number of workers is relative to server request load. 
 
-With having workers responding to requests in Gunicorn, it is importnat to have Nginx in front to handle requests first, otherwise DDOS attacks would consume the server (See Nginx config ??).
+With having workers responding to requests in Gunicorn, it is importnat to have Nginx in front to handle requests first, otherwise DDOS attacks would consume the server (See Nginx config).
 
 Gunicorn by default uses **[Sync worker](https://docs.gunicorn.org/en/latest/design.html#sync-workers)**. This is the most basic worker with some implications. Sync does not support persistent connections, which is the case in our application.
 ```python
@@ -53,9 +53,36 @@ Gunicorn by default uses **[Sync worker](https://docs.gunicorn.org/en/latest/des
 workers = 2
 ```
 
-### Local vs Prod/Deployed
+There are two config files: one for development and one for deployed application. Gunicorn is started from ```gunicorn_start.sh``` which starts either version of config files based on envirenment.
 
 ## Security
 
-## Links
+### Whitelist IPs
+A list of IP addresses has been added to ```ip_whitelist.conf```. This means any request from an ip address not in the subnets included in this file will be rejected. This list is created manualy and needs to be maintained to whitelist and include user IP subnets.
 
+### Security Headers
+All security headers are following best practices from [Mozilla](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers) and [OWASP](https://owasp.org/www-project-secure-headers/) and are added with comments on the config files.
+
+### CORS 
+
+Cross-Origin Resource Sharing (CORS) header allows a server to indicate any origin such as domain or port other than its own from which a browser can load resources. By adding HTTP headers that let server know which origins are permitted to read that information from the web browser. It should be noted that request might be passed without implications on CORS, this includes most form requests.  
+
+Since the frontend has to send requests to the backend server, the security headers are being set when serving the frontend requests as well as when Nginx acts as proxy server for the backend API. This is to ensure the sercurity headers cannot be tampered with and are always set to the correct values.
+
+The backend server then checks the request origin and verifies the request against existing whitelisted origins. The backend uses [django-cors-headers](https://github.com/adamchainz/django-cors-headers) to verify and add CORS headers which consiquesntly allow the response to be accessed on other domains. The list of accepted domains are defined in settings file using ```CORS_ALLOWED_ORIGINS```.
+
+### CSP Headers
+CSP headers are added in the following block:
+
+```
+set $CSP "default-src 'none';";
+set $CSP "${CSP}script-src 'self';";
+set $CSP "${CSP}style-src 'self' 'unsafe-inline';";
+...
+set $CSP "${CSP}style-src-elem 'self';";
+set $CSP "${CSP}style-src-attr 'none';";
+set $CSP "${CSP}worker-src 'none';";
+add_header Content-Security-Policy $CSP;
+```
+
+The ```default-src``` header sets all the CSP headers to a default value. Any of the CSP headers then can override the default value. As an example, in the above config default value is set to 'none', however ```script-src``` is set to self which means scripts from the same source are secure to run and can be accepted.

@@ -4,14 +4,13 @@
 wsgi_app = "tdpservice.wsgi:application"
 
 # The granularity of Error log outputs
-#loglevel = "debug"
-
+loglevel = "debug"
 # The number of worker processes for handling requests
 workers = 2
 # The socket to bind
 bind = "0.0.0.0:8080"
 # Restart workers when code changes (development only!)
-reload = False
+reload = True
 # Write access and error info to /var/log
 # accesslog = errorlog = "/var/log/gunicorn/dev.log"
 # Redirect stdout/stderr to log file

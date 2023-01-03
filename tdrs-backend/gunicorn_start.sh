@@ -30,12 +30,9 @@ python manage.py search_index --rebuild -f
 
 echo "Starting Gunicorn"
 if [[ "$DJANGO_CONFIGURATION" = "Development" || "$DJANGO_CONFIGURATION" = "Local" ]]; then
-    gunicorn_params="--bind 0.0.0.0:8080 --timeout 10 --workers 3 --reload --log-level $LOGGING_LEVEL"
+    gunicorn_cmd="gunicorn -c gunicorn_development.py --log-level $LOGGING_LEVEL"
 else
-    gunicorn_params="--bind 0.0.0.0:8080 --timeout 10 --workers 3 --log-level $LOGGING_LEVEL"
+    gunicorn_cmd="gunicorn -c gunicorn.py --log-level $LOGGING_LEVEL"
 fi
-
-# gunicorn_cmd="gunicorn tdpservice.wsgi:application $gunicorn_params"
-gunicorn_cmd="gunicorn -c gunicorn.py --log-file=-"
 
 exec $gunicorn_cmd
