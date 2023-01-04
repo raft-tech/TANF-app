@@ -59,6 +59,10 @@
       - run:
           name: Run Cypress e2e tests
           command: cd tdrs-frontend; npm run test:e2e-ci
+      - store_artifacts:
+          path: tdrs-frontend/cypress/screenshots/
+      - store_artifacts:
+          path: tdrs-frontend/cypress/videos/
 
   secrets-check:
     executor: docker-executor
