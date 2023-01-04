@@ -15,7 +15,7 @@
 1. Be sure your `tdrs-backend/.env` file contains the following
    ```bash
    # testing
-   CYPRESS_TOKEN=anything-will-do # this should match the value in `tdrs-frontend/cypress.config.js`
+   CYPRESS_TOKEN=local-cypress-token
 
    DJANGO_DEBUG=yes
    ```

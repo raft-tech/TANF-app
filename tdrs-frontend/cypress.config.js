@@ -9,7 +9,7 @@ module.exports = defineConfig({
 
     env: {
       apiUrl: 'http://localhost:8080/v1',
-      cypressToken: 'anything-will-do',
+      cypressToken: 'local-cypress-token',
     },
 
     async setupNodeEvents(on, config) {
