@@ -72,11 +72,13 @@ set_cf_envs()
         continue
     fi
 
-    if [[ "$var_name" =~ "PROD_" ]] && [[ "$CF_SPACE" = "tanf-prod" ]]; then
+    if [[ "$var_name" =~ "PROD_" ]]; then
+      if [[ "$CF_SPACE" = "tanf-prod" ]]; then
         prod_var_name=$(echo $var_name | sed -e 's/PROD_//g')
         cf_cmd="cf set-env $CGAPPNAME_BACKEND $prod_var_name ${!var_name}"
+      else # if var starts with `PROD_` but CF_SPACE is anything else, do not set
+        continue
     else
-    
         cf_cmd="cf set-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
     fi
     
