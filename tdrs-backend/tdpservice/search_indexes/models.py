@@ -1,7 +1,6 @@
 """Models representing parsed data file records submitted to TDP."""
 
 from django.db import models
-from tdpservice.data_files.models import DataFile
 
 class T1(models.Model):
     """
@@ -291,5 +290,4 @@ class T7(models.Model):
     )
     stratum = models.CharField(max_length=2, null=False, blank=False)
     families = models.IntegerField(null=False, blank=False)
-
 

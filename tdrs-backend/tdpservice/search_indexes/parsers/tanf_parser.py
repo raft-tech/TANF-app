@@ -19,11 +19,7 @@ def active_t1_parser(line, line_number):
         if field.name == 'blank':
             break
         content = line[field.start-1:field.end]  # descriptor pdfs were off by one, could also adjust start values
-        if len(content) != field.length:
-            logger.warn('[LineNo:%d, col%d] Expected field "%s" with length %d, got: "%s"',
-                        line_number, field.start-1, field.name, field.length, content)
-            content_is_valid = False
-            continue
+
         # check if content is type string or integer
         if field.type == 'Numeric':
             try:

@@ -80,6 +80,7 @@ class DataFileViewSet(ModelViewSet):
                 username=settings.ACFTITAN_USERNAME,
                 port=22
             )
+            logger.info("Submitted upload task to redis for datafile %s.", data_file_id)
 
             # Send email to user to notify them of the file upload status
             subject = f"Data Submitted for {data_file.section}"

@@ -6,37 +6,37 @@ import re
 logger = logging.getLogger(__name__)
 
 
-def get_record_type(row):
-    """Get the record type from the row."""
-    if re.match(r'^HEADER.*', row):
-        logger.debug('Matched following row as a header: %s' % row)
+def get_record_type(line):
+    """Get the record type from the line."""
+    if line.startswith('HEADER'):
+        logger.debug('Matched following line as a header: %s' % line)
         return 'HE'
-    elif re.match(r'^TRAILER.*', row):
-        logger.debug('Matched following row as a trailer: %s' % row)
+    elif line.startswith('TRAILER'):
+        logger.debug('Matched following line as a trailer: %s' % line)
         return 'TR'
-    elif re.match(r'^T1.*', row):
-        logger.debug('Matched following row as data: %s' % row)
+    elif line.startswith('T1'):
+        logger.debug('Matched following line as data: %s' % line)
         return 'T1'
-    elif re.match(r'^T2.*', row):
-        logger.debug('Matched following row as data: %s' % row)
+    elif line.startswith('T2'):
+        logger.debug('Matched following line as data: %s' % line)
         return 'T2'
-    elif re.match(r'^T3.*', row):
-        logger.debug('Matched following row as data: %s' % row)
+    elif line.startswith('T3'):
+        logger.debug('Matched following line as data: %s' % line)
         return 'T3'
-    elif re.match(r'^T4.*', row):
-        logger.debug('Matched following row as data: %s' % row)
+    elif line.startswith('T4'):
+        logger.debug('Matched following line as data: %s' % line)
         return 'T4'
-    elif re.match(r'^T5.*', row):
-        logger.debug('Matched following row as data: %s' % row)
+    elif line.startswith('T5'):
+        logger.debug('Matched following line as data: %s' % line)
         return 'T5'
-    elif re.match(r'^T6.*', row):
-        logger.debug('Matched following row as data: %s' % row)
+    elif line.startswith('T6'):
+        logger.debug('Matched following line as data: %s' % line)
         return 'T6'
-    elif re.match(r'^T7.*', row):
-        logger.debug('Matched following row as data: %s' % row)
+    elif line.startswith('T7'):
+        logger.debug('Matched following line as data: %s' % line)
         return 'T7'
     else:
-        logger.debug('No match for row: %s' % row)
+        logger.debug('No match for line: %s' % line)
         return None
 
 class Field:
@@ -58,7 +58,7 @@ class Field:
         return f"{self.name}({self.start}-{self.end})"
 
 class RowSchema:
-    """Maps the schema for data rows."""
+    """Maps the schema for data lines."""
 
     def __init__(self):  # , section):
         self.fields = []

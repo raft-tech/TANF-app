@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('search_indexes', '0002_parserlog'),
+        ('search_indexes', '0001_initial'),
     ]
 
     operations = [
