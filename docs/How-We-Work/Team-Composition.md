@@ -15,7 +15,6 @@ Please refer to the [Team Members doc](https://hhsgov.sharepoint.com/:w:/r/sites
 * Cameron Smart, Raft, full stack engineer
 * Jan Timpe, Raft, full stack engineer
 * Mo Sohani, Raft, full stack engineer
-* George Hudson, Raft, DevOps engineer
 
 ## Subject Matter Experts
 **OFA Data Team**
