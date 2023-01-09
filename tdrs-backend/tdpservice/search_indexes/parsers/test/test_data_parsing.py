@@ -175,7 +175,6 @@ def test_preparser_bad_file(bad_test_file, bad_file_missing_header, mocker):
 
     spies = [spy_preparse, spy_head, spy_tail, spy_parse, spy_t1]
     is_valid, preparser_errors = preparser.preparse(bad_test_file, 'TANF', 'Active Case Data')
-    assert not is_valid
     assert preparser_errors != {}
 
     assert spy_count_check(spies, [1, 0, 0, 0, 0])

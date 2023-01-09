@@ -293,22 +293,3 @@ class T7(models.Model):
     families = models.IntegerField(null=False, blank=False)
 
 
-class ParserLog(models.Model):
-    """Stores the log of the parser and links to DataFile object."""
-
-    class Status(models.TextChoices):
-        """Possible statuses of the parser."""
-
-        ACCEPTED = 'Accepted'
-        PENDING = 'Pending'
-        ACCEPTED_WITH_ERRORS = 'Accepted with errors'
-        REJECTED = 'Rejected'
-
-    data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(auto_now_add=True)
-    # TODO: foreignkey to list of t1 models? What about other 6? parent model for t1-t7?
-
-    # enum: Accepted, Accepted with errors, Rejected
-    status = models.CharField(max_length=20, null=False, blank=False)
-
-    errors = models.JSONField(null=True, blank=True)
