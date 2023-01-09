@@ -29,6 +29,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         """Generate test users if they don't exist."""
         if settings.DEBUG:
-            get_or_create_user('new-cypress@goraft.tech')
+            get_or_create_user('new-cypress@teamraft.com')
         else:
             raise Exception('Cannot create cypress users in non-dev environments.')
