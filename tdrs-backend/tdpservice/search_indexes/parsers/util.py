@@ -1,7 +1,6 @@
 """Utility file for functions shared between all parsers even preparser."""
 
 import logging
-import re
 
 logger = logging.getLogger(__name__)
 

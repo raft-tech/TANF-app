@@ -290,4 +290,3 @@ class T7(models.Model):
     )
     stratum = models.CharField(max_length=2, null=False, blank=False)
     families = models.IntegerField(null=False, blank=False)
-
