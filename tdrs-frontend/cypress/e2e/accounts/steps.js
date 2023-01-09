@@ -7,7 +7,7 @@ When('I visit the home page', () => {
 })
 
 When('I log in as a new user', () => {
-  cy.login('new-cypress@goraft.tech')
+  cy.login('new-cypress@teamraft.com')
 })
 
 Then('I see a Request Access form', () => {
