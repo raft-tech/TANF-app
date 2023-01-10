@@ -15,6 +15,14 @@ def active_t1_parser(line, line_number):
     # create search_index model
     t1 = T1()
     content_is_valid = True
+
+    expected_line_length = 156  # we will need to adjust for other types
+    actual_line_length = len(line)
+    if actual_line_length != expected_line_length:
+        logger.error('Expected line length of 156, got: %s', actual_line_length)
+        # should be added to parser log in #1354
+        return
+
     for field in family_case_schema.get_all_fields():
         if field.name == 'blank':
             break
@@ -83,14 +91,7 @@ def parse(datafile):
             # Header/trailers do not differ between types, this is part of preparsing.
             continue
         elif record_type == 'T1':
-            expected_line_length = 156  # we will need to adjust for other types
-            actual_line_length = len(line)
-            if actual_line_length != expected_line_length:
-                logger.error('Expected line length of 156, got: %s', actual_line_length)
-                # should be added to parser log in #1354
-                continue
-            else:
-                active_t1_parser(line, line_number)
+            active_t1_parser(line, line_number)
         else:
             logger.warn("Parsing for type %s not yet implemented", record_type)
             continue
