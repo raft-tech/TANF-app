@@ -2,7 +2,7 @@
 
 ## Background
 
-[Cypress](https://cypress.io) is a browser-automation testing suite that we use for end-to-end tests. See [ADR019 - Integration Tests]()./Architecture-Decision-Record/019-integration-tests.md) for some additional background on testing goals and decisions.
+[Cypress](https://cypress.io) is a browser-automation testing suite that we use for end-to-end tests. See [ADR019 - Integration Tests](./Architecture-Decision-Record/019-integration-tests.md) for some additional background on testing goals and decisions.
 
 ## Running tests
 
