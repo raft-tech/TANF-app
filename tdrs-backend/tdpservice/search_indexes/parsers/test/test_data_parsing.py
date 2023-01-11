@@ -68,7 +68,6 @@ def empty_file():
     test_filename = test_filepath + "/empty_file"
     yield open(test_filename, 'rb')
 
-@pytest.mark.django_db
 def test_preparser_header(test_file, bad_test_file):
     """Test header preparser."""
     logger.info("test_file type: %s", type(test_file))
