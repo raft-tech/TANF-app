@@ -41,16 +41,17 @@ def get_record_type(line):
 class Field:
     """Provides a mapping between a field name and its position."""
 
-    def __init__(self, name, length, start, end, type):
+    def __init__(self, name, length, start, end, type, validators=[]):
         self.name = name
         self.length = length
         self.start = start
         self.end = end
         self.type = type
+        self.validators = validators
 
-    def create(self, name, length, start, end, type):
+    def create(self, name, length, start, end, type, validators):
         """Create a new field."""
-        return Field(name, length, start, end, type)
+        return Field(name, length, start, end, type, validators)
 
     def __repr__(self):
         """Return a string representation of the field."""
@@ -63,16 +64,16 @@ class RowSchema:
         self.fields = []
         # self.section = section # intended for future use with multiple section objects
 
-    def add_field(self, name, length, start, end, type):
+    def add_field(self, name, length, start, end, type, validators):
         """Add a field to the schema."""
         self.fields.append(
-            Field(name, length, start, end, type)
+            Field(name, length, start, end, type, validators)
         )
 
     def add_fields(self, fields: list):
         """Add multiple fields to the schema."""
-        for field, length, start, end, type in fields:
-            self.add_field(field, length, start, end, type)
+        for field, length, start, end, type, validators in fields:
+            self.add_field(field, length, start, end, type, validators)
 
     def get_field(self, name):
         """Get a field from the schema."""

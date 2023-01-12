@@ -44,6 +44,12 @@ def active_t1_parser(line, line_number):
 
         if content_is_valid:
             setattr(t1, field.name, content)
+        
+        if len(field.validators) > 0:
+            for validator in field.validators:
+                if validator(content) is False:
+                    logger.warn('[LineNo:%d, col%d] Field "%s" failed validation: "%s"',
+                                line_number, field.start-1, field.name, content)
 
     if content_is_valid is False:
         logger.warn('Content is not valid, skipping model creation.')
