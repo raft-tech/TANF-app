@@ -118,18 +118,26 @@ T1-170 61 PROVIDING CHILD CARE SERVICES (HOLIDAYS) IF ITEM 30 = 1, THEN ITEM 61c
 T1-171 63 NUMBER OF DEEMED CORE HOURS FOR OVERALL RATE IF ITEM 30 = 1 OR 2, THEN ITEM 63 MUST => 0 FATAL
 T1-172 64 NUMBER OF DEEMED CORE HOURS FOR THE 2-PARENT RATE IF ITEM 30 = 1 OR 2, THEN ITEM 64 MUST => 0 FATAL
 '''
-
-def t1_006(model):
-    month = model.reporting_month
+# write validators using the abve template and the search_indexes models
+def t1_006(model_obj):
+    month = model_obj.reporting_month
     return int(str(month)[0:4]) >= 1998
 
-def t1_007(model):
-    month = model.reporting_month
+def t1_007(model_obj):
+    month = model_obj.reporting_month
     return int(str(month)[4:6]) >= 1 and int(str(month)[4:6]) <= 12
 
-def t1_014(content):
-    return content in [1, 2, 3, 4, 5]
+def t1_014(model_obj):
+    return model_obj.family_affiliation in [1, 2, 3, 4, 5]
 
-def t1_036(content):
-    
+def t1_036(model_obj):
+    if model_obj.family_affiliation in [2, 3, 4, 5]:
+        return model_obj.education_level in [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 98, 99]
 
+def t1_037(model_obj):
+    if model_obj.family_affiliation == 1:
+        return model_obj.education_level in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 98]
+
+def t1_038(model_obj):
+    if model_obj.education_level == None:
+        return model_obj.family_affiliation == 5
