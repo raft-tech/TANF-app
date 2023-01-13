@@ -44,10 +44,11 @@ def active_t1_parser(line, line_number):
 
         if content_is_valid:
             setattr(t1, field.name, content)
-        
-        if len(field.validators) > 0:
+    
+    for field in family_case_schema.get_all_fields():
+         if len(field.validators) > 0:
             for validator in field.validators:
-                if validator(content) is False:
+                if validator(t1) is False:
                     logger.warn('[LineNo:%d, col%d] Field "%s" failed validation: "%s"',
                                 line_number, field.start-1, field.name, content)
 

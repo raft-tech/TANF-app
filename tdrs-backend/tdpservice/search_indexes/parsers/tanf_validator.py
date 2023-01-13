@@ -119,8 +119,17 @@ T1-171 63 NUMBER OF DEEMED CORE HOURS FOR OVERALL RATE IF ITEM 30 = 1 OR 2, THEN
 T1-172 64 NUMBER OF DEEMED CORE HOURS FOR THE 2-PARENT RATE IF ITEM 30 = 1 OR 2, THEN ITEM 64 MUST => 0 FATAL
 '''
 
-def t1_006(month):
+def t1_006(model):
+    month = model.reporting_month
     return int(str(month)[0:4]) >= 1998
 
-def t1_007(month):
+def t1_007(model):
+    month = model.reporting_month
     return int(str(month)[4:6]) >= 1 and int(str(month)[4:6]) <= 12
+
+def t1_014(content):
+    return content in [1, 2, 3, 4, 5]
+
+def t1_036(content):
+    
+
