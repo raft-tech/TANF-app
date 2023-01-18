@@ -37,6 +37,7 @@ class STT(models.Model):
     # Tribes have a state, which we need to store.
     state = models.ForeignKey("self", on_delete=models.CASCADE, blank=True, null=True)
     ssp = models.BooleanField(default=False, null=True)
+    sample = models.BooleanField(default=False, null=True)
 
     class Meta:
         """Metadata."""

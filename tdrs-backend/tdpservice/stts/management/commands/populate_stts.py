@@ -41,6 +41,7 @@ def _load_csv(filename, entity):
             stt.filenames = json.loads(row["filenames"].replace('\'', '"'))
             stt.stt_code = row["STT_CODE"]
             stt.ssp = row["SSP"]
+            stt.sample = row["Sample"]
             # TODO: Was seeing lots of references to STT.objects.filter(pk=...
             #       We could probably one-line this but we'd miss .save() signals
             #       https://stackoverflow.com/questions/41744096/
