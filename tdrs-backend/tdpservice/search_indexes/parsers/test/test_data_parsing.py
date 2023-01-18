@@ -173,14 +173,15 @@ def test_preparser_bad_file(bad_test_file, bad_file_missing_header, mocker):
     spy_t1 = mocker.spy(tanf_parser, 'active_t1_parser')
 
     spies = [spy_preparse, spy_head, spy_tail, spy_parse, spy_t1]
-    is_valid, preparser_errors = preparser.preparse(bad_test_file, 'TANF', 'Active Case Data')
-    assert preparser_errors != {}
+    with pytest.raises(ValueError) as e_info: 
+        is_valid, preparser_errors = preparser.preparse(bad_test_file, 'TANF', 'Active Case Data')
+    assert str(e_info.value) == 'Header invalid, error: Header length incorrect.'
 
     assert spy_count_check(spies, [1, 0, 0, 0, 0])
 
     with pytest.raises(ValueError) as e_info:
         preparser.preparse(bad_file_missing_header, 'TANF', 'Active Case Data')
-    assert str(e_info.value) == 'First line in file is not recognized as a valid header.'
+    assert str(e_info.value) == 'Header invalid, error: First line in file is not recognized as a valid header.'
 
 @pytest.mark.django_db
 def test_preparser_bad_params(test_file, mocker):

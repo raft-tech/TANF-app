@@ -104,12 +104,13 @@ def get_header_line(datafile):
     if isinstance(line, bytes):
         line = line.decode()
 
+    line = line.strip()
+
     if get_record_type(line) != 'HE':
-        raise ValueError('First line in file is not recognized as a valid header.')
-    elif len(line) != 24:
+        return False, {'preparsing': 'First line in file is not recognized as a valid header.'}
+    elif len(line) != 23:
         logger.debug("line: '%s' len: %d", line, len(line))
         return False, {'preparsing': 'Header length incorrect.'}
-    line = line.strip('\n')
 
     return True, line
 
@@ -155,7 +156,7 @@ def preparse(data_file, data_type, section):
 
     header_preparsed, line = get_header_line(datafile)
     if header_preparsed is False:
-        return False, line
+        raise ValueError("Header invalid, error: %s" % line['preparsing'])
     # logger.debug("Header: %s", line)
 
     header_is_valid, header_validator = validate_header(line, data_type, section)
@@ -164,7 +165,7 @@ def preparse(data_file, data_type, section):
 
     trailer_preparsed, line = get_trailer_line(datafile)
     if trailer_preparsed is False:
-        return False, line
+        raise ValueError("Trailer invalid, error: %s" % line['preparsing'])
     trailer_is_valid, trailer_validator = validate_trailer(line)
     if isinstance(trailer_validator, Exception):
         raise trailer_validator
