@@ -173,7 +173,7 @@ def test_preparser_bad_file(bad_test_file, bad_file_missing_header, mocker):
     spy_t1 = mocker.spy(tanf_parser, 'active_t1_parser')
 
     spies = [spy_preparse, spy_head, spy_tail, spy_parse, spy_t1]
-    with pytest.raises(ValueError) as e_info: 
+    with pytest.raises(ValueError) as e_info:
         is_valid, preparser_errors = preparser.preparse(bad_test_file, 'TANF', 'Active Case Data')
     assert str(e_info.value) == 'Header invalid, error: Header length incorrect.'
 
