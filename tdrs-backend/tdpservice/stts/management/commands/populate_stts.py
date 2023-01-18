@@ -32,10 +32,10 @@ def _load_csv(filename, entity):
             else:
                 logger.debug("Found STT " + row["Name"] + ", will sync with data csv.")
 
-            stt.code = row["Code"]
+            stt.postal_code = row["Code"]
             stt.region_id = row["Region"]
             if filename == "tribes.csv":
-                stt.state = STT.objects.get(code=row["Code"], type=STT.EntityType.STATE)
+                stt.state = STT.objects.get(postal_code=row["Code"], type=STT.EntityType.STATE)
 
             stt.type = entity
             stt.filenames = json.loads(row["filenames"].replace('\'', '"'))
