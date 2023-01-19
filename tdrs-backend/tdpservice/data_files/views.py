@@ -77,7 +77,11 @@ class DataFileViewSet(ModelViewSet):
             data_file.s3_versioning_id = version_id
             data_file.save(update_fields=['s3_versioning_id'])
 
-            # Send email to user to notify them of the file upload status
+            # print(f'!!!!!!!!!!!!!!!!!!!!!!!!!!{data_file.file}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            # print(f'!!!!!!!!!!!!!!!!!!!!!!!!!!{version_id}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            # print('=====================================================')
+
+                # Send email to user to notify them of the file upload status
             subject = f"Data Submitted for {data_file.section}"
             email_context = {
                 'stt_name': str(data_file.stt),
@@ -140,32 +144,35 @@ class DataFileViewSet(ModelViewSet):
         """Retrieve a file from s3 then stream it to the client."""
         record = self.get_object()
 
-        response = FileResponse(
-            FileWrapper(record.file),
-            filename=record.original_filename
-        )
-        return response
-
-        # # If no versioning id, then download from django storage
-        # if not hasattr(record, 's3_versioning_id') or record.s3_versioning_id is None:
-        #     response = FileResponse(
-        #         FileWrapper(record.file),
-        #         filename=record.original_filename
-        #     )
-        #     return response
-
-        # # If versioning id, then download from s3
-        # s3 = S3Client()
-        # bucket_name = settings.AWS_S3_DATAFILES_BUCKET_NAME
-        # file_path = record.file.name
-        # version_id = record.s3_versioning_id
-        # file = s3.file_download(bucket_name, file_path, version_id)
-
         # response = FileResponse(
-        #     FileWrapper(file),
+        #     FileWrapper(record.file),
         #     filename=record.original_filename
         # )
         # return response
+        # If no versioning id, then download from django storage
+        if not hasattr(record, 's3_versioning_id') or record.s3_versioning_id is None:
+            response = FileResponse(
+                FileWrapper(record.file),
+                filename=record.original_filename
+            )
+            return response
+
+        # If versioning id, then download from s3
+        s3 = S3Client()
+        bucket_name = settings.AWS_S3_DATAFILES_BUCKET_NAME
+        file_path = record.file.name
+        version_id = record.s3_versioning_id
+
+        print(f'!!!!!!!!!!!!!!!!!!!!!!!!!!{bucket_name}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        print(f'!!!!!!!!!!!!!!!!!!!!!!!!!!{file_path}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        print(f'!!!!!!!!!!!!!!!!!!!!!!!!!!{version_id}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        file = s3.file_download(bucket_name, file_path, version_id)
+
+        response = FileResponse(
+            FileWrapper(file),
+            filename=record.original_filename
+        )
+        return response
 
 
 class GetYearList(APIView):

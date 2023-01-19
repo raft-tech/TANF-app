@@ -12,8 +12,6 @@ else
     ( cd  /home/vcap/deps/0/bin/; ./redis-server /home/vcap/app/redis.conf &)
 fi
 
-aws s3api put-bucket-versioning --bucket tdp-datafiles-localstack --versioning-configuration Status=Enabled
-
 #
 echo "Applying database migrations"
 python manage.py makemigrations

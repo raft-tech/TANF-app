@@ -122,10 +122,8 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
 
     def test_download_data_file_file(self, api_client, data_file_data, user):
         """Test that the file is transmitted with out errors."""
-        print('1========================================================================')
         response = self.post_data_file_file(api_client, data_file_data)
         data_file_id = response.data['id']
-        print('2========================================================================')
         response = self.download_file(api_client, data_file_id)
 
         assert response.status_code == status.HTTP_200_OK
