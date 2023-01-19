@@ -204,7 +204,7 @@ The request should include:
 3. When OCIO confirms that the change has been made, add the private key from `filename_where_newtitan_keypair_saved` to CircleCI as an environment variable. The variable name is `ACFTITAN_KEY`. **Please note**: the value needs must be edited before adding to CircleCI. It should be a one-line string with underscores ("_") replacing the spaces at the end of every line. See example below:
 
 ```
------BEGIN OPENSSH PRIVATE KEY-----_somehashvalue__-----END OPENSSH PRIVATE KEY-----
+-----BEGIN OPENSSH PRIVATE KEY-----_somehashvalue_-----END OPENSSH PRIVATE KEY-----
 ```
 
 4. Re-run the deployment workflow from CircleCI and confirm that the updated key value pair has been added to the relevant cloud.gov backend application.
