@@ -3,7 +3,7 @@
 ## Context
 
 To maintain good security, we will periodically rotate the following secret keys, which are used to control authentication and authorization to our application:
-- CF deployer keys (_for continuous deployment_)
+- CF deployer keys (_for continuous delivery_)
 - JWT keys (_external user auth_)
 - ACF AMS keys (_internal user auth_)
 - ACF Titan server keys (_for file transfers between TDP and TDRS_)
