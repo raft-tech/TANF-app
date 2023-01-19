@@ -58,7 +58,6 @@ class DataFileViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Override create to upload in case of successful scan."""
         response = super().create(request, *args, **kwargs)
-
         # Get the version id of the file uploaded to S3 if there is one
         version_id = self.get_s3_versioning_id(response.data.get('original_filename'))
 
@@ -76,10 +75,6 @@ class DataFileViewSet(ModelViewSet):
             data_file = DataFile.objects.get(id=response.data.get('id'))
             data_file.s3_versioning_id = version_id
             data_file.save(update_fields=['s3_versioning_id'])
-
-            # print(f'!!!!!!!!!!!!!!!!!!!!!!!!!!{data_file.file}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            # print(f'!!!!!!!!!!!!!!!!!!!!!!!!!!{version_id}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            # print('=====================================================')
 
                 # Send email to user to notify them of the file upload status
             subject = f"Data Submitted for {data_file.section}"
@@ -159,17 +154,12 @@ class DataFileViewSet(ModelViewSet):
 
         # If versioning id, then download from s3
         s3 = S3Client()
-        bucket_name = settings.AWS_S3_DATAFILES_BUCKET_NAME
         file_path = record.file.name
         version_id = record.s3_versioning_id
-
-        print(f'!!!!!!!!!!!!!!!!!!!!!!!!!!{bucket_name}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        print(f'!!!!!!!!!!!!!!!!!!!!!!!!!!{file_path}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        print(f'!!!!!!!!!!!!!!!!!!!!!!!!!!{version_id}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        file = s3.file_download(bucket_name, file_path, version_id)
+        f = s3.file_download(file_path, record.original_filename, version_id)
 
         response = FileResponse(
-            FileWrapper(file),
+            FileWrapper(f),
             filename=record.original_filename
         )
         return response
