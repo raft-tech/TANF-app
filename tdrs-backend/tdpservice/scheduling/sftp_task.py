@@ -98,8 +98,6 @@ def upload(data_file_pk,
 
         # Add the log LegacyFileTransfer
         file_transfer_record.result = LegacyFileTransfer.Result.COMPLETED
-        logging.info('+++++++++++++++++'+str(file_transfer_record.__dict__))
-        logging.info('+++++++++++++++++'+file_transfer_record.file_name)
         file_transfer_record.save()
         transport.close()
         return True
