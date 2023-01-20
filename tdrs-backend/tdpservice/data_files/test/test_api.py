@@ -150,6 +150,11 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         self.assert_data_file_exists(data_file_data, 1, user)
         self.assert_data_file_exists(other_data_file_data, 2, user)
 
+        file_1 = DataFile.objects.get(id=response1.data['id'])
+        file_2 = DataFile.objects.get(id=response2.data['id'])
+
+        assert file_1.s3_versioning_id != file_2.s3_versioning_id
+
 
 class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
     """Test DataFileViewSet as a Data Analyst user."""
@@ -181,9 +186,6 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         response = self.post_data_file_file(api_client, data_file_data)
         data_file_id = response.data['id']
         response = self.download_file(api_client, data_file_id)
-
-        print(response)
-        print('^^response^^')
 
         assert response.status_code == status.HTTP_200_OK
         self.assert_data_file_content_matches(response, data_file_id)

@@ -76,7 +76,7 @@ class DataFileViewSet(ModelViewSet):
             data_file.s3_versioning_id = version_id
             data_file.save(update_fields=['s3_versioning_id'])
 
-                # Send email to user to notify them of the file upload status
+            # Send email to user to notify them of the file upload status
             subject = f"Data Submitted for {data_file.section}"
             email_context = {
                 'stt_name': str(data_file.stt),
@@ -156,10 +156,9 @@ class DataFileViewSet(ModelViewSet):
         s3 = S3Client()
         file_path = record.file.name
         version_id = record.s3_versioning_id
-        f = s3.file_download(file_path, record.original_filename, version_id)
 
         response = FileResponse(
-            FileWrapper(f),
+            FileWrapper(s3.file_download(file_path, record.original_filename, version_id)),
             filename=record.original_filename
         )
         return response
