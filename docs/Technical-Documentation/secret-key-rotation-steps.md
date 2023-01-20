@@ -32,7 +32,7 @@ cf target -o hhs-acf-ofa -s tanf-<env>
 cf service-key tanf-keys deployer
 ```
 
-1. remove the current username associated the the `deployer` `tanf-key`  service instance from cloud.gov space (this is the same value as `CF_USERNAME_<env>` ). This task can also be done from the dashboard.
+1. remove the current username associated the the `deployer` `tanf-keys`  service instance from cloud.gov space (this is the same value as `CF_USERNAME_<env>` ). This task can also be done from the dashboard.
 
 ```
 cf delete-user <<insert USERNAME value for deployer key>>
