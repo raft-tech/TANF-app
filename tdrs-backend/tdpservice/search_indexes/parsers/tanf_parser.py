@@ -79,7 +79,6 @@ def parse(datafile):
 
     datafile.seek(0)  # ensure we are at the beginning of the file
     line_number = 0
-    header_count = 0
     for raw_line in datafile:
         line_number += 1
         if isinstance(raw_line, bytes):
@@ -90,10 +89,6 @@ def parse(datafile):
 
         if record_type == 'HE' or record_type == 'TR':
             # Header/trailers do not differ between types, this is part of preparsing.
-            header_count += 1
-            if header_count > 2:
-                logger.error('More than two header records found, skipping.')
-                
             continue
         elif record_type == 'T1':
             active_t1_parser(line, line_number)
