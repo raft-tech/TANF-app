@@ -7,6 +7,8 @@ logger = logging.getLogger(__name__)
 
 def get_record_type(line):
     """Get the record type from the line."""
+    line = line.decode() if isinstance(line, bytes) else line
+
     if line.startswith('HEADER'):
         logger.debug('Matched following line as a header: %s' % line)
         return 'HE'
