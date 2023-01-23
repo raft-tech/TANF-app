@@ -236,7 +236,8 @@ def test_parsing_tanf_t1_active(test_file):
     t1_count_before = T1.objects.count()
     assert t1_count_before == 0
     tanf_parser.parse(test_file)
-    assert T1.objects.count() == t1_count_before + 1
+    t1_count_after = T1.objects.count()
+    assert t1_count_after == (t1_count_before + 1)
 
     # define expected values
     # we get back a parser log object for 1354

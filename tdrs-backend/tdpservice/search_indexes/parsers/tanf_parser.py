@@ -16,15 +16,15 @@ def active_t1_parser(line, line_number):
     t1 = T1()
     content_is_valid = True
 
-    expected_line_length = 156  # we will need to adjust for other types
+    min_line_length = 118  # we will need to adjust for other types
     actual_line_length = len(line)
-    if actual_line_length != expected_line_length:
-        logger.error('Expected line length of 156, got: %s', actual_line_length)
-        # should be added to parser log in #1354
+    if actual_line_length < min_line_length:
+        logger.error('Expected minimum line length of %s, got: %s', min_line_length, actual_line_length)
         return
 
     for field in family_case_schema.get_all_fields():
         if field.name == 'blank':
+            # We are discarding this data.
             break
         content = line[field.start-1:field.end]  # descriptor pdfs were off by one, could also adjust start values
 
@@ -79,6 +79,7 @@ def parse(datafile):
 
     datafile.seek(0)  # ensure we are at the beginning of the file
     line_number = 0
+    header_count = 0
     for raw_line in datafile:
         line_number += 1
         if isinstance(raw_line, bytes):
@@ -89,6 +90,10 @@ def parse(datafile):
 
         if record_type == 'HE' or record_type == 'TR':
             # Header/trailers do not differ between types, this is part of preparsing.
+            header_count += 1
+            if header_count > 2:
+                logger.error('More than two header records found, skipping.')
+                
             continue
         elif record_type == 'T1':
             active_t1_parser(line, line_number)
