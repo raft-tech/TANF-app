@@ -9,7 +9,8 @@ DEPLOY_STRATEGY=${1}
 
 #The application name  defined via the manifest yml for the frontend
 CGAPPNAME_BACKEND=${2}
-CF_SPACE=${3}
+CGAPPNAME_FRONTEND=${3}
+CF_SPACE=${4}
 
 strip() {
     # Usage: strip "string" "pattern"
@@ -100,10 +101,11 @@ update_backend()
     set_cf_envs
 
     if [ "$CF_SPACE" = "tanf-prod" ]; then
-        cf map-route tdp-backend-prod api-tanfdata.acf.hhs.gov
+        continue
     else
         cf map-route "$CGAPPNAME_BACKEND" app.cloud.gov --hostname "$CGAPPNAME_BACKEND"
     fi
+    cf map-route "$CGAPPNAME_BACKEND" apps.internal --hostname "$CGAPPNAME_BACKEND"
 
     cd ..
 }
@@ -129,13 +131,10 @@ bind_backend_to_services() {
 
 # Determine the appropriate BASE_URL for the deployed instance based on the
 # provided Cloud.gov App Name
-DEFAULT_ROUTE="https://$CGAPPNAME_BACKEND.app.cloud.gov"
+DEFAULT_ROUTE="https://$CGAPPNAME_FRONTEND.app.cloud.gov"
 if [ -n "$BASE_URL" ]; then
   # Use Shell Parameter Expansion to replace localhost in the URL
   BASE_URL="${BASE_URL//http:\/\/localhost:8080/$DEFAULT_ROUTE}"
-elif [ "$CF_SPACE" = "tanf-prod" ]; then
-  # Keep the base url set explicitly for production.
-  BASE_URL="https://api-tanfdata.acf.hhs.gov/v1"
 else
   # Default to the route formed with the cloud.gov env for the lower environments.
   BASE_URL="$DEFAULT_ROUTE/v1"
