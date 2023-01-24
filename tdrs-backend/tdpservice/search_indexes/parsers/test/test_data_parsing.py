@@ -41,6 +41,13 @@ def bad_file_missing_header():
     yield open(test_filename, 'rb')
 
 @pytest.fixture
+def bad_file_multiple_headers():
+    """Open file pointer to bad test file."""
+    test_filepath = str(Path(__file__).parent.joinpath('data'))
+    test_filename = test_filepath + "/bad_two_headers.txt"
+    yield open(test_filename, 'rb')
+
+@pytest.fixture
 def big_bad_test_file():
     """Open file pointer to bad test file."""
     test_filepath = str(Path(__file__).parent.joinpath('data'))
@@ -164,7 +171,7 @@ def test_preparser_big_file(test_big_file, mocker):
     assert spy_count_check(spies, [1, 1, 1, 1, 815])
 
 @pytest.mark.django_db
-def test_preparser_bad_file(bad_test_file, bad_file_missing_header, mocker):
+def test_preparser_bad_file(bad_test_file, bad_file_missing_header, bad_file_multiple_headers, mocker):
     """Test that preparse correctly catches issues in a bad file."""
     spy_preparse = mocker.spy(preparser, 'preparse')
     spy_head = mocker.spy(preparser, 'validate_header')
@@ -173,14 +180,19 @@ def test_preparser_bad_file(bad_test_file, bad_file_missing_header, mocker):
     spy_t1 = mocker.spy(tanf_parser, 'active_t1_parser')
 
     spies = [spy_preparse, spy_head, spy_tail, spy_parse, spy_t1]
-    is_valid, preparser_errors = preparser.preparse(bad_test_file, 'TANF', 'Active Case Data')
-    assert preparser_errors != {}
+    with pytest.raises(ValueError) as e_info:
+        is_valid, preparser_errors = preparser.preparse(bad_test_file, 'TANF', 'Active Case Data')
+    assert str(e_info.value) == 'Header invalid, error: Header length incorrect.'
 
     assert spy_count_check(spies, [1, 0, 0, 0, 0])
 
     with pytest.raises(ValueError) as e_info:
         preparser.preparse(bad_file_missing_header, 'TANF', 'Active Case Data')
-    assert str(e_info.value) == 'First line in file is not recognized as a valid header.'
+    assert str(e_info.value) == 'Header invalid, error: First line in file is not recognized as a valid header.'
+
+    with pytest.raises(ValueError) as e_info:
+        preparser.preparse(bad_file_multiple_headers, 'TANF', 'Active Case Data')
+    assert str(e_info.value).startswith('Preparsing error: Multiple header lines found')
 
 @pytest.mark.django_db
 def test_preparser_bad_params(test_file, mocker):
@@ -224,7 +236,8 @@ def test_parsing_tanf_t1_active(test_file):
     t1_count_before = T1.objects.count()
     assert t1_count_before == 0
     tanf_parser.parse(test_file)
-    assert T1.objects.count() == t1_count_before + 1
+    t1_count_after = T1.objects.count()
+    assert t1_count_after == (t1_count_before + 1)
 
     # define expected values
     # we get back a parser log object for 1354

@@ -97,21 +97,22 @@ def get_header_line(datafile):
     """Alters header line into string."""
     # intentionally only reading first line of file
     datafile.seek(0)
-    line = datafile.readline()
+    header = datafile.readline()
     datafile.seek(0)  # reset file pointer to beginning of file
 
     # datafile when passed via redis/db is a FileField which returns bytes
-    if isinstance(line, bytes):
-        line = line.decode()
+    if isinstance(header, bytes):
+        header = header.decode()
 
-    if get_record_type(line) != 'HE':
-        raise ValueError('First line in file is not recognized as a valid header.')
-    elif len(line) != 24:
-        logger.debug("line: '%s' len: %d", line, len(line))
+    header = header.strip()
+
+    if get_record_type(header) != 'HE':
+        return False, {'preparsing': 'First line in file is not recognized as a valid header.'}
+    elif len(header) != 23:
+        logger.debug("line: '%s' len: %d", header, len(header))
         return False, {'preparsing': 'Header length incorrect.'}
-    line = line.strip('\n')
 
-    return True, line
+    return True, header
 
 def get_trailer_line(datafile):
     """Alters the trailer line into usable string."""
@@ -135,27 +136,52 @@ def get_trailer_line(datafile):
     logger.info("Trailer line: '%s'", line)
     if get_record_type(line) != 'TR':
         raise ValueError('Last line is not recognized as a trailer line.')
-    elif len(line) != 24:
+    elif len(line) < 13:
+        # Previously, we checked to ensure exact length was 24. At the business level, we
+        # don't care about the exact length, just that it's long enough to contain the
+        # trailer information (>=14) and can ignore the trailing spaces.
         logger.debug("line: '%s' len: %d", line, len(line))
         return False, {'preparsing': 'Trailer length incorrect.'}
     line = line.strip('\n')
 
     return True, line
 
+def check_plural_count(datafile):
+    """Ensure only one header and one trailer exist in file."""
+    header_count = 0
+    trailer_count = 0
+    line_no = 0
+
+    for line in datafile:
+        line_no += 1
+        if get_record_type(line) == 'HE':
+            header_count += 1
+            if header_count > 1:
+                return False, {'preparsing': 'Multiple header lines found on ' + str(line_no) + '.'}
+        elif get_record_type(line) == 'TR':
+            trailer_count += 1
+            if trailer_count > 1:
+                return False, {'preparsing': 'Multiple trailer lines found on ' + str(line_no) + '.'}
+    return True, None
+
 def preparse(data_file, data_type, section):
     """Validate metadata then dispatches file to appropriate parser."""
     if isinstance(data_file, DataFile):
         logger.debug("Beginning preparsing on '%s'", data_file.file.name)
-        datafile = data_file.file  # do I need to open() this?
+        datafile = data_file.file
     elif isinstance(data_file, BufferedReader):
         datafile = data_file
     else:
         logger.error("Unexpected datafile type %s", type(data_file))
         raise TypeError("Unexpected datafile type.")
 
+    unique_header_footer, line = check_plural_count(datafile)
+    if unique_header_footer is False:
+        raise ValueError("Preparsing error: %s" % line['preparsing'])
+
     header_preparsed, line = get_header_line(datafile)
     if header_preparsed is False:
-        return False, line
+        raise ValueError("Header invalid, error: %s" % line['preparsing'])
     # logger.debug("Header: %s", line)
 
     header_is_valid, header_validator = validate_header(line, data_type, section)
@@ -164,7 +190,7 @@ def preparse(data_file, data_type, section):
 
     trailer_preparsed, line = get_trailer_line(datafile)
     if trailer_preparsed is False:
-        return False, line
+        raise ValueError("Trailer invalid, error: %s" % line['preparsing'])
     trailer_is_valid, trailer_validator = validate_trailer(line)
     if isinstance(trailer_validator, Exception):
         raise trailer_validator

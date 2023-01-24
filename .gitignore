@@ -39,7 +39,6 @@ venv
 tmp
 *.pem
 *.rsa
-*.txt
 compliance/opencontrols/
 compliance/exports/
 tdrs-backend/tdpservice/static/*
