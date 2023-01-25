@@ -12,7 +12,6 @@ from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
-from rest_framework.pagination import PageNumberPagination
 from wsgiref.util import FileWrapper
 from rest_framework import status
 
@@ -20,6 +19,7 @@ from tdpservice.users.models import AccountApprovalStatusChoices, User
 from tdpservice.data_files.serializers import DataFileSerializer
 from tdpservice.data_files.models import DataFile
 from tdpservice.users.permissions import DataFilePermissions
+from tdpservice.stts.models import STT
 from tdpservice.scheduling import sftp_task
 from tdpservice.email.helpers.data_file import send_data_submitted_email
 from tdpservice.data_files.s3_client import S3Client
@@ -175,7 +175,7 @@ class DataFileViewSet(ModelViewSet):
 
     @action(methods=["get"], detail=False)
     def latest_submission(self, request):
-        """Get the latest submission for each section for a provided quarter, year, stt"""
+        """Get the latest submission for each section for a provided quarter, year, stt."""
         stt = request.query_params.get('stt', None)
         quarter = request.query_params.get('quarter', None)
         year = request.query_params.get('year', None)

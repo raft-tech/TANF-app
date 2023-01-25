@@ -13,9 +13,9 @@ from django.db.models import Max
 from tdpservice.backends import DataFilesS3Storage
 from tdpservice.stts.models import STT
 from tdpservice.users.models import User
-from tdpservice.data_files.s3_client import S3Client
 
 logger = logging.getLogger(__name__)
+
 
 def get_file_shasum(file: Union[File, StringIO]) -> str:
     """Derive the SHA256 checksum of a file."""
