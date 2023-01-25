@@ -16,7 +16,7 @@ In general for TDRS, the *Nginx* handles incoming HTTP requests to both frontend
 
 - HTTP requests are first handled by Cloud.gov (.app.cloud.gov subnet) and then routed to frontend instance
 - Nginx serves frontend requests directly and routes backend api requests to backend server.
-- The backend requests are distinguished by their specific URI (e.g: addresses starting with ```/v1```) usinf location directive (see below).
+- The backend requests are distinguished by their specific URI (e.g: addresses starting with ```/v1```) using location directive (see below).
 
 ```
 location ^~ /v1/ {
