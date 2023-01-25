@@ -53,7 +53,7 @@ Gunicorn by default uses **[Sync worker](https://docs.gunicorn.org/en/latest/des
 workers = 2
 ```
 
-There are two config files: one for development and one for deployed application. Gunicorn is started from ```gunicorn_start.sh``` which starts either version of config files based on envirenment.
+There are two config files: one for development and one for deployed applications. Gunicorn is started from ```gunicorn_start.sh``` which starts either version of config files based on environment.
 
 ## Security
 
