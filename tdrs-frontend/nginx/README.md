@@ -58,7 +58,7 @@ There are two config files: one for development and one for deployed application
 ## Security
 
 ### Whitelist IPs
-A list of IP addresses has been added to ```ip_whitelist.conf```. This means any request from an ip address not in the subnets included in this file will be rejected. This list is created manualy and needs to be maintained to whitelist and include user IP subnets.
+A list of IP addresses has been added to ```ip_whitelist.conf```. This means any request from an ip address not in the subnets included in this file will be rejected. This list is created manually and needs to be maintained to whitelist and include user IP subnets.
 
 ### Security Headers
 All security headers are following best practices from [Mozilla](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers) and [OWASP](https://owasp.org/www-project-secure-headers/) and are added with comments on the config files.
