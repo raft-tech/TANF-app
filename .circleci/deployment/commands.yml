@@ -35,6 +35,7 @@
           cf-username: <<parameters.cf-username>>
       - deploy-backend:
           backend-appname: <<parameters.backend-appname>>
+          frontend-appname: <<parameters.frontend-appname>>
           cf-space: <<parameters.cf-space>>
       - deploy-clamav:
           backend-appname: <<parameters.backend-appname>>
@@ -49,6 +50,9 @@
   deploy-backend:
     parameters:
       backend-appname:
+        default: tdp-backend
+        type: string
+      frontend-appname:
         default: tdp-backend
         type: string
       cf-space:
