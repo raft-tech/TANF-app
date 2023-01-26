@@ -103,10 +103,9 @@ class DataFileViewSet(ModelViewSet):
         s3 = S3Client()
         bucket_name = settings.AWS_S3_DATAFILES_BUCKET_NAME
         versions = s3.client.list_object_versions(Bucket=bucket_name)
+        print(versions)
+        print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
         for version in versions['Versions']:
-            print('file_name: ', file_name)
-            print('version: ', version)
-            print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
             file_path = version['Key']
             if file_name in file_path:
                 if version['IsLatest']:
