@@ -23,7 +23,6 @@ from tdpservice.stts.models import STT
 from tdpservice.scheduling import sftp_task
 from tdpservice.email.helpers.data_file import send_data_submitted_email
 from tdpservice.data_files.s3_client import S3Client
-from tdpservice.data_files.s3_client import S3Client
 
 
 class DataFileFilter(filters.FilterSet):
