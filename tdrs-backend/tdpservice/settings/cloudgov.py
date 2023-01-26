@@ -181,6 +181,6 @@ class Production(CloudGov):
     SESSION_COOKIE_DOMAIN = '.acf.hhs.gov'
     SESSION_COOKIE_PATH = "/;HttpOnly"
     MIDDLEWARE = ('tdpservice.middleware.SessionMiddleware', *Common.MIDDLEWARE)
-    
+
     # CORS allowed origins
     CORS_ALLOWED_ORIGINS = ['https://tanfdata.acf.hhs.gov']
