@@ -110,4 +110,3 @@ risks
 
 ## Notes
 
-Briefly describe any additional information relevant to the decision here, such as issues created to track implementation. 
