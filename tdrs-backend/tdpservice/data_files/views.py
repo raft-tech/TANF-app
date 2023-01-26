@@ -76,11 +76,6 @@ class DataFileViewSet(ModelViewSet):
             key = data_file.file.name
             app_name = settings.APP_NAME + '/'
             key = app_name + key
-            # Get the version id of the file uploaded to S3 if there is one
-            print('==================create==================')
-            print(key)
-            print(app_name)
-            print('^^^^^^^^^^^^^^create^^^^^^^^^^^^^^^^^^')
             version_id = self.get_s3_versioning_id(response.data.get('original_filename'), key)
 
 
@@ -114,13 +109,12 @@ class DataFileViewSet(ModelViewSet):
         s3 = S3Client()
         bucket_name = settings.AWS_S3_DATAFILES_BUCKET_NAME
         versions = s3.client.list_object_versions(Bucket=bucket_name, Prefix=prefix)
-        print(versions)
-        print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
         for version in versions['Versions']:
             file_path = version['Key']
             if file_name in file_path:
                 if version['IsLatest']:
-                    return (version['VersionId'])
+                    if version['VersionId'] != 'null':
+                        return (version['VersionId'])
         return None
 
     def get_queryset(self):
