@@ -59,8 +59,6 @@ class DataFileViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Override create to upload in case of successful scan."""
         response = super().create(request, *args, **kwargs)
-        # Get the version id of the file uploaded to S3 if there is one
-        version_id = self.get_s3_versioning_id(response.data.get('original_filename'))
 
         # Upload to ACF-TITAN only if file is passed the virus scan and created
         if response.status_code == status.HTTP_201_CREATED or response.status_code == status.HTTP_200_OK:
@@ -73,6 +71,19 @@ class DataFileViewSet(ModelViewSet):
             )
             user = request.user
             data_file = DataFile.objects.get(id=response.data.get('id'))
+
+
+            key = data_file.file.name
+            app_name = settings.APP_NAME + '/'
+            key = app_name + key
+            # Get the version id of the file uploaded to S3 if there is one
+            print('==================create==================')
+            print(key)
+            print(app_name)
+            print('^^^^^^^^^^^^^^create^^^^^^^^^^^^^^^^^^')
+            version_id = self.get_s3_versioning_id(response.data.get('original_filename'), key)
+
+
             data_file.s3_versioning_id = version_id
             data_file.save(update_fields=['s3_versioning_id'])
 
@@ -98,11 +109,11 @@ class DataFileViewSet(ModelViewSet):
 
         return response
 
-    def get_s3_versioning_id(self, file_name):
+    def get_s3_versioning_id(self, file_name, prefix):
         """Get the version id of the file uploaded to S3."""
         s3 = S3Client()
         bucket_name = settings.AWS_S3_DATAFILES_BUCKET_NAME
-        versions = s3.client.list_object_versions(Bucket=bucket_name)
+        versions = s3.client.list_object_versions(Bucket=bucket_name, Prefix=prefix)
         print(versions)
         print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
         for version in versions['Versions']:
