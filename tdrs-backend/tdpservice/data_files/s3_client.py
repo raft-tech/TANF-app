@@ -16,7 +16,8 @@ class S3Client():
 
     def file_download(self, key, path, version_id):
         """Download a file from s3. Specify the path, file name, and version id."""
-        key = 'dev/' + key
+        app_name = settings.APP_NAME + '/'
+        key = app_name + key
 
         self.client.download_file(
             settings.AWS_S3_DATAFILES_BUCKET_NAME,

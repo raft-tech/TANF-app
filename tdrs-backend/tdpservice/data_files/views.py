@@ -23,6 +23,7 @@ from tdpservice.stts.models import STT
 from tdpservice.scheduling import sftp_task
 from tdpservice.email.helpers.data_file import send_data_submitted_email
 from tdpservice.data_files.s3_client import S3Client
+from tdpservice.data_files.s3_client import S3Client
 
 
 class DataFileFilter(filters.FilterSet):
@@ -61,16 +62,6 @@ class DataFileViewSet(ModelViewSet):
         response = super().create(request, *args, **kwargs)
         # Get the version id of the file uploaded to S3 if there is one
         version_id = self.get_s3_versioning_id(response.data.get('original_filename'))
-
-        s3 = S3Client()
-        bucket_name = settings.AWS_S3_DATAFILES_BUCKET_NAME
-        versions = s3.client.list_object_versions(Bucket=bucket_name)
-        version_id = None
-        for version in versions['Versions']:
-            file_path = version['Key']
-            if response.data.get('original_filename') in file_path:
-                if version['IsLatest']:
-                    version_id = (version['VersionId'])
 
         # Upload to ACF-TITAN only if file is passed the virus scan and created
         if response.status_code == status.HTTP_201_CREATED or response.status_code == status.HTTP_200_OK:
