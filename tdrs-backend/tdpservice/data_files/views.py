@@ -144,11 +144,6 @@ class DataFileViewSet(ModelViewSet):
         """Retrieve a file from s3 then stream it to the client."""
         record = self.get_object()
 
-        # response = FileResponse(
-        #     FileWrapper(record.file),
-        #     filename=record.original_filename
-        # )
-        # return response
         # If no versioning id, then download from django storage
         if not hasattr(record, 's3_versioning_id') or record.s3_versioning_id is None:
             response = FileResponse(
