@@ -109,9 +109,8 @@ class DataFileViewSet(ModelViewSet):
         for version in versions['Versions']:
             file_path = version['Key']
             if file_name in file_path:
-                if version['IsLatest']:
-                    if version['VersionId'] != 'null':
-                        return (version['VersionId'])
+                if version['IsLatest'] and version['VersionId'] != 'null':
+                    return (version['VersionId'])
         return None
 
     def get_queryset(self):
