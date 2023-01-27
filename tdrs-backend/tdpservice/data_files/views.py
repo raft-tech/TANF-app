@@ -168,44 +168,6 @@ class DataFileViewSet(ModelViewSet):
         )
         return response
 
-    @action(methods=["get"], detail=False)
-    def latest_submission(self, request):
-        """Get the latest submission for each section for a provided quarter, year, stt."""
-        stt = request.query_params.get('stt', None)
-        quarter = request.query_params.get('quarter', None)
-        year = request.query_params.get('year', None)
-
-        if not (stt or quarter or year):
-            return Response({'error': 'Bad request'}, 400)
-
-        try:
-            stt = STT.objects.get(id=stt)
-        except STT.DoesNotExist:
-            return Response({'error': 'Stt does not exist'}, 400)
-
-        sections = stt.filenames.keys()
-
-        latest_submissions = dict([[s, None] for s in sections])
-
-        results = DataFile.objects.order_by('section', '-version').distinct('section')
-
-        for result in results:
-            # try:
-            #     data_file = DataFile.objects.get(
-            #         stt=stt, quarter=quarter, year=year, section=section)
-
-            # except DataFile.DoesNotExist:
-            #     latest_submissions[section] = None
-
-            latest_submissions[result.section] = self.serializer_class(result).data
-
-        return Response(
-            {'results': latest_submissions},
-            200
-        )
-
-        # return self.list(self, request)
-
 
 class GetYearList(APIView):
     """Get list of years for which there are data_files."""
