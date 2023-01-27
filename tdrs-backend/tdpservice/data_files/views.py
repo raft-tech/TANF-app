@@ -72,12 +72,10 @@ class DataFileViewSet(ModelViewSet):
             user = request.user
             data_file = DataFile.objects.get(id=response.data.get('id'))
 
-
             key = data_file.file.name
             app_name = settings.APP_NAME + '/'
             key = app_name + key
             version_id = self.get_s3_versioning_id(response.data.get('original_filename'), key)
-
 
             data_file.s3_versioning_id = version_id
             data_file.save(update_fields=['s3_versioning_id'])
