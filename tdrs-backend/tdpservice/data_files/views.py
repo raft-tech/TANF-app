@@ -59,6 +59,8 @@ class DataFileViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Override create to upload in case of successful scan."""
         response = super().create(request, *args, **kwargs)
+        # Get the version id of the file uploaded to S3 if there is one
+        version_id = self.get_s3_versioning_id(response.data.get('original_filename'))
 
         # Upload to ACF-TITAN only if file is passed the virus scan and created
         if response.status_code == status.HTTP_201_CREATED or response.status_code == status.HTTP_200_OK:
@@ -71,6 +73,8 @@ class DataFileViewSet(ModelViewSet):
             )
             user = request.user
             data_file = DataFile.objects.get(id=response.data.get('id'))
+            data_file.s3_versioning_id = version_id
+            data_file.save(update_fields=['s3_versioning_id'])
 
             key = data_file.file.name
             app_name = settings.APP_NAME + '/'

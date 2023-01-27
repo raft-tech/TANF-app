@@ -6,7 +6,6 @@ import logging
 
 logger = logging.getLogger()
 
-
 class S3Client():
     """A client for downloading files from s3 with boto3."""
 
