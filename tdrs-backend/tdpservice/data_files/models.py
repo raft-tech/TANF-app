@@ -176,7 +176,7 @@ class DataFile(FileRecord):
 
     @property
     def submitted_by(self):
-        """Return the correct filename for this data file."""
+        """Return the author as a string for this data file."""
         return self.user.get_full_name()
 
     @classmethod
