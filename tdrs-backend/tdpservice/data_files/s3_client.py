@@ -1,6 +1,10 @@
 """S3 client."""
 import boto3
+from botocore.exceptions import ClientError
 from django.conf import settings
+import logging
+
+logger = logging.getLogger()
 
 class S3Client():
     """A client for downloading files from s3 with boto3."""
@@ -19,11 +23,19 @@ class S3Client():
         app_name = settings.APP_NAME + '/'
         key = app_name + key
 
-        self.client.download_file(
-            settings.AWS_S3_DATAFILES_BUCKET_NAME,
-            key,
-            path,
-            ExtraArgs={'VersionId': version_id}
-        )
+        try:
+            self.client.download_file(
+                settings.AWS_S3_DATAFILES_BUCKET_NAME,
+                key,
+                path,
+                ExtraArgs={'VersionId': version_id}
+            )
+        except ClientError as e:
+            logger.error(e)
+            logger.error(app_name)
+            logger.error(key)
+            logger.error(version_id)
+            logger.error(path)
+
         f = open(path, 'r')
         return f

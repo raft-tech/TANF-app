@@ -16,6 +16,7 @@ from tdpservice.users.models import User
 
 logger = logging.getLogger(__name__)
 
+
 def get_file_shasum(file: Union[File, StringIO]) -> str:
     """Derive the SHA256 checksum of a file."""
     _hash = sha256()
@@ -172,6 +173,11 @@ class DataFile(FileRecord):
                 quarter_month_str = "(Jul - Sep)"
 
         return f"{self.year} - {self.quarter} {quarter_month_str}"
+
+    @property
+    def submitted_by(self):
+        """Return the author as a string for this data file."""
+        return self.user.get_full_name()
 
     @classmethod
     def create_new_version(self, data):

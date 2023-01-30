@@ -45,21 +45,15 @@ class DataFileViewSet(ModelViewSet):
     parser_classes = [MultiPartParser]
     permission_classes = [DataFilePermissions]
     serializer_class = DataFileSerializer
+    pagination_class = None
 
     # TODO: Handle versioning in queryset
     # Ref: https://github.com/raft-tech/TANF-app/issues/1007
     queryset = DataFile.objects.all()
 
-    # NOTE: This is a temporary hack to make sure the latest version of the file
-    # is the one presented in the UI. Once we implement the above linked issue
-    # we will be able to appropriately refer to the latest versions only.
-    ordering = ['-version']
-
     def create(self, request, *args, **kwargs):
         """Override create to upload in case of successful scan."""
         response = super().create(request, *args, **kwargs)
-        # Get the version id of the file uploaded to S3 if there is one
-        version_id = self.get_s3_versioning_id(response.data.get('original_filename'))
 
         # Upload to ACF-TITAN only if file is passed the virus scan and created
         if response.status_code == status.HTTP_201_CREATED or response.status_code == status.HTTP_200_OK:
@@ -70,9 +64,14 @@ class DataFileViewSet(ModelViewSet):
                 username=settings.ACFTITAN_USERNAME,
                 port=22
             )
-
             user = request.user
             data_file = DataFile.objects.get(id=response.data.get('id'))
+
+            key = data_file.file.name
+            app_name = settings.APP_NAME + '/'
+            key = app_name + key
+            version_id = self.get_s3_versioning_id(response.data.get('original_filename'), key)
+
             data_file.s3_versioning_id = version_id
             data_file.save(update_fields=['s3_versioning_id'])
 
@@ -98,21 +97,21 @@ class DataFileViewSet(ModelViewSet):
 
         return response
 
-    def get_s3_versioning_id(self, file_name):
+    def get_s3_versioning_id(self, file_name, prefix):
         """Get the version id of the file uploaded to S3."""
         s3 = S3Client()
         bucket_name = settings.AWS_S3_DATAFILES_BUCKET_NAME
-        versions = s3.client.list_object_versions(Bucket=bucket_name)
+        versions = s3.client.list_object_versions(Bucket=bucket_name, Prefix=prefix)
         for version in versions['Versions']:
             file_path = version['Key']
             if file_name in file_path:
-                if version['IsLatest']:
+                if version['IsLatest'] and version['VersionId'] != 'null':
                     return (version['VersionId'])
         return None
 
     def get_queryset(self):
         """Apply custom queryset filters."""
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().order_by('-created_at')
 
         if self.request.query_params.get('file_type') == 'ssp-moe':
             queryset = queryset.filter(section__contains='SSP')
