@@ -45,15 +45,11 @@ class DataFileViewSet(ModelViewSet):
     parser_classes = [MultiPartParser]
     permission_classes = [DataFilePermissions]
     serializer_class = DataFileSerializer
+    pagination_class = None
 
     # TODO: Handle versioning in queryset
     # Ref: https://github.com/raft-tech/TANF-app/issues/1007
     queryset = DataFile.objects.all()
-
-    # NOTE: This is a temporary hack to make sure the latest version of the file
-    # is the one presented in the UI. Once we implement the above linked issue
-    # we will be able to appropriately refer to the latest versions only.
-    ordering = ['-version']
 
     def create(self, request, *args, **kwargs):
         """Override create to upload in case of successful scan."""
@@ -115,7 +111,7 @@ class DataFileViewSet(ModelViewSet):
 
     def get_queryset(self):
         """Apply custom queryset filters."""
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().order_by('-created_at')
 
         if self.request.query_params.get('file_type') == 'ssp-moe':
             queryset = queryset.filter(section__contains='SSP')

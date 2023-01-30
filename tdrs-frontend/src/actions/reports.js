@@ -65,7 +65,7 @@ export const getCurrentSubmission =
       dispatch({
         type: SET_CURRENT_SUBMISSION,
         payload: {
-          data: response?.data?.results,
+          data: response?.data,
         },
       })
     } catch (error) {
@@ -98,7 +98,7 @@ export const getAvailableFileList =
       dispatch({
         type: SET_FILE_LIST,
         payload: {
-          data: response?.data?.results,
+          data: response?.data,
         },
       })
     } catch (error) {
