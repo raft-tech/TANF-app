@@ -30,11 +30,11 @@ python manage.py search_index --rebuild -f
 
 echo "Starting Gunicorn"
 if [[ "$DJANGO_CONFIGURATION" = "Development" || "$DJANGO_CONFIGURATION" = "Local" ]]; then
-    gunicorn_cmd="gunicorn -c gunicorn_dev_cfg.py --log-level"
+    gunicorn_params="-c gunicorn_dev_cfg.py"
 else
-    gunicorn_cmd="gunicorn -c gunicorn_prod_cfg.py --log-level"
+    gunicorn_params="-c gunicorn_prod_cfg.py"
 fi
 
-gunicorn_cmd="gunicorn tdpservice.wsgi:application $gunicorn_params"
+gunicorn_cmd="gunicorn $gunicorn_params"
 
 exec $gunicorn_cmd
