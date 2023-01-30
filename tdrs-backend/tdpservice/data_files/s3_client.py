@@ -32,10 +32,6 @@ class S3Client():
             )
         except ClientError as e:
             logger.error(e)
-            logger.error(app_name)
-            logger.error(key)
-            logger.error(version_id)
-            logger.error(path)
 
         f = open(path, 'r')
         return f
