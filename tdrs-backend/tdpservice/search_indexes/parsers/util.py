@@ -75,8 +75,8 @@ class RowSchema:
 
     def add_fields(self, fields: list):
         """Add multiple fields to the schema."""
-        for field, length, start, end, type, validators in fields:
-            self.add_field(field, length, start, end, type, validators)
+        for item_num, field, length, start, end, type, validators in fields:
+            self.add_field(item_num, field, length, start, end, type, validators)
 
     def get_field(self, name):
         """Get a field from the schema."""
