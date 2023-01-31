@@ -16,7 +16,7 @@ const PaginatorArrowButton = ({ label, arrowDirection, onClick, disabled }) => (
           ? 'usa-pagination__link usa-pagination__previous-page'
           : 'usa-pagination__link usa-pagination__next-page'
       }
-      aria-label="Previous page"
+      aria-label={arrowDirection === 'left' ? 'Previous page' : 'Next page'}
     >
       {arrowDirection === 'left' ? (
         <svg className="usa-icon" aria-hidden="true" role="img">
