@@ -67,7 +67,6 @@ class DataFileViewSet(ModelViewSet):
             user = request.user
             data_file = DataFile.objects.get(id=response.data.get('id'))
 
-            file_name = data_file.file.name
             app_name = settings.APP_NAME + '/'
             key = app_name + get_s3_upload_path(data_file, '')
             version_id = self.get_s3_versioning_id(response.data.get('original_filename'), key)
