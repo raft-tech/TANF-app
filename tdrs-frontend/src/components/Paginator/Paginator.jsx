@@ -52,7 +52,7 @@ const PaginatorPageNumberButton = ({ label, isSelected, onClick }) => (
           : 'usa-pagination__button'
       }
       aria-label={`Page ${label}`}
-      aria-current="page"
+      aria-current={isSelected ? 'page' : null}
     >
       {label}
     </button>

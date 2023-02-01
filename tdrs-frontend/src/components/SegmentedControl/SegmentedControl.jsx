@@ -13,6 +13,7 @@ const SegmentedControl = ({ buttons, selected }) => (
                 ? 'usa-button'
                 : 'usa-button usa-button--outline'
             }
+            aria-current={b.id === selected ? 'page' : null}
             onClick={() => b.onSelect()}
           >
             {b.label}

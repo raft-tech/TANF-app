@@ -51,25 +51,27 @@ const SectionSubmissionHistory = ({ section, label, files }) => {
 
   return (
     <div className="submission-history-section">
-      <label className="usa-label text-bold">{`Section ${section} - ${label}`}</label>
-      {files && files.length > 0 ? (
-        <table className="usa-table usa-table--striped">
-          <thead>
-            <tr>
-              <th>Submitted On</th>
-              <th>Submitted By</th>
-              <th>File Name</th>
-            </tr>
-          </thead>
-          <tbody>
-            {files.slice(pageStart, pageEnd).map((file) => (
-              <SubmissionHistoryRow key={file.id} file={file} />
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p>No data available.</p>
-      )}
+      <table className="usa-table usa-table--striped">
+        <caption>{`Section ${section} - ${label}`}</caption>
+        {files && files.length > 0 ? (
+          <>
+            <thead>
+              <tr>
+                <th>Submitted On</th>
+                <th>Submitted By</th>
+                <th>File Name</th>
+              </tr>
+            </thead>
+            <tbody>
+              {files.slice(pageStart, pageEnd).map((file) => (
+                <SubmissionHistoryRow key={file.id} file={file} />
+              ))}
+            </tbody>
+          </>
+        ) : (
+          <span>No data available.</span>
+        )}
+      </table>
 
       {pages > 1 && (
         <Paginator
