@@ -69,7 +69,7 @@ def t1_schema():
         [  # does it make sense to try to include regex (e.g., =r'^T1$')
             (None, 'RecordType', 2, 1, 2, "Alphanumeric"),
             ('4', 'RPT_MONTH_YEAR', 6, 3, 8, "Numeric", [t1_006, t1_007]),
-            ('6', 'CASE_NUMBER', 11, 9, 19, "Alphanumeric", [t1_004]),
+            ('6', 'CASE_NUMBER', 11, 9, 19, "Alphanumeric"),
             ('2', 'COUNTY_FIPS_CODE', 3, 20, 22, "Numeric"),
             ('5', 'STRATUM', 2, 23, 24, "Numeric", [t1_003]),
             ('7', 'ZIP_CODE', 5, 25, 29, "Alphanumeric"),

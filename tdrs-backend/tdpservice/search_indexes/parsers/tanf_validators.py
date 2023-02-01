@@ -6,11 +6,6 @@
 def t1_003(model_obj):
     return model_obj.STRATUM > 0 and model_obj.STRATUM < 100
 
-#TODO ask about ITEM 6? MUST NOT BE BLANK
-def t1_004(model_obj):
-    '''Validates case number.'''
-    return type(model_obj.CASE_NUMBER) == int
-
 def t1_006(model_obj):
     month = model_obj.RPT_MONTH_YEAR
     return int(str(month)[0:4]) >= 1998
@@ -27,11 +22,11 @@ def t1_010(model_obj):
 
 def t1_011(model_obj):
     '''Validator for family type for work participation.'''
-    return model_obj.family_type in [1, 2, 3]
+    return model_obj.FAMILY_TYPE in [1, 2, 3]
 
 def t1_013(model_obj):
     '''Validator for recieves subsidiesed child care.'''
-    return model_obj.receives_sub_child_care in [1, 2, 3]
+    return model_obj.RECEIVES_SUB_CC in [1, 2, 3]
 
 # T1 Category 2 TANF Warning Edits
 # https://www.acf.hhs.gov/sites/default/files/documents/ofa/tanf_warning_edits_section_1.pdf
@@ -50,7 +45,7 @@ def t1_100(model_obj):
 
 def t1_101(model_obj):
     '''Validator for receives food stamps.'''
-    return model_obj.AMT_FOOD_STAMP_ASSISTANCE in [1, 2]
+    return model_obj.RECEIVES_FOOD_STAMPS in [1, 2]
 
 def t1_102(model_obj):
     '''Validator for amount of food stamp assistance.'''
