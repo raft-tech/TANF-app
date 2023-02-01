@@ -78,8 +78,8 @@ def upload(data_file_pk,
                           pkey=pkey,
                           username=username,
                           port=port,
-                          look_for_keys=False
-                          )
+                          look_for_keys=False,
+                          disabled_algorithms={'pubkeys': ['rsa-sha2-512', 'rsa-sha2-256']})
         # remove temp key file
         os.remove(temp_key_file)
         sftp = transport.open_sftp()
