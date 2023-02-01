@@ -53,7 +53,7 @@
         default: tdp-backend
         type: string
       frontend-appname:
-        default: tdp-backend
+        default: tdp-frontend
         type: string
       cf-space:
         default: tanf-dev
