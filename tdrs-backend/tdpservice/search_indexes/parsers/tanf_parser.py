@@ -49,6 +49,8 @@ def active_t1_parser(line, line_number):
         logger.warn('Content is not valid, skipping model creation.')
         return
 
+    validate(family_case_schema, t1)
+
     # try:
     # t1.full_clean()
     t1.save()
@@ -95,3 +97,15 @@ def parse(datafile):
         else:
             logger.warn("Parsing for type %s not yet implemented", record_type)
             continue
+
+def validate(family_case_schema, t1):
+    """Validate the datafile."""
+    errors = []
+    for field in family_case_schema.get_all_fields():
+         if len(field.validators) > 0:
+            for validator in field.validators:
+                if validator(t1) is False:
+                    errors.append({ 'field': field, 
+                                    'validator': validator, 
+                                    'message': f'Field {field.name} with item num: {field.item_num} failed validation {validator.__name__}'
+                    })
