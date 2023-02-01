@@ -17,7 +17,7 @@ from rest_framework import status
 
 from tdpservice.users.models import AccountApprovalStatusChoices, User
 from tdpservice.data_files.serializers import DataFileSerializer
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.models import DataFile, get_s3_upload_path
 from tdpservice.users.permissions import DataFilePermissions
 from tdpservice.scheduling import sftp_task
 from tdpservice.email.helpers.data_file import send_data_submitted_email
@@ -67,9 +67,9 @@ class DataFileViewSet(ModelViewSet):
             user = request.user
             data_file = DataFile.objects.get(id=response.data.get('id'))
 
-            key = data_file.file.name
+            file_name = data_file.file.name
             app_name = settings.APP_NAME + '/'
-            key = app_name + key
+            key = app_name + get_s3_upload_path(data_file, '')
             version_id = self.get_s3_versioning_id(response.data.get('original_filename'), key)
 
             data_file.s3_versioning_id = version_id

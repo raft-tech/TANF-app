@@ -50,7 +50,7 @@ def get_file_shasum(file: Union[File, StringIO]) -> str:
 def get_s3_upload_path(instance, filename):
     """Produce a unique upload path for S3 files for a given STT and Quarter."""
     return os.path.join(
-        f'data_files/{instance.stt.id}/{instance.quarter}',
+        f'data_files/{instance.year}/{instance.stt.id}/{instance.section}/{instance.quarter}',
         filename
     )
 
