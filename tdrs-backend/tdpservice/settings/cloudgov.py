@@ -73,6 +73,7 @@ class CloudGov(Common):
 
     db_name = database_creds['db_name'] if (cloudgov_space_suffix in ["prod",  "staging"]) else env_based_db_name
 
+    """
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -81,6 +82,18 @@ class CloudGov(Common):
             'PASSWORD': database_creds['password'],
             'HOST': database_creds['host'],
             'PORT': database_creds['port']
+        }
+    }
+    """
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+            'NAME': 'sqlite3.db',                      # Or path to database file if using sqlite3.
+            'USER': '',                      # Not used with sqlite3.
+            'PASSWORD': '',                  # Not used with sqlite3.
+            'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
+            'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
         }
     }
 
