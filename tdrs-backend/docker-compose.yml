@@ -101,6 +101,7 @@ services:
       - localstack
       - postgres
       - redis-server
+      - elastic
 
   redis-server:
     image: "redis:alpine"
