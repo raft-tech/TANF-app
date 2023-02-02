@@ -26,7 +26,7 @@ celery -A tdpservice.settings --broker=$REDIS_URI flower &
 celery -A tdpservice.settings beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler &
 
 # rebuild and repopulate elastic search indexes
-# python manage.py search_index --rebuild -f
+python manage.py search_index --rebuild -f
 
 echo "Starting Gunicorn"
 if [[ "$DJANGO_CONFIGURATION" = "Development" || "$DJANGO_CONFIGURATION" = "Local" ]]; then
