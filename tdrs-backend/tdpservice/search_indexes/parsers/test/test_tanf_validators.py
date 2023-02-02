@@ -67,6 +67,7 @@ def make_invalid_t1_model_obj():
         FAMILY_NEW_CHILD=0,
     )
 
+
 all_t1_cat1_validators = [
         t1_003,
         t1_006,
@@ -100,4 +101,3 @@ def test_t1_cat1_validators_invalid(obj):
     """Test T1 Category 1 TANF Validations."""
     model_obj = make_invalid_t1_model_obj()
     assert obj(model_obj) is False
-    

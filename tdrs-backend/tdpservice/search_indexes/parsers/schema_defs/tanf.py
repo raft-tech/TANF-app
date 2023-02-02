@@ -1,7 +1,26 @@
 """Houses definitions for TANF datafile schemas."""
 
 from ..util import RowSchema
-from ..tanf_validators import *
+from tdpservice.search_indexes.parsers.tanf_validators import (
+    t1_003,
+    t1_006,
+    t1_007,
+    t1_008,
+    t1_010,
+    t1_011,
+    t1_013,
+    t1_097,
+    t1_099,
+    t1_100,
+    t1_101,
+    t1_102,
+    t1_103,
+    t1_104,
+    t1_105,
+    t1_121,
+    t1_122,
+    t1_123
+)
 
 def t1_schema():
     """Return a RowSchema for T1 records.
@@ -109,7 +128,7 @@ def t1_schema():
             ('26Cii', 'FAMILY_CAP', 1, 111, 111, "Numeric"),
             ('26Ciii', 'REDUCTIONS_ON_RECEIPTS', 1, 112, 112, "Numeric"),
             ('26Civ', 'OTHER_NON_SANCTION', 1, 113, 113, "Numeric"),
-            ('27', 'WAIVER_EVAL_CONTROL_GRPS', 1, 114, 114, "Numeric", [t1_121] ),
+            ('27', 'WAIVER_EVAL_CONTROL_GRPS', 1, 114, 114, "Numeric", [t1_121]),
             ('28', 'FAMILY_EXEMPT_TIME_LIMITS', 2, 115, 116, "Numeric", [t1_122]),
             ('29', 'FAMILY_NEW_CHILD', 1, 117, 117, "Numeric", [t1_123]),
             ('blank', 'BLANK', 39, 118, 156, "Spaces"),
