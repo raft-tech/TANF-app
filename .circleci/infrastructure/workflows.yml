@@ -6,7 +6,7 @@
           filters:
             branches:
               ignore:
-                - devops/1007-develop-fake
+                - develop
                 - main
                 - master
       - enable-versioning:
@@ -35,4 +35,4 @@
           filters:
             branches:
               only:
-                - devops/1007-develop-fake
+                - develop
