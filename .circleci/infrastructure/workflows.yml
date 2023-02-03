@@ -1,11 +1,23 @@
 #workflows:
-  enable-versioning-dev:
-    jobs:
-      - enable-versioning
 
-  enable-versioning-production:
-    unless: << pipeline.parameters.run_dev_deployment >>
+  enable-versioning-for-s3-buckets:
     jobs:
+      - enable-versioning:
+          filters:
+            branches:
+              ignore:
+                - develop
+                - main
+                - master
+      - enable-versioning:
+          target_env: staging
+          cf-password: CF_PASSWORD_STAGING
+          cf-username: CF_USERNAME_STAGING
+          cf-space: tanf-staging
+          filters:
+            branches:
+              only:
+                - main
       - enable-versioning:
           target_env: prod
           cf-password: CF_PASSWORD_PROD
@@ -15,3 +27,12 @@
             branches:
               only:
                 - master
+      - enable-versioning:
+          target_env: develop
+          cf-password: CF_PASSWORD_STAGING
+          cf-username: CF_USERNAME_STAGING
+          cf-space: tanf-staging
+          filters:
+            branches:
+              only:
+                - develop
