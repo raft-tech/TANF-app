@@ -116,7 +116,7 @@ const SubmissionHistory = ({ filterValues }) => {
           section={index + 1}
           label={section}
           filterValues={filterValues}
-          files={files.filter((f) => f.section === section)}
+          files={files.filter((f) => f.section.includes(section))}
         />
       ))}
     </div>

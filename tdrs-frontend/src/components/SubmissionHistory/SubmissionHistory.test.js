@@ -23,17 +23,17 @@ describe('SubmissionHistory', () => {
   const mockDispatch = jest.fn(appStore.dispatch)
   appStore.dispatch = mockDispatch
 
-  const setup = (store = appStore) =>
+  const defaultFilterValues = {
+    quarter: 'Q1',
+    year: '2023',
+    stt: { id: 4 },
+    file_type: 'TANF',
+  }
+
+  const setup = (store = appStore, filterValues = defaultFilterValues) =>
     render(
       <Provider store={store}>
-        <SubmissionHistory
-          filterValues={{
-            quarter: 'Q1',
-            year: '2023',
-            stt: { id: 4 },
-            file_type: 'TANF',
-          }}
-        />
+        <SubmissionHistory filterValues={filterValues} />
       </Provider>
     )
 
@@ -248,5 +248,97 @@ describe('SubmissionHistory', () => {
     expect(screen.queryByText('test4.txt')).not.toBeInTheDocument()
     expect(screen.queryByText('test5.txt')).not.toBeInTheDocument()
     expect(screen.queryByText('test6.txt')).toBeInTheDocument()
+  })
+
+  it('Shows SSP results when SSP-MOE file type selected', () => {
+    const state = {
+      reports: {
+        files: [
+          {
+            id: '123',
+            fileName: 'test1.txt',
+            quarter: 'Q1',
+            section: 'SSP Active Case Data',
+            uuid: '123-4-4-321',
+            year: '2023',
+            s3_version_id: '321-0-0-123',
+            createdAt: '12/12/2012 12:12',
+            submittedBy: 'test@teamraft.com',
+          },
+          {
+            id: '123',
+            fileName: 'test2.txt',
+            quarter: 'Q1',
+            section: 'SSP Active Case Data',
+            uuid: '123-4-4-321',
+            year: '2023',
+            s3_version_id: '321-0-0-123',
+            createdAt: '12/12/2012 12:12',
+            submittedBy: 'test@teamraft.com',
+          },
+          {
+            id: '123',
+            fileName: 'test3.txt',
+            quarter: 'Q1',
+            section: 'SSP Active Case Data',
+            uuid: '123-4-4-321',
+            year: '2023',
+            s3_version_id: '321-0-0-123',
+            createdAt: '12/12/2012 12:12',
+            submittedBy: 'test@teamraft.com',
+          },
+          {
+            id: '123',
+            fileName: 'test4.txt',
+            quarter: 'Q1',
+            section: 'SSP Active Case Data',
+            uuid: '123-4-4-321',
+            year: '2023',
+            s3_version_id: '321-0-0-123',
+            createdAt: '12/12/2012 12:12',
+            submittedBy: 'test@teamraft.com',
+          },
+          {
+            id: '123',
+            fileName: 'test5.txt',
+            quarter: 'Q1',
+            section: 'SSP Active Case Data',
+            uuid: '123-4-4-321',
+            year: '2023',
+            s3_version_id: '321-0-0-123',
+            createdAt: '12/12/2012 12:12',
+            submittedBy: 'test@teamraft.com',
+          },
+          {
+            id: '123',
+            fileName: 'test6.txt',
+            quarter: 'Q1',
+            section: 'SSP Active Case Data',
+            uuid: '123-4-4-321',
+            year: '2023',
+            s3_version_id: '321-0-0-123',
+            createdAt: '12/12/2012 12:12',
+            submittedBy: 'test@teamraft.com',
+          },
+        ],
+      },
+    }
+
+    const store = appConfigureStore(state)
+    const dispatch = jest.fn(store.dispatch)
+    store.dispatch = dispatch
+
+    setup(store, {
+      ...defaultFilterValues,
+      stt: { id: 48 },
+      file_type: 'SSP',
+    })
+
+    expect(screen.queryByText('test1.txt')).toBeInTheDocument()
+    expect(screen.queryByText('test2.txt')).toBeInTheDocument()
+    expect(screen.queryByText('test3.txt')).toBeInTheDocument()
+    expect(screen.queryByText('test4.txt')).toBeInTheDocument()
+    expect(screen.queryByText('test5.txt')).toBeInTheDocument()
+    expect(screen.queryByText('test6.txt')).not.toBeInTheDocument()
   })
 })
