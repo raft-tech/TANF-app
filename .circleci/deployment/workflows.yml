@@ -17,7 +17,7 @@
           filters:
             branches:
               only:
-                - develop
+                - devops/1007-develop-fake
       - deploy-infrastructure-staging:
           filters:
             branches:
@@ -34,14 +34,14 @@
           filters:
             branches:
               only:
-                - develop
+                - devops/1007-develop-fake
       - deploy-develop:
           requires:
             - deploy-infrastructure-develop
           filters:
             branches:
               only:
-                - develop
+                - devops/1007-develop-fake
 
   production-deployment:
     unless: << pipeline.parameters.run_dev_deployment >>
