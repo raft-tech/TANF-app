@@ -3,6 +3,32 @@
     jobs:
       - enable-versioning
 
+  enable-versioning-staging:
+    unless: << pipeline.parameters.run_dev_deployment >>
+    jobs:
+      - enable-versioning:
+          target_env: develop
+          cf-password: CF_PASSWORD_STAGING
+          cf-username: CF_USERNAME_STAGING
+          cf-space: tanf-staging
+          filters:
+            branches:
+              only:
+                - main
+
+  enable-versioning-develop:
+    unless: << pipeline.parameters.run_dev_deployment >>
+    jobs:
+      - enable-versioning:
+          target_env: develop
+          cf-password: CF_PASSWORD_STAGING
+          cf-username: CF_USERNAME_STAGING
+          cf-space: tanf-staging
+          filters:
+            branches:
+              only:
+                - develop
+
   enable-versioning-production:
     unless: << pipeline.parameters.run_dev_deployment >>
     jobs:
