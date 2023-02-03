@@ -420,7 +420,7 @@ class Common(Configuration):
     # -------- CELERY CONFIG
     REDIS_URI = os.getenv(
         'REDIS_URI',
-        'redis://redis-server:6379'
+        'redis://localhost:6379'
     )
     logger.debug("REDIS_URI: " + REDIS_URI)
 
