@@ -117,11 +117,10 @@ bind_backend_to_services() {
       #       Introducing technical debt for release 3.0.0 specifically.
       env="develop"
     fi
-    
+
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-${env}"
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${env}"
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${env}"
-
     
     # The below command is different because they cannot be shared like the 3 above services
     cf bind-service "$CGAPPNAME_BACKEND" "es-${backend_app_name}"
@@ -131,7 +130,6 @@ bind_backend_to_services() {
     echo "Restarting app: $CGAPPNAME_BACKEND"
     cf restage "$CGAPPNAME_BACKEND"
 }
-
 
 ##############################
 # Main script body
