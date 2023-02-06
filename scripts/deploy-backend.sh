@@ -115,14 +115,13 @@ bind_backend_to_services() {
       # TODO: this is technical debt, we should either make staging mimic tanf-dev 
       #       or make unique services for all apps but we have a services limit
       #       Introducing technical debt for release 3.0.0 specifically.
-      cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-develop" 
-      cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-develop"
-      cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-develop"
-    else
-      cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-${env}"
-      cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${env}"
-      cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${env}"
+      env="develop"
     fi
+    
+    cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-${env}"
+    cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${env}"
+    cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${env}"
+
     
     # The below command is different because they cannot be shared like the 3 above services
     cf bind-service "$CGAPPNAME_BACKEND" "es-${backend_app_name}"
