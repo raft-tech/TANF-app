@@ -110,9 +110,19 @@ update_backend()
 
 bind_backend_to_services() {
     echo "Binding services to app: $CGAPPNAME_BACKEND"
-    cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-${env}"
-    cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${env}"
-    cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${env}"
+
+    if [ "$CFAPPNAME_BACKEND" = "tdp-backend-develop" ]; then
+      # TODO: this is technical debt, we should either make staging mimic tanf-dev 
+      #       or make unique services for all apps but we have a services limit
+      #       Introducing technical debt for release 3.0.0 specifically.
+      cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-develop" 
+      cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-develop"
+      cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-develop"
+    else
+      cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-${env}"
+      cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${env}"
+      cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${env}"
+    fi
     
     # The below command is different because they cannot be shared like the 3 above services
     cf bind-service "$CGAPPNAME_BACKEND" "es-${backend_app_name}"
@@ -122,6 +132,7 @@ bind_backend_to_services() {
     echo "Restarting app: $CGAPPNAME_BACKEND"
     cf restage "$CGAPPNAME_BACKEND"
 }
+
 
 ##############################
 # Main script body
