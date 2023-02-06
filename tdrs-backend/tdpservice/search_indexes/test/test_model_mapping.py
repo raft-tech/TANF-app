@@ -16,61 +16,60 @@ def test_can_create_and_index_t1_submission():
     record_num = fake.uuid4()
 
     submission = T1.objects.create(
-        record=record_num,
-        rpt_month_year=1,
+        record_type=record_num,
+        reporting_month=1,
         case_number='1',
-        disposition=1,
-        fips_code='1',
-
         county_fips_code='1',
         stratum=1,
         zip_code='1',
         funding_stream=1,
+        disposition=1,
         new_applicant=1,
-        nbr_of_family_members=1,
+        family_size=1,
         family_type=1,
         receives_sub_housing=1,
         receives_medical_assistance=1,
         receives_food_stamps=1,
-        amt_food_stamp_assistance=1,
-        receives_sub_cc=1,
-        amt_sub_cc=1,
+        food_stamp_amount=1,
+        receives_sub_child_care=1,
+        child_care_amount=1,
         child_support_amount=1,
         family_cash_recources=1,
-        cash_amount=1,
-        nbr_months=1,
-        cc_amount=1,
+        family_cash_amount=1,
+        family_cash_nbr_month=1,
+        tanf_child_care_amount=1,
         children_covered=1,
-        cc_nbr_of_months=1,
-        transp_amount=1,
-        transp_nbr_months=1,
+        child_care_nbr_months=1,
+        transportation_amount=1,
+        transport_nbr_months=1,
         transition_services_amount=1,
         transition_nbr_months=1,
         other_amount=1,
-        other_nbr_of_months=1,
-        sanc_reduction_amount=1,
-        work_req_sanction=1,
-        family_sanct_adult=1,
-        sanct_teen_parent=1,
-        non_cooperation_cse=1,
-        failure_to_comply=1,
-        other_sanction=1,
-        recoupment_prior_ovrpmt=1,
-        other_total_reductions=1,
-        family_cap=1,
-        reductions_on_receipts=1,
+        other_nbr_months=1,
+        reduction_amount=1,
+        reduc_work_requirements=1,
+        reduc_adult_no_hs_diploma=1,
+        reduc_teen_not_in_school=1,
+        reduc_noncooperation_child_support=1,
+        reduc_irp_failure=1,
+        reduc_other_sanction=1,
+        reduc_prior_overpayment=1,
+        total_reduc_amount=1,
+        reduc_family_cap=1,
+        reduc_length_of_assist=1,
         other_non_sanction=1,
-        waiver_evalu_control_grps=1,
-        family_exempt_time_limits=1,
-        family_new_child=1,
-        blank='1'
+        waiver_control_grps=1,
+        tanf_family_exempt_time_limits=1,
+        tanf_new_child_only_family=1,
     )
+
+    # submission.full_clean()
 
     assert submission.id is not None
 
     search = documents.T1DataSubmissionDocument.search().query(
         'match',
-        record=record_num
+        record_type=record_num
     )
     response = search.execute()
 
@@ -229,7 +228,6 @@ def test_can_create_and_index_t4_submission():
         rec_med_assist=1,
         rec_food_stamps=1,
         rec_sub_cc=1,
-        blank='1'
     )
 
     assert submission.id is not None

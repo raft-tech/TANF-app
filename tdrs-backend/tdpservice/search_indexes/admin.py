@@ -10,8 +10,8 @@ class T1Admin(admin.ModelAdmin):
     """ModelAdmin class for parsed T1 data files."""
 
     list_display = [
-        'record',
-        'rpt_month_year',
+        'record_type',
+        'reporting_month',
         'case_number',
         'county_fips_code',
         'zip_code',
@@ -19,7 +19,7 @@ class T1Admin(admin.ModelAdmin):
     ]
 
     list_filter = [
-        'rpt_month_year',
+        'reporting_month',
         'zip_code',
         'stratum',
     ]
