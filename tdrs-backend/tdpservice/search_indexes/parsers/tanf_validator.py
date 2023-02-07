@@ -1,5 +1,7 @@
 """Validators for TANF data parser."""
 
+from .models import ParserError
+
 def t1_003(model_obj):
     return model_obj.stratum > 0 and model_obj.stratum < 100
 

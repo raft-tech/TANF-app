@@ -5,11 +5,12 @@ from ..models import T1  # , T2, T3, T4, T5, T6, T7, ParserLog
 # from django.core.exceptions import ValidationError
 from .util import get_record_type
 from .schema_defs.tanf import t1_schema
+from .models import ParserError
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-def active_t1_parser(line, line_number):
+def active_t1_parser(line, line_number) -> list():
     """Parse line in datafile as active case data, T1 only."""
     family_case_schema = t1_schema()
     # create search_index model
@@ -80,10 +81,11 @@ def active_t1_parser(line, line_number):
 
 # TODO: def stratum_data(datafile):
 
-def parse(datafile):
+def parse(datafile) -> list():
     """Parse the datafile into the search_index model."""
     logger.info('Parsing TANF datafile: %s', datafile)
 
+    parse_errors = []
     datafile.seek(0)  # ensure we are at the beginning of the file
     line_number = 0
     for raw_line in datafile:
@@ -98,7 +100,7 @@ def parse(datafile):
             # Header/trailers do not differ between types, this is part of preparsing.
             continue
         elif record_type == 'T1':
-            active_t1_parser(line, line_number)
+            parse_errors.extend(active_t1_parser(line, line_number))
         else:
             logger.warn("Parsing for type %s not yet implemented", record_type)
             continue
