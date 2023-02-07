@@ -20,7 +20,8 @@ from tdpservice.search_indexes.parsers.tanf_validators import (
     t1_105,
     t1_121,
     t1_122,
-    t1_123
+    t1_123,
+    _get_field_by_item_number
 )
 
 def make_valid_t1_model_obj():
@@ -68,7 +69,7 @@ def make_invalid_t1_model_obj():
     )
 
 
-all_t1_cat1_validators = [
+all_t1_cat2_validators = [
         t1_003,
         t1_006,
         t1_007,
@@ -89,15 +90,23 @@ all_t1_cat1_validators = [
         t1_123
     ]
 
-@pytest.mark.parametrize('obj', all_t1_cat1_validators)
+@pytest.mark.parametrize('obj', all_t1_cat2_validators)
 def test_t1_cat1_validators_valid(obj):
     """Test T1 Category 1 TANF Validations."""
     model_obj = make_valid_t1_model_obj()
     assert obj(model_obj) is True
 
 
-@pytest.mark.parametrize('obj', all_t1_cat1_validators)
+@pytest.mark.parametrize('obj', all_t1_cat2_validators)
 def test_t1_cat1_validators_invalid(obj):
     """Test T1 Category 1 TANF Validations."""
     model_obj = make_invalid_t1_model_obj()
     assert obj(model_obj) is False
+
+
+# def test_get_field_by_item_number():
+#     """Test get field by item number."""
+#     model_obj = make_valid_t1_model_obj()
+#     field = _get_field_by_item_number(model_obj, 4)
+
+#     assert field == model_obj.NBR_FAMILY_MEMBERS

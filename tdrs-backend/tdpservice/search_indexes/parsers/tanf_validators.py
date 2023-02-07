@@ -79,3 +79,111 @@ def t1_122(model_obj):
 def t1_123(model_obj):
     """Validate is tanf family a new child only family."""
     return model_obj.FAMILY_NEW_CHILD in [1, 2]
+
+# T1 Category 3 TANF Fatal Edits
+# https://www.acf.hhs.gov/sites/default/files/documents/ofa/tanf_fatal_edits_sections_1_and_4.pdf
+
+def t1_004(model_obj):
+    """Validate case number."""
+    return model_obj.CASE_NUMBER != '' # TODO not sure how to check a blank char
+
+
+def t1_009(model_obj):
+    """Validate disposition. #
+    TODO add check for item 1
+    """
+    if model_obj.DISPOSITION == 2:
+        return model_obj.CASE_NUMBER != '' and model_obj.STRATUM != '' and model_obj.RPT_MONTH_YEAR != ''
+    return True
+
+
+# T1 Category 3 TANF Warning Edits
+# https://www.acf.hhs.gov/sites/default/files/documents/ofa/tanf_warning_edits_section_1.pdf
+
+
+def t1_106(model_obj):
+    """Validate cash and cash equivalents."""
+    if model_obj.CASH_AMOUNT > 0:
+        return model_obj.NBR_MONTHS > 0
+    return False
+
+def t1_107(model_obj): # This might be cat 2
+    """Validate cash and cash equivalents."""
+    return model_obj.CASH_AMOUNT >= 0 and model_obj.NBR_MONTHS >= 0
+
+def t1_108(model_obj): # This might be cat 2
+    """Validate tanf child care."""
+    return model_obj.CC_AMOUNT >= 0 and model_obj.CHILDREN_COVERED >= 0
+
+def t1_109(model_obj):
+    """Validate tanf child care."""
+    if model_obj.CC_AMOUNT > 0:
+        return model_obj.CHILDREN_COVERED > 0
+    return False
+
+def t1_139(model_obj):
+    """Validate tanf child care."""
+    if model_obj.CC_AMOUNT > 0:
+        return model_obj.CC_NBR_MONTHS > 0
+    return False
+
+def t1_110(model_obj): # This might be cat 2
+    """Validate transportation."""
+    return model_obj.TRANSP_AMOUNT >= 0 and model_obj.TRANSP_NBR_MONTHS >= 0
+
+def t1_111(model_obj):
+    """Validate transportation."""
+    if model_obj.TRANSP_AMOUNT > 0:
+        return model_obj.TRANSP_NBR_MONTHS > 0
+    return False
+
+def t1_112(model_obj): # This might be cat 2
+    """Validate transitional services."""
+    return model_obj.TRANSITION_SERVICES_AMOUNT >= 0 and model_obj.TRANSITION_NBR_MONTHS >= 0
+
+def t1_113(model_obj):
+    """Validate transitional services."""
+    if model_obj.TRANSITION_SERVICES_AMOUNT > 0:
+        return model_obj.TRANSITION_NBR_MONTHS > 0
+    return False
+
+def t1_114(model_obj): # This might be cat 2
+    """Validate other."""
+    return model_obj.OTHER_AMOUNT >= 0 and model_obj.OTHER_NBR_MONTHS >= 0
+
+def t1_115(model_obj):
+    """Validate other."""
+    if model_obj.OTHER_AMOUNT > 0:
+        return model_obj.OTHER_NBR_MONTHS > 0
+    return False
+
+def t1_116(model_obj):
+    """Validate reason for & amount of assistance reductions."""
+    if model_obj.SANC_REDUCTION_AMT > 0:
+        return (model_obj.WORK_REQ_SANCTION == 1 or model_obj.WORK_REQ_SANCTION == 2 and 
+                model_obj.FAMILY_SANC_ADULT == 1 or model_obj.FAMILY_SANC_ADULT == 2 and
+                model_obj.SANC_TEEN_PARENT == 1 or model_obj.SANC_TEEN_PARENT == 2 and
+                model_obj.NON_COOPERATION_CSE == 1 or model_obj.NON_COOPERATION_CSE == 2 and
+                model_obj.FAILURE_TO_COMPLY == 1 or model_obj.FAILURE_TO_COMPLY == 2 and
+                model_obj.OTHER_SANCTION == 1 or model_obj.OTHER_SANCTION == 2)
+    return False
+
+def t1_117(model_obj): # This might be cat 2
+    """Validate reason for & amount of assistance reductions."""
+    return model_obj.RECOUPMENT_PRIOR_OVRPMT >= 0
+
+def t1_118(model_obj):
+    """Validate reason for & amount of assistance reductions."""
+    if model_obj.OTHER_TOTAL_REDUCTIONS > 0:
+        return (model_obj.FAMILY_CAP == 1 or model_obj.FAMILY_CAP == 2 and 
+                model_obj.REDUCTIONS_ON_RECEIPTS == 1 or model_obj.REDUCTIONS_ON_RECEIPTS == 2 and
+                model_obj.OTHER_NON_SANCTION == 1 or model_obj.OTHER_NON_SANCTION == 2)
+    return False
+
+# def _get_field_by_item_number(model_obj, item_num):
+#     """Get field name by item number."""
+#     from .schema_defs.tanf import t1_schema
+#     for field in t1_schema().get_all_fields():
+#         if str(field.item_num) == str(item_num):
+#             name = field.name
+#             return model_obj._meta.get_field(name)

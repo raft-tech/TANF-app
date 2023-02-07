@@ -102,10 +102,9 @@ def validate(family_case_schema, t1):
     """Validate the datafile."""
     errors = []
     for field in family_case_schema.get_all_fields():
-        if len(field.validators) > 0:
-            for validator in field.validators:
-                if validator(t1) is False:
-                    errors.append({
-                        'field': field,
-                        'validator': validator,
-                    })
+        for validator in field.validators:
+            if validator(t1) is False:
+                errors.append({
+                    'field': field,
+                    'validator': validator,
+                })
