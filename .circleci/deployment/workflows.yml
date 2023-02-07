@@ -1,7 +1,7 @@
 #workflows:
   dev-deployment:
     when:
-      << pipeline.parameters.run_dev_deployment >>
+      << pipeline.parameters.run_label_deployment >>
     jobs:
       - deploy-infrastructure-dev:
           target_env: << pipeline.parameters.target_env >>
@@ -38,6 +38,13 @@
       - deploy-develop:
           requires:
             - deploy-infrastructure-develop
+          filters:
+            branches:
+              only:
+                - develop
+      - test-deployment-e2e:
+          requires:
+            - deploy-develop
           filters:
             branches:
               only:
