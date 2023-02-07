@@ -27,7 +27,7 @@ class ParserError(models.Model):
     column_number = models.IntegerField()
     error_message = models.TextField()
     error_type = models.TextField()         # out of range, pre-parsing, etc.
-    #error_context = models.TextField()
+    # error_context = models.TextField()
     item_number = models.IntegerField()
     field_name = models.TextField()
 

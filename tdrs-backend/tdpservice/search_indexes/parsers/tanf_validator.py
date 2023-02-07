@@ -7,7 +7,7 @@ def t1_003(model_obj):
 
 #TODO ask about ITEM 6? MUST NOT BE BLANK
 def t1_004(model_obj):
-    '''Validates case number.'''
+    """Validates case number."""
     return type(model_obj.case_number) == int
 
 def t1_006(model_obj):
@@ -27,13 +27,13 @@ def t1_008(model_obj):
 #         return model_obj.disposition_date != None
 
 def t1_010(model_obj):
-    '''Validator for num family members.'''
+    """Validator for num family members."""
     return model_obj.family_size > 0 and model_obj.family_size < 100
 
 def t1_011(model_obj):
-    '''Validator for faamioly type for work participation.'''
+    """"Validator for faamioly type for work participation."""
     return model_obj.family_type in [1, 2, 3]
 
 def t1_013(model_obj):
-    '''Validator for recieves subsidiesed child care.'''
+    """Validator for recieves subsidiesed child care."""
     return model_obj.receives_sub_child_care in [1, 2, 3]

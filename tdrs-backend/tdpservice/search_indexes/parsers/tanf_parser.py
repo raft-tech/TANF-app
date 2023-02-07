@@ -5,12 +5,11 @@ from ..models import T1  # , T2, T3, T4, T5, T6, T7, ParserLog
 # from django.core.exceptions import ValidationError
 from .util import get_record_type
 from .schema_defs.tanf import t1_schema
-from .models import ParserError
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-def active_t1_parser(line, line_number) -> list():
+def active_t1_parser(line, line_number):
     """Parse line in datafile as active case data, T1 only."""
     family_case_schema = t1_schema()
     # create search_index model
