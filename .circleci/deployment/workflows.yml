@@ -17,7 +17,7 @@
           filters:
             branches:
               only:
-                - devops/2337-deploy-develop-on-pr-merge # switch back to develop before PR merge
+                - develop
       - deploy-infrastructure-staging:
           filters:
             branches:
@@ -34,21 +34,21 @@
           filters:
             branches:
               only:
-                - devops/2337-deploy-develop-on-pr-merge # switch back to develop before PR merge
+                - develop
       - deploy-develop:
           requires:
             - deploy-infrastructure-develop
           filters:
             branches:
               only:
-                - devops/2337-deploy-develop-on-pr-merge # switch back to develop before PR merge
+                - develop
       - test-deployment-e2e:
           requires:
             - deploy-develop
           filters:
             branches:
               only:
-                - devops/2337-deploy-develop-on-pr-merge # switch back to develop before PR merge
+                - develop
 
   production-deployment:
     unless: << pipeline.parameters.run_dev_deployment >>

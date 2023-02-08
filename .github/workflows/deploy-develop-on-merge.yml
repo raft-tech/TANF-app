@@ -23,7 +23,7 @@ name: Deploy Develop on PR Merge
 on:
   push:
     branches:
-    - devops/2337-deploy-develop-on-pr-merge
+    - develop
     paths_ignore:
     - 'docs/**'
     - '**.md'
@@ -33,7 +33,7 @@ on:
     - 'LICENSE'
 jobs:
   merge_deployment:
-    if: github.ref == 'refs/heads/devops/2337-deploy-develop-on-pr-merge'
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     name: Initiate deploy job in CircleCI
     steps:
