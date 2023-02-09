@@ -4,9 +4,11 @@ import pytest
 from tdpservice.search_indexes.models import T1
 from tdpservice.search_indexes.parsers.tanf_validators import (
     t1_003,
+    # t1_004,
     t1_006,
     t1_007,
     t1_008,
+    t1_009,
     t1_010,
     t1_011,
     t1_013,
@@ -69,6 +71,18 @@ def make_valid_t1_model_obj():
         OTHER_AMOUNT=0,
         OTHER_NBR_MONTHS=0,
         RECOUPMENT_PRIOR_OVRPMT=0,
+        SANC_REDUCTION_AMT=1,
+        WORK_REQ_SANCTION=1,
+        FAMILY_SANC_ADULT=1,
+        SANC_TEEN_PARENT=1,
+        NON_COOPERATION_CSE=1,
+        FAILURE_TO_COMPLY=1,
+        OTHER_SANCTION=1,
+        OTHER_TOTAL_REDUCTIONS=1,
+        FAMILY_CAP=1,
+        REDUCTIONS_ON_RECEIPTS=1,
+        OTHER_NON_SANCTION=1,
+        CASE_NUMBER=1,
     )
 
 def make_invalid_t1_model_obj():
@@ -102,7 +116,18 @@ def make_invalid_t1_model_obj():
         OTHER_AMOUNT=-1,
         OTHER_NBR_MONTHS=-1,
         RECOUPMENT_PRIOR_OVRPMT=-1,
-
+        SANC_REDUCTION_AMT=1,
+        WORK_REQ_SANCTION=0,
+        FAMILY_SANC_ADULT=0,
+        SANC_TEEN_PARENT=0,
+        NON_COOPERATION_CSE=0,
+        FAILURE_TO_COMPLY=0,
+        OTHER_SANCTION=0,
+        OTHER_TOTAL_REDUCTIONS=1,
+        FAMILY_CAP=0,
+        REDUCTIONS_ON_RECEIPTS=0,
+        OTHER_NON_SANCTION=0,
+        CASE_NUMBER='',
     )
 
 
@@ -135,21 +160,22 @@ all_t1_cat2_validators = [
     ]
 
 @pytest.mark.parametrize('obj', all_t1_cat2_validators)
-def test_t1_cat1_validators_valid(obj):
-    """Test T1 Category 1 TANF Validations."""
+def test_t1_cat2_validators_valid(obj):
+    """Test T1 Category 2 TANF Validations."""
     model_obj = make_valid_t1_model_obj()
     assert obj(model_obj) is True
 
 
 @pytest.mark.parametrize('obj', all_t1_cat2_validators)
-def test_t1_cat1_validators_invalid(obj):
-    """Test T1 Category 1 TANF Validations."""
+def test_t1_cat2_validators_invalid(obj):
+    """Test T1 Category 2 TANF Validations."""
     model_obj = make_invalid_t1_model_obj()
     assert obj(model_obj) is False
 
 
 # Catagory 3 tests
-all_t1_cat2_validators = [
+all_t1_cat3_validators = [
+    t1_009,
     t1_106,
     t1_109,
     t1_111,
@@ -159,6 +185,31 @@ all_t1_cat2_validators = [
     t1_118,
     t1_139,
 ]
+
+@pytest.mark.parametrize('obj', all_t1_cat3_validators)
+def test_t1_cat3_validators_valid(obj):
+    """Test T1 Category 3 TANF Validations."""
+    model_obj = make_valid_t1_model_obj()
+    model_obj.CASH_AMOUNT = 1
+    model_obj.NBR_MONTHS = 1
+    model_obj.CC_AMOUNT = 1
+    model_obj.CC_NBR_MONTHS = 1
+    model_obj.CHILDREN_COVERED = 1
+    model_obj.TRANSP_AMOUNT = 1
+    model_obj.TRANSP_NBR_MONTHS = 1
+    model_obj.TRANSITION_SERVICES_AMOUNT = 1
+    model_obj.TRANSITION_NBR_MONTHS = 1
+    model_obj.OTHER_AMOUNT = 1
+    model_obj.OTHER_NBR_MONTHS = 1
+    model_obj.DISPOSITION = 2
+    assert obj(model_obj) is True
+
+
+@pytest.mark.parametrize('obj', all_t1_cat3_validators)
+def test_t1_cat3_validators_invalid(obj):
+    """Test T1 Category 3 TANF Validations."""
+    model_obj = make_invalid_t1_model_obj()
+    assert obj(model_obj) is False
 
 def test_get_field_by_item_number():
     """Test get field by item number."""

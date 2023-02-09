@@ -99,12 +99,12 @@ def parse(datafile):
             logger.warn("Parsing for type %s not yet implemented", record_type)
             continue
 
-def validate(family_case_schema, t1):
+def validate(schema, model_obj):
     """Validate the datafile."""
     errors = []
-    for field in family_case_schema:
+    for field in schema:
         for validator in field['validators']:
-            if validator(t1) is False:
+            if validator(model_obj) is False:
                 errors.append({
                     'field': field,
                     'validator': validator,

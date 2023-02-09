@@ -4,7 +4,7 @@
 # https://www.acf.hhs.gov/sites/default/files/documents/ofa/tanf_fatal_edits_sections_1_and_4.pdf
 
 def t1_003(model_obj):
-    """Validate stratum."""
+    """Validate model_obj.STRATUM."""
     return _get_field_by_item_number(model_obj, '5') > 0 and _get_field_by_item_number(model_obj, '5') < 100
 
 def t1_006(model_obj):
@@ -115,10 +115,11 @@ def t1_009(model_obj):
     """Validate disposition.
 
     TODO add check for item 1
+    TODO make sure blank char is valid
     """
     if model_obj.DISPOSITION == 2:
         return model_obj.CASE_NUMBER != '' and model_obj.STRATUM != '' and model_obj.RPT_MONTH_YEAR != ''
-    return True
+    return False
 
 
 # T1 Category 3 TANF Warning Edits
