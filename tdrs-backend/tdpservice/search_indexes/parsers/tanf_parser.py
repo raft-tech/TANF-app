@@ -21,29 +21,30 @@ def active_t1_parser(line, line_number):
     if actual_line_length < min_line_length:
         logger.error('Expected minimum line length of %s, got: %s', min_line_length, actual_line_length)
         return
-
-    for field in family_case_schema.get_all_fields():
-        if field.name == 'blank':
+    
+    for field in family_case_schema:
+        print(f'Field: {field}')
+        if field['description'] == 'blank':
             # We are discarding this data.
             break
-        content = line[field.start-1:field.end]  # descriptor pdfs were off by one, could also adjust start values
+        content = line[field['start']-1:field['end']]  # descriptor pdfs were off by one, could also adjust start values
 
         # check if content is type string or integer
-        if field.type == 'Numeric':
+        if field['data_type'] == 'Numeric':
             try:
                 content = int(content)
             except ValueError:
                 logger.warn('[LineNo:%d, col%d] Expected field "%s" to be numeric, got: "%s"',
-                            line_number, field.start-1, field.name, content)
+                            line_number, field['start']-1, field['description'], content)
                 content_is_valid = False
                 continue
-        elif field.type == 'Alphanumeric':
+        elif field['data_type'] == 'Alphanumeric':
             pass  # maybe we can regex check some of these later
         # The below is extremely spammy, turn on selectively.
         # logger.debug('field: %s\t::content: "%s"\t::end: %s', field.name, content, field.end)
 
         if content_is_valid:
-            setattr(t1, field.name, content)
+            setattr(t1, field['description'], content)
 
     if content_is_valid is False:
         logger.warn('Content is not valid, skipping model creation.')
@@ -101,8 +102,8 @@ def parse(datafile):
 def validate(family_case_schema, t1):
     """Validate the datafile."""
     errors = []
-    for field in family_case_schema.get_all_fields():
-        for validator in field.validators:
+    for field in family_case_schema:
+        for validator in field['validators']:
             if validator(t1) is False:
                 errors.append({
                     'field': field,

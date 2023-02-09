@@ -18,10 +18,23 @@ from tdpservice.search_indexes.parsers.tanf_validators import (
     t1_103,
     t1_104,
     t1_105,
+    t1_106,
+    t1_107,
+    t1_108,
+    t1_109,
+    t1_110,
+    t1_111,
+    t1_112,
+    t1_113,
+    t1_114,
+    t1_115,
+    t1_116,
+    t1_117,
+    t1_118,
     t1_121,
     t1_122,
     t1_123,
-    _get_field_by_item_number
+    t1_139,
 )
 
 def make_valid_t1_model_obj():
@@ -44,6 +57,17 @@ def make_valid_t1_model_obj():
         WAIVER_EVAL_CONTROL_GRPS=9,
         FAMILY_EXEMPT_TIME_LIMITS=1,
         FAMILY_NEW_CHILD=1,
+        CASH_AMOUNT=0,
+        NBR_MONTHS=0,
+        CC_AMOUNT=0,
+        CHILDREN_COVERED=0,
+        TRANSP_AMOUNT=0,
+        TRANSP_NBR_MONTHS=0,
+        TRANSITION_SERVICES_AMOUNT=0,
+        TRANSITION_NBR_MONTHS=0,
+        OTHER_AMOUNT=0,
+        OTHER_NBR_MONTHS=0,
+        RECOUPMENT_PRIOR_OVRPMT=0,
     )
 
 def make_invalid_t1_model_obj():
@@ -66,28 +90,47 @@ def make_invalid_t1_model_obj():
         WAIVER_EVAL_CONTROL_GRPS=8,
         FAMILY_EXEMPT_TIME_LIMITS=0,
         FAMILY_NEW_CHILD=0,
+        CASH_AMOUNT=-1,
+        NBR_MONTHS=-1,
+        CC_AMOUNT=-1,
+        CHILDREN_COVERED=-1,
+        TRANSP_AMOUNT=-1,
+        TRANSP_NBR_MONTHS=-1,
+        TRANSITION_SERVICES_AMOUNT=-1,
+        TRANSITION_NBR_MONTHS=-1,
+        OTHER_AMOUNT=-1,
+        OTHER_NBR_MONTHS=-1,
+        RECOUPMENT_PRIOR_OVRPMT=-1,
+
     )
 
+# Catagory 2 tests
 
 all_t1_cat2_validators = [
-        t1_003,
-        t1_006,
-        t1_007,
-        t1_008,
-        t1_010,
-        t1_011,
-        t1_013,
-        t1_097,
-        t1_099,
-        t1_100,
-        t1_101,
-        t1_102,
-        t1_103,
-        t1_104,
-        t1_105,
-        t1_121,
-        t1_122,
-        t1_123
+    t1_003,
+    t1_006,
+    t1_007,
+    t1_008,
+    t1_010,
+    t1_011,
+    t1_013,
+    t1_097,
+    t1_099,
+    t1_100,
+    t1_101,
+    t1_102,
+    t1_103,
+    t1_104,
+    t1_105,
+    t1_107,
+    t1_108,
+    t1_110,
+    t1_112,
+    t1_114,
+    t1_117,
+    t1_121,
+    t1_122,
+    t1_123,
     ]
 
 @pytest.mark.parametrize('obj', all_t1_cat2_validators)
@@ -102,6 +145,19 @@ def test_t1_cat1_validators_invalid(obj):
     """Test T1 Category 1 TANF Validations."""
     model_obj = make_invalid_t1_model_obj()
     assert obj(model_obj) is False
+
+
+# Catagory 3 tests
+all_t1_cat2_validators = [
+    t1_106,
+    t1_109,
+    t1_111,
+    t1_113,
+    t1_115,
+    t1_116,
+    t1_118,
+    t1_139,
+]
 
 
 # def test_get_field_by_item_number():

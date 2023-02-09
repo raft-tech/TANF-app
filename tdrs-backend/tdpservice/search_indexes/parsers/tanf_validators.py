@@ -68,6 +68,30 @@ def t1_105(model_obj):
     """Validate amount of family's cash resources."""
     return model_obj.FAMILY_CASH_RESOURCES >= 0
 
+def t1_107(model_obj):
+    """Validate cash and cash equivalents."""
+    return model_obj.CASH_AMOUNT >= 0 and model_obj.NBR_MONTHS >= 0
+
+def t1_108(model_obj):
+    """Validate tanf child care."""
+    return model_obj.CC_AMOUNT >= 0 and model_obj.CHILDREN_COVERED >= 0
+
+def t1_110(model_obj):
+    """Validate transportation."""
+    return model_obj.TRANSP_AMOUNT >= 0 and model_obj.TRANSP_NBR_MONTHS >= 0
+
+def t1_112(model_obj):
+    """Validate transitional services."""
+    return model_obj.TRANSITION_SERVICES_AMOUNT >= 0 and model_obj.TRANSITION_NBR_MONTHS >= 0
+
+def t1_114(model_obj):
+    """Validate other."""
+    return model_obj.OTHER_AMOUNT >= 0 and model_obj.OTHER_NBR_MONTHS >= 0
+
+def t1_117(model_obj):
+    """Validate reason for & amount of assistance reductions."""
+    return model_obj.RECOUPMENT_PRIOR_OVRPMT >= 0
+
 def t1_121(model_obj):
     """Validate waiver evaluation experimental & control groups."""
     return model_obj.WAIVER_EVAL_CONTROL_GRPS in [9, '']
@@ -86,7 +110,6 @@ def t1_123(model_obj):
 def t1_004(model_obj):
     """Validate case number."""
     return model_obj.CASE_NUMBER != '' # TODO not sure how to check a blank char
-
 
 def t1_009(model_obj):
     """Validate disposition. #
@@ -107,14 +130,6 @@ def t1_106(model_obj):
         return model_obj.NBR_MONTHS > 0
     return False
 
-def t1_107(model_obj): # This might be cat 2
-    """Validate cash and cash equivalents."""
-    return model_obj.CASH_AMOUNT >= 0 and model_obj.NBR_MONTHS >= 0
-
-def t1_108(model_obj): # This might be cat 2
-    """Validate tanf child care."""
-    return model_obj.CC_AMOUNT >= 0 and model_obj.CHILDREN_COVERED >= 0
-
 def t1_109(model_obj):
     """Validate tanf child care."""
     if model_obj.CC_AMOUNT > 0:
@@ -127,29 +142,17 @@ def t1_139(model_obj):
         return model_obj.CC_NBR_MONTHS > 0
     return False
 
-def t1_110(model_obj): # This might be cat 2
-    """Validate transportation."""
-    return model_obj.TRANSP_AMOUNT >= 0 and model_obj.TRANSP_NBR_MONTHS >= 0
-
 def t1_111(model_obj):
     """Validate transportation."""
     if model_obj.TRANSP_AMOUNT > 0:
         return model_obj.TRANSP_NBR_MONTHS > 0
     return False
 
-def t1_112(model_obj): # This might be cat 2
-    """Validate transitional services."""
-    return model_obj.TRANSITION_SERVICES_AMOUNT >= 0 and model_obj.TRANSITION_NBR_MONTHS >= 0
-
 def t1_113(model_obj):
     """Validate transitional services."""
     if model_obj.TRANSITION_SERVICES_AMOUNT > 0:
         return model_obj.TRANSITION_NBR_MONTHS > 0
     return False
-
-def t1_114(model_obj): # This might be cat 2
-    """Validate other."""
-    return model_obj.OTHER_AMOUNT >= 0 and model_obj.OTHER_NBR_MONTHS >= 0
 
 def t1_115(model_obj):
     """Validate other."""
@@ -167,10 +170,6 @@ def t1_116(model_obj):
                 model_obj.FAILURE_TO_COMPLY == 1 or model_obj.FAILURE_TO_COMPLY == 2 and
                 model_obj.OTHER_SANCTION == 1 or model_obj.OTHER_SANCTION == 2)
     return False
-
-def t1_117(model_obj): # This might be cat 2
-    """Validate reason for & amount of assistance reductions."""
-    return model_obj.RECOUPMENT_PRIOR_OVRPMT >= 0
 
 def t1_118(model_obj):
     """Validate reason for & amount of assistance reductions."""
