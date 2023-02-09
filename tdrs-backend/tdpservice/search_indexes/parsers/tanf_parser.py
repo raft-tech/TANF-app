@@ -21,7 +21,7 @@ def active_t1_parser(line, line_number):
     if actual_line_length < min_line_length:
         logger.error('Expected minimum line length of %s, got: %s', min_line_length, actual_line_length)
         return
-    
+
     for field in family_case_schema:
         print(f'Field: {field}')
         if field['description'] == 'blank':

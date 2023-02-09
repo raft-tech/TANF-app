@@ -35,6 +35,7 @@ from tdpservice.search_indexes.parsers.tanf_validators import (
     t1_122,
     t1_123,
     t1_139,
+    _get_field_by_item_number
 )
 
 def make_valid_t1_model_obj():
@@ -104,8 +105,8 @@ def make_invalid_t1_model_obj():
 
     )
 
-# Catagory 2 tests
 
+# Catagory 2 tests
 all_t1_cat2_validators = [
     t1_003,
     t1_006,
@@ -159,10 +160,8 @@ all_t1_cat2_validators = [
     t1_139,
 ]
 
-
-# def test_get_field_by_item_number():
-#     """Test get field by item number."""
-#     model_obj = make_valid_t1_model_obj()
-#     field = _get_field_by_item_number(model_obj, 4)
-
-#     assert field == model_obj.NBR_FAMILY_MEMBERS
+def test_get_field_by_item_number():
+    """Test get field by item number."""
+    model_obj = make_valid_t1_model_obj()
+    field = _get_field_by_item_number(model_obj, 4)
+    assert field == model_obj.RPT_MONTH_YEAR
