@@ -35,7 +35,7 @@ from tdpservice.search_indexes.parsers.tanf_validators import (
     t1_139,
 )
 
-def row(item_number, description, length, start, end, data_type, validators=[]):
+def row(item_number, description, length, start, end, data_type, cat2_validators=[]):
     """Return a dictionary representing a row in a schema."""
     return {
         'item_number': item_number,
@@ -44,7 +44,7 @@ def row(item_number, description, length, start, end, data_type, validators=[]):
         'start': start,
         'end': end,
         'data_type': data_type,
-        'validators': validators
+        'cat2_validators': cat2_validators
     }
 
 def t1_schema():
