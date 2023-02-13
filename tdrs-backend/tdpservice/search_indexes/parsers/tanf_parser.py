@@ -99,13 +99,54 @@ def parse(datafile):
             logger.warn("Parsing for type %s not yet implemented", record_type)
             continue
 
-def validate(schema, model_obj):
+def validate_2(schema, model_obj):
     """Validate the datafile."""
-    errors = []
+    from .tanf_validators import validate_cat2, FatalEditWarningsValidator
+
+    full_schemas = {}
+    full_documents = {}
+
     for field in schema:
-        for validator in field['validators']:
-            if validator(model_obj) is False:
-                errors.append({
-                    'field': field,
-                    'validator': validator,
-                })
+        name = field['description']
+        if name == 'BLANK':
+            continue
+        value = getattr(model_obj, name)
+        cat2_conditions = field['cat2_conditions']
+
+        if cat2_conditions != {}:
+            partial_document, partial_schema = validate_cat2(name, value, cat2_conditions, model_obj)
+            full_documents.update(partial_document)
+            full_schemas.update(partial_schema)
+    
+    validator = FatalEditWarningsValidator(full_schemas)
+    validator.validate(full_documents)
+
+    return validator.errors
+
+
+def validate_3(schema, model_obj):
+    from .tanf_validators import validate_cat3, FatalEditWarningsValidator
+    primary_schemas = {}
+    primary_documents = {}
+
+    secondary_schemas = {}
+    secondary_documents = {}
+
+    for field in schema:
+        name = field['description']
+        if name == 'BLANK':
+            continue
+        cat3_conditions = field['cat3_conditions']
+        if cat3_conditions != {}:
+            primary, secondary = validate_cat3(cat3_conditions, model_obj)
+
+            primary_documents.update(primary[0])
+            primary_schemas.update(primary[1])
+            secondary_documents.update(secondary[0])
+            secondary_schemas.update(secondary[1])
+    
+    
+
+    return validator.errors
+
+
