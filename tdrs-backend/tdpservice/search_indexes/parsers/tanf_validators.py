@@ -1,4 +1,5 @@
 """Validators for TANF data parser."""
+from cerberus import Validator
 
 class FatalEditWarnings(Exception):
     """TANF Errors."""
@@ -12,29 +13,29 @@ class FatalEditWarnings(Exception):
 class Cat2(FatalEditWarnings):
     """TANF Category 2 Errors."""
 
-    def __init__(self, field):
+    def __init__(self, field, message):
         """Initialize the error."""
-        message = "is out of range."
+        message = f"is not in the following range: {message}."
         super().__init__(field, message)
 
 class Cat3(FatalEditWarnings):
     """TANF Category 2 Errors."""
 
-    def __init__(self, field):
+    def __init__(self, field, message):
         """Initialize the error."""
-        message = "is not valid."
         super().__init__(field, message)
 
 def _check(
     fields_to_check: list,
     Catagory: FatalEditWarnings,
-    group_description: tuple = ("All fields in this check are invalid.", "Some fields in this check are invalid.")
+    message: str,
+    group_description: tuple = ("All fields in this check are invalid.", "Some fields in this check are invalid."),
     ):
     exception_group = []
 
     for field, is_valid in fields_to_check.items():
         if not is_valid:
-            exception_group.add_exception(Catagory(field))
+            exception_group.add_exception(Catagory(field, message))
 
     if len(exception_group) == len(fields_to_check):
         raise ExceptionGroup(group_description[0],
@@ -47,14 +48,39 @@ def _check(
 
     return True
 
+t1_schema = {"STRATUM": {'gt': 0, 'lt': 100}}
+class FatalEditWarningsValidator(Validator):
+
+    def _validate_gt(self, constraint, field, value):
+        """Validate that value is greater than a constraint."""
+        if not value > constraint:
+            self._error(field, f"Value is not greater than {constraint}.")
+
+    def _validate_lt(self, constraint, field, value):
+        """Validate that value is less than a constraint."""
+        if not value < constraint:
+            self._error(field, f"Value is not less than {constraint}.")
+        
+    def _validate_gte(self, constraint, field, value):
+        """Validate that value is greater than or equal to a constraint."""
+        if not value >= constraint:
+            self._error(field, f"Value is not greater than or equal to {constraint}.")
+
+    def _validate_lte(self, constraint, field, value):
+        """Validate that value is less than or equal to a constraint."""
+        if not value <= constraint:
+            self._error(field, f"Value is not less than or equal to {constraint}.")
+
 
 # T1 Category 2 TANF Fatal Edits
 # https://www.acf.hhs.gov/sites/default/files/documents/ofa/tanf_fatal_edits_sections_1_and_4.pdf
 
 def t1_003(model_obj):
     """Validate model_obj.STRATUM."""
+    schema = {"STRATUM": {'gt': 0, 'lt': 100}}
+
     fields_to_check =  {'STRATUM': model_obj.STRATUM > 0 and model_obj.STRATUM < 100}
-    return _check(fields_to_check, Cat2)
+    return _check(fields_to_check, Cat2, '0-99')
 
 def t1_006(model_obj):
     """Validate report month."""
