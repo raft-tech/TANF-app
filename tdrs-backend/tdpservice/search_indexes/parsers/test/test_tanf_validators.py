@@ -2,46 +2,13 @@
 import pytest
 
 from tdpservice.search_indexes.models import T1
-from tdpservice.search_indexes.parsers.tanf_parser import validate_2, validate_3
+from tdpservice.search_indexes.parsers.tanf_parser import validate
 from tdpservice.search_indexes.parsers.schema_defs.tanf import t1_schema
 
 from tdpservice.search_indexes.parsers.tanf_validators import (
+    # _get_field_by_item_number,
     validate_cat2,
-    # t1_003,
-    # # t1_004,
-    # t1_006,
-    # t1_007,
-    # t1_008,
-    # t1_009,
-    # t1_010,
-    # t1_011,
-    # t1_013,
-    # t1_097,
-    # t1_099,
-    # t1_100,
-    # t1_101,
-    # t1_102,
-    # t1_103,
-    # t1_104,
-    # t1_105,
-    # t1_106,
-    # t1_107,
-    # t1_108,
-    # t1_109,
-    # t1_110,
-    # t1_111,
-    # t1_112,
-    # t1_113,
-    # t1_114,
-    # t1_115,
-    # t1_116,
-    # t1_117,
-    # t1_118,
-    # t1_121,
-    # t1_122,
-    # t1_123,
-    # t1_139,
-    # _get_field_by_item_number
+    validate_cat3,
 )
 
 def make_valid_t1_model_obj():
@@ -138,7 +105,7 @@ def test_validate_2():
     """Test the validate_cat2 function."""
     t1 = make_valid_t1_model_obj()
     family_case_schema = t1_schema()
-    errors = validate_2(family_case_schema, t1)
+    errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
 
     assert len(errors) == 0
 
@@ -146,7 +113,7 @@ def test_validate_2_invalid():
     """Test the validate_cat2 function."""
     t1 = make_invalid_t1_model_obj()
     family_case_schema = t1_schema()
-    errors = validate_2(family_case_schema, t1)
+    errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
 
     assert len(errors) == 0
 
@@ -167,8 +134,7 @@ def test_validate_3():
     model_obj.DISPOSITION = 2
 
     family_case_schema = t1_schema()
-    errors = validate_3(family_case_schema, model_obj)
-    print(errors)
+    errors = validate(family_case_schema, model_obj, 'cat3_conditions', validate_cat3)
 
     assert len(errors) == 0
 
@@ -177,11 +143,13 @@ def test_validate_3_invalid():
     model_obj = make_invalid_t1_model_obj()
     model_obj.OTHER_AMOUNT = 1
     model_obj.OTHER_NBR_MONTHS = 0
+    model_obj.NBR_MONTHS = 0
+    model_obj.SANC_REDUCTION_AMT = 0
 
     family_case_schema = t1_schema()
-    errors = validate_3(family_case_schema, model_obj)
-    # print(errors)
-    assert len(errors) == 1
+    errors = validate(family_case_schema, model_obj, 'cat3_conditions', validate_cat3)
+    print(errors)
+    assert len(errors) == 2
 
 # # Catagory 2 tests
 # all_t1_cat2_validators = [
@@ -217,54 +185,3 @@ def test_validate_3_invalid():
 #     model_obj = make_valid_t1_model_obj()
 #     assert obj(model_obj) is True
 
-
-# @pytest.mark.parametrize('obj', all_t1_cat2_validators)
-# def test_t1_cat2_validators_invalid(obj):
-#     """Test T1 Category 2 TANF Validations."""
-#     model_obj = make_invalid_t1_model_obj()
-#     assert obj(model_obj) is False
-
-
-# # Catagory 3 tests
-# all_t1_cat3_validators = [
-#     t1_009,
-#     t1_106,
-#     t1_109,
-#     t1_111,
-#     t1_113,
-#     t1_115,
-#     t1_116,
-#     t1_118,
-#     t1_139,
-# ]
-
-# @pytest.mark.parametrize('obj', all_t1_cat3_validators)
-# def test_t1_cat3_validators_valid(obj):
-#     """Test T1 Category 3 TANF Validations."""
-#     model_obj = make_valid_t1_model_obj()
-#     model_obj.CASH_AMOUNT = 1
-#     model_obj.NBR_MONTHS = 1
-#     model_obj.CC_AMOUNT = 1
-#     model_obj.CC_NBR_MONTHS = 1
-#     model_obj.CHILDREN_COVERED = 1
-#     model_obj.TRANSP_AMOUNT = 1
-#     model_obj.TRANSP_NBR_MONTHS = 1
-#     model_obj.TRANSITION_SERVICES_AMOUNT = 1
-#     model_obj.TRANSITION_NBR_MONTHS = 1
-#     model_obj.OTHER_AMOUNT = 1
-#     model_obj.OTHER_NBR_MONTHS = 1
-#     model_obj.DISPOSITION = 2
-#     assert obj(model_obj) is True
-
-
-# @pytest.mark.parametrize('obj', all_t1_cat3_validators)
-# def test_t1_cat3_validators_invalid(obj):
-#     """Test T1 Category 3 TANF Validations."""
-#     model_obj = make_invalid_t1_model_obj()
-#     assert obj(model_obj) is False
-
-# def test_get_field_by_item_number():
-#     """Test get field by item number."""
-#     model_obj = make_valid_t1_model_obj()
-#     field = _get_field_by_item_number(model_obj, 4)
-#     assert field == model_obj.RPT_MONTH_YEAR

@@ -5,6 +5,7 @@ from ..models import T1  # , T2, T3, T4, T5, T6, T7, ParserLog
 # from django.core.exceptions import ValidationError
 from .util import get_record_type
 from .schema_defs.tanf import t1_schema
+from .tanf_validators import validate_cat2, validate_cat3
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -50,8 +51,18 @@ def active_t1_parser(line, line_number):
         logger.warn('Content is not valid, skipping model creation.')
         return
 
-    validate_2(family_case_schema, t1)
-    validate_3(family_case_schema, t1)
+    cat2_errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
+    cat3_errors = validate(family_case_schema, t1, 'cat3_conditions', validate_cat3)
+
+    if len(cat2_errors) > 0:
+        logger.warn(f'There are {len(cat2_errors)} cat2 errors:')
+        for error in cat2_errors:
+            logger.warn(error)
+    
+    if len(cat3_errors) > 0:
+        logger.warn(f'There are {len(cat3_errors)} cat3 errors:')
+        for error in cat3_errors:
+            logger.warn(error)
 
     # try:
     # t1.full_clean()
@@ -100,35 +111,23 @@ def parse(datafile):
             logger.warn("Parsing for type %s not yet implemented", record_type)
             continue
 
-def validate_2(schema, model_obj):
+def validate(schema, model_obj, catagory, validator):
     """Validate the datafile."""
-    from .tanf_validators import validate_cat2
     errors = []
     for field in schema:
         name = field['description']
         if name == 'BLANK':
             continue
         value = getattr(model_obj, name)
-        cat2_conditions = field['cat2_conditions']
-        if cat2_conditions != {}:
-            cat2_errors = validate_cat2(name, value, cat2_conditions, model_obj)
-            if len(cat2_errors) > 0:
-                errors.append(cat2_errors)
+        catagory_conditions = field[catagory]
+        catagory_errors = None
+        if catagory_conditions != {}:
+            if 'custom' in catagory_conditions:
+                for custom_validator in catagory_conditions['custom']:
+                    catagory_errors = custom_validator(model_obj)
+            else:
+                catagory_errors = validator(name, value, catagory_conditions, model_obj)
+            if len(catagory_errors) > 0:
+                errors.append(catagory_errors)
             
-    return errors
-
-def validate_3(schema, model_obj):
-    from .tanf_validators import validate_cat3
-    errors = []
-    for field in schema:
-        name = field['description']
-        if name == 'BLANK':
-            continue
-        value = getattr(model_obj, name)
-        cat3_conditions = field['cat3_conditions']
-        if cat3_conditions != {}:
-            cat3_errors = validate_cat3(name, value, cat3_conditions, model_obj)
-            if len(cat3_errors) > 0:
-                errors.append(cat3_errors)
-
     return errors

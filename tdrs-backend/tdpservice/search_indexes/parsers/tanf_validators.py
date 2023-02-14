@@ -35,12 +35,9 @@ class FatalEditWarningsValidator(Validator):
 
 def validate_cat3(name: str, value: str, condition: dict, model_obj) -> tuple:
     """Validate catagoy 2 errors."""
-    if 'custom' in condition.keys():
-        for custom_validator in condition['custom']:
-            return custom_validator(model_obj)
-
     document = {name: value}
     validator = FatalEditWarningsValidator(condition)
+    validator.allow_unknown = True
 
     condition.pop(name)
     field = list(condition.keys())[0]
@@ -54,19 +51,8 @@ def validate_cat3(name: str, value: str, condition: dict, model_obj) -> tuple:
     
     return validator.errors
 
-def _validate(schema, document):
-    """Validate the a document."""
-    validator = FatalEditWarningsValidator(schema)
-    validator.validate(document)
-
-    return validator.errors
-
 def validate_cat2(name: str, value: str, condition: dict, model_obj) -> tuple:
     """Validate catagoy 2 errors."""
-    if 'custom' in condition.keys():
-        for custom_validator in condition['custom']:
-            return custom_validator(model_obj)
-
     schema = {name: condition}
     document = {name: value}
 
@@ -131,6 +117,13 @@ def _get_field_by_item_number(model_obj, item_number):
             return model_obj._meta.get_field(name).value_from_object(model_obj)
     return None
 
+def _validate(schema, document):
+    """Validate the a document."""
+    validator = FatalEditWarningsValidator(schema)
+    validator.allow_unknown = True
+    validator.validate(document)
+
+    return validator.errors
 
 # def t1_003(name, value):
 #     """Validate model_obj.STRATUM."""
