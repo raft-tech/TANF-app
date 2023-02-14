@@ -2,7 +2,7 @@
 import pytest
 
 from tdpservice.search_indexes.models import T1
-from tdpservice.search_indexes.parsers.tanf_parser import validate
+from tdpservice.search_indexes.parsers.tanf_parser import validate_2, validate_3
 from tdpservice.search_indexes.parsers.schema_defs.tanf import t1_schema
 
 from tdpservice.search_indexes.parsers.tanf_validators import (
@@ -117,7 +117,7 @@ def make_invalid_t1_model_obj():
         TRANSP_NBR_MONTHS=-1,
         TRANSITION_SERVICES_AMOUNT=-1,
         TRANSITION_NBR_MONTHS=-1,
-        OTHER_AMOUNT=-1,
+        OTHER_AMOUNT=-5,
         OTHER_NBR_MONTHS=-1,
         RECOUPMENT_PRIOR_OVRPMT=-1,
         SANC_REDUCTION_AMT=1,
@@ -134,22 +134,54 @@ def make_invalid_t1_model_obj():
         CASE_NUMBER='',
     )
 
-def test_validate():
+def test_validate_2():
     """Test the validate_cat2 function."""
     t1 = make_valid_t1_model_obj()
     family_case_schema = t1_schema()
-    errors = validate(family_case_schema, t1)
+    errors = validate_2(family_case_schema, t1)
 
     assert len(errors) == 0
 
-def test_validate_invalid():
+def test_validate_2_invalid():
     """Test the validate_cat2 function."""
     t1 = make_invalid_t1_model_obj()
     family_case_schema = t1_schema()
-    errors = validate(family_case_schema, t1)
-    print(errors)
-    print('====================================')
+    errors = validate_2(family_case_schema, t1)
+
     assert len(errors) == 0
+
+def test_validate_3():
+    """Test the validate_cat3 function."""
+    model_obj = make_valid_t1_model_obj()
+    model_obj.CASH_AMOUNT = 1
+    model_obj.NBR_MONTHS = 1
+    model_obj.CC_AMOUNT = 1
+    model_obj.CC_NBR_MONTHS = 1
+    model_obj.CHILDREN_COVERED = 1
+    model_obj.TRANSP_AMOUNT = 1
+    model_obj.TRANSP_NBR_MONTHS = 1
+    model_obj.TRANSITION_SERVICES_AMOUNT = 1
+    model_obj.TRANSITION_NBR_MONTHS = 1
+    model_obj.OTHER_AMOUNT = 1
+    model_obj.OTHER_NBR_MONTHS = 1
+    model_obj.DISPOSITION = 2
+
+    family_case_schema = t1_schema()
+    errors = validate_3(family_case_schema, model_obj)
+    print(errors)
+
+    assert len(errors) == 0
+
+def test_validate_3_invalid():
+    """Test the validate_cat3 function."""
+    model_obj = make_invalid_t1_model_obj()
+    model_obj.OTHER_AMOUNT = 1
+    model_obj.OTHER_NBR_MONTHS = 0
+
+    family_case_schema = t1_schema()
+    errors = validate_3(family_case_schema, model_obj)
+    # print(errors)
+    assert len(errors) == 1
 
 # # Catagory 2 tests
 # all_t1_cat2_validators = [

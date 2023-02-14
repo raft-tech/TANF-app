@@ -27,11 +27,39 @@ class FatalEditWarningsValidator(Validator):
         """Validate that value is in a list of constraints."""
         if not value in constraint:
             self._error(field, f"Value: {value}, is not in {constraint}.")
-
+        
+        
 
 # T1 Category 2 TANF Fatal Edits
 # https://www.acf.hhs.gov/sites/default/files/documents/ofa/tanf_fatal_edits_sections_1_and_4.pdf
 
+def validate_cat3(name: str, value: str, condition: dict, model_obj) -> tuple:
+    """Validate catagoy 2 errors."""
+    if 'custom' in condition.keys():
+        for custom_validator in condition['custom']:
+            return custom_validator(model_obj)
+
+    document = {name: value}
+    validator = FatalEditWarningsValidator(condition)
+
+    condition.pop(name)
+    field = list(condition.keys())[0]
+    value = getattr(model_obj, field)
+
+    document[field] = value
+    validator.validate(document)
+
+    if name in validator.errors.keys():
+        return []
+    
+    return validator.errors
+
+def _validate(schema, document):
+    """Validate the a document."""
+    validator = FatalEditWarningsValidator(schema)
+    validator.validate(document)
+
+    return validator.errors
 
 def validate_cat2(name: str, value: str, condition: dict, model_obj) -> tuple:
     """Validate catagoy 2 errors."""
@@ -42,7 +70,7 @@ def validate_cat2(name: str, value: str, condition: dict, model_obj) -> tuple:
     schema = {name: condition}
     document = {name: value}
 
-    return document, schema
+    return _validate(schema, document)
 
 def t1_006(model_obj):
     """Validate model_obj.RPT_MONTH_YEAR for year."""
@@ -51,7 +79,7 @@ def t1_006(model_obj):
     schema = {name: {'gte': 1998}}
     document = {name: value}
 
-    return document, schema
+    return _validate(schema, document)
 
 def t1_007(model_obj):
     """Validate model_obj.RPT_MONTH_YEAR for month."""
@@ -60,7 +88,7 @@ def t1_007(model_obj):
     schema = {name: {'gte': 1, 'lte': 12}}
     document = {name: value}
 
-    return document, schema
+    return _validate(schema, document)
 
 def t1_107(model_obj):
     """Validate cash and cash equivalents."""
@@ -68,7 +96,40 @@ def t1_107(model_obj):
     schema = {'CASH_AMOUNT': {'gte': 0}, 'NBR_MONTHS': {'gte': 0}}
     document = {'CASH_AMOUNT': model_obj.CASH_AMOUNT, 'NBR_MONTHS': model_obj.NBR_MONTHS}
 
-    return document, schema
+    return _validate(schema, document)
+
+def t1_116(model_obj):
+    """Validate reason for & amount of assistance reductions."""
+    schema = {
+        'SANC_REDUCTION_AMT': {'gt': 0},
+        'WORK_REQ_SANCTION': {'in': [1, 2]},
+        'FAMILY_SANC_ADULT': {'in': [1, 2]},
+        'SANC_TEEN_PARENT': {'in': [1, 2]},
+        'NON_COOPERATION_CSE': {'in': [1, 2]},
+        'FAILURE_TO_COMPLY': {'in': [1, 2]},
+        'OTHER_SANCTION': {'in': [1, 2]}
+    }
+    document = {}
+    for key in schema.keys():
+        document[key] = getattr(model_obj, key)
+    
+    validator = FatalEditWarningsValidator(schema)
+    validator.validate(document)
+
+    if 'SANC_REDUCTION_AMT' in validator.errors.keys():
+        return []
+    
+    return validator.errors
+
+
+def _get_field_by_item_number(model_obj, item_number):
+    """Get field name by item number."""
+    from .schema_defs.tanf import t1_schema
+    for field in t1_schema():
+        if field['item_number'] == str(item_number):
+            name = field['description']
+            return model_obj._meta.get_field(name).value_from_object(model_obj)
+    return None
 
 
 # def t1_003(name, value):
@@ -80,8 +141,6 @@ def t1_107(model_obj):
 #     v.validate(document, schema)
 #     return v.errors
 
-
-
 # T1 Category 2 TANF Warning Edits
 # https://www.acf.hhs.gov/sites/default/files/documents/ofa/tanf_warning_edits_section_1.pdf
 
@@ -90,33 +149,6 @@ def t1_107(model_obj):
 #     schema = make_field_schema(name, [{'contains': [1, 2]}])
 #     document = make_document(name, value)
 
-#     v = FatalEditWarningsValidator(schema)
-#     v.validate(document, schema)
-#     return v.errors
-
-
-
-
-
-def validate_cat3(condition: dict, model_obj) -> tuple:
-    """Validate catagoy 2 errors."""
-    if 'custom' in condition.keys():
-        for custom_validator in condition['custom']:
-            return custom_validator(model_obj)
-
-    primary_schema = condition['primary']
-    primary_key = primary_schema.keys()[0]
-    primary_value = getattr(model_obj, primary_key)
-    primary_document = {primary_key: primary_value}
-
-    secondary_schema = condition['secondary']
-    secondary_key = secondary_schema.keys()[0]
-    secondary_value = getattr(model_obj, secondary_key)
-    secondary_document = {secondary_key: secondary_value}
-
-
-    return (primary_document, primary_schema), (secondary_document, secondary_schema)
-
 # def t1_115(name, value):
 #     """Validate other."""
 #     is_valid = True
@@ -124,31 +156,6 @@ def validate_cat3(condition: dict, model_obj) -> tuple:
 #         is_valid = model_obj.OTHER_NBR_MONTHS > 0
 
 #     return _check('OTHER_NBR_MONTHS', Cat3, is_valid)
-
-def t1_116(model_obj):
-    """Validate reason for & amount of assistance reductions."""
-
-    primary_schema = {'SANC_REDUCTION_AMT': {'gt': 0}}
-    primary_key = primary_schema.keys()[0]
-    primary_value = getattr(model_obj, primary_key)
-    primary_document = {primary_key: primary_value}
-
-    secondary_schema = {'WORK_REQ_SANCTION': {'in': [1, 2]},
-                        'FAMILY_SANC_ADULT': {'in': [1, 2]},
-                        'SANC_TEEN_PARENT': {'in': [1, 2]},
-                        'NON_COOPERATION_CSE': {'in': [1, 2]},
-                        'FAILURE_TO_COMPLY': {'in': [1, 2]},
-                        'OTHER_SANCTION': {'in': [1, 2]}}
-    secondary_document = {}
-    for key in secondary_schema.keys():
-        secondary_document[key] = getattr(model_obj, key)
-
-    return (primary_document, primary_schema), (secondary_document, secondary_schema)
-
-
-
-
-
 
 
 # def t1_008(model_obj):
@@ -382,11 +389,3 @@ def t1_116(model_obj):
 
 #     return _check_multiple(fields, Cat3, exception_group)
 
-def _get_field_by_item_number(model_obj, item_number):
-    """Get field name by item number."""
-    from .schema_defs.tanf import t1_schema
-    for field in t1_schema():
-        if field['item_number'] == str(item_number):
-            name = field['description']
-            return model_obj._meta.get_field(name).value_from_object(model_obj)
-    return None

@@ -50,7 +50,8 @@ def active_t1_parser(line, line_number):
         logger.warn('Content is not valid, skipping model creation.')
         return
 
-    validate(family_case_schema, t1)
+    validate_2(family_case_schema, t1)
+    validate_3(family_case_schema, t1)
 
     # try:
     # t1.full_clean()
@@ -101,52 +102,33 @@ def parse(datafile):
 
 def validate_2(schema, model_obj):
     """Validate the datafile."""
-    from .tanf_validators import validate_cat2, FatalEditWarningsValidator
-
-    full_schemas = {}
-    full_documents = {}
-
+    from .tanf_validators import validate_cat2
+    errors = []
     for field in schema:
         name = field['description']
         if name == 'BLANK':
             continue
         value = getattr(model_obj, name)
         cat2_conditions = field['cat2_conditions']
-
         if cat2_conditions != {}:
-            partial_document, partial_schema = validate_cat2(name, value, cat2_conditions, model_obj)
-            full_documents.update(partial_document)
-            full_schemas.update(partial_schema)
-    
-    validator = FatalEditWarningsValidator(full_schemas)
-    validator.validate(full_documents)
-
-    return validator.errors
-
+            cat2_errors = validate_cat2(name, value, cat2_conditions, model_obj)
+            if len(cat2_errors) > 0:
+                errors.append(cat2_errors)
+            
+    return errors
 
 def validate_3(schema, model_obj):
-    from .tanf_validators import validate_cat3, FatalEditWarningsValidator
-    primary_schemas = {}
-    primary_documents = {}
-
-    secondary_schemas = {}
-    secondary_documents = {}
-
+    from .tanf_validators import validate_cat3
+    errors = []
     for field in schema:
         name = field['description']
         if name == 'BLANK':
             continue
+        value = getattr(model_obj, name)
         cat3_conditions = field['cat3_conditions']
         if cat3_conditions != {}:
-            primary, secondary = validate_cat3(cat3_conditions, model_obj)
+            cat3_errors = validate_cat3(name, value, cat3_conditions, model_obj)
+            if len(cat3_errors) > 0:
+                errors.append(cat3_errors)
 
-            primary_documents.update(primary[0])
-            primary_schemas.update(primary[1])
-            secondary_documents.update(secondary[0])
-            secondary_schemas.update(secondary[1])
-    
-    
-
-    return validator.errors
-
-
+    return errors
