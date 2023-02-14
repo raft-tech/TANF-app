@@ -52,13 +52,14 @@ def active_t1_parser(line, line_number):
         return
 
     cat2_errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
-    cat3_errors = validate(family_case_schema, t1, 'cat3_conditions', validate_cat3)
 
     if len(cat2_errors) > 0:
         logger.warn(f'There are {len(cat2_errors)} cat2 errors:')
         for error in cat2_errors:
             logger.warn(error)
     
+    
+    cat3_errors = validate(family_case_schema, t1, 'cat3_conditions', validate_cat3)
     if len(cat3_errors) > 0:
         logger.warn(f'There are {len(cat3_errors)} cat3 errors:')
         for error in cat3_errors:

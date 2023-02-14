@@ -1,34 +1,41 @@
 """Validators for TANF data parser."""
-from cerberus import Validator
-
+from cerberus import Validator, errors
 
 class FatalEditWarningsValidator(Validator):
+
+
     def _validate_gt(self, constraint, field, value):
         """Validate that value is greater than a constraint."""
         if not value > constraint:
-            self._error(field, f"Value: {value}, is not greater than {constraint}.")
+            message = f"Value: {value}, is not greater than {constraint}."
+            self._error(field, errors.CUSTOM, {'constraint': constraint, 'message': message, 'field': field, 'value': value})
 
     def _validate_lt(self, constraint, field, value):
         """Validate that value is less than a constraint."""
         if not value < constraint:
-            self._error(field, f"Value: {value}, is not less than {constraint}.")
+            message = f"Value: {value}, is not less than {constraint}."
+            self._error(field, errors.CUSTOM, {'constraint': constraint, 'message': message, 'field': field, 'value': value})
         
     def _validate_gte(self, constraint, field, value):
         """Validate that value is greater than or equal to a constraint."""
         if not value >= constraint:
-            self._error(field, f"Value: {value}, is not greater than or equal to {constraint}.")
+            message = f"Value: {value}, is not greater than or equal to {constraint}."
+            self._error(field, errors.CUSTOM, {'constraint': constraint, 'message': message, 'field': field, 'value': value})
 
     def _validate_lte(self, constraint, field, value):
         """Validate that value is less than or equal to a constraint."""
         if not value <= constraint:
-            self._error(field, f"Value: {value}, is not less than or equal to {constraint}.")
+            message = f"Value: {value}, is not less than or equal to {constraint}."
+            self._error(field, errors.CUSTOM, {'constraint': constraint, 'message': message, 'field': field, 'value': value})
 
     def _validate_in(self, constraint, field, value):
         """Validate that value is in a list of constraints."""
         if not value in constraint:
-            self._error(field, f"Value: {value}, is not in {constraint}.")
+            message = f"Value: {value}, is not in {constraint}."
+            self._error(field, errors.CUSTOM, {'constraint': constraint, 'message': message, 'field': field, 'value': value})
         
-        
+
+
 
 # T1 Category 2 TANF Fatal Edits
 # https://www.acf.hhs.gov/sites/default/files/documents/ofa/tanf_fatal_edits_sections_1_and_4.pdf

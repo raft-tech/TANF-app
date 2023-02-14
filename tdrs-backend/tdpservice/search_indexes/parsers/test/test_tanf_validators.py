@@ -148,7 +148,9 @@ def test_validate_3_invalid():
 
     family_case_schema = t1_schema()
     errors = validate(family_case_schema, model_obj, 'cat3_conditions', validate_cat3)
-    print(errors)
+    for error in errors:
+        print(error)
+        print(type(error))
     assert len(errors) == 2
 
 # # Catagory 2 tests
