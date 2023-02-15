@@ -1,11 +1,7 @@
 """Houses definitions for TANF datafile schemas."""
 
-from tdpservice.search_indexes.parsers.tanf_validators import (
-    t1_006,
-    t1_007,
-    t1_107,
-    t1_116,
-)
+from tdpservice.search_indexes.parsers.validators.category2 import t1_006, t1_007, t1_107
+from tdpservice.search_indexes.parsers.validators.category3 import t1_116
 
 def row(item_number, description, length, start, end, data_type, cat2_conditions={}, cat3_conditions={}):
     """Return a dictionary representing a row in a schema."""

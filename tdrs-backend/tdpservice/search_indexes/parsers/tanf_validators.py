@@ -66,16 +66,14 @@ def validate_cat3(name: str, value: str, condition: dict, model_obj) -> tuple:
 
     if name in validator.errors.keys():
         return []
+    if len(validator.errors) > 0:
+        return create_cat3_error(name, value, validator, model_obj)
 
-    return create_cat3_error(name, value, validator, model_obj)
+    return []
 
 def create_cat3_error(name, value, validator, model_obj):
     """Create a category 3 error."""
-
     condition = validator.schema
-    print(condition)
-    print(name)
-    print('^=^=^=^=^')
     primary_condition = condition.pop(name)
     secondary_field = list(condition.keys())[0]
     secondary_value = getattr(model_obj, secondary_field)
@@ -89,9 +87,16 @@ def create_cat3_error(name, value, validator, model_obj):
     secondary_compare_value = secondary_condition[secondary_compare_field]
     secondary_comparison = validator.definitions[secondary_compare_field]
     message = f'{name} is {primary_comparison} {primary_compare_value}, so {secondary_field} should be {secondary_comparison} {secondary_compare_value}. {secondary_field} is {secondary_value}.'
-    return {'primary': {'field': name, 'value': value, 'comparison': primary_comparison, 'constraint': primary_compare_value}, 
+    error = {'primary': {'field': name, 'value': value, 'comparison': primary_comparison, 'constraint': primary_compare_value}, 
             'secondary': {'field': secondary_field, 'value': secondary_value, 'comparison': secondary_comparison,  'constraint': secondary_compare_value}, 
             'message': message}
+
+    if name in validator.errors.keys():
+        return []
+    if len(validator.errors) > 0:
+        return error
+
+    return []
     
 
 def validate_cat2(name: str, value: str, condition: dict, model_obj) -> tuple:
@@ -99,7 +104,7 @@ def validate_cat2(name: str, value: str, condition: dict, model_obj) -> tuple:
     schema = {name: condition}
     document = {name: value}
 
-    return _validate(schema, document)
+    return _validate_cat3(schema, document)
 
 def t1_006(model_obj):
     """Validate model_obj.RPT_MONTH_YEAR for year."""
@@ -108,7 +113,7 @@ def t1_006(model_obj):
     schema = {name: {'gte': 1998}}
     document = {name: value}
 
-    return _validate(schema, document, name, value, model_obj)
+    return _validate_cat3(schema, document, name, value, model_obj)
 
 def t1_007(model_obj):
     """Validate model_obj.RPT_MONTH_YEAR for month."""
@@ -117,15 +122,15 @@ def t1_007(model_obj):
     schema = {name: {'gte': 1, 'lte': 12}}
     document = {name: value}
 
-    return _validate(schema, document)
+    return _validate_cat3(schema, document)
 
-# def t1_107(model_obj):
-#     """Validate cash and cash equivalents."""
+def t1_107(model_obj):
+    """Validate cash and cash equivalents."""
 
-#     schema = {'CASH_AMOUNT': {'gte': 0}, 'NBR_MONTHS': {'gte': 0}}
-#     document = {'CASH_AMOUNT': model_obj.CASH_AMOUNT, 'NBR_MONTHS': model_obj.NBR_MONTHS}
+    schema = {'CASH_AMOUNT': {'gte': 0}, 'NBR_MONTHS': {'gte': 0}}
+    document = {'CASH_AMOUNT': model_obj.CASH_AMOUNT, 'NBR_MONTHS': model_obj.NBR_MONTHS}
 
-#     return _validate(schema, document)
+    return _validate_cat3(schema, document)
 
 def t1_116(model_obj):
     """Validate reason for & amount of assistance reductions."""
@@ -142,13 +147,7 @@ def t1_116(model_obj):
     for key in schema.keys():
         document[key] = getattr(model_obj, key)
     
-    validator = FatalEditWarningsValidator(schema)
-    validator.validate(document)
-
-    if 'SANC_REDUCTION_AMT' in validator.errors.keys():
-        return []
-    
-    return validator.errors
+    return _validate_cat3(schema, document, name, value, model_obj)
 
 
 def _get_field_by_item_number(model_obj, item_number):
@@ -160,7 +159,7 @@ def _get_field_by_item_number(model_obj, item_number):
             return model_obj._meta.get_field(name).value_from_object(model_obj)
     return None
 
-def _validate(schema, document, name, value, model_obj):
+def _validate_cat3(schema, document, name, value, model_obj):
     """Validate the a document."""
     validator = FatalEditWarningsValidator(schema)
     validator.allow_unknown = True

@@ -4,12 +4,8 @@ import pytest
 from tdpservice.search_indexes.models import T1
 from tdpservice.search_indexes.parsers.tanf_parser import validate
 from tdpservice.search_indexes.parsers.schema_defs.tanf import t1_schema
-
-from tdpservice.search_indexes.parsers.tanf_validators import (
-    # _get_field_by_item_number,
-    validate_cat2,
-    validate_cat3,
-)
+from tdpservice.search_indexes.parsers.validators.category2 import validate_cat2
+from tdpservice.search_indexes.parsers.validators.category3 import validate_cat3
 
 def make_valid_t1_model_obj():
     """Make a T1 model object."""
@@ -106,16 +102,23 @@ def test_validate_2():
     t1 = make_valid_t1_model_obj()
     family_case_schema = t1_schema()
     errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
-    print(errors)
-    assert len(errors) == 10
 
-def test_validate_2_invalid():
+    assert len(errors) == 0
+
+cat2_expected_error_messages = [
+    'MONTH value from RPT_MONTH_YEAR is not greater than or equal to 1. MONTH value from RPT_MONTH_YEAR is 0.',
+    'YEAR value from RPT_MONTH_YEAR is not greater than or equal to 1998. YEAR value from RPT_MONTH_YEAR is 1997.',
+    'FUNDING_STREAM is not in [1, 2]. FUNDING_STREAM is 0.',
+]
+
+@pytest.mark.parametrize('error_message', cat2_expected_error_messages)
+def test_validate_2_invalid(error_message):
     """Test the validate_cat2 function."""
     t1 = make_invalid_t1_model_obj()
     family_case_schema = t1_schema()
     errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
 
-    assert len(errors) == 0
+    assert error_message in str(errors)
 
 def test_validate_3():
     """Test the validate_cat3 function."""
@@ -135,10 +138,15 @@ def test_validate_3():
 
     family_case_schema = t1_schema()
     errors = validate(family_case_schema, model_obj, 'cat3_conditions', validate_cat3)
-
+    print(errors)
     assert len(errors) == 0
 
-def test_validate_3_invalid():
+cat3_expected_error_messages = [
+    'OTHER_AMOUNT is greater than 0, so OTHER_NBR_MONTHS should be greater than 0. OTHER_NBR_MONTHS is -1.',
+]   
+
+@pytest.mark.parametrize('expected_error_message', cat3_expected_error_messages)
+def test_validate_3_invalid(expected_error_message):
     """Test the validate_cat3 function."""
     model_obj = make_invalid_t1_model_obj()
     model_obj.OTHER_AMOUNT = 1
@@ -148,42 +156,5 @@ def test_validate_3_invalid():
 
     family_case_schema = t1_schema()
     errors = validate(family_case_schema, model_obj, 'cat3_conditions', validate_cat3)
-    for error in errors:
-        print(error)
-        print(type(error))
-    assert len(errors) == 20
 
-# # Catagory 2 tests
-# all_t1_cat2_validators = [
-#     t1_003,
-#     t1_006,
-#     t1_007,
-#     t1_008,
-#     t1_010,
-#     t1_011,
-#     t1_013,
-#     t1_097,
-#     t1_099,
-#     t1_100,
-#     t1_101,
-#     t1_102,
-#     t1_103,
-#     t1_104,
-#     t1_105,
-#     t1_107,
-#     t1_108,
-#     t1_110,
-#     t1_112,
-#     t1_114,
-#     t1_117,
-#     t1_121,
-#     t1_122,
-#     t1_123,
-#     ]
-
-# @pytest.mark.parametrize('obj', all_t1_cat2_validators)
-# def test_t1_cat2_validators_valid(obj):
-#     """Test T1 Category 2 TANF Validations."""
-#     model_obj = make_valid_t1_model_obj()
-#     assert obj(model_obj) is True
-
+    assert expected_error_message in str(errors)

@@ -5,7 +5,8 @@ from ..models import T1  # , T2, T3, T4, T5, T6, T7, ParserLog
 # from django.core.exceptions import ValidationError
 from .util import get_record_type
 from .schema_defs.tanf import t1_schema
-from .tanf_validators import validate_cat2, validate_cat3
+from tdpservice.search_indexes.parsers.validators.category2 import validate_cat2
+from tdpservice.search_indexes.parsers.validators.category3 import validate_cat3
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -112,7 +113,7 @@ def parse(datafile):
             logger.warn("Parsing for type %s not yet implemented", record_type)
             continue
 
-def validate(schema, model_obj, catagory, validator):
+def validate(schema, model_obj, category, validator):
     """Validate the datafile."""
     errors = []
     for field in schema:
@@ -120,15 +121,16 @@ def validate(schema, model_obj, catagory, validator):
         if name == 'BLANK':
             continue
         value = getattr(model_obj, name)
-        catagory_conditions = field[catagory]
-        catagory_errors = None
-        if catagory_conditions != {}:
-            if 'custom' in catagory_conditions:
-                for custom_validator in catagory_conditions['custom']:
-                    catagory_errors = custom_validator(model_obj)
+        category_conditions = field[category]
+        category_errors = None
+        if category_conditions != {}:
+            if 'custom' in category_conditions:
+                for custom_validator in category_conditions['custom']:
+                    category_errors = custom_validator(model_obj)
+                    errors.append(category_errors)
             else:
-                catagory_errors = validator(name, value, catagory_conditions, model_obj)
-            if len(catagory_errors) > 0:
-                errors.append(catagory_errors)
+                category_errors = validator(name, value, category_conditions, model_obj)
+            if len(category_errors) > 0:
+                errors.append(category_errors)
             
     return errors
