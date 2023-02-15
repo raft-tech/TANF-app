@@ -4,6 +4,7 @@
       or:
         - << pipeline.parameters.run_dev_deployment >>
         - << pipeline.parameters.run_owasp_scan >>
+        - << pipeline.parameters.run_nightly_owasp_scan >>
     jobs:
       - secrets-check
       - test-frontend:
