@@ -1,5 +1,6 @@
 """Validators for TANF data parser."""
 from cerberus import Validator, errors
+from copy import deepcopy
 
 class FatalEditWarningsValidator(Validator):
     """Validator for TANF and SSP fatal edit warnings."""
@@ -54,8 +55,10 @@ def validate_cat3(name: str, value: str, condition: dict, model_obj) -> tuple:
     validator = FatalEditWarningsValidator(condition)
     validator.allow_unknown = True
 
-    condition.pop(name)
-    secondary_field = list(condition.keys())[0]
+    condition_copy = deepcopy(condition)
+    condition_copy.pop(name)
+
+    secondary_field = list(condition_copy.keys())[0]
     secondary_value = getattr(model_obj, secondary_field)
 
     document[secondary_field] = secondary_value
@@ -70,6 +73,9 @@ def create_cat3_error(name, value, validator, model_obj):
     """Create a category 3 error."""
 
     condition = validator.schema
+    print(condition)
+    print(name)
+    print('^=^=^=^=^')
     primary_condition = condition.pop(name)
     secondary_field = list(condition.keys())[0]
     secondary_value = getattr(model_obj, secondary_field)
@@ -113,13 +119,13 @@ def t1_007(model_obj):
 
     return _validate(schema, document)
 
-def t1_107(model_obj):
-    """Validate cash and cash equivalents."""
+# def t1_107(model_obj):
+#     """Validate cash and cash equivalents."""
 
-    schema = {'CASH_AMOUNT': {'gte': 0}, 'NBR_MONTHS': {'gte': 0}}
-    document = {'CASH_AMOUNT': model_obj.CASH_AMOUNT, 'NBR_MONTHS': model_obj.NBR_MONTHS}
+#     schema = {'CASH_AMOUNT': {'gte': 0}, 'NBR_MONTHS': {'gte': 0}}
+#     document = {'CASH_AMOUNT': model_obj.CASH_AMOUNT, 'NBR_MONTHS': model_obj.NBR_MONTHS}
 
-    return _validate(schema, document)
+#     return _validate(schema, document)
 
 def t1_116(model_obj):
     """Validate reason for & amount of assistance reductions."""
