@@ -2,7 +2,15 @@
 from cerberus import Validator, errors
 
 class FatalEditWarningsValidator(Validator):
+    """Validator for TANF and SSP fatal edit warnings."""
 
+    definitions = {
+        'gt': 'greater than',
+        'lt': 'less than',
+        'gte': 'greater than or equal to',
+        'lte': 'less than or equal to',
+        'in': 'in',
+    }
 
     def _validate_gt(self, constraint, field, value):
         """Validate that value is greater than a constraint."""
@@ -33,7 +41,7 @@ class FatalEditWarningsValidator(Validator):
         if not value in constraint:
             message = f"Value: {value}, is not in {constraint}."
             self._error(field, errors.CUSTOM, {'constraint': constraint, 'message': message, 'field': field, 'value': value})
-        
+
 
 
 
@@ -41,25 +49,47 @@ class FatalEditWarningsValidator(Validator):
 # https://www.acf.hhs.gov/sites/default/files/documents/ofa/tanf_fatal_edits_sections_1_and_4.pdf
 
 def validate_cat3(name: str, value: str, condition: dict, model_obj) -> tuple:
-    """Validate catagoy 2 errors."""
+    """Validate categoy 2 errors."""
     document = {name: value}
     validator = FatalEditWarningsValidator(condition)
     validator.allow_unknown = True
 
     condition.pop(name)
-    field = list(condition.keys())[0]
-    value = getattr(model_obj, field)
+    secondary_field = list(condition.keys())[0]
+    secondary_value = getattr(model_obj, secondary_field)
 
-    document[field] = value
+    document[secondary_field] = secondary_value
     validator.validate(document)
 
     if name in validator.errors.keys():
         return []
+
+    return create_cat3_error(name, value, validator, model_obj)
+
+def create_cat3_error(name, value, validator, model_obj):
+    """Create a category 3 error."""
+
+    condition = validator.schema
+    primary_condition = condition.pop(name)
+    secondary_field = list(condition.keys())[0]
+    secondary_value = getattr(model_obj, secondary_field)
+
+    primary_compare_field = list(primary_condition.keys())[0]
+    primary_compare_value = primary_condition[primary_compare_field]
+    primary_comparison = validator.definitions[primary_compare_field]
+
+    secondary_condition = condition[secondary_field]
+    secondary_compare_field = list(secondary_condition.keys())[0]
+    secondary_compare_value = secondary_condition[secondary_compare_field]
+    secondary_comparison = validator.definitions[secondary_compare_field]
+    message = f'{name} is {primary_comparison} {primary_compare_value}, so {secondary_field} should be {secondary_comparison} {secondary_compare_value}. {secondary_field} is {secondary_value}.'
+    return {'primary': {'field': name, 'value': value, 'comparison': primary_comparison, 'constraint': primary_compare_value}, 
+            'secondary': {'field': secondary_field, 'value': secondary_value, 'comparison': secondary_comparison,  'constraint': secondary_compare_value}, 
+            'message': message}
     
-    return validator.errors
 
 def validate_cat2(name: str, value: str, condition: dict, model_obj) -> tuple:
-    """Validate catagoy 2 errors."""
+    """Validate categoy 2 errors."""
     schema = {name: condition}
     document = {name: value}
 
@@ -72,7 +102,7 @@ def t1_006(model_obj):
     schema = {name: {'gte': 1998}}
     document = {name: value}
 
-    return _validate(schema, document)
+    return _validate(schema, document, name, value, model_obj)
 
 def t1_007(model_obj):
     """Validate model_obj.RPT_MONTH_YEAR for month."""
@@ -124,13 +154,13 @@ def _get_field_by_item_number(model_obj, item_number):
             return model_obj._meta.get_field(name).value_from_object(model_obj)
     return None
 
-def _validate(schema, document):
+def _validate(schema, document, name, value, model_obj):
     """Validate the a document."""
     validator = FatalEditWarningsValidator(schema)
     validator.allow_unknown = True
     validator.validate(document)
 
-    return validator.errors
+    return create_cat3_error(name, value, validator, model_obj)
 
 # def t1_003(name, value):
 #     """Validate model_obj.STRATUM."""
