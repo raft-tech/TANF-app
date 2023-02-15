@@ -127,9 +127,11 @@ def validate(schema, model_obj, category, validator):
             if 'custom' in category_conditions:
                 for custom_validator in category_conditions['custom']:
                     category_errors = custom_validator(model_obj)
-                    errors.append(category_errors)
+                    if len(category_errors) > 0:
+                        errors.append(category_errors)
             else:
                 category_errors = validator(name, value, category_conditions, model_obj)
+
             if len(category_errors) > 0:
                 errors.append(category_errors)
             

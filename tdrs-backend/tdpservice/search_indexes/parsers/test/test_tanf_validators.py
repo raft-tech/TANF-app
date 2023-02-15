@@ -102,7 +102,7 @@ def test_validate_2():
     t1 = make_valid_t1_model_obj()
     family_case_schema = t1_schema()
     errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
-
+    print(errors)
     assert len(errors) == 0
 
 cat2_expected_error_messages = [
