@@ -95,6 +95,7 @@ def make_invalid_t1_model_obj():
         REDUCTIONS_ON_RECEIPTS=0,
         OTHER_NON_SANCTION=0,
         CASE_NUMBER='',
+        CC_NBR_MONTHS=1,
     )
 
 def test_validate_2():

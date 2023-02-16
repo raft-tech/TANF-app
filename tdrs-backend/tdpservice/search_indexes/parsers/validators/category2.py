@@ -3,12 +3,13 @@ from tdpservice.search_indexes.parsers.validators.validator import FatalEditWarn
 
 def validate_cat2(name: str, value: str, condition: dict, model_obj) -> tuple:
     """Validate categoy 2 errors."""
-    schema = {name: condition}
+    if name in condition.keys():
+        schema = condition
+    else:
+        schema = {name: condition}
     document = {name: value}
 
     errors = validate(schema, document)
-    print(errors)
-    print(f'^{name}^')
     return errors
 
 def validate(schema, document):
@@ -43,14 +44,5 @@ def t1_007(model_obj):
     value = int(str(model_obj.RPT_MONTH_YEAR)[4:6])
     schema = {name: {'gte': 1, 'lte': 12}}
     document = {name: value}
-
-    return validate(schema, document)
-
-def t1_107(model_obj):
-    """Validate cash and cash equivalents."""
-    name = "CASH_AMOUNT"
-    value = model_obj.CASH_AMOUNT
-    schema = {name: {'gte': 0}, 'NBR_MONTHS': {'gte': 0}}
-    document = {name: value, 'NBR_MONTHS': model_obj.NBR_MONTHS}
 
     return validate(schema, document)

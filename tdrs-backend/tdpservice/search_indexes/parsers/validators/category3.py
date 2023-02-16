@@ -12,10 +12,9 @@ def validate_cat3(name: str, value: str, condition: dict, model_obj) -> tuple:
     condition_copy = deepcopy(condition)
     condition_copy.pop(name)
 
-    secondary_field = list(condition_copy.keys())[0]
-    secondary_value = getattr(model_obj, secondary_field)
+    for field in condition_copy.keys():
+        document[field] = getattr(model_obj, field)
 
-    document[secondary_field] = secondary_value
     validator.validate(document)
 
     return create_cat3_error(name, value, validator, model_obj)
