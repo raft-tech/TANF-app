@@ -106,6 +106,7 @@ def test_validate_2():
     print(errors)
     assert len(errors) == 0
 
+
 cat2_expected_error_messages = [
     'MONTH value from RPT_MONTH_YEAR is not greater than or equal to 1. MONTH value from RPT_MONTH_YEAR is 0.',
     'YEAR value from RPT_MONTH_YEAR is not greater than or equal to 1998. YEAR value from RPT_MONTH_YEAR is 1997.',
@@ -142,9 +143,10 @@ def test_validate_3():
     print(errors)
     assert len(errors) == 0
 
+
 cat3_expected_error_messages = [
     'OTHER_AMOUNT is greater than 0, so OTHER_NBR_MONTHS should be greater than 0. OTHER_NBR_MONTHS is -1.',
-]   
+]
 
 @pytest.mark.parametrize('expected_error_message', cat3_expected_error_messages)
 def test_validate_3_invalid(expected_error_message):

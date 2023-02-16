@@ -52,19 +52,7 @@ def active_t1_parser(line, line_number):
         logger.warn('Content is not valid, skipping model creation.')
         return
 
-    cat2_errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
-
-    if len(cat2_errors) > 0:
-        logger.warn(f'There are {len(cat2_errors)} cat2 errors:')
-        for error in cat2_errors:
-            logger.warn(error)
-    
-    
-    cat3_errors = validate(family_case_schema, t1, 'cat3_conditions', validate_cat3)
-    if len(cat3_errors) > 0:
-        logger.warn(f'There are {len(cat3_errors)} cat3 errors:')
-        for error in cat3_errors:
-            logger.warn(error)
+    run_validation(family_case_schema, t1)
 
     # try:
     # t1.full_clean()
@@ -83,6 +71,21 @@ def active_t1_parser(line, line_number):
             errors=e.message
         )
     '''
+
+def run_validation(family_case_schema, t1):
+    """Run validation on the datafile."""
+    cat2_errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
+
+    if len(cat2_errors) > 0:
+        logger.warn(f'There are {len(cat2_errors)} cat2 errors:')
+        for error in cat2_errors:
+            logger.warn(error)
+
+    cat3_errors = validate(family_case_schema, t1, 'cat3_conditions', validate_cat3)
+    if len(cat3_errors) > 0:
+        logger.warn(f'There are {len(cat3_errors)} cat3 errors:')
+        for error in cat3_errors:
+            logger.warn(error)
 
 # TODO: def closed_case_data(datafile):
 
@@ -134,5 +137,5 @@ def validate(schema, model_obj, category, validator):
 
             if len(category_errors) > 0:
                 errors.append(category_errors)
-            
+
     return errors

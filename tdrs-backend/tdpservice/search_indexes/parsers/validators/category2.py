@@ -1,3 +1,4 @@
+"""Validate category 2 errors."""
 from tdpservice.search_indexes.parsers.validators.validator import FatalEditWarningsValidator
 
 
@@ -26,7 +27,7 @@ def t1_006(model_obj):
     # t1_006 and t1_007 are both validating parts of the same field,
     # Either we can pass though the specific name, "YEAR value from RPT_MONTH_YEAR",
     # or we can pass the actual field name, "RPT_MONTH_YEAR".
-    # We could add custom logic to the validator to handle this case, 
+    # We could add custom logic to the validator to handle this case,
     # but that would be a lot of work for only two validators.
     # The logic would be similar to the logic in create_cat3_error where a custom error message is made.
 

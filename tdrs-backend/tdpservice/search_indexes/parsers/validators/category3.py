@@ -1,3 +1,4 @@
+"""Catagory 3 validators."""
 from copy import deepcopy
 
 from tdpservice.search_indexes.parsers.validators.validator import FatalEditWarningsValidator
@@ -35,10 +36,17 @@ def create_cat3_error(name, value, validator, model_obj):
     secondary_compare_field = list(secondary_condition.keys())[0]
     secondary_compare_value = secondary_condition[secondary_compare_field]
     secondary_comparison = validator.definitions[secondary_compare_field]
-    message = f'{name} is {primary_comparison} {primary_compare_value}, so {secondary_field} should be {secondary_comparison} {secondary_compare_value}. {secondary_field} is {secondary_value}.'
-    error = {'primary': {'field': name, 'value': value, 'comparison': primary_comparison, 'constraint': primary_compare_value}, 
-            'secondary': {'field': secondary_field, 'value': secondary_value, 'comparison': secondary_comparison,  'constraint': secondary_compare_value}, 
-            'message': message}
+    message = f'''{name} is {primary_comparison} {primary_compare_value},
+                   so {secondary_field} should be {secondary_comparison} {secondary_compare_value}.
+                   {secondary_field} is {secondary_value}.'''
+    error = {'primary': {'field': name, 'value': value,
+                         'comparison': primary_comparison,
+                         'constraint': primary_compare_value},
+             'secondary': {'field': secondary_field,
+                           'value': secondary_value,
+                           'comparison': secondary_comparison,
+                           'constraint': secondary_compare_value},
+             'message': message}
 
     if name in validator.errors.keys():
         return []
@@ -56,7 +64,7 @@ def validate(schema, document, name, value, model_obj):
     return create_cat3_error(name, value, validator, model_obj)
 
 def t1_116(model_obj):
-    """Validate reason for & amount of assistance reductions."""
+    """Validate for SANC_REDUCTION_AMT."""
     schema = {
         'SANC_REDUCTION_AMT': {'gt': 0},
         'WORK_REQ_SANCTION': {'in': [1, 2]},
@@ -71,5 +79,22 @@ def t1_116(model_obj):
         document[key] = getattr(model_obj, key)
 
     name = 'SANC_REDUCTION_AMT'
+    value = getattr(model_obj, name)
+    return validate(schema, document, name, value, model_obj)
+
+def t1_118(model_obj):
+    """Validate for other family reductions."""
+    schema = {
+        'OTHER_TOTAL_REDUCTIONS': {'gt': 0},
+        'FAMILY_CAP': {'in': [1, 2]},
+        'REDUCTIONS_ON_RECEIPTS': {'in': [1, 2]},
+        'OTHER_NON_SANCTION': {'in': [1, 2]}
+    }
+
+    document = {}
+    for key in schema.keys():
+        document[key] = getattr(model_obj, key)
+
+    name = 'OTHER_TOTAL_REDUCTIONS'
     value = getattr(model_obj, name)
     return validate(schema, document, name, value, model_obj)
