@@ -4,7 +4,7 @@ from copy import deepcopy
 from tdpservice.search_indexes.parsers.validators.validator import FatalEditWarningsValidator
 
 
-def validate_cat3(name: str, value: str, condition: dict, model_obj) -> tuple:
+def validate_cat3(name: str, value: str, condition: dict, model_obj) -> list:
     """Validate categoy 2 errors."""
     document = {name: value}
     validator = FatalEditWarningsValidator(condition)
@@ -21,80 +21,74 @@ def validate_cat3(name: str, value: str, condition: dict, model_obj) -> tuple:
     return create_cat3_error(name, value, validator, model_obj)
 
 
-def create_cat3_error(name, value, validator, model_obj):
-    """Create a category 3 error."""
-    condition = validator.schema
-    primary_condition = condition.pop(name)
-    secondary_field = list(condition.keys())[0]
-    secondary_value = getattr(model_obj, secondary_field)
+def create_cat3_error(primary_field: str, primary_value: str, validator, model_obj) -> list:
+    """Generate a catagory 3 error object.
+
+    Parameters
+    ----------
+    primary_field : str
+        The name of the primary field that is to be checked.
+    primary_value : str
+       The value of the primary field, taken from the model object
+    validator : Cerberus Validator
+        This validator has already been run and contains errors
+    model_obj : Django model
+        A django model object
+
+    Returns
+    -------
+    list
+        Returns an empty list if the primary condition is not met, or if there are no errors.
+        Returns a dictionary holding the field, comparison, and constraint infomation for the error.
+    """
+    # The primary field is the value that needs to be checked first.
+    validator_schema = validator.schema
+    primary_condition = validator_schema.pop(primary_field)
 
     primary_compare_field = list(primary_condition.keys())[0]
-    primary_compare_value = primary_condition[primary_compare_field]
+    primary_constraint = primary_condition[primary_compare_field]
     primary_comparison = validator.definitions[primary_compare_field]
 
-    secondary_condition = condition[secondary_field]
+    secondary_field = list(validator_schema.keys())[0]
+    secondary_value = getattr(model_obj, secondary_field)
+
+    secondary_condition = validator_schema[secondary_field]
     secondary_compare_field = list(secondary_condition.keys())[0]
-    secondary_compare_value = secondary_condition[secondary_compare_field]
+    secondary_constraint = secondary_condition[secondary_compare_field]
     secondary_comparison = validator.definitions[secondary_compare_field]
-    message = f'''{name} is {primary_comparison} {primary_compare_value},
-                   so {secondary_field} should be {secondary_comparison} {secondary_compare_value}.
-                   {secondary_field} is {secondary_value}.'''
-    error = {'primary': {'field': name, 'value': value,
+
+    errors = []
+    for secondary_field, secondary_condition in validator_schema.items():
+        secondary_value = getattr(model_obj, secondary_field)
+        secondary_compare_field = list(secondary_condition.keys())[0]
+        secondary_constraint = secondary_condition[secondary_compare_field]
+        secondary_comparison = validator.definitions[secondary_compare_field]
+
+        if secondary_field in validator.errors.keys():
+            error = generate_error_obj(primary_field, primary_comparison, primary_constraint, primary_value,
+                                       secondary_field, secondary_comparison, secondary_constraint, secondary_value)
+            errors.append(error)
+
+    # If there is an error with the primary field validation then this validator does not apply
+    if primary_field in validator.errors.keys():
+        return []
+    # Since the primary check is valid we can go ahead and reaturn the errors, if any exist
+    return errors
+
+def generate_error_obj(primary_field, primary_comparison, primary_constraint, primary_value,
+                       secondary_field, secondary_comparison, secondary_constraint, secondary_value):
+    """Generate a catagory 3 error object."""
+    message = f'{primary_field} is {primary_comparison} {primary_constraint}, '
+    message += f'so {secondary_field} should be {secondary_comparison} {secondary_constraint}. '
+    message += f'{secondary_field} is {secondary_value}.'
+
+    error = {'primary': {'field': primary_field, 'value': primary_value,
                          'comparison': primary_comparison,
-                         'constraint': primary_compare_value},
+                         'constraint': primary_constraint},
              'secondary': {'field': secondary_field,
                            'value': secondary_value,
                            'comparison': secondary_comparison,
-                           'constraint': secondary_compare_value},
+                           'constraint': secondary_constraint},
              'message': message}
 
-    if name in validator.errors.keys():
-        return []
-    if len(validator.errors) > 0:
-        return error
-
-    return []
-
-def validate(schema, document, name, value, model_obj):
-    """Validate the a document."""
-    validator = FatalEditWarningsValidator(schema)
-    validator.allow_unknown = True
-    validator.validate(document)
-
-    return create_cat3_error(name, value, validator, model_obj)
-
-def t1_116(model_obj):
-    """Validate for SANC_REDUCTION_AMT."""
-    schema = {
-        'SANC_REDUCTION_AMT': {'gt': 0},
-        'WORK_REQ_SANCTION': {'in': [1, 2]},
-        'FAMILY_SANC_ADULT': {'in': [1, 2]},
-        'SANC_TEEN_PARENT': {'in': [1, 2]},
-        'NON_COOPERATION_CSE': {'in': [1, 2]},
-        'FAILURE_TO_COMPLY': {'in': [1, 2]},
-        'OTHER_SANCTION': {'in': [1, 2]}
-    }
-    document = {}
-    for key in schema.keys():
-        document[key] = getattr(model_obj, key)
-
-    name = 'SANC_REDUCTION_AMT'
-    value = getattr(model_obj, name)
-    return validate(schema, document, name, value, model_obj)
-
-def t1_118(model_obj):
-    """Validate for other family reductions."""
-    schema = {
-        'OTHER_TOTAL_REDUCTIONS': {'gt': 0},
-        'FAMILY_CAP': {'in': [1, 2]},
-        'REDUCTIONS_ON_RECEIPTS': {'in': [1, 2]},
-        'OTHER_NON_SANCTION': {'in': [1, 2]}
-    }
-
-    document = {}
-    for key in schema.keys():
-        document[key] = getattr(model_obj, key)
-
-    name = 'OTHER_TOTAL_REDUCTIONS'
-    value = getattr(model_obj, name)
-    return validate(schema, document, name, value, model_obj)
+    return error

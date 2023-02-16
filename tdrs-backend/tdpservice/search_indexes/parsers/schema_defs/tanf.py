@@ -1,7 +1,6 @@
 """Houses definitions for TANF datafile schemas."""
 
 from tdpservice.search_indexes.parsers.validators.category2 import t1_006, t1_007
-from tdpservice.search_indexes.parsers.validators.category3 import t1_116, t1_118
 
 def row(item_number, description, length, start, end, data_type, cat2_conditions={}, cat3_conditions={}):
     """Return a dictionary representing a row in a schema."""
@@ -74,7 +73,13 @@ def t1_schema():
             cat3_conditions={'OTHER_NBR_MONTHS': {'gt': 0}, 'OTHER_AMOUNT': {'gt': 0}}),
         row('25B', 'OTHER_NBR_MONTHS', 3, 90, 92, "Numeric"),
         row('26Ai', 'SANC_REDUCTION_AMT', 4, 93, 96, "Numeric",
-            cat3_conditions={'custom': [t1_116]}),
+            cat3_conditions={'SANC_REDUCTION_AMT': {'gt': 0},
+                             'WORK_REQ_SANCTION': {'in': [1, 2]},
+                             'FAMILY_SANC_ADULT': {'in': [1, 2]},
+                             'SANC_TEEN_PARENT': {'in': [1, 2]},
+                             'NON_COOPERATION_CSE': {'in': [1, 2]},
+                             'FAILURE_TO_COMPLY': {'in': [1, 2]},
+                             'OTHER_SANCTION': {'in': [1, 2]}}),
         row('26Aii', 'WORK_REQ_SANCTION', 1, 97, 97, "Numeric"),
         row('26Aiii', 'FAMILY_SANC_ADULT', 1, 98, 98, "Numeric"),
         row('26Aiv', 'SANC_TEEN_PARENT', 1, 99, 99, "Numeric"),
@@ -83,7 +88,10 @@ def t1_schema():
         row('26Avii', 'OTHER_SANCTION', 1, 102, 102, "Numeric"),
         row('26B', 'RECOUPMENT_PRIOR_OVRPMT', 4, 103, 106, "Numeric"),
         row('26Ci', 'OTHER_TOTAL_REDUCTIONS', 4, 107, 110, "Numeric",
-            cat3_conditions={'custom': [t1_118]}),
+            cat3_conditions={'OTHER_TOTAL_REDUCTIONS': {'gt': 0},
+                             'FAMILY_CAP': {'in': [1, 2]},
+                             'REDUCTIONS_ON_RECEIPTS': {'in': [1, 2]},
+                             'OTHER_NON_SANCTION': {'in': [1, 2]}}),
         row('26Cii', 'FAMILY_CAP', 1, 111, 111, "Numeric"),
         row('26Ciii', 'REDUCTIONS_ON_RECEIPTS', 1, 112, 112, "Numeric"),
         row('26Civ', 'OTHER_NON_SANCTION', 1, 113, 113, "Numeric"),

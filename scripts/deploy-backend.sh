@@ -42,7 +42,9 @@ set_cf_envs()
   "AV_SCAN_URL"
   "BASE_URL"
   "CLAMAV_NEEDED"
+  "CYPRESS_TOKEN"
   "DJANGO_CONFIGURATION"
+  "DJANGO_DEBUG"
   "DJANGO_SECRET_KEY"
   "DJANGO_SETTINGS_MODULE"
   "DJANGO_SU_NAME"
@@ -110,6 +112,14 @@ update_backend()
 
 bind_backend_to_services() {
     echo "Binding services to app: $CGAPPNAME_BACKEND"
+
+    if [ "$CFAPPNAME_BACKEND" = "tdp-backend-develop" ]; then
+      # TODO: this is technical debt, we should either make staging mimic tanf-dev 
+      #       or make unique services for all apps but we have a services limit
+      #       Introducing technical debt for release 3.0.0 specifically.
+      env="develop"
+    fi
+
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-${env}"
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${env}"
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${env}"
@@ -163,6 +173,8 @@ elif [ "$CF_SPACE" = "tanf-staging" ]; then
   DJANGO_CONFIGURATION="Staging"
 else
   DJANGO_CONFIGURATION="Development"
+  DJANGO_DEBUG="Yes"
+  CYPRESS_TOKEN=$CYPRESS_TOKEN
 fi
 
 if [ "$DEPLOY_STRATEGY" = "rolling" ] ; then

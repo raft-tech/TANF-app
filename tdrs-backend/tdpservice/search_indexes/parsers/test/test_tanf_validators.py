@@ -7,7 +7,7 @@ from tdpservice.search_indexes.parsers.schema_defs.tanf import t1_schema
 from tdpservice.search_indexes.parsers.validators.category2 import validate_cat2
 from tdpservice.search_indexes.parsers.validators.category3 import validate_cat3
 
-def make_valid_t1_model_obj():
+def make_valid_t1_model_obj_cat2():
     """Make a T1 model object."""
     return T1(
         RPT_MONTH_YEAR=202003,
@@ -52,7 +52,7 @@ def make_valid_t1_model_obj():
         CASE_NUMBER=1,
     )
 
-def make_invalid_t1_model_obj():
+def make_invalid_t1_model_obj_cat2():
     """Make a T1 model object."""
     return T1(
         RPT_MONTH_YEAR=199700,
@@ -100,7 +100,7 @@ def make_invalid_t1_model_obj():
 
 def test_validate_2():
     """Test the validate_cat2 function."""
-    t1 = make_valid_t1_model_obj()
+    t1 = make_valid_t1_model_obj_cat2()
     family_case_schema = t1_schema()
     errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
     print(errors)
@@ -116,27 +116,63 @@ cat2_expected_error_messages = [
 @pytest.mark.parametrize('error_message', cat2_expected_error_messages)
 def test_validate_2_invalid(error_message):
     """Test the validate_cat2 function."""
-    t1 = make_invalid_t1_model_obj()
+    t1 = make_invalid_t1_model_obj_cat2()
     family_case_schema = t1_schema()
     errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
 
     assert error_message in str(errors)
 
+
+def make_valid_t1_model_obj_cat3():
+    """Make a T1 model object."""
+    return T1(
+        RPT_MONTH_YEAR=202003,
+        DISPOSITION=2,
+        STRATUM=1,
+        FUNDING_STREAM=1,
+        NBR_FAMILY_MEMBERS=1,
+        FAMILY_TYPE=1,
+        RECEIVES_SUB_CC=1,
+        RECEIVES_SUB_HOUSING=1,
+        RECEIVES_MED_ASSISTANCE=1,
+        RECEIVES_FOOD_STAMPS=1,
+        AMT_FOOD_STAMP_ASSISTANCE=1,
+        AMT_SUB_CC=1,
+        CHILD_SUPPORT_AMT=1,
+        FAMILY_CASH_RESOURCES=1,
+        WAIVER_EVAL_CONTROL_GRPS=9,
+        FAMILY_EXEMPT_TIME_LIMITS=1,
+        FAMILY_NEW_CHILD=1,
+        CASH_AMOUNT=1,
+        NBR_MONTHS=1,
+        CC_AMOUNT=1,
+        CHILDREN_COVERED=1,
+        TRANSP_AMOUNT=1,
+        TRANSP_NBR_MONTHS=1,
+        TRANSITION_SERVICES_AMOUNT=1,
+        TRANSITION_NBR_MONTHS=1,
+        OTHER_AMOUNT=1,
+        OTHER_NBR_MONTHS=1,
+        RECOUPMENT_PRIOR_OVRPMT=0,
+        SANC_REDUCTION_AMT=1,
+        WORK_REQ_SANCTION=1,
+        FAMILY_SANC_ADULT=1,
+        SANC_TEEN_PARENT=1,
+        NON_COOPERATION_CSE=1,
+        FAILURE_TO_COMPLY=1,
+        OTHER_SANCTION=1,
+        OTHER_TOTAL_REDUCTIONS=1,
+        FAMILY_CAP=1,
+        REDUCTIONS_ON_RECEIPTS=1,
+        OTHER_NON_SANCTION=1,
+        CASE_NUMBER=1,
+        CC_NBR_MONTHS=1,
+    )
+
+
 def test_validate_3():
     """Test the validate_cat3 function."""
-    model_obj = make_valid_t1_model_obj()
-    model_obj.CASH_AMOUNT = 1
-    model_obj.NBR_MONTHS = 1
-    model_obj.CC_AMOUNT = 1
-    model_obj.CC_NBR_MONTHS = 1
-    model_obj.CHILDREN_COVERED = 1
-    model_obj.TRANSP_AMOUNT = 1
-    model_obj.TRANSP_NBR_MONTHS = 1
-    model_obj.TRANSITION_SERVICES_AMOUNT = 1
-    model_obj.TRANSITION_NBR_MONTHS = 1
-    model_obj.OTHER_AMOUNT = 1
-    model_obj.OTHER_NBR_MONTHS = 1
-    model_obj.DISPOSITION = 2
+    model_obj = make_valid_t1_model_obj_cat3()
 
     family_case_schema = t1_schema()
     errors = validate(family_case_schema, model_obj, 'cat3_conditions', validate_cat3)
@@ -144,20 +180,61 @@ def test_validate_3():
     assert len(errors) == 0
 
 
-cat3_expected_error_messages = [
-    'OTHER_AMOUNT is greater than 0, so OTHER_NBR_MONTHS should be greater than 0. OTHER_NBR_MONTHS is -1.',
+cat3_expected_error_secondary_field = [
+    'NBR_MONTHS',
+    'TRANSP_NBR_MONTHS',
+    'TRANSITION_NBR_MONTHS',
+    'OTHER_NBR_MONTHS',
+    'CHILDREN_COVERED',
+    'CC_NBR_MONTHS',
+    'WORK_REQ_SANCTION',
+    'FAMILY_SANC_ADULT',
+    'SANC_TEEN_PARENT',
+    'NON_COOPERATION_CSE',
+    'FAILURE_TO_COMPLY',
+    'OTHER_SANCTION',
+    'FAMILY_CAP',
+    'REDUCTIONS_ON_RECEIPTS',
+    'OTHER_NON_SANCTION',
 ]
 
-@pytest.mark.parametrize('expected_error_message', cat3_expected_error_messages)
-def test_validate_3_invalid(expected_error_message):
-    """Test the validate_cat3 function."""
-    model_obj = make_invalid_t1_model_obj()
-    model_obj.OTHER_AMOUNT = 1
-    model_obj.OTHER_NBR_MONTHS = -1
+@pytest.fixture
+def cat3_validation_errors():
+    """Fixture for cat3 validator errors."""
+    model_obj = make_valid_t1_model_obj_cat3()
+    model_obj.CASH_AMOUNT = 1
     model_obj.NBR_MONTHS = 0
-    model_obj.SANC_REDUCTION_AMT = 0
+    model_obj.TRANSP_AMOUNT = 1
+    model_obj.TRANSP_NBR_MONTHS = 0
+    model_obj.TRANSITION_SERVICES_AMOUNT = 1
+    model_obj.TRANSITION_NBR_MONTHS = 0
+    model_obj.OTHER_AMOUNT = 1
+    model_obj.OTHER_NBR_MONTHS = 0
 
-    family_case_schema = t1_schema()
-    errors = validate(family_case_schema, model_obj, 'cat3_conditions', validate_cat3)
+    model_obj.CC_AMOUNT = 1
+    model_obj.CHILDREN_COVERED = 0
+    model_obj.CC_NBR_MONTHS = 0
 
-    assert expected_error_message in str(errors)
+    model_obj.SANC_REDUCTION_AMT = 1
+    model_obj.WORK_REQ_SANCTION = 0
+    model_obj.FAMILY_SANC_ADULT = 0
+    model_obj.SANC_TEEN_PARENT = 0
+    model_obj.NON_COOPERATION_CSE = 0
+    model_obj.FAILURE_TO_COMPLY = 0
+    model_obj.OTHER_SANCTION = 0
+
+    model_obj.OTHER_TOTAL_REDUCTIONS = 1
+    model_obj.FAMILY_CAP = 0
+    model_obj.REDUCTIONS_ON_RECEIPTS = 0
+    model_obj.OTHER_NON_SANCTION = 0
+
+    schema = t1_schema()
+    return validate(schema, model_obj, 'cat3_conditions', validate_cat3)
+
+@pytest.mark.parametrize('cat3_expected_field', cat3_expected_error_secondary_field)
+def test_validate_3_invalid(cat3_validation_errors, cat3_expected_field):
+    """Test the validate_cat3 function."""
+    assert cat3_expected_field in str(cat3_validation_errors)
+    for errors in cat3_validation_errors:
+        for error in errors:
+            assert error['secondary']['field'] in cat3_expected_error_secondary_field
