@@ -32,7 +32,7 @@ class ParserError(models.Model):
     content_object = GenericForeignKey()
 
     created_at = models.DateTimeField(auto_now_add=True)
-
+    fields_json = models.JSONField(null=True)
 
     def __repr__(self):
         """Return a string representation of the model."""
@@ -45,3 +45,8 @@ class ParserError(models.Model):
     def _get_error_message(self):
         """Return the error message."""
         return self.error_message
+
+
+"""
+
+"""
