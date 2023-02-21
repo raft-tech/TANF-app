@@ -45,8 +45,3 @@ class ParserError(models.Model):
     def _get_error_message(self):
         """Return the error message."""
         return self.error_message
-
-
-"""
-
-"""

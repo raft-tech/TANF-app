@@ -9,4 +9,5 @@ router.register("", ParsingErrorViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('parsing_errors/', ParsingErrorViewSet.as_view({'get': 'list'}), name='parsing_errors'),
 ]
