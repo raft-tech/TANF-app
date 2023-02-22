@@ -72,21 +72,6 @@ def active_t1_parser(line, line_number):
         )
     '''
 
-def run_validation(family_case_schema, t1):
-    """Run validation on the datafile."""
-    cat2_errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
-
-    if len(cat2_errors) > 0:
-        logger.warn(f'There are {len(cat2_errors)} cat2 errors:')
-        for error in cat2_errors:
-            logger.warn(error)
-
-    cat3_errors = validate(family_case_schema, t1, 'cat3_conditions', validate_cat3)
-    if len(cat3_errors) > 0:
-        logger.warn(f'There are {len(cat3_errors)} cat3 errors:')
-        for error in cat3_errors:
-            logger.warn(error)
-
 # TODO: def closed_case_data(datafile):
 
 # TODO: def aggregate_data(datafile):
@@ -116,8 +101,34 @@ def parse(datafile):
             logger.warn("Parsing for type %s not yet implemented", record_type)
             continue
 
+def run_validation(family_case_schema, t1):
+    """Run validation on the datafile."""
+    cat2_errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
+
+    if len(cat2_errors) > 0:
+        logger.warn(f'There are {len(cat2_errors)} cat2 errors:')
+        for error in cat2_errors:
+            logger.warn(error)
+
+    cat3_errors = validate(family_case_schema, t1, 'cat3_conditions', validate_cat3)
+    if len(cat3_errors) > 0:
+        logger.warn(f'There are {len(cat3_errors)} cat3 errors:')
+        for error in cat3_errors:
+            logger.warn(error)
+
+
 def validate(schema, model_obj, category, validator):
-    """Validate the datafile."""
+    """Validate the datafile.
+
+    This function takes a parsing schema, which holds the fields and conditions,
+    A Django model obj, a catagory string that corresponds to a dictionary on the schema,
+    and a validator function.
+
+    For each row on the schema the field, condition, and value are taken and run through the
+    validator function, along with the model_obj.
+
+    If there are errors they are returned.
+    """
     errors = []
     for field in schema:
         name = field['description']
