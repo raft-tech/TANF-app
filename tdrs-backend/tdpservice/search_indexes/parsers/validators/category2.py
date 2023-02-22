@@ -16,12 +16,6 @@ def validate_cat2(name: str, value: str, condition: dict, model_obj) -> tuple:
     errors = validate(schema, document)
     return errors
 
-def create_document(condition, model_obj):
-    document = {}
-    for field in condition:
-        document[field] = getattr(model_obj, field)
-    return document
-
 def validate(schema, document):
     """Validate the a document."""
     validator = FatalEditWarningsValidator(schema)
@@ -35,6 +29,13 @@ def validate(schema, document):
         errors[error] = dict_error
 
     return errors
+
+def create_document(condition, model_obj):
+    """Create a document when there are multiple fields."""
+    document = {}
+    for field in condition:
+        document[field] = getattr(model_obj, field)
+    return document
 
 def t1_006(model_obj):
     """Validate model_obj.RPT_MONTH_YEAR for year."""

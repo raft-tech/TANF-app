@@ -153,7 +153,6 @@ def test_validate_2_invalid(expected_error_field):
     assert expected_error_field in str(errors)
 
     for error in errors:
-        print(error)
         for item in error:
             checked_field = error[item]['field']
             assert checked_field in cat2_expected_error_field

@@ -43,6 +43,7 @@ class FatalEditWarningsValidator(Validator):
             self._construct_error_obj(field, constraint, message, value)
 
     def _construct_error_obj(self, field, constraint, message, value):
+        """Construct the error obj."""
         self._error(field, errors.CUSTOM, {'constraint': constraint,
                                            'message': message,
                                            'field': field,
