@@ -1,4 +1,6 @@
 """Validate category 2 errors."""
+import json
+
 from tdpservice.search_indexes.parsers.validators.validator import FatalEditWarningsValidator
 
 
@@ -6,12 +8,19 @@ def validate_cat2(name: str, value: str, condition: dict, model_obj) -> tuple:
     """Validate categoy 2 errors."""
     if name in condition.keys():
         schema = condition
+        document = create_document(condition, model_obj)
     else:
         schema = {name: condition}
-    document = {name: value}
+        document = {name: value}
 
     errors = validate(schema, document)
     return errors
+
+def create_document(condition, model_obj):
+    document = {}
+    for field in condition:
+        document[field] = getattr(model_obj, field)
+    return document
 
 def validate(schema, document):
     """Validate the a document."""
@@ -19,7 +28,13 @@ def validate(schema, document):
     validator.allow_unknown = True
     validator.validate(document)
 
-    return validator.errors
+    errors = {}
+    for error in validator.errors:
+        str_error = validator.errors[error][0]
+        dict_error = json.loads(str_error.replace("'", '"'))
+        errors[error] = dict_error
+
+    return errors
 
 def t1_006(model_obj):
     """Validate model_obj.RPT_MONTH_YEAR for year."""

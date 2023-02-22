@@ -103,7 +103,7 @@ def test_validate_2():
     t1 = make_valid_t1_model_obj_cat2()
     family_case_schema = t1_schema()
     errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
-    print(errors)
+
     assert len(errors) == 0
 
 
@@ -113,15 +113,50 @@ cat2_expected_error_messages = [
     'FUNDING_STREAM is not in [1, 2]. FUNDING_STREAM is 0.',
 ]
 
-@pytest.mark.parametrize('error_message', cat2_expected_error_messages)
-def test_validate_2_invalid(error_message):
+cat2_expected_error_field = [
+    'RPT_MONTH_YEAR',
+    'STRATUM',
+    'FUNDING_STREAM',
+    'DISPOSITION',
+    'NBR_FAMILY_MEMBERS',
+    'FAMILY_TYPE',
+    'RECEIVES_SUB_HOUSING',
+    'RECEIVES_MED_ASSISTANCE',
+    'RECEIVES_FOOD_STAMPS',
+    'AMT_FOOD_STAMP_ASSISTANCE',
+    'RECEIVES_SUB_CC',
+    'AMT_SUB_CC',
+    'CHILD_SUPPORT_AMT',
+    'FAMILY_CASH_RESOURCES',
+    'YEAR value from RPT_MONTH_YEAR',
+    'MONTH value from RPT_MONTH_YEAR',
+    'CASH_AMOUNT',
+    'NBR_MONTHS',
+    'CC_AMOUNT',
+    'CHILDREN_COVERED',
+    'TRANSP_AMOUNT',
+    'TRANSP_NBR_MONTHS',
+    'TRANSITION_SERVICES_AMOUNT',
+    'TRANSITION_NBR_MONTHS',
+    'OTHER_AMOUNT',
+    'OTHER_NBR_MONTHS',
+    'FAMILY_EXEMPT_TIME_LIMITS',
+    'FAMILY_NEW_CHILD',
+]
+
+@pytest.mark.parametrize('expected_error_field', cat2_expected_error_field)
+def test_validate_2_invalid(expected_error_field):
     """Test the validate_cat2 function."""
     t1 = make_invalid_t1_model_obj_cat2()
     family_case_schema = t1_schema()
     errors = validate(family_case_schema, t1, 'cat2_conditions', validate_cat2)
+    assert expected_error_field in str(errors)
 
-    assert error_message in str(errors)
-
+    for error in errors:
+        print(error)
+        for item in error:
+            checked_field = error[item]['field']
+            assert checked_field in cat2_expected_error_field
 
 def make_valid_t1_model_obj_cat3():
     """Make a T1 model object."""
@@ -176,7 +211,7 @@ def test_validate_3():
 
     family_case_schema = t1_schema()
     errors = validate(family_case_schema, model_obj, 'cat3_conditions', validate_cat3)
-    print(errors)
+
     assert len(errors) == 0
 
 
