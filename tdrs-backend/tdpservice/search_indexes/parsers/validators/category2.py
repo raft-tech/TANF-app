@@ -5,7 +5,7 @@ from tdpservice.search_indexes.parsers.validators.validator import FatalEditWarn
 
 
 def validate_cat2(name: str, value: str, condition: dict, model_obj) -> tuple:
-    """Validate categoy 2 errors."""
+    """Validate category 2 errors."""
     if name in condition.keys():
         schema = condition
         document = create_document(condition, model_obj)
@@ -50,7 +50,7 @@ def t1_006(model_obj):
     name = "YEAR value from RPT_MONTH_YEAR"
     value = int(str(model_obj.RPT_MONTH_YEAR)[0:4])
 
-    schema = {name: {'gte': 1998}}
+    schema = {name: {'gte': 2018}}
     document = {name: value}
 
     return validate(schema, document)

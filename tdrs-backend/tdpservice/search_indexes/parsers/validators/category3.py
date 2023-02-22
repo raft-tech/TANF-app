@@ -1,11 +1,29 @@
-"""Catagory 3 validators."""
+"""Category 3 validators."""
 from copy import deepcopy
 
 from tdpservice.search_indexes.parsers.validators.validator import FatalEditWarningsValidator
 
 
+def generate_error_obj(primary_field, primary_comparison, primary_constraint, primary_value,
+                       secondary_field, secondary_comparison, secondary_constraint, secondary_value):
+    """Generate a category 3 error object."""
+    message = f'{primary_field} is {primary_comparison} {primary_constraint}, '
+    message += f'so {secondary_field} should be {secondary_comparison} {secondary_constraint}. '
+    message += f'{secondary_field} is {secondary_value}.'
+
+    error = {'primary': {'field': primary_field, 'value': primary_value,
+                         'comparison': primary_comparison,
+                         'constraint': primary_constraint},
+             'secondary': {'field': secondary_field,
+                           'value': secondary_value,
+                           'comparison': secondary_comparison,
+                           'constraint': secondary_constraint},
+             'message': message}
+
+    return error
+
 def validate_cat3(name: str, value: str, condition: dict, model_obj) -> list:
-    """Validate categoy 2 errors."""
+    """Validate category 3 errors."""
     document = {name: value}
     validator = FatalEditWarningsValidator(condition)
     validator.allow_unknown = True
@@ -20,9 +38,8 @@ def validate_cat3(name: str, value: str, condition: dict, model_obj) -> list:
 
     return create_cat3_error(name, value, validator, model_obj)
 
-
 def create_cat3_error(primary_field: str, primary_value: str, validator, model_obj) -> list:
-    """Generate a catagory 3 error object.
+    """Generate a category 3 error object.
 
     Cat3 validates a primary field before validating the proceding(secondary) fields.
     All these fields have been validated at the same time, but depending on the success of the
@@ -83,21 +100,3 @@ def create_cat3_error(primary_field: str, primary_value: str, validator, model_o
         return []
     # Since the primary check is valid we can go ahead and reaturn the errors, if any exist
     return errors
-
-def generate_error_obj(primary_field, primary_comparison, primary_constraint, primary_value,
-                       secondary_field, secondary_comparison, secondary_constraint, secondary_value):
-    """Generate a catagory 3 error object."""
-    message = f'{primary_field} is {primary_comparison} {primary_constraint}, '
-    message += f'so {secondary_field} should be {secondary_comparison} {secondary_constraint}. '
-    message += f'{secondary_field} is {secondary_value}.'
-
-    error = {'primary': {'field': primary_field, 'value': primary_value,
-                         'comparison': primary_comparison,
-                         'constraint': primary_constraint},
-             'secondary': {'field': secondary_field,
-                           'value': secondary_value,
-                           'comparison': secondary_comparison,
-                           'constraint': secondary_constraint},
-             'message': message}
-
-    return error

@@ -121,7 +121,7 @@ def validate(schema, model_obj, category, validator):
     """Validate the datafile.
 
     This function takes a parsing schema, which holds the fields and conditions,
-    A Django model obj, a catagory string that corresponds to a dictionary on the schema,
+    A Django model obj, a category string that corresponds to a dictionary on the schema,
     and a validator function.
 
     For each row on the schema the field, condition, and value are taken and run through the
