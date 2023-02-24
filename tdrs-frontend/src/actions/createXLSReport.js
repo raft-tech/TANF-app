@@ -17,7 +17,7 @@ export const getParseErrors = () => async (dispatch) => {
   })
   try {
     const response = await axios.get(
-      `${process.env.REACT_APP_BACKEND_URL}/parsing/`,
+      `${process.env.REACT_APP_BACKEND_URL}/parsing/parsing_errors/`,
       {
         responseType: 'json',
       }
@@ -28,7 +28,7 @@ export const getParseErrors = () => async (dispatch) => {
         data: response?.data,
       },
     })
-    const data_json = response?.data[response?.data.length - 1]
+    const data_json = response?.data
     const blob = b64toBlob(data_json.xls_report, 'blob')
     const blobUrl = URL.createObjectURL(blob)
     const link = document.createElement('a')
