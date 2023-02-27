@@ -45,7 +45,7 @@ class DataFileViewSet(ModelViewSet):
     http_method_names = ['get', 'post', 'head']
     filterset_class = DataFileFilter
     parser_classes = [MultiPartParser]
-    # permission_classes = [DataFilePermissions]
+    permission_classes = [DataFilePermissions]
     serializer_class = DataFileSerializer
     pagination_class = None
 
