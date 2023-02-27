@@ -10,7 +10,7 @@ class ParsingErrorSerializer(serializers.ModelSerializer):
         super(ParsingErrorSerializer, self).__init__(*args, **kwargs)
         fields = kwargs['context']['request'].query_params.get('fields')
         if fields is not None:
-            fields = fields.split(',')
+            fields = [x.strip() for x in fields.split(',')]
             allowed = set(fields)
             existing = set(self.fields)
             for field_name in existing - allowed:
