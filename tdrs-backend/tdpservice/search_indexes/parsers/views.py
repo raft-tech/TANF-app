@@ -1,3 +1,4 @@
+"""Views for the parsers app."""
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from .serializers import ParsingErrorSerializer
@@ -12,6 +13,7 @@ logger = logging.getLogger()
 
 class ParsingErrorViewSet(ModelViewSet):
     """Data file views."""
+
     queryset = ParserError.objects.all()
     serializer_class = ParsingErrorSerializer
 

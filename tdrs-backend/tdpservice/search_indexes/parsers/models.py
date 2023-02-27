@@ -9,6 +9,7 @@ class ParserError(models.Model):
 
     class Meta:
         """Meta for ParserError."""
+
         db_table = "parser_error"
 
     id = models.AutoField(primary_key=True)
@@ -22,7 +23,7 @@ class ParserError(models.Model):
     column_number = models.IntegerField(null=False)
     item_number = models.IntegerField(null=False)
     field_name = models.TextField(null=False, max_length=128)
-    category= models.IntegerField(null=False, default=1)
+    category = models.IntegerField(null=False, default=1)
 
     error_message = models.TextField(null=True, max_length=512)
     error_type = models.TextField(max_length=128)         # out of range, pre-parsing, etc.

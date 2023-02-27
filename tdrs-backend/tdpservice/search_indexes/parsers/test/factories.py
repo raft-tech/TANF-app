@@ -1,10 +1,13 @@
+"""Factories for generating test data for parsers."""
 import factory
 from tdpservice.data_files.test.factories import DataFileFactory
 
 class ParserErrorFactory(factory.django.DjangoModelFactory):
     """Generate test data for parser errors."""
+
     class Meta:
         """Hardcoded meta data for parser errors."""
+
         model = "search_indexes.ParserError"
 
     file = factory.SubFactory(DataFileFactory)
@@ -12,7 +15,7 @@ class ParserErrorFactory(factory.django.DjangoModelFactory):
     column_number = 1
     item_number = 1
     field_name = "test field name"
-    category= 1
+    category = 1
 
     error_message = "test error message"
     error_type = "out of range"
