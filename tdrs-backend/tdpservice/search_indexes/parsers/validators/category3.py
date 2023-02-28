@@ -1,6 +1,4 @@
 """Category 3 validators."""
-from copy import deepcopy
-
 from tdpservice.search_indexes.parsers.validators.validator import FatalEditWarningsValidator
 
 
@@ -28,11 +26,9 @@ def validate_cat3(name: str, value: str, condition: dict, model_obj) -> list:
     validator = FatalEditWarningsValidator(condition)
     validator.allow_unknown = True
 
-    condition_copy = deepcopy(condition)
-    condition_copy.pop(name)
-
-    for field in condition_copy.keys():
-        document[field] = getattr(model_obj, field)
+    for field in condition.keys():
+        if field != name:
+            document[field] = getattr(model_obj, field)
 
     validator.validate(document)
 
@@ -41,7 +37,7 @@ def validate_cat3(name: str, value: str, condition: dict, model_obj) -> list:
 def create_cat3_error(primary_field: str, primary_value: str, validator, model_obj) -> list:
     """Generate a category 3 error object.
 
-    Cat3 validates a primary field before validating the proceding(secondary) fields.
+    Cat3 has primary and secondary checks e.g. if X is greater than 0, Y should be greater than 0.
     All these fields have been validated at the same time, but depending on the success of the
     primary validation check the secondary checks might not matter. e.g. If the primary check fails
     then no error should be returned.
