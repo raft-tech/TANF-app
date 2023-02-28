@@ -1,4 +1,7 @@
-"""Test preparser functions and tanf_validator."""
+"""Test preparser functions and tanf_validator.
+
+These are integration tests and test the whole validation process.
+"""
 import pytest
 
 from tdpservice.search_indexes.models import T1

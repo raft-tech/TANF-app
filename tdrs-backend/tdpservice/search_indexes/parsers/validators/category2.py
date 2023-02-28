@@ -17,7 +17,7 @@ def validate_cat2(name: str, value: str, condition: dict, model_obj) -> tuple:
     return errors
 
 def validate(schema, document):
-    """Validate the a document."""
+    """Validate the a document. Reformat the errors so they can be parsed later."""
     validator = FatalEditWarningsValidator(schema)
     validator.allow_unknown = True
     validator.validate(document)
