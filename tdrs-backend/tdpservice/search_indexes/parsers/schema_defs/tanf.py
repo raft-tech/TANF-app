@@ -53,7 +53,7 @@ def t1_schema():
             cat2_conditions={'gte': 0}),
         row('21A', 'CASH_AMOUNT', 4, 56, 59, "Numeric",
             cat2_conditions={'CASH_AMOUNT': {'gte': 0}, 'NBR_MONTHS': {'gte': 0}},
-            cat3_conditions={'NBR_MONTHS': {'gt': 0}, 'CASH_AMOUNT': {'gt': 0}}),
+            cat3_conditions={'CASH_AMOUNT': {'gt': 0}, 'NBR_MONTHS': {'gt': 0}}),
         row('21B', 'NBR_MONTHS', 3, 60, 62, "Numeric"),
         row('22A', 'CC_AMOUNT', 4, 63, 66, "Numeric",
             cat2_conditions={'CC_AMOUNT': {'gte': 0}, 'CHILDREN_COVERED': {'gte': 0}},
