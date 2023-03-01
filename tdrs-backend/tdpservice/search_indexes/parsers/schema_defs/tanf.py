@@ -36,7 +36,7 @@ def t1_schema():
         row('12', 'FAMILY_TYPE', 1, 35, 35, "Numeric",
             cat2_conditions={'in': [1, 2, 3]}),
         row('13', 'RECEIVES_SUB_HOUSING', 1, 36, 36, "Numeric",
-            cat2_conditions={'in': [1, 2]}),
+            cat2_conditions={'in': [1, 2, 3]}),
         row('14', 'RECEIVES_MED_ASSISTANCE', 1, 37, 37, "Numeric",
             cat2_conditions={'in': [1, 2]}),
         row('15', 'RECEIVES_FOOD_STAMPS', 1, 38, 38, "Numeric",
