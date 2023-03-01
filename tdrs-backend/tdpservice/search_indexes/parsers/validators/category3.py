@@ -22,12 +22,11 @@ def generate_error_obj(primary_field, primary_comparison, primary_constraint, pr
 
 def validate_cat3(name: str, value: str, condition: dict, model_obj) -> list:
     """Validate category 3 errors."""
-    document = {name: value}
+    document = {}
     validator = FatalEditWarningsValidator(condition)
     validator.allow_unknown = True
 
     for field in condition.keys():
-        if field != name:
             document[field] = getattr(model_obj, field)
 
     validator.validate(document)
