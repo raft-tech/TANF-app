@@ -70,7 +70,7 @@ def t1_schema():
         row('24B', 'TRANSITION_NBR_MONTHS', 3, 83, 85, "Numeric"),
         row('25A', 'OTHER_AMOUNT', 4, 86, 89, "Numeric",
             cat2_conditions={'OTHER_AMOUNT': {'gte': 0}, 'OTHER_NBR_MONTHS': {'gte': 0}},
-            cat3_conditions={'OTHER_NBR_MONTHS': {'gt': 0}, 'OTHER_AMOUNT': {'gt': 0}}),
+            cat3_conditions={'OTHER_AMOUNT': {'gt': 0}, 'OTHER_NBR_MONTHS': {'gt': 0}}),
         row('25B', 'OTHER_NBR_MONTHS', 3, 90, 92, "Numeric"),
         row('26Ai', 'SANC_REDUCTION_AMT', 4, 93, 96, "Numeric",
             cat3_conditions={'SANC_REDUCTION_AMT': {'gt': 0},
