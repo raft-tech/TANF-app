@@ -27,7 +27,7 @@ def validate_cat3(name: str, value: str, condition: dict, model_obj) -> list:
     validator.allow_unknown = True
 
     for field in condition.keys():
-            document[field] = getattr(model_obj, field)
+        document[field] = getattr(model_obj, field)
 
     validator.validate(document)
 
