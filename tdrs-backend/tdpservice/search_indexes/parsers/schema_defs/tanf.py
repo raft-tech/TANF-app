@@ -24,7 +24,7 @@ def t1_schema():
         row('6', 'CASE_NUMBER', 11, 9, 19, "Alphanumeric"),
         row('2', 'COUNTY_FIPS_CODE', 3, 20, 22, "Numeric"),
         row('5', 'STRATUM', 2, 23, 24, "Numeric",
-            cat2_conditions={'gt': 0, 'lt': 100}),
+            cat2_conditions={'gte': 0, 'lt': 100}),
         row('7', 'ZIP_CODE', 5, 25, 29, "Alphanumeric"),
         row('8', 'FUNDING_STREAM', 1, 30, 30, "Numeric",
             cat2_conditions={'in': [1, 2]}),

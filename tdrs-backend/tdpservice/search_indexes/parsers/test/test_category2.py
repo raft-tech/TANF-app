@@ -2,7 +2,7 @@
 
 from tdpservice.search_indexes.models import T1
 from tdpservice.search_indexes.parsers.validators import category2
-from tdpservice.search_indexes.parsers.validators.category2 import validate_cat2, validate, create_document
+from tdpservice.search_indexes.parsers.validators.category2 import validate_cat2, run_cat2_validation, create_document
 
 
 def test_validate_cat2(mocker):
@@ -11,7 +11,7 @@ def test_validate_cat2(mocker):
         'tdpservice.search_indexes.parsers.validators.category2.create_document',
         return_value=())
     mocker.patch(
-        'tdpservice.search_indexes.parsers.validators.category2.validate',
+        'tdpservice.search_indexes.parsers.validators.category2.run_cat2_validation',
         return_value=())
 
     spy_create_document = mocker.spy(category2, 'create_document')
@@ -29,12 +29,12 @@ def test_validate_cat2(mocker):
     validate_cat2(name, value, condition, model_obj)
     assert spy_create_document.call_count == 1
 
-def test_validate():
-    """Test validate."""
+def test_run_cat2_validation():
+    """Test run_cat2_validation."""
     schema = {'FOO': {'gt': 0}}
     document = {'FOO': 0}
 
-    errors = validate(schema, document)
+    errors = run_cat2_validation(schema, document)
     assert errors['FOO']['constraint'] == 0
     assert errors['FOO']['field'] == 'FOO'
     assert errors['FOO']['value'] == 0

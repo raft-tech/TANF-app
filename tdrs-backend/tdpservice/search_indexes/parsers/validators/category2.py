@@ -13,10 +13,10 @@ def validate_cat2(name: str, value: str, condition: dict, model_obj) -> tuple:
         schema = {name: condition}
         document = {name: value}
 
-    errors = validate(schema, document)
+    errors = run_cat2_validation(schema, document)
     return errors
 
-def validate(schema, document):
+def run_cat2_validation(schema, document):
     """Validate the a document. Reformat the errors so they can be parsed later."""
     validator = FatalEditWarningsValidator(schema)
     validator.allow_unknown = True
@@ -53,7 +53,7 @@ def t1_006(model_obj):
     schema = {name: {'gte': 2018}}
     document = {name: value}
 
-    return validate(schema, document)
+    return run_cat2_validation(schema, document)
 
 def t1_007(model_obj):
     """Validate model_obj.RPT_MONTH_YEAR for month."""
@@ -62,4 +62,4 @@ def t1_007(model_obj):
     schema = {name: {'gte': 1, 'lte': 12}}
     document = {name: value}
 
-    return validate(schema, document)
+    return run_cat2_validation(schema, document)
