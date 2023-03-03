@@ -198,16 +198,9 @@ function Home() {
     <>
       <div className="margin-top-5">
         <p className="margin-top-1 margin-bottom-4">
-          You've been approved as a(n) {role.name}. You'll be able to do the
-          following in TDP:
+          You have been approved for access and can now submit data via the
+          "Data Files" tab.
         </p>
-        <ul>
-          {role.permissions?.map((permission) => (
-            <li key={permission.id} id={permission.id}>
-              {permission.name}
-            </li>
-          ))}
-        </ul>
         <p>
           <b> Data Reporting Deadlines </b>
         </p>
