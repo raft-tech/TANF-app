@@ -1,6 +1,4 @@
 import axios from 'axios'
-import base64toFile from 'node-base64-to-file'
-import { useEventLogger } from '../utils/eventLogger'
 export const SET_PARSE_ERRORS = 'SET_PARSE_ERRORS'
 export const SET_PARSE_ERRORS_ERROR = 'SET_PARSE_ERRORS_ERROR'
 export const FETCH_PARSE_ERRORS = 'FETCH_PARSE_ERRORS'
