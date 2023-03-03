@@ -3,6 +3,7 @@ import { useIdleTimer } from 'react-idle-timer'
 import { useDispatch } from 'react-redux'
 import Button from '../Button'
 import { fetchAuth } from '../../actions/auth'
+import { getParseErrors } from '../../actions/createXLSReport'
 
 /**
  * IdleTimer uses the `react-idle-timer` package to watch for user inactivity.
@@ -94,6 +95,7 @@ function IdleTimer() {
       setIsModalVisible(true)
     },
     onAction: () => {
+      dispatch(getParseErrors(1))
       if (!isModalVisible) {
         dispatch(fetchAuth())
       }
