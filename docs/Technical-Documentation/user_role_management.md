@@ -6,16 +6,16 @@
 
 TDP`System Admins` will be assigning and updating application user roles through the Django Admin Interface. This can be accessed via the backend at:
 
-`<backend-domain-name>/admin/` (e.g. `https://tdp-backend-staging.app.cloud.gov/admin/`)
+`<backend-domain-name>/admin/` (e.g. `https://tdp-backend-staging.acf.hhs.gov/admin/`)
 
 The admin interface requires special privileges which can only be granted via the Django CLI [detailed below](#cli) or a Django Data migration. Once a user has been granted privileges, they can go to the admin page described above and log in. The admin interface provides links to [Users](), [STTs](), [Regions](), submitted [Data files](), and Groups which
 can each be modified through the interface.
 
 ### Log in to Admin
 
-- Go to `<frontend-domain-name>` (e.g. `https://tdp-frontend-staging.app.cloud.gov/`)
+- Go to `<frontend-domain-name>` (e.g. `https://tdp-frontend-staging.acf.hhs.gov/`)
 - Sign in through `ACF AMS` (ACF users)
-- Go to `<backend-domain-name>/admin/` (e.g. `https://tdp-backend-staging.app.cloud.gov/admin/`)
+- Go to `<backend-domain-name>/admin/` (e.g. `https://tdp-backend-staging.acf.hhs.gov/admin/`)
 
 _Alternatively_
 

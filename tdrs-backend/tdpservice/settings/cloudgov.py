@@ -158,7 +158,7 @@ class Staging(CloudGov):
     """Settings for applications deployed in the Cloud.gov staging space."""
 
     # TODO: why not just 'appcloudgov'?
-    ALLOWED_HOSTS = ['tdp-backend-staging.app.cloud.gov', 'tdp-backend-develop.app.cloud.gov']
+    ALLOWED_HOSTS = ['tdp-backend-staging.acf.hhs.gov', 'tdp-backend-develop.acf.hhs.gov']
 
     LOGIN_GOV_CLIENT_ID = os.getenv(
         'OIDC_RP_CLIENT_ID',

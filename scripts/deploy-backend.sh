@@ -103,6 +103,8 @@ update_backend()
 
     if [ "$CF_SPACE" = "tanf-prod" ]; then
         cf map-route tdp-backend-prod api-tanfdata.acf.hhs.gov
+    elif [ "$CF_SPACE" = "tanf-staging" ]; then
+        cf map-route "$CGAPPNAME_BACKEND" acf.hhs.gov --hostname "$CGAPPNAME_BACKEND"
     else
         cf map-route "$CGAPPNAME_BACKEND" app.cloud.gov --hostname "$CGAPPNAME_BACKEND"
     fi
@@ -146,6 +148,9 @@ if [ -n "$BASE_URL" ]; then
 elif [ "$CF_SPACE" = "tanf-prod" ]; then
   # Keep the base url set explicitly for production.
   BASE_URL="https://api-tanfdata.acf.hhs.gov/v1"
+elif [ "$CF_SPACE" = "tanf-staging" ]; then
+  # Keep the base url set explicitly for production.
+  BASE_URL="https://$CGAPPNAME_BACKEND.acf.hhs.gov/v1"
 else
   # Default to the route formed with the cloud.gov env for the lower environments.
   BASE_URL="$DEFAULT_ROUTE/v1"
