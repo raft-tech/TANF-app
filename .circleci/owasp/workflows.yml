@@ -13,7 +13,7 @@
           filters:
             branches:
               only:
-                - develop
+                - debug/zap-resource-class-bump #switch back to develop before merge!
       - nightly-owasp-scan:
           target_env: staging
           filters:
