@@ -104,7 +104,7 @@ update_backend()
     if [ "$CF_SPACE" = "tanf-prod" ]; then
         cf map-route tdp-backend-prod api-tanfdata.acf.hhs.gov
     elif [ "$CF_SPACE" = "tanf-staging" ]; then
-        cf map-route "$CGAPPNAME_BACKEND" acf.hhs.gov --hostname "$CGAPPNAME_BACKEND"
+        cf map-route "$CGAPPNAME_BACKEND" "$CGAPPNAME_BACKEND".acf.hhs.gov
     else
         cf map-route "$CGAPPNAME_BACKEND" app.cloud.gov --hostname "$CGAPPNAME_BACKEND"
     fi
@@ -149,7 +149,7 @@ elif [ "$CF_SPACE" = "tanf-prod" ]; then
   # Keep the base url set explicitly for production.
   BASE_URL="https://api-tanfdata.acf.hhs.gov/v1"
 elif [ "$CF_SPACE" = "tanf-staging" ]; then
-  # Keep the base url set explicitly for production.
+  # use .acf.hss.gov domain for develop and staging.
   BASE_URL="https://$CGAPPNAME_BACKEND.acf.hhs.gov/v1"
 else
   # Default to the route formed with the cloud.gov env for the lower environments.
@@ -162,6 +162,9 @@ if [ -n "$FRONTEND_BASE_URL" ]; then
 elif [ "$CF_SPACE" = "tanf-prod" ]; then
   # Keep the base url set explicitly for production.
   FRONTEND_BASE_URL="https://tanfdata.acf.hhs.gov"
+elif [ "$CF_SPACE" = "tanf-staging" ]; then
+  # use .acf.hss.gov domain for develop and staging.
+  BASE_URL="https://tdp-frontend-develop.acf.hhs.gov" #FIX FOR STAGING BEFORE MERGE
 else
   # Default to the route formed with the cloud.gov env for the lower environments.
   FRONTEND_BASE_URL="$DEFAULT_FRONTEND_ROUTE"
