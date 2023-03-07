@@ -1,11 +1,17 @@
 """Models representing parser error."""
 
+import datetime
 from django.db import models
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
 class ParserError(models.Model):
     """Model representing a parser error."""
+
+    @property
+    def month_name(self):
+        """Return the month name."""
+        return datetime.datetime.strptime(self.RPT_MONTH_YEAR[4:6], "%m").strftime("%B")
 
     class Meta:
         """Meta for ParserError."""
@@ -24,6 +30,8 @@ class ParserError(models.Model):
     item_number = models.IntegerField(null=False)
     field_name = models.TextField(null=False, max_length=128)
     category = models.IntegerField(null=False, default=1)
+    case_number = models.TextField(null=True, max_length=128)
+    RPT_MONTH_YEAR = models.IntegerField(null=False, blank=False)
 
     error_message = models.TextField(null=True, max_length=512)
     error_type = models.TextField(max_length=128)         # out of range, pre-parsing, etc.
