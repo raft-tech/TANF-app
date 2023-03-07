@@ -8,8 +8,9 @@
 DEPLOY_STRATEGY=${1}
 
 #The application name  defined via the manifest yml for the frontend
-CGAPPNAME_BACKEND=${2}
-CF_SPACE=${3}
+CGAPPNAME_FRONTEND=${2}
+CGAPPNAME_BACKEND=${3}
+CF_SPACE=${4}
 
 strip() {
     # Usage: strip "string" "pattern"
@@ -164,7 +165,7 @@ elif [ "$CF_SPACE" = "tanf-prod" ]; then
   FRONTEND_BASE_URL="https://tanfdata.acf.hhs.gov"
 elif [ "$CF_SPACE" = "tanf-staging" ]; then
   # use .acf.hss.gov domain for develop and staging.
-  BASE_URL="https://tdp-frontend-develop.acf.hhs.gov" #FIX FOR STAGING BEFORE MERGE
+  BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov"
 else
   # Default to the route formed with the cloud.gov env for the lower environments.
   FRONTEND_BASE_URL="$DEFAULT_FRONTEND_ROUTE"
