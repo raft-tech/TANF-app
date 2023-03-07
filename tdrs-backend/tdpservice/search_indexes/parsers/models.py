@@ -8,11 +8,6 @@ from django.contrib.contenttypes.models import ContentType
 class ParserError(models.Model):
     """Model representing a parser error."""
 
-    @property
-    def month_name(self):
-        """Return the month name."""
-        return datetime.datetime.strptime(self.RPT_MONTH_YEAR[4:6], "%m").strftime("%B")
-
     class Meta:
         """Meta for ParserError."""
 
@@ -31,7 +26,7 @@ class ParserError(models.Model):
     field_name = models.TextField(null=False, max_length=128)
     category = models.IntegerField(null=False, default=1)
     case_number = models.TextField(null=True, max_length=128)
-    RPT_MONTH_YEAR = models.IntegerField(null=False, blank=False)
+    rpt_month_year = models.IntegerField(null=True, blank=False)
 
     error_message = models.TextField(null=True, max_length=512)
     error_type = models.TextField(max_length=128)         # out of range, pre-parsing, etc.
@@ -42,6 +37,11 @@ class ParserError(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     fields_json = models.JSONField(null=True)
+
+    @property
+    def rpt_month_name(self):
+        """Return the month name."""
+        return datetime.datetime.strptime(str(self.rpt_month_year)[4:6], "%m").strftime("%B")
 
     def __repr__(self):
         """Return a string representation of the model."""
