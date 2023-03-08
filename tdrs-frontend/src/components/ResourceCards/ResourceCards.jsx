@@ -1,5 +1,28 @@
 import Button from '../Button'
 
+function Card({ title, body, link, linkText }) {
+  return (
+    <div className="usa-card__container">
+      <header className="usa-card__header">
+        <h3 className="usa-card__heading"> {title} </h3>
+      </header>
+      <div className="usa-card__body">
+        <p>{body}</p>
+      </div>
+      <div className="usa-card__footer">
+        <Button
+          type="button"
+          class="usa-button"
+          id="viewKnowledgeCenterButton"
+          href={link}
+        >
+          {linkText}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function ResourceCards() {
   return (
     <section className="padding-top-4 usa-section">
@@ -21,102 +44,36 @@ function ResourceCards() {
         <div className="desktop:grid-col-9">
           <ul className="grid-row usa-card-group mobile:margin-0">
             <li className="usa-card--header-first padding-bottom-4 desktop:padding-right-2 desktop:grid-col-6 mobile:grid-col-12">
-              <div className="usa-card__container">
-                <header className="usa-card__header">
-                  <h3 className="usa-card__heading">TDP Knowledge Center</h3>
-                </header>
-                <div className="usa-card__body">
-                  <p>
-                    The knowledge center contains resources on all things TDP
-                    from account creation to data submission.
-                  </p>
-                </div>
-                <div className="usa-card__footer">
-                  <Button
-                    type="button"
-                    class="usa-button"
-                    id="viewKnowledgeCenterButton"
-                    href="http://tdp-project-updates.app.cloud.gov/knowledge-center/"
-                  >
-                    View Knowledge Center
-                  </Button>
-                </div>
-              </div>
+              <Card
+                title="TDP Knowledge Center"
+                body="The knowledge center contains resources on all things TDP from account creation to data submission."
+                link="http://tdp-project-updates.app.cloud.gov/knowledge-center/"
+                linkText="View Knowledge Center"
+              />
             </li>
             <li className="usa-card--header-first padding-bottom-4 desktop:grid-col-6 mobile:grid-col-12">
-              <div className="usa-card__container">
-                <header className="usa-card__header">
-                  <h3 className="usa-card__heading">
-                    Transmission File Layouts & Edits
-                  </h3>
-                </header>
-                <div className="usa-card__body">
-                  <p>
-                    All transmission file layouts and edits (i.e. error codes)
-                    for TANF and SSP-MOE data reporting.
-                  </p>
-                </div>
-                <div className="usa-card__footer">
-                  <Button
-                    type="button"
-                    class="usa-button"
-                    id="viewLayoutsButton"
-                    href="https://www.acf.hhs.gov/ofa/policy-guidance/final-tanf-ssp-moe-data-reporting-system-transmission-files-layouts-and-edits"
-                  >
-                    View Layouts & Edits
-                  </Button>
-                </div>
-              </div>
+              <Card
+                title="Transmission File Layouts & Edits"
+                body="All transmission file layouts and edits (i.e. error codes) for TANF and SSP-MOE data reporting."
+                link="https://www.acf.hhs.gov/ofa/policy-guidance/final-tanf-ssp-moe-data-reporting-system-transmission-files-layouts-and-edits"
+                linkText="View Layouts & Edits"
+              />
             </li>
             <li className="usa-card--header-first desktop:padding-right-2 desktop:padding-bottom-0 desktop:grid-col-6 mobile:grid-col-12 mobile:padding-bottom-4">
-              <div className="usa-card__container">
-                <header className="usa-card__header">
-                  <h3 className="usa-card__heading">
-                    Tribal TANF Data Coding Instructions
-                  </h3>
-                </header>
-                <div className="usa-card__body">
-                  <p>
-                    File coding instructions addressing each data point that
-                    Tribal TANF grantees are required to report upon.
-                  </p>
-                </div>
-                <div className="usa-card__footer">
-                  <Button
-                    type="button"
-                    class="usa-button"
-                    id="viewTribalCodingInstructions"
-                    href="https://www.acf.hhs.gov/ofa/policy-guidance/tribal-tanf-data-coding-instructions"
-                  >
-                    View Tribal TANF Coding Instructions
-                  </Button>
-                </div>
-              </div>
+              <Card
+                title="Tribal TANF Data Coding Instructions"
+                body="File coding instructions addressing each data point that Tribal TANF grantees are required to report upon."
+                link="https://www.acf.hhs.gov/ofa/policy-guidance/tribal-tanf-data-coding-instructions"
+                linkText="View Tribal TANF Coding Instructions"
+              />
             </li>
             <li className="usa-card--header-first desktop:grid-col-6 mobile:grid-col-12">
-              <div className="usa-card__container">
-                <header className="usa-card__header">
-                  <h3 className="usa-card__heading">
-                    ACF-199 and ACF-209 Instructions
-                  </h3>
-                </header>
-                <div className="usa-card__body">
-                  <p>
-                    Instructions and definitions for completion of forms ACF-199
-                    (TANF Data Report) and ACF-209 (SSP-MOE Data Report).
-                  </p>
-                </div>
-                <div className="usa-card__footer">
-                  <Button
-                    type="button"
-                    class="usa-button"
-                    id="viewACFFormInstructions"
-                    href="https://www.acf.hhs.gov/sites/default/files/documents/ofa/tanf_data_reports_tan_ssp_instructions_definitions.pdf"
-                  >
-                    View ACF Form Instructions
-                  </Button>
-                </div>
-              </div>
+              <Card
+                title="ACF-199 and ACF-209 Instructions"
+                body="Instructions and definitions for completion of forms ACF-199 (TANF Data Report) and ACF-209 (SSP-MOE Data Report)."
+                link="https://www.acf.hhs.gov/sites/default/files/documents/ofa/tanf_data_reports_tan_ssp_instructions_definitions.pdf"
+                linkText="View ACF Form Instructions"
+              />
             </li>
           </ul>
         </div>
