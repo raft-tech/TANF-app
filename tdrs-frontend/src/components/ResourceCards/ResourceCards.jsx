@@ -1,6 +1,6 @@
 import Button from '../Button'
 
-function Card({ id, title, body, link, linkText }) {
+function Card({ title, body, buttonId, link, linkText }) {
   return (
     <div className="usa-card__container">
       <header className="usa-card__header">
@@ -10,7 +10,7 @@ function Card({ id, title, body, link, linkText }) {
         <p>{body}</p>
       </div>
       <div className="usa-card__footer">
-        <Button type="button" class="usa-button" id={id} href={link}>
+        <Button type="button" class="usa-button" id={buttonId} href={link}>
           {linkText}
         </Button>
       </div>
@@ -40,7 +40,7 @@ function ResourceCards() {
           <ul className="grid-row usa-card-group mobile:margin-0">
             <li className="usa-card--header-first padding-bottom-4 desktop:padding-right-2 desktop:grid-col-6 mobile:grid-col-12">
               <Card
-                id="viewKnowledgeCenterButton"
+                buttonId="viewKnowledgeCenterButton"
                 title="TDP Knowledge Center"
                 body="The knowledge center contains resources on all things TDP from account creation to data submission."
                 link="http://tdp-project-updates.app.cloud.gov/knowledge-center/"
@@ -49,7 +49,7 @@ function ResourceCards() {
             </li>
             <li className="usa-card--header-first padding-bottom-4 desktop:grid-col-6 mobile:grid-col-12">
               <Card
-                id="viewLayoutsButton"
+                buttonId="viewLayoutsButton"
                 title="Transmission File Layouts & Edits"
                 body="All transmission file layouts and edits (i.e. error codes) for TANF and SSP-MOE data reporting."
                 link="https://www.acf.hhs.gov/ofa/policy-guidance/final-tanf-ssp-moe-data-reporting-system-transmission-files-layouts-and-edits"
@@ -58,7 +58,7 @@ function ResourceCards() {
             </li>
             <li className="usa-card--header-first desktop:padding-right-2 desktop:padding-bottom-0 desktop:grid-col-6 mobile:grid-col-12 mobile:padding-bottom-4">
               <Card
-                id="viewTribalCodingInstructions"
+                buttonId="viewTribalCodingInstructions"
                 title="Tribal TANF Data Coding Instructions"
                 body="File coding instructions addressing each data point that Tribal TANF grantees are required to report upon."
                 link="https://www.acf.hhs.gov/ofa/policy-guidance/tribal-tanf-data-coding-instructions"
@@ -67,7 +67,7 @@ function ResourceCards() {
             </li>
             <li className="usa-card--header-first desktop:grid-col-6 mobile:grid-col-12">
               <Card
-                id="viewACFFormInstructions"
+                buttonId="viewACFFormInstructions"
                 title="ACF-199 and ACF-209 Instructions"
                 body="Instructions and definitions for completion of forms ACF-199 (TANF Data Report) and ACF-209 (SSP-MOE Data Report)."
                 link="https://www.acf.hhs.gov/sites/default/files/documents/ofa/tanf_data_reports_tan_ssp_instructions_definitions.pdf"

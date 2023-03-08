@@ -7,29 +7,6 @@ import configureStore from 'redux-mock-store'
 
 const initialState = {
   auth: { authenticated: false, inactive: false },
-  stts: {
-    loading: false,
-    sttList: [
-      {
-        id: 1,
-        type: 'state',
-        code: 'AL',
-        name: 'Alabama',
-      },
-      {
-        id: 2,
-        type: 'state',
-        code: 'AK',
-        name: 'Alaska',
-      },
-      {
-        id: 140,
-        type: 'tribe',
-        code: 'AK',
-        name: 'Aleutian/Pribilof Islands Association, Inc.',
-      },
-    ],
-  },
 }
 const mockStore = configureStore([thunk])
 
