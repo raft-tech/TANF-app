@@ -195,7 +195,9 @@ function Reports() {
       )
       const touchedFields = Object.keys(touched).length
 
-      const errors = touchedFields === 3 ? 3 - form.length : 0
+      const expected_fields = isOFAAdmin ? 3 : 2
+
+      const errors = touchedFields === 3 ? expected_fields - form.length : 0
 
       setFormValidationState((currentState) => ({
         ...currentState,
@@ -213,6 +215,7 @@ function Reports() {
     quarterInputValue,
     setFormValidationState,
     touched,
+    isOFAAdmin,
   ])
 
   return (
