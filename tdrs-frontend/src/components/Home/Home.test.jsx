@@ -93,9 +93,7 @@ describe('Home', () => {
     )
 
     const header = getByText(
-      `You have been approved for access to TDP. For guidance on submitting
-      data, managing your account, and utilizing other functionality please
-      refer to the TDP Knowledge Center.`
+      `You have been approved for access to TDP. For guidance on submitting data, managing your account, and utilizing other functionality please refer to the TDP Knowledge Center.`
     )
     expect(header).toBeInTheDocument()
   })
@@ -121,9 +119,7 @@ describe('Home', () => {
     )
 
     const header = getByText(
-      `You have been approved for access to TDP. For guidance on submitting
-      data, managing your account, and utilizing other functionality please
-      refer to the TDP Knowledge Center.`
+      `You have been approved for access to TDP. For guidance on submitting data, managing your account, and utilizing other functionality please refer to the TDP Knowledge Center.`
     )
     expect(header).toBeInTheDocument()
   })
@@ -155,9 +151,7 @@ describe('Home', () => {
 
     expect(
       getByText(
-        `You have been approved for access to TDP. For guidance on submitting
-      data, managing your account, and utilizing other functionality please
-      refer to the TDP Knowledge Center.`
+        `You have been approved for access to TDP. For guidance on submitting data, managing your account, and utilizing other functionality please refer to the TDP Knowledge Center.`
       )
     ).toBeInTheDocument()
   })
