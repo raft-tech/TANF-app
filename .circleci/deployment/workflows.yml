@@ -21,7 +21,6 @@
             branches:
               only:
                 - develop
-                - devops/2385-acf-domains # remove before merge to develop
       - deploy-infrastructure-staging:
           filters:
             branches:
@@ -39,7 +38,6 @@
             branches:
               only:
                 - develop
-                - devops/2385-acf-domains # remove before merge to develop
       - deploy-develop:
           requires:
             - deploy-infrastructure-develop
@@ -47,7 +45,6 @@
             branches:
               only:
                 - develop
-                - devops/2385-acf-domains # remove before merge to develop
       - test-deployment-e2e:
           requires:
             - deploy-develop
@@ -55,7 +52,6 @@
             branches:
               only:
                 - develop
-                - devops/2385-acf-domains # remove before merge to develop
 
   production-deployment:
     unless:

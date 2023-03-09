@@ -24,7 +24,6 @@ on:
   push:
     branches:
     - develop
-    - devops/2385-acf-domains # remove before merge to develop
     paths_ignore:
     - 'docs/**'
     - '**.md'
