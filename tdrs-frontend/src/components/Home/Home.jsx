@@ -202,11 +202,10 @@ function Home() {
           data, managing your account, and utilizing other functionality please
           refer to the TDP Knowledge Center.
         </p>
-        <caption>
-          <b> Data Reporting Deadlines </b>
-        </caption>
-        {/* uswds striped table 3 x 5 */}
         <table className="usa-table usa-table--striped">
+          <caption>
+            <b> Data Reporting Deadlines </b>
+          </caption>
           <thead>
             <tr>
               <th scope="col">Fiscal Quarter</th>
