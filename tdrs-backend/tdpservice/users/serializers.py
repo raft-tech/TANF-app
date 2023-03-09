@@ -97,6 +97,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         }
 
     def update(self, instance, validated_data):
+        """Perform model validation before saving."""
         instance = super(UserProfileSerializer, self).update(instance, validated_data)
 
         try:
