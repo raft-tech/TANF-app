@@ -198,12 +198,13 @@ function Home() {
     <>
       <div className="margin-top-5">
         <p className="margin-top-1 margin-bottom-4">
-          You have been approved for access and can now submit data via the
-          "Data Files" tab.
+          You have been approved for access to TDP. For guidance on submitting
+          data, managing your account, and utilizing other functionality please
+          refer to the TDP Knowledge Center.
         </p>
-        <p>
+        <caption>
           <b> Data Reporting Deadlines </b>
-        </p>
+        </caption>
         {/* uswds striped table 3 x 5 */}
         <table className="usa-table usa-table--striped">
           <thead>
