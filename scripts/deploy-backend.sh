@@ -165,7 +165,7 @@ elif [ "$CF_SPACE" = "tanf-prod" ]; then
   FRONTEND_BASE_URL="https://tanfdata.acf.hhs.gov"
 elif [ "$CF_SPACE" = "tanf-staging" ]; then
   # use .acf.hss.gov domain for develop and staging.
-  BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov"
+  FRONTEND_BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov"
 else
   # Default to the route formed with the cloud.gov env for the lower environments.
   FRONTEND_BASE_URL="$DEFAULT_FRONTEND_ROUTE"
