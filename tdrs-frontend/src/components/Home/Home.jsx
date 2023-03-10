@@ -209,7 +209,7 @@ function Home() {
           <thead>
             <tr>
               <th scope="col">Fiscal Quarter</th>
-              <th scope="col">Calender Period</th>
+              <th scope="col">Calendar Period</th>
               <th scope="col">Due Date</th>
             </tr>
           </thead>
