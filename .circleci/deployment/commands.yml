@@ -52,11 +52,11 @@
       backend-appname:
         default: tdp-backend
         type: string
-      cf-space:
-        default: tanf-dev
-        type: string
       frontend-appname:
         default: tdp-frontend
+        type: string
+      cf-space:
+        default: tanf-dev
         type: string
     steps:
       - get-app-deploy-strategy:
