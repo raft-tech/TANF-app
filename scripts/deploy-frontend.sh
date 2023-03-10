@@ -63,8 +63,8 @@ update_frontend()
 
     if [ "$CF_SPACE" = "tanf-prod" ]; then
         cf map-route "$CGHOSTNAME_FRONTEND" tanfdata.acf.hhs.gov
-    elif [ "$CF_SPACE" = "tanf-staging" ]; then
-        cf map-route "$CGHOSTNAME_FRONTEND" acf.hhs.gov --hostname "${CGHOSTNAME_FRONTEND}"
+    elif [ "$CF_SPACE" = "tanf-staging" ]; then 
+        cf map-route "$CGHOSTNAME_FRONTEND" "$CGHOSTNAME_FRONTEND".acf.hhs.gov
     else
         cf map-route "$CGHOSTNAME_FRONTEND" app.cloud.gov --hostname "${CGHOSTNAME_FRONTEND}"
     fi
