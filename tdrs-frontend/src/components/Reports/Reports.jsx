@@ -38,7 +38,7 @@ function Reports() {
   const [quarterInputValue, setQuarterInputValue] = useState(selectedQuarter)
   // The logged in user saved in our redux `auth` state object
   const user = useSelector((state) => state.auth.user)
-  const isOFAAdmin = useSelector(selectPrimaryUserRole).name === 'OFA Admin'
+  const isOFAAdmin = useSelector(selectPrimaryUserRole)?.name === 'OFA Admin'
   const sttList = useSelector((state) => state?.stts?.sttList)
 
   const [errorModalVisible, setErrorModalVisible] = useState(false)
