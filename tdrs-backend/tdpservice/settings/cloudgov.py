@@ -172,7 +172,7 @@ class Staging(CloudGov):
 
     # TODO: why not just 'appcloudgov'?
     ALLOWED_HOSTS = [
-        'tdp-frontend-staging.acf.hhs.gov', 
+        'tdp-frontend-staging.acf.hhs.gov',
         'tdp-frontend-develop.acf.hhs.gov'
         ]
 
