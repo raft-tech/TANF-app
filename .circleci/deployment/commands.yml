@@ -66,8 +66,8 @@
           command: |
             bash ./scripts/deploy-backend.sh \
               $DEPLOY_STRATEGY \
-              <<parameters.backend-appname>> \
               <<parameters.frontend-appname>> \
+              <<parameters.backend-appname>> \
               <<parameters.cf-space>>
 
   deploy-clamav:

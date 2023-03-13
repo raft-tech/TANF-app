@@ -13,9 +13,9 @@ can each be modified through the interface.
 
 ### Log in to Admin
 
-- Go to `<frontend-domain-name>` (e.g. `https://tdp-frontend-staging.app.cloud.gov/`)
+- Go to `<frontend-domain-name>` (e.g. `https://tdp-frontend-staging.acf.hhs.gov/`)
 - Sign in through `ACF AMS` (ACF users)
-- Go to `<backend-domain-name>/admin/` (e.g. `https://tdp-backend-staging.app.cloud.gov/admin/`)
+- Go to `<backend-domain-name>/admin/` (e.g. `https://tdp-backend-staging.acf.hhs.gov/admin/`)
 
 _Alternatively_
 
