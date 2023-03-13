@@ -34,10 +34,6 @@ class User(AbstractUser):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    limit = models.Q(app_label="stts", model="stt") | models.Q(
-        app_label="stts", model="region"
-    )
-
     stt = models.ForeignKey(
         STT,
         on_delete=models.deletion.SET_NULL,
