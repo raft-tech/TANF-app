@@ -14,9 +14,20 @@ executors:
     machine:
       docker_layer_caching: false
       image: ubuntu-2204:2022.10.1
+  zap-machine:
+    machine:
+      docker_layer_caching: false
+      image: ubuntu-2204:2022.10.1
+    resource_class: large
 
 parameters:
+  develop_branch_deploy:
+    type: boolean
+    default: false
   run_dev_deployment:
+    type: boolean
+    default: false
+  run_nightly_owasp_scan:
     type: boolean
     default: false
   run_owasp_scan:
@@ -25,6 +36,3 @@ parameters:
   target_env:
     type: string
     default: ''
-  run_nightly_owasp_scan:
-    type: boolean
-    default: false

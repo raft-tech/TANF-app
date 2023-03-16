@@ -8,13 +8,16 @@ import {
   setYear,
   setStt,
   setQuarter,
-  getAvailableFileList,
   setFileType,
+  getCurrentSubmission,
 } from '../../actions/reports'
 import UploadReport from '../UploadReport'
 import STTComboBox from '../STTComboBox'
 import { fetchSttList } from '../../actions/sttList'
 import Modal from '../Modal'
+import SegmentedControl from '../SegmentedControl'
+import SubmissionHistory from '../SubmissionHistory'
+import { selectPrimaryUserRole } from '../../selectors/auth'
 
 /**
  * Reports is the home page for users to file a report.
@@ -34,13 +37,12 @@ function Reports() {
   const [quarterInputValue, setQuarterInputValue] = useState(selectedQuarter)
   // The logged in user saved in our redux `auth` state object
   const user = useSelector((state) => state.auth.user)
-  const isOFAAdmin =
-    user && user.roles.some((role) => role.name === 'OFA Admin')
+  const isOFAAdmin = useSelector(selectPrimaryUserRole)?.name === 'OFA Admin'
   const sttList = useSelector((state) => state?.stts?.sttList)
 
   const [errorModalVisible, setErrorModalVisible] = useState(false)
-  const files = useSelector((state) => state.reports.files)
-  const uploadedFiles = files.filter((file) => file.fileName && !file.id)
+  const files = useSelector((state) => state.reports.submittedFiles)
+  const uploadedFiles = files?.filter((file) => file.fileName && !file.id)
 
   const userProfileStt = user?.stt?.name
 
@@ -69,6 +71,17 @@ function Reports() {
   const missingStt = !isOFAAdmin && !currentStt
 
   const errorsRef = useRef(null)
+
+  // Ensure newly rendered header is focused,
+  // else it won't be read be screen readers.
+  const headerRef = useRef(null)
+  useEffect(() => {
+    if (headerRef && headerRef.current) {
+      headerRef.current.focus()
+    }
+  }, [])
+
+  const [selectedSubmissionTab, setSelectedSubmissionTab] = useState(1)
 
   const resetPreviousValues = () => {
     setQuarterInputValue(selectedQuarter || '')
@@ -105,7 +118,7 @@ function Reports() {
 
       // Retrieve the files matching the selected year, quarter, and ssp.
       dispatch(
-        getAvailableFileList({
+        getCurrentSubmission({
           quarter: quarterInputValue,
           year: yearInputValue,
           stt,
@@ -181,7 +194,9 @@ function Reports() {
       )
       const touchedFields = Object.keys(touched).length
 
-      const errors = touchedFields === 3 ? 3 - form.length : 0
+      const expected_fields = isOFAAdmin ? 3 : 2
+
+      const errors = touchedFields === 3 ? expected_fields - form.length : 0
 
       setFormValidationState((currentState) => ({
         ...currentState,
@@ -199,6 +214,7 @@ function Reports() {
     quarterInputValue,
     setFormValidationState,
     touched,
+    isOFAAdmin,
   ])
 
   return (
@@ -344,7 +360,7 @@ function Reports() {
             className="margin-y-4"
             type="button"
             onClick={() => {
-              if (uploadedFiles.length > 0) {
+              if (uploadedFiles && uploadedFiles.length > 0) {
                 setErrorModalVisible(true)
               } else {
                 handleSearch()
@@ -356,17 +372,55 @@ function Reports() {
         </form>
       </div>
       {isUploadReportToggled && (
-        <UploadReport
-          stt={stt?.id}
-          header={`${currentStt} - ${selectedFileType.toUpperCase()} - Fiscal Year ${selectedYear} - ${
-            quarters[selectedQuarter]
-          }`}
-          handleCancel={() => {
-            setIsToggled(false)
-            resetPreviousValues()
-            dispatch(clearFileList())
-          }}
-        />
+        <>
+          <h2
+            ref={headerRef}
+            className="font-serif-xl margin-top-5 margin-bottom-0 text-normal"
+            tabIndex="-1"
+          >
+            {`${currentStt} - ${selectedFileType.toUpperCase()} - Fiscal Year ${selectedYear} - ${
+              quarters[selectedQuarter]
+            }`}
+          </h2>
+
+          <SegmentedControl
+            buttons={[
+              {
+                id: 1,
+                label: 'Current Submission',
+                onSelect: () => setSelectedSubmissionTab(1),
+              },
+              {
+                id: 2,
+                label: 'Submission History',
+                onSelect: () => setSelectedSubmissionTab(2),
+              },
+            ]}
+            selected={selectedSubmissionTab}
+          />
+
+          {selectedSubmissionTab === 1 && (
+            <UploadReport
+              stt={stt?.id}
+              handleCancel={() => {
+                setIsToggled(false)
+                resetPreviousValues()
+                dispatch(clearFileList())
+              }}
+            />
+          )}
+
+          {selectedSubmissionTab === 2 && (
+            <SubmissionHistory
+              filterValues={{
+                quarter: quarterInputValue,
+                year: yearInputValue,
+                stt: stt,
+                file_type: fileTypeInputValue,
+              }}
+            />
+          )}
+        </>
       )}
       <Modal
         title="Files Not Submitted"
