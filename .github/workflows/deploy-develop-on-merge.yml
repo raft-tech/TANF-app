@@ -24,6 +24,7 @@ on:
   push:
     branches:
     - develop
+    - 1544-Nginx-with-domain # CHANGE BACK BEFORE MERGE TO DEVELOP
     paths_ignore:
     - 'docs/**'
     - '**.md'
