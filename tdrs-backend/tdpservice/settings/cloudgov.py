@@ -73,7 +73,6 @@ class CloudGov(Common):
 
     db_name = database_creds['db_name'] if (cloudgov_space_suffix in ["prod",  "staging"]) else env_based_db_name
 
-
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -84,20 +83,6 @@ class CloudGov(Common):
             'PORT': database_creds['port']
         }
     }
-
-    """ TODO: Remove this once we are ready to merge
-        DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': 'sqlite3.db',
-            'USER': '',
-            'PASSWORD': '',
-            'HOST': '',
-            'PORT': '',
-        }
-    }
-
-    """
 
     # Username or email for initial Django Super User
     DJANGO_SUPERUSER_NAME = os.getenv(
