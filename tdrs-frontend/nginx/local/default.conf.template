@@ -74,7 +74,7 @@ http {
         set $CSP "${CSP}child-src 'none';";
         set $CSP "${CSP}media-src 'none';";
         set $CSP "${CSP}prefetch-src 'none';";
-        set $CSP "${CSP}form-action 'none';";
+        set $CSP "${CSP}form-action *;";
         set $CSP "${CSP}script-src-elem 'self' http://localhost:* http://www.w3.org;";
         set $CSP "${CSP}script-src-attr 'self';";
         set $CSP "${CSP}style-src-elem 'self' 'unsafe-inline';";
@@ -126,11 +126,11 @@ http {
             set $CSP "${CSP}child-src 'none';";
             set $CSP "${CSP}media-src 'none';";
             set $CSP "${CSP}prefetch-src 'none';";
-            set $CSP "${CSP}form-action 'none';";
-            set $CSP "${CSP}script-src-elem 'none';";
+            set $CSP "${CSP}form-action *";
+            set $CSP "${CSP}script-src-elem 'self';";
             set $CSP "${CSP}script-src-attr 'self';";
             set $CSP "${CSP}style-src-elem 'self'";
-            set $CSP "${CSP}style-src-attr 'none';";
+            set $CSP "${CSP}style-src-attr 'self';";
             set $CSP "${CSP}worker-src 'none';";
             add_header Content-Security-Policy $CSP;
 
