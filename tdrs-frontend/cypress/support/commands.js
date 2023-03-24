@@ -49,3 +49,56 @@ Cypress.Commands.add('login', (username) =>
         })
     })
 )
+
+Cypress.Commands.add('djangoAdminLogin', (username) => {
+  cy
+    .request({
+      method: 'POST',
+      url: 'http://localhost:8080/admin',
+    })
+})
+
+// Update with correct info when we can get the token
+Cypress.Commands.add('adminApproveUser', (username) => {
+  cy
+    .request({
+      method: 'POST',
+      url: `http://localhost:8080/admin/users/user/1ec4e20b-4e79-46eb-af1e-d640be91f1a3/change/`,
+      body: {
+        username: username,
+        account_approval_status: 'Approved',
+        _save: 'Save'
+      }
+    })
+});
+
+// Use this to get the tokens
+Cypress.Commands.add('loginAdmin', (username, password) => {
+
+  return cy.request({
+    url: `${Cypress.env('apiUrl')}/login/cypress`,
+    method: 'HEAD' // cookies are in the HTTP headers, so HEAD suffices
+  }).then(() => {
+    cy.getCookie('sessionid').should('not.exist')
+    cy.getCookie('csrfmiddlewaretoken').its('value').then((token) => {
+      let oldToken = token
+      cy.request({
+        url: `${Cypress.env('apiUrl')}/login/cypress`,
+        method: 'POST',
+        form: true,
+        followRedirect: false, // no need to retrieve the page after login
+        body: {
+          username: username,
+          password: password,
+          csrfmiddlewaretoken: token
+        }
+      }).then(() => {
+
+        cy.getCookie('sessionid').should('exist')
+        return cy.getCookie('csrftoken').its('value')
+
+      })
+    })
+  })
+
+})

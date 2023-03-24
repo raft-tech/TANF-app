@@ -6,6 +6,7 @@ module.exports = defineConfig({
   e2e: {
     baseUrl: 'http://localhost:3000',
     specPattern: '**/*.feature',
+    experimentalSessionAndOrigin: true,
 
     env: {
       apiUrl: 'http://localhost:8080/v1',
