@@ -58,7 +58,7 @@
           command: cd tdrs-backend; docker-compose exec web python manage.py generate_cypress_users
       - run:
           name: Run Cypress e2e tests
-          command: cd tdrs-frontend; npm run test:e2e-ci -- --config baseUrl=$REACT_APP_FRONTEND_URL --env cypressToken=$CYPRESS_TOKEN,apiUrl=$REACT_APP_BACKEND_URL
+          command: cd tdrs-frontend; npm run test:e2e-ci -- --config baseUrl="localhost:3000" --env cypressToken=$CYPRESS_TOKEN,apiUrl="localhost:3000/v1"
       - store_artifacts:
           path: tdrs-frontend/cypress/screenshots/
       - store_artifacts:
