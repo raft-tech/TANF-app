@@ -335,7 +335,7 @@ class Common(Configuration):
     CSP_SCRIPT_SRC = ("'self'", s3_src)
     CSP_IMG_SRC = ("'self'", "data:", s3_src)
     CSP_FONT_SRC = ("'self'", s3_src)
-    CSP_CONNECT_SRC = ("'self'", "*.cloud.gov", "localhost:*")
+    CSP_CONNECT_SRC = ("'self'", "*.cloud.gov")
     CSP_MANIFEST_SRC = ("'self'")
     CSP_OBJECT_SRC = ("'none'")
     CSP_FRAME_ANCESTORS = ("'none'")
@@ -420,7 +420,7 @@ class Common(Configuration):
     # -------- CELERY CONFIG
     REDIS_URI = os.getenv(
         'REDIS_URI',
-        'redis://localhost:6379'
+        'redis://redis-server:6379'
     )
     logger.debug("REDIS_URI: " + REDIS_URI)
 
