@@ -28,7 +28,7 @@
             apk add jq
             apk add curl
             # TODO: Add Signature check
-            curl -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36" -L  "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github" | tar -zx
+            curl -A "user-agent" -L  "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github" | tar -zx
             mv cf7 /usr/local/bin/cf
       - login-cloud-dot-gov:
           cf-password: <<parameters.cf-password>>
@@ -87,7 +87,7 @@
             sudo apt install jq
             sudo apt install curl
             # TODO: Add Signature check
-            curl -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36" -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github" | tar -zx
+            curl -A "user-agent" -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github" | tar -zx
             sudo mv cf7 /usr/local/bin/cf
             sudo chmod +x /usr/local/bin/cf
       - login-cloud-dot-gov:
