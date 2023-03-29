@@ -84,3 +84,18 @@ Cypress.Commands.add('adminApiRequest', (options = {}) => {
     cy.clearCookie('csrftoken')
   }) 
 })
+
+Cypress.Commands.add('changeUserAccountStatus', (user, token, accountStatus) => {
+  let options = {
+    method: 'POST',
+    url: `http://localhost:8080/admin/users/user/${user}/change/`,
+    headers: { 'X_CSRFTOKEN': token },
+    form: true,
+    body: {
+      username: 'new-cypress@teamraft.com', // This `'${cypressUser.selector.username}'` should work but it does not. There are extra characters in the username encoding for some reason.
+      account_approval_status: accountStatus,
+      _save: 'Save'
+    },
+  }
+  cy.adminApiRequest(options)
+})
