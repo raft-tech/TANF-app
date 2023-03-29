@@ -11,22 +11,27 @@ Then('I see a Request Access form', () => {
 })
 
 When('The admin logs in', () => {
-  cy.login('new-super-cypress@teamraft.com')
-  cy.djangoAdminLogin()
+  cy.adminLogin('cypress-admin@teamraft.com')
 })
 
-Then('I approve a standard user', () => {
-  // cy.forceVisit("http://localhost:8080/admin")
-  cy.origin('http://localhost:8080/admin', () => {
-    cy.visit('/users/user/')
-    cy.get(':nth-child(3) > .field-__str__ > a').click()
-    cy.get('#id_account_approval_status').select('Approved')
-    cy.get('.submit-row > .default').click()
-    cy.get('.success').contains('The user “new-cypress@teamraft.com” was changed successfully.').should('exist')
+When('The admin approves a new user', () => {
+  cy.get('@cypressUser').then((cypressUser) => {
+    cy.get('@adminCsrfToken').then((csrfToken) => {
+      let options = {
+        method: 'POST',
+        url: `http://localhost:8080/admin/users/user/${cypressUser.selector.id}/change`,
+        headers: { 'X_CSRFTOKEN': `${csrfToken}` },
+        body: {
+          username: `${cypressUser}`,
+          account_approval_status: 'Approved',
+          _save: 'Save'
+        },
+      }
+      cy.adminApiRequest(options)
+    })
   })
 })
 
-
-When("The admin approves my account", () => {
-  cy.adminApproveUser('new-super-cypress@teamraft.com')
+Then('The new user can access everything', () => {
+  cy.login('new-cypress@teamraft.com')
 })

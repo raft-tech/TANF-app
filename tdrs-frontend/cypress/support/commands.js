@@ -50,55 +50,37 @@ Cypress.Commands.add('login', (username) =>
     })
 )
 
-Cypress.Commands.add('djangoAdminLogin', (username) => {
-  cy
-    .request({
-      method: 'POST',
-      url: 'http://localhost:8080/admin',
-    })
+Cypress.Commands.add('adminLogin', () => {
+  cy.request({
+    method: 'POST',
+    url: `${Cypress.env('apiUrl')}/login/cypress`,
+    body: {
+      username: 'cypress-admin@teamraft.com',
+      token: Cypress.env('cypressToken'),
+    },
+  }).then((response) => {
+    cy.getCookie('sessionid').its('value').as('adminSessionId')
+    cy.getCookie('csrftoken').its('value').as('adminCsrfToken')
+
+    // handle response, list of user emails/ids for use in adminApiRequest
+    cy.get(response.body.users[0]).as("cypressUser")
+
+    cy.clearCookie('sessionid')
+    cy.clearCookie('csrftoken')
+
+  })
 })
 
-// Update with correct info when we can get the token
-Cypress.Commands.add('adminApproveUser', (username) => {
-  cy
-    .request({
-      method: 'POST',
-      url: `http://localhost:8080/admin/users/user/1ec4e20b-4e79-46eb-af1e-d640be91f1a3/change/`,
-      body: {
-        username: username,
-        account_approval_status: 'Approved',
-        _save: 'Save'
-      }
-    })
-});
+Cypress.Commands.add('adminApiRequest', (options = {}) => {
+  cy.get('@adminSessionId').then((sessionId) =>
+    cy.setCookie('sessionid', sessionId)
+  )
+  cy.get('@adminCsrfToken').then((csrfToken) =>
+    cy.setCookie('csrftoken', csrfToken)
+  )
 
-// Use this to get the tokens
-Cypress.Commands.add('loginAdmin', (username, password) => {
-
-  return cy.request({
-    url: `${Cypress.env('apiUrl')}/login/cypress`,
-    method: 'HEAD' // cookies are in the HTTP headers, so HEAD suffices
-  }).then(() => {
-    cy.getCookie('sessionid').should('not.exist')
-    cy.getCookie('csrfmiddlewaretoken').its('value').then((token) => {
-      let oldToken = token
-      cy.request({
-        url: `${Cypress.env('apiUrl')}/login/cypress`,
-        method: 'POST',
-        form: true,
-        followRedirect: false, // no need to retrieve the page after login
-        body: {
-          username: username,
-          password: password,
-          csrfmiddlewaretoken: token
-        }
-      }).then(() => {
-
-        cy.getCookie('sessionid').should('exist')
-        return cy.getCookie('csrftoken').its('value')
-
-      })
-    })
-  })
-
+  cy.request(options).then((response) => {
+    cy.clearCookie('sessionid')
+    cy.clearCookie('csrftoken')
+  }) 
 })
