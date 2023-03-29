@@ -28,7 +28,7 @@
             apk add jq
             apk add curl
             # TODO: Add Signature check
-            curl -L "https://s3-us-west-1.amazonaws.com/v7-cf-cli-releases/releases/v7.6.0/cf7-cli_7.6.0_linux_x86-64.tgz" | tar -zx
+            curl -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github" | tar -zx
             mv cf7 /usr/local/bin/cf
       - login-cloud-dot-gov:
           cf-password: <<parameters.cf-password>>
@@ -87,7 +87,7 @@
             sudo apt install jq
             sudo apt install curl
             # TODO: Add Signature check
-            curl -L "https://s3-us-west-1.amazonaws.com/v7-cf-cli-releases/releases/v7.6.0/cf7-cli_7.6.0_linux_x86-64.tgz" | tar -zx
+            curl -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github" | tar -zx
             sudo mv cf7 /usr/local/bin/cf
             sudo chmod +x /usr/local/bin/cf
       - login-cloud-dot-gov:
