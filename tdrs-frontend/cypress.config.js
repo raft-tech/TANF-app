@@ -11,6 +11,9 @@ module.exports = defineConfig({
     env: {
       apiUrl: 'http://localhost:8080/v1',
       cypressToken: 'local-cypress-token',
+      cypressName: 'cypress',
+      cypressStt: '6',
+      cypressSttName: 'Colorado',
     },
 
     async setupNodeEvents(on, config) {

@@ -421,5 +421,6 @@ class CypressLoginDotGovAuthenticationOverride(TokenAuthorizationOIDC):
           logging.debug(username)
           cypress_users = User.objects.exclude(username__contains="admin").filter(username__contains="cypress")
           response["users"] = [{'username': user.username, 'id': user.id} for user in cypress_users]
+        print(f"User {u} Session ID:", request.session.session_key)
 
         return Response(response)

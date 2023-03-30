@@ -85,7 +85,7 @@ Cypress.Commands.add('adminApiRequest', (options = {}) => {
   }) 
 })
 
-Cypress.Commands.add('changeUserAccountStatus', (user, token, stt, accountStatus) => {
+Cypress.Commands.add('approveUser', (user, token) => {
   let options = {
     method: 'POST',
     url: `http://localhost:8080/admin/users/user/${user}/change/`,
@@ -94,10 +94,29 @@ Cypress.Commands.add('changeUserAccountStatus', (user, token, stt, accountStatus
     body: {
       username: 'new-cypress@teamraft.com', // This `'${cypressUser.selector.username}'` should work but it does not. There are extra characters in the username encoding for some reason.
       first_name: 'cypress',
-      last_name: 'cypress-last',
+      last_name: 'cypress',
       email: 'new-cypress@teamraft.com',
-      stt: stt,
-      account_approval_status: accountStatus,
+      stt: '6',
+      account_approval_status: 'Approved',
+      _save: 'Save'
+    },
+  }
+  cy.adminApiRequest(options)
+})
+
+Cypress.Commands.add('reinitUserAccount', (user, token) => {
+  let options = {
+    method: 'POST',
+    url: `http://localhost:8080/admin/users/user/${user}/change/`,
+    headers: { 'X_CSRFTOKEN': token },
+    form: true,
+    body: {
+      username: 'new-cypress@teamraft.com', // This `'${cypressUser.selector.username}'` should work but it does not. There are extra characters in the username encoding for some reason.
+      first_name: '',
+      last_name: '',
+      email: 'new-cypress@teamraft.com',
+      stt: '',
+      account_approval_status: 'Initial',
       _save: 'Save'
     },
   }

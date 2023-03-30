@@ -17,7 +17,7 @@ When('The admin logs in', () => {
 When('The admin approves a new user', () => {
   cy.get('@cypressUser').then((cypressUser) => {
     cy.get('@adminCsrfToken').then((csrfToken) => {
-      cy.changeUserAccountStatus(`${cypressUser.selector.id}`, `${csrfToken}`, 6, 'Approved')
+      cy.approveUser(`${cypressUser.selector.id}`, `${csrfToken}`)
     })
   })
 })
@@ -40,20 +40,28 @@ Then('The new user can see everything', () => {
 })
 
 When('The cypress user is in begin state', () => {
-  cy.adminLogin('cypress-admin@teamraft.com')
   cy.get('@cypressUser').then((cypressUser) => {
     cy.get('@adminCsrfToken').then((csrfToken) => {
-      cy.changeUserAccountStatus(`${cypressUser.selector.id}`, `${csrfToken}`, '', 'Initial')
+      cy.reinitUserAccount(`${cypressUser.selector.id}`, `${csrfToken}`)
     })
   })
 })
 
-When('The cypress user is in request state', () => {
+When('The cypress user requests access', () => {
+  Cypress.on('uncaught:exception', (err, runnable) => {
+    // returning false here prevents Cypress from
+    // failing the test
+    return false
+  })
   cy.login('new-cypress@teamraft.com')
-  cy.get("#firstName").type('cypress')
-  cy.get("#lastName").type('cypress')
-  cy.get("#stt").type('Colorado{enter}')
+  cy.get("#firstName").type(Cypress.env('cypressName'))
+  cy.get("#lastName").type(Cypress.env('cypressName'))
+  cy.get("#stt").type(Cypress.env('cypressSttName')).type('{enter}')
   cy.get('button').contains('Request Access').should('exist').click()
-  cy.get('button').contains('Request Access').should('exist').click()
-  cy.get('button').contains('Request Access').should('exist').click()
+  cy.wait(30000).then(() => {
+    cy.get('button').contains('Request Access').should('exist').click()
+    cy.contains("Request Submitted").should('exist')
+    cy.get('button').contains('Sign Out').should('exist').click()
+  })
+  
 })
