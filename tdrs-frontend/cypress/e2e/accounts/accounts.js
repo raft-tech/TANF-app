@@ -30,7 +30,7 @@ When('The user is in begin state', () => {
 When('The user requests access', () => {
   cy.get('#firstName').type(Cypress.env('cypressName'))
   cy.get('#lastName').type(Cypress.env('cypressName'))
-  cy.get('#stt').type(Cypress.env('cypressSttName')).type('{enter}')
+  cy.get('#stt').type(Cypress.env('cypressSttName') + '{enter}')
   cy.get('button').contains('Request Access').should('exist').click()
   cy.wait(300).then(() => {
     cy.contains('Request Submitted').should('exist')
