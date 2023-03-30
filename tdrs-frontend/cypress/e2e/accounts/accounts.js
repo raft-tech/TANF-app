@@ -17,7 +17,7 @@ When('The admin logs in', () => {
 When('The admin approves a new user', () => {
   cy.get('@cypressUser').then((cypressUser) => {
     cy.get('@adminCsrfToken').then((csrfToken) => {
-      cy.changeUserAccountStatus(`${cypressUser.selector.id}`, `${csrfToken}`, 'Approved')
+      cy.changeUserAccountStatus(`${cypressUser.selector.id}`, `${csrfToken}`, 6, 'Approved')
     })
   })
 })
@@ -43,7 +43,16 @@ When('The cypress user is in begin state', () => {
   cy.adminLogin('cypress-admin@teamraft.com')
   cy.get('@cypressUser').then((cypressUser) => {
     cy.get('@adminCsrfToken').then((csrfToken) => {
-      cy.changeUserAccountStatus(`${cypressUser.selector.id}`, `${csrfToken}`, 'Initial')
+      cy.changeUserAccountStatus(`${cypressUser.selector.id}`, `${csrfToken}`, '', 'Initial')
+    })
+  })
+})
+
+When('The cypress user is in request state', () => {
+  cy.adminLogin('cypress-admin@teamraft.com')
+  cy.get('@cypressUser').then((cypressUser) => {
+    cy.get('@adminCsrfToken').then((csrfToken) => {
+      cy.changeUserAccountStatus(`${cypressUser.selector.id}`, `${csrfToken}`, 6, 'Access request')
     })
   })
 })
