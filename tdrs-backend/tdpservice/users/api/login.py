@@ -418,8 +418,8 @@ class CypressLoginDotGovAuthenticationOverride(TokenAuthorizationOIDC):
 
         response = {'authenticated': True}
         if "admin" in username:
-          logging.debug(username)
-          cypress_users = User.objects.exclude(username__contains="admin").filter(username__contains="cypress")
-          response["users"] = [{'username': user.username, 'id': user.id} for user in cypress_users]
+            logging.debug(username)
+            cypress_users = User.objects.exclude(username__contains="admin").filter(username__contains="cypress")
+            response["users"] = [{'username': user.username, 'id': user.id} for user in cypress_users]
 
         return Response(response)
