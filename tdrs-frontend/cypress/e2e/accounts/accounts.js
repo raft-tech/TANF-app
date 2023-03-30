@@ -9,7 +9,8 @@ Then('I see a Request Access form', () => {
 When('The admin approves the user', () => {
   cy.get('@cypressUser').then((cypressUser) => {
     cy.get('@adminCsrfToken').then((csrfToken) => {
-      cy.approveUser(`${cypressUser.selector.id}`, `${csrfToken}`)
+      cy.changeUserInfo(`${cypressUser.selector.id}`, `${csrfToken}`, Cypress.env('cypressName'), Cypress.env('cypressName'),
+      Cypress.env('cypressStt'), Cypress.env('cypressGroup'), 'Approved')
     })
   })
 })
@@ -35,4 +36,31 @@ When('The user requests access', () => {
   cy.wait(300).then(() => {
     cy.contains('Request Submitted').should('exist')
   })
+})
+
+When('The admin denies the user', () => {
+  cy.get('@cypressUser').then((cypressUser) => {
+    cy.get('@adminCsrfToken').then((csrfToken) => {
+      cy.changeUserInfo(`${cypressUser.selector.id}`, `${csrfToken}`, Cypress.env('cypressName'), Cypress.env('cypressName'),
+      Cypress.env('cypressStt'), Cypress.env('cypressGroup'), 'Denied')
+    })
+  })
+})
+
+Then('The user sees request page again', () => {
+  cy.visit('/home')
+})
+
+When('The admin deactivates the user account', () => {
+  cy.get('@cypressUser').then((cypressUser) => {
+    cy.get('@adminCsrfToken').then((csrfToken) => {
+      cy.changeUserInfo(`${cypressUser.selector.id}`, `${csrfToken}`, Cypress.env('cypressName'), Cypress.env('cypressName'),
+      Cypress.env('cypressStt'), Cypress.env('cypressGroup'), 'Deactivated')
+    })
+  })
+})
+
+Then('The user cannot log in', () => {
+  cy.visit('/')
+  cy.contains('Inactive Account').should('exist')
 })

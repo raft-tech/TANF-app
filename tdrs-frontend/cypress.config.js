@@ -14,6 +14,7 @@ module.exports = defineConfig({
       cypressName: 'cypress',
       cypressStt: '6',
       cypressSttName: 'Colorado',
+      cypressGroup: '2',
     },
 
     async setupNodeEvents(on, config) {
