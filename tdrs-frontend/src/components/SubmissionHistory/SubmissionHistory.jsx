@@ -1,4 +1,5 @@
 import React from 'react'
+import axios from 'axios'
 import PropTypes from 'prop-types'
 import { useDispatch, useSelector } from 'react-redux'
 import { fileUploadSections } from '../../reducers/reports'
@@ -14,6 +15,25 @@ const SubmissionHistoryRow = ({ file }) => {
 
   const downloadFile = () => dispatch(download(file))
 
+  const fileParserErrors = async () => {
+    try {
+      const promise = axios.get(
+        `${process.env.REACT_APP_BACKEND_URL}/parsing/parsing_errors/?id=${file.id}`,
+        {
+          responseType: 'json',
+        }
+      )
+      const dataPromise = promise.then((response) => response.data)
+      return dataPromise
+    } catch (error) {
+      return error
+    }
+  }
+
+  const data = fileParserErrors().then((data) => {
+    return data
+  })
+
   return (
     <tr>
       <td>{formatDate(file.createdAt)}</td>
@@ -22,6 +42,12 @@ const SubmissionHistoryRow = ({ file }) => {
         <button className="section-download" onClick={downloadFile}>
           {file.fileName}
         </button>
+      </td>
+      <td>
+        {data
+          ? 'No report is available for this file. Please contact the TANF Data'
+          : data}
+        {file.id}
       </td>
     </tr>
   )
@@ -51,6 +77,7 @@ const SectionSubmissionHistory = ({ section, label, files }) => {
                 <th>Submitted On</th>
                 <th>Submitted By</th>
                 <th>File Name</th>
+                <th>Error Report</th>
               </tr>
             </thead>
             <tbody>
