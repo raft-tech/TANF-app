@@ -27,9 +27,6 @@
 // Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
 
 Cypress.Commands.add('login', (username) => {
-  // cy.clearCookie('sessionid')
-  // cy.clearCookie('csrftoken')
-
   cy.request({
     method: 'POST',
     url: `${Cypress.env('apiUrl')}/login/cypress`,
@@ -101,13 +98,6 @@ Cypress.Commands.add('adminApiRequest', (options = {}) => {
       cy.setCookie('csrftoken', csrfToken)
     )
   }
-
-  // cy.get('@userSessionId')
-  //   .then((sessionId) => cy.setCookie('sessionid', sessionId))
-  //   .catch(() => null)
-  // cy.get('@userCsrfToken')
-  //   .then((csrfToken) => cy.setCookie('csrftoken', csrfToken))
-  //   .catch(() => null)
 })
 
 Cypress.Commands.add('approveUser', (user, token) => {
