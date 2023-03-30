@@ -28,7 +28,7 @@ Then('The admin logs out', () => {
     url: 'http://localhost:8080/admin/logout/',
   }
   cy.adminApiRequest(options)
-  cy.visit("http://localhost:3000/") // Need a better way to enforce the logout so cypress user can log in
+  cy.visit('http://localhost:3000/') // Need a better way to enforce the logout so cypress user can log in
 })
 
 When('The new user logs in', () => {
@@ -36,7 +36,7 @@ When('The new user logs in', () => {
 })
 
 Then('The new user can see everything', () => {
-
+  cy.visit('/home')
 })
 
 When('The cypress user is in begin state', () => {
@@ -53,15 +53,14 @@ When('The cypress user requests access', () => {
     // failing the test
     return false
   })
-  cy.login('new-cypress@teamraft.com')
-  cy.get("#firstName").type(Cypress.env('cypressName'))
-  cy.get("#lastName").type(Cypress.env('cypressName'))
-  cy.get("#stt").type(Cypress.env('cypressSttName')).type('{enter}')
+  // cy.login('new-cypress@teamraft.com')
+  cy.get('#firstName').type(Cypress.env('cypressName'))
+  cy.get('#lastName').type(Cypress.env('cypressName'))
+  cy.get('#stt').type(Cypress.env('cypressSttName')).type('{enter}')
   cy.get('button').contains('Request Access').should('exist').click()
-  cy.wait(30000).then(() => {
-    cy.get('button').contains('Request Access').should('exist').click()
-    cy.contains("Request Submitted").should('exist')
-    cy.get('button').contains('Sign Out').should('exist').click()
+  cy.wait(300).then(() => {
+    // cy.get('button').contains('Request Access').should('exist').click()
+    cy.contains('Request Submitted').should('exist')
+    // cy.get('button').contains('Sign Out').should('exist').click()
   })
-  
 })

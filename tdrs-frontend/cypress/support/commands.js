@@ -26,29 +26,33 @@
 // -- This will overwrite an existing command --
 // Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
 
-Cypress.Commands.add('login', (username) =>
-  cy
-    .request({
-      method: 'POST',
-      url: `${Cypress.env('apiUrl')}/login/cypress`,
-      body: {
-        username,
-        token: Cypress.env('cypressToken'),
-      },
-    })
-    .then((response) => {
-      cy.window()
-        .its('store')
-        .invoke('dispatch', {
-          type: 'SET_AUTH',
-          payload: {
-            user: {
-              email: username,
-            },
+Cypress.Commands.add('login', (username) => {
+  // cy.clearCookie('sessionid')
+  // cy.clearCookie('csrftoken')
+
+  cy.request({
+    method: 'POST',
+    url: `${Cypress.env('apiUrl')}/login/cypress`,
+    body: {
+      username,
+      token: Cypress.env('cypressToken'),
+    },
+  }).then((response) => {
+    cy.window()
+      .its('store')
+      .invoke('dispatch', {
+        type: 'SET_AUTH',
+        payload: {
+          user: {
+            email: username,
           },
-        })
-    })
-)
+        },
+      })
+
+    cy.getCookie('sessionid').its('value').as('userSessionId')
+    cy.getCookie('csrftoken').its('value').as('userCsrfToken')
+  })
+})
 
 Cypress.Commands.add('adminLogin', () => {
   cy.request({
@@ -63,12 +67,11 @@ Cypress.Commands.add('adminLogin', () => {
     cy.getCookie('csrftoken').its('value').as('adminCsrfToken')
 
     // handle response, list of user emails/ids for use in adminApiRequest
-    cy.get(response.body.users[0]).as("cypressUser")
-
-    cy.clearCookie('sessionid')
-    cy.clearCookie('csrftoken')
-
+    cy.get(response.body.users[0]).as('cypressUser')
   })
+
+  cy.clearCookie('sessionid')
+  cy.clearCookie('csrftoken')
 })
 
 Cypress.Commands.add('adminApiRequest', (options = {}) => {
@@ -79,17 +82,39 @@ Cypress.Commands.add('adminApiRequest', (options = {}) => {
     cy.setCookie('csrftoken', csrfToken)
   )
 
-  cy.request(options).then((response) => {
-    cy.clearCookie('sessionid')
-    cy.clearCookie('csrftoken')
-  }) 
+  cy.request(options)
+
+  cy.clearCookie('sessionid')
+  cy.clearCookie('csrftoken')
+
+  const userSessionId = cy.state('aliases').userSessionId
+  const userCsrfToken = cy.state('aliases').userCsrfToken
+
+  if (userSessionId) {
+    cy.get('@userSessionId').then((sessionId) =>
+      cy.setCookie('sessionid', sessionId)
+    )
+  }
+
+  if (userCsrfToken) {
+    cy.get('@userCsrfToken').then((csrfToken) =>
+      cy.setCookie('csrftoken', csrfToken)
+    )
+  }
+
+  // cy.get('@userSessionId')
+  //   .then((sessionId) => cy.setCookie('sessionid', sessionId))
+  //   .catch(() => null)
+  // cy.get('@userCsrfToken')
+  //   .then((csrfToken) => cy.setCookie('csrftoken', csrfToken))
+  //   .catch(() => null)
 })
 
 Cypress.Commands.add('approveUser', (user, token) => {
   let options = {
     method: 'POST',
     url: `http://localhost:8080/admin/users/user/${user}/change/`,
-    headers: { 'X_CSRFTOKEN': token },
+    headers: { X_CSRFTOKEN: token },
     form: true,
     body: {
       username: 'new-cypress@teamraft.com', // This `'${cypressUser.selector.username}'` should work but it does not. There are extra characters in the username encoding for some reason.
@@ -97,8 +122,9 @@ Cypress.Commands.add('approveUser', (user, token) => {
       last_name: 'cypress',
       email: 'new-cypress@teamraft.com',
       stt: '6',
+      groups: '2',
       account_approval_status: 'Approved',
-      _save: 'Save'
+      _save: 'Save',
     },
   }
   cy.adminApiRequest(options)
@@ -108,7 +134,7 @@ Cypress.Commands.add('reinitUserAccount', (user, token) => {
   let options = {
     method: 'POST',
     url: `http://localhost:8080/admin/users/user/${user}/change/`,
-    headers: { 'X_CSRFTOKEN': token },
+    headers: { X_CSRFTOKEN: token },
     form: true,
     body: {
       username: 'new-cypress@teamraft.com', // This `'${cypressUser.selector.username}'` should work but it does not. There are extra characters in the username encoding for some reason.
@@ -117,7 +143,7 @@ Cypress.Commands.add('reinitUserAccount', (user, token) => {
       email: 'new-cypress@teamraft.com',
       stt: '',
       account_approval_status: 'Initial',
-      _save: 'Save'
+      _save: 'Save',
     },
   }
   cy.adminApiRequest(options)
