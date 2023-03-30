@@ -49,10 +49,11 @@ When('The cypress user is in begin state', () => {
 })
 
 When('The cypress user is in request state', () => {
-  cy.adminLogin('cypress-admin@teamraft.com')
-  cy.get('@cypressUser').then((cypressUser) => {
-    cy.get('@adminCsrfToken').then((csrfToken) => {
-      cy.changeUserAccountStatus(`${cypressUser.selector.id}`, `${csrfToken}`, 6, 'Access request')
-    })
-  })
+  cy.login('new-cypress@teamraft.com')
+  cy.get("#firstName").type('cypress')
+  cy.get("#lastName").type('cypress')
+  cy.get("#stt").type('Colorado{enter}')
+  cy.get('button').contains('Request Access').should('exist').click()
+  cy.get('button').contains('Request Access').should('exist').click()
+  cy.get('button').contains('Request Access').should('exist').click()
 })
