@@ -64,3 +64,16 @@ Then('The user cannot log in', () => {
   cy.visit('/')
   cy.contains('Inactive Account').should('exist')
 })
+Then('The user sees the request still submitted', () => {
+  cy.visit('/')
+  cy.contains('Request Submitted').should('exist')
+})
+
+When('The admin puts the user in pending', () => {
+  cy.get('@cypressUser').then((cypressUser) => {
+    cy.get('@adminCsrfToken').then((csrfToken) => {
+      cy.changeUserInfo(`${cypressUser.selector.id}`, `${csrfToken}`, Cypress.env('cypressName'), Cypress.env('cypressName'),
+      Cypress.env('cypressStt'), Cypress.env('cypressGroup'), 'Pending')
+    })
+  })
+})

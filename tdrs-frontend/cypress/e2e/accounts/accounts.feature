@@ -3,6 +3,14 @@ Feature: Users can create and manage their accounts
       When I visit the home page
       And I log in as a new user
       Then I see a Request Access form
+  Scenario: A new user is put in the pending state
+    Given The admin logs in
+    And The user is in begin state
+    When I visit the home page
+    And The user logs in
+    And The user requests access
+    And The admin puts the user in pending
+    Then The user sees the request still submitted
   Scenario: A new user is approved and can see everything
     Given The admin logs in
     And The user is in begin state
