@@ -28,4 +28,4 @@
     steps:
       - run:
           name: Build and spin-up React application
-          command: cd tdrs-frontend; docker network create external-net; docker-compose up -d --build
+          command: cd tdrs-frontend; docker-compose up -d --build
