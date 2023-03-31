@@ -61,8 +61,8 @@ Here's an example feature file
 ```gherkin
 Feature: Users can create and manage their accounts
     Scenario: A user can log in and request access
-        When I visit the home page
-        And I log in as a new user
+        When The user visits the home page
+        And The new user logs in
         Then I see a Request Access form
 ```
 
@@ -82,12 +82,12 @@ Each step defined in a `Scenario` must have a corresponding "step implementation
 /* eslint-disable no-undef */
 import { When, Then } from '@badeball/cypress-cucumber-preprocessor'
 
-When('I visit the home page', () => {
+When('The user visits the home page', () => {
   cy.visit('/')
   cy.contains('Sign into TANF Data Portal', { timeout: 30000 })
 })
 
-When('I log in as a new user', () => {
+When('The new user logs in', () => {
   cy.login('new-cypress@goraft.tech')
 })
 
