@@ -33,7 +33,7 @@ When('The user requests access', () => {
   cy.get('#lastName').type(Cypress.env('cypressName'))
   cy.get('#stt').type(Cypress.env('cypressSttName') + '{enter}')
   cy.get('button').contains('Request Access').should('exist').click()
-  cy.wait(300).then(() => {
+  cy.wait(500).then(() => {
     cy.contains('Request Submitted').should('exist')
   })
 })
