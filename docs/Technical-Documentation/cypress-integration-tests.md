@@ -15,7 +15,6 @@ All tests added into the `tdrs-frontend/cypress/e2e/` folder will be run against
    ```bash
    cd tdrs-backend
    docker-compose exec web python manage.py generate_cypress_users
-   docker-compose exec web python manage.py generate_cypress_superuser
    ```
 1. Be sure your `tdrs-backend/.env` file contains the following
    ```bash
@@ -62,7 +61,7 @@ Here's an example feature file
 Feature: Users can create and manage their accounts
     Scenario: A user can log in and request access
         When The user visits the home page
-        And The new user logs in
+        And 'new-cypress@teamraft.com' logs in
         Then I see a Request Access form
 ```
 
@@ -87,8 +86,8 @@ When('The user visits the home page', () => {
   cy.contains('Sign into TANF Data Portal', { timeout: 30000 })
 })
 
-When('The new user logs in', () => {
-  cy.login('new-cypress@goraft.tech')
+When('{string} logs in', (username) => {
+  cy.login(username)
 })
 
 Then('I see a Request Access form', () => {

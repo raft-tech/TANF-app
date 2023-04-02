@@ -21,6 +21,20 @@ def get_or_create_user(username):
     return user
 
 
+def get_or_create_superuser(username):
+    """Create a new super user for a given username if one doesn't exist."""
+    super_user = None
+
+    try:
+        super_user = User.objects.get(username=username)
+        print(f'found {username}')
+    except User.DoesNotExist:
+        super_user = User.objects.create_superuser(username=username, email=username)
+        print(f'created super user {username}')
+
+    return super_user
+
+
 class Command(BaseCommand):
     """Command class."""
 
@@ -30,5 +44,6 @@ class Command(BaseCommand):
         """Generate test users if they don't exist."""
         if settings.DEBUG:
             get_or_create_user('new-cypress@teamraft.com')
+            get_or_create_superuser('cypress-admin@teamraft.com')
         else:
             raise Exception('Cannot create cypress users in non-dev environments.')

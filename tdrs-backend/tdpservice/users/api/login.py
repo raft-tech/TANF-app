@@ -417,7 +417,7 @@ class CypressLoginDotGovAuthenticationOverride(TokenAuthorizationOIDC):
         logger.info("cypress user %s logged in on %s", u.username, timezone.now())
 
         response = {'authenticated': True}
-        if "admin" in username:
+        if u.is_superuser:
             cypress_users = User.objects.exclude(username__contains="admin").filter(username__contains="cypress")
             response["users"] = [{'username': user.username, 'id': user.id} for user in cypress_users]
 

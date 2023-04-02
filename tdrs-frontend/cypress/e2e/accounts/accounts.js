@@ -6,15 +6,6 @@ Then('I see a Request Access form', () => {
   cy.get('button').contains('Request Access').should('exist')
 })
 
-When('The admin approves the user', () => {
-  cy.get('@cypressUser').then((cypressUser) => {
-    cy.get('@adminCsrfToken').then((csrfToken) => {
-      cy.changeUserInfo(`${cypressUser.selector.id}`, `${csrfToken}`, Cypress.env('cypressName'), Cypress.env('cypressName'),
-      Cypress.env('cypressStt'), Cypress.env('cypressGroup'), 'Approved')
-    })
-  })
-})
-
 Then('The user can see the hompage', () => {
   cy.visit('/home')
   cy.contains('You have been approved for access to TDP.').should('exist')
@@ -29,35 +20,17 @@ When('The user is in begin state', () => {
 })
 
 When('The user requests access', () => {
-  cy.get('#firstName').type(Cypress.env('cypressName'))
-  cy.get('#lastName').type(Cypress.env('cypressName'))
-  cy.get('#stt').type(Cypress.env('cypressSttName') + '{enter}')
+  cy.get('#firstName').type('cypress')
+  cy.get('#lastName').type('cypress')
+  cy.get('#stt').type('Colorado{enter}')
   cy.get('button').contains('Request Access').should('exist').click()
   cy.wait(500).then(() => {
     cy.contains('Request Submitted').should('exist')
   })
 })
 
-When('The admin denies the user', () => {
-  cy.get('@cypressUser').then((cypressUser) => {
-    cy.get('@adminCsrfToken').then((csrfToken) => {
-      cy.changeUserInfo(`${cypressUser.selector.id}`, `${csrfToken}`, Cypress.env('cypressName'), Cypress.env('cypressName'),
-      Cypress.env('cypressStt'), Cypress.env('cypressGroup'), 'Denied')
-    })
-  })
-})
-
 Then('The user sees request page again', () => {
   cy.visit('/home')
-})
-
-When('The admin deactivates the user account', () => {
-  cy.get('@cypressUser').then((cypressUser) => {
-    cy.get('@adminCsrfToken').then((csrfToken) => {
-      cy.changeUserInfo(`${cypressUser.selector.id}`, `${csrfToken}`, Cypress.env('cypressName'), Cypress.env('cypressName'),
-      Cypress.env('cypressStt'), Cypress.env('cypressGroup'), 'Deactivated')
-    })
-  })
 })
 
 Then('The user cannot log in', () => {
@@ -67,13 +40,4 @@ Then('The user cannot log in', () => {
 Then('The user sees the request still submitted', () => {
   cy.visit('/')
   cy.contains('Request Submitted').should('exist')
-})
-
-When('The admin puts the user in pending', () => {
-  cy.get('@cypressUser').then((cypressUser) => {
-    cy.get('@adminCsrfToken').then((csrfToken) => {
-      cy.changeUserInfo(`${cypressUser.selector.id}`, `${csrfToken}`, Cypress.env('cypressName'), Cypress.env('cypressName'),
-      Cypress.env('cypressStt'), Cypress.env('cypressGroup'), 'Pending')
-    })
-  })
 })
