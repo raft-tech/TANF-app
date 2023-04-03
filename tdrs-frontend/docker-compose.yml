@@ -22,7 +22,6 @@ services:
       - 8080:8080
     networks:
       - local
-      - external-net
     volumes:
       - ./:/home/node/app
     environment:
