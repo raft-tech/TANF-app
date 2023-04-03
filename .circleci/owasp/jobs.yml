@@ -26,10 +26,14 @@
     steps:
       - checkout
       - docker-compose-check
+      - docker-compose-up-backend
       - docker-compose-up-frontend
       - run:
           name: Wait for frontend to become available
           command: |
+            cd tdrs-backend;
+            docker-compose -d up --build;
+            cd ..;
             cd tdrs-frontend;
             docker-compose run --rm zaproxy bash -c \
               "PATH=$PATH:/home/zap/.local/bin &&
