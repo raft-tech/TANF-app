@@ -52,7 +52,7 @@ On top of Cypress, we've layered `cypress-cucumber-preprocessor` to provide [Ghe
 
 Test files are defined as `.feature` files within the `tdrs-frontend/cypress/e2e` directory. Feature "areas" can be grouped into a folder.
 
-Step implementations are defined as `.js`. The cucumber preprocessor uses the glob pattern `cypress/e2e/*/[filepath].js` to discover the step files at the same level as and within the feature directory so long as the step file has the same name as the `.feature` file. The cucumber preprocessor uses the glob pattern `cypress/e2e/common-steps/*.js` to identify it's common step file(s) which are available to all `.feature' files.
+Step implementations are defined as `.js`. The cucumber preprocessor uses the glob pattern `cypress/e2e/*/[filepath].js` to discover the step files at the same level as and within the feature directory so long as the step file has the same name as the `.feature` file. The cucumber preprocessor uses the glob pattern `cypress/e2e/common-steps/*.js` to identify it's common step file(s) which are available to all `.feature` files.
 
 Here's an example feature file
 
@@ -60,9 +60,9 @@ Here's an example feature file
 ```gherkin
 Feature: Users can create and manage their accounts
     Scenario: A user can log in and request access
-        When The user visits the home page
+        When 'new-cypress@teamraft.com' visits the home page
         And 'new-cypress@teamraft.com' logs in
-        Then I see a Request Access form
+        Then {string} sees a Request Access form
 ```
 
 At its top level, it defines a `Feature` with multiple `Scenarios` (this can be likened to a `describe` and `it` in jest, respectively). Scenarios belonging to a feature area should be grouped within a Feature. Scenarios should describe a specific task/goal the user is required to perform in the system.
@@ -81,7 +81,7 @@ Each step defined in a `Scenario` must have a corresponding "step implementation
 /* eslint-disable no-undef */
 import { When, Then } from '@badeball/cypress-cucumber-preprocessor'
 
-When('The user visits the home page', () => {
+When('{string} visits the home page', (username) => {
   cy.visit('/')
   cy.contains('Sign into TANF Data Portal', { timeout: 30000 })
 })
@@ -90,7 +90,7 @@ When('{string} logs in', (username) => {
   cy.login(username)
 })
 
-Then('I see a Request Access form', () => {
+Then('{string} sees a Request Access form', (username) => {
   cy.contains('Welcome').should('exist')
   cy.get('button').contains('Request Access').should('exist')
 })

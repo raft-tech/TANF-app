@@ -1,6 +1,6 @@
 import { When } from '@badeball/cypress-cucumber-preprocessor'
 
-When('The user visits the home page', () => {
+When('{string} visits the home page', (username) => {
   cy.visit('/')
   cy.contains('Sign into TANF Data Portal', { timeout: 30000 })
 })

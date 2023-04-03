@@ -1,10 +1,13 @@
 """generate_cypress_users command."""
 
+import logging
+
 from django.contrib.auth import get_user_model
 from django.core.management import BaseCommand
 from django.conf import settings
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 def get_or_create_user(username):
@@ -13,10 +16,10 @@ def get_or_create_user(username):
 
     try:
         user = User.objects.get(username=username)
-        print(f'found {username}')
+        logger.debug(f'found {username}')
     except User.DoesNotExist:
         user = User.objects.create(username=username)
-        print(f'created {username}')
+        logger.debug(f'created {username}')
 
     return user
 
@@ -27,10 +30,10 @@ def get_or_create_superuser(username):
 
     try:
         super_user = User.objects.get(username=username)
-        print(f'found {username}')
+        logger.debug(f'found {username}')
     except User.DoesNotExist:
         super_user = User.objects.create_superuser(username=username, email=username)
-        print(f'created super user {username}')
+        logger.debug(f'created super user {username}')
 
     return super_user
 
