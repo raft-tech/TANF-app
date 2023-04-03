@@ -15,24 +15,51 @@ const SubmissionHistoryRow = ({ file }) => {
 
   const downloadFile = () => dispatch(download(file))
 
-  const fileParserErrors = async () => {
-    try {
-      const promise = axios.get(
-        `${process.env.REACT_APP_BACKEND_URL}/parsing/parsing_errors/?id=${file.id}`,
-        {
-          responseType: 'json',
-        }
-      )
-      const dataPromise = promise.then((response) => response.data)
-      return dataPromise
-    } catch (error) {
-      return error
-    }
-  }
+  const [fileParserData_, setFileParserData_] = useState({ sample: 'sample' })
 
-  const data = fileParserErrors().then((data) => {
-    return data
-  })
+  useEffect(() => {
+    const fileParserErrors = async () => {
+      try {
+        const promise = axios.get(
+          `${process.env.REACT_APP_BACKEND_URL}/parsing/parsing_errors/?file=${file.id}`,
+          {
+            responseType: 'json',
+          }
+        )
+        const dataPromise = await promise.then((response) => response.data)
+        setFileParserData_({ sample: dataPromise })
+      } catch (error) {
+        console.log(error)
+      }
+    }
+    fileParserErrors()
+  }, [])
+
+  console.log(fileParserData_.sample)
+
+  //this.state = { data: [] }
+
+  //console.log(
+  //  fileParserErrors().then((data) => {
+  //    return data
+  //  })
+  //)
+
+  //const data = fileParserErrors().then((data) => {
+  //  console.log(data.data.length)
+  //  return data
+  //})
+
+  //const fileParserData_ = () => {
+  //  fetch(
+  //    `${process.env.REACT_APP_BACKEND_URL}/parsing/parsing_errors/?file=${file.id}`
+  //  )
+  //    .then((response) => response.json())
+  //    .then((data) => console.log(data))
+  //    .then((data) => {
+  //      return data
+  //    })
+  //}
 
   return (
     <tr>
@@ -44,10 +71,9 @@ const SubmissionHistoryRow = ({ file }) => {
         </button>
       </td>
       <td>
-        {data
-          ? 'No report is available for this file. Please contact the TANF Data'
-          : data}
-        {file.id}
+        {fileParserData_.sample.data?.length > 0
+          ? fileParserData_.sample.data[0].id
+          : 'Nothing'}
       </td>
     </tr>
   )

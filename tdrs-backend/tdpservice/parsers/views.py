@@ -29,6 +29,9 @@ class ParsingErrorViewSet(ModelViewSet):
         id = self.request.query_params.get('id', None)
         if id is not None:
             queryset = queryset.filter(id=id)
+        file = self.request.query_params.get('file', None)
+        if file is not None:
+            queryset = queryset.filter(file=file)
         return queryset
 
     def _get_xls_serialized_file(self, data):
@@ -46,4 +49,4 @@ class ParsingErrorViewSet(ModelViewSet):
                 worksheet.write(row, col, value)
                 col += 1
         workbook.close()
-        return {"data": data, "xls_report": base64.b64encode(output.getvalue()).decode("utf-8")}
+        return {"data": data,} #"xls_report": base64.b64encode(output.getvalue()).decode("utf-8")}
