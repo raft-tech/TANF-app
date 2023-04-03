@@ -37,16 +37,16 @@ class ParsingErrorViewSet(ModelViewSet):
         output = BytesIO()
         workbook = xlsxwriter.Workbook(output)
         worksheet = workbook.add_worksheet()
-        
+
         report_columns = ['case_number',
-                    'rpt_month_year',
-                    'error_type',
-                    'error_message',
-                    'item_number',
-                    'field_name',
-                    'row_number',
-                    'column_number']
-        
+                          'rpt_month_year',
+                          'error_type',
+                          'error_message',
+                          'item_number',
+                          'field_name',
+                          'row_number',
+                          'column_number']
+
         # write csv header
         [worksheet.write(row, col, key) for col, key in enumerate(report_columns)]
 
