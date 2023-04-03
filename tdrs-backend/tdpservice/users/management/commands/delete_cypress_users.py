@@ -10,8 +10,7 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 def delete_cypress_user(username):
-    """Create a new super user for a given username if one doesn't exist."""
-
+    """Delete the user if it exists."""
     try:
         user = User.objects.get(username=username)
         user.delete()
@@ -26,7 +25,7 @@ class Command(BaseCommand):
     help = "Delete test users if they exist."
 
     def add_arguments(self, parser):
-        # Positional arguments
+        """Add custom argument(s) for command."""
         parser.add_argument("-usernames", nargs="+", type=str)
 
     def handle(self, *args, **options):
