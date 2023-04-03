@@ -46,6 +46,9 @@ class ParsingErrorViewSet(ModelViewSet):
                     'field_name',
                     'row_number',
                     'column_number']
+        
+        # write csv header
+        [worksheet.write(row, col, key) for col, key in enumerate(report_columns)]
 
         for i in data:
             row += 1
