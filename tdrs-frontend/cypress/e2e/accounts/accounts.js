@@ -11,14 +11,16 @@ Then('The user can see the hompage', () => {
   cy.contains('You have been approved for access to TDP.').should('exist')
 })
 
-When('The user is in begin state', () => {
+When('{string} is in begin state', (username) => {
   cy.get('@cypressUser').then((cypressUser) => {
     let body = {
-      username: 'new-cypress@teamraft.com',
+      username: username,
       first_name: '',
       last_name: '',
-      email: 'new-cypress@teamraft.com',
+      email: username,
       stt: '',
+      groups: '',
+      region: '',
       account_approval_status: 'Initial',
       _save: 'Save',
     }

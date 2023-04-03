@@ -15,8 +15,21 @@ When('{string} logs in', (username) => {
 
 When('The admin sets the approval status of {string} to {string}', (username, status) => {
   cy.get('@cypressUser').then((cypressUser) => {
-    cy.get('@adminCsrfToken').then((csrfToken) => {
-      cy.changeUserInfo(`${cypressUser.selector.id}`, `${csrfToken}`, username, '6', '2', status)
-    })
+    let body = {
+      username: username,
+      first_name: '',
+      last_name: '',
+      email: username,
+      stt: '6',
+      groups: '2',
+      account_approval_status: status,
+      _save: 'Save',
+    }
+
+    cy.adminApiRequest(
+      'POST',
+      `/users/user/${cypressUser.selector.id}/change/`,
+      body
+    )
   })
 })

@@ -111,23 +111,3 @@ Cypress.Commands.add(
     }
   }
 )
-
-// Cypress.Commands.add('reinitUserAccount', (userID, token) => {
-
-// })
-
-Cypress.Commands.add(
-  'changeUserInfo',
-  (userID, token, username, stt, group, status) => {
-    let body = {
-      username: username,
-      email: username,
-      stt: stt,
-      groups: group,
-      account_approval_status: status,
-      _save: 'Save',
-    }
-
-    cy.adminApiRequest('POST', `/users/user/${userID}/change/`, body)
-  }
-)
