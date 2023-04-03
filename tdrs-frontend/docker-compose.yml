@@ -22,6 +22,7 @@ services:
       - 8080:8080
     networks:
       - local
+      - default
     volumes:
       - ./:/home/node/app
     environment:
