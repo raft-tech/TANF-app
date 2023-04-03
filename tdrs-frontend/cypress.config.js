@@ -9,6 +9,7 @@ module.exports = defineConfig({
 
     env: {
       apiUrl: 'http://localhost:8080/v1',
+      adminUrl: 'http://localhost:8080/admin',
       cypressToken: 'local-cypress-token',
     },
 

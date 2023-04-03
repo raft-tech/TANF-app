@@ -13,9 +13,21 @@ Then('The user can see the hompage', () => {
 
 When('The user is in begin state', () => {
   cy.get('@cypressUser').then((cypressUser) => {
-    cy.get('@adminCsrfToken').then((csrfToken) => {
-      cy.reinitUserAccount(`${cypressUser.selector.id}`, `${csrfToken}`)
-    })
+    let body = {
+      username: 'new-cypress@teamraft.com',
+      first_name: '',
+      last_name: '',
+      email: 'new-cypress@teamraft.com',
+      stt: '',
+      account_approval_status: 'Initial',
+      _save: 'Save',
+    }
+
+    cy.adminApiRequest(
+      'POST',
+      `/users/user/${cypressUser.selector.id}/change/`,
+      body
+    )
   })
 })
 

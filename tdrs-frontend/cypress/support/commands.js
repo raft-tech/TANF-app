@@ -71,68 +71,63 @@ Cypress.Commands.add('adminLogin', () => {
   cy.clearCookie('csrftoken')
 })
 
-Cypress.Commands.add('adminApiRequest', (options = {}) => {
-  cy.get('@adminSessionId').then((sessionId) =>
-    cy.setCookie('sessionid', sessionId)
-  )
-  cy.get('@adminCsrfToken').then((csrfToken) =>
-    cy.setCookie('csrftoken', csrfToken)
-  )
+Cypress.Commands.add(
+  'adminApiRequest',
+  (method = 'POST', path = '', body = {}) => {
+    options = {
+      method,
+      body,
+      url: `${Cypress.env('adminUrl')}${path}`,
+      form: true,
+      headers: {},
+    }
 
-  cy.request(options)
-
-  cy.clearCookie('sessionid')
-  cy.clearCookie('csrftoken')
-
-  const userSessionId = cy.state('aliases').userSessionId
-  const userCsrfToken = cy.state('aliases').userCsrfToken
-
-  if (userSessionId) {
-    cy.get('@userSessionId').then((sessionId) =>
+    cy.get('@adminSessionId').then((sessionId) =>
       cy.setCookie('sessionid', sessionId)
     )
-  }
-
-  if (userCsrfToken) {
-    cy.get('@userCsrfToken').then((csrfToken) =>
+    cy.get('@adminCsrfToken').then((csrfToken) => {
       cy.setCookie('csrftoken', csrfToken)
-    )
-  }
-})
+      options.headers['X_CSRFTOKEN'] = csrfToken
+    })
 
-Cypress.Commands.add('reinitUserAccount', (userID, token) => {
-  let options = {
-    method: 'POST',
-    url: `http://localhost:8080/admin/users/user/${userID}/change/`,
-    headers: { X_CSRFTOKEN: token },
-    form: true,
-    body: {
-      username: 'new-cypress@teamraft.com',
-      first_name: '',
-      last_name: '',
-      email: 'new-cypress@teamraft.com',
-      stt: '',
-      account_approval_status: 'Initial',
-      _save: 'Save',
-    },
-  }
-  cy.adminApiRequest(options)
-})
+    cy.request(options)
 
-Cypress.Commands.add('changeUserInfo', (userID, token, username, stt, group, status) => {
-  let options = {
-    method: 'POST',
-    url: `http://localhost:8080/admin/users/user/${userID}/change/`,
-    headers: { X_CSRFTOKEN: token },
-    form: true,
-    body: {
+    cy.clearCookie('sessionid')
+    cy.clearCookie('csrftoken')
+
+    const userSessionId = cy.state('aliases').userSessionId
+    const userCsrfToken = cy.state('aliases').userCsrfToken
+
+    if (userSessionId) {
+      cy.get('@userSessionId').then((sessionId) =>
+        cy.setCookie('sessionid', sessionId)
+      )
+    }
+
+    if (userCsrfToken) {
+      cy.get('@userCsrfToken').then((csrfToken) =>
+        cy.setCookie('csrftoken', csrfToken)
+      )
+    }
+  }
+)
+
+// Cypress.Commands.add('reinitUserAccount', (userID, token) => {
+
+// })
+
+Cypress.Commands.add(
+  'changeUserInfo',
+  (userID, token, username, stt, group, status) => {
+    let body = {
       username: username,
       email: username,
       stt: stt,
       groups: group,
       account_approval_status: status,
       _save: 'Save',
-    },
+    }
+
+    cy.adminApiRequest('POST', `/users/user/${userID}/change/`, body)
   }
-  cy.adminApiRequest(options)
-})
+)
