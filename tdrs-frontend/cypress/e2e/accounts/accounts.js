@@ -19,8 +19,6 @@ When('{string} is in begin state', (username) => {
       last_name: '',
       email: username,
       stt: '',
-      groups: '',
-      region: '',
       account_approval_status: 'Initial',
       _save: 'Save',
     }
