@@ -25,8 +25,8 @@ class ParserError(models.Model):
     item_number = models.IntegerField(null=False)
     field_name = models.TextField(null=False, max_length=128)
     category = models.IntegerField(null=False, default=1)
-    case_number = models.TextField(null=True, max_length=128)
-    rpt_month_year = models.IntegerField(null=True, blank=False)
+    rpt_month_year = models.TextField(null=True, max_length=128)
+    case_number = models.IntegerField(null=True, blank=False)
 
     error_message = models.TextField(null=True, max_length=512)
     error_type = models.TextField(max_length=128)         # out of range, pre-parsing, etc.
