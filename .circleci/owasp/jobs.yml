@@ -35,7 +35,7 @@
               "PATH=$PATH:/home/zap/.local/bin &&
                pip install wait-for-it &&
                wait-for-it --service http://tdp-frontend/ \
-                           --timeout 60 \
+                           --timeout 90 \
                            -- echo \"Frontend is ready\""
       - run-owasp-scan:
           environment: circle
