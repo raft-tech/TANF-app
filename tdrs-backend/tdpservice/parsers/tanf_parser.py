@@ -4,7 +4,7 @@ import logging
 from tdpservice.search_indexes.models import T1  # , T2, T3, T4, T5, T6, T7, ParserLog
 # from django.core.exceptions import ValidationError
 from .util import get_record_type
-from .schema_defs.tanf import t1_schema
+from .schema_defs.tanf import t1_schema, t2_schema
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -91,7 +91,7 @@ def parse(datafile):
             # Header/trailers do not differ between types, this is part of preparsing.
             continue
         elif record_type == 'T1':
-            active_t1_parser(line, line_number)
+            active_t1_parser(line, line_number) # Can we move this into a class hierarchy? Can we create a datafile class that knows how to parse itself?
         else:
             logger.warn("Parsing for type %s not yet implemented", record_type)
             continue
