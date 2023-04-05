@@ -49,4 +49,4 @@ class ParsingErrorViewSet(ModelViewSet):
                 worksheet.write(row, col, value)
                 col += 1
         workbook.close()
-        return {"data": data,} #"xls_report": base64.b64encode(output.getvalue()).decode("utf-8")}
+        return {"data": data, "xls_report": base64.b64encode(output.getvalue()).decode("utf-8")}

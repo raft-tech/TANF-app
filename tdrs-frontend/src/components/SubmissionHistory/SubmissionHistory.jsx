@@ -7,6 +7,7 @@ import Paginator from '../Paginator'
 import { getAvailableFileList, download } from '../../actions/reports'
 import { useEffect } from 'react'
 import { useState } from 'react'
+import { getParseErrors } from '../../actions/createXLSReport'
 
 const formatDate = (dateStr) => new Date(dateStr).toLocaleString()
 
@@ -14,6 +15,7 @@ const SubmissionHistoryRow = ({ file }) => {
   const dispatch = useDispatch()
 
   const downloadFile = () => dispatch(download(file))
+  const returned_errors = () => dispatch(getParseErrors(file.id, 'name'))
 
   const [fileParserData_, setFileParserData_] = useState({ sample: 'sample' })
 
@@ -35,31 +37,7 @@ const SubmissionHistoryRow = ({ file }) => {
     fileParserErrors()
   }, [])
 
-  console.log(fileParserData_.sample)
-
-  //this.state = { data: [] }
-
-  //console.log(
-  //  fileParserErrors().then((data) => {
-  //    return data
-  //  })
-  //)
-
-  //const data = fileParserErrors().then((data) => {
-  //  console.log(data.data.length)
-  //  return data
-  //})
-
-  //const fileParserData_ = () => {
-  //  fetch(
-  //    `${process.env.REACT_APP_BACKEND_URL}/parsing/parsing_errors/?file=${file.id}`
-  //  )
-  //    .then((response) => response.json())
-  //    .then((data) => console.log(data))
-  //    .then((data) => {
-  //      return data
-  //    })
-  //}
+  console.log(returned_errors())
 
   return (
     <tr>
@@ -71,9 +49,13 @@ const SubmissionHistoryRow = ({ file }) => {
         </button>
       </td>
       <td>
-        {fileParserData_.sample.data?.length > 0
-          ? fileParserData_.sample.data[0].id
-          : 'Nothing'}
+        {fileParserData_.sample.data?.length > 0 ? (
+          <button className="file-download" onClick={returned_errors}>
+            {file.Date}-section
+          </button>
+        ) : (
+          'Nothing'
+        )}
       </td>
     </tr>
   )
