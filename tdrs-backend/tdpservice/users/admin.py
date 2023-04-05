@@ -39,7 +39,7 @@ class UserAdmin(admin.ModelAdmin):
     list_display = [
         "username",
         'location',
-        "account_approval_status"
+        "account_approval_status",
     ]
     autocomplete_fields = ['stt']
 
