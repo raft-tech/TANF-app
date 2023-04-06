@@ -19,8 +19,10 @@ export const getParseErrors = (data_json) => {
     document.body.append(link)
     link.click()
     link.remove()
+    return true
   } catch (error) {
     console.log(error)
+    return Error(error)
   }
 }
 
