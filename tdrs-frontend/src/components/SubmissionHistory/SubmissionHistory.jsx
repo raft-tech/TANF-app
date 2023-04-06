@@ -37,8 +37,6 @@ const SubmissionHistoryRow = ({ file }) => {
     fileParserErrors()
   }, [])
 
-  console.log(returned_errors())
-
   return (
     <tr>
       <td>{formatDate(file.createdAt)}</td>
@@ -49,8 +47,8 @@ const SubmissionHistoryRow = ({ file }) => {
         </button>
       </td>
       <td>
-        {fileParserData_.sample.data?.length > 0 ? (
-          <button className="file-download" onClick={returned_errors}>
+        {fileParserData_?.sample?.data?.length > 0 ? (
+          <button className="section-download" onClick={returned_errors}>
             {file.Date}-section
           </button>
         ) : (
