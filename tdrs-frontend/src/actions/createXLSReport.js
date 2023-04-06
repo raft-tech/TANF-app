@@ -9,24 +9,8 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL
 Get a list of parse errors for a given file id from the backend using the
 `/parsing/parse_errors/{id}` endpoint.
 */
-export const getParseErrors = () => async (dispatch) => {
-  dispatch({
-    type: FETCH_PARSE_ERRORS,
-  })
+export const getParseErrors = (data_json) => {
   try {
-    const response = await axios.get(
-      `${process.env.REACT_APP_BACKEND_URL}/parsing/parsing_errors/`,
-      {
-        responseType: 'json',
-      }
-    )
-    dispatch({
-      type: SET_PARSE_ERRORS,
-      payload: {
-        data: response?.data,
-      },
-    })
-    const data_json = response?.data
     const blob = b64toBlob(data_json.xls_report, 'blob')
     const blobUrl = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -36,12 +20,7 @@ export const getParseErrors = () => async (dispatch) => {
     link.click()
     link.remove()
   } catch (error) {
-    dispatch({
-      type: SET_PARSE_ERRORS_ERROR,
-      payload: {
-        error,
-      },
-    })
+    console.log(error)
   }
 }
 

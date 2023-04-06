@@ -15,9 +15,13 @@ const SubmissionHistoryRow = ({ file }) => {
   const dispatch = useDispatch()
 
   const downloadFile = () => dispatch(download(file))
-  const returned_errors = () => dispatch(getParseErrors(file.id, 'name'))
+  const returned_errors = () => {
+    getParseErrors(fileParserData.parsedData)
+  }
 
-  const [fileParserData_, setFileParserData_] = useState({ sample: 'sample' })
+  const [fileParserData, setFileParserData] = useState({
+    parsedData: 'parsedData',
+  })
 
   useEffect(() => {
     const fileParserErrors = async () => {
@@ -29,7 +33,7 @@ const SubmissionHistoryRow = ({ file }) => {
           }
         )
         const dataPromise = await promise.then((response) => response.data)
-        setFileParserData_({ sample: dataPromise })
+        setFileParserData({ parsedData: dataPromise })
       } catch (error) {
         console.log(error)
       }
@@ -47,12 +51,12 @@ const SubmissionHistoryRow = ({ file }) => {
         </button>
       </td>
       <td>
-        {fileParserData_?.sample?.data?.length > 0 ? (
+        {fileParserData?.parsedData?.data?.length > 0 ? (
           <button className="section-download" onClick={returned_errors}>
-            {file.Date}-section
+            {file.year}-{file.quarter}-{file.section}
           </button>
         ) : (
-          'Nothing'
+          'Currently Unavailable'
         )}
       </td>
     </tr>
@@ -83,7 +87,7 @@ const SectionSubmissionHistory = ({ section, label, files }) => {
                 <th>Submitted On</th>
                 <th>Submitted By</th>
                 <th>File Name</th>
-                <th>Error Report</th>
+                <th>Error Reports</th>
               </tr>
             </thead>
             <tbody>
