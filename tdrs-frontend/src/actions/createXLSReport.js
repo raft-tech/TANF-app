@@ -1,18 +1,14 @@
-export const SET_PARSE_ERRORS = 'SET_PARSE_ERRORS'
-export const SET_PARSE_ERRORS_ERROR = 'SET_PARSE_ERRORS_ERROR'
-export const FETCH_PARSE_ERRORS = 'FETCH_PARSE_ERRORS'
-
 /* 
 Get a list of parse errors for a given file id from the backend using the
 `/parsing/parse_errors/{id}` endpoint.
 */
-export const getParseErrors = (data_json) => {
+export const getParseErrors = (data_json, filename) => {
   try {
     const blob = b64toBlob(data_json.xls_report, 'blob')
     const blobUrl = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = blobUrl
-    link.download = 'results.xlsx'
+    link.download = `${filename}.xlsx`
     document.body.append(link)
     link.click()
     link.remove()

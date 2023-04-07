@@ -15,8 +15,9 @@ const SubmissionHistoryRow = ({ file }) => {
   const dispatch = useDispatch()
 
   const downloadFile = () => dispatch(download(file))
+  const fileName = `${file.year}-${file.quarter}-${file.section}`
   const returned_errors = () => {
-    getParseErrors(fileParserData.parsedData)
+    getParseErrors(fileParserData.parsedData, fileName)
   }
 
   const [fileParserData, setFileParserData] = useState({
