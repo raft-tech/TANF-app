@@ -1,9 +1,6 @@
-import axios from 'axios'
 export const SET_PARSE_ERRORS = 'SET_PARSE_ERRORS'
 export const SET_PARSE_ERRORS_ERROR = 'SET_PARSE_ERRORS_ERROR'
 export const FETCH_PARSE_ERRORS = 'FETCH_PARSE_ERRORS'
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL
 
 /* 
 Get a list of parse errors for a given file id from the backend using the
