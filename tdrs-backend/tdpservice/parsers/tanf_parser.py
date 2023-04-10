@@ -1,10 +1,10 @@
 """Transforms a TANF datafile into an search_index model."""
 
 import logging
-from tdpservice.search_indexes.models.tanf import TANF_T1  # , T2, T3, T4, T5, T6, T7, ParserLog
+from tdpservice.search_indexes.models import T1  # , T2, T3, T4, T5, T6, T7, ParserLog
 # from django.core.exceptions import ValidationError
 from .util import get_record_type
-from .schema_defs.tanf import t1_schema
+from .schema_defs.tanf import t1_schema  # , t2_schema
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -13,7 +13,7 @@ def active_t1_parser(line, line_number):
     """Parse line in datafile as active case data, T1 only."""
     family_case_schema = t1_schema()
     # create search_index model
-    t1 = TANF_T1()
+    t1 = T1()
     content_is_valid = True
 
     min_line_length = 118  # we will need to adjust for other types
@@ -91,6 +91,7 @@ def parse(datafile):
             # Header/trailers do not differ between types, this is part of preparsing.
             continue
         elif record_type == 'T1':
+            # Can we move this into a class hierarchy? Can we create a datafile class that knows how to parse itself?
             active_t1_parser(line, line_number)
         else:
             logger.warn("Parsing for type %s not yet implemented", record_type)
