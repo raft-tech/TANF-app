@@ -195,7 +195,7 @@ def t2_schema():
       ITEM60A_HOURS OF PARTICIPATION                                      2       115     116  Alphanumeric
       ITEM60B_EXCUSED ABSENSES                                            2       117     118  Alphanumeric
       ITEM60C_HOLIDAYS                                                    2       119     120  Alphanumeric
-    PROVIDING CHILDE CARE
+    PROVIDING CHILD CARE
       ITEM61A_HOURS OF PARTICIPATION                                      2       121     122  Alphanumeric
       ITEM61B_EXCUSED ABSENSE                                             2       123     124  Alphanumeric
       ITEM61C_HOLIDAYS                                                    2       125     126  Alphanumeric
@@ -222,19 +222,19 @@ def t2_schema():
             ('NONCUSTODIAL_PARENT', 1, 21, 21, "Numeric"),
             ('DOB', 8, 22, 29, "Numeric"),
             ('SSN', 9, 30, 38, "Alphanumeric"),
-            ('ITEM34A_HISPANIC OR LATINO', 1, 39, 39, "Alphanumeric"),
-            ('ITEM34B_AMERICAN INDIAN OR ALASKA NATIVE', 1, 40, 40, "Alphanumeric"),
+            ('ITEM34A_HISPANIC_OR_LATINO', 1, 39, 39, "Alphanumeric"),
+            ('ITEM34B_AMERICAN_INDIAN_OR_ALASKA_NATIVE', 1, 40, 40, "Alphanumeric"),
             ('ITEM34C_ASIAN', 1, 41, 41, "Alphanumeric"),
-            ('ITEM34D_BLACK OR AFRICAN AMERICAN', 1, 42, 42, "Alphanumeric"),
-            ('ITEM34E_NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDE', 1, 43, 43, "Alphanumeric"),
+            ('ITEM34D_BLACK_OR_AFRICAN_AMERICAN', 1, 42, 42, "Alphanumeric"),
+            ('ITEM34E_NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER', 1, 43, 43, "Alphanumeric"),
             ('ITEM34F_WHITE', 1, 44, 44, "Alphanumeric"),
             ('GENDER', 1, 45, 45, "Alphanumeric"),
-            ('ITEM36A_RECEIVES FEDERAL DISABILITY INSURANCE OASDI PROGRA', 1, 46, 46, "Alphanumeric"),
-            ('ITEM36B_RECEIVES BENEFITS BASED ON FEDERAL DISABILITY STATUs', 1, 47, 47, "Alphanumeric"),
-            ('ITEM36C_RECEIVES AID TO THE PERMANENTLY AND TOTALLY DISABLED UNDER TITLE XIV-APDT',
+            ('ITEM36A_RECEIVES_FEDERAL_DISABILITY_INSURANCE_OASDI_PROGRAM', 1, 46, 46, "Alphanumeric"),
+            ('ITEM36B_RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS', 1, 47, 47, "Alphanumeric"),
+            ('ITEM36C_RECEIVES_AID_TO_THE_PERMANENTLY_AND_TOTALLY_DISABLED_UNDER_TITLE_XIV-APDT',
              1, 48, 48, "Alphanumeric"),
-            ('ITEM36D_RECEIVES AID TO THE AGED, BLIND', 1, 49, 49, "Alphanumeric"),
-            ('ITEM36E_RECEIVES SUPPLEMENTAL SECURITY INCOME UNDER TITLE XVI-SSI', 1, 50, 50, "Alphanumeric"),
+            ('ITEM36D_RECEIVES_AID_TO_THE_AGED, BLIND', 1, 49, 49, "Alphanumeric"),
+            ('ITEM36E_RECEIVES_SUPPLEMENTAL_SECURITY_INCOME_UNDER_TITLE_XVI-SSI', 1, 50, 50, "Alphanumeric"),
             ('MARITAL_STATUS', 1, 51, 51, "Alphanumeric"),
             ('RELATIONSHIP_TO_HEAD_OF_HOUSEHOLD', 2, 52, 53, "Numeric"),
             ('PARENT_WITH_MINOR_CHILD', 1, 54, 54, "Alphanumeric"),
@@ -280,10 +280,10 @@ def t2_schema():
             ('NUMBER_OF_DEEMED_CORE_HOURS_FOR_OVERALL_RATE', 2, 129, 130, "Alphanumeric"),
             ('NUMBER_OF_DEEMED_CORE_HOURS_FOR_TWO_PARENT_RATE', 2, 131, 132, "Alphanumeric"),
             ('AMOUNT_OF_EARNED_INCOME', 4, 133, 136, "Alphanumeric"),
-            ('ITEM66A_EARNED INCOME TAX CREDIT', 4, 137, 140, "Alphanumeric"),
-            ('ITEM66B_SOCIAL SECURITY', 4, 141, 144, "Alphanumeric"),
+            ('ITEM66A_EARNED_INCOME_TAX_CREDIT', 4, 137, 140, "Alphanumeric"),
+            ('ITEM66B_SOCIAL_SECURITY', 4, 141, 144, "Alphanumeric"),
             ('ITEM66C_SSI', 4, 145, 148, "Alphanumeric"),
-            ('ITEM66D_WORKERS COMPENSATION', 4, 149, 152, "Alphanumeric"),
-            ('ITEM66E_OTHER UNEARNED INCOME', 4, 153, 156, "Alphanumeric"),
+            ('ITEM66D_WORKERS_COMPENSATION', 4, 149, 152, "Alphanumeric"),
+            ('ITEM66E_OTHER_UNEARNED_INCOME', 4, 153, 156, "Alphanumeric"),
         ])
     return adult_data_schema
