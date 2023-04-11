@@ -1,14 +1,6 @@
 import React from 'react'
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  within,
-} from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { Provider } from 'react-redux'
-import thunk from 'redux-thunk'
-import configureStore from 'redux-mock-store'
 import appConfigureStore from '../../configureStore'
 import SubmissionHistory from './SubmissionHistory'
 

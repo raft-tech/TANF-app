@@ -21,28 +21,35 @@ it('should create an action to create an XLS report and throwError', () => {
 })
 
 it('should create an action to create an XLS report and throwError', () => {
-  const documentIntial = { content: 'aaa' };
-  global.URL.createObjectURL = jest.fn(() => 'myURL');
-  global.Blob = jest.fn(() => documentIntial);
+  const documentIntial = { content: 'aaa' }
+  global.URL.createObjectURL = jest.fn(() => 'myURL')
+  global.Blob = jest.fn(() => documentIntial)
   const link = {
     click: jest.fn(),
     remove: jest.fn(),
-  };
-  jest.spyOn(document, "createElement").mockImplementation(() => link);
-  const data_json = { 
-    data: {} ,
+  }
+  jest.spyOn(document, 'createElement').mockImplementation(() => link)
+  const data_json = {
+    data: {},
     xls_report: 'aGVsbG8=',
   }
   const expectedFileName = 'filename'
   const expectedReturn = {
-    "click": link.click, 
-    "download": `${expectedFileName}.xlsx`, 
-    "href": "myURL", 
-    "remove": link.remove
+    click: link.click,
+    download: `${expectedFileName}.xlsx`,
+    href: 'myURL',
+    remove: link.remove,
   }
-  
-  expect(getParseErrors(data_json, expectedFileName).download).toEqual(expectedReturn.download);
-  expect(getParseErrors(data_json, expectedFileName).href).toEqual(expectedReturn.href);
-  expect(getParseErrors(data_json, expectedFileName).click).toEqual(expectedReturn.click);
-  expect(getParseErrors(data_json, expectedFileName).remove).toEqual(expectedReturn.remove);
+  expect(getParseErrors(data_json, expectedFileName).download).toEqual(
+    expectedReturn.download
+  )
+  expect(getParseErrors(data_json, expectedFileName).href).toEqual(
+    expectedReturn.href
+  )
+  expect(getParseErrors(data_json, expectedFileName).click).toEqual(
+    expectedReturn.click
+  )
+  expect(getParseErrors(data_json, expectedFileName).remove).toEqual(
+    expectedReturn.remove
+  )
 })
