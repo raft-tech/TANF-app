@@ -8,7 +8,7 @@ In TDP, all config and associated files with it are placed in ```/tdrs-frontend/
 
 ## 2. Architecture
 
-In general for TDRS, the *Nginx* handles incoming HTTP requests to both frontend and backend. The frontend requests are handled directly while the backend requests are forwarded to the backend server.
+In general for TDP, the *Nginx* handles incoming HTTP requests to both frontend and backend. The frontend requests are handled directly while the backend requests are forwarded to the backend server.
 
 ![Cloud.gov Architecture](./src/arch1.jpg)
 
