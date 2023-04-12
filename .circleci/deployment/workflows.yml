@@ -20,7 +20,7 @@
           filters:
             branches:
               only:
-                - 1544-Nginx-with-domain # switch back to develop before merge
+                - develop
       - deploy-infrastructure-staging:
           filters:
             branches:
@@ -37,21 +37,21 @@
           filters:
             branches:
               only:
-                - 1544-Nginx-with-domain # switch back to develop before merge
+                - develop
       - deploy-develop:
           requires:
             - deploy-infrastructure-develop
           filters:
             branches:
               only:
-                - 1544-Nginx-with-domain # switch back to develop before merge
-      #- test-deployment-e2e:
-      #    requires:
-      #      - deploy-develop
-      #    filters:
-      #      branches:
-      #        only:
-      #         - 1544-Nginx-with-domain # switch back to develop before merge
+                - develop
+      - test-deployment-e2e:
+          requires:
+            - deploy-develop
+          filters:
+            branches:
+              only:
+                - develop
 
   production-deployment:
     unless:
