@@ -462,4 +462,3 @@ class Common(Configuration):
 
     # Nginx config
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO','https')
-    SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
