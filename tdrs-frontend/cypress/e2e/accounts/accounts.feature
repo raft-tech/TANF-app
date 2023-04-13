@@ -1,6 +1,6 @@
 Feature: Users can create and manage their accounts
     Scenario: A user can log in
-        Given The admin logs in
+      Given The admin logs in
         And 'new-cypress@teamraft.com' is in begin state
         When 'new-cypress@teamraft.com' visits the home page
         And 'new-cypress@teamraft.com' logs in
