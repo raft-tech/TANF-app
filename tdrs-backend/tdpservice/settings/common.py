@@ -95,7 +95,7 @@ class Common(Configuration):
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = "smtp.ees.hhs.gov"
     EMAIL_HOST_USER = "no-reply@tanfdata.acf.hhs.gov"
-    
+
     # Whether to use localstack in place of a live AWS S3 environment
     USE_LOCALSTACK = bool(strtobool(os.getenv("USE_LOCALSTACK", "no")))
 
@@ -410,7 +410,7 @@ class Common(Configuration):
     # ------- SFTP CONFIG
     ACFTITAN_SERVER_ADDRESS = os.getenv('ACFTITAN_HOST', '')
     """
-    To be able to fit the PRIVATE KEY in one line as environment variable, we replace the EOL 
+    To be able to fit the PRIVATE KEY in one line as environment variable, we replace the EOL
     with an underscore char.
     The next line replaces the _ with EOL before using the PRIVATE KEY
     """
@@ -459,3 +459,6 @@ class Common(Configuration):
     }
 
     CYPRESS_TOKEN = os.getenv('CYPRESS_TOKEN', None)
+
+    # Nginx config
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO','https')

@@ -94,7 +94,7 @@ http {
 
     access_log /dev/stdout compression;
     #access_log stderr compression;
-    
+
     # Content caching
     # saves cached fies in /tmp
     # cache zone name = tdp_cache
@@ -138,6 +138,7 @@ http {
             proxy_send_timeout    60;
             proxy_buffer_size     4k;
             proxy_temp_file_write_size 64k;
+            proxy_set_header X-Forwarded-Proto https;
         }
     }
 
