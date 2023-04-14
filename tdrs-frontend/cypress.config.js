@@ -8,8 +8,8 @@ module.exports = defineConfig({
     specPattern: '**/*.feature',
 
     env: {
-      apiUrl: 'http://localhost:8080/v1',
-      adminUrl: 'http://localhost:8080/admin',
+      apiUrl: 'http://localhost:3000/v1',
+      adminUrl: 'http://localhost:3000/admin',
       cypressToken: 'local-cypress-token',
     },
 
