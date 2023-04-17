@@ -31,7 +31,7 @@ def test_set_profile_data(api_client, user):
         "region": None,
         "roles": [],
         "access_request": False,
-        'access_requested': '9999-01-01T00:00:00+0000',
+        'access_requested_date': '9999-01-01T00:00:00+0000',
         "account_approval_status": 'Initial'
     }
     user.refresh_from_db()
@@ -74,7 +74,7 @@ def test_set_profile_data_last_name_apostrophe(api_client, user):
         "region": None,
         "roles": [],
         "access_request": False,
-        'access_requested': '9999-01-01T00:00:00+0000',
+        'access_requested_date': '9999-01-01T00:00:00+0000',
         "account_approval_status": 'Initial'
     }
     user.refresh_from_db()
@@ -101,7 +101,7 @@ def test_set_profile_data_first_name_apostrophe(api_client, user):
         "region": None,
         "roles": [],
         "access_request": False,
-        'access_requested': '9999-01-01T00:00:00+0000',
+        'access_requested_date': '9999-01-01T00:00:00+0000',
         "account_approval_status": 'Initial'
     }
     user.refresh_from_db()
@@ -158,7 +158,7 @@ def test_set_profile_data_special_last_name(api_client, user):
         "region": None,
         "roles": [],
         "access_request": False,
-        'access_requested': '9999-01-01T00:00:00+0000',
+        'access_requested_date': '9999-01-01T00:00:00+0000',
         "account_approval_status": 'Initial'
     }
     user.refresh_from_db()
@@ -185,7 +185,7 @@ def test_set_profile_data_special_first_name(api_client, user):
         "region": None,
         "roles": [],
         "access_request": False,
-        'access_requested': '9999-01-01T00:00:00+0000',
+        'access_requested_date': '9999-01-01T00:00:00+0000',
         "account_approval_status": 'Initial'
     }
     user.refresh_from_db()
@@ -212,7 +212,7 @@ def test_set_profile_data_spaced_last_name(api_client, user):
         "region": None,
         "roles": [],
         "access_request": False,
-        'access_requested': '9999-01-01T00:00:00+0000',
+        'access_requested_date': '9999-01-01T00:00:00+0000',
         "account_approval_status": 'Initial'
     }
     user.refresh_from_db()
@@ -239,7 +239,7 @@ def test_set_profile_data_spaced_first_name(api_client, user):
         "region": None,
         "roles": [],
         "access_request": False,
-        'access_requested': '9999-01-01T00:00:00+0000',
+        'access_requested_date': '9999-01-01T00:00:00+0000',
         "account_approval_status": 'Initial'
     }
     user.refresh_from_db()
@@ -266,7 +266,7 @@ def test_set_profile_data_last_name_with_tilde_over_char(api_client, user):
         "region": None,
         "roles": [],
         "access_request": False,
-        'access_requested': '9999-01-01T00:00:00+0000',
+        'access_requested_date': '9999-01-01T00:00:00+0000',
         "account_approval_status": 'Initial'
     }
     user.refresh_from_db()
@@ -293,7 +293,7 @@ def test_set_profile_data_last_name_with_tilde(api_client, user):
         "region": None,
         "roles": [],
         "access_request": False,
-        'access_requested': '9999-01-01T00:00:00+0000',
+        'access_requested_date': '9999-01-01T00:00:00+0000',
         "account_approval_status": 'Initial'
     }
     user.refresh_from_db()
@@ -327,7 +327,7 @@ def test_set_profile_data_extra_field_include_required(api_client, user):
             "region": None,
             "roles": [],
             "access_request": False,
-            'access_requested': '9999-01-01T00:00:00+0000',
+            'access_requested_date': '9999-01-01T00:00:00+0000',
             "account_approval_status": 'Initial'
         }
         user.refresh_from_db()

@@ -64,7 +64,7 @@ def email_admin_num_access_requests():
     recipient_email = get_ofa_admin_user_emails()
     text_message = ''
     subject = 'Number of Active Access Requests'
-    url = settings.FRONTEND_BASE_URL + reverse("admin:users_user_changelist")
+    url = f'{settings.FRONTEND_BASE_URL}{reverse("admin:users_user_changelist")}?o=-2'
     email_context = {
         'date': datetime.today(),
         'num_requests': get_num_access_requests(),

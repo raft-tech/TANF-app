@@ -1,6 +1,5 @@
 """Define user model."""
 
-import datetime
 import logging
 import uuid
 

@@ -58,7 +58,7 @@ class UserViewSet(
         serializer = self.get_serializer(self.request.user, request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(account_approval_status=AccountApprovalStatusChoices.ACCESS_REQUEST,
-                        access_requested=datetime.datetime.now())
+                        access_requested_date=datetime.datetime.now())
         logger.info(
             "Access request for user: %s on %s", self.request.user, timezone.now()
         )

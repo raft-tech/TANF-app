@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='user',
-            name='access_requested',
+            name='access_requested_date',
             field=models.DateTimeField(default=datetime.datetime(9999, 1, 1, 0, 0)),
         ),
     ]
