@@ -40,6 +40,8 @@ class UserAdmin(admin.ModelAdmin):
         "username",
         'location',
         'access_requested',
+        "region",
+        "stt",
         "account_approval_status",
     ]
     autocomplete_fields = ['stt']
