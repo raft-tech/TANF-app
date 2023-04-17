@@ -103,7 +103,7 @@ class User(AbstractUser):
         ),
     )
 
-    access_requested = models.DateTimeField(default=datetime.datetime(9999, 1, 1, 0, 0, 0))
+    access_requested_date = models.DateTimeField(null=True)
 
     _loaded_values = None
     _adding = True

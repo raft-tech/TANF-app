@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 from tdpservice.users.models import User, AccountApprovalStatusChoices
+from django.contrib.auth.models import Group
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
@@ -48,14 +49,14 @@ def users_to_deactivate(days):
 def get_ofa_admin_user_emails():
     """Return a list of OFA System Admin users."""
     return [user.email for user in User.objects.filter(
-        groups='4'
+        groups=Group.objects.get(name='OFA System Admin')
     )]
 
 def get_num_access_requests():
     """Return the number of users requesting access."""
-    return len(User.objects.filter(
+    return User.objects.filter(
         account_approval_status=AccountApprovalStatusChoices.ACCESS_REQUEST,
-    ))
+    ).count()
 
 @shared_task
 def email_admin_num_access_requests():

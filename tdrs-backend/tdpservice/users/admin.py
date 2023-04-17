@@ -38,7 +38,6 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ('account_approval_status', 'region', 'stt')
     list_display = [
         "username",
-        'location',
         'access_requested',
         "region",
         "stt",
