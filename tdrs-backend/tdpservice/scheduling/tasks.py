@@ -48,14 +48,15 @@ def users_to_deactivate(days):
 
 def get_ofa_admin_user_emails():
     """Return a list of OFA System Admin users."""
-    return [user.email for user in User.objects.filter(
+    return User.objects.filter(
         groups=Group.objects.get(name='OFA System Admin')
-    )]
+    ).values_list('email', flat=True).distinct()
 
 def get_num_access_requests():
     """Return the number of users requesting access."""
     return User.objects.filter(
         account_approval_status=AccountApprovalStatusChoices.ACCESS_REQUEST,
+        access_requested_date__gte=datetime.now(tz=timezone.utc) - timedelta(hours=24)
     ).count()
 
 @shared_task

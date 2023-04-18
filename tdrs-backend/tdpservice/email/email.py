@@ -64,9 +64,6 @@ def prepare_email(email_path, recipient_email, email_context, logger_context):
 @shared_task
 def automated_email(email_path, recipient_email, subject, email_context, text_message, logger_context=None):
     """Send email to user."""
-    recipients = [recipient_email] if type(recipient_email) == str else recipient_email
-    logger.info(f"Starting celery task to send email to {recipients}")
-
     html_message, valid_emails = prepare_email(email_path, recipient_email, email_context, logger_context)
 
     try:
