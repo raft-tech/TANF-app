@@ -287,3 +287,106 @@ def t2_schema():
             ('ITEM66E_OTHER_UNEARNED_INCOME', 4, 153, 156, "Alphanumeric"),
         ])
     return adult_data_schema
+
+def t3_schema():
+    """Return the RowSchema for T3 records.
+
+        Children Data
+
+    DESCRIPTION                                                           LENGTH  FROM    TO  COMMENTS
+    RECORD TYPE                                                           2       1       2   "T3" - UP TO 10 CHILDREN
+    REPORTING MONTH                                                       6       3       8   Numeric
+    CASE NUMBER                                                           11      9       19  Alphanumeric
+    FAMILY AFFILIATIION 1                                                 1       20      20  Numeric
+    DOB                                                                   8       21      28  Numeric
+    SSN                                                                   9       29      37  Alphanumeric
+    RACE/ETHNICIY
+      ITEM70A_HISPANIC OR LATINO                                          1       38      38  Alphanumeric
+      ITEM70B_AMERICAN INDIAN OR ALASKAN NATIVE                           1       39      39  Alphanumeric
+      ITEM70C_ASIAN                                                       1       40      40  Alphanumeric
+      ITEM70D_BLACK OR AFRICAN AMERICAN                                   1       41      41  Alphanumeric
+      ITEM70E_NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER                   1       42      42  Alphanumeric
+      ITEM70F_WHITE                                                       1       43      43  Alphanumeric
+    GENDER                                                                1       44      44  Numeric
+    RECEIVES FEDERAL DISABILITY BENEFITS
+      ITEM72A_RECEIVES BENEFITS BASED ON FEDERAL DISABILITY               1       45      45  Alphanumeric
+        STATUS UNDER NON-SSA PROGRAMS
+      ITEM72B_RECEIVES SSI UNDER TITLE XVI-SSI                            1       46      46  Alphanumeric
+    RELATIONSHIP TO HEAD OF HOUSEHOLD                                     2       47      48  Alphanumeric
+    PARENT WITH MINOR CHILD                                               1       49      49  Alphanumeric
+    EDUCATION LEVEL                                                       2       50      51  Alphanumeric
+    CITIZENSHIP/ALIENAGE                                                  1       52      52  Alphanumeric
+    AMOUNT OF UNEARNED INCOME
+      ITEM77A_SSI                                                         4       53      56  Alphanumeric
+      ITEM77B_OTHER UNEARNED INCOME                                       4       57      60  Alphanumeric
+    FAMILY AFFILIATIION 2                                                 1       61      61  Numeric
+    DOB                                                                   8       62      69  Numeric
+    SSN                                                                   9       70      78  Alphanumeric
+    RACE/ETHNICIY
+      ITEM70A_HISPANIC OR LATINO                                          1       79      79  Alphanumeric
+      ITEM70B_AMERICAN INDIAN OR ALASKAN NATIVE                           1       80      80  Alphanumeric
+      ITEM70C_ASIAN                                                       1       81      81  Alphanumeric
+      ITEM70D_BLACK OR AFRICAN AMERICAN                                   1       82      82  Alphanumeric
+      ITEM70E_NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER                   1       83      83  Alphanumeric
+      ITEM70F_WHITE                                                       1       84      84  Alphanumeric
+    GENDER                                                                1       85      85  Numeric
+    RECEIVES FEDERAL DISABILITY BENEFITS
+      ITEM72A_RECEIVES BENEFITS BASED ON FEDERAL DISABILITY               1       86      86  Alphanumeric
+        STATUS UNDER NON-SSA PROGRAMS
+      ITEM72B_RECEIVES SSI UNDER TITLE XVI-SSI                            1       87      87  Alphanumeric
+    RELATIONSHIP TO HEAD OF HOUSEHOLD                                     2       88      89  Alphanumeric
+    PARENT WITH MINOR CHILD                                               1       90      90  Alphanumeric
+    EDUCATION LEVEL                                                       2       91      92  Alphanumeric
+    CITIZENSHIP/ALIENAGE                                                  1       93      93  Alphanumeric
+    AMOUNT OF UNEARNED INCOME
+      ITEM77A_SSI                                                         4       94      97  Alphanumeric
+      ITEM77B_OTHER UNEARNED INCOME                                       4       98      101 Alphanumeric
+    BLANK                                                                 55      102     156 Alphanumeric
+    """
+    children_data_schema = RowSchema()
+    children_data_schema.add_fields(
+        [
+            ('RecordType', 2, 1, 2, "Alphanumeric"),
+            ('RPT_MONTH_YEAR', 6, 3, 8, "Numeric"),
+            ('CASE_NUMBER', 11, 9, 19, "Alphanumeric"),
+            ('FAMILY_AFFILIATION_1', 1, 20, 20, "Numeric"),
+            ('DOB', 8, 21, 28, "Numeric"),
+            ('SSN', 9, 29, 37, "Alphanumeric"),
+            ('ITEM70A_HISPANIC_OR_LATINO', 1, 38, 38, "Alphanumeric"),
+            ('ITEM70B_AMERICAN_INDIAN_OR_ALASKA_NATIVE', 1, 39, 39, "Alphanumeric"),
+            ('ITEM70C_ASIAN', 1, 40, 40, "Alphanumeric"),
+            ('ITEM70D_BLACK_OR_AFRICAN_AMERICAN', 1, 41, 41, "Alphanumeric"),
+            ('ITEM70E_NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER', 1, 42, 42, "Alphanumeric"),
+            ('ITEM70F_WHITE', 1, 43, 43, "Alphanumeric"),
+            ('GENDER', 1, 44, 44, "Alphanumeric"),
+            ('ITEM72A_RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS_UNDER_NON-SSA_PROGRAMS', 1, 45, 45, "Alphanumeric"),
+            ('ITEM72B_RECEIVES_SSI_UNDER_TITLE_XVI_SSI', 1, 46, 46, "Alphanumeric"),
+            ('RELATIONSHIP_TO_HEAD_OF_HOUSEHOLD', 2, 47, 48, "Numeric"),
+            ('PARENT_WITH_MINOR_CHILD', 1, 49, 49, "Alphanumeric"),
+            ('EDUCATION_LEVEL', 2, 50, 51, "Alphanumeric"),
+            ('CITIZENSHIP_ALIENAGE', 1, 52, 52, "Alphanumeric"),
+            ('ITEM77A_SSI', 4, 53, 56, "Alphanumeric"),
+            ('ITEM77B_OTHER_UNEARNED_INCOME', 4, 57, 60, "Alphanumeric"),
+
+            ### Multi record here
+            ('FAMILY_AFFILIATION_2', 1, 61, 61, "Numeric"),
+            ('DOB', 8, 62, 69, "Numeric"),
+            ('SSN', 9, 70, 78, "Alphanumeric"),
+            ('ITEM70A_HISPANIC_OR_LATINO', 1, 79, 79, "Alphanumeric"),
+            ('ITEM70B_AMERICAN_INDIAN_OR_ALASKA_NATIVE', 1, 80, 80, "Alphanumeric"),
+            ('ITEM70C_ASIAN', 1, 81, 81, "Alphanumeric"),
+            ('ITEM70D_BLACK_OR_AFRICAN_AMERICAN', 1, 82, 82, "Alphanumeric"),
+            ('ITEM70E_NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER', 1, 83, 83, "Alphanumeric"),
+            ('ITEM70F_WHITE', 1, 84, 84, "Alphanumeric"),
+            ('GENDER', 1, 85, 85, "Alphanumeric"),
+            ('ITEM72A_RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS_UNDER_NON-SSA_PROGRAMS', 1, 86, 86, "Alphanumeric"),
+            ('ITEM72B_RECEIVES_SSI_UNDER_TITLE_XVI_SSI', 1, 87, 87, "Alphanumeric"),
+            ('RELATIONSHIP_TO_HEAD_OF_HOUSEHOLD', 2, 88, 89, "Numeric"),
+            ('PARENT_WITH_MINOR_CHILD', 1, 90, 90, "Alphanumeric"),
+            ('EDUCATION_LEVEL', 2, 91, 92, "Alphanumeric"),
+            ('CITIZENSHIP_ALIENAGE', 1, 93, 93, "Alphanumeric"),
+            ('ITEM77A_SSI', 4, 94, 97, "Alphanumeric"),
+            ('ITEM77B_OTHER_UNEARNED_INCOME', 4, 98, 101, "Alphanumeric"),
+            ('BLANK', 55, 102, 156, "Alphanumeric"),
+        ])
+    return children_data_schema

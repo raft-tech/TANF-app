@@ -1,10 +1,10 @@
 """Transforms a TANF datafile into an search_index model."""
 
 import logging
-from tdpservice.search_indexes.models import T1 , T2  #, T3, T4, T5, T6, T7, ParserLog
+from tdpservice.search_indexes.models import T1 , T2, T3  #, T4, T5, T6, T7, ParserLog
 # from django.core.exceptions import ValidationError
 from .util import get_record_type
-from .schema_defs.tanf import t1_schema, t2_schema
+from .schema_defs.tanf import t1_schema, t2_schema, t3_schema
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -78,6 +78,17 @@ def active_t2_parser(line, line_number):
     actual_line_length = len(line)
     active_parse(actual_line_length, min_line_length, adult_data_schema, line, line_number, t2)
 
+def active_t3_parser(line, line_number):
+    """Parse line in datafile as active case data, T1 only."""
+    children_data_schema = t3_schema()
+    # create search_index model
+    t2 = T3()
+    content_is_valid = True
+
+    min_line_length = 156  # we will need to adjust for other types
+    actual_line_length = len(line)
+    active_parse(actual_line_length, min_line_length, children_data_schema, line, line_number, t2)
+
 # TODO: def closed_case_data(datafile):
 
 # TODO: def aggregate_data(datafile):
@@ -105,6 +116,8 @@ def parse(datafile):
             active_t1_parser(line, line_number)
         elif record_type == 'T2':
             active_t2_parser(line, line_number)
+        elif record_type == 'T3':
+            active_t3_parser(line, line_number)
         else:
             logger.warn("Parsing for type %s not yet implemented", record_type)
             continue

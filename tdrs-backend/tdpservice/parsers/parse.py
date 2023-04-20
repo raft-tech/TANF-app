@@ -147,7 +147,7 @@ def get_schema(line, section, schema_options):
         return schema_options.t2
         # return schema_options.t2
     elif section == 'A' and line.startswith('T3'):
-        return None
+        return schema_options.t3
         # return schema_options.t3
     elif section == 'C' and line.startswith('T4'):
         return None
