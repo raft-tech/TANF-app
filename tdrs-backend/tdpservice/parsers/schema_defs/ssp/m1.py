@@ -99,8 +99,8 @@ m1 = RowSchema(
         ]),
         Field(name='WAIVER_EVAL_CONTROL_GRPS', type='number', startIndex=112, endIndex=113, required=True, validators=[
         ]),
-        # Field(name='FAMILY_EXEMPT_TIME_LIMITS', type='number', startIndex=114, endIndex=116, required=True, validators=[
-        # ]),
+        # Field(name='FAMILY_EXEMPT_TIME_LIMITS', type='number', startIndex=114, endIndex=116, required=True,
+        #  validators=[]),
         # Field(name='FAMILY_NEW_CHILD', type='number', startIndex=116, endIndex=117, required=True, validators=[
         # ]),
         Field(name='BLANK', type='string', startIndex=113, endIndex=150, required=False, validators=[]),

@@ -95,6 +95,7 @@ def parse_datafile(datafile):
 
 
 def parse_multi_record_line(line, schema):
+    """Parse and validate a datafile line that has multiple records and save any errors to the model."""
     if schema:
         records = schema.parse_and_validate(line)
 
@@ -102,9 +103,6 @@ def parse_multi_record_line(line, schema):
             record, record_is_valid, record_errors = r
 
             if record:
-                # for error in record_errors:
-                    # create ParserError  # retention policy?
-                    # record.error.set(record_errors)
                 record.save()
 
         return records

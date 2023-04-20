@@ -1,7 +1,7 @@
 """Transforms a TANF datafile into an search_index model."""
 
 import logging
-from tdpservice.search_indexes.models import T1 , T2, T3  #, T4, T5, T6, T7, ParserLog
+from tdpservice.search_indexes.models import T1, T2, T3  # , T4, T5, T6, T7, ParserLog
 # from django.core.exceptions import ValidationError
 from .util import get_record_type
 from .schema_defs.tanf import t1_schema, t2_schema, t3_schema
@@ -10,6 +10,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 def active_parse(actual_line_length, min_line_length, schema, line, line_number, model):
+    """Parse line in datafile as active case data."""
+    content_is_valid = True
+
     if actual_line_length < min_line_length:
         logger.error('Expected minimum line length of %s, got: %s', min_line_length, actual_line_length)
         return
@@ -47,7 +50,6 @@ def active_t1_parser(line, line_number):
     family_case_schema = t1_schema()
     # create search_index model
     t1 = T1()
-    content_is_valid = True
 
     min_line_length = 118  # we will need to adjust for other types
     actual_line_length = len(line)
@@ -72,7 +74,6 @@ def active_t2_parser(line, line_number):
     adult_data_schema = t2_schema()
     # create search_index model
     t2 = T2()
-    content_is_valid = True
 
     min_line_length = 156  # we will need to adjust for other types
     actual_line_length = len(line)
@@ -83,7 +84,6 @@ def active_t3_parser(line, line_number):
     children_data_schema = t3_schema()
     # create search_index model
     t2 = T3()
-    content_is_valid = True
 
     min_line_length = 156  # we will need to adjust for other types
     actual_line_length = len(line)

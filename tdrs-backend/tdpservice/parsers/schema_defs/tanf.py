@@ -359,7 +359,8 @@ def t3_schema():
             ('ITEM70E_NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER', 1, 42, 42, "Alphanumeric"),
             ('ITEM70F_WHITE', 1, 43, 43, "Alphanumeric"),
             ('GENDER', 1, 44, 44, "Alphanumeric"),
-            ('ITEM72A_RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS_UNDER_NON-SSA_PROGRAMS', 1, 45, 45, "Alphanumeric"),
+            ('ITEM72A_RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS_UNDER_NON-SSA_PROGRAMS', 1, 45, 45,
+             "Alphanumeric"),
             ('ITEM72B_RECEIVES_SSI_UNDER_TITLE_XVI_SSI', 1, 46, 46, "Alphanumeric"),
             ('RELATIONSHIP_TO_HEAD_OF_HOUSEHOLD', 2, 47, 48, "Numeric"),
             ('PARENT_WITH_MINOR_CHILD', 1, 49, 49, "Alphanumeric"),
@@ -368,7 +369,7 @@ def t3_schema():
             ('ITEM77A_SSI', 4, 53, 56, "Alphanumeric"),
             ('ITEM77B_OTHER_UNEARNED_INCOME', 4, 57, 60, "Alphanumeric"),
 
-            ### Multi record here
+            # Multi record here
             ('FAMILY_AFFILIATION_2', 1, 61, 61, "Numeric"),
             ('DOB', 8, 62, 69, "Numeric"),
             ('SSN', 9, 70, 78, "Alphanumeric"),
@@ -379,7 +380,8 @@ def t3_schema():
             ('ITEM70E_NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER', 1, 83, 83, "Alphanumeric"),
             ('ITEM70F_WHITE', 1, 84, 84, "Alphanumeric"),
             ('GENDER', 1, 85, 85, "Alphanumeric"),
-            ('ITEM72A_RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS_UNDER_NON-SSA_PROGRAMS', 1, 86, 86, "Alphanumeric"),
+            ('ITEM72A_RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS_UNDER_NON-SSA_PROGRAMS', 1, 86, 86,
+             "Alphanumeric"),
             ('ITEM72B_RECEIVES_SSI_UNDER_TITLE_XVI_SSI', 1, 87, 87, "Alphanumeric"),
             ('RELATIONSHIP_TO_HEAD_OF_HOUSEHOLD', 2, 88, 89, "Numeric"),
             ('PARENT_WITH_MINOR_CHILD', 1, 90, 90, "Alphanumeric"),
