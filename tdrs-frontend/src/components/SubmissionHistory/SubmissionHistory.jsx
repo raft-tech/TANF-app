@@ -19,40 +19,35 @@ const SubmissionHistoryRow = ({ file }) => {
   const returned_errors = () => {
     getParseErrors(fileParserData.parsedData, fileName)
   }
-
-  const [fileParserData, setFileParserData] = useState({
-    parsedData: 'parsedData',
-  })
-
-  useEffect(() => {
-    const fileParserErrors = async () => {
-      try {
-        const promise = axios.get(
-          `${process.env.REACT_APP_BACKEND_URL}/parsing/parsing_errors/?file=${file.id}`,
-          {
-            responseType: 'json',
-          }
-        )
-        const dataPromise = await promise.then((response) => response.data)
-        setFileParserData({ parsedData: dataPromise })
-      } catch (error) {
-        console.log(error)
-      }
+  
+  
+  const fileParserErrors = async () => {
+    try {
+      const promise = axios.get(
+        `${process.env.REACT_APP_BACKEND_URL}/parsing/parsing_errors/?file=${file.id}`,
+        {
+          responseType: 'json',
+        }
+      )
+      const dataPromise = await promise.then((response) => response.data)
+      getParseErrors(response.parsedData, file.fileName)
+    } catch (error) {
+      console.log(error)
     }
-    fileParserErrors()
-  }, [])
+  }
+
 
   return (
     <tr>
       <td>{formatDate(file.createdAt)}</td>
       <td>{file.submittedBy}</td>
       <td>
-        <button className="section-download" onClick={downloadFile}>
+        <button className="section-download" onClick={fileParserErrors}>
           {file.fileName}
         </button>
       </td>
       <td>
-        {fileParserData?.parsedData?.data?.length > 0 ? (
+        {file.has_error > 0 ? (
           <button className="section-download" onClick={returned_errors}>
             {file.year}-{file.quarter}-{file.section}
           </button>
