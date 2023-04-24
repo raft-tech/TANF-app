@@ -92,7 +92,6 @@ class TANF_T2DataSubmissionDocument(Document):
             'RecordType',
             'RPT_MONTH_YEAR',
             'CASE_NUMBER',
-            'FIPS_CODE',
 
             'FAMILY_AFFILIATION',
             'NONCUSTODIAL_PARENT',
@@ -184,8 +183,8 @@ class TANF_T3DataSubmissionDocument(Document):
             'RecordType',
             'RPT_MONTH_YEAR',
             'CASE_NUMBER',
+            'FAMILY_AFFILIATION',
             'DOB',
-            'FIPS_CODE',
             'SSN',
             'ITEM70A_HISPANIC_OR_LATINO',
             'ITEM70B_AMERICAN_INDIAN_OR_ALASKA_NATIVE',

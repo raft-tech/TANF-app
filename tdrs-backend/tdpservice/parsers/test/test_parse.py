@@ -5,7 +5,7 @@ import pytest
 from pathlib import Path
 from .. import parse
 from tdpservice.data_files.models import DataFile
-from tdpservice.search_indexes.models.tanf import TANF_T1
+from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3
 
 
@@ -250,3 +250,13 @@ def test_parse_ssp_section1_datafile(ssp_section1_datafile):
     assert models.SSP_M1.objects.count() == expected_m1_record_count
     assert models.SSP_M2.objects.count() == expected_m2_record_count
     assert models.SSP_M3.objects.count() == expected_m3_record_count
+
+@pytest.fixture
+def tanf_t2_datafile(stt_user, stt):
+    return create_test_datafile('ADS.E2J.FTP2.TS06', stt_user, stt)
+
+@pytest.mark.django_db
+def test_parse_tanf_section2_datafile(tanf_t2_datafile):
+    errors = parse.parse_datafile(tanf_t2_datafile)
+    print("errors")
+    assert False
