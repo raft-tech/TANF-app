@@ -78,7 +78,6 @@ class TANF_T2(models.Model):
     RecordType = models.CharField(max_length=156, null=False, blank=False)
     RPT_MONTH_YEAR = models.IntegerField(null=False, blank=False)
     CASE_NUMBER = models.CharField(max_length=11, null=False, blank=False)
-    FIPS_CODE = models.CharField(max_length=100, null=False, blank=False)
 
     FAMILY_AFFILIATION = models.IntegerField(null=False, blank=False)
     NONCUSTODIAL_PARENT = models.IntegerField(null=False, blank=False)
@@ -158,8 +157,7 @@ class TANF_T3(models.Model):
     RecordType = models.CharField(max_length=156, null=False, blank=False)
     RPT_MONTH_YEAR = models.IntegerField(null=False, blank=False)
     CASE_NUMBER = models.CharField(max_length=11, null=False, blank=False)
-    FAMILY_AFFILIATION_1 = models.CharField(max_length=100, null=False, blank=False)
-    FIPS_CODE = models.CharField(max_length=100, null=False, blank=False)
+    FAMILY_AFFILIATION = models.CharField(max_length=100, null=False, blank=False)
 
     DOB = models.IntegerField(null=False, blank=False)
     SSN = models.CharField(max_length=8, null=False, blank=False)
