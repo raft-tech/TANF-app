@@ -15,13 +15,9 @@ const SubmissionHistoryRow = ({ file }) => {
   const dispatch = useDispatch()
 
   const downloadFile = () => dispatch(download(file))
-  const fileName = `${file.year}-${file.quarter}-${file.section}`
-  const returned_errors = () => {
-    getParseErrors(fileParserData.parsedData, fileName)
-  }
-  
-  
-  const fileParserErrors = async () => {
+  const errorFileName = `${file.year}-${file.quarter}-${file.section}`
+
+  const returned_errors = async () => {
     try {
       const promise = axios.get(
         `${process.env.REACT_APP_BACKEND_URL}/parsing/parsing_errors/?file=${file.id}`,
@@ -30,24 +26,23 @@ const SubmissionHistoryRow = ({ file }) => {
         }
       )
       const dataPromise = await promise.then((response) => response.data)
-      getParseErrors(response.parsedData, file.fileName)
+      getParseErrors(dataPromise, errorFileName)
     } catch (error) {
       console.log(error)
     }
   }
-
 
   return (
     <tr>
       <td>{formatDate(file.createdAt)}</td>
       <td>{file.submittedBy}</td>
       <td>
-        <button className="section-download" onClick={fileParserErrors}>
+        <button className="section-download" onClick={downloadFile}>
           {file.fileName}
         </button>
       </td>
       <td>
-        {file.has_error > 0 ? (
+        {file.hasError > 0 ? (
           <button className="section-download" onClick={returned_errors}>
             {file.year}-{file.quarter}-{file.section}
           </button>
