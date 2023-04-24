@@ -45,11 +45,11 @@ t2 = RowSchema(
               endIndex=46, required=True, validators=[]),
         Field(name='ITEM36B_RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS', type='string', startIndex=46,
               endIndex=47, required=True, validators=[]),
-        Field(name='ITEM36C_RECEIVES_AID_TO_THE_PERMANENTLY_AND_TOTALLY_DISABLED_UNDER_TITLE_XIV', type='string',
+        Field(name='ITEM36C_RECEIVES_AID_TOTALLY_DISABLED_UNDER_TITLE_XIV_APDT', type='string',
               startIndex=47, endIndex=48, required=True, validators=[]),
         Field(name='ITEM36D_RECEIVES_AID_TO_THE_AGED', type='string', startIndex=48, endIndex=49, required=True,
               validators=[]),
-        Field(name='ITEM36E_RECEIVES_SUPPLEMENTAL_SECURITY_INCOME_UNDER_TITLE_XVI', type='string', startIndex=49,
+        Field(name='ITEM36E_RECEIVES_SUPPLEMENTAL_SECURITY_INCOME_TITLE_XVI_SSI', type='string', startIndex=49,
               endIndex=50, required=True, validators=[]),
         Field(name='MARITAL_STATUS', type='string', startIndex=50, endIndex=51, required=True, validators=[
         ]),

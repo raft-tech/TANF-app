@@ -39,7 +39,7 @@ child_two = RowSchema(
         ]),
         Field(name='GENDER', type='string', startIndex=43, endIndex=44, required=True, validators=[
         ]),
-        Field(name='ITEM72A_RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS_UNDER_NON', type='string',
+        Field(name='ITEM72A_RECEIVES_BENEFITS_UNDER_NON_SSA_PROGRAMS', type='string',
               startIndex=44, endIndex=45, required=True, validators=[]),
         Field(name='ITEM72B_RECEIVES_SSI_UNDER_TITLE_XVI_SSI', type='string', startIndex=45, endIndex=46, required=True,
               validators=[]),
@@ -90,7 +90,7 @@ child_two = RowSchema(
         ]),
         Field(name='GENDER', type='string', startIndex=84, endIndex=85, required=True, validators=[
         ]),
-        Field(name='ITEM72A_RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS_UNDER_NON', type='string',
+        Field(name='ITEM72A_RECEIVES_BENEFITS_UNDER_NON_SSA_PROGRAMS', type='string',
               startIndex=85, endIndex=86, required=True, validators=[]),
         Field(name='ITEM72B_RECEIVES_SSI_UNDER_TITLE_XVI_SSI', type='string', startIndex=86, endIndex=87, required=True,
               validators=[]),
