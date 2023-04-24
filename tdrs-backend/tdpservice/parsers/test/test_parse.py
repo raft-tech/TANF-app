@@ -253,10 +253,19 @@ def test_parse_ssp_section1_datafile(ssp_section1_datafile):
 
 @pytest.fixture
 def tanf_t2_datafile(stt_user, stt):
-    return create_test_datafile('ADS.E2J.FTP2.TS06', stt_user, stt)
+    return create_test_datafile('small_tanf_section2.txt', stt_user, stt)
 
 @pytest.mark.django_db
 def test_parse_tanf_section2_datafile(tanf_t2_datafile):
     errors = parse.parse_datafile(tanf_t2_datafile)
-    print("errors")
-    assert False
+
+    assert errors == {}
+    assert TANF_T2.objects.count() == 2
+
+    # spot check
+    t2 = TANF_T2.objects.all().first()
+    print(t2.RPT_MONTH_YEAR, t2.CASE_NUMBER, t2.FAMILY_AFFILIATION, t2.ITEM66E_OTHER_UNEARNED_INCOME)
+    assert t2.RPT_MONTH_YEAR == 202004
+    assert t2.CASE_NUMBER == '11111111112'
+    assert t2.FAMILY_AFFILIATION == '2'
+    assert t2.ITEM66E_OTHER_UNEARNED_INCOME == '0291'

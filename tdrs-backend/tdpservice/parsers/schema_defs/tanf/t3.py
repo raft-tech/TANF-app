@@ -6,7 +6,7 @@ from ... import validators
 from tdpservice.search_indexes.models.tanf import TANF_T3
 
 
-child_two = RowSchema(
+child_one= RowSchema(
     model=TANF_T3,
     preparsing_validators=[
         validators.notEmpty(start=19, end=60),
@@ -106,4 +106,11 @@ child_two = RowSchema(
         Field(name='ITEM77B_OTHER_UNEARNED_INCOME', type='string', startIndex=97, endIndex=101, required=False,
               validators=[]),
     ],
+)
+
+t3 = MultiRecordRowSchema(
+    schemas=[
+        child_one,
+        child_two
+    ]
 )
