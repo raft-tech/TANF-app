@@ -211,7 +211,7 @@ tdrs-run-frontend-owasp() {
     cd-tdrs-frontend
     docker-compose up -d --build
     cd ..
-    ./scripts/zap-scanner.sh backend circle
+    ./scripts/zap-scanner.sh frontend circle
 }
 
 tdrs-run-deploy() {
