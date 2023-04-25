@@ -14,24 +14,14 @@ REPORT_NAME=owasp_report.html
 
 if [ "$ENVIRONMENT" = "nightly" ]; then
     APP_URL="https://tdp-frontend-$TARGET_ENV.acf.hhs.gov/"
-    echo "here 1"
-    echo $APP_URL
     if [ "$TARGET_ENV" = "prod" ]; then
         APP_URL="https://tanfdata.acf.hhs.gov/"
-        echo "here 2"
-        echo $APP_URL
     fi
 elif [ "$ENVIRONMENT" = "circle" ] || [ "$ENVIRONMENT" = "local" ]; then
-    echo "here 3"
-    echo $APP_URL
     if [ "$TARGET" = "frontend" ]; then
         APP_URL="http://tdp-frontend/"
-        echo "here 4"
-        echo $APP_URL
     elif [ "$TARGET" = "backend" ]; then
         APP_URL="http://web:8080/"
-        echo "here 5"
-        echo $APP_URL
     else
         echo "Invalid target $TARGET"
         exit 1
@@ -45,9 +35,6 @@ fi
 if [ "$TARGET" = "backend" ]; then
   APP_URL+="swagger.json"
 fi
-
-echo "here 7"
-echo $APP_URL
 
 cd "$TARGET_DIR" || exit 2
 
