@@ -49,7 +49,6 @@ if ! docker-compose run --rm zaproxy curl -Is "$APP_URL" > /dev/null 2>&1; then
   exit 3
 fi
 
-curl $APP_URL
 
 echo "================== OWASP ZAP tests =================="
 
