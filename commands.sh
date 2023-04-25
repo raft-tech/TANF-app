@@ -168,7 +168,7 @@ tdrs-run-pytest () {
 
 # Run owasp scan for backend assuming circle ci environment
 tdrs-run-backend-owasp() {
-    if [ $(docker network inspect external-net 2>&1 | grep -c Scope) == 0 ]; then 
+    if [[ $(docker network inspect external-net 2>&1 | grep -c Scope) == 0 ]]; then 
         docker network create external-net
     fi
     cd-tdrs-backend
@@ -192,7 +192,7 @@ tdrs-run-backend-owasp() {
 
 # Run owasp scan for frontend assuming circle ci environment
 tdrs-run-frontend-owasp() {
-    if [ $(docker network inspect external-net 2>&1 | grep -c Scope) == 0 ]; then 
+    if [[ $(docker network inspect external-net 2>&1 | grep -c Scope) == 0 ]]; then 
         docker network create external-net
     fi
     cd-tdrs-backend
