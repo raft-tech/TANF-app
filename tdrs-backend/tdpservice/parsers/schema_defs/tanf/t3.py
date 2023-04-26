@@ -59,6 +59,7 @@ child_one= RowSchema(
 
 child_two = RowSchema(
     model=TANF_T3,
+    quiet_preparser_errors=True,
     preparsing_validators=[
         validators.notEmpty(start=60, end=101),
     ],
@@ -72,15 +73,15 @@ child_two = RowSchema(
         ]),
         Field(name='FAMILY_AFFILIATION', type='string', startIndex=60, endIndex=61, required=True, validators=[
         ]),
-        Field(name='DOB', type='number', startIndex=60, endIndex=68, required=True, validators=[
+        Field(name='DOB', type='number', startIndex=61, endIndex=69, required=True, validators=[
         ]),
-        Field(name='SSN', type='string', startIndex=68, endIndex=77, required=True, validators=[
+        Field(name='SSN', type='string', startIndex=69, endIndex=78, required=True, validators=[
         ]),
-        Field(name='ITEM70A_HISPANIC_OR_LATINO', type='string', startIndex=77, endIndex=78, required=True, validators=[
+        Field(name='ITEM70A_HISPANIC_OR_LATINO', type='string', startIndex=78, endIndex=79, required=True, validators=[
         ]),
-        Field(name='ITEM70B_AMERICAN_INDIAN_OR_ALASKA_NATIVE', type='string', startIndex=78, endIndex=79, required=True,
+        Field(name='ITEM70B_AMERICAN_INDIAN_OR_ALASKA_NATIVE', type='string', startIndex=79, endIndex=80, required=True,
               validators=[]),
-        Field(name='ITEM70C_ASIAN', type='string', startIndex=79, endIndex=80, required=True, validators=[
+        Field(name='ITEM70C_ASIAN', type='string', startIndex=80, endIndex=81, required=True, validators=[
         ]),
         Field(name='ITEM70D_BLACK_OR_AFRICAN_AMERICAN', type='string', startIndex=81, endIndex=82, required=True,
               validators=[]),

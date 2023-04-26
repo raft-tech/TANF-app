@@ -51,6 +51,7 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - logger.discovery.level=debug
+      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
     ports:
       - 9200:9200
       - 9300:9300

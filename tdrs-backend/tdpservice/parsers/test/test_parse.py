@@ -252,20 +252,63 @@ def test_parse_ssp_section1_datafile(ssp_section1_datafile):
     assert models.SSP_M3.objects.count() == expected_m3_record_count
 
 @pytest.fixture
-def tanf_t2_datafile(stt_user, stt):
-    return create_test_datafile('small_tanf_section2.txt', stt_user, stt)
+def small_tanf_section1_datafile(stt_user, stt):
+    return create_test_datafile('small_tanf_section1.txt', stt_user, stt)
 
 @pytest.mark.django_db
-def test_parse_tanf_section2_datafile(tanf_t2_datafile):
-    errors = parse.parse_datafile(tanf_t2_datafile)
+def test_parse_tanf_section2_datafile(small_tanf_section1_datafile):
+    errors = parse.parse_datafile(small_tanf_section1_datafile)
 
     assert errors == {}
-    assert TANF_T2.objects.count() == 2
+    assert TANF_T2.objects.count() == 6
 
-    # spot check
-    t2 = TANF_T2.objects.all().first()
-    print(t2.RPT_MONTH_YEAR, t2.CASE_NUMBER, t2.FAMILY_AFFILIATION, t2.ITEM66E_OTHER_UNEARNED_INCOME)
-    assert t2.RPT_MONTH_YEAR == 202004
+    t2_models = TANF_T2.objects.all()
+
+    t2 = t2_models[0]
+    assert t2.RPT_MONTH_YEAR == 202010
     assert t2.CASE_NUMBER == '11111111112'
-    assert t2.FAMILY_AFFILIATION == '2'
-    assert t2.ITEM66E_OTHER_UNEARNED_INCOME == '0291'
+    assert t2.FAMILY_AFFILIATION == 1
+    assert t2.ITEM66E_OTHER_UNEARNED_INCOME == 291
+
+    t2_2 = t2_models[1]
+    print(t2_2.RPT_MONTH_YEAR, t2.CASE_NUMBER, t2.FAMILY_AFFILIATION, t2.ITEM66E_OTHER_UNEARNED_INCOME)
+    assert t2_2.RPT_MONTH_YEAR == 202010
+    assert t2_2.CASE_NUMBER == '11111111115'
+    assert t2_2.FAMILY_AFFILIATION == 2
+    assert t2_2.ITEM66E_OTHER_UNEARNED_INCOME == 000
+
+@pytest.mark.django_db
+def test_parse_tanf_section2_datafile_obj_counts(small_tanf_section1_datafile):
+    errors = parse.parse_datafile(small_tanf_section1_datafile)
+
+    assert errors == {}
+    assert TANF_T1.objects.count() == 5
+    assert TANF_T2.objects.count() == 6
+    assert TANF_T3.objects.count() == 5
+
+@pytest.fixture
+def bad_tanf_t2_datafile(stt_user, stt):
+    return create_test_datafile('bad_tanf_t2_section1.txt', stt_user, stt)
+
+@pytest.mark.django_db
+def test_parse_bad_tanf_section2_datafile(bad_tanf_t2_datafile):
+    with pytest.raises(ValueError) as e:
+      parse.parse_datafile(bad_tanf_t2_datafile)
+    assert str(e) == \
+      "<ExceptionInfo ValueError(\"Field 'ITEM66E_OTHER_UNEARNED_INCOME' expected a number but got '0aaa'.\") tblen=17>"
+
+@pytest.mark.django_db
+def test_parse_tanf_section2_datafile_t3s(small_tanf_section1_datafile):
+    errors = parse.parse_datafile(small_tanf_section1_datafile)
+
+    assert errors == {}
+    assert TANF_T3.objects.count() == 6
+
+    t3_models = TANF_T3.objects.all()
+    t3_1 = t3_models[0]
+    assert t3_1.RPT_MONTH_YEAR == 202010
+    assert t3_1.CASE_NUMBER == '11111111112'
+    assert t3_1.FAMILY_AFFILIATION == 2
+    assert t3_1.GENDER == '2'
+    assert t3_1.EDUCATION_LEVEL == '20'
+

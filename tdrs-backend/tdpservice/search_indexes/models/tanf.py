@@ -160,7 +160,7 @@ class TANF_T3(models.Model):
     FAMILY_AFFILIATION = models.CharField(max_length=100, null=False, blank=False)
 
     DOB = models.IntegerField(null=False, blank=False)
-    SSN = models.CharField(max_length=8, null=False, blank=False)
+    SSN = models.CharField(max_length=9, null=False, blank=False)
     ITEM70A_HISPANIC_OR_LATINO = models.CharField(max_length=100, null=False, blank=False)
     ITEM70B_AMERICAN_INDIAN_OR_ALASKA_NATIVE = models.IntegerField(null=False, blank=False)
     ITEM70C_ASIAN = models.IntegerField(null=False, blank=False)
