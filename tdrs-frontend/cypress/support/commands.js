@@ -87,7 +87,7 @@ Cypress.Commands.add(
     )
     cy.get('@adminCsrfToken').then((csrfToken) => {
       cy.setCookie('csrftoken', csrfToken)
-      options.headers['X_CSRFTOKEN'] = csrfToken
+      options.headers['X-CSRFToken'] = csrfToken
     })
 
     cy.request(options)
