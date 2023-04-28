@@ -19,7 +19,7 @@ child_one= RowSchema(
         ]),
         Field(name='CASE_NUMBER', type='string', startIndex=8, endIndex=19, required=True, validators=[
         ]),
-        Field(name='FAMILY_AFFILIATION', type='string', startIndex=19, endIndex=20, required=True, validators=[
+        Field(name='FAMILY_AFFILIATION', type='number', startIndex=19, endIndex=20, required=True, validators=[
         ]),
         Field(name='DOB', type='number', startIndex=20, endIndex=28, required=True, validators=[
         ]),
@@ -37,7 +37,7 @@ child_one= RowSchema(
               required=True, validators=[]),
         Field(name='ITEM70F_WHITE', type='string', startIndex=42, endIndex=43, required=True, validators=[
         ]),
-        Field(name='GENDER', type='string', startIndex=43, endIndex=44, required=True, validators=[
+        Field(name='GENDER', type='number', startIndex=43, endIndex=44, required=True, validators=[
         ]),
         Field(name='ITEM72A_RECEIVES_BENEFITS_UNDER_NON_SSA_PROGRAMS', type='string',
               startIndex=44, endIndex=45, required=True, validators=[]),
@@ -71,7 +71,7 @@ child_two = RowSchema(
         ]),
         Field(name='CASE_NUMBER', type='string', startIndex=8, endIndex=19, required=True, validators=[
         ]),
-        Field(name='FAMILY_AFFILIATION', type='string', startIndex=60, endIndex=61, required=True, validators=[
+        Field(name='FAMILY_AFFILIATION', type='number', startIndex=60, endIndex=61, required=True, validators=[
         ]),
         Field(name='DOB', type='number', startIndex=61, endIndex=69, required=True, validators=[
         ]),
@@ -89,7 +89,7 @@ child_two = RowSchema(
               required=True, validators=[]),
         Field(name='ITEM70F_WHITE', type='string', startIndex=83, endIndex=84, required=True, validators=[
         ]),
-        Field(name='GENDER', type='string', startIndex=84, endIndex=85, required=True, validators=[
+        Field(name='GENDER', type='number', startIndex=84, endIndex=85, required=True, validators=[
         ]),
         Field(name='ITEM72A_RECEIVES_BENEFITS_UNDER_NON_SSA_PROGRAMS', type='string',
               startIndex=85, endIndex=86, required=True, validators=[]),

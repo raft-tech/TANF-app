@@ -19,7 +19,7 @@ t2 = RowSchema(
         ]),
         Field(name='CASE_NUMBER', type='string', startIndex=8, endIndex=19, required=True, validators=[
         ]),
-        Field(name='FAMILY_AFFILIATION', type='string', startIndex=19, endIndex=20, required=True, validators=[
+        Field(name='FAMILY_AFFILIATION', type='number', startIndex=19, endIndex=20, required=True, validators=[
         ]),
         Field(name='NONCUSTODIAL_PARENT', type='number', startIndex=20, endIndex=21, required=True, validators=[
         ]),
@@ -39,7 +39,7 @@ t2 = RowSchema(
               required=True, validators=[]),
         Field(name='ITEM34F_WHITE', type='string', startIndex=43, endIndex=44, required=True, validators=[
         ]),
-        Field(name='GENDER', type='string', startIndex=44, endIndex=45, required=True, validators=[
+        Field(name='GENDER', type='number', startIndex=44, endIndex=45, required=True, validators=[
         ]),
         Field(name='ITEM36A_RECEIVES_FEDERAL_DISABILITY_INSURANCE_OASDI_PROGRAM', type='string', startIndex=45,
               endIndex=46, required=True, validators=[]),

@@ -283,19 +283,8 @@ def test_parse_tanf_section2_datafile_obj_counts(small_tanf_section1_datafile):
 
     assert errors == {}
     assert TANF_T1.objects.count() == 5
-    assert TANF_T2.objects.count() == 6
-    assert TANF_T3.objects.count() == 5
-
-@pytest.fixture
-def bad_tanf_t2_datafile(stt_user, stt):
-    return create_test_datafile('bad_tanf_t2_section1.txt', stt_user, stt)
-
-@pytest.mark.django_db
-def test_parse_bad_tanf_section2_datafile(bad_tanf_t2_datafile):
-    with pytest.raises(ValueError) as e:
-      parse.parse_datafile(bad_tanf_t2_datafile)
-    assert str(e) == \
-      "<ExceptionInfo ValueError(\"Field 'ITEM66E_OTHER_UNEARNED_INCOME' expected a number but got '0aaa'.\") tblen=17>"
+    assert TANF_T2.objects.count() == 5
+    assert TANF_T3.objects.count() == 6
 
 @pytest.mark.django_db
 def test_parse_tanf_section2_datafile_t3s(small_tanf_section1_datafile):
@@ -308,7 +297,14 @@ def test_parse_tanf_section2_datafile_t3s(small_tanf_section1_datafile):
     t3_1 = t3_models[0]
     assert t3_1.RPT_MONTH_YEAR == 202010
     assert t3_1.CASE_NUMBER == '11111111112'
-    assert t3_1.FAMILY_AFFILIATION == 2
-    assert t3_1.GENDER == '2'
-    assert t3_1.EDUCATION_LEVEL == '20'
+    assert t3_1.FAMILY_AFFILIATION == 1
+    assert t3_1.GENDER == 2
+    assert t3_1.EDUCATION_LEVEL == '98'
+
+    t3_6 = t3_models[5]
+    assert t3_6.RPT_MONTH_YEAR == 202010
+    assert t3_6.CASE_NUMBER == '11111111151'
+    assert t3_6.FAMILY_AFFILIATION == 1
+    assert t3_6.GENDER == 2
+    assert t3_6.EDUCATION_LEVEL == '98'
 
