@@ -10,6 +10,7 @@ http {
 
     server {
         listen 80;
+        client_max_body_size 50m;
         root /usr/share/nginx/html;
         include locations.conf;
 
