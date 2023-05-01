@@ -3,8 +3,7 @@
 import pytest
 from faker import Faker
 from django.db.utils import IntegrityError
-from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5, TANF_T6, TANF_T7
-from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3
+from tdpservice.search_indexes import models
 from tdpservice.search_indexes import documents
 
 
@@ -16,7 +15,7 @@ def test_can_create_and_index_tanf_t1_submission():
     """TANF T1 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = TANF_T1.objects.create(
+    submission = models.tanf.TANF_T1.objects.create(
         RecordType=record_num,
         RPT_MONTH_YEAR=1,
         CASE_NUMBER=1,
@@ -82,7 +81,7 @@ def test_can_create_and_index_tanf_t2_submission():
     """TANF T2 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = TANF_T2.objects.create(
+    submission = models.tanf.TANF_T2.objects.create(
         RecordType=record_num,
         RPT_MONTH_YEAR=1,
         CASE_NUMBER='1',
@@ -171,7 +170,7 @@ def test_can_create_and_index_tanf_t3_submission():
     """TANF T3 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = TANF_T3.objects.create(
+    submission = models.tanf.TANF_T3.objects.create(
         RecordType=record_num,
         RPT_MONTH_YEAR=1,
         CASE_NUMBER='1',
@@ -212,7 +211,7 @@ def test_can_create_and_index_tanf_t4_submission():
     """TANF T4 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = TANF_T4.objects.create(
+    submission = models.tanf.TANF_T4.objects.create(
         record=record_num,
         rpt_month_year=1,
         case_number='1',
@@ -245,7 +244,7 @@ def test_can_create_and_index_tanf_t5_submission():
     """TANF T5 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = TANF_T5.objects.create(
+    submission = models.tanf.TANF_T5.objects.create(
         record=record_num,
         rpt_month_year=1,
         case_number='1',
@@ -295,7 +294,7 @@ def test_can_create_and_index_tanf_t6_submission():
     """TANF T6 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = TANF_T6.objects.create(
+    submission = models.tanf.TANF_T6.objects.create(
         record=record_num,
         rpt_month_year=1,
         fips_code='1',
@@ -334,7 +333,7 @@ def test_can_create_and_index_tanf_t7_submission():
     """TANF T7 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = TANF_T7.objects.create(
+    submission = models.tanf.TANF_T7.objects.create(
         record=record_num,
         rpt_month_year=1,
         fips_code='2',
@@ -362,7 +361,7 @@ def test_does_not_create_index_if_model_creation_fails():
     record_num = fake.uuid4()
 
     with pytest.raises(IntegrityError):
-        submission = TANF_T7.objects.create(
+        submission = models.tanf.TANF_T7.objects.create(
             record=record_num
             # leave out a bunch of required fields
         )
@@ -384,7 +383,7 @@ def test_can_create_and_map_ssp_m1_submission():
     """SSP M1 Submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = SSP_M1.objects.create(
+    submission = models.ssp.SSP_M1.objects.create(
         RecordType=record_num,
         RPT_MONTH_YEAR=1,
         CASE_NUMBER=1,
@@ -449,7 +448,7 @@ def test_can_create_and_index_ssp_m2_submission():
     """SSP M2 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = SSP_M2.objects.create(
+    submission = models.ssp.SSP_M2.objects.create(
         RecordType=record_num,
         RPT_MONTH_YEAR=1,
         CASE_NUMBER='1',
@@ -539,7 +538,7 @@ def test_can_create_and_index_ssp_m3_submission():
     """SSP M3 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = SSP_M3.objects.create(
+    submission = models.ssp.SSP_M3.objects.create(
         RecordType=record_num,
         RPT_MONTH_YEAR=1,
         CASE_NUMBER='1',
