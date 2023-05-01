@@ -4,6 +4,7 @@ import pytest
 from faker import Faker
 from django.db.utils import IntegrityError
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5, TANF_T6, TANF_T7
+from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3
 from tdpservice.search_indexes import documents
 
 
@@ -82,84 +83,83 @@ def test_can_create_and_index_tanf_t2_submission():
     record_num = fake.uuid4()
 
     submission = TANF_T2.objects.create(
-        record=record_num,
-        rpt_month_year=1,
-        case_number='1',
-        fips_code='1',
+        RecordType=record_num,
+        RPT_MONTH_YEAR=1,
+        CASE_NUMBER='1',
 
-        family_affiliation=1,
-        noncustodial_parent=1,
-        date_of_birth='1',
-        ssn='1',
-        race_hispanic=1,
-        race_amer_indian=1,
-        race_asian=1,
-        race_black=1,
-        race_hawaiian=1,
-        race_white=1,
-        gender=1,
-        fed_oasdi_program=1,
-        fed_disability_status=1,
-        disabled_title_xivapdt=1,
-        aid_aged_blind=1,
-        receive_ssi=1,
-        marital_status=1,
-        relationship_hoh=1,
-        parent_minor_child=1,
-        needs_pregnant_woman=1,
-        education_level=1,
-        citizenship_status=1,
-        cooperation_child_support=1,
-        months_fed_time_limit=1,
-        months_state_time_limit=1,
-        current_month_state_exempt=1,
-        employment_status=1,
-        work_eligible_indicator=1,
-        work_part_status=1,
-        unsub_employment=1,
-        sub_private_employment=1,
-        sub_public_employment=1,
-        work_experience_hop=1,
-        work_experience_ea=1,
-        work_experience_hol=1,
-        ojt=1,
-        job_search_hop=1,
-        job_search_ea=1,
-        job_search_hol=1,
-        comm_services_hop=1,
-        comm_services_ea=1,
-        comm_services_hol=1,
-        vocational_ed_training_hop=1,
-        vocational_ed_training_ea=1,
-        vocational_ed_training_hol=1,
-        job_skills_training_hop=1,
-        job_skills_training_ea=1,
-        job_skills_training_hol=1,
-        ed_no_high_school_dipl_hop=1,
-        ed_no_high_school_dipl_ea=1,
-        ed_no_high_school_dipl_hol=1,
-        school_attendence_hop=1,
-        school_attendence_ea=1,
-        school_attendence_hol=1,
-        provide_cc_hop=1,
-        provide_cc_ea=1,
-        provide_cc_hol=1,
-        other_work_activities=1,
-        deemed_hours_for_overall=1,
-        deemed_hours_for_two_parent=1,
-        earned_income=1,
-        unearned_income_tax_credit=1,
-        unearned_social_security=1,
-        unearned_ssi=1,
-        unearned_workers_comp=1,
-        other_unearned_income=1
+        FAMILY_AFFILIATION=1,
+        NONCUSTODIAL_PARENT=1,
+        DOB='1',
+        SSN='1',
+        ITEM34A_HISPANIC_OR_LATINO=1,
+        ITEM34B_AMERICAN_INDIAN_OR_ALASKA_NATIVE=1,
+        ITEM34C_ASIAN=1,
+        ITEM34D_BLACK_OR_AFRICAN_AMERICAN=1,
+        ITEM34E_NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER=1,
+        ITEM34F_WHITE=1,
+        GENDER=1,
+        ITEM36A_RECEIVES_FEDERAL_DISABILITY_INSURANCE_OASDI_PROGRAM=1,
+        ITEM36B_RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS=1,
+        ITEM36C_RECEIVES_AID_TOTALLY_DISABLED_UNDER_TITLE_XIV_APDT=1,
+        ITEM36D_RECEIVES_AID_TO_THE_AGED=1,
+        ITEM36E_RECEIVES_SUPPLEMENTAL_SECURITY_INCOME_TITLE_XVI_SSI=1,
+        MARITAL_STATUS=1,
+        RELATIONSHIP_TO_HEAD_OF_HOUSEHOLD=1,
+        PARENT_WITH_MINOR_CHILD=1,
+        NEEDS_OF_A_PREGNANT_WOMAN=1,
+        EDUCATION_LEVEL=1,
+        CITIZENSHIP_STATUS=1,
+        COOPERATION_WITH_CHILD_SUPPORT=1,
+        NUMBER_OF_COUNTABLE_MONTHS=1,
+        NUMBER_OF_COUNTABLE_MONTHS_REMAINING=1,
+        CURRENT_MONTH_EXEMPT_FROM_STATE=1,
+        EMPLOYMENT_STATUS=1,
+        WORK_ELIGIBLE_INDIVIDUAL_INDICATOR=1,
+        WORK_PARTICIPATION_STATUS=1,
+        UNSUBSIDIZED_EMPLOYMENT=1,
+        SUBSIDIZED_PRIVATE_EMPLOYMENT=1,
+        SUBSIDIZED_PUBLIC_EMPLOYMENT=1,
+        ITEM53A_HOURS_OF_PARTICIPATION=1,
+        ITEM53B_EXCUSED_ABSENCES=1,
+        ITEM53C_HOLIDAYS=1,
+        ON_THE_JOB_TRAINING=1,
+        ITEM55A_HOURS_OF_PARTICIPATION=1,
+        ITEM55B_EXCUSED_ABSENCES=1,
+        ITEM55C_HOLIDAYS=1,
+        ITEM56A_HOURS_OF_PARTICIPATION=1,
+        ITEM56B_EXCUSED_ABSENCES=1,
+        ITEM56C_HOLIDAYS=1,
+        ITEM57A_HOURS_OF_PARTICIPATION=1,
+        ITEM57B_EXCUSED_ABSENCES=1,
+        ITEM57C_HOLIDAYS=1,
+        ITEM58A_HOURS_OF_PARTICIPATION=1,
+        ITEM58B_EXCUSED_ABSENCES=1,
+        ITEM58C_HOLIDAYS=1,
+        ITEM59A_HOURS_OF_PARTICIPATION=1,
+        ITEM59B_EXCUSED_ABSENCES=1,
+        ITEM59C_HOLIDAYS=1,
+        ITEM60A_HOURS_OF_PARTICIPATION=1,
+        ITEM60B_EXCUSED_ABSENCES=1,
+        ITEM60C_HOLIDAYS=1,
+        ITEM61A_HOURS_OF_PARTICIPATION=1,
+        ITEM61B_EXCUSED_ABSENCES=1,
+        ITEM61C_HOLIDAYS=1,
+        OTHER_WORK_ACTIVITIES=1,
+        NUMBER_OF_DEEMED_CORE_HOURS_FOR_OVERALL_RATE=1,
+        NUMBER_OF_DEEMED_CORE_HOURS_FOR_TWO_PARENT_RATE=1,
+        AMOUNT_OF_EARNED_INCOME=1,
+        ITEM66A_EARNED_INCOME_TAX_CREDIT=1,
+        ITEM66B_SOCIAL_SECURITY=1,
+        ITEM66C_SSI=1,
+        ITEM66D_WORKERS_COMPENSATION=1,
+        ITEM66E_OTHER_UNEARNED_INCOME=1
     )
 
     assert submission.id is not None
 
     search = documents.tanf.TANF_T2DataSubmissionDocument.search().query(
         'match',
-        record=record_num
+        RecordType=record_num
     )
     response = search.execute()
 
@@ -172,36 +172,35 @@ def test_can_create_and_index_tanf_t3_submission():
     record_num = fake.uuid4()
 
     submission = TANF_T3.objects.create(
-        record=record_num,
-        rpt_month_year=1,
-        case_number='1',
-        fips_code='1',
+        RecordType=record_num,
+        RPT_MONTH_YEAR=1,
+        CASE_NUMBER='1',
 
-        family_affiliation=1,
-        date_of_birth=1,
-        ssn='1',
-        race_hispanic=1,
-        race_amer_indian=1,
-        race_asian=1,
-        race_black=1,
-        race_hawaiian=1,
-        race_white=1,
-        gender=1,
-        receive_nonssa_benefits=1,
-        receive_ssi=1,
-        relationship_hoh=1,
-        parent_minor_child=1,
-        education_level=1,
-        citizenship_status=1,
-        unearned_ssi=1,
-        other_unearned_income=1,
+        FAMILY_AFFILIATION=1,
+        DOB=1,
+        SSN='1',
+        ITEM70A_HISPANIC_OR_LATINO=1,
+        ITEM70B_AMERICAN_INDIAN_OR_ALASKA_NATIVE=1,
+        ITEM70C_ASIAN=1,
+        ITEM70D_BLACK_OR_AFRICAN_AMERICAN=1,
+        ITEM70E_NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER=1,
+        ITEM70F_WHITE=1,
+        GENDER=1,
+        ITEM72A_RECEIVES_BENEFITS_UNDER_NON_SSA_PROGRAMS=1,
+        ITEM72B_RECEIVES_SSI_UNDER_TITLE_XVI_SSI=1,
+        RELATIONSHIP_TO_HEAD_OF_HOUSEHOLD=1,
+        PARENT_WITH_MINOR_CHILD=1,
+        EDUCATION_LEVEL=1,
+        CITIZENSHIP_ALIENAGE=1,
+        ITEM77A_SSI=1,
+        ITEM77B_OTHER_UNEARNED_INCOME=1,
     )
 
     assert submission.id is not None
 
     search = documents.tanf.TANF_T3DataSubmissionDocument.search().query(
         'match',
-        record=record_num
+        RecordType=record_num
     )
     response = search.execute()
 
@@ -386,7 +385,7 @@ def test_can_create_and_map_ssp_m1_submission():
 
     record_num = fake.uuid4()
 
-    submission = models.ssp.SSP_M1.objects.create(
+    submission = SSP_M1.objects.create(
         RecordType=record_num,
         RPT_MONTH_YEAR=1,
         CASE_NUMBER=1,
@@ -451,7 +450,7 @@ def test_can_create_and_index_ssp_m2_submission():
     """SSP M2 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = models.ssp.SSP_M2.objects.create(
+    submission = SSP_M2.objects.create(
         RecordType=record_num,
         RPT_MONTH_YEAR=1,
         CASE_NUMBER='1',
@@ -541,7 +540,7 @@ def test_can_create_and_index_ssp_m3_submission():
     """SSP M3 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = models.ssp.SSP_M3.objects.create(
+    submission = SSP_M3.objects.create(
         RecordType=record_num,
         RPT_MONTH_YEAR=1,
         CASE_NUMBER='1',

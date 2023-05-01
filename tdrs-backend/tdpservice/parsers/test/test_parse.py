@@ -85,14 +85,15 @@ def test_big_file(stt_user, stt):
 @pytest.mark.django_db
 def test_parse_big_file(test_big_file):
     """Test parsing of ADS.E2J.FTP1.TS06."""
-    expected_errors_count = 1828
     expected_t1_record_count = 815
-    expected_errors_count = 1828
-    expected_t1_record_count = 815
+    expected_t2_record_count = 882
+    expected_t3_record_count = 1376
     errors = parse.parse_datafile(test_big_file)
 
-    assert len(errors.keys()) == expected_errors_count
+    assert errors == {}
     assert TANF_T1.objects.count() == expected_t1_record_count
+    assert TANF_T2.objects.count() == expected_t2_record_count
+    assert TANF_T3.objects.count() == expected_t3_record_count
 
 
 @pytest.fixture
@@ -248,9 +249,9 @@ def test_parse_ssp_section1_datafile(ssp_section1_datafile):
         16004: ['Value length 30 does not match 150.'],
         19681: ['Value length 30 does not match 150.']
     }
-    assert models.SSP_M1.objects.count() == expected_m1_record_count
-    assert models.SSP_M2.objects.count() == expected_m2_record_count
-    assert models.SSP_M3.objects.count() == expected_m3_record_count
+    assert SSP_M1.objects.count() == expected_m1_record_count
+    assert SSP_M2.objects.count() == expected_m2_record_count
+    assert SSP_M3.objects.count() == expected_m3_record_count
 
 @pytest.fixture
 def small_tanf_section1_datafile(stt_user, stt):
@@ -261,7 +262,7 @@ def test_parse_tanf_section2_datafile(small_tanf_section1_datafile):
     errors = parse.parse_datafile(small_tanf_section1_datafile)
 
     assert errors == {}
-    assert TANF_T2.objects.count() == 6
+    assert TANF_T2.objects.count() == 5
 
     t2_models = TANF_T2.objects.all()
 
@@ -269,14 +270,13 @@ def test_parse_tanf_section2_datafile(small_tanf_section1_datafile):
     assert t2.RPT_MONTH_YEAR == 202010
     assert t2.CASE_NUMBER == '11111111112'
     assert t2.FAMILY_AFFILIATION == 1
-    assert t2.ITEM66E_OTHER_UNEARNED_INCOME == 291
+    assert t2.ITEM66E_OTHER_UNEARNED_INCOME == '0291'
 
     t2_2 = t2_models[1]
-    print(t2_2.RPT_MONTH_YEAR, t2.CASE_NUMBER, t2.FAMILY_AFFILIATION, t2.ITEM66E_OTHER_UNEARNED_INCOME)
     assert t2_2.RPT_MONTH_YEAR == 202010
     assert t2_2.CASE_NUMBER == '11111111115'
     assert t2_2.FAMILY_AFFILIATION == 2
-    assert t2_2.ITEM66E_OTHER_UNEARNED_INCOME == 000
+    assert t2_2.ITEM66E_OTHER_UNEARNED_INCOME == '0000'
 
 @pytest.mark.django_db
 def test_parse_tanf_section2_datafile_obj_counts(small_tanf_section1_datafile):
