@@ -6,7 +6,7 @@ from ... import validators
 from tdpservice.search_indexes.models.tanf import TANF_T3
 
 
-child_one= RowSchema(
+child_one = RowSchema(
     model=TANF_T3,
     preparsing_validators=[
         validators.notEmpty(start=19, end=60),

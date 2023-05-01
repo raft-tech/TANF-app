@@ -90,11 +90,14 @@ class TANF_T2(models.Model):
     ITEM34E_NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER = models.CharField(max_length=1, null=False, blank=False)
     ITEM34F_WHITE = models.CharField(max_length=1, null=False, blank=False)
     GENDER = models.IntegerField(null=False, blank=False)
-    ITEM36A_RECEIVES_FEDERAL_DISABILITY_INSURANCE_OASDI_PROGRAM = models.CharField(max_length=1, null=False, blank=False)
-    ITEM36B_RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS = models.CharField(max_length=1, null=False, blank=False)
+    ITEM36A_RECEIVES_FEDERAL_DISABILITY_INSURANCE_OASDI_PROGRAM = models.CharField(max_length=1, null=False,
+                                                                                   blank=False)
+    ITEM36B_RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS = models.CharField(max_length=1, null=False,
+                                                                                    blank=False)
     ITEM36C_RECEIVES_AID_TOTALLY_DISABLED_UNDER_TITLE_XIV_APDT = models.CharField(max_length=1, null=False, blank=False)
     ITEM36D_RECEIVES_AID_TO_THE_AGED = models.CharField(max_length=1, null=False, blank=False)
-    ITEM36E_RECEIVES_SUPPLEMENTAL_SECURITY_INCOME_TITLE_XVI_SSI = models.CharField(max_length=1, null=False, blank=False)
+    ITEM36E_RECEIVES_SUPPLEMENTAL_SECURITY_INCOME_TITLE_XVI_SSI = models.CharField(max_length=1, null=False,
+                                                                                   blank=False)
     MARITAL_STATUS = models.CharField(max_length=1, null=False, blank=False)
     RELATIONSHIP_TO_HEAD_OF_HOUSEHOLD = models.IntegerField(null=False, blank=False)
     PARENT_WITH_MINOR_CHILD = models.CharField(max_length=1, null=False, blank=False)

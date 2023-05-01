@@ -209,11 +209,13 @@ def test_parse_empty_file(empty_file):
 
 @pytest.fixture
 def small_ssp_section1_datafile(stt_user, stt):
+    """Fixture for small_ssp_section1."""
     return create_test_datafile('small_ssp_section1.txt', stt_user, stt, 'SSP Active Case Data')
 
 
 @pytest.mark.django_db
 def test_parse_small_ssp_section1_datafile(small_ssp_section1_datafile):
+    """Test parsing of small_ssp_section1."""
     expected_m1_record_count = 5
     expected_m2_record_count = 6
     expected_m3_record_count = 8
@@ -230,11 +232,13 @@ def test_parse_small_ssp_section1_datafile(small_ssp_section1_datafile):
 
 @pytest.fixture
 def ssp_section1_datafile(stt_user, stt):
+    """Fixture for ssp_section1_datafile."""
     return create_test_datafile('ssp_section1_datafile.txt', stt_user, stt, 'SSP Active Case Data')
 
 
 @pytest.mark.django_db
 def test_parse_ssp_section1_datafile(ssp_section1_datafile):
+    """Test parsing of ssp_section1_datafile."""
     expected_m1_record_count = 7849
     expected_m2_record_count = 9373
     expected_m3_record_count = 16764
@@ -255,10 +259,12 @@ def test_parse_ssp_section1_datafile(ssp_section1_datafile):
 
 @pytest.fixture
 def small_tanf_section1_datafile(stt_user, stt):
+    """Fixture for small_tanf_section1."""
     return create_test_datafile('small_tanf_section1.txt', stt_user, stt)
 
 @pytest.mark.django_db
-def test_parse_tanf_section2_datafile(small_tanf_section1_datafile):
+def test_parse_tanf_section1_datafile(small_tanf_section1_datafile):
+    """Test parsing of small_tanf_section1_datafile and validate T2 model data."""
     errors = parse.parse_datafile(small_tanf_section1_datafile)
 
     assert errors == {}
@@ -279,7 +285,8 @@ def test_parse_tanf_section2_datafile(small_tanf_section1_datafile):
     assert t2_2.ITEM66E_OTHER_UNEARNED_INCOME == '0000'
 
 @pytest.mark.django_db
-def test_parse_tanf_section2_datafile_obj_counts(small_tanf_section1_datafile):
+def test_parse_tanf_section1_datafile_obj_counts(small_tanf_section1_datafile):
+    """Test parsing of small_tanf_section1_datafile in general."""
     errors = parse.parse_datafile(small_tanf_section1_datafile)
 
     assert errors == {}
@@ -288,7 +295,8 @@ def test_parse_tanf_section2_datafile_obj_counts(small_tanf_section1_datafile):
     assert TANF_T3.objects.count() == 6
 
 @pytest.mark.django_db
-def test_parse_tanf_section2_datafile_t3s(small_tanf_section1_datafile):
+def test_parse_tanf_section1_datafile_t3s(small_tanf_section1_datafile):
+    """Test parsing of small_tanf_section1_datafile and validate T3 model data."""
     errors = parse.parse_datafile(small_tanf_section1_datafile)
 
     assert errors == {}
@@ -308,4 +316,3 @@ def test_parse_tanf_section2_datafile_t3s(small_tanf_section1_datafile):
     assert t3_6.FAMILY_AFFILIATION == 1
     assert t3_6.GENDER == 2
     assert t3_6.EDUCATION_LEVEL == '98'
-
