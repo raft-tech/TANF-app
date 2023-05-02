@@ -215,7 +215,7 @@ def small_ssp_section1_datafile(stt_user, stt):
 
 @pytest.mark.django_db
 def test_parse_small_ssp_section1_datafile(small_ssp_section1_datafile):
-    """Test parsing of small_ssp_section1."""
+    """Test parsing small_ssp_section1_datafile."""
     expected_m1_record_count = 5
     expected_m2_record_count = 6
     expected_m3_record_count = 8
@@ -238,7 +238,7 @@ def ssp_section1_datafile(stt_user, stt):
 
 @pytest.mark.django_db
 def test_parse_ssp_section1_datafile(ssp_section1_datafile):
-    """Test parsing of ssp_section1_datafile."""
+    """Test parsing ssp_section1_datafile."""
     expected_m1_record_count = 7849
     expected_m2_record_count = 9373
     expected_m3_record_count = 16764
