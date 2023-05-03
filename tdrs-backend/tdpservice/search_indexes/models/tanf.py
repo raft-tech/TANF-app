@@ -90,14 +90,11 @@ class TANF_T2(models.Model):
     RACE_NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER = models.CharField(max_length=1, null=True, blank=False)
     RACE_WHITE = models.CharField(max_length=1, null=True, blank=False)
     GENDER = models.IntegerField(null=True, blank=False)
-    RECEIVES_FEDERAL_DISABILITY_INSURANCE_OASDI_PROGRAM = models.CharField(max_length=1, null=True,
-                                                                                   blank=False)
-    RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS = models.CharField(max_length=1, null=True,
-                                                                                    blank=False)
+    RECEIVES_FEDERAL_DISABILITY_INSURANCE_OASDI_PROGRAM = models.CharField(max_length=1, null=True, blank=False)
+    RECEIVES_BENEFITS_BASED_ON_FEDERAL_DISABILITY_STATUS = models.CharField(max_length=1, null=True, blank=False)
     RECEIVES_AID_TOTALLY_DISABLED_UNDER_TITLE_XIV_APDT = models.CharField(max_length=1, null=True, blank=False)
     RECEIVES_AID_TO_THE_AGED = models.CharField(max_length=1, null=True, blank=False)
-    RECEIVES_SUPPLEMENTAL_SECURITY_INCOME_TITLE_XVI_SSI = models.CharField(max_length=1, null=True,
-                                                                                   blank=False)
+    RECEIVES_SUPPLEMENTAL_SECURITY_INCOME_TITLE_XVI_SSI = models.CharField(max_length=1, null=True, blank=False)
     MARITAL_STATUS = models.CharField(max_length=1, null=True, blank=False)
     RELATIONSHIP_TO_HEAD_OF_HOUSEHOLD = models.IntegerField(null=True, blank=False)
     PARENT_WITH_MINOR_CHILD = models.CharField(max_length=1, null=True, blank=False)
