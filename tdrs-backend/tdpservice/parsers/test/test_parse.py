@@ -276,13 +276,13 @@ def test_parse_tanf_section1_datafile(small_tanf_section1_datafile):
     assert t2.RPT_MONTH_YEAR == 202010
     assert t2.CASE_NUMBER == '11111111112'
     assert t2.FAMILY_AFFILIATION == 1
-    assert t2.ITEM66E_OTHER_UNEARNED_INCOME == '0291'
+    assert t2.UNEARNED_INCOME_OTHER_UNEARNED_INCOME == '0291'
 
     t2_2 = t2_models[1]
     assert t2_2.RPT_MONTH_YEAR == 202010
     assert t2_2.CASE_NUMBER == '11111111115'
     assert t2_2.FAMILY_AFFILIATION == 2
-    assert t2_2.ITEM66E_OTHER_UNEARNED_INCOME == '0000'
+    assert t2_2.UNEARNED_INCOME_OTHER_UNEARNED_INCOME == '0000'
 
 @pytest.mark.django_db
 def test_parse_tanf_section1_datafile_obj_counts(small_tanf_section1_datafile):

@@ -25,23 +25,23 @@ child_one = RowSchema(
         ]),
         Field(name='SSN', type='string', startIndex=28, endIndex=37, required=True, validators=[
         ]),
-        Field(name='ITEM70A_HISPANIC_OR_LATINO', type='string', startIndex=37, endIndex=38, required=True, validators=[
+        Field(name='RACE_HISPANIC_OR_LATINO', type='string', startIndex=37, endIndex=38, required=True, validators=[
         ]),
-        Field(name='ITEM70B_AMERICAN_INDIAN_OR_ALASKA_NATIVE', type='string', startIndex=38, endIndex=39, required=True,
+        Field(name='RACE_AMERICAN_INDIAN_OR_ALASKA_NATIVE', type='string', startIndex=38, endIndex=39, required=True,
               validators=[]),
-        Field(name='ITEM70C_ASIAN', type='string', startIndex=39, endIndex=40, required=True, validators=[
+        Field(name='RACE_ASIAN', type='string', startIndex=39, endIndex=40, required=True, validators=[
         ]),
-        Field(name='ITEM70D_BLACK_OR_AFRICAN_AMERICAN', type='string', startIndex=40, endIndex=41, required=True,
+        Field(name='RACE_BLACK_OR_AFRICAN_AMERICAN', type='string', startIndex=40, endIndex=41, required=True,
               validators=[]),
-        Field(name='ITEM70E_NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER', type='string', startIndex=41, endIndex=42,
+        Field(name='RACE_NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER', type='string', startIndex=41, endIndex=42,
               required=True, validators=[]),
-        Field(name='ITEM70F_WHITE', type='string', startIndex=42, endIndex=43, required=True, validators=[
+        Field(name='RACE_WHITE', type='string', startIndex=42, endIndex=43, required=True, validators=[
         ]),
         Field(name='GENDER', type='number', startIndex=43, endIndex=44, required=True, validators=[
         ]),
-        Field(name='ITEM72A_RECEIVES_BENEFITS_UNDER_NON_SSA_PROGRAMS', type='string',
+        Field(name='RECEIVES_BENEFITS_UNDER_NON_SSA_PROGRAMS', type='string',
               startIndex=44, endIndex=45, required=True, validators=[]),
-        Field(name='ITEM72B_RECEIVES_SSI_UNDER_TITLE_XVI_SSI', type='string', startIndex=45, endIndex=46, required=True,
+        Field(name='RECEIVES_SSI_UNDER_TITLE_XVI_SSI', type='string', startIndex=45, endIndex=46, required=True,
               validators=[]),
         Field(name='RELATIONSHIP_TO_HEAD_OF_HOUSEHOLD', type='number', startIndex=46, endIndex=48, required=True,
               validators=[]),
@@ -51,8 +51,8 @@ child_one = RowSchema(
         ]),
         Field(name='CITIZENSHIP_ALIENAGE', type='string', startIndex=51, endIndex=52, required=True, validators=[
         ]),
-        Field(name='ITEM77A_SSI', type='string', startIndex=52, endIndex=56, required=False, validators=[]),
-        Field(name='ITEM77B_OTHER_UNEARNED_INCOME', type='string', startIndex=56, endIndex=60, required=False,
+        Field(name='UNEARNED_INCOME_SSI', type='string', startIndex=52, endIndex=56, required=False, validators=[]),
+        Field(name='UNEARNED_INCOME_OTHER_UNEARNED_INCOME', type='string', startIndex=56, endIndex=60, required=False,
               validators=[]),
     ],
 )
@@ -77,23 +77,23 @@ child_two = RowSchema(
         ]),
         Field(name='SSN', type='string', startIndex=69, endIndex=78, required=True, validators=[
         ]),
-        Field(name='ITEM70A_HISPANIC_OR_LATINO', type='string', startIndex=78, endIndex=79, required=True, validators=[
+        Field(name='RACE_HISPANIC_OR_LATINO', type='string', startIndex=78, endIndex=79, required=True, validators=[
         ]),
-        Field(name='ITEM70B_AMERICAN_INDIAN_OR_ALASKA_NATIVE', type='string', startIndex=79, endIndex=80, required=True,
+        Field(name='RACE_AMERICAN_INDIAN_OR_ALASKA_NATIVE', type='string', startIndex=79, endIndex=80, required=True,
               validators=[]),
-        Field(name='ITEM70C_ASIAN', type='string', startIndex=80, endIndex=81, required=True, validators=[
+        Field(name='RACE_ASIAN', type='string', startIndex=80, endIndex=81, required=True, validators=[
         ]),
-        Field(name='ITEM70D_BLACK_OR_AFRICAN_AMERICAN', type='string', startIndex=81, endIndex=82, required=True,
+        Field(name='RACE_BLACK_OR_AFRICAN_AMERICAN', type='string', startIndex=81, endIndex=82, required=True,
               validators=[]),
-        Field(name='ITEM70E_NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER', type='string', startIndex=82, endIndex=83,
+        Field(name='RACE_NATIVE_HAWAIIAN_OR_OTHER_PACIFIC_ISLANDER', type='string', startIndex=82, endIndex=83,
               required=True, validators=[]),
-        Field(name='ITEM70F_WHITE', type='string', startIndex=83, endIndex=84, required=True, validators=[
+        Field(name='RACE_WHITE', type='string', startIndex=83, endIndex=84, required=True, validators=[
         ]),
         Field(name='GENDER', type='number', startIndex=84, endIndex=85, required=True, validators=[
         ]),
-        Field(name='ITEM72A_RECEIVES_BENEFITS_UNDER_NON_SSA_PROGRAMS', type='string',
+        Field(name='RECEIVES_BENEFITS_UNDER_NON_SSA_PROGRAMS', type='string',
               startIndex=85, endIndex=86, required=True, validators=[]),
-        Field(name='ITEM72B_RECEIVES_SSI_UNDER_TITLE_XVI_SSI', type='string', startIndex=86, endIndex=87, required=True,
+        Field(name='RECEIVES_SSI_UNDER_TITLE_XVI_SSI', type='string', startIndex=86, endIndex=87, required=True,
               validators=[]),
         Field(name='RELATIONSHIP_TO_HEAD_OF_HOUSEHOLD', type='number', startIndex=87, endIndex=89, required=True,
               validators=[]),
@@ -103,8 +103,8 @@ child_two = RowSchema(
         ]),
         Field(name='CITIZENSHIP_ALIENAGE', type='string', startIndex=92, endIndex=93, required=True, validators=[
         ]),
-        Field(name='ITEM77A_SSI', type='string', startIndex=93, endIndex=97, required=False, validators=[]),
-        Field(name='ITEM77B_OTHER_UNEARNED_INCOME', type='string', startIndex=97, endIndex=101, required=False,
+        Field(name='UNEARNED_INCOME_SSI', type='string', startIndex=93, endIndex=97, required=False, validators=[]),
+        Field(name='UNEARNED_INCOME_OTHER_UNEARNED_INCOME', type='string', startIndex=97, endIndex=101, required=False,
               validators=[]),
     ],
 )
