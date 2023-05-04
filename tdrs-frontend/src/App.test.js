@@ -66,8 +66,4 @@ describe('App.js', () => {
 
     expect(window.location.href).toEqual(url)
   })
-
-  it('should blow up because this test will fail', () => {
-    expect(false).toBe(true)
-  })
 })
