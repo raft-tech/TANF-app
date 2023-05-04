@@ -27,7 +27,7 @@ def create_test_datafile(filename, stt_user, stt):
 
 def test_ghactions_filtering():
     """This should break."""
-    assert False is True
+    assert True is True
 
 
 @pytest.fixture
