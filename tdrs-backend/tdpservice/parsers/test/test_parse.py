@@ -25,6 +25,11 @@ def create_test_datafile(filename, stt_user, stt):
     return datafile
 
 
+def test_ghactions_filtering():
+    """This should break."""
+    assert False is True
+
+
 @pytest.fixture
 def test_datafile(stt_user, stt):
     """Fixture for small_correct_file."""
