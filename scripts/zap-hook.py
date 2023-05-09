@@ -26,7 +26,6 @@ def zap_started(zap, target):
             10096,  # Informational: Timestamp Disclosure - Unix
             10109,  # Modern Web Application
             90022,  # Application Error Disclosure
-            40018,  # SQL Injection
         ]
    
 
