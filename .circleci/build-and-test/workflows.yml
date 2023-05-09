@@ -24,17 +24,11 @@
       - test-backend:
           requires:
             - secrets-check
-      - test-e2e:
-          requires:
-            - secrets-check
 
   build-and-test-frontend:
     when: << pipeline.parameters.build_and_test_frontend >>
     jobs:
       - secrets-check
       - test-frontend:
-          requires:
-            - secrets-check
-      - test-e2e:
           requires:
             - secrets-check

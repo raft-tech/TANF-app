@@ -34,7 +34,6 @@ on:
       - master
     paths:
       - 'scripts/**'
-      - 'commands.sh'
       - '.circleci/**'
       - '.github/**'
     paths_ignore:

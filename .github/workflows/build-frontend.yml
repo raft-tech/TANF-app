@@ -42,3 +42,4 @@ jobs:
         project-slug: ${{ github.repository }}
         branch: ${{ github.ref }}
         payload: '{"build_and_test_frontend": true}'
+        
