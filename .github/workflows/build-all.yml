@@ -42,7 +42,7 @@ on:
     branches_ignore: #handled in circleci
       - main
       - master
-    types: [review_requested, ready_for_review]
+    types: [review_requested, ready_for_review, synchronize]
     paths_ignore:
       - 'docs/**'
       - '**.md'
