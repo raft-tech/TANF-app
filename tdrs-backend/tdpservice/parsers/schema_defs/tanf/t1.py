@@ -16,6 +16,7 @@ t1 = RowSchema(
         Field(name='RecordType', type='string', startIndex=0, endIndex=2, required=True, validators=[
         ]),
         Field(name='RPT_MONTH_YEAR', type='number', startIndex=2, endIndex=8, required=True, validators=[
+            validators.isNumber,
         ]),
         Field(name='CASE_NUMBER', type='string', startIndex=8, endIndex=19, required=True, validators=[
         ]),

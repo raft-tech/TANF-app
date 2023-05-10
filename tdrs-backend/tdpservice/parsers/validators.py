@@ -58,6 +58,14 @@ def startsWith(substring):
     )
 
 
+def isNumber(substring):
+    """Validate that value can be casted to a number."""
+    return make_validator(
+        lambda value: value.isnumeric(substring),
+        lambda value: f'{value} is not a number.'
+    )
+
+
 # custom validators
 
 def validate_single_header_trailer(file):
