@@ -241,7 +241,7 @@ describe('SubmissionHistory', () => {
     expect(screen.queryByText('test5.txt')).not.toBeInTheDocument()
     expect(screen.queryByText('test6.txt')).toBeInTheDocument()
 
-    expect(screen.queryByText('Error Reports')).toBeInTheDocument()
+    expect(screen.queryByText('**IN BETA** Error Reports')).toBeInTheDocument()
     expect(screen.queryByText('Currently Unavailable')).toBeInTheDocument()
   })
 
