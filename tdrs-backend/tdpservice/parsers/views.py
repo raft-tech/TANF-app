@@ -51,7 +51,8 @@ class ParsingErrorViewSet(ModelViewSet):
                           'column_number']
 
         # write beta banner
-        worksheet.write("BETA TESTING - PLEASE DO NOT USE - REFER TO LEGACY TDRS EMAILS")
+        worksheet.write(row, col, "BETA TESTING - PLEASE DO NOT USE - REFER TO LEGACY TDRS EMAILS")
+        row, col = 1, 1
         # write csv header
         [worksheet.write(row, col, key) for col, key in enumerate(report_columns)]
 
