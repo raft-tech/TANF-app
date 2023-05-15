@@ -95,7 +95,6 @@
   prod-apps-fs-upgrade:
     unless:
       when:
-
         << pipeline.parameters.upgrade_prod_apps_fs >>
     jobs:
       - upgrade-cf-prod-apps:
