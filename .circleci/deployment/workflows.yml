@@ -11,7 +11,7 @@
             - deploy-infrastructure-dev
 
   staging-deployment:
-    unless: 
+    unless:
       or:
         - << pipeline.parameters.run_dev_deployment >>
         - << pipeline.parameters.run_nightly_owasp_scan >>
@@ -67,6 +67,38 @@
       - deploy-production:
           requires:
             - deploy-infrastructure-production
+          filters:
+            branches:
+              only:
+                - master
+
+  dev-apps-fs-upgrade:
+    when:
+      << pipeline.parameters.upgrade_dev_apps_fs >>
+    jobs:
+      - upgrade-cf-dev-apps:
+          filters:
+            branches:
+              only:
+                - develop
+
+  staging-apps-fs-upgrade:
+    when:
+      << pipeline.parameters.upgrade_staging_apps_fs >>
+    jobs:
+      - upgrade-cf-staging-apps:
+          filters:
+            branches:
+              only:
+                - develop
+
+  prod-apps-fs-upgrade:
+    unless:
+      when:
+
+        << pipeline.parameters.upgrade_prod_apps_fs >>
+    jobs:
+      - upgrade-cf-prod-apps:
           filters:
             branches:
               only:

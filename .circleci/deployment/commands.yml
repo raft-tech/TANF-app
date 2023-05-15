@@ -110,10 +110,10 @@
         default: tdp-frontend
         type: string
 # So the frontend knows what space its in for the banner.
-# I am unclear if the domain is a reliable metric to make this function 
+# I am unclear if the domain is a reliable metric to make this function
 # It seems like it might not be working
       cf-space:
-        default: dev 
+        default: dev
         type: string
     steps:
       - install-nodejs:
@@ -149,3 +149,19 @@
             else
               echo "export DEPLOY_STRATEGY=rolling" >> $BASH_ENV
             fi
+
+  upgrade-apps-fs:
+    parameters:
+      cf-os:
+        default: cflinuxfs4
+        type: string
+      cf-space:
+        default: tanf-dev
+        type: string
+    steps:
+      - run:
+          name: Upgrade CF app file systems
+          command: |
+            bash ./scripts/cf-upgrade-fs.sh \
+              <<parameters.cf-os>> \
+              <<parameters.cf-space>>
