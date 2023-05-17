@@ -8,6 +8,8 @@
 #       would be redundant after running the full set of tests from the PR.
 #       See deploy-develop-on-merge.yml and make_erd for the workflow
 #       pipelines that run on merge to develop, staging, and master branches.
+#       HHS (main and master) branches build all only adn are managed in
+#       CircleCI
 #
 # Step 0: make PR from your branch into develop, or make changes on your 
 #         branch to non-documentation files in scripts or commands.sh and 
