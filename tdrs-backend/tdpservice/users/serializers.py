@@ -54,9 +54,19 @@ class UserSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "access_request",
-            "account_approval_status"
+            "account_approval_status",
+            'groups',
+            'is_superuser',
+            'is_staff',
+            'stt',
+            'region',
+            'login_gov_uuid',
+            'hhs_id',
+            'last_login',
+            'date_joined',
+            'access_requested_date',
         )
-        read_only_fields = ("username", "account_approval_status",)
+        read_only_fields = ("username", 'access_requested_date', "account_approval_status",)
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -82,11 +92,19 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'email',
             'stt',
             'region',
+            'login_gov_uuid',
+            'hhs_id',
             'roles',
+            'groups',
+            'is_superuser',
+            'is_staff',
+            'last_login',
+            'date_joined',
             'access_request',
+            'access_requested_date',
             'account_approval_status'
         ]
-        read_only_fields = ("account_approval_status",)
+        read_only_fields = ('access_requested_date', "account_approval_status",)
 
         """Enforce first and last name to be in API call and not empty"""
         extra_kwargs = {

@@ -95,7 +95,7 @@ class Common(Configuration):
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = "smtp.ees.hhs.gov"
     EMAIL_HOST_USER = "no-reply@tanfdata.acf.hhs.gov"
-    
+
     # Whether to use localstack in place of a live AWS S3 environment
     USE_LOCALSTACK = bool(strtobool(os.getenv("USE_LOCALSTACK", "no")))
 
@@ -270,14 +270,17 @@ class Common(Configuration):
 
 
     # Django Rest Framework
+    DEFAULT_RENDERER_CLASSES = ['rest_framework.renderers.JSONRenderer']
+    TEST_REQUEST_RENDERER_CLASSES = ['rest_framework.renderers.JSONRenderer']
+    if DEBUG:
+        DEFAULT_RENDERER_CLASSES.append('rest_framework.renderers.BrowsableAPIRenderer')
+        TEST_REQUEST_RENDERER_CLASSES.append('rest_framework.renderers.MultiPartRenderer')
+
     REST_FRAMEWORK = {
         "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
         "PAGE_SIZE": int(os.getenv("DJANGO_PAGINATION_LIMIT", 32)),
         "DATETIME_FORMAT": "%Y-%m-%dT%H:%M:%S%z",
-        "DEFAULT_RENDERER_CLASSES": (
-            "rest_framework.renderers.JSONRenderer",
-            "rest_framework.renderers.BrowsableAPIRenderer",
-        ),
+        "DEFAULT_RENDERER_CLASSES": DEFAULT_RENDERER_CLASSES,
         "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
         "DEFAULT_AUTHENTICATION_CLASSES": (
             "tdpservice.users.authentication.CustomAuthentication",
@@ -288,10 +291,7 @@ class Common(Configuration):
             "django_filters.rest_framework.DjangoFilterBackend",
         ],
         "TEST_REQUEST_DEFAULT_FORMAT": "json",
-        "TEST_REQUEST_RENDERER_CLASSES": [
-            "rest_framework.renderers.MultiPartRenderer",
-            "rest_framework.renderers.JSONRenderer"
-        ],
+        "TEST_REQUEST_RENDERER_CLASSES": TEST_REQUEST_RENDERER_CLASSES,
     }
 
     AUTHENTICATION_BACKENDS = (
@@ -410,7 +410,7 @@ class Common(Configuration):
     # ------- SFTP CONFIG
     ACFTITAN_SERVER_ADDRESS = os.getenv('ACFTITAN_HOST', '')
     """
-    To be able to fit the PRIVATE KEY in one line as environment variable, we replace the EOL 
+    To be able to fit the PRIVATE KEY in one line as environment variable, we replace the EOL
     with an underscore char.
     The next line replaces the _ with EOL before using the PRIVATE KEY
     """
@@ -449,6 +449,10 @@ class Common(Configuration):
                 'expires': 15.0,
             },
         },
+        'Email Admin Number of Access Requests' : {
+            'task': 'tdpservice.scheduling.tasks.email_admin_num_access_requests',
+            'schedule': crontab(minute='0', hour='1', day_of_week='*', day_of_month='*', month_of_year='*'), # Every day at 1am UTC (9am EST)
+        }
     }
 
     # Elastic
