@@ -1,6 +1,6 @@
 """Schema for HEADER row of all submission types."""
 
-
+from ..cat3_validators import cat3_validate_t1
 from ...util import RowSchema, Field
 from ... import validators
 from tdpservice.search_indexes.models.tanf import TANF_T1
@@ -11,7 +11,7 @@ t1 = RowSchema(
     preparsing_validators=[
         validators.hasLength(156),
     ],
-    postparsing_validators=[],
+    postparsing_validators=[cat3_validate_t1],
     fields=[
         Field(name='RecordType', type='string', startIndex=0, endIndex=2,
               required=True, validators=[]),
