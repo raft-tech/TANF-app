@@ -41,5 +41,8 @@ jobs:
         user-token: ${{ secrets.CIRCLE_CI_V2_TOKEN }}
         project-slug: ${{ github.repository }}
         branch: ${{ github.ref }}
-        payload: '{"build_and_test_frontend": true}'
+        payload: '{
+          "build_and_test_frontend": true,
+          "triggered": true
+        }'
         
