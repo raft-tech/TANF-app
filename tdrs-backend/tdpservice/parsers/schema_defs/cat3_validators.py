@@ -77,13 +77,13 @@ def validate_transitional_services(record):
 
 def validate_other(record):
     """Validate other dependencies."""
-    other_svc_amount = getattr(record, "OTHER_AMOUNT")
+    other_amount = getattr(record, "OTHER_AMOUNT")
     other_nbr_months = getattr(record, "OTHER_NBR_MONTHS")
 
-    if other_svc_amount == 0 and other_nbr_months < 0:
+    if other_amount == 0 and other_nbr_months < 0:
         return (False, "WARNING: ITEM 25A AND ITEM 25B MUST => 0")
 
-    if other_svc_amount > 0 and other_nbr_months <= 0:
+    if other_amount > 0 and other_nbr_months <= 0:
         return (False, "WARNING: IF ITEM 25A > 0, ITEM 25B MUST > 0")
 
     return (True, None)
@@ -103,11 +103,11 @@ def validate_reasons_for_amount_of_assistance_reductions(record):
     reductions_on_receipts = getattr(record, "REDUCTIONS_ON_RECEIPTS")
     other_non_sanction = getattr(record, "OTHER_NON_SANCTION")
 
-    if sanc_reduction_amount > 0 and (work_req_sanction < 0 and family_sanc_adult < 0 and sanc_teen_parent and
-                                      non_cooperation_case < 0 and failure_to_comply < 0 and other_sanction < 0):
+    if sanc_reduction_amount > 0 and (work_req_sanction < 0 or family_sanc_adult < 0 or sanc_teen_parent or
+                                      non_cooperation_case < 0 or failure_to_comply < 0 or other_sanction < 0):
         return (False, "WARNING: IF ITEM 26Ai > 0, ITEMS 26Aii THRU")
 
-    if other_total_reductions > 0 and (family_cap < 0 and reductions_on_receipts < 0 and other_non_sanction < 0):
+    if other_total_reductions > 0 and (family_cap < 0 or reductions_on_receipts < 0 or other_non_sanction < 0):
         return (False, "WARNING: IF ITEM 26Ci > 0, ITEMS 26Cii THRU")
 
     return (True, None)

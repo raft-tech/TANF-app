@@ -1,6 +1,9 @@
 """Tests for generic validator functions."""
 
+import pytest
 from .. import validators
+from ..schema_defs import cat3_validators
+from tdpservice.parsers.test.factories import TanfT1Factory
 
 
 def test_matches_returns_valid():
@@ -201,3 +204,108 @@ def test_notEmpty_returns_invalid_substring():
 
     assert is_valid is False
     assert error == "111  333 contains blanks between positions 3 and 5."
+
+
+
+@pytest.mark.usefixtures('db')
+class TanfSection1TestCat3ValidatorsBase:
+    @pytest.fixture
+    def record(self):
+        raise NotImplementedError()
+
+
+class TestT1Cat3Validators(TanfSection1TestCat3ValidatorsBase):
+    @pytest.fixture
+    def record(self):
+        return TanfT1Factory.create()
+    
+    def test_validate_disposition(self, record):
+        record.DISPOSITION = 2
+        record.COUNTY_FIPS_CODE = ' '
+        record.RPT_MONTH_YEAR = ' '
+        record.STRATUM = ' '
+        record.CASE_NUMBER = ' '
+
+        expected = (False, "FATAL: IF ITEM 9 = 2, THEN ITEMS 1,4-6 MUST NOT BE BLANK")
+        result = cat3_validators.validate_disposition(record)
+        assert result == expected
+    
+    def test_validate_cash_amount_and_nbr_months(self, record):
+        record.CASH_AMOUNT = 0
+        record.NBR_MONTHS = -1
+        expected = (False, "WARNING: ITEM 21A AND ITEM 21B MUST => 0")
+        result = cat3_validators.validate_cash_amount_and_nbr_months(record)
+        assert result == expected
+
+        record.CASH_AMOUNT = 100
+        record.NBR_MONTHS = 0
+        expected = (False, "WARNING: IF ITEM 21A > 0, ITEM 21B MUST > 0")
+        result = cat3_validators.validate_cash_amount_and_nbr_months(record)
+        assert result == expected
+    
+    def test_validate_child_care(self, record):
+        record.CC_AMOUNT = 0
+        record.CHILDREN_COVERED = -1
+        expected = (False, "WARNING: ITEM 22A AND ITEM 22B MUST => 0")
+        result = cat3_validators.validate_child_care(record)
+        assert result == expected
+
+        record.CC_AMOUNT = 10
+        record.CHILDREN_COVERED = -1
+        record.CC_NBR_MONTHS = -1
+        expected = (False, "WARNING: IF ITEM 22A > 0, ITEM 22B MUST > 0, ITEM 22C MUST > 0")
+        result = cat3_validators.validate_child_care(record)
+        assert result == expected
+
+    def test_validate_transportation(self, record):
+        record.TRANSP_AMOUNT = 0
+        record.TRANSP_NBR_MONTHS = -1
+        expected = (False, "WARNING: ITEM 23A AND ITEM 23B MUST => 0")
+        result = cat3_validators.validate_transportation(record)
+        assert result == expected
+
+        record.TRANSP_AMOUNT = 100
+        record.TRANSP_NBR_MONTHS = 0
+        expected = (False, "WARNING: IF ITEM 23A > 0, ITEM 23B MUST > 0")
+        result = cat3_validators.validate_transportation(record)
+        assert result == expected
+
+    def test_validate_transitional_services(self, record):
+        record.TRANSITION_SERVICES_AMOUNT = 0
+        record.TRANSITION_NBR_MONTHS = -1
+        expected = (False, "WARNING: ITEM 24A AND ITEM 24B MUST => 0")
+        result = cat3_validators.validate_transitional_services(record)
+        assert result == expected
+
+        record.TRANSITION_SERVICES_AMOUNT = 100
+        record.TRANSITION_NBR_MONTHS = 0
+        expected = (False, "WARNING: IF ITEM 24A > 0, ITEM 24B MUST > 0")
+        result = cat3_validators.validate_transitional_services(record)
+        assert result == expected
+
+    def test_validate_other(self, record):
+        record.OTHER_AMOUNT = 0
+        record.OTHER_NBR_MONTHS = -1
+        expected = (False, "WARNING: ITEM 25A AND ITEM 25B MUST => 0")
+        result = cat3_validators.validate_other(record)
+        assert result == expected
+
+        record.OTHER_AMOUNT = 100
+        record.OTHER_NBR_MONTHS = 0
+        expected = (False, "WARNING: IF ITEM 25A > 0, ITEM 25B MUST > 0")
+        result = cat3_validators.validate_other(record)
+        assert result == expected
+        
+    def test_validate_reasons_for_amount_of_assistance_reductions(self, record):
+        record.SANC_REDUCTION_AMT = 10
+        record.WORK_REQ_SANCTION = -1
+        expected = (False, "WARNING: IF ITEM 26Ai > 0, ITEMS 26Aii THRU")
+        result = cat3_validators.validate_reasons_for_amount_of_assistance_reductions(record)
+        assert result == expected
+
+        record.SANC_REDUCTION_AMT = 0
+        record.OTHER_TOTAL_REDUCTIONS = 100
+        record.OTHER_NON_SANCTION = -1
+        expected = (False, "WARNING: IF ITEM 26Ci > 0, ITEMS 26Cii THRU")
+        result = cat3_validators.validate_reasons_for_amount_of_assistance_reductions(record)
+        assert result == expected
