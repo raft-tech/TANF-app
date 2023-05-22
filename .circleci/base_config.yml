@@ -48,6 +48,9 @@ parameters:
   target_env:
     type: string
     default: ''
+  triggered:
+    type: boolean
+    default: false
   util_make_erd:
     type: boolean
     default: false
