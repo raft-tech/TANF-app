@@ -34,7 +34,7 @@ on:
       - develop
       - main
       - master
-      - release/**
+      - 'release/**'
     paths:
       - 'scripts/**'
       - '.circleci/**'
@@ -45,7 +45,7 @@ on:
     branches_ignore: #handled in circleci
       - main
       - master
-      - release/**
+      - 'release/**'
     types: [review_requested, ready_for_review, synchronize]
     paths_ignore:
       - 'docs/**'
