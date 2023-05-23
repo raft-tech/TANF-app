@@ -34,7 +34,7 @@ on:
       - develop
       - main
       - master
-      - release**
+      - devops/branch-ref-fix
     paths:
       - 'scripts/**'
       - '.circleci/**'
@@ -43,7 +43,7 @@ on:
     branches_ignore: #handled in circleci
       - main
       - master
-      - release**
+      - devops/branch-ref-fix
     types: [review_requested, ready_for_review, synchronize]
     paths_ignore:
       - 'docs/**'
