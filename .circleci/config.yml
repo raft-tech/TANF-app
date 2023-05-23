@@ -69,6 +69,6 @@ workflows:
         - << pipeline.parameters.triggered >>
         - equal: [ 'main', << pipeline.git.branch >> ]
         - equal: [ 'master', << pipeline.git.branch >> ]
-        - equal: [ '/release.*/', << pipeline.git.branch >>]
+        - equal: [ /^release.*/, << pipeline.git.branch >>]
     jobs:
       - setup
