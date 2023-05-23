@@ -34,7 +34,7 @@ on:
       - develop
       - main
       - master
-      - release/*
+      - release/**
     paths:
       - 'scripts/**'
       - '.circleci/**'
@@ -45,7 +45,7 @@ on:
     branches_ignore: #handled in circleci
       - main
       - master
-      - release/*
+      - release/**
     types: [review_requested, ready_for_review, synchronize]
     paths_ignore:
       - 'docs/**'
@@ -67,4 +67,7 @@ jobs:
           user-token: ${{ secrets.CIRCLE_CI_V2_TOKEN }}
           project-slug: ${{ github.repository }}
           branch: ${{ (github.event_name == 'pull_request') && github.head_ref || github.ref_name }}
-          payload: '{"build_and_test_all": true}'
+          payload: '{
+            "build_and_test_all": true,
+            "triggered": true
+          }'

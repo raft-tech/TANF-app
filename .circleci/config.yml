@@ -40,6 +40,9 @@ parameters:
   target_env:
     type: string
     default: ''
+  triggered:
+    type: boolean
+    default: false
   util_make_erd:
     type: boolean
     default: false
@@ -61,5 +64,11 @@ jobs:
 # our single workflow, that triggers the setup job defined above
 workflows:
   setup:
+    when:
+      or:
+        - << pipeline.parameters.triggered >>
+        - equal: [ 'main', << pipeline.git.branch >> ]
+        - equal: [ 'master', << pipeline.git.branch >> ]
+        - equal: [ '/release.*/', << pipeline.git.branch >>]
     jobs:
       - setup
