@@ -63,7 +63,7 @@ jobs:
 
 # our single workflow, that triggers the setup job defined above
 workflows:
-  gh_setup:
+  github_triggered_setup:
     when: << pipeline.parameters.triggered >>
     jobs:
       - setup:
@@ -73,7 +73,7 @@ workflows:
                 - main
                 - master
                 - /^release.*/
-  ci_setup:
+  circle_ci_setup:
     jobs:
       - setup:
           filters:
