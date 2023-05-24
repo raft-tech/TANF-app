@@ -68,6 +68,15 @@ def parse_datafile(datafile):
     return errors
 
 
+def store_record(unsaved_records, record, model):
+    """Store record in dictionary for later processing."""
+    if record:
+        if model not in unsaved_records:
+            unsaved_records[model] = [record]
+        else:
+            unsaved_records[model].append(record)
+
+
 def parse_datafile_lines(rawfile, program_type, section):
     """Parse lines with appropriate schema and return errors."""
     errors = {}
@@ -98,24 +107,16 @@ def parse_datafile_lines(rawfile, program_type, section):
                     line_errors = errors.get(line_number, {})
                     line_errors[record_number] = record_errors
                     errors[line_number] = line_errors
-                if record:
-                    if s.model not in unsaved_records:
-                        unsaved_records[s.model] = [record]
-                    else:
-                        unsaved_records[s.model].append(record)
+                store_record(unsaved_records, record, s.model)
         else:
             record, record_is_valid, record_errors = parse_datafile_line(line, schema)
             if not record_is_valid:
                 errors[line_number] = record_errors
-            if record:
-                if schema.model not in unsaved_records:
-                    unsaved_records[schema.model] = [record]
-                else:
-                    unsaved_records[schema.model].append(record)
-                
+            store_record(unsaved_records, record, schema.model)
+
     for model, records in unsaved_records.items():
         model.objects.bulk_create(records)
-    
+
     return errors
 
 
@@ -123,10 +124,6 @@ def parse_multi_record_line(line, schema):
     """Parse and validate a datafile line using MultiRecordRowSchema."""
     if schema:
         records = schema.parse_and_validate(line)
-
-        for r in records:
-            record, record_is_valid, record_errors = r
-
         return records
 
     return [(None, False, ['No schema selected.'])]
