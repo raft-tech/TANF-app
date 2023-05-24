@@ -4,7 +4,7 @@ on:
     branches-ignore: #handled in circleci
       - main
       - master
-      - 'devops/branch-ref-fix'
+      - 'release/**'
     types: [review_requested, ready_for_review, synchronize]
     paths-ignore:
       - 'docs/**'
