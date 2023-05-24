@@ -65,10 +65,14 @@ jobs:
 workflows:
   setup:
     when:
-      or:
-        - << pipeline.parameters.triggered >>
-        - equal: [ 'main', << pipeline.git.branch >> ]
-        - equal: [ 'master', << pipeline.git.branch >> ]
-        - equal: [ /^release.*/, << pipeline.git.branch >>]
+      << pipeline.parameters.triggered >>
+    jobs:
+      - setup
+  ci_setup:
+    branches:
+      only:
+        - main
+        - master
+        - /^release.*/
     jobs:
       - setup
