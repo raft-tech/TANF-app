@@ -30,7 +30,7 @@
 name: Build and test All on push when scripts/commands change
 on:
   push:
-    branches_ignore:
+    branches-ignore:
       - develop
       - main
       - master
