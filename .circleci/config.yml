@@ -63,10 +63,10 @@ jobs:
 
 # our single workflow, that triggers the setup job defined above
 workflows:
-  setup:
-    when:
-      << pipeline.parameters.triggered >>
-    - setup:
+  gh_setup:
+    when: << pipeline.parameters.triggered >>
+    jobs:
+      - setup:
           filters:
             branches:
               ignore:

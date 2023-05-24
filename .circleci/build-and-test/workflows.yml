@@ -1,7 +1,6 @@
 # workflows:
   build-and-test-all:
-    when:
-      << pipeline.parameters.build_and_test_all >>
+    when: << pipeline.parameters.build_and_test_all >>
     jobs:
       - secrets-check
       - test-backend:
