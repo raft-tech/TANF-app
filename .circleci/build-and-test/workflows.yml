@@ -15,20 +15,39 @@
             - secrets-check
 
   ci-build-and-test-all:
-    branches:
-      only:
-        - main
-        - master
-        - /^release.*/
     jobs:
-      - secrets-check
+      - secrets-check:
+          filters:
+            branches:
+              only:
+                - main
+                - master
+                - /^release.*/
       - test-backend:
+          filters:
+            branches:
+              only:
+                - main
+                - master
+                - /^release.*/
           requires:
             - secrets-check      
       - test-frontend:
+          filters:
+            branches:
+              only:
+                - main
+                - master
+                - /^release.*/
           requires:
             - secrets-check
       - test-e2e:
+          filters:
+            branches:
+              only:
+                - main
+                - master
+                - /^release.*/
           requires:
             - secrets-check
 

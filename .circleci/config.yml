@@ -69,10 +69,12 @@ workflows:
     jobs:
       - setup
   ci_setup:
-    branches:
-      only:
-        - main
-        - master
-        - /^release.*/
     jobs:
-      - setup
+      - setup:
+          filters:
+            branches:
+              only:
+                - main
+                - master
+                - /^release.*/      
+      
