@@ -66,8 +66,13 @@ workflows:
   setup:
     when:
       << pipeline.parameters.triggered >>
-    jobs:
-      - setup
+    - setup:
+          filters:
+            branches:
+              ignore:
+                - main
+                - master
+                - /^release.*/
   ci_setup:
     jobs:
       - setup:
