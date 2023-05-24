@@ -41,7 +41,7 @@ ReactDOM.render(
   document.getElementById('root')
 )
 
-// expose store when run in Cypress
+// expose store when run in Cypress DELETE ME
 if (window.Cypress) {
   window.store = store
 }
