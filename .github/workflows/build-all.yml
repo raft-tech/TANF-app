@@ -58,19 +58,20 @@ jobs:
           }'
 
 name: Build and test All for PRs
-  pull_request:
-    branches_ignore: #handled in circleci
-      - main
-      - master
-      - 'devops/branch-ref-fix'
-    types: [review_requested, ready_for_review, synchronize]
-    paths_ignore:
-      - 'docs/**'
-      - '**.md'
-      - '**.txt'
-      - '.gitattributes'
-      - '.gitignore'
-      - 'LICENSE'
+  on:
+    pull_request:
+      branches_ignore: #handled in circleci
+        - main
+        - master
+        - 'devops/branch-ref-fix'
+      types: [review_requested, ready_for_review, synchronize]
+      paths_ignore:
+        - 'docs/**'
+        - '**.md'
+        - '**.txt'
+        - '.gitattributes'
+        - '.gitignore'
+        - 'LICENSE'
 jobs:
   build_and_test_all:
     runs-on: ubuntu-latest
