@@ -61,21 +61,22 @@ def parse_datafile(datafile):
         errors['document'] = ['Section does not match.']
         return errors
 
-    line_errors = parse_datafile_lines(datafile, program_type, section)
+    line_errors = parse_datafile_lines(rawfile, program_type, section)
 
     errors = errors | line_errors
 
     return errors
 
 
-def parse_datafile_lines(datafile, program_type, section):
+def parse_datafile_lines(rawfile, program_type, section):
     """Parse lines with appropriate schema and return errors."""
     errors = {}
-    rawfile = datafile.file
 
     rawfile.seek(0)
     line_number = 0
     schema_options = get_schema_options(program_type)
+
+    unsaved_records = {}
 
     for rawline in rawfile:
         line_number += 1
@@ -90,18 +91,31 @@ def parse_datafile_lines(datafile, program_type, section):
             records = parse_multi_record_line(line, schema)
 
             record_number = 0
-            for r in records:
+            for r, s in zip(records, schema.schemas):
                 record_number += 1
                 record, record_is_valid, record_errors = r
                 if not record_is_valid:
                     line_errors = errors.get(line_number, {})
                     line_errors[record_number] = record_errors
                     errors[line_number] = line_errors
+                if record:
+                    if s.model not in unsaved_records:
+                        unsaved_records[s.model] = [record]
+                    else:
+                        unsaved_records[s.model].append(record)
         else:
-            record_is_valid, record_errors = parse_datafile_line(line, schema)
+            record, record_is_valid, record_errors = parse_datafile_line(line, schema)
             if not record_is_valid:
                 errors[line_number] = record_errors
-
+            if record:
+                if schema.model not in unsaved_records:
+                    unsaved_records[schema.model] = [record]
+                else:
+                    unsaved_records[schema.model].append(record)
+                
+    for model, records in unsaved_records.items():
+        model.objects.bulk_create(records)
+    
     return errors
 
 
@@ -113,9 +127,6 @@ def parse_multi_record_line(line, schema):
         for r in records:
             record, record_is_valid, record_errors = r
 
-            if record:
-                record.save()
-
         return records
 
     return [(None, False, ['No schema selected.'])]
@@ -126,12 +137,9 @@ def parse_datafile_line(line, schema):
     if schema:
         record, record_is_valid, record_errors = schema.parse_and_validate(line)
 
-        if record:
-            record.save()
+        return record, record_is_valid, record_errors
 
-        return record_is_valid, record_errors
-
-    return (False, ['No schema selected.'])
+    return (None, False, ['No schema selected.'])
 
 
 def get_schema_options(program_type):
