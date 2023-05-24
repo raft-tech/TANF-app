@@ -34,7 +34,7 @@ on:
       - develop
       - main
       - master
-      - 'devops/branch-ref-fix'
+      - devops/branch-ref-fix
     paths:
       - 'scripts/**'
       - '.circleci/**'
