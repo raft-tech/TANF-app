@@ -77,6 +77,11 @@ def store_record(unsaved_records, record, model):
             unsaved_records[model].append(record)
 
 
+def bulk_create_records(unsaved_records):
+    for model, records in unsaved_records.items():
+        model.objects.bulk_create(records)
+
+
 def parse_datafile_lines(rawfile, program_type, section):
     """Parse lines with appropriate schema and return errors."""
     errors = {}
@@ -114,8 +119,11 @@ def parse_datafile_lines(rawfile, program_type, section):
                 errors[line_number] = record_errors
             store_record(unsaved_records, record, schema.model)
 
-    for model, records in unsaved_records.items():
-        model.objects.bulk_create(records)
+        if line_number % 25000 == 0:
+            bulk_create_records(unsaved_records)
+            unsaved_records.clear()
+
+    bulk_create_records(unsaved_records)
 
     return errors
 
