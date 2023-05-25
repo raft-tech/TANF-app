@@ -206,20 +206,29 @@ def test_notEmpty_returns_invalid_substring():
     assert error == "111  333 contains blanks between positions 3 and 5."
 
 
-
 @pytest.mark.usefixtures('db')
 class TanfSection1TestCat3ValidatorsBase:
+    """A base test class for tests that evaluate category three validators."""
+
     @pytest.fixture
     def record(self):
+        """Record instance that returns a valid Section 1 record.
+
+        This fixture must be overridden in all child classes.
+        """
         raise NotImplementedError()
 
 
 class TestT1Cat3Validators(TanfSection1TestCat3ValidatorsBase):
+    """Test category three validators for TANF T1 records."""
+
     @pytest.fixture
     def record(self):
+        """Override default record with TANF T1 record."""
         return TanfT1Factory.create()
-    
+
     def test_validate_disposition(self, record):
+        """Test cat3 validator for disposition."""
         result = cat3_validators.validate_disposition(record)
         assert result == (True, None)
 
@@ -230,8 +239,9 @@ class TestT1Cat3Validators(TanfSection1TestCat3ValidatorsBase):
         record.CASE_NUMBER = ' '
         result = cat3_validators.validate_disposition(record)
         assert result == (False, "FATAL: IF ITEM 9 = 2, THEN ITEMS 1,4-6 MUST NOT BE BLANK")
-    
+
     def test_validate_cash_amount_and_nbr_months(self, record):
+        """Test cat3 validator for cash amount and number of months."""
         result = cat3_validators.validate_cash_amount_and_nbr_months(record)
         assert result == (True, None)
 
@@ -244,8 +254,9 @@ class TestT1Cat3Validators(TanfSection1TestCat3ValidatorsBase):
         record.NBR_MONTHS = 0
         result = cat3_validators.validate_cash_amount_and_nbr_months(record)
         assert result == (False, "WARNING: IF ITEM 21A > 0, ITEM 21B MUST > 0")
-    
+
     def test_validate_child_care(self, record):
+        """Test cat3 validator for child care."""
         result = cat3_validators.validate_child_care(record)
         assert result == (True, None)
 
@@ -261,6 +272,7 @@ class TestT1Cat3Validators(TanfSection1TestCat3ValidatorsBase):
         assert result == (False, "WARNING: IF ITEM 22A > 0, ITEM 22B MUST > 0, ITEM 22C MUST > 0")
 
     def test_validate_transportation(self, record):
+        """Test cat3 validator for transportation."""
         result = cat3_validators.validate_transportation(record)
         assert result == (True, None)
 
@@ -275,6 +287,7 @@ class TestT1Cat3Validators(TanfSection1TestCat3ValidatorsBase):
         assert result == (False, "WARNING: IF ITEM 23A > 0, ITEM 23B MUST > 0")
 
     def test_validate_transitional_services(self, record):
+        """Test cat3 validator for transitional services."""
         result = cat3_validators.validate_transitional_services(record)
         assert result == (True, None)
 
@@ -289,6 +302,7 @@ class TestT1Cat3Validators(TanfSection1TestCat3ValidatorsBase):
         assert result == (False, "WARNING: IF ITEM 24A > 0, ITEM 24B MUST > 0")
 
     def test_validate_other(self, record):
+        """Test cat3 validator for other."""
         result = cat3_validators.validate_other(record)
         assert result == (True, None)
 
@@ -301,8 +315,9 @@ class TestT1Cat3Validators(TanfSection1TestCat3ValidatorsBase):
         record.OTHER_NBR_MONTHS = 0
         result = cat3_validators.validate_other(record)
         assert result == (False, "WARNING: IF ITEM 25A > 0, ITEM 25B MUST > 0")
-        
+
     def test_validate_reasons_for_amount_of_assistance_reductions(self, record):
+        """Test cat3 validator for assistance reductions."""
         record.SANC_REDUCTION_AMT = 0
         record.OTHER_TOTAL_REDUCTIONS = 0
         result = cat3_validators.validate_reasons_for_amount_of_assistance_reductions(record)
