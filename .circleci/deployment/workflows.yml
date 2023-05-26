@@ -72,33 +72,11 @@
               only:
                 - master
 
-  dev-apps-fs-upgrade:
+  upgrade-cf-apps-os:
     when:
-      << pipeline.parameters.upgrade_dev_apps_fs >>
+      - << pipeline.parameters.upgrade_cf_apps_space >>
+      - << pipeline.parameters.cf_fs_os >>
     jobs:
-      - upgrade-cf-dev-apps:
-          filters:
-            branches:
-              only:
-                - develop
-
-  staging-apps-fs-upgrade:
-    when:
-      << pipeline.parameters.upgrade_staging_apps_fs >>
-    jobs:
-      - upgrade-cf-staging-apps:
-          filters:
-            branches:
-              only:
-                - develop
-
-  prod-apps-fs-upgrade:
-    unless:
-      when:
-        << pipeline.parameters.upgrade_prod_apps_fs >>
-    jobs:
-      - upgrade-cf-prod-apps:
-          filters:
-            branches:
-              only:
-                - master
+      - upgrade-cf-apps-os:
+          cf-os: << pipeline.parameters.cf_fs_os >>
+          cf-space: << pipeline.parameters.upgrade_cf_apps_space >>

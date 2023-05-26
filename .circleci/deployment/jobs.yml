@@ -61,26 +61,17 @@
           cf-space: tanf-prod
           cf-username: CF_USERNAME_PROD
 
-  upgrade-cf-dev-apps:
+  upgrade-cf-apps-os:
     executor: machine-executor
+    parameters:
+      cf-os:
+        default: cflinuxfs4
+        type: string
+      cf-space:
+        default: tanf-dev
+        type: string
     working_directory: ~/tdp-deploy
     steps:
-      - upgrade-apps-fs:
-          cf-os: cflinuxfs4
-          cf-space: tanf-dev
-
-  upgrade-cf-staging-apps:
-    executor: machine-executor
-    working_directory: ~/tdp-deploy
-    steps:
-      - upgrade-apps-fs:
-          cf-os: cflinuxfs4
-          cf-space: tanf-staging
-
-  upgrade-cf-prod-apps:
-    executor: machine-executor
-    working_directory: ~/tdp-deploy
-    steps:
-      - upgrade-apps-fs:
-          cf-os: cflinuxfs4
-          cf-space: tanf-prod
+      - upgrade-apps-os:
+          cf-os: <<parameters.cf-os>>
+          cf-space: <<parameters.cf-space>>

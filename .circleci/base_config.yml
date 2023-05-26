@@ -36,12 +36,10 @@ parameters:
   target_env:
     type: string
     default: ''
-  upgrade_dev_apps_fs:
-    type: boolean
-    default: false
-  upgrade_staging_apps_fs:
-    type: boolean
-    default: false
-  upgrade_prod_apps_fs:
-    type: boolean
-    default: false
+  upgrade_cf_apps_space:
+    type: string
+    default: "tanf-dev"
+  cf_fs_os:
+    type: string
+    default: "cflinuxfs4"
+

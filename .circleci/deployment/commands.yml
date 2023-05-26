@@ -150,7 +150,7 @@
               echo "export DEPLOY_STRATEGY=rolling" >> $BASH_ENV
             fi
 
-  upgrade-apps-fs:
+  upgrade-apps-os:
     parameters:
       cf-os:
         default: cflinuxfs4
@@ -162,6 +162,6 @@
       - run:
           name: Upgrade CF app file systems
           command: |
-            bash ./scripts/cf-upgrade-fs.sh \
+            bash ./scripts/cf-upgrade-os.sh \
               <<parameters.cf-os>> \
               <<parameters.cf-space>>
