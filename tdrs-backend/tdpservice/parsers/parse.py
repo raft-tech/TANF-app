@@ -11,32 +11,14 @@ def parse_datafile(datafile):
     rawfile = datafile.file
     errors = {}
 
-    document_is_valid, document_error = validators.validate_single_header_trailer(rawfile)
-    if not document_is_valid:
-        errors['document'] = [document_error]
-        return errors
-
-    # get header line
+    # parse header, trailer
     rawfile.seek(0)
     header_line = rawfile.readline().decode().strip()
-
-    # get trailer line
-    rawfile.seek(0)
-    rawfile.seek(-2, os.SEEK_END)
-    while rawfile.read(1) != b'\n':
-        rawfile.seek(-2, os.SEEK_CUR)
-
-    trailer_line = rawfile.readline().decode().strip('\n')
-
-    # parse header, trailer
     header, header_is_valid, header_errors = schema_defs.header.parse_and_validate(header_line)
     if not header_is_valid:
+        print(f"\n\nERROR HERE\n\n")
         errors['header'] = header_errors
         return errors
-
-    trailer, trailer_is_valid, trailer_errors = schema_defs.trailer.parse_and_validate(trailer_line)
-    if not trailer_is_valid:
-        errors['trailer'] = trailer_errors
 
     # ensure file section matches upload section
     section_names = {
@@ -82,6 +64,16 @@ def bulk_create_records(unsaved_records):
         model.objects.bulk_create(records)
 
 
+def evaluate_trailer(trailer_count, multiple_trailer_errors, line, errors):
+    if trailer_count > 1 and not multiple_trailer_errors:
+        errors['trailer'] =  ['Multiple trailers found.']
+        multiple_trailer_errors = True
+    if trailer_count == 1:
+        _, trailer_is_valid, trailer_errors = schema_defs.trailer.parse_and_validate(line)
+        if not trailer_is_valid:
+            errors['trailer'] = trailer_errors
+
+
 def parse_datafile_lines(rawfile, program_type, section):
     """Parse lines with appropriate schema and return errors."""
     errors = {}
@@ -92,11 +84,26 @@ def parse_datafile_lines(rawfile, program_type, section):
 
     unsaved_records = {}
 
+    header_count = 0
+    trailer_count = 0
+    prev_sum = 0
+    multiple_trailer_errors = False
+
     for rawline in rawfile:
         line_number += 1
         line = rawline.decode().strip('\r\n')
 
-        if line.startswith('HEADER') or line.startswith('TRAILER'):
+        header_count += int(line.startswith('HEADER'))
+        trailer_count += int(line.startswith('TRAILER'))
+
+        evaluate_trailer(trailer_count, multiple_trailer_errors, line, errors)
+
+        if header_count > 1:
+            errors['document'] = ['Multiple headers found.']
+            return errors
+
+        if prev_sum != header_count + trailer_count:
+            prev_sum = header_count + trailer_count
             continue
 
         schema = get_schema(line, section, schema_options)
@@ -119,9 +126,13 @@ def parse_datafile_lines(rawfile, program_type, section):
                 errors[line_number] = record_errors
             store_record(unsaved_records, record, schema.model)
 
-        if line_number % 25000 == 0:
+        if line_number % 50000 == 0 and header_count > 0:
             bulk_create_records(unsaved_records)
             unsaved_records.clear()
+
+    if header_count == 0:
+        errors['document'] = ['No headers found.']
+        return errors
 
     bulk_create_records(unsaved_records)
 
