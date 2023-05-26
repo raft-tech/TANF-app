@@ -1,8 +1,7 @@
 """Convert raw uploaded Datafile into a parsed model, and accumulate/return any errors."""
 
 
-import os
-from . import schema_defs, validators, util
+from . import schema_defs, util
 from tdpservice.data_files.models import DataFile
 
 
@@ -16,7 +15,6 @@ def parse_datafile(datafile):
     header_line = rawfile.readline().decode().strip()
     header, header_is_valid, header_errors = schema_defs.header.parse_and_validate(header_line)
     if not header_is_valid:
-        print(f"\n\nERROR HERE\n\n")
         errors['header'] = header_errors
         return errors
 
@@ -60,13 +58,15 @@ def store_record(unsaved_records, record, model):
 
 
 def bulk_create_records(unsaved_records):
+    """Bulk create passed in records."""
     for model, records in unsaved_records.items():
         model.objects.bulk_create(records)
 
 
 def evaluate_trailer(trailer_count, multiple_trailer_errors, line, errors):
+    """Validate datafile trailer."""
     if trailer_count > 1 and not multiple_trailer_errors:
-        errors['trailer'] =  ['Multiple trailers found.']
+        errors['trailer'] = ['Multiple trailers found.']
         multiple_trailer_errors = True
     if trailer_count == 1:
         _, trailer_is_valid, trailer_errors = schema_defs.trailer.parse_and_validate(line)

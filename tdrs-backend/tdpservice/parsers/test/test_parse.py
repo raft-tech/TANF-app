@@ -122,7 +122,7 @@ def test_parse_bad_file_missing_header(bad_file_missing_header):
     """Test parsing of bad_missing_header."""
     errors = parse.parse_datafile(bad_file_missing_header)
     assert errors == {
-        'document': ['No headers found.'],
+        'header': ['Value length 14 does not match 23.', 'TRAILER0004321 does not start with HEADER.'],
     }
 
 
@@ -137,7 +137,9 @@ def test_parse_bad_file_multiple_headers(bad_file_multiple_headers):
     """Test parsing of bad_two_headers."""
     errors = parse.parse_datafile(bad_file_multiple_headers)
     assert errors == {
-        'document': ['Multiple headers found.'],
+        5: ['Value length 113 does not match 156.'],
+        'trailer': ['HEADER20223A25   TAN1EU does not start with TRAILER.'],
+        'document': ['Multiple headers found.']
     }
 
 
@@ -152,7 +154,7 @@ def test_parse_big_bad_test_file(big_bad_test_file):
     """Test parsing of bad_TANF_S1."""
     errors = parse.parse_datafile(big_bad_test_file)
     assert errors == {
-        'document': ['Multiple trailers found.'],
+        'header': ['HEADEX20214A25   TAN1EU does not start with HEADER.']
     }
 
 
@@ -183,12 +185,7 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
     """Test parsing bad_trailer_2."""
     errors = parse.parse_datafile(bad_trailer_file_2)
     assert errors == {
-        'trailer': [
-            'Value length 7 does not match 23.',
-            'T1trash does not start with TRAILER.'
-        ],
-        2: ['Value length 117 does not match 156.'],
-        3: ['Value length 7 does not match 156.']
+        2: ['Value length 117 does not match 156.'], 3: ['Value length 7 does not match 156.']
     }
 
 
@@ -203,7 +200,7 @@ def test_parse_empty_file(empty_file):
     """Test parsing of empty_file."""
     errors = parse.parse_datafile(empty_file)
     assert errors == {
-        'document': ['No headers found.'],
+        'header': ['Value length 0 does not match 23.', ' does not start with HEADER.'],
     }
 
 
@@ -316,3 +313,20 @@ def test_parse_tanf_section1_datafile_t3s(small_tanf_section1_datafile):
     assert t3_6.FAMILY_AFFILIATION == 1
     assert t3_6.GENDER == 2
     assert t3_6.EDUCATION_LEVEL == '98'
+
+
+@pytest.fixture
+def super_big_s1_file(stt_user, stt):
+    """Fixture for ADS.E2J.NDM1.TS53_fake."""
+    return create_test_datafile('ADS.E2J.NDM1.TS53_fake', stt_user, stt)
+
+
+@pytest.mark.django_db
+def test_parse_super_big_s1_file(super_big_s1_file):
+    """Test parsing of super_big_s1_file and validate all T1/T2/T3 records are created."""
+    errors = parse.parse_datafile(super_big_s1_file)
+
+    assert errors == {}
+    assert TANF_T1.objects.count() == 96642
+    assert TANF_T2.objects.count() == 112794
+    assert TANF_T3.objects.count() == 172595
