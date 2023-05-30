@@ -68,7 +68,7 @@
         type: string
       cf-space:
         type: string
-    working_directory: ~/tdp-deploy
+    working_directory: ~/tdp-apps
     steps:
       - upgrade-apps-os:
           cf-os: <<parameters.cf-os>>

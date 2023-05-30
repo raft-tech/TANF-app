@@ -160,4 +160,6 @@
       - run:
           name: Upgrade CF app file systems
           command: |
-            ls
+            bash ./scripts/cf-upgrade-os.sh \
+              <<parameters.cf-os>> \
+              <<parameters.cf-space>>
