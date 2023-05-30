@@ -71,6 +71,8 @@
     working_directory: ~/tdp-apps
     steps:
       - checkout
+      - sudo-check
+      - cf-check
       - upgrade-apps-os:
           cf-os: <<parameters.cf-os>>
           cf-space: <<parameters.cf-space>>
