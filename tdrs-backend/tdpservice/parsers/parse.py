@@ -52,7 +52,7 @@ def store_record(unsaved_records, record, model):
     """Store record in dictionary for later processing."""
     if record:
         if model not in unsaved_records:
-            unsaved_records.update({model, record})
+            unsaved_records.update({model, [record]})
         else:
             records_to_save = unsaved_records[model]
             records_to_save.append(record)
