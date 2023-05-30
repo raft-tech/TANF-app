@@ -14,6 +14,6 @@ else
     apt-get update
     apt-get install cf7-cli
 
-    wget -q -O https://github.com/cloudfoundry/stack-auditor/releases/download/v0.1.0/stack-auditor-linux-64
+    wget -q https://github.com/cloudfoundry/stack-auditor/releases/download/v0.1.0/stack-auditor-linux-64
     cf install-plugin stack-auditor-linux-64 
 fi
