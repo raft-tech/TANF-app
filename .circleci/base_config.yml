@@ -38,8 +38,8 @@ parameters:
     default: ''
   upgrade_cf_apps_space:
     type: string
-    default: "tanf-dev"
+    default: ''
   cf_fs_os:
     type: string
-    default: "cflinuxfs4"
+    default: ''
 
