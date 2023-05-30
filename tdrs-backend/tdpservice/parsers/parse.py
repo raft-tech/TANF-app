@@ -79,7 +79,6 @@ def parse_datafile_lines(rawfile, program_type, section):
     """Parse lines with appropriate schema and return errors."""
     errors = {}
 
-    rawfile.seek(0)
     line_number = 0
     schema_options = get_schema_options(program_type)
 
@@ -90,6 +89,8 @@ def parse_datafile_lines(rawfile, program_type, section):
     prev_sum = 0
     multiple_trailer_errors = False
 
+    # Note: it is unnecessary to call rawfile.seek(0) again because the generator
+    # automatically starts back at the begining of the file.
     for rawline in rawfile:
         line_number += 1
         line = rawline.decode().strip('\r\n')
