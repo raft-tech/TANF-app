@@ -70,6 +70,7 @@
         type: string
     working_directory: ~/tdp-apps
     steps:
+      - checkout
       - upgrade-apps-os:
           cf-os: <<parameters.cf-os>>
           cf-space: <<parameters.cf-space>>
