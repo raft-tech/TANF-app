@@ -313,20 +313,3 @@ def test_parse_tanf_section1_datafile_t3s(small_tanf_section1_datafile):
     assert t3_6.FAMILY_AFFILIATION == 1
     assert t3_6.GENDER == 2
     assert t3_6.EDUCATION_LEVEL == '98'
-
-
-@pytest.fixture
-def super_big_s1_file(stt_user, stt):
-    """Fixture for ADS.E2J.NDM1.TS53_fake."""
-    return create_test_datafile('ADS.E2J.NDM1.TS53_fake', stt_user, stt)
-
-
-# @pytest.mark.django_db
-# def test_parse_super_big_s1_file(super_big_s1_file):
-#     """Test parsing of super_big_s1_file and validate all T1/T2/T3 records are created."""
-#     errors = parse.parse_datafile(super_big_s1_file)
-
-#     assert errors == {}
-#     assert TANF_T1.objects.count() == 96642
-#     assert TANF_T2.objects.count() == 112794
-#     assert TANF_T3.objects.count() == 172595
