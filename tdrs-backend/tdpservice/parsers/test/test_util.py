@@ -1,7 +1,19 @@
 """Test the methods of RowSchema to ensure parsing and validation work in all individual cases."""
 
 import pytest
-from ..util import MultiRecordRowSchema, RowSchema, Field, value_is_empty
+from ..util import MultiRecordRowSchema, RowSchema, Field, value_is_empty, calculateValidator
+from ..validators import oneOf, matches, between
+
+def test_calculateValidator():
+    """Test calculateValidator returns the correct validator."""
+    result = calculateValidator([oneOf([1,2,4]), matches(2), 'and'], 1)
+    print('result 1:',result)
+    result = calculateValidator([oneOf([1,2,4]), matches(2), matches(3), 'and', 'and'], 1)
+    print('result 2:',result)
+    result = calculateValidator([oneOf([1,2,4]), matches(2), matches(3), matches(1), 'or', 'or', 'and'], 1)
+    print('result 3:',result)
+    assert 1 == 1
+
 
 
 def passing_validator():

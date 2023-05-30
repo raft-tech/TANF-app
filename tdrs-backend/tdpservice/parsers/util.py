@@ -1,6 +1,61 @@
 """Utility file for functions shared between all parsers even preparser."""
 
 
+def calculateValidator(validator_list: list, value):
+    """Util function to calculate postfix valiator expression."""
+    # e.g: ['f', 'g', 'and'] => f and g
+    # e.g: ['f', 'g', 'h', 'and', 'or'] => f and g or h
+    # e.g: ['f', 'g', 'and', 'f', 'g', 'and', 'or'] => (f and g) or (f and g)
+    # x: list of validators
+    # return errors from validators
+
+    stack = []
+    errors = []
+
+    def isOperator(item):
+        return item in ['and', 'or']
+    
+    def isFunction(item):
+        return 'function' in type(item).__name__
+
+    def getErrors(errors1, errors2, is_valid1 = False, is_valid2 = False, validation_result = False):
+        """Util function to get errors from two validators."""
+        if ((errors1 and not is_valid1) and (errors2 and not is_valid2)):
+            error1_validated = [errors1] * (not is_valid1)
+            error2_validated = [errors2] * (not is_valid2)
+            return (error1_validated + error2_validated) * (not validation_result)
+        elif errors1 and not is_valid1:
+            return [errors1] * (not validation_result)
+        elif errors2 and not is_valid2:
+            return [errors2] * (not validation_result)
+        else:
+            return None
+    
+    for item in validator_list:
+
+        if isOperator(item):
+            # pop last two items from stack
+            # apply operator on them
+            # push result to stack
+            result_or_validator1 = stack.pop()
+            result_or_validator2 = stack.pop()
+            is_valid1, errors1 = result_or_validator1 if type(result_or_validator1).__name__ == 'tuple' else result_or_validator1(value) 
+            is_valid2, errors2 = result_or_validator2 if type(result_or_validator2).__name__ == 'tuple' else result_or_validator2(value)
+            if item == 'and':
+                is_valid, errors = (is_valid1 and is_valid2, getErrors(errors1, errors2, is_valid1, is_valid2, is_valid1 and is_valid2))
+            elif item == 'or':
+                is_valid, errors = (is_valid1 or is_valid2, getErrors(errors1, errors2, is_valid1, is_valid2, is_valid1 or is_valid2))
+            stack.append((is_valid, errors))
+            
+        elif isFunction(item):
+            # push item to stack
+            stack.append(item)
+        else:
+            # error
+            pass
+    
+    return (is_valid, errors)
+
 def value_is_empty(value, length):
     """Handle 'empty' values as field inputs."""
     empty_values = [
