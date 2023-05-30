@@ -65,10 +65,8 @@
     executor: machine-executor
     parameters:
       cf-os:
-        default: cflinuxfs4
         type: string
       cf-space:
-        default: tanf-dev
         type: string
     working_directory: ~/tdp-deploy
     steps:

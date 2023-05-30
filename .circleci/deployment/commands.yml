@@ -153,10 +153,8 @@
   upgrade-apps-os:
     parameters:
       cf-os:
-        default: cflinuxfs4
         type: string
       cf-space:
-        default: tanf-dev
         type: string
     steps:
       - run:
