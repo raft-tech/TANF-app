@@ -74,8 +74,9 @@
 
   upgrade-cf-apps-os:
     when:
-      - << pipeline.parameters.upgrade_cf_apps_space >>
-      - << pipeline.parameters.cf_fs_os >>
+      and:
+        - << pipeline.parameters.upgrade_cf_apps_space >>
+        - << pipeline.parameters.cf_fs_os >>
     jobs:
       - upgrade-cf-apps-os:
           cf-os: << pipeline.parameters.cf_fs_os >>
