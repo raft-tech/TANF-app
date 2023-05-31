@@ -3,6 +3,7 @@
 CF_FS=${1}
 CF_SPACE=${2}
 
+cf install-plugin -f stack-auditor-linux-64
 cf target -o hhs-acf-ofa -s $CF_SPACE
 
 ALL_APP_NAMES=$(cf curl "v3/apps" | jq '.resources' | jq '.[].name')
