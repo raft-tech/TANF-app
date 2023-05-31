@@ -64,15 +64,14 @@ def bulk_create_records(unsaved_records):
         model.objects.bulk_create(records)
 
 
-def evaluate_trailer(trailer_count, multiple_trailer_errors, line, errors):
-    """Validate datafile trailer."""
+def evaluate_trailer(trailer_count, multiple_trailer_errors, line):
+    """Validate datafile trailer and return associated errors if any."""
     if trailer_count > 1 and not multiple_trailer_errors:
-        errors['trailer'] = ['Multiple trailers found.']
-        multiple_trailer_errors = True
+        return (True, ['Multiple trailers found.'])
     if trailer_count == 1:
         record, trailer_is_valid, trailer_errors = schema_defs.trailer.parse_and_validate(line)
-        if not trailer_is_valid:
-            errors['trailer'] = trailer_errors
+        return (multiple_trailer_errors, None if not trailer_errors else trailer_errors)
+    return (False, None)
 
 
 def parse_datafile_lines(rawfile, program_type, section):
@@ -98,7 +97,9 @@ def parse_datafile_lines(rawfile, program_type, section):
         header_count += int(line.startswith('HEADER'))
         trailer_count += int(line.startswith('TRAILER'))
 
-        evaluate_trailer(trailer_count, multiple_trailer_errors, line, errors)
+        multiple_trailer_errors, trailer_errors = evaluate_trailer(trailer_count, multiple_trailer_errors, line)
+        if trailer_errors is not None:
+            errors['trailer'] = trailer_errors
 
         if header_count > 1:
             errors.update({'document': ['Multiple headers found.']})
