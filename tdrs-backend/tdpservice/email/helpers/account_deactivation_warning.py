@@ -13,7 +13,7 @@ def send_deactivation_warning_email(users, days):
     deactivation_date = datetime.now(timezone.utc) + timedelta(days=days)
 
     for user in users:
-        recipient_email = "elipe@teamraft.com"
+        recipient_email = user.email
         context = {
             'first_name': user.first_name,
             'days': days,
