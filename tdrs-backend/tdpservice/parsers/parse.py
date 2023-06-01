@@ -3,6 +3,7 @@
 
 from . import schema_defs, util
 from tdpservice.data_files.models import DataFile
+from tdpservice.parsers.util import begin_transaction, end_transaction, rollback
 
 
 def parse_datafile(datafile):
@@ -48,6 +49,12 @@ def parse_datafile(datafile):
     return errors
 
 
+def bulk_create_records(unsaved_records):
+    """Bulk create passed in records."""
+    for model, records in unsaved_records.items():
+        model.objects.bulk_create(records)
+
+
 def store_record(unsaved_records, record, model):
     """Store record in dictionary for later processing."""
     if record:
@@ -56,12 +63,6 @@ def store_record(unsaved_records, record, model):
         else:
             records_to_save = unsaved_records[model]
             records_to_save.append(record)
-
-
-def bulk_create_records(unsaved_records):
-    """Bulk create passed in records."""
-    for model, records in unsaved_records.items():
-        model.objects.bulk_create(records)
 
 
 def evaluate_trailer(trailer_count, multiple_trailer_errors, line):
@@ -90,6 +91,7 @@ def parse_datafile_lines(rawfile, program_type, section):
 
     # Note: it is unnecessary to call rawfile.seek(0) again because the generator
     # automatically starts back at the begining of the file.
+    begin_transaction()
     for rawline in rawfile:
         line_number += 1
         line = rawline.decode().strip('\r\n')
@@ -103,6 +105,7 @@ def parse_datafile_lines(rawfile, program_type, section):
 
         if header_count > 1:
             errors.update({'document': ['Multiple headers found.']})
+            rollback()
             return errors
 
         if prev_sum != header_count + trailer_count:
@@ -135,9 +138,11 @@ def parse_datafile_lines(rawfile, program_type, section):
 
     if header_count == 0:
         errors.update({'document': ['No headers found.']})
+        rollback()
         return errors
 
     bulk_create_records(unsaved_records)
+    end_transaction()
 
     return errors
 

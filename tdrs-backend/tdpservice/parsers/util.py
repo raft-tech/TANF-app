@@ -1,6 +1,10 @@
 """Utility file for functions shared between all parsers even preparser."""
 
 
+import decorator
+from django.db import transaction
+
+
 def value_is_empty(value, length):
     """Handle 'empty' values as field inputs."""
     empty_values = [
@@ -188,3 +192,28 @@ class MultiRecordRowSchema:
             records.append(r)
 
         return records
+
+
+def begin_transaction():
+    """Create manual database transaction."""
+    transaction.set_autocommit(False)
+
+def rollback():
+    """Rollback manual database transaction."""
+    transaction.rollback()
+    transaction.set_autocommit(True)
+
+def end_transaction():
+    """Commit manual database transaction."""
+    transaction.commit()
+    transaction.set_autocommit(True)
+
+def rollback_on_assertion_error(func):
+    """Rollback failed test on assertion error."""
+    def wrapper(func, *args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except AssertionError as e:
+            rollback()
+            raise e
+    return decorator.decorator(wrapper, func)
