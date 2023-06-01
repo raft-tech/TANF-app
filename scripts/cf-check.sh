@@ -5,7 +5,7 @@ if command -v cf /dev/null 2>&1; then
 else
 
     apt-get update
-    apt-get install wget gnupg2 apt-transport-https
+    apt-get install wget gnupg2 apt-transport-https libc6 libc-bin
 
     wget -q -O - https://packages.cloudfoundry.org/debian/cli.cloudfoundry.org.key | sudo apt-key add -
 
