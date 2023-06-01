@@ -58,11 +58,7 @@ def bulk_create_records(unsaved_records):
 def store_record(unsaved_records, record, model):
     """Store record in dictionary for later processing."""
     if record:
-        if model not in unsaved_records:
-            unsaved_records.update({model: [record]})
-        else:
-            records_to_save = unsaved_records[model]
-            records_to_save.append(record)
+        unsaved_records.setdefault(model, []).append(record)
 
 
 def evaluate_trailer(trailer_count, multiple_trailer_errors, line):
@@ -132,9 +128,9 @@ def parse_datafile_lines(rawfile, program_type, section):
                 errors.update({line_number: record_errors})
             store_record(unsaved_records, record, schema.model)
 
-        if line_number % 50000 == 0 and header_count > 0:
-            bulk_create_records(unsaved_records)
-            unsaved_records.clear()
+    if line_number % 50000 == 0 and header_count > 0:
+        bulk_create_records(unsaved_records)
+        unsaved_records.clear()
 
     if header_count == 0:
         errors.update({'document': ['No headers found.']})

@@ -208,12 +208,12 @@ def end_transaction():
     transaction.commit()
     transaction.set_autocommit(True)
 
-def rollback_on_assertion_error(func):
+def rollback_on_exception(func):
     """Rollback failed test on assertion error."""
     def wrapper(func, *args, **kwargs):
         try:
             func(*args, **kwargs)
-        except AssertionError as e:
+        except Exception as e:
             rollback()
             raise e
     return decorator.decorator(wrapper, func)
