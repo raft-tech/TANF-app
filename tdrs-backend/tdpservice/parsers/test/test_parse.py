@@ -388,7 +388,7 @@ def super_big_s1_rollback_file(stt_user, stt):
 
 @pytest.mark.django_db(transaction=True)
 @rollback_on_exception
-def test_parse_big_file_with_rollback(super_big_s1_rollback_file):
+def test_parse_super_big_s1_file_with_rollback(super_big_s1_rollback_file):
     """Test parsing of super_big_s1_rollback_file.
 
     Validate all T1/T2/T3 records are not created due to multiple headers.
