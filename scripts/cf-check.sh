@@ -5,10 +5,17 @@ if command -v cf /dev/null 2>&1; then
 else
 
     apt-get update
-    apt-get install wget gnupg2 apt-transport-https libc6 libc-bin glibc-source
-    sudo apt update --fix-missing
-    sudo apt clean
-    sudo apt update
+    apt-get install wget gnupg2 apt-transport-https
+
+    mkdir $HOME/glibc/ && cd $HOME/glibc
+    wget http://ftp.gnu.org/gnu/libc/glibc-2.32.tar.gz
+    tar -xvzf glibc-2.32.tar.gz
+    mkdir build
+    mkdir glibc-2.32-install
+    cd build
+    ~/glibc/glibc-2.32/configure --prefix=$HOME/glibc/glibc-2.32-install
+    make
+    make install
 
     wget -q -O - https://packages.cloudfoundry.org/debian/cli.cloudfoundry.org.key | sudo apt-key add -
 
