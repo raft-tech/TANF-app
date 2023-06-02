@@ -6,7 +6,6 @@ else
 
     apt-get update
     apt-get install wget gnupg2 apt-transport-https libc6 libc-bin glibc-source
-    sudo apt --fix-broken
     sudo apt update --fix-missing
     sudo apt clean
     sudo apt update
