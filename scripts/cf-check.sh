@@ -4,10 +4,12 @@ if command -v cf /dev/null 2>&1; then
     echo The command cf is available
 else
 
-    sudo dpkg -i
-    sudo apt --fix-broken install
     apt-get update
     apt-get install wget gnupg2 apt-transport-https libc6 libc-bin glibc-source
+    sudo apt --fix-broken
+    sudo apt update --fix-missing
+    sudo apt clean
+    sudo apt update
 
     wget -q -O - https://packages.cloudfoundry.org/debian/cli.cloudfoundry.org.key | sudo apt-key add -
 
