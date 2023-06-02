@@ -56,7 +56,7 @@ resource "cloudfoundry_service_instance" "database" {
 }
 
 ###
-# Provision S3 buckets
+# Provision S3 buckets DELETE
 ###
 
 data "cloudfoundry_service" "s3" {
