@@ -4,6 +4,8 @@ if command -v cf /dev/null 2>&1; then
     echo The command cf is available
 else
 
+    sudo dpkg -i
+    sudo apt --fix-broken install
     apt-get update
     apt-get install wget gnupg2 apt-transport-https libc6 libc-bin glibc-source
 
@@ -15,5 +17,5 @@ else
     apt-get install cf7-cli
 
     wget -q https://github.com/cloudfoundry/stack-auditor/releases/download/v0.1.0/stack-auditor-linux-64
-    cf install-plugin -f stack-auditor-linux-64 
+    cf install-plugin -f stack-auditor-linux-64
 fi
