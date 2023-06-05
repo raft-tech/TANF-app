@@ -133,10 +133,10 @@ def parse_datafile_lines(rawfile, program_type, section):
     return errors
 
 
-def manager_parse_line(line, schema):
+def manager_parse_line(line, schema_manager):
     """Parse and validate a datafile line using SchemaManager."""
-    if schema:
-        records = schema.parse_and_validate(line)
+    if schema_manager:
+        records = schema_manager.parse_and_validate(line)
         return records
 
     return [(None, False, ['No schema selected.'])]
