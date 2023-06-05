@@ -1,7 +1,7 @@
 """Convert raw uploaded Datafile into a parsed model, and accumulate/return any errors."""
 
 
-from . import schema_defs, util
+from . import schema_defs
 from tdpservice.data_files.models import DataFile
 from tdpservice.parsers.util import begin_transaction, end_transaction, rollback
 
@@ -49,10 +49,13 @@ def parse_datafile(datafile):
     return errors
 
 
-def bulk_create_records(unsaved_records):
+def bulk_create_records(unsaved_records, line_number, header_count, batch_size=20000, flush=False):
     """Bulk create passed in records."""
-    for model, records in unsaved_records.items():
-        model.objects.bulk_create(records)
+    if (line_number % batch_size == 0 and header_count > 0) or flush:
+        for model, records in unsaved_records.items():
+            model.objects.bulk_create(records)
+        return {}
+    return unsaved_records
 
 
 def evaluate_trailer(trailer_count, multiple_trailer_errors, line):
@@ -70,7 +73,7 @@ def parse_datafile_lines(rawfile, program_type, section):
     errors = {}
 
     line_number = 0
-    schema_options = get_schema_options(program_type)
+    schema_manager_options = get_schema_manager_options(program_type)
 
     unsaved_records = {}
 
@@ -102,45 +105,36 @@ def parse_datafile_lines(rawfile, program_type, section):
             prev_sum = header_count + trailer_count
             continue
 
-        schema = get_schema(line, section, schema_options)
+        schema_manager = get_schema_manager(line, section, schema_manager_options)
 
-        if isinstance(schema, util.MultiRecordRowSchema):
-            records = parse_multi_record_line(line, schema)
+        records = manager_parse_line(line, schema_manager)
 
-            record_number = 0
-            for r, s in zip(records, schema.schemas):
-                record_number += 1
-                record, record_is_valid, record_errors = r
-                if not record_is_valid:
-                    line_errors = errors.get(line_number, {})
-                    line_errors.update({record_number: record_errors})
-                    errors.update({line_number: record_errors})
-                if record:
-                    unsaved_records.setdefault(s.model, []).append(record)
-        else:
-            record, record_is_valid, record_errors = parse_datafile_line(line, schema)
+        record_number = 0
+        for r, s in zip(records, schema_manager.schemas):
+            record_number += 1
+            record, record_is_valid, record_errors = r
             if not record_is_valid:
+                line_errors = errors.get(line_number, {})
+                line_errors.update({record_number: record_errors})
                 errors.update({line_number: record_errors})
             if record:
-                unsaved_records.setdefault(schema.model, []).append(record)
+                unsaved_records.setdefault(s.model, []).append(record)
 
-        if line_number % 50000 == 0 and header_count > 0:
-            bulk_create_records(unsaved_records)
-            unsaved_records.clear()
+        unsaved_records = bulk_create_records(unsaved_records, line_number, header_count,)
 
     if header_count == 0:
         errors.update({'document': ['No headers found.']})
         rollback()
         return errors
 
-    bulk_create_records(unsaved_records)
+    bulk_create_records(unsaved_records, line_number, header_count, flush=True)
     end_transaction()
 
     return errors
 
 
-def parse_multi_record_line(line, schema):
-    """Parse and validate a datafile line using MultiRecordRowSchema."""
+def manager_parse_line(line, schema):
+    """Parse and validate a datafile line using SchemaManager."""
     if schema:
         records = schema.parse_and_validate(line)
         return records
@@ -148,17 +142,7 @@ def parse_multi_record_line(line, schema):
     return [(None, False, ['No schema selected.'])]
 
 
-def parse_datafile_line(line, schema):
-    """Parse and validate a datafile line and save any errors to the model."""
-    if schema:
-        record, record_is_valid, record_errors = schema.parse_and_validate(line)
-
-        return record, record_is_valid, record_errors
-
-    return (None, False, ['No schema selected.'])
-
-
-def get_schema_options(program_type):
+def get_schema_manager_options(program_type):
     """Return the allowed schema options."""
     match program_type:
         case 'TAN':
@@ -201,7 +185,7 @@ def get_schema_options(program_type):
     return None
 
 
-def get_schema(line, section, schema_options):
+def get_schema_manager(line, section, schema_options):
     """Return the appropriate schema for the line."""
     line_type = line[0:2]
     return schema_options.get(section, {}).get(line_type, None)

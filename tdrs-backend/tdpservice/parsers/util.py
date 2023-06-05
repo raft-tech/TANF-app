@@ -176,11 +176,10 @@ class RowSchema:
         return is_valid, errors
 
 
-class MultiRecordRowSchema:
-    """Maps a line to multiple `RowSchema`s and runs all parsers and validators."""
+class SchemaManager:
+    """Manages one or more RowSchema's and runs all parsers and validators."""
 
     def __init__(self, schemas):
-        # self.common_fields = None
         self.schemas = schemas
 
     def parse_and_validate(self, line):
