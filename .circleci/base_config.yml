@@ -36,10 +36,3 @@ parameters:
   target_env:
     type: string
     default: ''
-  upgrade_cf_apps_space:
-    type: string
-    default: ''
-  cf_fs_os:
-    type: string
-    default: ''
-
