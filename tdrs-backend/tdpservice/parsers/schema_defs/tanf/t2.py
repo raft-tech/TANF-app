@@ -13,10 +13,36 @@ t2 = RowSchema(
     ],
     postparsing_validators=[],
     fields=[
-        Field(name='RecordType', type='string', startIndex=0, endIndex=2, required=True, validators=[]),
-        Field(name='RPT_MONTH_YEAR', type='number', startIndex=2, endIndex=8, required=True, validators=[]),
-        Field(name='CASE_NUMBER', type='string', startIndex=8, endIndex=19, required=True, validators=[]),
-        Field(name='FAMILY_AFFILIATION', type='number', startIndex=19, endIndex=20, required=True, validators=[]),
+        Field(name='RecordType', type='string', startIndex=0, endIndex=2, required=True, validators=[
+             validators.oneOf(
+                        [
+                              '01', '02', 
+                              '04', '05', '06',
+                              '08', '09', '10', '11', '12', '13',
+                              '15', '16', '17', '18', '19', '20', 
+                              '21', '22', '23', '24', '25', '26', 
+                              '27', '28', '29', '30', '31', '32', 
+                              '33', '34', '35', '36', '37', '38', 
+                              '39', '40', '41', '42', 
+                              '44', '45', '46', '47', '48', '49', '50', '51', 
+                              '53', '54', '55', '56', 
+                              '60', 
+                              '66', 
+                              '72', 
+                              '78',
+                        ],
+                  )
+        ]),
+        Field(name='RPT_MONTH_YEAR', type='number', startIndex=2, endIndex=8, required=True, validators=[
+            validators.month_year_yearIsLargerThan(1998), 
+            validators.month_year_monthIsValid(),
+        ]),
+        Field(name='CASE_NUMBER', type='string', startIndex=8, endIndex=19, required=True, validators=[
+            validators.notEmpty(),
+        ]),
+        Field(name='FAMILY_AFFILIATION', type='number', startIndex=19, endIndex=20, required=True, validators=[
+            validators.isInLimits(1,5),
+        ]),
         Field(name='NONCUSTODIAL_PARENT', type='number', startIndex=20, endIndex=21, required=True, validators=[]),
         Field(name='DATE_OF_BIRTH', type='number', startIndex=21, endIndex=29, required=True, validators=[]),
         Field(name='SSN', type='string', startIndex=29, endIndex=38, required=True, validators=[]),
