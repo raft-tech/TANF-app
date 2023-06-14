@@ -11,17 +11,23 @@ def make_validator(validator_func, error_func):
 # validator combinators
 
 def or_validators(validator1, validator2):
-    "Return a validator that is true only if one of the two validators is true."
-    return lambda value: (True, None) if validator1(value)[0] or validator2(value)[0] else (False, (not validator1(value)[0]) * (validator1(value)[1] + ' and ')+ (not validator2(value)[0]) * validator2(value)[1])
+    """Return a validator that is true only if one of the two validators is true."""
+    return lambda value: (True, None) if validator1(value)[0] or validator2(value)[0] else (False,
+                                                                                            (not validator1(value)[0]) *
+                                                                                            (validator1(value)[1] +
+                                                                                             ' and ') +
+                                                                                            (not validator2(value)[0])
+                                                                                            * validator2(value)[1])
 
 
 def if_then_validator(validator1, validator2):
-    "Return second validator if the first validator is true."
+    """Return second validator if the first validator is true."""
     def if_then_validator_func(value1, value2=None):
         value2 = value2 if value2 else value1
         validator1_result = validator1(value1)
         validator2_result = validator2(value2)
-        return (True, None) if not validator1_result[0] else (validator2_result[0], 'if ' + validator1_result[1] + ' then ' + validator2_result[1])
+        return (True, None) if not validator1_result[0] else (validator2_result[0], 'if ' + validator1_result[1] +
+                                                              ' then ' + validator2_result[1])
 
     return lambda value1, value2=None: if_then_validator_func(value1, value2)
 
@@ -132,7 +138,7 @@ def isInLimits(LowerBound, UpperBound):
 # custom validators
 
 def month_year_monthIsValid():
-    "Validate that in a monthyear combination, the month is a valid month."
+    """Validate that in a monthyear combination, the month is a valid month."""
     return make_validator(
         lambda value: int(value[:2]) in range(1, 13),
         lambda value: f'{value[:2]} is not a valid month.'
@@ -140,7 +146,7 @@ def month_year_monthIsValid():
 
 
 def month_year_yearIsLargerThan(year):
-    "Validate that in a monthyear combination, the year is larger than the given year."
+    """Validate that in a monthyear combination, the year is larger than the given year."""
     return make_validator(
         lambda value: int(value[2:]) > year,
         lambda value: f'{value[2:]} year must be larger than {year}.'

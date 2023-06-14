@@ -85,7 +85,6 @@ def test_big_file(stt_user, stt):
 @pytest.mark.django_db
 def test_parse_big_file(test_big_file):
     """Test parsing of ADS.E2J.FTP1.TS06."""
-    expected_errors_count = 1839
     expected_t1_record_count = 815
     expected_t2_record_count = 882
     expected_t3_record_count = 1376
