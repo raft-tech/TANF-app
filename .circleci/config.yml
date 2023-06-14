@@ -51,6 +51,7 @@ jobs:
   setup:
     executor: continuation/default
     steps:
+      # - checkout 
       - checkout # checkout code
       - run: # run a command
           name: Generate config
