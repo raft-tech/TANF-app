@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(primary_key=True, serialize=False)),
                 ('row_number', models.IntegerField()),
                 ('column_number', models.IntegerField()),
-                ('item_number', models.IntegerField()),
+                ('item_number', models.CharField(max_length=8)),
                 ('field_name', models.TextField(max_length=128)),
                 ('category', models.IntegerField(default=1)),
                 ('case_number', models.TextField(max_length=128, null=True)),
