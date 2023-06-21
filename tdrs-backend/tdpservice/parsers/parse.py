@@ -47,7 +47,7 @@ def parse_datafile(datafile):
     return errors
 
 
-def bulk_create_records(unsaved_records, line_number, header_count, batch_size=20000, flush=False):
+def bulk_create_records(unsaved_records, line_number, header_count, batch_size=10000, flush=False):
     """Bulk create passed in records."""
     if (line_number % batch_size == 0 and header_count > 0) or flush:
         for model, records in unsaved_records.items():
