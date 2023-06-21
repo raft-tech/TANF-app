@@ -99,6 +99,6 @@ m1 = SchemaManager(
               Field(item=43, name='BLANK', type='string', startIndex=113, endIndex=150,
                     required=False, validators=[]),
           ]
-      )
-    ]
-)
+        )
+      ]
+  )

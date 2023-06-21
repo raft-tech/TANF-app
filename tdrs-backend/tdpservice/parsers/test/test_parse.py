@@ -248,7 +248,7 @@ def big_bad_test_file(stt_user, stt):
 def test_parse_big_bad_test_file(big_bad_test_file):
     """Test parsing of bad_TANF_S1."""
     begin_transaction()
-    errors = parse.parse_datafile(big_bad_test_file)
+    parse.parse_datafile(big_bad_test_file)
 
     parser_errors = ParserError.objects.filter(file=big_bad_test_file)
     assert parser_errors.count() == 889
@@ -428,7 +428,7 @@ def test_parse_ssp_section1_datafile(ssp_section1_datafile):
     expected_m2_record_count = 9373
     expected_m3_record_count = 16764
 
-    errors = parse.parse_datafile(ssp_section1_datafile)
+    parse.parse_datafile(ssp_section1_datafile)
 
     parser_errors = ParserError.objects.filter(file=ssp_section1_datafile)
     assert parser_errors.count() == 10
@@ -525,7 +525,7 @@ def super_big_s1_file(stt_user, stt):
 def test_parse_super_big_s1_file(super_big_s1_file):
     """Test parsing of super_big_s1_file and validate all T1/T2/T3 records are created."""
     begin_transaction()
-    errors = parse.parse_datafile(super_big_s1_file)
+    parse.parse_datafile(super_big_s1_file)
 
     parser_errors = ParserError.objects.filter(file=super_big_s1_file)
     assert parser_errors.count() == 13
@@ -548,8 +548,8 @@ def test_parse_super_big_s1_file_with_rollback(super_big_s1_rollback_file):
     Validate all T1/T2/T3 records are not created due to multiple headers.
     """
     begin_transaction()
-    errors = parse.parse_datafile(super_big_s1_rollback_file)
-    
+    parse.parse_datafile(super_big_s1_rollback_file)
+
     parser_errors = ParserError.objects.filter(file=super_big_s1_rollback_file)
     assert parser_errors.count() == 2
 

@@ -154,6 +154,6 @@ t2 = SchemaManager(
               Field(item=70, name='OTHER_UNEARNED_INCOME', type='string', startIndex=152, endIndex=156,
                     required=False, validators=[]),
           ],
-      )
-    ]
+        )
+      ]
 )

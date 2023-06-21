@@ -5,7 +5,6 @@ import itertools
 from .models import ParserErrorCategoryChoices, ParserError
 from . import schema_defs, validators, util
 from tdpservice.parsers.util import begin_transaction, end_transaction, rollback
-import time
 
 
 def parse_datafile(datafile):
@@ -57,7 +56,7 @@ def bulk_create_records(unsaved_records, line_number, header_count, batch_size=2
     return unsaved_records
 
 def bulk_create_errors(unsaved_parser_errors):
-    """Bulk create all ParserErrors"""
+    """Bulk create all ParserErrors."""
     if unsaved_parser_errors:
         ParserError.objects.bulk_create(list(itertools.chain.from_iterable(unsaved_parser_errors.values())))
 
@@ -70,7 +69,7 @@ def evaluate_trailer(datafile, trailer_count, multiple_trailer_errors, is_last_l
                 error_message="Multiple trailers found.",
                 record=None,
                 field=None
-            )])
+                )])
     if trailer_count == 1 or is_last_line:
         record, trailer_is_valid, trailer_errors = schema_defs.trailer.parse_and_validate(
             line,
@@ -78,15 +77,6 @@ def evaluate_trailer(datafile, trailer_count, multiple_trailer_errors, is_last_l
         )
         return (multiple_trailer_errors, None if not trailer_errors else trailer_errors)
     return (False, None)
-
-
-def signal_last(iterable):
-    """Convenience function to indicate when the end of a generator has been reached."""
-    it = iter(iterable)
-    for val in it:
-        yield val, False
-    yield b"", True
-
 
 def parse_datafile_lines(datafile, program_type, section):
     """Parse lines with appropriate schema and return errors."""

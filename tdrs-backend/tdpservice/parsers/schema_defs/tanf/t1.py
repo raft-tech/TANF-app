@@ -107,6 +107,6 @@ t1 = SchemaManager(
                     required=True, validators=[]),
               Field(item=46, name='BLANK', type='string', startIndex=117, endIndex=156, required=False, validators=[]),
           ],
-      )
-    ]
-)
+        )
+      ]
+  )
