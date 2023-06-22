@@ -10,18 +10,31 @@ first_part_schema = RowSchema(
     preparsing_validators=[
         validators.notEmpty(start=19, end=60),
     ],
-    postparsing_validators=[],
+    postparsing_validators=[
+            validatee1='DATE_OF_BIRTH', validator1=validators.matches('99999999'),
+            validatee2='FAMILY_AFFILIATION', validator2=validators.isInLimits(2,5),
+    ],
     fields=[
         Field(name='RecordType', type='string', startIndex=0, endIndex=2,
               required=True, validators=[]),
         Field(name='RPT_MONTH_YEAR', type='number', startIndex=2, endIndex=8,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.month_year_yearIsLargerThan(1998),
+                  validators.month_year_monthIsValid(),
+              ]),
         Field(name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.notEmpty(),
+              ]),
         Field(name='FAMILY_AFFILIATION', type='number', startIndex=19, endIndex=20,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isInLimits(1, 5),
+              ]),
         Field(name='DATE_OF_BIRTH', type='string', startIndex=20, endIndex=28,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.notEmpty(),
+                  validators.notZero(8),
+              ]),
         Field(name='SSN', type='string', startIndex=28, endIndex=37,
               required=True, validators=[]),
         Field(name='RACE_HISPANIC', type='number', startIndex=37, endIndex=38,
@@ -63,18 +76,31 @@ second_part_schema = RowSchema(
     preparsing_validators=[
         validators.notEmpty(start=60, end=101),
     ],
-    postparsing_validators=[],
+    postparsing_validators=[
+            validatee1='DATE_OF_BIRTH', validator1=validators.matches('99999999'),
+            validatee2='FAMILY_AFFILIATION', validator2=validators.isInLimits(2,5),
+    ],
     fields=[
         Field(name='RecordType', type='string', startIndex=0, endIndex=2,
               required=True, validators=[]),
         Field(name='RPT_MONTH_YEAR', type='number', startIndex=2, endIndex=8,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.month_year_yearIsLargerThan(1998),
+                  validators.month_year_monthIsValid(),
+              ]),
         Field(name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.notEmpty(),
+              ]),
         Field(name='FAMILY_AFFILIATION', type='number', startIndex=60, endIndex=61,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isInLimits(1, 5),
+              ]),
         Field(name='DATE_OF_BIRTH', type='string', startIndex=61, endIndex=69,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.notEmpty(),
+                  validators.notZero(8),
+              ]),
         Field(name='SSN', type='string', startIndex=69, endIndex=78,
               required=True, validators=[]),
         Field(name='RACE_HISPANIC', type='number', startIndex=78, endIndex=79,

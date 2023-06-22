@@ -11,20 +11,35 @@ m2 = RowSchema(
     preparsing_validators=[
         validators.hasLength(150),
     ],
-    postparsing_validators=[],
+    postparsing_validators=[
+        validators.if_then_validator(
+            validatee1='DATE_OF_BIRTH', validator1=validators.matches('99999999'),
+            validatee2='FAMILY_AFFILIATION', validator2=validators.isInLimits(2,5),
+        )
+    ],
     fields=[
         Field(name='RecordType', type='string', startIndex=0, endIndex=2,
               required=True, validators=[]),
         Field(name='RPT_MONTH_YEAR', type='number', startIndex=2, endIndex=8,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.month_year_yearIsLargerThan(1998),
+                  validators.month_year_monthIsValid(),
+              ]),
         Field(name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.notEmpty(),
+              ]),
         Field(name='FAMILY_AFFILIATION', type='number', startIndex=19, endIndex=20,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isInLimits(1, 5),
+              ]),
         Field(name='NONCUSTODIAL_PARENT', type='number', startIndex=20, endIndex=21,
               required=True, validators=[]),
         Field(name='DATE_OF_BIRTH', type='string', startIndex=21, endIndex=29,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.notEmpty(),
+                  validators.notZero(8),
+              ]),
         Field(name='SSN', type='string', startIndex=29, endIndex=38,
               required=True, validators=[]),
         Field(name='RACE_HISPANIC', type='number', startIndex=38, endIndex=39,

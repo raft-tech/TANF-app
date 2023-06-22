@@ -11,9 +11,38 @@ t1 = RowSchema(
     preparsing_validators=[
         validators.hasLength(156),
     ],
-    postparsing_validators=[cat3_validate_t1],
+    postparsing_validators=[
+      cat3_validate_t1,
+
+      validators.if_then_validator(
+            'DISPOSITION', validators.matches(2), 
+            'COUNTY_FIPS_CODE', validators.notEmpty(),
+      ),
+      validators.if_then_validator(
+            'DISPOSITION', validators.matches(2), 
+            'REPORTING_MONTH', validators.notEmpty(),
+      ),
+      validators.if_then_validator(
+            'DISPOSITION', validators.matches(2), 
+            'STRATUM', validators.notEmpty(),
+      ),
+      validators.if_then_validator(
+            'DISPOSITION', validators.matches(2), 
+            'CASE_NUMBER', validators.notEmpty(),
+      ),
+      ],
     fields=[
         Field(name='RecordType', type='string', startIndex=0, endIndex=2,
+              required=True, validators=[
+                  ]),
+        Field(name='RPT_MONTH_YEAR', type='number', startIndex=2, endIndex=8,
+              required=True, validators=[
+                  validators.month_year_yearIsLargerThan(1998),
+                  validators.month_year_monthIsValid(),
+                  ]),
+        Field(name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
+              required=True, validators=[validators.notEmpty(),]),
+        Field(name='COUNTY_FIPS_CODE', type='string', startIndex=19, endIndex=22,
               required=True, validators=[
                   validators.oneOf(
                         [
@@ -33,16 +62,7 @@ t1 = RowSchema(
                               '78',
                         ],
                   )
-                  ]),
-        Field(name='RPT_MONTH_YEAR', type='number', startIndex=2, endIndex=8,
-              required=True, validators=[
-                  validators.month_year_yearIsLargerThan(1998),
-                  validators.month_year_monthIsValid(),
-                  ]),
-        Field(name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
-              required=True, validators=[validators.notEmpty(),]),
-        Field(name='COUNTY_FIPS_CODE', type='string', startIndex=19, endIndex=22,
-              required=True, validators=[]),
+              ]),
         Field(name='STRATUM', type='number', startIndex=22, endIndex=24,
               required=True, validators=[
                   validators.isInLimits(0, 99),

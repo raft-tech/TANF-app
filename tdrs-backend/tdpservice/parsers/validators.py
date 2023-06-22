@@ -20,16 +20,22 @@ def or_validators(validator1, validator2):
                                                                                             * validator2(value)[1])
 
 
-def if_then_validator(validator1, validator2):
-    """Return second validator if the first validator is true."""
-    def if_then_validator_func(value1, value2=None):
-        value2 = value2 if value2 else value1
+def if_then_validator(validatee1, validator1, validatee2, validator2):
+    """Return second validation if the first validator is true.
+    :param validator1: function that returns (bool, string) to represent validation state
+    :param validator2: function that returns (bool, string) to represent validation state
+    :param args: list of two strings representing the keys of the values to be validated
+    """
+    def if_then_validator_func(value):
+        value1 = value[validatee1]
+        value2 = value[validatee2]
+
         validator1_result = validator1(value1)
         validator2_result = validator2(value2)
         return (True, None) if not validator1_result[0] else (validator2_result[0], 'if ' + validator1_result[1] +
                                                               ' then ' + validator2_result[1])
 
-    return lambda value1, value2=None: if_then_validator_func(value1, value2)
+    return lambda value: if_then_validator_func(value)
 
 
 # generic validators
@@ -95,6 +101,14 @@ def notEmpty(start=0, end=None):
     return make_validator(
         lambda value: not value[start:end if end else len(value)].isspace(),
         lambda value: f'{value} contains blanks between positions {start} and {end if end else len(value)}.'
+    )
+
+
+def notZero(number_of_zeros=1):
+    """Validate that value is not zero."""
+    return make_validator(
+        lambda value: value != '0' * number_of_zeros,
+        lambda value: f'{value} is zero.'
     )
 
 
