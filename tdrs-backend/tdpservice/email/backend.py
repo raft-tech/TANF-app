@@ -1,3 +1,5 @@
+"""Override Emailbackend to inject DKIM signatures into the message body."""
+
 import smtplib
 from django.core.mail.backends.smtp import EmailBackend
 from django.conf import settings
@@ -6,9 +8,10 @@ from dkimpy import DKIM
 
 
 class DKIMEmailBackend(EmailBackend):
-    """Override EmailBackend._save to inject a DKIM signature."""
+    """Override EmailBackend to inject DKIM signature into the message body."""
+
     def _send(self, email_message):
-        """A helper method that does the actual sending."""
+        """Override EmailBackend._send."""
         if not email_message.recipients():
             return False
         encoding = email_message.encoding or settings.DEFAULT_CHARSET
