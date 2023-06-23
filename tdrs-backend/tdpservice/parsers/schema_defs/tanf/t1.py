@@ -14,21 +14,33 @@ t1 = RowSchema(
     postparsing_validators=[
       cat3_validate_t1,
       validators.if_then_validator(
-            'DISPOSITION', validators.matches(2), 
-            'COUNTY_FIPS_CODE', validators.notEmpty(),
+            condition_field='DISPOSITION', condition_function=validators.matches(2), 
+            result_field='COUNTY_FIPS_CODE', result_function=validators.notEmpty(),
       ),
       validators.if_then_validator(
-            'DISPOSITION', validators.matches(2), 
-            'REPORTING_MONTH', validators.notEmpty(),
+            condition_field='DISPOSITION', condition_function=validators.matches(2), 
+            result_field='REPORTING_MONTH', result_function=validators.notEmpty(),
       ),
       validators.if_then_validator(
-            'DISPOSITION', validators.matches(2), 
-            'STRATUM', validators.notEmpty(),
+            condition_field='DISPOSITION', condition_function=validators.matches(2), 
+            result_field='STRATUM', result_function=validators.notEmpty(),
       ),
       validators.if_then_validator(
-            'DISPOSITION', validators.matches(2), 
-            'CASE_NUMBER', validators.notEmpty(),
+            condition_field='DISPOSITION', condition_function=validators.matches(2), 
+            result_field='CASE_NUMBER', result_function=validators.notEmpty(),
       ),
+      validators.if_then_validator(
+            condition_field='CASH_AMOUNT', condition_function=validators.isLargerThan(0),
+            result_field='NBR_MONTHS', result_function=validators.isLargerThan(0),
+      ),
+      validators.if_then_validator(
+            condition_field='CC_AMOUNT', condition_function=validators.isLargerThan(0),
+            result_field='CC_NBR_MONTHS', result_function=validators.isLargerThan(0),
+      ),
+      validators.if_then_validator(
+          condition_field='CC_AMOUNT', condition_function=validators.isLargerThan(0),
+          result_field='CHILDREN_COVERED', result_function=validators.isLargerThan(0),
+      )
       ],
     fields=[
         Field(item=1, name='RecordType', type='string', startIndex=0, endIndex=2,
@@ -61,16 +73,21 @@ t1 = RowSchema(
                               '72',
                               '78',
                         ],
-                  )
+                  ),
+                  validators.isNumber(),
               ]),
         Field(item=5, name='STRATUM', type='number', startIndex=22, endIndex=24,
               required=True, validators=[
                   validators.isInLimits(0, 99),
               ]),
         Field(item=6, name='ZIP_CODE', type='string', startIndex=24, endIndex=29,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isNumber(),
+              ]),
         Field(item=7, name='FUNDING_STREAM', type='number', startIndex=29, endIndex=30,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1, 2]),
+              ]),
         Field(item=8, name='DISPOSITION', type='number', startIndex=30, endIndex=31,
               required=True, validators=[
                   validators.oneOf([1, 2]),
@@ -79,40 +96,64 @@ t1 = RowSchema(
               required=True, validators=[]),
         Field(item=10, name='NBR_FAMILY_MEMBERS', type='number', startIndex=32, endIndex=34,
               required=True, validators=[
-                                    validators.isLargerThan(0),
+                  validators.isLargerThan(0),
               ]),
         Field(item=11, name='FAMILY_TYPE', type='number', startIndex=34, endIndex=35,
               required=True, validators=[
-                                    validators.isInLimits(1, 3),
+                  validators.isInLimits(1, 3),
               ]),
         Field(item=12, name='RECEIVES_SUB_HOUSING', type='number', startIndex=35, endIndex=36,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isInLimits(1, 3),
+              ]),
         Field(item=13, name='RECEIVES_MED_ASSISTANCE', type='number', startIndex=36, endIndex=37,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isInLimits(1, 2),
+              ]),
         Field(item=14, name='RECEIVES_FOOD_STAMPS', type='number', startIndex=37, endIndex=38,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isInLimits(1, 2),
+              ]),
         Field(item=15, name='AMT_FOOD_STAMP_ASSISTANCE', type='number', startIndex=38, endIndex=42,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=16, name='RECEIVES_SUB_CC', type='number', startIndex=42, endIndex=43,
               required=True, validators=[
-                                    validators.isInLimits(1, 3),
+                  validators.isInLimits(1, 3),
               ]),
         Field(item=17, name='AMT_SUB_CC', type='number', startIndex=43, endIndex=47,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=18, name='CHILD_SUPPORT_AMT', type='number', startIndex=47, endIndex=51,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=19, name='FAMILY_CASH_RESOURCES', type='number', startIndex=51, endIndex=55,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=20, name='CASH_AMOUNT', type='number', startIndex=55, endIndex=59,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=21, name='NBR_MONTHS', type='number', startIndex=59, endIndex=62,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=22, name='CC_AMOUNT', type='number', startIndex=62, endIndex=66,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=23, name='CHILDREN_COVERED', type='number', startIndex=66, endIndex=68,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=24, name='CC_NBR_MONTHS', type='number', startIndex=68, endIndex=71,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=25, name='TRANSP_AMOUNT', type='number', startIndex=71, endIndex=75,
               required=True, validators=[]),
         Field(item=26, name='TRANSP_NBR_MONTHS', type='number', startIndex=75, endIndex=78,

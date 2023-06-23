@@ -15,9 +15,61 @@ t2 = RowSchema(
     postparsing_validators=[
             cat3_validate_t2,
             validators.if_then_validator(
-              validatee1='DATE_OF_BIRTH', validator1=validators.matches('99999999'),
-               validatee2='FAMILY_AFFILIATION', validator2=validators.isInLimits(2,5),
-            )
+                  condition_field='DATE_OF_BIRTH', condition_function=validators.matches('99999999'),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.isInLimits(2,5),
+            ),
+            validators.if_then_validator(
+                  condition_field='SSN', condition_function=validators.matches('999999999'),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.isInLimits(2,5),
+            ),
+            validators.if_then_validator(
+                  condition_field='RACE_HISPANIC', condition_function=validators.isBlank(),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
+            ),
+            validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
+                  result_field='RACE_HISPANIC', result_function=validators.oneOf([1,2]),
+            ),
+            validators.if_then_validator(
+                  condition_field='RACE_AMER_INDIAN', condition_function=validators.isBlank(),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
+            ),
+            validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
+                  result_field='RACE_AMER_INDIAN', result_function=validators.oneOf([1,2]),
+            ),
+            validators.if_then_validator(
+                  condition_field='RACE_ASIAN', condition_function=validators.isBlank(),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
+            ),
+            validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
+                  result_field='RACE_ASIAN', result_function=validators.oneOf([1,2]),
+            ),
+            validators.if_then_validator(
+                  condition_field='RACE_BLACK', condition_function=validators.isBlank(),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
+            ),
+            validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
+                  result_field='RACE_BLACK', result_function=validators.oneOf([1,2]),
+            ),
+            validators.if_then_validator(
+                  condition_field='RACE_HAWAIIAN', condition_function=validators.isBlank(),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
+            ),
+            validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
+                  result_field='RACE_HAWAIIAN', result_function=validators.oneOf([1,2]),
+            ),
+            validators.if_then_validator(
+                  condition_field='RACE_WHITE', condition_function=validators.isBlank(),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
+            ),
+            validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
+                  result_field='RACE_WHITE', result_function=validators.oneOf([1,2]),
+            ),
         ],
     fields=[
         Field(item=1, name='RecordType', type='string', startIndex=0, endIndex=2,
@@ -43,7 +95,10 @@ t2 = RowSchema(
                   validators.notZero(8),
               ]),
         Field(item=7, name='SSN', type='string', startIndex=29, endIndex=38,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.notEmpty(),
+                  validators.notZero(9),
+              ]),
         Field(item=8, name='RACE_HISPANIC', type='string', startIndex=38, endIndex=39,
               required=True, validators=[]),
         Field(item=9, name='RACE_AMER_INDIAN', type='string', startIndex=39, endIndex=40,

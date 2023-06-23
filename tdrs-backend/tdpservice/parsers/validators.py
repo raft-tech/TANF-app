@@ -23,18 +23,19 @@ def or_validators(validator1, validator2):
                                                                                             * validator2(value)[1])
 
 
-def if_then_validator(validatee1, validator1, validatee2, validator2):
+def if_then_validator(condition_field, condition_function, 
+                      result_field, result_function):
     """Return second validation if the first validator is true.
     :param validator1: function that returns (bool, string) to represent validation state
     :param validator2: function that returns (bool, string) to represent validation state
     :param args: list of two strings representing the keys of the values to be validated
     """
     def if_then_validator_func(value):
-        value1 = value[validatee1]
-        value2 = value[validatee2]
+        value1 = value[condition_field]
+        value2 = value[result_field]
 
-        validator1_result = validator1(value1)
-        validator2_result = validator2(value2)
+        validator1_result = condition_function(value1)
+        validator2_result = result_function(value2)
         return (True, None) if not validator1_result[0] else (validator2_result[0], 'if ' + validator1_result[1] +
                                                               ' then ' + validator2_result[1])
 
@@ -98,6 +99,12 @@ def isNumber(substring):
         lambda value: f'{value} is not a number.'
     )
 
+def isBlank():
+    """Validate that string value is blank."""
+    return make_validator(
+        lambda value: value.isspace(),
+        lambda value: f'{value} is blank.'
+    )
 
 def notEmpty(start=0, end=None):
     """Validate that string value isn't only blanks."""

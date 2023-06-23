@@ -11,56 +11,26 @@ m1 = RowSchema(
     preparsing_validators=[
         validators.hasLength(150),
     ],
-    postparsing_validators=[
-      validators.if_then_validator(
-            'DISPOSITION', validators.matches(2), 
-            'COUNTY_FIPS_CODE', validators.notEmpty(),
-      ),
-      validators.if_then_validator(
-            'DISPOSITION', validators.matches(2), 
-            'REPORTING_MONTH', validators.notEmpty(),
-      ),
-      validators.if_then_validator(
-            'DISPOSITION', validators.matches(2), 
-            'STRATUM', validators.notEmpty(),
-      ),
-      validators.if_then_validator(
-            'DISPOSITION', validators.matches(2), 
-            'CASE_NUMBER', validators.notEmpty(),
-      ),
-    ],
+    postparsing_validators=[],
     fields=[
         Field(item=1, name='RecordType', type='string', startIndex=0, endIndex=2,
               required=True, validators=[]),
         Field(item=2, name='RPT_MONTH_YEAR', type='number', startIndex=2, endIndex=8,
-              required=True, validators=[
-                  validators.month_year_yearIsLargerThan(1998),
-                  validators.month_year_monthIsValid(),
-              ]),
+              required=True, validators=[]),
         Field(item=3, name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
-              required=True, validators=[
-                  validators.notEmpty(),
-              ]),
+              required=True, validators=[]),
         Field(item=4, name='COUNTY_FIPS_CODE', type='string', startIndex=19, endIndex=22,
               required=True, validators=[]),
         Field(item=5, name='STRATUM', type='number', startIndex=22, endIndex=24,
-              required=True, validators=[
-                  validators.isInLimits(0, 99),
-              ]),
+              required=True, validators=[]),
         Field(item=6, name='ZIP_CODE', type='string', startIndex=24, endIndex=29,
               required=True, validators=[]),
         Field(item=7, name='DISPOSITION', type='number', startIndex=29, endIndex=30,
-              required=True, validators=[
-                  validators.oneOf([1, 2]),
-              ]),
+              required=True, validators=[]),
         Field(item=8, name='NBR_FAMILY_MEMBERS', type='number', startIndex=30, endIndex=32,
-              required=True, validators=[
-                  validators.isLargerThan(0),
-              ]),
+              required=True, validators=[]),
         Field(item=9, name='FAMILY_TYPE', type='number', startIndex=32, endIndex=33,
-                  required=True, validators=[
-                          validators.isInLimits(1, 3),
-                  ]),
+                  required=True, validators=[]),
         Field(item=10, name='TANF_ASST_IN_6MONTHS', type='number', startIndex=33, endIndex=34,
               required=True, validators=[]),
         Field(item=11, name='RECEIVES_SUB_HOUSING', type='number', startIndex=34, endIndex=35,
@@ -72,9 +42,7 @@ m1 = RowSchema(
         Field(item=14, name='AMT_FOOD_STAMP_ASSISTANCE', type='number', startIndex=37, endIndex=41,
               required=True, validators=[]),
         Field(item=15, name='RECEIVES_SUB_CC', type='number', startIndex=41, endIndex=42,
-              required=True, validators=[
-                  validators.isInLimits(1, 3),
-              ]),
+              required=True, validators=[]),
         Field(item=16, name='AMT_SUB_CC', type='number', startIndex=42, endIndex=46,
               required=True, validators=[]),
         Field(item=17, name='CHILD_SUPPORT_AMT', type='number', startIndex=46, endIndex=50,
