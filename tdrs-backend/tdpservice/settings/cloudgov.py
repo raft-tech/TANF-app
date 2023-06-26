@@ -147,7 +147,7 @@ class CloudGov(Common):
     }
 
     # Redis
-    REDIS_URI = cloudgov_services['aws-elasticache-redis']['credentials']['uri']
+    REDIS_URI = cloudgov_services['aws-elasticache-redis'][0]['credentials']['uri']
     logger.debug("REDIS_URI: " + REDIS_URI)
 
     CELERY_BROKER_URL = REDIS_URI + '/0'
