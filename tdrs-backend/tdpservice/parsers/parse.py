@@ -1,10 +1,14 @@
 """Convert raw uploaded Datafile into a parsed model, and accumulate/return any errors."""
 
 
+from django.db import DatabaseError, transaction
 import itertools
+import logging
 from .models import ParserErrorCategoryChoices, ParserError
 from . import schema_defs, validators, util
 from tdpservice.parsers.util import begin_transaction, end_transaction, rollback
+
+logger = logging.getLogger(__name__)
 
 
 def parse_datafile(datafile):
@@ -50,10 +54,17 @@ def parse_datafile(datafile):
 def bulk_create_records(unsaved_records, line_number, header_count, batch_size=10000, flush=False):
     """Bulk create passed in records."""
     if (line_number % batch_size == 0 and header_count > 0) or flush:
-        for model, records in unsaved_records.items():
-            model.objects.bulk_create(records)
-        return {}
-    return unsaved_records
+        try:
+            num_created = 0
+            num_expected = 0
+            for model, records in unsaved_records.items():
+                num_expected += len(records)
+                num_created += len(model.objects.bulk_create(records))
+            return num_created == num_expected, {}
+        except DatabaseError as e:
+            logger.error(f"Encountered error while creating datafile records: {e}")
+            return False, unsaved_records
+    return True, unsaved_records
 
 def bulk_create_errors(unsaved_parser_errors):
     """Bulk create all ParserErrors."""
@@ -96,7 +107,7 @@ def parse_datafile_lines(datafile, program_type, section):
 
     # Note: it is unnecessary to call rawfile.seek(0) again because the generator
     # automatically starts back at the begining of the file.
-    begin_transaction()
+    begin_transaction(transaction)
     file_length = len(rawfile)
     offset = 0
     for rawline in rawfile:
@@ -127,7 +138,7 @@ def parse_datafile_lines(datafile, program_type, section):
                 field=None
             )
             unsaved_parser_errors.update({line_number: [err_obj]})
-            rollback()
+            rollback(transaction)
             bulk_create_errors(unsaved_parser_errors)
             return errors
 
@@ -153,7 +164,7 @@ def parse_datafile_lines(datafile, program_type, section):
                 s = schema_manager.schemas[i]
                 unsaved_records.setdefault(s.model, []).append(record)
 
-        unsaved_records = bulk_create_records(unsaved_records, line_number, header_count,)
+        all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count,)
 
     if header_count == 0:
         errors.update({'document': ['No headers found.']})
@@ -164,13 +175,20 @@ def parse_datafile_lines(datafile, program_type, section):
             record=None,
             field=None
         )
-        rollback()
+        rollback(transaction)
         unsaved_parser_errors.update({line_number: [err_obj]})
         bulk_create_errors(unsaved_parser_errors)
         return errors
 
-    bulk_create_records(unsaved_records, line_number, header_count, flush=True)
-    end_transaction()
+    # Only checking "all_created" here because records remained cached if bulk create fails. This is the last chance to
+    # successfully create the records.
+    all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count, flush=True)
+    if not all_created:
+        rollback(transaction)
+        bulk_create_errors(unsaved_parser_errors)
+        return errors
+
+    end_transaction(transaction)
 
     bulk_create_errors(unsaved_parser_errors)
 

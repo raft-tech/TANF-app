@@ -1,6 +1,7 @@
 """Test the implementation of the parse_file method with realistic datafiles."""
 
 
+from django.db import transaction
 import pytest
 from pathlib import Path
 from .. import parse
@@ -35,10 +36,10 @@ def test_datafile(stt_user, stt):
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_small_correct_file(test_datafile):
     """Test parsing of small_correct_file."""
-    begin_transaction()
+    begin_transaction(transaction)
     errors = parse.parse_datafile(test_datafile)
 
     assert errors == {}
@@ -57,14 +58,14 @@ def test_parse_small_correct_file(test_datafile):
     assert t1.CASH_AMOUNT == 873
     assert t1.SANC_REDUCTION_AMT == 0
     assert t1.FAMILY_NEW_CHILD == 2
-    rollback()
+    rollback(transaction)
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_section_mismatch(test_datafile):
     """Test parsing of small_correct_file where the DataFile section doesn't match the rawfile section."""
-    begin_transaction()
+    begin_transaction(transaction)
     test_datafile.section = 'Closed Case Data'
     test_datafile.save()
 
@@ -83,14 +84,14 @@ def test_parse_section_mismatch(test_datafile):
     assert errors == {
         'document': [err]
     }
-    rollback()
+    rollback(transaction)
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_wrong_program_type(test_datafile):
     """Test parsing of small_correct_file where the DataFile program type doesn't match the rawfile."""
-    begin_transaction()
+    begin_transaction(transaction)
     test_datafile.section = 'SSP Active Case Data'
     test_datafile.save()
 
@@ -109,7 +110,7 @@ def test_parse_wrong_program_type(test_datafile):
     assert errors == {
         'document': [err]
     }
-    rollback()
+    rollback(transaction)
 
 
 @pytest.fixture
@@ -119,10 +120,10 @@ def test_big_file(stt_user, stt):
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_big_file(test_big_file):
     """Test parsing of ADS.E2J.FTP1.TS06."""
-    begin_transaction()
+    begin_transaction(transaction)
     expected_t1_record_count = 815
     expected_t2_record_count = 882
     expected_t3_record_count = 1376
@@ -143,7 +144,7 @@ def test_parse_big_file(test_big_file):
     assert TANF_T1.objects.count() == expected_t1_record_count
     assert TANF_T2.objects.count() == expected_t2_record_count
     assert TANF_T3.objects.count() == expected_t3_record_count
-    rollback()
+    rollback(transaction)
 
 
 @pytest.fixture
@@ -153,10 +154,10 @@ def bad_test_file(stt_user, stt):
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_bad_test_file(bad_test_file):
     """Test parsing of bad_TANF_S2."""
-    begin_transaction()
+    begin_transaction(transaction)
     errors = parse.parse_datafile(bad_test_file)
 
     parser_errors = ParserError.objects.filter(file=bad_test_file)
@@ -172,7 +173,7 @@ def test_parse_bad_test_file(bad_test_file):
     assert errors == {
         'header': [err]
     }
-    rollback()
+    rollback(transaction)
 
 
 @pytest.fixture
@@ -182,10 +183,10 @@ def bad_file_missing_header(stt_user, stt):
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_bad_file_missing_header(bad_file_missing_header):
     """Test parsing of bad_missing_header."""
-    begin_transaction()
+    begin_transaction(transaction)
     errors = parse.parse_datafile(bad_file_missing_header)
 
     parser_errors = ParserError.objects.filter(file=bad_file_missing_header)
@@ -202,7 +203,7 @@ def test_parse_bad_file_missing_header(bad_file_missing_header):
     assert errors == {
         'header': list(parser_errors)
     }
-    rollback()
+    rollback(transaction)
 
 
 @pytest.fixture
@@ -212,10 +213,10 @@ def bad_file_multiple_headers(stt_user, stt):
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_bad_file_multiple_headers(bad_file_multiple_headers):
     """Test parsing of bad_two_headers."""
-    begin_transaction()
+    begin_transaction(transaction)
     errors = parse.parse_datafile(bad_file_multiple_headers)
 
     parser_errors = ParserError.objects.filter(file=bad_file_multiple_headers)
@@ -234,7 +235,7 @@ def test_parse_bad_file_multiple_headers(bad_file_multiple_headers):
         'trailer': [parser_errors[1]],
         "document": ["Multiple headers found."],
     }
-    rollback()
+    rollback(transaction)
 
 
 @pytest.fixture
@@ -244,10 +245,10 @@ def big_bad_test_file(stt_user, stt):
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_big_bad_test_file(big_bad_test_file):
     """Test parsing of bad_TANF_S1."""
-    begin_transaction()
+    begin_transaction(transaction)
     parse.parse_datafile(big_bad_test_file)
 
     parser_errors = ParserError.objects.filter(file=big_bad_test_file)
@@ -260,7 +261,7 @@ def test_parse_big_bad_test_file(big_bad_test_file):
     assert err.error_message == 'Multiple headers found.'
     assert err.content_type is None
     assert err.object_id is None
-    rollback()
+    rollback(transaction)
 
 
 @pytest.fixture
@@ -270,10 +271,10 @@ def bad_trailer_file(stt_user, stt):
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_bad_trailer_file(bad_trailer_file):
     """Test parsing bad_trailer_1."""
-    begin_transaction()
+    begin_transaction(transaction)
     errors = parse.parse_datafile(bad_trailer_file)
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file)
@@ -295,7 +296,7 @@ def test_parse_bad_trailer_file(bad_trailer_file):
         'trailer': [trailer_error],
         2: [row_error]
     }
-    rollback()
+    rollback(transaction)
 
 
 @pytest.fixture
@@ -305,10 +306,10 @@ def bad_trailer_file_2(stt_user, stt):
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_bad_trailer_file2(bad_trailer_file_2):
     """Test parsing bad_trailer_2."""
-    begin_transaction()
+    begin_transaction(transaction)
     errors = parse.parse_datafile(bad_trailer_file_2)
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file_2)
@@ -345,7 +346,7 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
         3: [row_3_error],
         "trailer": [trailer_error_1, trailer_error_2],
     }
-    rollback()
+    rollback(transaction)
 
 
 @pytest.fixture
@@ -355,10 +356,10 @@ def empty_file(stt_user, stt):
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_empty_file(empty_file):
     """Test parsing of empty_file."""
-    begin_transaction()
+    begin_transaction(transaction)
     errors = parse.parse_datafile(empty_file)
 
     parser_errors = ParserError.objects.filter(file=empty_file)
@@ -374,7 +375,7 @@ def test_parse_empty_file(empty_file):
     assert errors == {
         'header': list(parser_errors),
     }
-    rollback()
+    rollback(transaction)
 
 
 @pytest.fixture
@@ -384,10 +385,10 @@ def small_ssp_section1_datafile(stt_user, stt):
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_small_ssp_section1_datafile(small_ssp_section1_datafile):
     """Test parsing small_ssp_section1_datafile."""
-    begin_transaction()
+    begin_transaction(transaction)
     expected_m1_record_count = 5
     expected_m2_record_count = 6
     expected_m3_record_count = 8
@@ -410,7 +411,7 @@ def test_parse_small_ssp_section1_datafile(small_ssp_section1_datafile):
     assert SSP_M1.objects.count() == expected_m1_record_count
     assert SSP_M2.objects.count() == expected_m2_record_count
     assert SSP_M3.objects.count() == expected_m3_record_count
-    rollback()
+    rollback(transaction)
 
 
 @pytest.fixture
@@ -420,10 +421,10 @@ def ssp_section1_datafile(stt_user, stt):
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_ssp_section1_datafile(ssp_section1_datafile):
     """Test parsing ssp_section1_datafile."""
-    begin_transaction()
+    begin_transaction(transaction)
     expected_m1_record_count = 7849
     expected_m2_record_count = 9373
     expected_m3_record_count = 16764
@@ -444,7 +445,7 @@ def test_parse_ssp_section1_datafile(ssp_section1_datafile):
     assert SSP_M1.objects.count() == expected_m1_record_count
     assert SSP_M2.objects.count() == expected_m2_record_count
     assert SSP_M3.objects.count() == expected_m3_record_count
-    rollback()
+    rollback(transaction)
 
 @pytest.fixture
 def small_tanf_section1_datafile(stt_user, stt):
@@ -452,10 +453,10 @@ def small_tanf_section1_datafile(stt_user, stt):
     return create_test_datafile('small_tanf_section1.txt', stt_user, stt)
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_tanf_section1_datafile(small_tanf_section1_datafile):
     """Test parsing of small_tanf_section1_datafile and validate T2 model data."""
-    begin_transaction()
+    begin_transaction(transaction)
     errors = parse.parse_datafile(small_tanf_section1_datafile)
 
     assert errors == {}
@@ -474,26 +475,26 @@ def test_parse_tanf_section1_datafile(small_tanf_section1_datafile):
     assert t2_2.CASE_NUMBER == '11111111115'
     assert t2_2.FAMILY_AFFILIATION == 2
     assert t2_2.OTHER_UNEARNED_INCOME == '0000'
-    rollback()
+    rollback(transaction)
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_tanf_section1_datafile_obj_counts(small_tanf_section1_datafile):
     """Test parsing of small_tanf_section1_datafile in general."""
-    begin_transaction()
+    begin_transaction(transaction)
     errors = parse.parse_datafile(small_tanf_section1_datafile)
 
     assert errors == {}
     assert TANF_T1.objects.count() == 5
     assert TANF_T2.objects.count() == 5
     assert TANF_T3.objects.count() == 6
-    rollback()
+    rollback(transaction)
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_tanf_section1_datafile_t3s(small_tanf_section1_datafile):
     """Test parsing of small_tanf_section1_datafile and validate T3 model data."""
-    begin_transaction()
+    begin_transaction(transaction)
     errors = parse.parse_datafile(small_tanf_section1_datafile)
 
     assert errors == {}
@@ -513,7 +514,7 @@ def test_parse_tanf_section1_datafile_t3s(small_tanf_section1_datafile):
     assert t3_6.FAMILY_AFFILIATION == 1
     assert t3_6.GENDER == 2
     assert t3_6.EDUCATION_LEVEL == '98'
-    rollback()
+    rollback(transaction)
 
 @pytest.fixture
 def super_big_s1_file(stt_user, stt):
@@ -521,10 +522,10 @@ def super_big_s1_file(stt_user, stt):
     return create_test_datafile('ADS.E2J.NDM1.TS53_fake', stt_user, stt)
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_super_big_s1_file(super_big_s1_file):
     """Test parsing of super_big_s1_file and validate all T1/T2/T3 records are created."""
-    begin_transaction()
+    begin_transaction(transaction)
     parse.parse_datafile(super_big_s1_file)
 
     parser_errors = ParserError.objects.filter(file=super_big_s1_file)
@@ -533,7 +534,7 @@ def test_parse_super_big_s1_file(super_big_s1_file):
     assert TANF_T1.objects.count() == 96642
     assert TANF_T2.objects.count() == 112794
     assert TANF_T3.objects.count() == 172595
-    rollback()
+    rollback(transaction)
 
 @pytest.fixture
 def super_big_s1_rollback_file(stt_user, stt):
@@ -541,13 +542,13 @@ def super_big_s1_rollback_file(stt_user, stt):
     return create_test_datafile('ADS.E2J.NDM1.TS53_fake.rollback', stt_user, stt)
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_super_big_s1_file_with_rollback(super_big_s1_rollback_file):
     """Test parsing of super_big_s1_rollback_file.
 
     Validate all T1/T2/T3 records are not created due to multiple headers.
     """
-    begin_transaction()
+    begin_transaction(transaction)
     parse.parse_datafile(super_big_s1_rollback_file)
 
     parser_errors = ParserError.objects.filter(file=super_big_s1_rollback_file)
@@ -564,7 +565,7 @@ def test_parse_super_big_s1_file_with_rollback(super_big_s1_rollback_file):
     assert TANF_T1.objects.count() == 0
     assert TANF_T2.objects.count() == 0
     assert TANF_T3.objects.count() == 0
-    rollback()
+    rollback(transaction)
 
 
 @pytest.fixture
@@ -574,10 +575,10 @@ def bad_tanf_s1__row_missing_required_field(stt_user, stt):
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field):
     """Test parsing a bad TANF Section 1 submission where a row is missing required data."""
-    begin_transaction()
+    begin_transaction(transaction)
     errors = parse.parse_datafile(bad_tanf_s1__row_missing_required_field)
 
     parser_errors = ParserError.objects.filter(file=bad_tanf_s1__row_missing_required_field)
@@ -613,7 +614,7 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
         4: [row_4_error],
         5: [row_5_error],
     }
-    rollback()
+    rollback(transaction)
 
 
 @pytest.fixture
@@ -623,10 +624,10 @@ def bad_ssp_s1__row_missing_required_field(stt_user, stt):
 
 
 @pytest.mark.django_db(transaction=True)
-@rollback_on_exception
+@rollback_on_exception(transaction=transaction)
 def test_parse_bad_ssp_s1_missing_required(bad_ssp_s1__row_missing_required_field):
     """Test parsing a bad TANF Section 1 submission where a row is missing required data."""
-    begin_transaction()
+    begin_transaction(transaction)
     errors = parse.parse_datafile(bad_ssp_s1__row_missing_required_field)
 
     parser_errors = ParserError.objects.filter(file=bad_ssp_s1__row_missing_required_field)
@@ -669,4 +670,4 @@ def test_parse_bad_ssp_s1_missing_required(bad_ssp_s1__row_missing_required_fiel
         5: [row_5_error],
         'trailer': [trailer_error],
     }
-    rollback()
+    rollback(transaction)

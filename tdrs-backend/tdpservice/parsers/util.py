@@ -1,10 +1,7 @@
 """Utility file for functions shared between all parsers even preparser."""
 from .models import ParserError, ParserErrorCategoryChoices
 from django.contrib.contenttypes.models import ContentType
-
-
 import decorator
-from django.db import transaction
 
 
 def value_is_empty(value, length):
@@ -265,26 +262,28 @@ class SchemaManager:
         return records
 
 
-def begin_transaction():
+def begin_transaction(transaction):
     """Create manual database transaction."""
     transaction.set_autocommit(False)
 
-def rollback():
+def rollback(transaction):
     """Rollback manual database transaction."""
     transaction.rollback()
     transaction.set_autocommit(True)
 
-def end_transaction():
+def end_transaction(transaction):
     """Commit manual database transaction."""
     transaction.commit()
     transaction.set_autocommit(True)
 
-def rollback_on_exception(func):
+def rollback_on_exception(transaction):
     """Rollback failed test on assertion error."""
-    def wrapper(func, *args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except Exception as e:
-            rollback()
-            raise e
-    return decorator.decorator(wrapper, func)
+    def decorator_func(func):
+        def wrapper(func, *args, **kwargs):
+            try:
+                func(*args, **kwargs)
+            except Exception as e:
+                rollback(transaction)
+                raise e
+        return decorator.decorator(wrapper, func)
+    return decorator_func
