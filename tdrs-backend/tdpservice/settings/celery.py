@@ -20,14 +20,14 @@ app = Celery('settings')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # disable ssl verification
-app.conf.update(
-    broker_use_ssl={
-        'ssl_cert_reqs': ssl.CERT_NONE,
-    },
-    redis_backend_use_ssl={
-        'ssl_cert_reqs': ssl.CERT_NONE,
-    },
-)
+# app.conf.update(
+#     broker_use_ssl={
+#         'ssl_cert_reqs': ssl.CERT_NONE,
+#     },
+#     redis_backend_use_ssl={
+#         'ssl_cert_reqs': ssl.CERT_NONE,
+#     },
+# )
 
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks()
