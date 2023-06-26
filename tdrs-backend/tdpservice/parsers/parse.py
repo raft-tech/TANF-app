@@ -60,10 +60,10 @@ def bulk_create_errors(unsaved_parser_errors):
     if unsaved_parser_errors:
         ParserError.objects.bulk_create(list(itertools.chain.from_iterable(unsaved_parser_errors.values())))
 
-def evaluate_trailer(datafile, trailer_count, multiple_trailer_errors, is_last_line, line):
+def evaluate_trailer(datafile, trailer_count, multiple_trailer_errors, is_last_line, line, line_number):
     """Validate datafile trailer and return associated errors if any."""
     if trailer_count > 1 and not multiple_trailer_errors:
-        return (True, [util.make_generate_parser_error(datafile, -1)(
+        return (True, [util.make_generate_parser_error(datafile, line_number)(
                 schema=None,
                 error_category=ParserErrorCategoryChoices.PRE_CHECK,
                 error_message="Multiple trailers found.",
@@ -73,7 +73,7 @@ def evaluate_trailer(datafile, trailer_count, multiple_trailer_errors, is_last_l
     if trailer_count == 1 or is_last_line:
         record, trailer_is_valid, trailer_errors = schema_defs.trailer.parse_and_validate(
             line,
-            util.make_generate_parser_error(datafile, -1)
+            util.make_generate_parser_error(datafile, line_number)
         )
         return (multiple_trailer_errors, None if not trailer_errors else trailer_errors)
     return (False, None)
@@ -109,15 +109,17 @@ def parse_datafile_lines(datafile, program_type, section):
 
         is_last = offset == file_length
         multiple_trailer_errors, trailer_errors = evaluate_trailer(datafile, trailer_count, multiple_trailer_errors,
-                                                                   is_last, line)
+                                                                   is_last, line, line_number)
 
         if trailer_errors is not None:
             errors['trailer'] = trailer_errors
             unsaved_parser_errors.update({"trailer": trailer_errors})
 
+        generate_error = util.make_generate_parser_error(datafile, line_number)
+
         if header_count > 1:
             errors.update({'document': ['Multiple headers found.']})
-            err_obj = util.make_generate_parser_error(datafile, line_number)(
+            err_obj = generate_error(
                 schema=None,
                 error_category=ParserErrorCategoryChoices.PRE_CHECK,
                 error_message="Multiple headers found.",
@@ -135,7 +137,7 @@ def parse_datafile_lines(datafile, program_type, section):
 
         schema_manager = get_schema_manager(line, section, schema_manager_options)
 
-        records = manager_parse_line(line, schema_manager, util.make_generate_parser_error(datafile, line_number))
+        records = manager_parse_line(line, schema_manager, generate_error)
 
         record_number = 0
         for i in range(len(records)):
@@ -155,7 +157,7 @@ def parse_datafile_lines(datafile, program_type, section):
 
     if header_count == 0:
         errors.update({'document': ['No headers found.']})
-        err_obj = util.make_generate_parser_error(datafile, line_number)(
+        err_obj = generate_error(
             schema=None,
             error_category=ParserErrorCategoryChoices.PRE_CHECK,
             error_message="No headers found.",

@@ -279,7 +279,7 @@ def test_parse_bad_trailer_file(bad_trailer_file):
     parser_errors = ParserError.objects.filter(file=bad_trailer_file)
     assert parser_errors.count() == 2
 
-    trailer_error = parser_errors.get(row_number=-1)
+    trailer_error = parser_errors.get(row_number=3)
     assert trailer_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
     assert trailer_error.error_message == 'Trailer length is 11 but must be 23 characters.'
     assert trailer_error.content_type is None
@@ -314,7 +314,7 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
     parser_errors = ParserError.objects.filter(file=bad_trailer_file_2)
     assert parser_errors.count() == 4
 
-    trailer_errors = parser_errors.filter(row_number=-1)
+    trailer_errors = parser_errors.filter(row_number=3)
 
     trailer_error_1 = trailer_errors.first()
     assert trailer_error_1.error_type == ParserErrorCategoryChoices.PRE_CHECK
@@ -322,7 +322,7 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
     assert trailer_error_1.content_type is None
     assert trailer_error_1.object_id is None
 
-    trailer_error_2 = trailer_errors.last()
+    trailer_error_2 = trailer_errors[1]
     assert trailer_error_2.error_type == ParserErrorCategoryChoices.PRE_CHECK
     assert trailer_error_2.error_message == 'T1trash does not start with TRAILER.'
     assert trailer_error_2.content_type is None
@@ -334,7 +334,7 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
     assert row_2_error.content_type is None
     assert row_2_error.object_id is None
 
-    row_3_error = parser_errors.get(row_number=3)
+    row_3_error = trailer_errors[2]
     assert row_3_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
     assert row_3_error.error_message == 'Value length 7 does not match 156.'
     assert row_3_error.content_type is None
@@ -399,7 +399,7 @@ def test_parse_small_ssp_section1_datafile(small_ssp_section1_datafile):
 
     err = parser_errors.first()
 
-    assert err.row_number == -1
+    assert err.row_number == 20
     assert err.error_type == ParserErrorCategoryChoices.PRE_CHECK
     assert err.error_message == 'Trailer length is 15 but must be 23 characters.'
     assert err.content_type is None
@@ -656,7 +656,7 @@ def test_parse_bad_ssp_s1_missing_required(bad_ssp_s1__row_missing_required_fiel
     assert row_5_error.content_type is None
     assert row_5_error.object_id is None
 
-    trailer_error = parser_errors.get(row_number=-1)
+    trailer_error = parser_errors.get(row_number=6)
     assert trailer_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
     assert trailer_error.error_message == 'Trailer length is 15 but must be 23 characters.'
     assert trailer_error.content_type is None
