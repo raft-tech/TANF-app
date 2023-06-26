@@ -146,6 +146,13 @@ class CloudGov(Common):
         },
     }
 
+    # Redis
+    REDIS_URI = cloudgov_services['aws-elasticache-redis']['credentials']['uri']
+    logger.debug("REDIS_URI: " + REDIS_URI)
+
+    CELERY_BROKER_URL = REDIS_URI + '/0'
+    CELERY_RESULT_BACKEND = REDIS_URI + '/1'
+
 
 class Development(CloudGov):
     """Settings for applications deployed in the Cloud.gov dev space."""
