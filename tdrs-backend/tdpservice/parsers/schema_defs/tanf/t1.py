@@ -40,7 +40,43 @@ t1 = RowSchema(
       validators.if_then_validator(
           condition_field='CC_AMOUNT', condition_function=validators.isLargerThan(0),
           result_field='CHILDREN_COVERED', result_function=validators.isLargerThan(0),
-      )
+      ),
+      validators.if_then_validator(
+            condition_field='TRANS_AMOUNT', condition_function=validators.isLargerThan(0),
+            result_field='TRANSP_NBR_MONTHS', result_function=validators.isLargerThan(0),
+      ),
+      validators.if_then_validator(
+            condition_field='TRANSITION_SERVICES_AMOUNT', condition_function=validators.isLargerThan(0),
+            result_field='TRANSITION_NBR_MONTHS', result_function=validators.isLargerThan(0),
+      ),
+      validators.if_then_validator(
+          condition_field='OTHER_AMOUNT', condition_function=validators.isLargerThan(0),
+              result_field='OTHER_NBR_MONTHS', result_function=validators.isLargerThan(0),
+      ),
+      validators.if_then_validator(
+            condition_field='SANCTION_REDUCED_AMOUNT', condition_function=validators.isLargerThan(0),
+            result_field='WORK_REQ_SANCTION', result_function=validators.oneOf(1,2),
+      ),
+      validators.if_then_validator(
+            condition_field='SANCTION_REDUCED_AMOUNT', condition_function=validators.isLargerThan(0),
+            result_field='FAMILY_SANC_ADULT', result_function=validators.oneOf(1,2),
+      ),
+      validators.if_then_validator(
+            condition_field='SANCTION_REDUCED_AMOUNT', condition_function=validators.isLargerThan(0),
+            result_field='SANC_TEEN_PARENT', result_function=validators.oneOf(1,2),
+      ),
+      validators.if_then_validator(
+            condition_field='SANCTION_REDUCED_AMOUNT', condition_function=validators.isLargerThan(0),
+            result_field='NON_COOPERATION_CSE', result_function=validators.oneOf(1,2),
+      ),
+      validators.if_then_validator(
+            condition_field='SANCTION_REDUCED_AMOUNT', condition_function=validators.isLargerThan(0),
+            result_field='FAILURE_TO_COMPLY', result_function=validators.oneOf(1,2),
+      ),    
+      validators.if_then_validator(
+            condition_field='SANCTION_REDUCED_AMOUNT', condition_function=validators.isLargerThan(0),
+            result_field='OTHER_SANCTION', result_function=validators.oneOf(1,2),
+      ),  
       ],
     fields=[
         Field(item=1, name='RecordType', type='string', startIndex=0, endIndex=2,
@@ -155,17 +191,29 @@ t1 = RowSchema(
                   validators.isLargerThanOrEqualTo(0),
               ]),
         Field(item=25, name='TRANSP_AMOUNT', type='number', startIndex=71, endIndex=75,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=26, name='TRANSP_NBR_MONTHS', type='number', startIndex=75, endIndex=78,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=27, name='TRANSITION_SERVICES_AMOUNT', type='number', startIndex=78, endIndex=82,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=28, name='TRANSITION_NBR_MONTHS', type='number', startIndex=82, endIndex=85,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=29, name='OTHER_AMOUNT', type='number', startIndex=85, endIndex=89,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=30, name='OTHER_NBR_MONTHS', type='number', startIndex=89, endIndex=92,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item=31, name='SANC_REDUCTION_AMT', type='number', startIndex=92, endIndex=96,
               required=True, validators=[]),
         Field(item=32, name='WORK_REQ_SANCTION', type='number', startIndex=96, endIndex=97,
@@ -189,7 +237,9 @@ t1 = RowSchema(
         Field(item=41, name='REDUCTIONS_ON_RECEIPTS', type='number', startIndex=111, endIndex=112,
               required=True, validators=[]),
         Field(item=42, name='OTHER_NON_SANCTION', type='number', startIndex=112, endIndex=113,
-              required=True, validators=[]),
+              required=True, validators=[
+
+              ]),
         Field(item=43, name='WAIVER_EVAL_CONTROL_GRPS', type='number', startIndex=113, endIndex=114,
               required=True, validators=[]),
         Field(item=44, name='FAMILY_EXEMPT_TIME_LIMITS', type='number', startIndex=114, endIndex=116,
