@@ -5,9 +5,6 @@ from django.core.mail.backends.smtp import EmailBackend
 from django.conf import settings
 from django.core.mail.message import sanitize_address
 from dkimpy import DKIM
-import logging
-
-logger = logging.getLogger()
 
 
 class DKIMEmailBackend(EmailBackend):
@@ -24,8 +21,8 @@ class DKIMEmailBackend(EmailBackend):
         ]
         message = email_message.message().as_string()
 
-        logger.info('***** starting email message *****')
-        logger.info(f'message: {message}')
+        print('***** starting email message *****')
+        print(f'message: {message}')
 
         dkim = DKIM()
         # signature = "dkim signature from message_string"
@@ -40,15 +37,15 @@ class DKIMEmailBackend(EmailBackend):
             # include_headers=None,
             # length=False
         )
-        logger.info(f'signature: {signature}')
+        print(f'signature: {signature}')
 
         try:
-            logger('sending')
+            print('sending')
             self.connection.sendmail(
                 from_email, recipients, signature+message
             )
         except smtplib.SMTPException:
-            logger('exception')
+            print('exception')
             if not self.fail_silently:
                 raise
             return False
