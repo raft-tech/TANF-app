@@ -93,7 +93,7 @@ class Common(Configuration):
 
     # Email Server
     EMAIL_BACKEND = "tdpservice.email.backend.DKIMEmailBackend"
-    EMAIL_HOST = "smtp.ees.hhs.gov"
+    EMAIL_HOST = "exsmtp.ees.hhs.gov"
     EMAIL_HOST_USER = "no-reply@tanfdata.acf.hhs.gov"
     EMAIL_DKIM_DOMAIN = "@tanfdata.acf.hhs.gov"
     EMAIL_DKIM_SELECTOR = os.getenv("EMAIL_DKIM_SELECTOR", "tdp-backend-develop")

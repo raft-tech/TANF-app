@@ -3,10 +3,11 @@
 from celery import shared_task
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, get_connection
 from django.conf import settings
 from django.template.loader import get_template
 from django.contrib.admin.models import LogEntry, ContentType, CHANGE
+# from .backend import DKIMEmailBackend
 
 import logging
 
@@ -90,6 +91,10 @@ def send_email(subject, message, html_message, recipient_list):
     email.attach_alternative(html_message, "text/html")
 
     print('>>> sending')
+
+    connection = get_connection()
+
+    print(f'connection: {connection}')
 
     num_emails_sent = email.send()
 
