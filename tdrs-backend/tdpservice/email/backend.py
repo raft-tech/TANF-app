@@ -25,7 +25,7 @@ class DKIMEmailBackend(EmailBackend):
         # signature = "dkim signature from message_string"
         signature = dkim.sign(
             message,
-            'selector',
+            settings.EMAIL_DKIM_SELECTOR,
             settings.EMAIL_DKIM_DOMAIN,
             settings.EMAIL_DKIM_PRIVATE_KEY,
             # signature_algorithm=None,

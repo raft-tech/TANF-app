@@ -96,6 +96,7 @@ class Common(Configuration):
     EMAIL_HOST = "smtp.ees.hhs.gov"
     EMAIL_HOST_USER = "no-reply@tanfdata.acf.hhs.gov"
     EMAIL_DKIM_DOMAIN = "@tanfdata.acf.hhs.gov"
+    EMAIL_DKIM_SELECTOR = os.getenv("EMAIL_DKIM_SELECTOR", "tdp-backend-develop")
     EMAIL_DKIM_PRIVATE_KEY = os.getenv("EMAIL_DKIM_PRIVATE_KEY", None)
 
     # Whether to use localstack in place of a live AWS S3 environment
