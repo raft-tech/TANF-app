@@ -89,8 +89,14 @@ def send_email(subject, message, html_message, recipient_list):
     )
     email.attach_alternative(html_message, "text/html")
 
+    print('>>> sending')
+
     num_emails_sent = email.send()
+
+    print(f'sent {num_emails_sent} emails')
+
     if num_emails_sent == 0:
+        print('womp womp')
         raise Exception(
             f"Emails were attempted to the following email list: {recipient_list}. \
         But none were sent. They may be invalid."

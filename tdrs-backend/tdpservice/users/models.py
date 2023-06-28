@@ -220,6 +220,8 @@ class User(AbstractUser):
 
                 print('***************************************')
                 print('updating approval status, sending email')
+                print(f'recipients: [{self.email}]')
+                print(f'message: status updated to {new_status}')
 
                 send_approval_status_update_email(
                     new_status,

@@ -12,7 +12,10 @@ class DKIMEmailBackend(EmailBackend):
 
     def _send(self, email_message):
         """Override EmailBackend._send."""
+        print('***** starting DKIMEmailBackend._send *****')
+
         if not email_message.recipients():
+            print('no recipients')
             return False
         encoding = email_message.encoding or settings.DEFAULT_CHARSET
         from_email = sanitize_address(email_message.from_email, encoding)
@@ -21,7 +24,6 @@ class DKIMEmailBackend(EmailBackend):
         ]
         message = email_message.message().as_string()
 
-        print('***** starting email message *****')
         print(f'message: {message}')
 
         dkim = DKIM()
