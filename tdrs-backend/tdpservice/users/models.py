@@ -218,6 +218,9 @@ class User(AbstractUser):
 
                 super(User, self).save(*args, **kwargs)
 
+                logger.info('***************************************')
+                logger.info('updating approval status, sending email')
+
                 send_approval_status_update_email(
                     new_status,
                     self,
