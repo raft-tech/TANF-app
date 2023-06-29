@@ -14,9 +14,11 @@ class Local(Common):
     DEBUG = strtobool(os.getenv("DJANGO_DEBUG", "yes"))
 
     # Mail
-    EMAIL_HOST = "localhost"
-    EMAIL_PORT = 1025
+    # EMAIL_HOST = "localhost"
+    # EMAIL_PORT = 1025
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    # EMAIL_BACKEND = "tdpservice.email.backend.DKIMEmailBackend"
+    # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
     # Whether to use localstack in place of a live AWS S3 environment
     # NOTE: Defaults to True when this settings module is in use
