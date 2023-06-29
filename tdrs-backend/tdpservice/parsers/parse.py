@@ -25,7 +25,7 @@ def parse_datafile(datafile):
     )
     if not header_is_valid:
         errors['header'] = header_errors
-        ParserError.objects.bulk_create(header_errors)
+        bulk_create_errors(header_errors)
         return errors
 
     # ensure file section matches upload section
