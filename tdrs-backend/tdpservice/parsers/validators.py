@@ -15,12 +15,7 @@ def make_validator(validator_func, error_func):
 
 def or_validators(validator1, validator2):
     """Return a validator that is true only if one of the two validators is true."""
-    return lambda value: (True, None) if validator1(value)[0] or validator2(value)[0] else (False,
-                                                                                            (not validator1(value)[0]) *
-                                                                                            (validator1(value)[1] +
-                                                                                             ' and ') +
-                                                                                            (not validator2(value)[0])
-                                                                                            * validator2(value)[1])
+    return lambda value: (True, None) if validator1(value)[0] or validator2(value)[0] else (False, validator1(value)[1] + ' or ' + validator2(value)[1])
 
 
 def if_then_validator(condition_field, condition_function, 
@@ -111,6 +106,13 @@ def notEmpty(start=0, end=None):
     return make_validator(
         lambda value: not value[start:end if end else len(value)].isspace(),
         lambda value: f'{value} contains blanks between positions {start} and {end if end else len(value)}.'
+    )
+
+def isEmpty(start=0, end=None):
+    """Validate that string value is only blanks."""
+    return make_validator(
+        lambda value: value[start:end if end else len(value)].isspace(),
+        lambda value: f'{value} is not blank between positions {start} and {end if end else len(value)}.'
     )
 
 
