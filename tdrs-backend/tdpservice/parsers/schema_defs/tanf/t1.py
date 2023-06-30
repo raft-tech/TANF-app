@@ -15,11 +15,7 @@ t1 = RowSchema(
       cat3_validate_t1,
       validators.if_then_validator(
             condition_field='DISPOSITION', condition_function=validators.matches(2), 
-            result_field='COUNTY_FIPS_CODE', result_function=validators.notEmpty(),
-      ),
-      validators.if_then_validator(
-            condition_field='DISPOSITION', condition_function=validators.matches(2), 
-            result_field='REPORTING_MONTH', result_function=validators.notEmpty(),
+            result_field='RPT_MONTH_YEAR', result_function=validators.notEmpty(),
       ),
       validators.if_then_validator(
             condition_field='DISPOSITION', condition_function=validators.matches(2), 
@@ -103,27 +99,7 @@ t1 = RowSchema(
                   validators.notEmpty(),
               ]),
         Field(item="2", name='COUNTY_FIPS_CODE', type='string', startIndex=19, endIndex=22,
-              required=True, validators=[
-                  validators.oneOf(
-                        [
-                              '01', '02',
-                              '04', '05', '06',
-                              '08', '09', '10', '11', '12', '13',
-                              '15', '16', '17', '18', '19', '20',
-                              '21', '22', '23', '24', '25', '26',
-                              '27', '28', '29', '30', '31', '32',
-                              '33', '34', '35', '36', '37', '38',
-                              '39', '40', '41', '42',
-                              '44', '45', '46', '47', '48', '49', '50', '51',
-                              '53', '54', '55', '56',
-                              '60',
-                              '66',
-                              '72',
-                              '78',
-                        ],
-                  ),
-                  validators.isNumber(),
-              ]),
+              required=True, validators=[]),
         Field(item="5", name='STRATUM', type='number', startIndex=22, endIndex=24,
               required=True, validators=[
                   validators.isInLimits(0, 99),
@@ -227,9 +203,7 @@ t1 = RowSchema(
                   validators.isLargerThanOrEqualTo(0),
               ]),
         Field(item="26AI", name='SANC_REDUCTION_AMT', type='number', startIndex=92, endIndex=96,
-              required=True, validators=[
-
-              ]),
+              required=True, validators=[]),
         Field(item="26AII", name='WORK_REQ_SANCTION', type='number', startIndex=96, endIndex=97,
               required=True, validators=[]),
         Field(item="26AIII", name='FAMILY_SANC_ADULT', type='number', startIndex=97, endIndex=98,
