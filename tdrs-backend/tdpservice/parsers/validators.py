@@ -28,13 +28,14 @@ def if_then_validator(condition_field, condition_function,
     :param args: list of two strings representing the keys of the values to be validated
     """
     def if_then_validator_func(value):
-        value1 = value[condition_field]
-        value2 = value[result_field]
+        value1 = value[condition_field] if type(value) is dict else getattr(value, condition_field)
+        value2 = value[result_field] if type(result_field) is dict else getattr(value, result_field)
 
         validator1_result = condition_function(value1)
         validator2_result = result_function(value2)
-        return (True, None) if not validator1_result[0] else (validator2_result[0], 'if ' + validator1_result[1] +
-                                                              ' then ' + validator2_result[1])
+        return (True, None) if validator1_result[0] else (validator1_result[0] & validator2_result[0],
+                                                          'if ' + validator1_result[1] +
+                                                          ' then ' + validator2_result[1])
 
     return lambda value: if_then_validator_func(value)
 
@@ -48,12 +49,27 @@ def matches(option):
         lambda value: f'{value} does not match {option}.'
     )
 
+def notMatches(option):
+    """Validate that value is not equal to option."""
+    return make_validator(
+        lambda value: value != option,
+        lambda value: f'{value} matches {option}.'
+    )
+
 
 def oneOf(options=[]):
-    """Validate that value exists in the provided options array."""
+    """Validate that value does not exist in the provided options array."""
     return make_validator(
         lambda value: value in options,
         lambda value: f'{value} is not in {options}.'
+    )
+
+
+def notOneOf(options=[]):
+    """Validate that value exists in the provided options array."""
+    return make_validator(
+        lambda value: value not in options,
+        lambda value: f'{value} is in {options}.'
     )
 
 

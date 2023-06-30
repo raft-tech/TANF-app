@@ -13,7 +13,6 @@ t2 = RowSchema(
         validators.hasLength(156),
     ],
     postparsing_validators=[
-            cat3_validate_t2,
             validators.if_then_validator(
                   condition_field='DATE_OF_BIRTH', condition_function=validators.matches('99999999'),
                   result_field='FAMILY_AFFILIATION', result_function=validators.isInLimits(2, 5),

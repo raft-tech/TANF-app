@@ -12,7 +12,6 @@ t1 = RowSchema(
         validators.hasLength(156),
     ],
     postparsing_validators=[
-      cat3_validate_t1,
       validators.if_then_validator(
           condition_field='DISPOSITION', condition_function=validators.matches(2),
           result_field='RPT_MONTH_YEAR', result_function=validators.notEmpty(),

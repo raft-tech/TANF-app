@@ -1,7 +1,6 @@
 """Schema for HEADER row of all submission types."""
 
 
-from ..cat3_validators import cat3_validate_t3
 from ...util import MultiRecordRowSchema, RowSchema, Field
 from ... import validators
 from tdpservice.search_indexes.models.tanf import TANF_T3
@@ -12,7 +11,56 @@ child_one = RowSchema(
     preparsing_validators=[
         validators.notEmpty(start=19, end=60),
     ],
-    postparsing_validators=[cat3_validate_t3,],
+    postparsing_validators=[
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                  result_field='SSN', result_function=validators.notOneOf(("999999999", "000000000")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='RACE_HISPANIC', result_function=validators.oneOf(("1", "2")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='RACE_AMER_INDIAN', result_function=validators.oneOf(("1", "2")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='RACE_ASIAN', result_function=validators.oneOf(("1", "2")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='RACE_BLACK', result_function=validators.oneOf(("1", "2")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='RACE_HAWAIIAN', result_function=validators.oneOf(("1", "2")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='RACE_WHITE', result_function=validators.oneOf(("1", "2")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='RELATIONSHIP_HOH', result_function=validators.isInLimits(4, 9),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='PARENT_MINOR_CHILD', result_function=validators.oneOf(("1", "2", "3")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                  result_field='EDUCATION_LEVEL', result_function=validators.notMatches("99"),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                  result_field='CITIZENSHIP_STATUS', result_function=validators.oneOf(("1", "2")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(2),
+                  result_field='CITIZENSHIP_STATUS', result_function=validators.oneOf(("1", "2", "9")),
+            ),
+        ],
     fields=[
         Field(item="0", name='RecordType', type='string', startIndex=0, endIndex=2,
               required=True, validators=[]),
@@ -65,7 +113,56 @@ child_two = RowSchema(
     preparsing_validators=[
         validators.notEmpty(start=60, end=101),
     ],
-    postparsing_validators=[],
+    postparsing_validators=[
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                  result_field='SSN', result_function=validators.notOneOf(("999999999", "000000000")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='RACE_HISPANIC', result_function=validators.oneOf(("1", "2")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='RACE_AMER_INDIAN', result_function=validators.oneOf(("1", "2")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='RACE_ASIAN', result_function=validators.oneOf(("1", "2")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='RACE_BLACK', result_function=validators.oneOf(("1", "2")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='RACE_HAWAIIAN', result_function=validators.oneOf(("1", "2")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='RACE_WHITE', result_function=validators.oneOf(("1", "2")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='RELATIONSHIP_HOH', result_function=validators.isInLimits(4, 9),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                  result_field='PARENT_MINOR_CHILD', result_function=validators.oneOf(("1", "2", "3")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                  result_field='EDUCATION_LEVEL', result_function=validators.notMatches("99"),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                  result_field='CITIZENSHIP_STATUS', result_function=validators.oneOf(("1", "2")),
+            ),
+        validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(2),
+                  result_field='CITIZENSHIP_STATUS', result_function=validators.oneOf(("1", "2", "9")),
+            ),
+    ],
     fields=[
         Field(item="0", name='RecordType', type='string', startIndex=0, endIndex=2,
               required=True, validators=[]),
