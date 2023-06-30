@@ -7,34 +7,38 @@ from tdpservice.parsers.test.factories import TanfT1Factory, TanfT2Factory, Tanf
 
 
 def test_or_validators():
+    """Test `or_validators` gives a valid result."""
     value = "2"
-    validator = validators.or_validators(validators.matches(("2")), validators.matches(("3","4")))
-    assert validator(value)==(True, None)
+    validator = validators.or_validators(validators.matches(("2")), validators.matches(("3", "4")))
+    assert validator(value) == (True, None)
 
-    validator = validators.or_validators(validators.matches(("5")), validators.matches(("3","4")))
+    validator = validators.or_validators(validators.matches(("5")), validators.matches(("3", "4")))
     print(validator(value))
-    assert validator(value)==(False, "2 does not match 5. and 2 does not match ('3', '4').")
+    assert validator(value) == (False, "2 does not match 5. and 2 does not match ('3', '4').")
 
 
 def test_if_validators():
+    """Test `if_then_validator` gives a valid result."""
     value = "2"
-    validator = validators.if_then_validator(validators.matches(("2")), validators.matches(("3","4")))
-    assert validator(value)==(False, "2 does not match ('3', '4').")
+    validator = validators.if_then_validator(validators.matches(("2")), validators.matches(("3", "4")))
+    assert validator(value) == (False, "2 does not match ('3', '4').")
 
-    validator = validators.if_then_validator(validators.matches(("3")), validators.matches(("3","4")))
-    assert validator(value)==(True, None)
+    validator = validators.if_then_validator(validators.matches(("3")), validators.matches(("3", "4")))
+    assert validator(value) == (True, None)
 
 def test_or_cross_field_validators():
+    """Test `or_cross_field_validators` gives a valid result."""
     value1 = "2"
     value2 = "3"
     validator = validators.or_validators(validators.matches(("4")), validators.matches(("4")))
-    assert validator(value1, value2)==(False, '2 does not match 4. and 3 does not match 4.')
+    assert validator(value1, value2) == (False, '2 does not match 4. and 3 does not match 4.')
 
 
 def test_month_year_yearIsLargerThan():
+    """Test `month_year_yearIsLargerThan` gives a valid result."""
     value = "061998"
     validator = validators.month_year_yearIsLargerThan(1999)
-    assert validator(value)==(False, '1998 year must be larger than 1999.')
+    assert validator(value) == (False, '1998 year must be larger than 1999.')
 
 
 def test_matches_returns_valid():

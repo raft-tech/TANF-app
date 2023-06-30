@@ -16,87 +16,87 @@ t2 = RowSchema(
             cat3_validate_t2,
             validators.if_then_validator(
                   condition_field='DATE_OF_BIRTH', condition_function=validators.matches('99999999'),
-                  result_field='FAMILY_AFFILIATION', result_function=validators.isInLimits(2,5),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.isInLimits(2, 5),
             ),
             validators.if_then_validator(
                   condition_field='SSN', condition_function=validators.matches('999999999'),
-                  result_field='FAMILY_AFFILIATION', result_function=validators.isInLimits(2,5),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.isInLimits(2, 5),
             ),
             validators.if_then_validator(
                   condition_field='RACE_HISPANIC', condition_function=validators.isBlank(),
                   result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
             ),
             validators.if_then_validator(
-                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
-                  result_field='RACE_HISPANIC', result_function=validators.oneOf([1,2]),
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 4),
+                  result_field='RACE_HISPANIC', result_function=validators.oneOf([1, 2]),
             ),
             validators.if_then_validator(
                   condition_field='RACE_AMER_INDIAN', condition_function=validators.isBlank(),
                   result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
             ),
             validators.if_then_validator(
-                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
-                  result_field='RACE_AMER_INDIAN', result_function=validators.oneOf([1,2]),
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 4),
+                  result_field='RACE_AMER_INDIAN', result_function=validators.oneOf([1, 2]),
             ),
             validators.if_then_validator(
                   condition_field='RACE_ASIAN', condition_function=validators.isBlank(),
                   result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
             ),
             validators.if_then_validator(
-                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
-                  result_field='RACE_ASIAN', result_function=validators.oneOf([1,2]),
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 4),
+                  result_field='RACE_ASIAN', result_function=validators.oneOf([1, 2]),
             ),
             validators.if_then_validator(
                   condition_field='RACE_BLACK', condition_function=validators.isBlank(),
                   result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
             ),
             validators.if_then_validator(
-                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
-                  result_field='RACE_BLACK', result_function=validators.oneOf([1,2]),
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 4),
+                  result_field='RACE_BLACK', result_function=validators.oneOf([1, 2]),
             ),
             validators.if_then_validator(
                   condition_field='RACE_HAWAIIAN', condition_function=validators.isBlank(),
                   result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
             ),
             validators.if_then_validator(
-                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
-                  result_field='RACE_HAWAIIAN', result_function=validators.oneOf([1,2]),
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 4),
+                  result_field='RACE_HAWAIIAN', result_function=validators.oneOf([1, 2]),
             ),
             validators.if_then_validator(
                   condition_field='RACE_WHITE', condition_function=validators.isBlank(),
                   result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
             ),
             validators.if_then_validator(
-                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
-                  result_field='RACE_WHITE', result_function=validators.oneOf([1,2]),
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 4),
+                  result_field='RACE_WHITE', result_function=validators.oneOf([1, 2]),
             ),
             validators.if_then_validator(
                   condition_field='MARITAL_STATUS', condition_function=validators.isBlank(),
                   result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
             ),
             validators.if_then_validator(
-                condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
-                result_field='MARITAL_STATUS', result_function=validators.oneOf([1,2,3,4,5]),
+                condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 4),
+                result_field='MARITAL_STATUS', result_function=validators.oneOf([1, 2, 3, 4, 5]),
             ),
             validators.if_then_validator(
-                  condition_fields='FAMILY_AFFILIATION', condition_function=validators.oneOf([1,2,4]),
-                  result_field='PARENT_WITH_MINOR_CHILD', result_function=validators.isInLimits(1,3),
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf([1, 2, 4]),
+                  result_field='PARENT_WITH_MINOR_CHILD', result_function=validators.isInLimits(1, 3),
             ),
             validators.if_then_validator(
                 condition_field='PARENT_WITH_MINOR_CHILD', condition_function=validators.isBlank(),
-                result_field='FAMILY_AFFILIATION', result_function=validators.oneOf([3,5]),
+                result_field='FAMILY_AFFILIATION', result_function=validators.oneOf([3, 5]),
             ),
             validators.if_then_validator(
-                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(2,5),
-                  result_fields='EDUCATION_LEVEL', result_function=validators.oneOf(
-                      [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,98,99]
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(2, 5),
+                  result_field='EDUCATION_LEVEL', result_function=validators.oneOf(
+                      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 98, 99]
                   )
             ),
             validators.if_then_validator(
-                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(2,5),
-                  result_fields='EDUCATION_LEVEL', result_function=validators.oneOf(
-                        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,98]
-                  )  
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(2, 5),
+                  result_field='EDUCATION_LEVEL', result_function=validators.oneOf(
+                        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 98]
+                  )
             ),
             validators.if_then_validator(
                   condition_field='EDUCATION_LEVEL', condition_function=validators.isBlank(),
@@ -107,8 +107,8 @@ t2 = RowSchema(
                   result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
             ),
             validators.if_then_validator(
-                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
-                  result_field='CITIZENSHIP_STATUS', result_function=validators.oneOf([1,2,9]),
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 4),
+                  result_field='CITIZENSHIP_STATUS', result_function=validators.oneOf([1, 2, 9]),
             ),
             validators.if_then_validator(
                   condition_field='COOPERATION_CHILD_SUPPORT', condition_function=validators.isBlank(),
@@ -116,43 +116,43 @@ t2 = RowSchema(
             ),
             validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='EMPLOYMENT_STATUS', result_function=validators.between(1,3),
+                  result_field='EMPLOYMENT_STATUS', result_function=validators.between(1, 3),
             ),
             validators.if_then_validator(
-                condition_field='EMPLYMENT_STATUS', condition_function=validators.isBlank(),
-                result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
+                  condition_field='EMPLYMENT_STATUS', condition_function=validators.isBlank(),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
             ),
             validators.if_then_validator(
-                condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf([1,2]),
-                result_field='WORK_PART_STATUS', result_function=validators.oneOf(
-                    [1,2,
-                     5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf([1, 2]),
+                  result_field='WORK_PART_STATUS', result_function=validators.oneOf(
+                    [1, 2,
+                     5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
                      99]
-                )
+                  )
             ),
             validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='UNSUB_EMPLOYMENT', result_function=validators.isLargerThanOrEqual(0),
+                  result_field='UNSUB_EMPLOYMENT', result_function=validators.isLargerThanOrEqualTo(0),
             ),
             validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='SUB_PRIVATE_EMPLOYMENT', result_function=validators.isLargerThanOrEqual(0),
+                  result_field='SUB_PRIVATE_EMPLOYMENT', result_function=validators.isLargerThanOrEqualTo(0),
             ),
             validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='SUB_PUBLIC_EMPLOYMENT', result_function=validators.isLargerThanOrEqual(0),
+                  result_field='SUB_PUBLIC_EMPLOYMENT', result_function=validators.isLargerThanOrEqualTo(0),
             ),
             validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='OJT', result_function=validators.isLargerThanOrEqual(0),
+                  result_field='OJT', result_function=validators.isLargerThanOrEqualTo(0),
             ),
             validators.if_then_validator(
-                condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                result_field='NEEDS_PREGNANT_WOMAN', result_function=validators.oneOf([1,2]),
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                  result_field='NEEDS_PREGNANT_WOMAN', result_function=validators.oneOf([1, 2]),
             ),
             validators.if_then_validator(
-                condition_field='NEEDS_PREGNANT_WOMAN', condition_function=validators.isBlank(),
-                result_field='FAMILY_AFFILIATION', result_function=validators.oneOf([2,5]),
+                  condition_field='NEEDS_PREGNANT_WOMAN', condition_function=validators.isBlank(),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.oneOf([2, 5]),
             )
         ],
     fields=[
@@ -173,7 +173,7 @@ t2 = RowSchema(
               ]),
         Field(item="31", name='NONCUSTODIAL_PARENT', type='number', startIndex=20, endIndex=21,
               required=True, validators=[
-                  validators.oneOf([1,2])
+                  validators.oneOf([1, 2])
               ]),
         Field(item="32", name='DATE_OF_BIRTH', type='number', startIndex=21, endIndex=29,
               required=True, validators=[
@@ -199,36 +199,36 @@ t2 = RowSchema(
               required=True, validators=[]),
         Field(item="35", name='GENDER', type='number', startIndex=44, endIndex=45,
               required=True, validators=[
-                  validators.oneOf([1,2])
+                  validators.oneOf([1, 2])
               ]),
         Field(item="36A", name='FED_OASDI_PROGRAM', type='string', startIndex=45, endIndex=46,
               required=True, validators=[
-                  validators.oneOf([1,2])
+                  validators.oneOf([1, 2])
               ]),
         Field(item="36B", name='FED_DISABILITY_STATUS', type='string', startIndex=46, endIndex=47,
               required=True, validators=[
-                  validators.oneOf([1,2])
+                  validators.oneOf([1, 2])
               ]),
         Field(item="36C", name='DISABLED_TITLE_XIVAPDT', type='string', startIndex=47, endIndex=48,
               required=True, validators=[
                   validators.or_validators(
-                      validators.oneOf([1,2]),
+                      validators.oneOf([1, 2]),
                       validators.isBlank()
                   )
               ]),
         Field(item="36D", name='AID_AGED_BLIND', type='string', startIndex=48, endIndex=49,
               required=True, validators=[
                   validators.or_validators(
-                      validators.oneOf([1,2]),
+                      validators.oneOf([1, 2]),
                       validators.isBlank()
                   )
               ]),
         Field(item="36E", name='RECEIVE_SSI', type='string', startIndex=49, endIndex=50,
               required=True, validators=[
                   validators.or_validators(
-                      validators.oneOf([1,2]),
+                      validators.oneOf([1, 2]),
                       validators.isBlank()
-                  )                 
+                  )
               ]),
         Field(item="37", name='MARITAL_STATUS', type='string', startIndex=50, endIndex=51,
               required=True, validators=[]),
@@ -246,7 +246,7 @@ t2 = RowSchema(
               required=True, validators=[]),
         Field(item="43", name='COOPERATION_CHILD_SUPPORT', type='string', startIndex=58, endIndex=59,
               required=True, validators=[
-                  validators.isOneOf([1, 2, 9]),
+                  validators.oneOf([1, 2, 9]),
               ]),
         Field(item="44", name='MONTHS_FED_TIME_LIMIT', type='string', startIndex=59, endIndex=62,
               required=True, validators=[]),

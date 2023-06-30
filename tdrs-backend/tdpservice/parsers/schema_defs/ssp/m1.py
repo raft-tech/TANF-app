@@ -31,7 +31,7 @@ m1 = RowSchema(
               required=True, validators=[]),
         Field(item="9", name='FAMILY_TYPE', type='number', startIndex=32, endIndex=33,
               required=True, validators=[]),
-        Field(item="10", name='TANF_ASST_IN_6MONTHS', type='number', startIndex=33, endIndex=34, 
+        Field(item="10", name='TANF_ASST_IN_6MONTHS', type='number', startIndex=33, endIndex=34,
               required=True, validators=[]),
         Field(item="11", name='RECEIVES_SUB_HOUSING', type='number', startIndex=34, endIndex=35,
               required=True, validators=[]),

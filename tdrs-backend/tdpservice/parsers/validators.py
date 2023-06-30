@@ -15,12 +15,14 @@ def make_validator(validator_func, error_func):
 
 def or_validators(validator1, validator2):
     """Return a validator that is true only if one of the two validators is true."""
-    return lambda value: (True, None) if validator1(value)[0] or validator2(value)[0] else (False, validator1(value)[1] + ' or ' + validator2(value)[1])
+    return lambda value: (True, None) if (validator1(value)[0] or validator2(value)[0])\
+        else (False, validator1(value)[1] + ' or ' + validator2(value)[1])
 
 
-def if_then_validator(condition_field, condition_function, 
+def if_then_validator(condition_field, condition_function,
                       result_field, result_function):
     """Return second validation if the first validator is true.
+
     :param validator1: function that returns (bool, string) to represent validation state
     :param validator2: function that returns (bool, string) to represent validation state
     :param args: list of two strings representing the keys of the values to be validated
@@ -87,10 +89,10 @@ def startsWith(substring):
     )
 
 
-def isNumber(substring):
+def isNumber():
     """Validate that value can be casted to a number."""
     return make_validator(
-        lambda value: value.isnumeric(substring),
+        lambda value: value.isnumeric(),
         lambda value: f'{value} is not a number.'
     )
 
@@ -179,7 +181,7 @@ def month_year_yearIsLargerThan(year):
     )
 
 
-def validate_single_header_trailer(file):
+def validate_single_header_trailer(datafile):
     """Validate that a raw datafile has one trailer and one footer."""
     line_number = 0
     headers = 0
