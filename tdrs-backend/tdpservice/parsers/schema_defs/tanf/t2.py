@@ -70,6 +70,90 @@ t2 = RowSchema(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
                   result_field='RACE_WHITE', result_function=validators.oneOf([1,2]),
             ),
+            validators.if_then_validator(
+                  condition_field='MARITAL_STATUS', condition_function=validators.isBlank(),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
+            ),
+            validators.if_then_validator(
+                condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
+                result_field='MARITAL_STATUS', result_function=validators.oneOf([1,2,3,4,5]),
+            ),
+            validators.if_then_validator(
+                  condition_fields='FAMILY_AFFILIATION', condition_function=validators.oneOf([1,2,4]),
+                  result_field='PARENT_WITH_MINOR_CHILD', result_function=validators.isInLimits(1,3),
+            ),
+            validators.if_then_validator(
+                condition_field='PARENT_WITH_MINOR_CHILD', condition_function=validators.isBlank(),
+                result_field='FAMILY_AFFILIATION', result_function=validators.oneOf([3,5]),
+            ),
+            validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(2,5),
+                  result_fields='EDUCATION_LEVEL', result_function=validators.oneOf(
+                      [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,98,99]
+                  )
+            ),
+            validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(2,5),
+                  result_fields='EDUCATION_LEVEL', result_function=validators.oneOf(
+                        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,98]
+                  )  
+            ),
+            validators.if_then_validator(
+                  condition_field='EDUCATION_LEVEL', condition_function=validators.isBlank(),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
+            ),
+            validators.if_then_validator(
+                  condition_field='CITIZENSHIP_STATUS', condition_function=validators.isBlank(),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
+            ),
+            validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1,4),
+                  result_field='CITIZENSHIP_STATUS', result_function=validators.oneOf([1,2,9]),
+            ),
+            validators.if_then_validator(
+                  condition_field='COOPERATION_CHILD_SUPPORT', condition_function=validators.isBlank(),
+                  result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
+            ),
+            validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                  result_field='EMPLOYMENT_STATUS', result_function=validators.between(1,3),
+            ),
+            validators.if_then_validator(
+                condition_field='EMPLYMENT_STATUS', condition_function=validators.isBlank(),
+                result_field='FAMILY_AFFILIATION', result_function=validators.matches(5),
+            ),
+            validators.if_then_validator(
+                condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf([1,2]),
+                result_field='WORK_PART_STATUS', result_function=validators.oneOf(
+                    [1,2,
+                     5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,
+                     99]
+                )
+            ),
+            validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                  result_field='UNSUB_EMPLOYMENT', result_function=validators.isLargerThanOrEqual(0),
+            ),
+            validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                  result_field='SUB_PRIVATE_EMPLOYMENT', result_function=validators.isLargerThanOrEqual(0),
+            ),
+            validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                  result_field='SUB_PUBLIC_EMPLOYMENT', result_function=validators.isLargerThanOrEqual(0),
+            ),
+            validators.if_then_validator(
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                  result_field='OJT', result_function=validators.isLargerThanOrEqual(0),
+            ),
+            validators.if_then_validator(
+                condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                result_field='NEEDS_PREGNANT_WOMAN', result_function=validators.oneOf([1,2]),
+            ),
+            validators.if_then_validator(
+                condition_field='NEEDS_PREGNANT_WOMAN', condition_function=validators.isBlank(),
+                result_field='FAMILY_AFFILIATION', result_function=validators.oneOf([2,5]),
+            )
         ],
     fields=[
         Field(item="0", name='RecordType', type='string', startIndex=0, endIndex=2,
@@ -88,7 +172,9 @@ t2 = RowSchema(
                               validators.isInLimits(1, 5),
               ]),
         Field(item="31", name='NONCUSTODIAL_PARENT', type='number', startIndex=20, endIndex=21,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1,2])
+              ]),
         Field(item="32", name='DATE_OF_BIRTH', type='number', startIndex=21, endIndex=29,
               required=True, validators=[
                   validators.notEmpty(),
@@ -112,21 +198,44 @@ t2 = RowSchema(
         Field(item="34F", name='RACE_WHITE', type='string', startIndex=43, endIndex=44,
               required=True, validators=[]),
         Field(item="35", name='GENDER', type='number', startIndex=44, endIndex=45,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1,2])
+              ]),
         Field(item="36A", name='FED_OASDI_PROGRAM', type='string', startIndex=45, endIndex=46,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1,2])
+              ]),
         Field(item="36B", name='FED_DISABILITY_STATUS', type='string', startIndex=46, endIndex=47,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1,2])
+              ]),
         Field(item="36C", name='DISABLED_TITLE_XIVAPDT', type='string', startIndex=47, endIndex=48,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.or_validators(
+                      validators.oneOf([1,2]),
+                      validators.isBlank()
+                  )
+              ]),
         Field(item="36D", name='AID_AGED_BLIND', type='string', startIndex=48, endIndex=49,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.or_validators(
+                      validators.oneOf([1,2]),
+                      validators.isBlank()
+                  )
+              ]),
         Field(item="36E", name='RECEIVE_SSI', type='string', startIndex=49, endIndex=50,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.or_validators(
+                      validators.oneOf([1,2]),
+                      validators.isBlank()
+                  )                 
+              ]),
         Field(item="37", name='MARITAL_STATUS', type='string', startIndex=50, endIndex=51,
               required=True, validators=[]),
         Field(item="38", name='RELATIONSHIP_HOH', type='number', startIndex=51, endIndex=53,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isInLimits(1, 10),
+              ]),
         Field(item="39", name='PARENT_WITH_MINOR_CHILD', type='string', startIndex=53, endIndex=54,
               required=True, validators=[]),
         Field(item="40", name='NEEDS_PREGNANT_WOMAN', type='string', startIndex=54, endIndex=55,
@@ -136,7 +245,9 @@ t2 = RowSchema(
         Field(item="42", name='CITIZENSHIP_STATUS', type='string', startIndex=57, endIndex=58,
               required=True, validators=[]),
         Field(item="43", name='COOPERATION_CHILD_SUPPORT', type='string', startIndex=58, endIndex=59,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isOneOf([1, 2, 9]),
+              ]),
         Field(item="44", name='MONTHS_FED_TIME_LIMIT', type='string', startIndex=59, endIndex=62,
               required=True, validators=[]),
         Field(item="45", name='MONTHS_STATE_TIME_LIMIT', type='string', startIndex=62, endIndex=64,
@@ -212,16 +323,28 @@ t2 = RowSchema(
         Field(item="64", name='DEEMED_HOURS_FOR_TWO_PARENT', type='string', startIndex=130, endIndex=132,
               required=False, validators=[]),
         Field(item="65", name='EARNED_INCOME', type='string', startIndex=132, endIndex=136,
-              required=False, validators=[]),
+              required=False, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item="66A", name='UNEARNED_INCOME_TAX_CREDIT', type='string', startIndex=136, endIndex=140,
-              required=False, validators=[]),
+              required=False, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item="66B", name='UNEARNED_SOCIAL_SECURITY', type='string', startIndex=140, endIndex=144,
-              required=False, validators=[]),
+              required=False, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item="66C", name='UNEARNED_SSI', type='string', startIndex=144, endIndex=148,
-              required=False, validators=[]),
+              required=False, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item="66D", name='UNEARNED_WORKERS_COMP', type='string', startIndex=148, endIndex=152,
-              required=False, validators=[]),
+              required=False, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item="66E", name='OTHER_UNEARNED_INCOME', type='string', startIndex=152, endIndex=156,
-              required=False, validators=[]),
+              required=False, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
     ],
 )
