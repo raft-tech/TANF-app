@@ -33,9 +33,9 @@ def if_then_validator(condition_field, condition_function,
 
         validator1_result = condition_function(value1)
         validator2_result = result_function(value2)
-        return (True, None) if validator1_result[0] else (validator1_result[0] & validator2_result[0],
-                                                          'if ' + validator1_result[1] +
-                                                          ' then ' + validator2_result[1])
+        return (True, None) if validator1_result[0] and validator2_result[0] else (validator1_result[0] & validator2_result[0],
+                                                          'if ' + (validator1_result[1] if validator1_result[1] is not None else "validator1 passed") +
+                                                          ' then ' + (validator2_result[1] if validator2_result[1] is not None else "validator2 passed"))
 
     return lambda value: if_then_validator_func(value)
 
@@ -53,7 +53,7 @@ def notMatches(option):
     """Validate that value is not equal to option."""
     return make_validator(
         lambda value: value != option,
-        lambda value: f'{value} matches {option}.'
+        lambda value: f'{value} should not match {option}.'
     )
 
 
@@ -61,7 +61,7 @@ def oneOf(options=[]):
     """Validate that value does not exist in the provided options array."""
     return make_validator(
         lambda value: value in options,
-        lambda value: f'{value} is not in {options}.'
+        lambda value: f'{value} should not be in {options}.'
     )
 
 
