@@ -14,7 +14,10 @@ child_one = RowSchema(
     postparsing_validators=[
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='SSN', result_function=validators.notOneOf(("999999999", "000000000")),
+                  result_field='SSN', result_function=validators.notOneOf(("000000000", "111111111", "222222222",
+                                                                           "333333333", "444444444", "555555555",
+                                                                           "666666666", "777777777", "888888888",
+                                                                           "999999999")),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
@@ -116,7 +119,10 @@ child_two = RowSchema(
     postparsing_validators=[
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='SSN', result_function=validators.notOneOf(("999999999", "000000000")),
+                  result_field='SSN', result_function=validators.notOneOf(("000000000", "111111111", "222222222",
+                                                                           "333333333", "444444444", "555555555",
+                                                                           "666666666", "777777777", "888888888",
+                                                                           "999999999")),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
@@ -162,7 +168,7 @@ child_two = RowSchema(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(2),
                   result_field='CITIZENSHIP_STATUS', result_function=validators.oneOf(("1", "2", "9")),
             ),
-    ],
+        ],
     fields=[
         Field(item="0", name='RecordType', type='string', startIndex=0, endIndex=2,
               required=True, validators=[]),

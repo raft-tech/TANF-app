@@ -29,15 +29,31 @@ def if_then_validator(condition_field, condition_function,
     """
     def if_then_validator_func(value):
         value1 = value[condition_field] if type(value) is dict else getattr(value, condition_field)
-        value2 = value[result_field] if type(result_field) is dict else getattr(value, result_field)
+        value2 = value[result_field] if type(value) is dict else getattr(value, result_field)
 
         validator1_result = condition_function(value1)
         validator2_result = result_function(value2)
-        return (True, None) if validator1_result[0] and validator2_result[0] else (validator1_result[0] & validator2_result[0],
-                                                          'if ' + (validator1_result[1] if validator1_result[1] is not None else "validator1 passed") +
-                                                          ' then ' + (validator2_result[1] if validator2_result[1] is not None else "validator2 passed"))
+        return (True, None) if validator1_result[0] and validator2_result[0] else (validator1_result[0] &
+                                                                                   validator2_result[0], 'if ' +
+                                                                                   (validator1_result[1] if
+                                                                                    validator1_result[1] is not None
+                                                                                    else "validator1 passed") + ' then '
+                                                                                   + (validator2_result[1] if
+                                                                                       validator2_result[1] is not None
+                                                                                       else "validator2 passed"))
 
     return lambda value: if_then_validator_func(value)
+
+def sumIsLarger(fields, val):
+    """Validate that the sum of the fields is larger than val."""
+    def sumIsLargerFunc(value):
+        sum = 0
+        for field in fields:
+            sum += value[field] if type(value) is dict else getattr(value, field)
+
+        return (True, None) if sum > val else (False, f"The sum of {fields} is not larger than {val}.")
+
+    return lambda value: sumIsLargerFunc(value)
 
 
 # generic validators
