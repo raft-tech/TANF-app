@@ -36,7 +36,7 @@ def test_datafile(stt_user, stt):
 @pytest.mark.django_db
 def test_parse_small_correct_file(test_datafile):
     """Test parsing of small_correct_file."""
-    errors = parse.parse_datafile(test_datafile)
+    parse.parse_datafile(test_datafile)
 
     assert TANF_T1.objects.count() == 1
     assert ParserError.objects.filter(file=test_datafile).count() == 15
@@ -438,7 +438,7 @@ def small_tanf_section1_datafile(stt_user, stt):
 @pytest.mark.django_db
 def test_parse_tanf_section1_datafile(small_tanf_section1_datafile):
     """Test parsing of small_tanf_section1_datafile and validate T2 model data."""
-    errors = parse.parse_datafile(small_tanf_section1_datafile)
+    parse.parse_datafile(small_tanf_section1_datafile)
 
     assert TANF_T2.objects.count() == 5
 
@@ -459,7 +459,7 @@ def test_parse_tanf_section1_datafile(small_tanf_section1_datafile):
 @pytest.mark.django_db
 def test_parse_tanf_section1_datafile_obj_counts(small_tanf_section1_datafile):
     """Test parsing of small_tanf_section1_datafile in general."""
-    errors = parse.parse_datafile(small_tanf_section1_datafile)
+    parse.parse_datafile(small_tanf_section1_datafile)
 
     assert TANF_T1.objects.count() == 5
     assert TANF_T2.objects.count() == 5
@@ -468,7 +468,7 @@ def test_parse_tanf_section1_datafile_obj_counts(small_tanf_section1_datafile):
 @pytest.mark.django_db
 def test_parse_tanf_section1_datafile_t3s(small_tanf_section1_datafile):
     """Test parsing of small_tanf_section1_datafile and validate T3 model data."""
-    errors = parse.parse_datafile(small_tanf_section1_datafile)
+    parse.parse_datafile(small_tanf_section1_datafile)
 
     assert TANF_T3.objects.count() == 6
 
@@ -497,7 +497,7 @@ def bad_tanf_s1__row_missing_required_field(stt_user, stt):
 @pytest.mark.django_db
 def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field):
     """Test parsing a bad TANF Section 1 submission where a row is missing required data."""
-    errors = parse.parse_datafile(bad_tanf_s1__row_missing_required_field)
+    parse.parse_datafile(bad_tanf_s1__row_missing_required_field)
 
     parser_errors = ParserError.objects.filter(file=bad_tanf_s1__row_missing_required_field)
     assert parser_errors.count() == 28

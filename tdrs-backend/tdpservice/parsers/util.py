@@ -85,7 +85,7 @@ class Field:
                     return None
             case 'string':
                 if value.count('0') != len(value):
-                  return value.lstrip('0')
+                    return value.lstrip('0')
                 return '0'
 
 
