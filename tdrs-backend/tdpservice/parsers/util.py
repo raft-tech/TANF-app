@@ -84,7 +84,9 @@ class Field:
                 except ValueError:
                     return None
             case 'string':
-                return value
+                if value.count('0') != len(value):
+                  return value.lstrip('0')
+                return '0'
 
 
 class RowSchema:

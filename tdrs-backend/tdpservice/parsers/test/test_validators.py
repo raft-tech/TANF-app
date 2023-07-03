@@ -35,9 +35,10 @@ def test_if_validators():
 
 def test_month_year_yearIsLargerThan():
     """Test `month_year_yearIsLargerThan` gives a valid result."""
-    value = "061998"
+    value = "199806"
     validator = validators.month_year_yearIsLargerThan(1999)
-    assert validator(value) == (False, '1998 year must be larger than 1999.')
+    result = validator(value)
+    assert result == (False, '1998 year must be larger than 1999.')
 
 
 def test_matches_returns_valid():

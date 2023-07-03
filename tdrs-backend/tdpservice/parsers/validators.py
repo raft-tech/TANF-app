@@ -138,8 +138,8 @@ def isBlank():
 def notEmpty(start=0, end=None):
     """Validate that string value isn't only blanks."""
     return make_validator(
-        lambda value: not value[start:end if end else len(value)].isspace(),
-        lambda value: f'{value} contains blanks between positions {start} and {end if end else len(value)}.'
+        lambda value: not str(value)[start:end if end else len(str(value))].isspace(),
+        lambda value: f'{str(value)} contains blanks between positions {start} and {end if end else len(str(value))}.'
     )
 
 def isEmpty(start=0, end=None):
@@ -161,7 +161,7 @@ def notZero(number_of_zeros=1):
 def isLargerThan(LowerBound):
     """Validate that value is larger than the given value."""
     return make_validator(
-        lambda value: value > LowerBound,
+        lambda value: float(value) > LowerBound if value is not None else False,
         lambda value: f'{value} is not larger than {LowerBound}.'
     )
 
@@ -200,16 +200,16 @@ def isInLimits(LowerBound, UpperBound):
 def month_year_monthIsValid():
     """Validate that in a monthyear combination, the month is a valid month."""
     return make_validator(
-        lambda value: int(value[:2]) in range(1, 13),
-        lambda value: f'{value[:2]} is not a valid month.'
+        lambda value: int(str(value)[4:]) in range(1, 13),
+        lambda value: f'{str(value)[4:]} is not a valid month.'
     )
 
 
 def month_year_yearIsLargerThan(year):
     """Validate that in a monthyear combination, the year is larger than the given year."""
     return make_validator(
-        lambda value: int(value[2:]) > year,
-        lambda value: f'{value[2:]} year must be larger than {year}.'
+        lambda value: int(str(value)[:4]) > year,
+        lambda value: f'{str(value)[:4]} year must be larger than {year}.'
     )
 
 
