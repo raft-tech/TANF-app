@@ -428,7 +428,6 @@ class TestT2Cat3Validators(TanfSection1TestCat3ValidatorsBase):
         record.FAMILY_AFFILIATION = 0
         record.SSN = "999999999"
         result = val(record)
-        print(result)
         assert result == (False, "if 0 should not be in (1, 2). then 999999999 is in ('000000000', '111111111', " +
                           "'222222222', '333333333', '444444444', '555555555', '666666666', '777777777', '888888888'," +
                           " '999999999').")
@@ -700,7 +699,6 @@ class TestT3Cat3Validators(TanfSection1TestCat3ValidatorsBase):
         record.FAMILY_AFFILIATION = 0
         record.CITIZENSHIP_STATUS = "00"
         result = val(record)
-        print(result)
         assert result == (False, "if 0 does not match 1. then 00 should not be in ('1', '2').")
 
         val = validators.if_then_validator(
@@ -709,5 +707,4 @@ class TestT3Cat3Validators(TanfSection1TestCat3ValidatorsBase):
             )
         record.FAMILY_AFFILIATION = 2
         result = val(record)
-        print(result)
         assert result == (False, "if validator1 passed then 00 should not be in ('1', '2', '9').")
