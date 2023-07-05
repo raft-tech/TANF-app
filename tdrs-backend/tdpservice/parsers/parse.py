@@ -25,7 +25,7 @@ def parse_datafile(datafile):
     )
     if not header_is_valid:
         errors['header'] = header_errors
-        bulk_create_errors(header_errors)
+        bulk_create_errors({1: header_errors})
         return errors
 
     # ensure file section matches upload section
@@ -137,9 +137,10 @@ def parse_datafile_lines(datafile, program_type, section):
                 record=None,
                 field=None
             )
-            unsaved_parser_errors.update({line_number: [err_obj]})
+            preparse_error = {line_number: [err_obj]}
+            unsaved_parser_errors.update(preparse_error)
             rollback(transaction)
-            bulk_create_errors(unsaved_parser_errors)
+            bulk_create_errors(preparse_error)
             return errors
 
         if prev_sum != header_count + trailer_count:
@@ -176,8 +177,9 @@ def parse_datafile_lines(datafile, program_type, section):
             field=None
         )
         rollback(transaction)
-        unsaved_parser_errors.update({line_number: [err_obj]})
-        bulk_create_errors(unsaved_parser_errors)
+        preparse_error = {line_number: [err_obj]}
+        unsaved_parser_errors.update(preparse_error)
+        bulk_create_errors(preparse_error)
         return errors
 
     # Only checking "all_created" here because records remained cached if bulk create fails. This is the last chance to

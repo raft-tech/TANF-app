@@ -220,21 +220,16 @@ def test_parse_bad_file_multiple_headers(bad_file_multiple_headers):
     errors = parse.parse_datafile(bad_file_multiple_headers)
 
     parser_errors = ParserError.objects.filter(file=bad_file_multiple_headers)
-    assert parser_errors.count() == 3
+    assert parser_errors.count() == 1
 
     err = parser_errors.first()
 
-    assert err.row_number == 5
+    assert err.row_number == 9
     assert err.error_type == ParserErrorCategoryChoices.PRE_CHECK
-    assert err.error_message == 'Value length 113 does not match 156.'
+    assert err.error_message == "Multiple headers found."
     assert err.content_type is None
     assert err.object_id is None
-
-    assert errors == {
-        5: [err],
-        'trailer': [parser_errors[1]],
-        "document": ["Multiple headers found."],
-    }
+    assert errors['document'] == ['Multiple headers found.']
     rollback(transaction)
 
 
@@ -252,9 +247,9 @@ def test_parse_big_bad_test_file(big_bad_test_file):
     parse.parse_datafile(big_bad_test_file)
 
     parser_errors = ParserError.objects.filter(file=big_bad_test_file)
-    assert parser_errors.count() == 889
+    assert parser_errors.count() == 1
 
-    err = parser_errors[888]
+    err = parser_errors.first()
 
     assert err.row_number == 3679
     assert err.error_type == ParserErrorCategoryChoices.PRE_CHECK
@@ -552,9 +547,9 @@ def test_parse_super_big_s1_file_with_rollback(super_big_s1_rollback_file):
     parse.parse_datafile(super_big_s1_rollback_file)
 
     parser_errors = ParserError.objects.filter(file=super_big_s1_rollback_file)
-    assert parser_errors.count() == 2
+    assert parser_errors.count() == 1
 
-    err = parser_errors[1]
+    err = parser_errors.first()
 
     assert err.row_number == 50022
     assert err.error_type == ParserErrorCategoryChoices.PRE_CHECK
