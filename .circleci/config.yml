@@ -79,6 +79,7 @@ workflows:
           filters:
             branches:
               only:
+                - hotfix/nightly-scan
                 - develop
                 - main
                 - master
