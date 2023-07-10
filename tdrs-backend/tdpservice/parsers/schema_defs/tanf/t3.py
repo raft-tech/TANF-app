@@ -177,41 +177,81 @@ child_two = RowSchema(
         Field(item="6", name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
               required=True, validators=[]),
         Field(item="67", name='FAMILY_AFFILIATION', type='number', startIndex=60, endIndex=61,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1, 2, 4])
+              ]),
         Field(item="68", name='DATE_OF_BIRTH', type='number', startIndex=61, endIndex=69,
-              required=True, validators=[]),
-        Field(item="69", name='SSN', type='string', startIndex=69, endIndex=78,
-              required=True, validators=[]),
-        Field(item="70A", name='RACE_HISPANIC', type='string', startIndex=78, endIndex=79,
-              required=True, validators=[]),
-        Field(item="70B", name='RACE_AMER_INDIAN', type='string', startIndex=79, endIndex=80,
-              required=True, validators=[]),
-        Field(item="70C", name='RACE_ASIAN', type='string', startIndex=80, endIndex=81,
-              required=True, validators=[]),
-        Field(item="70D", name='RACE_BLACK', type='string', startIndex=81, endIndex=82,
-              required=True, validators=[]),
-        Field(item="70E", name='RACE_HAWAIIAN', type='string', startIndex=82, endIndex=83,
-              required=True, validators=[]),
-        Field(item="70F", name='RACE_WHITE', type='string', startIndex=83, endIndex=84,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.month_year_yearIsLargerThan(1998),
+                  validators.month_year_monthIsValid(),
+              ]),
+        Field(item="69", name='SSN', type='number', startIndex=69, endIndex=78,
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
+        Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=78, endIndex=79,
+              required=True, validators=[
+                  validators.oneOf([0, 1, 2])
+              ]),
+        Field(item="70B", name='RACE_AMER_INDIAN', type='number', startIndex=79, endIndex=80,
+              required=True, validators=[
+                  validators.oneOf([0, 1, 2])
+              ]),
+        Field(item="70C", name='RACE_ASIAN', type='number', startIndex=80, endIndex=81,
+              required=True, validators=[
+                  validators.oneOf([0, 1, 2])
+              ]),
+        Field(item="70D", name='RACE_BLACK', type='number', startIndex=81, endIndex=82,
+              required=True, validators=[
+                  validators.oneOf([0, 1, 2])
+              ]),
+        Field(item="70E", name='RACE_HAWAIIAN', type='number', startIndex=82, endIndex=83,
+              required=True, validators=[
+                  validators.oneOf([0, 1, 2])
+              ]),
+        Field(item="70F", name='RACE_WHITE', type='number', startIndex=83, endIndex=84,
+              required=True, validators=[
+                  validators.oneOf([0, 1, 2])
+              ]),
         Field(item="71", name='GENDER', type='number', startIndex=84, endIndex=85,
-              required=True, validators=[]),
-        Field(item="72A", name='RECEIVE_NONSSA_BENEFITS', type='string', startIndex=85, endIndex=86,
-              required=True, validators=[]),
-        Field(item="72B", name='RECEIVE_SSI', type='string', startIndex=86, endIndex=87,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isInLimits(0,9)
+              ]),
+        Field(item="72A", name='RECEIVE_NONSSA_BENEFITS', type='nummber', startIndex=85, endIndex=86,
+              required=True, validators=[
+                  validators.oneOf([1, 2])
+              ]),
+        Field(item="72B", name='RECEIVE_SSI', type='number', startIndex=86, endIndex=87,
+              required=True, validators=[
+                  validators.oneOf([1, 2])
+              ]),
         Field(item="73", name='RELATIONSHIP_HOH', type='number', startIndex=87, endIndex=89,
-              required=True, validators=[]),
-        Field(item="74", name='PARENT_MINOR_CHILD', type='string', startIndex=89, endIndex=90,
-              required=True, validators=[]),
-        Field(item="75", name='EDUCATION_LEVEL', type='string', startIndex=90, endIndex=92,
-              required=True, validators=[]),
-        Field(item="76", name='CITIZENSHIP_STATUS', type='string', startIndex=92, endIndex=93,
-              required=True, validators=[]),
-        Field(item="77A", name='UNEARNED_SSI', type='string', startIndex=93, endIndex=97,
-              required=False, validators=[]),
-        Field(item="77B", name='OTHER_UNEARNED_INCOME', type='string', startIndex=97, endIndex=101,
-              required=False, validators=[]),
+              required=True, validators=[
+                  validators.isInLimits(0, 10)
+              ]),
+        Field(item="74", name='PARENT_MINOR_CHILD', type='number', startIndex=89, endIndex=90,
+              required=True, validators=[
+                  validators.oneOf([0, 2, 3])
+              ]),
+        Field(item="75", name='EDUCATION_LEVEL', type='number', startIndex=90, endIndex=92,
+              required=True, validators=[
+                  validators.or_validators(
+                      validators.isInLimits(0, 16),
+                      validators.oneOf([98, 99])
+                  )
+              ]),
+        Field(item="76", name='CITIZENSHIP_STATUS', type='number', startIndex=92, endIndex=93,
+              required=True, validators=[
+                  validators.oneOf([0, 1, 2, 9])
+              ]),
+        Field(item="77A", name='UNEARNED_SSI', type='number', startIndex=93, endIndex=97,
+              required=False, validators=[
+                  validators.isLargerThanOrEqualTo(0)
+              ]),
+        Field(item="77B", name='OTHER_UNEARNED_INCOME', type='number', startIndex=97, endIndex=101,
+              required=False, validators=[
+                  validators.isLargerThanOrEqualTo(0)
+              ]),
     ],
 )
 
