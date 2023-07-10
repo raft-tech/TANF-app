@@ -20,7 +20,7 @@ header = RowSchema(
             validators.matches('HEADER'),
         ]),
         Field(item="4", name='year', type='number', startIndex=6, endIndex=10, required=True, validators=[
-            validators.between(2000, 2099)
+            validators.isInLimits(2000, 2099)
         ]),
         Field(item="5", name='quarter', type='string', startIndex=10, endIndex=11, required=True, validators=[
             validators.oneOf(['1', '2', '3', '4'])
@@ -29,10 +29,10 @@ header = RowSchema(
             validators.oneOf(['A', 'C', 'G', 'S'])
         ]),
         Field(item="1", name='state_fips', type='string', startIndex=12, endIndex=14, required=True, validators=[
-            validators.between(0, 99)
+            validators.isInLimits(0, 99)
         ]),
         Field(item="3", name='tribe_code', type='string', startIndex=14, endIndex=17, required=False, validators=[
-            validators.between(0, 999)
+            validators.isInLimits(0, 999)
         ]),
         Field(item="7", name='program_type', type='string', startIndex=17, endIndex=20, required=True, validators=[
             validators.oneOf(['TAN', 'SSP'])

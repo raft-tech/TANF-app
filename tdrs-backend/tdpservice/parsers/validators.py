@@ -128,6 +128,13 @@ def isNumber():
         lambda value: f'{value} is not a number.'
     )
 
+def isAlphaNumeric():
+    """Validate that value is alphanumeric."""
+    return make_validator(
+        lambda value: value.isalnum(),
+        lambda value: f'{value} is not alphanumeric.'
+    )
+
 def isBlank():
     """Validate that string value is blank."""
     return make_validator(

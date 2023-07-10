@@ -85,9 +85,12 @@ t1 = RowSchema(
         Field(item="6", name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
               required=True, validators=[
                   validators.notEmpty(),
+                  validators.isAlphaNumeric(),
               ]),
         Field(item="2", name='COUNTY_FIPS_CODE', type='string', startIndex=19, endIndex=22,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isNumber(),
+              ]),
         Field(item="5", name='STRATUM', type='number', startIndex=22, endIndex=24,
               required=True, validators=[
                   validators.isInLimits(0, 99),
@@ -105,7 +108,9 @@ t1 = RowSchema(
                   validators.oneOf([1, 2]),
               ]),
         Field(item="10", name='NEW_APPLICANT', type='number', startIndex=31, endIndex=32,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1, 2]),
+              ]),
         Field(item="11", name='NBR_FAMILY_MEMBERS', type='number', startIndex=32, endIndex=34,
               required=True, validators=[
                   validators.isLargerThan(0),
@@ -191,34 +196,57 @@ t1 = RowSchema(
                   validators.isLargerThanOrEqualTo(0),
               ]),
         Field(item="26AI", name='SANC_REDUCTION_AMT', type='number', startIndex=92, endIndex=96,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item="26AII", name='WORK_REQ_SANCTION', type='number', startIndex=96, endIndex=97,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1, 2]),
+              ]),
         Field(item="26AIII", name='FAMILY_SANC_ADULT', type='number', startIndex=97, endIndex=98,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1, 2]),
+              ]),
         Field(item="26AIV", name='SANC_TEEN_PARENT', type='number', startIndex=98, endIndex=99,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1, 2]),
+              ]),
         Field(item="26AV", name='NON_COOPERATION_CSE', type='number', startIndex=99, endIndex=100,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1, 2]),
+              ]),
         Field(item="26AVI", name='FAILURE_TO_COMPLY', type='number', startIndex=100, endIndex=101,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1, 2]),
+              ]),
         Field(item="26AVII", name='OTHER_SANCTION', type='number', startIndex=101, endIndex=102,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1, 2]),
+              ]),
         Field(item="26B", name='RECOUPMENT_PRIOR_OVRPMT', type='number', startIndex=102, endIndex=106,
               required=True, validators=[
                   validators.isLargerThanOrEqualTo(0),
               ]),
         Field(item="26CI", name='OTHER_TOTAL_REDUCTIONS', type='number', startIndex=106, endIndex=110,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isLargerThanOrEqualTo(0),
+              ]),
         Field(item="26CII", name='FAMILY_CAP', type='number', startIndex=110, endIndex=111,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1, 2]),
+              ]),
         Field(item="26CIII", name='REDUCTIONS_ON_RECEIPTS', type='number', startIndex=111, endIndex=112,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1, 2]),
+              ]),
         Field(item="26CIV", name='OTHER_NON_SANCTION', type='number', startIndex=112, endIndex=113,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1, 2]),
+              ]),
         Field(item="27", name='WAIVER_EVAL_CONTROL_GRPS', type='number', startIndex=113, endIndex=114,
               required=True, validators=[
-                  validators.or_validators(validators.matches(9), validators.isEmpty())
+                  validators.or_validators(validators.matches(9), validators.isEmpty()),
+                  validators.isAlphaNumeric(),
               ]),
         Field(item="28", name='FAMILY_EXEMPT_TIME_LIMITS', type='number', startIndex=114, endIndex=116,
               required=True, validators=[
