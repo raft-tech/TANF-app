@@ -215,7 +215,7 @@ child_two = RowSchema(
               ]),
         Field(item="71", name='GENDER', type='number', startIndex=84, endIndex=85,
               required=True, validators=[
-                  validators.isInLimits(0,9)
+                  validators.isInLimits(0, 9)
               ]),
         Field(item="72A", name='RECEIVE_NONSSA_BENEFITS', type='nummber', startIndex=85, endIndex=86,
               required=True, validators=[

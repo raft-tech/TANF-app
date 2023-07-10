@@ -184,7 +184,6 @@ t2 = RowSchema(
         Field(item="36E", name='RECEIVE_SSI', type='number', startIndex=49, endIndex=50,
               required=True, validators=[
                   validators.oneOf([1, 2]),
-                  
               ]),
         Field(item="37", name='MARITAL_STATUS', type='number', startIndex=50, endIndex=51,
               required=True, validators=[
