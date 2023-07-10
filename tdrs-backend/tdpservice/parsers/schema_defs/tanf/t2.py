@@ -13,14 +13,6 @@ t2 = RowSchema(
     ],
     postparsing_validators=[
             validators.if_then_validator(
-                  condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='SSN', result_function=validators.isNumber(),
-            ),
-            validators.if_then_validator(
-                  condition_field='CITIZENSHIP_STATUS', condition_function=validators.oneOf((1, 2)),
-                  result_field='SSN', result_function=validators.isNumber(),
-            ),
-            validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2, 3)),
                   result_field='RACE_HISPANIC', result_function=validators.oneOf((1, 2)),
             ),
@@ -179,7 +171,6 @@ t2 = RowSchema(
               ]),
         Field(item="36D", name='AID_AGED_BLIND', type='number', startIndex=48, endIndex=49,
               required=True, validators=[
-                  validators.isNumber(),
               ]),
         Field(item="36E", name='RECEIVE_SSI', type='number', startIndex=49, endIndex=50,
               required=True, validators=[

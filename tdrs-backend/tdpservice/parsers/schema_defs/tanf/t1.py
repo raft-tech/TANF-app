@@ -243,9 +243,9 @@ t1 = RowSchema(
               required=True, validators=[
                   validators.oneOf([1, 2]),
               ]),
-        Field(item="27", name='WAIVER_EVAL_CONTROL_GRPS', type='number', startIndex=113, endIndex=114,
+        Field(item="27", name='WAIVER_EVAL_CONTROL_GRPS', type='string', startIndex=113, endIndex=114,
               required=True, validators=[
-                  validators.or_validators(validators.matches(9), validators.isEmpty()),
+                  validators.or_validators(validators.matches('9'), validators.isEmpty()),
                   validators.isAlphaNumeric(),
               ]),
         Field(item="28", name='FAMILY_EXEMPT_TIME_LIMITS', type='number', startIndex=114, endIndex=116,

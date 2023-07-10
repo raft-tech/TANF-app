@@ -28,10 +28,10 @@ header = RowSchema(
         Field(item="6", name='type', type='string', startIndex=11, endIndex=12, required=True, validators=[
             validators.oneOf(['A', 'C', 'G', 'S'])
         ]),
-        Field(item="1", name='state_fips', type='string', startIndex=12, endIndex=14, required=True, validators=[
+        Field(item="1", name='state_fips', type='number', startIndex=12, endIndex=14, required=True, validators=[
             validators.isInLimits(0, 99)
         ]),
-        Field(item="3", name='tribe_code', type='string', startIndex=14, endIndex=17, required=False, validators=[
+        Field(item="3", name='tribe_code', type='number', startIndex=14, endIndex=17, required=False, validators=[
             validators.isInLimits(0, 999)
         ]),
         Field(item="7", name='program_type', type='string', startIndex=17, endIndex=20, required=True, validators=[
