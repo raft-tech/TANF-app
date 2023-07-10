@@ -139,7 +139,7 @@ def isBlank():
     """Validate that string value is blank."""
     return make_validator(
         lambda value: value.isspace(),
-        lambda value: f'{value} is blank.'
+        lambda value: f'{value} is not blank.'
     )
 
 def notEmpty(start=0, end=None):
