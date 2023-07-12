@@ -96,7 +96,7 @@ class Common(Configuration):
     # EMAIL_HOST = "smtp.ees.hhs.gov"
     # EMAIL_HOST_USER = "no-reply@tanfdata.acf.hhs.gov"
     EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
-    EMAIL_HOST_USER = "jtimpe@teamraft.com"
+    EMAIL_HOST_USER = "no-reply@tanfdata.acf.hhs.gov"
     SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', None)
     SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 
