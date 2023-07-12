@@ -1,6 +1,6 @@
 """Wrapper to send emails with Django."""
 
-# from celery import shared_task
+from celery import shared_task
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.core.mail import send_mail
@@ -61,7 +61,7 @@ def prepare_email(email_path, recipient_email, email_context, logger_context):
 
     return html_message, valid_emails
 
-# @shared_task
+@shared_task
 def automated_email(email_path, recipient_email, subject, email_context, text_message, logger_context=None):
     """Send email to user."""
     html_message, valid_emails = prepare_email(email_path, recipient_email, email_context, logger_context)
