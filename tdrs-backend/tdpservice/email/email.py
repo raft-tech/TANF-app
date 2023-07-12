@@ -1,9 +1,9 @@
 """Wrapper to send emails with Django."""
 
-from celery import shared_task
+# from celery import shared_task
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.core.mail import EmailMultiAlternatives, send_mail
+from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import get_template
 from django.contrib.admin.models import LogEntry, ContentType, CHANGE
