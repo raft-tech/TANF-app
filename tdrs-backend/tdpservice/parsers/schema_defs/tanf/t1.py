@@ -71,6 +71,18 @@ t1 = RowSchema(
           condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
           result_field='OTHER_SANCTION', result_function=validators.oneOf((1, 2)),
       ),
+      validators.if_then_validator(
+          condition_field='OTHER_TOTAL_REDUCTIONS', condition_function=validators.isLargerThan(0),
+          result_field='FAMILY_CAP', result_function=validators.oneOf((1, 2)),
+      ),
+      validators.if_then_validator(
+          condition_field='OTHER_TOTAL_REDUCTIONS', condition_function=validators.isLargerThan(0),
+          result_field='REDUCTIONS_ON_RECEIPTS', result_function=validators.oneOf((1, 2)),
+      ),
+      validators.if_then_validator(
+          condition_field='OTHER_TOTAL_REDUCTIONS', condition_function=validators.isLargerThan(0),
+          result_field='OTHER_NON_SANCTION', result_function=validators.oneOf((1, 2)),
+      ),
       validators.sumIsLarger(("AMT_FOOD_STAMP_ASSISTANCE", "AMT_SUB_CC", "CC_AMOUNT", "TRANSP_AMOUNT",
                               "TRANSITION_SERVICES_AMOUNT", "OTHER_AMOUNT"), 0)
     ],
