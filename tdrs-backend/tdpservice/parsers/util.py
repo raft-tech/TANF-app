@@ -1,7 +1,6 @@
 """Utility file for functions shared between all parsers even preparser."""
 from .models import ParserError, ParserErrorCategoryChoices
 from django.contrib.contenttypes.models import ContentType
-import decorator
 from tdpservice.data_files.models import DataFile
 from pathlib import Path
 
@@ -280,29 +279,3 @@ class SchemaManager:
 
         return records
 
-
-def begin_transaction(transaction):
-    """Create manual database transaction."""
-    transaction.set_autocommit(False)
-
-def rollback(transaction):
-    """Rollback manual database transaction."""
-    transaction.rollback()
-    transaction.set_autocommit(True)
-
-def end_transaction(transaction):
-    """Commit manual database transaction."""
-    transaction.commit()
-    transaction.set_autocommit(True)
-
-def rollback_on_exception(transaction):
-    """Rollback failed test on assertion error."""
-    def decorator_func(func):
-        def wrapper(func, *args, **kwargs):
-            try:
-                func(*args, **kwargs)
-            except Exception as e:
-                rollback(transaction)
-                raise e
-        return decorator.decorator(wrapper, func)
-    return decorator_func

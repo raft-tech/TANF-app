@@ -6,7 +6,9 @@ import itertools
 import logging
 from .models import ParserErrorCategoryChoices, ParserError
 from . import schema_defs, validators, util
-from tdpservice.parsers.util import begin_transaction, end_transaction, rollback
+# from tdpservice.parsers.util import begin_transaction, end_transaction, rollback
+from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5, TANF_T6, TANF_T7
+from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ def parse_datafile(datafile):
     )
     if not header_is_valid:
         errors['header'] = header_errors
-        bulk_create_errors({1: header_errors})
+        bulk_create_errors({1: header_errors}, 1, flush=True)
         return errors
 
     # ensure file section matches upload section
@@ -41,7 +43,7 @@ def parse_datafile(datafile):
     if not section_is_valid:
         errors['document'] = [section_error]
         unsaved_parser_errors = {1: [section_error]}
-        bulk_create_errors(unsaved_parser_errors)
+        bulk_create_errors(unsaved_parser_errors, 1, flush=True)
         return errors
 
     line_errors = parse_datafile_lines(datafile, program_type, section)
@@ -66,10 +68,12 @@ def bulk_create_records(unsaved_records, line_number, header_count, batch_size=1
             return False, unsaved_records
     return True, unsaved_records
 
-def bulk_create_errors(unsaved_parser_errors):
+def bulk_create_errors(unsaved_parser_errors, num_errors, batch_size=500, flush=False):
     """Bulk create all ParserErrors."""
-    if unsaved_parser_errors:
+    if flush or (unsaved_parser_errors and num_errors >= batch_size):
         ParserError.objects.bulk_create(list(itertools.chain.from_iterable(unsaved_parser_errors.values())))
+        return {}, 0
+    return unsaved_parser_errors, num_errors
 
 def evaluate_trailer(datafile, trailer_count, multiple_trailer_errors, is_last_line, line, line_number):
     """Validate datafile trailer and return associated errors if any."""
@@ -89,6 +93,22 @@ def evaluate_trailer(datafile, trailer_count, multiple_trailer_errors, is_last_l
         return (multiple_trailer_errors, None if not trailer_errors else trailer_errors)
     return (False, None)
 
+def rollback_records(datafile):
+    TANF_T1.objects.filter(datafile=datafile).count()
+    TANF_T1.objects.filter(datafile=datafile).delete()
+    TANF_T2.objects.filter(datafile=datafile).delete()
+    TANF_T3.objects.filter(datafile=datafile).delete()
+    TANF_T4.objects.filter(datafile=datafile).delete()
+    TANF_T5.objects.filter(datafile=datafile).delete()
+    TANF_T6.objects.filter(datafile=datafile).delete()
+    TANF_T7.objects.filter(datafile=datafile).delete()
+    SSP_M1.objects.filter(datafile=datafile).delete()
+    SSP_M2.objects.filter(datafile=datafile).delete()
+    SSP_M3.objects.filter(datafile=datafile).delete()
+
+def rollback_parser_errors(datafile):
+    ParserError.objects.filter(file=datafile).delete()
+
 def parse_datafile_lines(datafile, program_type, section):
     """Parse lines with appropriate schema and return errors."""
     rawfile = datafile.file
@@ -103,11 +123,12 @@ def parse_datafile_lines(datafile, program_type, section):
     header_count = 0
     trailer_count = 0
     prev_sum = 0
+    num_errors = 0
     multiple_trailer_errors = False
 
     # Note: it is unnecessary to call rawfile.seek(0) again because the generator
     # automatically starts back at the begining of the file.
-    begin_transaction(transaction)
+    # begin_transaction(transaction)
     file_length = len(rawfile)
     offset = 0
     for rawline in rawfile:
@@ -125,6 +146,7 @@ def parse_datafile_lines(datafile, program_type, section):
         if trailer_errors is not None:
             errors['trailer'] = trailer_errors
             unsaved_parser_errors.update({"trailer": trailer_errors})
+            num_errors += len(trailer_errors)
 
         generate_error = util.make_generate_parser_error(datafile, line_number)
 
@@ -139,8 +161,10 @@ def parse_datafile_lines(datafile, program_type, section):
             )
             preparse_error = {line_number: [err_obj]}
             unsaved_parser_errors.update(preparse_error)
-            rollback(transaction)
-            bulk_create_errors(preparse_error)
+            # rollback(transaction)
+            rollback_records(datafile)
+            rollback_parser_errors(datafile)
+            bulk_create_errors(preparse_error, num_errors, flush=True)
             return errors
 
         if prev_sum != header_count + trailer_count:
@@ -161,11 +185,14 @@ def parse_datafile_lines(datafile, program_type, section):
                 line_errors.update({record_number: record_errors})
                 errors.update({line_number: record_errors})
                 unsaved_parser_errors.update({line_number: record_errors})
+                num_errors += len(record_errors)
             if record:
                 s = schema_manager.schemas[i]
+                record.datafile = datafile
                 unsaved_records.setdefault(s.model, []).append(record)
 
         all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count,)
+        unsaved_parser_errors, num_errors = bulk_create_errors(unsaved_parser_errors, num_errors)
 
     if header_count == 0:
         errors.update({'document': ['No headers found.']})
@@ -176,23 +203,25 @@ def parse_datafile_lines(datafile, program_type, section):
             record=None,
             field=None
         )
-        rollback(transaction)
+        # rollback(transaction)
+        rollback_records(datafile)
+        rollback_parser_errors(datafile)
         preparse_error = {line_number: [err_obj]}
-        unsaved_parser_errors.update(preparse_error)
-        bulk_create_errors(preparse_error)
+        bulk_create_errors(preparse_error, num_errors, flush=True)
         return errors
 
     # Only checking "all_created" here because records remained cached if bulk create fails. This is the last chance to
     # successfully create the records.
     all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count, flush=True)
     if not all_created:
-        rollback(transaction)
-        bulk_create_errors(unsaved_parser_errors)
+        # rollback(transaction)
+        rollback_records(datafile)
+        bulk_create_errors(unsaved_parser_errors, num_errors, flush=True)
         return errors
 
-    end_transaction(transaction)
+    # end_transaction(transaction)
 
-    bulk_create_errors(unsaved_parser_errors)
+    bulk_create_errors(unsaved_parser_errors, num_errors, flush=True)
 
     return errors
 
