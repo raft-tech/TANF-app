@@ -19,13 +19,20 @@ def or_validators(validator1, validator2):
         else (False, validator1(value)[1] + ' or ' + validator2(value)[1])
 
 
+def and_validators(validator1, validator2):
+    """Return a validator that is true only if both validators are true."""
+    return lambda value: (True, None) if (validator1(value)[0] and validator2(value)[0])\
+        else (False, validator1(value)[1] + ' and ' + validator2(value)[1])
+
+
 def if_then_validator(condition_field, condition_function,
                       result_field, result_function):
     """Return second validation if the first validator is true.
 
-    :param validator1: function that returns (bool, string) to represent validation state
-    :param validator2: function that returns (bool, string) to represent validation state
-    :param args: list of two strings representing the keys of the values to be validated
+    :param condition_field: function that returns (bool, string) to represent validation state
+    :param condition_function: function that returns (bool, string) to represent validation state
+    :param result_field: function that returns (bool, string) to represent validation state
+    :param result_function: function that returns (bool, string) to represent validation state
     """
     def if_then_validator_func(value):
         value1 = value[condition_field] if type(value) is dict else getattr(value, condition_field)
@@ -219,6 +226,22 @@ def month_year_yearIsLargerThan(year):
         lambda value: f'{str(value)[:4]} year must be larger than {year}.'
     )
 
+# outlier validators
+def validate__FAM_AFF__SSN():
+    """If item 30 ==2 and item 42 ==1 or 2, then item 33 != 000000000 -- 999999999"""
+    # value is instance
+    def validate(instance):
+        FAMILY_AFFILIATION = instance['FAMILY_AFFILIATION'] if type(instance) is dict else getattr(instance, 'FAMILY_AFFILIATION')
+        CITIZENSHIP_STATUS = instance['CITIZENSHIP_STATUS'] if type(instance) is dict else getattr(instance, 'CITIZENSHIP_STATUS')
+        SSN = instance['SSN'] if type(instance) is dict else getattr(instance, 'SSN')
+        if FAMILY_AFFILIATION == 2 and (CITIZENSHIP_STATUS== 1 or CITIZENSHIP_STATUS == 2):
+            if SSN in [str(i) * 9 for i in range(10)]:
+                return (False, 'If FAMILY_AFFILIATION ==2 and CITIZENSHIP_STATUS==1 or 2, then SSN != 000000000 -- 999999999.')
+            else:
+                return (True, None)
+        else:
+            return (True, None)
+    return lambda instance: validate(instance)
 
 def validate_single_header_trailer(datafile):
     """Validate that a raw datafile has one trailer and one footer."""

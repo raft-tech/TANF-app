@@ -33,6 +33,18 @@ def test_if_validators():
     assert result == (False, 'if 1 does not match 2. then 2 does not match 1.')
 
 
+def test_validate__FAM_AFF__SSN():
+    instance = {
+        'FAMILY_AFFILIATION': 2,
+        'CITIZENSHIP_STATUS': 1,
+        'SSN': '0'*9,
+    }
+    result = validators.validate__FAM_AFF__SSN()(instance)
+    assert result == (False, 'If FAMILY_AFFILIATION ==2 and CITIZENSHIP_STATUS==1 or 2, then SSN != 000000000 -- 999999999.')
+    instance['SSN'] = '1'*8 + '0'
+    result = validators.validate__FAM_AFF__SSN()(instance)
+    assert result == (True, None)
+
 def test_month_year_yearIsLargerThan():
     """Test `month_year_yearIsLargerThan` gives a valid result."""
     value = "199806"

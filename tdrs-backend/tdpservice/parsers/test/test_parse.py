@@ -39,7 +39,7 @@ def test_parse_small_correct_file(test_datafile):
     parse.parse_datafile(test_datafile)
 
     assert TANF_T1.objects.count() == 1
-    assert ParserError.objects.filter(file=test_datafile).count() == 15
+    assert ParserError.objects.filter(file=test_datafile).count() == 18
 
     # spot check
     t1 = TANF_T1.objects.all().first()
@@ -116,7 +116,7 @@ def test_parse_big_file(test_big_file):
 
     errors = parse.parse_datafile(test_big_file)
     parser_errors = ParserError.objects.filter(file=test_big_file)
-    assert parser_errors.count() == 23176
+    assert parser_errors.count() == 23141
     assert len(errors) == 2643
 
     error_message = 'MONTHS_FED_TIME_LIMIT is required but a value was not provided.'
@@ -500,7 +500,7 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
     parse.parse_datafile(bad_tanf_s1__row_missing_required_field)
 
     parser_errors = ParserError.objects.filter(file=bad_tanf_s1__row_missing_required_field)
-    assert parser_errors.count() == 21
+    assert parser_errors.count() == 25
 
     error_message = 'RPT_MONTH_YEAR is required but a value was not provided.'
     row_2_error = parser_errors.get(row_number=2, error_message=error_message)
