@@ -228,15 +228,18 @@ def month_year_yearIsLargerThan(year):
 
 # outlier validators
 def validate__FAM_AFF__SSN():
-    """If item 30 ==2 and item 42 ==1 or 2, then item 33 != 000000000 -- 999999999"""
+    """If item 30 ==2 and item 42 ==1 or 2, then item 33 != 000000000 -- 999999999."""
     # value is instance
     def validate(instance):
-        FAMILY_AFFILIATION = instance['FAMILY_AFFILIATION'] if type(instance) is dict else getattr(instance, 'FAMILY_AFFILIATION')
-        CITIZENSHIP_STATUS = instance['CITIZENSHIP_STATUS'] if type(instance) is dict else getattr(instance, 'CITIZENSHIP_STATUS')
+        FAMILY_AFFILIATION = instance['FAMILY_AFFILIATION'] if type(instance) is dict else \
+            getattr(instance, 'FAMILY_AFFILIATION')
+        CITIZENSHIP_STATUS = instance['CITIZENSHIP_STATUS'] if type(instance) is dict else \
+            getattr(instance, 'CITIZENSHIP_STATUS')
         SSN = instance['SSN'] if type(instance) is dict else getattr(instance, 'SSN')
-        if FAMILY_AFFILIATION == 2 and (CITIZENSHIP_STATUS== 1 or CITIZENSHIP_STATUS == 2):
+        if FAMILY_AFFILIATION == 2 and (CITIZENSHIP_STATUS == 1 or CITIZENSHIP_STATUS == 2):
             if SSN in [str(i) * 9 for i in range(10)]:
-                return (False, 'If FAMILY_AFFILIATION ==2 and CITIZENSHIP_STATUS==1 or 2, then SSN != 000000000 -- 999999999.')
+                return (False,
+                        'If FAMILY_AFFILIATION ==2 and CITIZENSHIP_STATUS==1 or 2, then SSN != 000000000 -- 999999999.')
             else:
                 return (True, None)
         else:

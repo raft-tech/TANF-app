@@ -34,13 +34,15 @@ def test_if_validators():
 
 
 def test_validate__FAM_AFF__SSN():
+    """Test `validate__FAM_AFF__SSN` gives a valid result."""
     instance = {
         'FAMILY_AFFILIATION': 2,
         'CITIZENSHIP_STATUS': 1,
         'SSN': '0'*9,
     }
     result = validators.validate__FAM_AFF__SSN()(instance)
-    assert result == (False, 'If FAMILY_AFFILIATION ==2 and CITIZENSHIP_STATUS==1 or 2, then SSN != 000000000 -- 999999999.')
+    assert result == (False,
+                      'If FAMILY_AFFILIATION ==2 and CITIZENSHIP_STATUS==1 or 2, then SSN != 000000000 -- 999999999.')
     instance['SSN'] = '1'*8 + '0'
     result = validators.validate__FAM_AFF__SSN()(instance)
     assert result == (True, None)
