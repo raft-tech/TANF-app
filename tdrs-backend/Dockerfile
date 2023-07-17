@@ -17,7 +17,7 @@ RUN apt-get -y upgrade
 # Install a new package:
 RUN apt-get install -y gcc && apt-get install -y graphviz && apt-get install -y graphviz-dev
 # Install pipenv
-RUN pip install --upgrade pip pipenv
+RUN pip install --upgrade pip pipenv setuptools wheel
 RUN pipenv install --dev --system --deploy
 
 # Adds our application code to the image
