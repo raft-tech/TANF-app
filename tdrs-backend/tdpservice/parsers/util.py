@@ -278,4 +278,3 @@ class SchemaManager:
             records.append((record, is_valid, errors))
 
         return records
-

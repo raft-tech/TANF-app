@@ -91,10 +91,12 @@ def evaluate_trailer(datafile, trailer_count, multiple_trailer_errors, is_last_l
     return (False, None)
 
 def rollback_records(unsaved_records, datafile):
+    """Delete created records in the event of a failure."""
     for model in unsaved_records:
         model.objects.filter(datafile=datafile).delete()
 
 def rollback_parser_errors(datafile):
+    """Delete created errors in the event of a failure."""
     ParserError.objects.filter(file=datafile).delete()
 
 def parse_datafile_lines(datafile, program_type, section):
