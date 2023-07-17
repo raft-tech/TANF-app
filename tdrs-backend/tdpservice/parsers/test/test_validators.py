@@ -606,7 +606,7 @@ class TestT2Cat3Validators(TanfSection1TestCat3ValidatorsBase):
         record.FAMILY_AFFILIATION = 1
         record.WORK_ELIGIBLE_INDICATOR = "00"
         result = val(record)
-        assert result == (False, "if FAMILY_AFFILIATION :1 validator1 passed then"
+        assert result == (False, "if FAMILY_AFFILIATION :1 validator1 passed then "
                           + "WORK_ELIGIBLE_INDICATOR 00 is not in ('01', '02', '03', '04', '05', '06',"
                           + " '07', '08', '09', '12').")
 
