@@ -118,7 +118,6 @@ def parse_datafile_lines(datafile, program_type, section):
 
     # Note: it is unnecessary to call rawfile.seek(0) again because the generator
     # automatically starts back at the begining of the file.
-    # begin_transaction(transaction)
     file_length = len(rawfile)
     offset = 0
     for rawline in rawfile:
@@ -151,7 +150,6 @@ def parse_datafile_lines(datafile, program_type, section):
             )
             preparse_error = {line_number: [err_obj]}
             unsaved_parser_errors.update(preparse_error)
-            # rollback(transaction)
             rollback_records(unsaved_records, datafile)
             rollback_parser_errors(datafile)
             bulk_create_errors(preparse_error, num_errors, flush=True)
@@ -193,7 +191,6 @@ def parse_datafile_lines(datafile, program_type, section):
             record=None,
             field=None
         )
-        # rollback(transaction)
         rollback_records(unsaved_records, datafile)
         rollback_parser_errors(datafile)
         preparse_error = {line_number: [err_obj]}
@@ -204,12 +201,9 @@ def parse_datafile_lines(datafile, program_type, section):
     # successfully create the records.
     all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count, flush=True)
     if not all_created:
-        # rollback(transaction)
         rollback_records(unsaved_records, datafile)
         bulk_create_errors(unsaved_parser_errors, num_errors, flush=True)
         return errors
-
-    # end_transaction(transaction)
 
     bulk_create_errors(unsaved_parser_errors, num_errors, flush=True)
 
