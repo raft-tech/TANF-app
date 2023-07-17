@@ -1,14 +1,11 @@
 """Convert raw uploaded Datafile into a parsed model, and accumulate/return any errors."""
 
 
-from django.db import DatabaseError, transaction
+from django.db import DatabaseError
 import itertools
 import logging
 from .models import ParserErrorCategoryChoices, ParserError
 from . import schema_defs, validators, util
-# from tdpservice.parsers.util import begin_transaction, end_transaction, rollback
-from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5, TANF_T6, TANF_T7
-from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3
 
 logger = logging.getLogger(__name__)
 
@@ -93,18 +90,9 @@ def evaluate_trailer(datafile, trailer_count, multiple_trailer_errors, is_last_l
         return (multiple_trailer_errors, None if not trailer_errors else trailer_errors)
     return (False, None)
 
-def rollback_records(datafile):
-    TANF_T1.objects.filter(datafile=datafile).count()
-    TANF_T1.objects.filter(datafile=datafile).delete()
-    TANF_T2.objects.filter(datafile=datafile).delete()
-    TANF_T3.objects.filter(datafile=datafile).delete()
-    TANF_T4.objects.filter(datafile=datafile).delete()
-    TANF_T5.objects.filter(datafile=datafile).delete()
-    TANF_T6.objects.filter(datafile=datafile).delete()
-    TANF_T7.objects.filter(datafile=datafile).delete()
-    SSP_M1.objects.filter(datafile=datafile).delete()
-    SSP_M2.objects.filter(datafile=datafile).delete()
-    SSP_M3.objects.filter(datafile=datafile).delete()
+def rollback_records(unsaved_records, datafile):
+    for model in unsaved_records:
+        model.objects.filter(datafile=datafile).delete()
 
 def rollback_parser_errors(datafile):
     ParserError.objects.filter(file=datafile).delete()
@@ -162,7 +150,7 @@ def parse_datafile_lines(datafile, program_type, section):
             preparse_error = {line_number: [err_obj]}
             unsaved_parser_errors.update(preparse_error)
             # rollback(transaction)
-            rollback_records(datafile)
+            rollback_records(unsaved_records, datafile)
             rollback_parser_errors(datafile)
             bulk_create_errors(preparse_error, num_errors, flush=True)
             return errors
@@ -204,7 +192,7 @@ def parse_datafile_lines(datafile, program_type, section):
             field=None
         )
         # rollback(transaction)
-        rollback_records(datafile)
+        rollback_records(unsaved_records, datafile)
         rollback_parser_errors(datafile)
         preparse_error = {line_number: [err_obj]}
         bulk_create_errors(preparse_error, num_errors, flush=True)
@@ -215,7 +203,7 @@ def parse_datafile_lines(datafile, program_type, section):
     all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count, flush=True)
     if not all_created:
         # rollback(transaction)
-        rollback_records(datafile)
+        rollback_records(unsaved_records, datafile)
         bulk_create_errors(unsaved_parser_errors, num_errors, flush=True)
         return errors
 
