@@ -3,7 +3,6 @@
 from django_elasticsearch_dsl import Document
 from django_elasticsearch_dsl.registries import registry
 from ..models.ssp import SSP_M1, SSP_M2, SSP_M3
-from tdpservice.data_files.models import DataFile
 from .document_base import DocumentBase
 
 @registry.register_document
