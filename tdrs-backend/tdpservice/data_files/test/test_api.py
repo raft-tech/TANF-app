@@ -3,7 +3,7 @@ from unittest.mock import ANY, patch
 
 from rest_framework import status
 import pytest
-
+from django.core import mail
 from tdpservice.data_files.models import DataFile
 from tdpservice.email.email_enums import EmailType
 from tdpservice.users.models import AccountApprovalStatusChoices
@@ -118,7 +118,7 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         assert response.data['stt'] == data_file_data['stt']
         assert response.data['year'] == data_file_data['year']
 
-    def test_download_data_file_file(self, api_client, data_file_data, user):
+    def test_download_data_file_file_123123(self, api_client, data_file_data, user):
         """Test that the file is transmitted with out errors."""
         response = self.post_data_file_file(api_client, data_file_data)
         data_file_id = response.data['id']
@@ -247,16 +247,11 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         user.stt_id = data_file_data['stt']
         user.save()
 
-        with patch('tdpservice.email.email.automated_email.delay') as mock_automated_email:
-            response = self.post_data_file_file(api_client, data_file_data)
-            mock_automated_email.assert_called_once_with(
-                email_path=EmailType.DATA_SUBMITTED.value,
-                recipient_email=[user.username],
-                subject='Data Submitted for Active Case Data',
-                email_context=ANY,
-                text_message=ANY
-            )
-            assert response.status_code == status.HTTP_201_CREATED
+        response = self.post_data_file_file(api_client, data_file_data)
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].subject == 'Data Submitted for Active Case Data'
+        assert response.status_code == status.HTTP_201_CREATED
 
 
 class TestDataFileAPIAsInactiveUser(DataFileAPITestBase):
