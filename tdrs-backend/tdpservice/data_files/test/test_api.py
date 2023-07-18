@@ -118,7 +118,7 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         assert response.data['stt'] == data_file_data['stt']
         assert response.data['year'] == data_file_data['year']
 
-    def test_download_data_file_file_123123(self, api_client, data_file_data, user):
+    def test_download_data_file_file(self, api_client, data_file_data, user):
         """Test that the file is transmitted with out errors."""
         response = self.post_data_file_file(api_client, data_file_data)
         data_file_id = response.data['id']
