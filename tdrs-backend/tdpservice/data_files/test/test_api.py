@@ -1,11 +1,8 @@
 """Tests for DataFiles Application."""
-from unittest.mock import ANY, patch
-
 from rest_framework import status
 import pytest
 from django.core import mail
 from tdpservice.data_files.models import DataFile
-from tdpservice.email.email_enums import EmailType
 from tdpservice.users.models import AccountApprovalStatusChoices
 
 

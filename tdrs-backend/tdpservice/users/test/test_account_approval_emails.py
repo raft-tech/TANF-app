@@ -1,7 +1,6 @@
 """Module for testing the automated account emails."""
 
 import pytest
-import tdpservice
 from django.core import mail
 from tdpservice.users.models import User
 

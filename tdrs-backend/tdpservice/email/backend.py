@@ -1,10 +1,10 @@
-import smtplib, json
-from typing import Any
+"""An implementation of EmailBackend that uses the Sendgrid web api to send messages."""
+
 from django.core.mail.backends.base import BaseEmailBackend
 from django.conf import settings
 from django.core.mail.message import sanitize_address
 import sendgrid
-from sendgrid.helpers.mail import Mail, From, To, Subject, PlainTextContent, HtmlContent, SendGridException
+from sendgrid.helpers.mail import Mail, From, To, Subject, PlainTextContent, HtmlContent
 
 
 class SendgridEmailBackend(BaseEmailBackend):
@@ -15,10 +15,7 @@ class SendgridEmailBackend(BaseEmailBackend):
         self.connection = sendgrid.SendGridAPIClient(api_key=settings.SENDGRID_API_KEY)
 
     def send_messages(self, email_messages):
-        """
-        Send one or more EmailMessage objects and return the number of email
-        messages sent.
-        """
+        """Send one or more EmailMessage objects and return the number of email messages sent."""
         if not email_messages:
             return 0
 

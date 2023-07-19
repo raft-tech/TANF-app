@@ -1,7 +1,6 @@
 """Test functions for email helper."""
 import pytest
 from django.core import mail
-import tdpservice
 from tdpservice.email.helpers.account_deactivation_warning import send_deactivation_warning_email
 
 
@@ -12,4 +11,3 @@ def test_send_deactivation_warning_email(mocker, user):
 
     assert len(mail.outbox) == 1
     assert mail.outbox[0].subject == "Account Deactivation Warning: 10 days remaining"
-
