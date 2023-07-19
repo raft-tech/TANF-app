@@ -92,7 +92,7 @@ class Common(Configuration):
     FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'http://localhost:3000')
 
     # Email Server
-    EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+    EMAIL_BACKEND = "tdpservice.email.backend.SendgridEmailBackend"
     EMAIL_HOST_USER = "no-reply@tanfdata.acf.hhs.gov"
     SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', None)
     SENDGRID_SANDBOX_MODE_IN_DEBUG = False
