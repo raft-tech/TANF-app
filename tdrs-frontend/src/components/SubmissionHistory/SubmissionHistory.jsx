@@ -3,6 +3,12 @@ import axios from 'axios'
 import PropTypes from 'prop-types'
 import { useDispatch, useSelector } from 'react-redux'
 import { fileUploadSections } from '../../reducers/reports'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faCheckCircle,
+  faWarning,
+  faCancel,
+} from '@fortawesome/free-solid-svg-icons'
 import Paginator from '../Paginator'
 import { getAvailableFileList, download } from '../../actions/reports'
 import { useEffect } from 'react'
@@ -10,6 +16,31 @@ import { useState } from 'react'
 import { getParseErrors } from '../../actions/createXLSReport'
 
 const formatDate = (dateStr) => new Date(dateStr).toLocaleString()
+
+const SubmissionSummaryStatusIcon = ({ status }) => {
+  let icon = null
+  let color = null
+
+  switch (status) {
+    case 'Accepted':
+      icon = faCheckCircle
+      color = '#40bb45'
+      break
+    case 'Accepted with Errors':
+      icon = faWarning
+      color = '#ec4e11'
+      break
+    case 'Rejected':
+      icon = faCancel
+      color = '#bb0000'
+      break
+    default:
+      break
+  }
+  return (
+    <FontAwesomeIcon className="margin-right-1" icon={icon} color={color} />
+  )
+}
 
 const SubmissionHistoryRow = ({ file }) => {
   const dispatch = useDispatch()
@@ -42,8 +73,14 @@ const SubmissionHistoryRow = ({ file }) => {
         </button>
       </td>
       <td>
-        <span>{'{icon}'}</span>
-        {file.summary ? file.summary.status : 'N/A'}
+        {file.summary ? (
+          <>
+            <SubmissionSummaryStatusIcon status={file.summary.status} />
+            {file.summary.status}
+          </>
+        ) : (
+          'N/A'
+        )}
       </td>
       <td>
         {file.hasError > 0 ? (
