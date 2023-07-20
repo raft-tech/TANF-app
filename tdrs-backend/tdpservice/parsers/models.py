@@ -84,7 +84,7 @@ class DataFileSummary(models.Model):
         default=Status.PENDING,
     )
 
-    datafile = models.ForeignKey(DataFile, on_delete=models.CASCADE)
+    datafile = models.OneToOneField(DataFile, on_delete=models.CASCADE, related_name="summary")
 
     case_aggregates = models.JSONField(null=True, blank=False)
 
