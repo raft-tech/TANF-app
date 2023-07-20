@@ -42,6 +42,10 @@ const SubmissionHistoryRow = ({ file }) => {
         </button>
       </td>
       <td>
+        <span>{'{icon}'}</span>
+        {file.summary ? file.summary.status : 'N/A'}
+      </td>
+      <td>
         {file.hasError > 0 ? (
           <button className="section-download" onClick={returned_errors}>
             {file.year}-{file.quarter}-{file.section}.xlsx
@@ -78,6 +82,7 @@ const SectionSubmissionHistory = ({ section, label, files }) => {
                 <th>Submitted On</th>
                 <th>Submitted By</th>
                 <th>File Name</th>
+                <th>Acceptance Status</th>
                 <th>Error Reports (In development)</th>
               </tr>
             </thead>
