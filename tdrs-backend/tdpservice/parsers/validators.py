@@ -213,8 +213,8 @@ def isInLimits(LowerBound, UpperBound):
 def month_year_monthIsValid():
     """Validate that in a monthyear combination, the month is a valid month."""
     return make_validator(
-        lambda value: int(str(value)[4:]) in range(1, 13),
-        lambda value: f'{str(value)[4:]} is not a valid month.'
+        lambda value: int(str(value)[4:6]) in range(1, 13),
+        lambda value: f'{str(value)[4:6]} is not a valid month.'
     )
 
 

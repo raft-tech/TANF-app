@@ -133,6 +133,24 @@ def test_between_returns_invalid():
     assert error == '47 is not between 48 and 400.'
 
 
+def test_month_year_monthIsValid_returns_valid():
+    """Test `month_year_monthIsValid` gives a valid result."""
+    value = '20191027'
+    validator = validators.month_year_monthIsValid()
+    is_valid, error = validator(value)
+    assert is_valid is True
+    assert error is None
+
+
+def test_month_year_monthIsValid_returns_invalid():
+    """Test `month_year_monthIsValid` gives an invalid result."""
+    value = '20191327'
+    validator = validators.month_year_monthIsValid()
+    is_valid, error = validator(value)
+    assert is_valid is False
+    assert error == '13 is not a valid month.'
+
+
 def test_between_returns_invalid_for_string_value():
     """Test `between` gives an invalid result for strings."""
     value = '047'

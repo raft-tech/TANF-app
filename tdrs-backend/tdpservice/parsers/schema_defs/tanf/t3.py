@@ -113,15 +113,25 @@ child_one = RowSchema(
                   validators.isInLimits(0, 2)
               ]),
         Field(item="71", name='GENDER', type='number', startIndex=43, endIndex=44,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isInLimits(0, 9)
+              ]),
         Field(item="72A", name='RECEIVE_NONSSA_BENEFITS', type='string', startIndex=44, endIndex=45,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1, 2])
+              ]),
         Field(item="72B", name='RECEIVE_SSI', type='string', startIndex=45, endIndex=46,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([1, 2])
+              ]),
         Field(item="73", name='RELATIONSHIP_HOH', type='number', startIndex=46, endIndex=48,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.isInLimits(0, 10)
+              ]),
         Field(item="74", name='PARENT_MINOR_CHILD', type='number', startIndex=48, endIndex=49,
-              required=True, validators=[]),
+              required=True, validators=[
+                  validators.oneOf([0, 2, 3])
+              ]),
         Field(item="75", name='EDUCATION_LEVEL', type='number', startIndex=49, endIndex=51,
               required=True, validators=[
                   validators.or_validators(
@@ -134,9 +144,13 @@ child_one = RowSchema(
                   validators.oneOf([0, 1, 2, 9])
               ]),
         Field(item="77A", name='UNEARNED_SSI', type='string', startIndex=52, endIndex=56,
-              required=False, validators=[]),
+              required=False, validators=[
+                  validators.isLargerThanOrEqualTo(0)
+              ]),
         Field(item="77B", name='OTHER_UNEARNED_INCOME', type='string', startIndex=56, endIndex=60,
-              required=False, validators=[]),
+              required=False, validators=[
+                  validators.isLargerThanOrEqualTo(0)
+              ]),
     ],
 )
 
