@@ -11,8 +11,8 @@ def create_test_datafile(filename, stt_user, stt, section='Active Case Data'):
     """Create a test DataFile instance with the given file attached."""
     path = str(Path(__file__).parent.joinpath('test/data')) + f'/{filename}'
     datafile = DataFile.create_new_version({
-        'quarter': 'Q4',
-        'year': 2020,
+        'quarter': 'Q1',
+        'year': 2021,
         'section': section,
         'user': stt_user,
         'stt': stt
@@ -426,6 +426,17 @@ def get_schema(line, section, program_type):
     line_type = line[0:2]
     return get_schema_options(program_type, section, query='models', model_name=line_type)
 
+def fiscal_to_calendar(year, fiscal_quarter):
+    """Decrement the input quarter text by one."""
+    array = [1, 2, 3, 4]  # wrapping around an array
+    int_qtr = int(fiscal_quarter[1:])  # remove the 'Q', e.g., 'Q1' -> '1'
+    if int_qtr == 1:
+        year = year - 1
+
+    ind_qtr = array.index(int_qtr)  # get the index so we can easily wrap-around end of array
+    return year, "Q{}".format(array[ind_qtr - 1])  # return the previous quarter
+
+
 def transform_to_months(quarter):
     """Return a list of months in a quarter."""
     match quarter:
@@ -445,13 +456,14 @@ def month_to_int(month):
     return datetime.strptime(month, '%b').month
 
 
-def case_aggregates_by_month(df):
+def case_aggregates_by_month(df, dfs_status):
     """Return case aggregates by month."""
     section = str(df.section)  # section -> text
     program_type = get_prog_from_section(section)  # section -> program_type -> text
 
-    # from datafile quarter, generate short month names for each month in quarter ala 'Jan', 'Feb', 'Mar'
-    month_list = transform_to_months(df.quarter)
+    # from datafile year/quarter, generate short month names for each month in quarter ala 'Jan', 'Feb', 'Mar'
+    calendar_year, calendar_qtr = fiscal_to_calendar(df.year, df.quarter)
+    month_list = transform_to_months(calendar_qtr)
 
     short_section = get_text_from_df(df)['section']
     schema_models_dict = get_program_models(program_type, short_section)
@@ -463,20 +475,26 @@ def case_aggregates_by_month(df):
         rejected = 0
         accepted = 0
         month_int = month_to_int(month)
-        rpt_month_year = int(f"{df.year}{month_int}")
+        rpt_month_year = int(f"{calendar_year}{month_int}")
 
-        qset = set()
+        if dfs_status == "Rejected":
+            # we need to be careful here on examples of bad headers or empty files, since no month will be found
+            # but we can rely on the frontend submitted year-quarter to still generate the list of months
+            aggregate_data[month] = {"accepted": "N/A", "rejected": "N/A", "total": "N/A"}
+            continue
+
+        case_numbers = set()
         for schema_model in schema_models:
             if isinstance(schema_model, MultiRecordRowSchema):
                 schema_model = schema_model.schemas[0]
 
-            next = set(schema_model.model.objects.filter(datafile=df).filter(RPT_MONTH_YEAR=rpt_month_year)
-                       .distinct("CASE_NUMBER").values_list("CASE_NUMBER", flat=True))
-            qset = qset.union(next)
+            curr_case_numbers = set(schema_model.model.objects.filter(datafile=df).filter(RPT_MONTH_YEAR=rpt_month_year)
+                                    .distinct("CASE_NUMBER").values_list("CASE_NUMBER", flat=True))
+            case_numbers = case_numbers.union(curr_case_numbers)
 
-        total += len(qset)
-        rejected += ParserError.objects.filter(content_type=ContentType.objects.get_for_model(schema_model.model),
-                                               case_number__in=qset).count()
+        total += len(case_numbers)
+        rejected += ParserError.objects.filter(case_number__in=case_numbers).distinct('case_number').count()
+
         accepted = total - rejected
 
         aggregate_data[month] = {"accepted": accepted, "rejected": rejected, "total": total}
