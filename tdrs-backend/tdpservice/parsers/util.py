@@ -106,6 +106,34 @@ class Field:
                 return value
 
 
+class EncryptedField(Field):
+    def __init__(self, decryption_dict, item, name, type, startIndex, endIndex, required=True, validators=[]):
+        super().__init__(item, name, type, startIndex, endIndex, required, validators)
+        self.decryption_dict = decryption_dict
+        self.decrypt_table = str.maketrans(self.decryption_dict)
+
+    def _is_encrypted(self, value):
+        return len([x for x in value if x in self.decryption_dict]) > 0
+
+    def _decrypt(self, value):
+        if self._is_encrypted(value):
+            return value.translate(self.decrypt_table)
+        return value
+
+    def parse_value(self, line):
+        """Parse and decrypt the value for a field given a line, startIndex, endIndex, and field type."""
+        value = line[self.startIndex:self.endIndex]
+
+        if value_is_empty(value, self.endIndex-self.startIndex):
+            return None
+
+        match self.type:
+            case 'string':
+                return self._decrypt(value)
+            case _:
+                return None
+
+
 class RowSchema:
     """Maps the schema for data lines."""
 
