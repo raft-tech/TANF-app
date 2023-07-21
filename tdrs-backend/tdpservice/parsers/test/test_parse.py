@@ -31,7 +31,6 @@ def test_parse_small_correct_file(test_datafile, dfs):
     dfs.datafile = test_datafile
     dfs.save()
 
-    
     errors = parse.parse_datafile(test_datafile)
     dfs.status = dfs.get_status(errors)
     dfs.case_aggregates = util.case_aggregates_by_month(dfs.datafile, dfs.status)
@@ -68,8 +67,7 @@ def test_parse_section_mismatch(test_datafile, dfs):
     dfs.save()
 
     errors = parse.parse_datafile(test_datafile)
-
-    dfs.status = dfs.get_status(errors) 
+    dfs.status = dfs.get_status(errors)
     assert dfs.status == DataFileSummary.Status.REJECTED
     parser_errors = ParserError.objects.filter(file=test_datafile)
     dfs.case_aggregates = util.case_aggregates_by_month(dfs.datafile, dfs.status)
