@@ -116,7 +116,7 @@ class EncryptedField(Field):
 
     def _is_encrypted(self, value):
         """Determine if value is encrypted."""
-        return len([x for x in value if x in self.decryption_dict]) > 0
+        return len([x for x in value if x in self.decryption_dict]) == 9
 
     def _decrypt(self, value):
         """Decrypt value."""
