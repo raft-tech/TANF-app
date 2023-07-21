@@ -94,6 +94,8 @@ services:
     command: >
       bash -c "./wait_for_services.sh &&
                ./gunicorn_start.sh && celery -A tdpservice.settings worker -l info"
+    networks:
+      - external-net
     ports:
       - "5555:5555"
     depends_on:
