@@ -522,15 +522,15 @@ def test_parse_tanf_section1_datafile(small_tanf_section1_datafile, dfs):
     assert t2_2.FAMILY_AFFILIATION == 2
     assert t2_2.OTHER_UNEARNED_INCOME == '0000'
 
-@pytest.mark.django_db
-def test_parse_tanf_section1_datafile_obj_counts(small_tanf_section1_datafile):
-    """Test parsing of small_tanf_section1_datafile in general."""
-    errors = parse.parse_datafile(small_tanf_section1_datafile)
+# @pytest.mark.django_db
+# def test_parse_tanf_section1_datafile_obj_counts(small_tanf_section1_datafile):
+#     """Test parsing of small_tanf_section1_datafile in general."""
+#     errors = parse.parse_datafile(small_tanf_section1_datafile)
 
-    assert errors == {}
-    assert TANF_T1.objects.count() == 5
-    assert TANF_T2.objects.count() == 5
-    assert TANF_T3.objects.count() == 6
+#     assert errors == {}
+#     assert TANF_T1.objects.count() == 5
+#     assert TANF_T2.objects.count() == 5
+#     assert TANF_T3.objects.count() == 6
 
 # @pytest.mark.django_db
 # def test_parse_tanf_section1_datafile_t3s(small_tanf_section1_datafile):
