@@ -14,8 +14,8 @@ fi
 
 #
 echo "Applying database migrations"
-# python manage.py migrate
-# python manage.py populate_stts
+python manage.py migrate
+python manage.py populate_stts
 python manage.py collectstatic --noinput
 
 celery -A tdpservice.settings worker -c 1 &
