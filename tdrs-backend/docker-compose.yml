@@ -92,8 +92,9 @@ services:
     image: tdp
     build: .
     command: >
-      bash -c "./wait_for_services.sh &&
-               ./gunicorn_start.sh && celery -A tdpservice.settings worker -l info"
+      bash -c "./wait_for_services.sh && ./manage.py makemigrations &&
+      ./manage.py migrate &&  ./manage.py collectstatic --noinput &&
+      ./gunicorn_start.sh && celery -A tdpservice.settings worker -l info"
     ports:
       - "5555:5555"
     depends_on:

@@ -62,10 +62,6 @@
               "PATH=$PATH:/home/zap/.local/bin &&
                pip install wait-for-it &&
                wait-for-it --service http://web:8080 --timeout 180 -- echo \"Django is ready\""
-      - run:
-          name: run migrations and collect static files
-          command: cd tdrs-backend; docker-compose exec web bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py collectstatic --noinput"
-      - run:
           name: Remove existing cypress test users
           command: cd tdrs-backend; docker-compose exec web python manage.py delete_cypress_users -usernames new-cypress@teamraft.com cypress-admin@teamraft.com
       - run:
