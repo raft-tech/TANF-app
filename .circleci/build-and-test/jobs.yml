@@ -53,9 +53,6 @@
       - disable-npm-audit
       - install-nodejs-packages:
           app-dir: tdrs-frontend
-      #- run:
-      #    name: run migrations and collect static files
-      #    command: cd tdrs-backend; docker-compose exec web bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py collectstatic --noinput"
       - run:
           name: Wait for backend to become available
           command: cd tdrs-backend; docker-compose run --rm zaproxy bash -c \
