@@ -66,6 +66,9 @@
           name: Setup cypress test users
           command: cd tdrs-backend; docker-compose exec web python manage.py generate_cypress_users
       - run:
+          name: check if backend is running
+          command: curl -v http://web:8080
+      - run:
           name: Run Cypress e2e tests
           command: cd tdrs-frontend; npm run test:e2e-ci
       - store_artifacts:
