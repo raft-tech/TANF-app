@@ -1,7 +1,9 @@
 """Schema for SSP M1 record type."""
 
 
-from ...util import SchemaManager, RowSchema, EncryptedField, Field
+from ...util import SchemaManager
+from ...fields import EncryptedField, Field, ssp_ssn_decryption_func
+from ...row_schema import RowSchema
 from ... import validators
 from tdpservice.search_indexes.models.ssp import SSP_M3
 
@@ -22,9 +24,8 @@ first_part_schema = RowSchema(
               required=True, validators=[]),
         Field(item="61", name='DATE_OF_BIRTH', type='string', startIndex=20, endIndex=28,
               required=True, validators=[]),
-        EncryptedField(decryption_dict={"@": "1", "9": "2", "Z": "3", "P": "4", "0": "5", "#": "6", "Y": "7", "B": "8",
-                                        "W": "9", "T": "0"},
-                       item="62", name='SSN', type='string', startIndex=28, endIndex=37, required=True, validators=[]),
+        EncryptedField(decryption_func=ssp_ssn_decryption_func, item="62", name='SSN', type='string', startIndex=28,
+                       endIndex=37, required=True, validators=[]),
         Field(item="63A", name='RACE_HISPANIC', type='number', startIndex=37, endIndex=38,
               required=True, validators=[]),
         Field(item="63B", name='RACE_AMER_INDIAN', type='number', startIndex=38, endIndex=39,
@@ -76,9 +77,8 @@ second_part_schema = RowSchema(
               required=True, validators=[]),
         Field(item="61", name='DATE_OF_BIRTH', type='string', startIndex=61, endIndex=69,
               required=True, validators=[]),
-        EncryptedField(decryption_dict={"@": "1", "9": "2", "Z": "3", "P": "4", "0": "5", "#": "6", "Y": "7", "B": "8",
-                                        "W": "9", "T": "0"},
-                       item="62", name='SSN', type='string', startIndex=69, endIndex=78, required=True, validators=[]),
+        EncryptedField(decryption_func=ssp_ssn_decryption_func, item="62", name='SSN', type='string', startIndex=69,
+                       endIndex=78, required=True, validators=[]),
         Field(item="63A", name='RACE_HISPANIC', type='number', startIndex=78, endIndex=79,
               required=True, validators=[]),
         Field(item="63B", name='RACE_AMER_INDIAN', type='number', startIndex=79, endIndex=80,
