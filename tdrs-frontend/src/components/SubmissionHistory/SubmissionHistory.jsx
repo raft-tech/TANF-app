@@ -6,7 +6,7 @@ import { fileUploadSections } from '../../reducers/reports'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faCheckCircle,
-  faWarning,
+  faExclamationCircle,
   faCancel,
   faClock,
 } from '@fortawesome/free-solid-svg-icons'
@@ -32,7 +32,7 @@ const SubmissionSummaryStatusIcon = ({ status }) => {
       color = '#40bb45'
       break
     case 'Accepted with Errors':
-      icon = faWarning
+      icon = faExclamationCircle
       color = '#ec4e11'
       break
     case 'Rejected':
