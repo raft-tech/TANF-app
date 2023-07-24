@@ -7,7 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faCheckCircle,
   faExclamationCircle,
-  faCancel,
+  faXmarkCircle,
   faClock,
 } from '@fortawesome/free-solid-svg-icons'
 import Paginator from '../Paginator'
@@ -36,7 +36,7 @@ const SubmissionSummaryStatusIcon = ({ status }) => {
       color = '#ec4e11'
       break
     case 'Rejected':
-      icon = faCancel
+      icon = faXmarkCircle
       color = '#bb0000'
       break
     default:
