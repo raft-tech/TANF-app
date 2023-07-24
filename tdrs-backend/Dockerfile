@@ -31,7 +31,7 @@ RUN chown -R tdpuser /tdpapp && chmod u+x gunicorn_start.sh wait_for_services.sh
 #RUN ./manage.py migrate
 #RUN ./manage.py collectstatic --noinput
 
-CMD ["./gunicorn_start.sh"]
+#CMD ["./gunicorn_start.sh"]
 # if the container crashes/loops, we can shell into it by doing the following:
 # docker ps -a # to get the container id
 # docker commit <container id> debug/<new image name>
