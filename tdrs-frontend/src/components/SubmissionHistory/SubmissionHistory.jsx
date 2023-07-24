@@ -69,34 +69,100 @@ const SubmissionHistoryRow = ({ file }) => {
   }
 
   return (
-    <tr>
-      <td>{formatDate(file.createdAt)}</td>
-      <td>{file.submittedBy}</td>
-      <td>
-        <button className="section-download" onClick={downloadFile}>
-          {file.fileName}
-        </button>
-      </td>
-      <td>
+    <>
+      <tr>
+        <th scope="rowgroup" rowSpan={3}>
+          {formatDate(file.createdAt)}
+        </th>
+        <th scope="rowgroup" rowSpan={3}>
+          {file.submittedBy}
+        </th>
+        <th scope="rowgroup" rowSpan={3}>
+          <button className="section-download" onClick={downloadFile}>
+            {file.fileName}
+          </button>
+        </th>
+        <th scope="rowgroup" rowSpan={3}>
+          <span>
+            <SubmissionSummaryStatusIcon
+              status={file.summary ? file.summary.status : 'Pending'}
+            />
+          </span>
+          {file.summary && file.summary.status
+            ? file.summary.status
+            : 'Pending'}
+        </th>
         {file.summary ? (
           <>
-            <SubmissionSummaryStatusIcon status={file.summary.status} />
-            {file.summary && file.summary.status
-              ? file.summary.status
-              : 'Pending'}
+            <th scope="row">{Object.keys(file.summary.case_aggregates)[0]}</th>
+            <td>
+              {
+                file.summary.case_aggregates[
+                  Object.keys(file.summary.case_aggregates)[0]
+                ].accepted
+              }
+            </td>
+            <td>
+              {
+                file.summary.case_aggregates[
+                  Object.keys(file.summary.case_aggregates)[0]
+                ].rejected
+              }
+            </td>
+            <td>
+              {
+                file.summary.case_aggregates[
+                  Object.keys(file.summary.case_aggregates)[0]
+                ].total
+              }
+            </td>
           </>
         ) : (
-          'N/A'
+          <>
+            <th scope="row">N/A</th>
+            <td>N/A</td>
+            <td>N/A</td>
+            <td>N/A</td>
+          </>
         )}
-      </td>
-      <td>
-        {file.hasError > 0 ? (
-          <button className="section-download" onClick={returned_errors}>
-            {file.year}-{file.quarter}-{file.section}.xlsx
-          </button>
-        ) : null}
-      </td>
-    </tr>
+
+        <th scope="rowgroup" rowSpan={3}>
+          {file.hasError > 0 ? (
+            <button className="section-download" onClick={returned_errors}>
+              {file.year}-{file.quarter}-{file.section}.xlsx
+            </button>
+          ) : null}
+        </th>
+      </tr>
+
+      {file.summary ? (
+        Object.keys(file.summary.case_aggregates)
+          .slice(1)
+          .map((month) => (
+            <tr>
+              <th scope="row">{month}</th>
+              <td>{file.summary.case_aggregates[month].accepted}</td>
+              <td>{file.summary.case_aggregates[month].rejected}</td>
+              <td>{file.summary.case_aggregates[month].total}</td>
+            </tr>
+          ))
+      ) : (
+        <>
+          <tr>
+            <th scope="row">N/A</th>
+            <td>N/A</td>
+            <td>N/A</td>
+            <td>N/A</td>
+          </tr>
+          <tr>
+            <th scope="row">N/A</th>
+            <td>N/A</td>
+            <td>N/A</td>
+            <td>N/A</td>
+          </tr>
+        </>
+      )}
+    </>
   )
 }
 
@@ -114,18 +180,44 @@ const SectionSubmissionHistory = ({ section, label, files }) => {
   const pageEnd = Math.min(files.length, pageStart + pageSize)
 
   return (
-    <div className="submission-history-section">
+    <div
+      className="submission-history-section usa-table-container--scrollable"
+      style={{ maxWidth: '1400px', margin: '100px' }}
+      tabIndex={0}
+    >
       <table className="usa-table usa-table--striped">
         <caption>{`Section ${section} - ${label}`}</caption>
         {files && files.length > 0 ? (
           <>
             <thead>
               <tr>
-                <th>Submitted On</th>
-                <th>Submitted By</th>
-                <th>File Name</th>
-                <th>Acceptance Status</th>
-                <th>Error Reports (In development)</th>
+                <th scope="col" rowSpan={2}>
+                  Submitted On
+                </th>
+                <th scope="col" rowSpan={2}>
+                  Submitted By
+                </th>
+                <th scope="col" rowSpan={2}>
+                  File Name
+                </th>
+                <th scope="col" rowSpan={2}>
+                  Acceptance Status
+                </th>
+                <th scope="col" rowSpan={2}>
+                  Month
+                </th>
+                <th scope="col" rowSpan={2}>
+                  Accepted Cases
+                </th>
+                <th scope="col" rowSpan={2}>
+                  Rejected Cases
+                </th>
+                <th scope="col" rowSpan={2}>
+                  Total Cases
+                </th>
+                <th scope="col" rowSpan={2}>
+                  Error Reports (In development)
+                </th>
               </tr>
             </thead>
             <tbody>
