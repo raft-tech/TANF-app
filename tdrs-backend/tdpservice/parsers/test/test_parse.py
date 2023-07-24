@@ -599,7 +599,7 @@ def small_tanf_section2_file(stt_user, stt):
 @pytest.mark.django_db()
 def test_parse_small_tanf_section2_file(small_tanf_section2_file):
     """Test parsing a bad TANF Section 1 submission where a row is missing required data."""
-    errors = parse.parse_datafile(small_tanf_section2_file)
+    parse.parse_datafile(small_tanf_section2_file)
 
     assert TANF_T4.objects.all().count() == 1
     assert TANF_T5.objects.all().count() == 1
@@ -625,7 +625,7 @@ def tanf_section2_file(stt_user, stt):
 @pytest.mark.django_db()
 def test_parse_tanf_section2_file(tanf_section2_file):
     """Test parsing a bad TANF Section 1 submission where a row is missing required data."""
-    errors = parse.parse_datafile(tanf_section2_file)
+    parse.parse_datafile(tanf_section2_file)
 
     assert TANF_T4.objects.all().count() == 223
     assert TANF_T5.objects.all().count() == 605
@@ -637,4 +637,3 @@ def test_parse_tanf_section2_file(tanf_section2_file):
     assert err.error_message == "REC_OASDI_INSURANCE is required but a value was not provided."
     assert err.content_type.model == "tanf_t5"
     assert err.object_id is not None
-
