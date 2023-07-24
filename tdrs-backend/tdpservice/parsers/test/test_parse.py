@@ -590,3 +590,18 @@ def test_parse_bad_ssp_s1_missing_required(bad_ssp_s1__row_missing_required_fiel
         5: [row_5_error],
         'trailer': [trailer_error],
     }
+
+@pytest.fixture
+def tanf_section2_file(stt_user, stt):
+    """Fixture for ssp_section1_datafile."""
+    return create_test_datafile('ADS.E2J.FTP2.TS06', stt_user, stt, 'Closed Case Data')
+
+@pytest.mark.django_db()
+def test_parse_tanf_section2_file(tanf_section2_file):
+    """Test parsing a bad TANF Section 1 submission where a row is missing required data."""
+    errors = parse.parse_datafile(tanf_section2_file)
+
+    parser_errors = ParserError.objects.filter(file=tanf_section2_file)
+    assert parser_errors.count() == 5
+
+    assert False
