@@ -95,6 +95,7 @@ services:
       bash -c "./wait_for_services.sh &&
       ./manage.py makemigrations &&
       ./manage.py migrate &&
+      ./manage.py python manage.py populate_stts &&
       ./gunicorn_start.sh && celery -A tdpservice.settings worker -l info"
     ports:
       - "5555:5555"
