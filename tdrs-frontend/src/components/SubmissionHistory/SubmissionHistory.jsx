@@ -8,6 +8,7 @@ import {
   faCheckCircle,
   faWarning,
   faCancel,
+  faClock,
 } from '@fortawesome/free-solid-svg-icons'
 import Paginator from '../Paginator'
 import { getAvailableFileList, download } from '../../actions/reports'
@@ -22,6 +23,10 @@ const SubmissionSummaryStatusIcon = ({ status }) => {
   let color = null
 
   switch (status) {
+    case 'Pending':
+      icon = faClock
+      color = '#005EA2'
+      break
     case 'Accepted':
       icon = faCheckCircle
       color = '#40bb45'
@@ -76,7 +81,9 @@ const SubmissionHistoryRow = ({ file }) => {
         {file.summary ? (
           <>
             <SubmissionSummaryStatusIcon status={file.summary.status} />
-            {file.summary.status}
+            {file.summary && file.summary.status
+              ? file.summary.status
+              : 'Pending'}
           </>
         ) : (
           'N/A'
@@ -87,9 +94,7 @@ const SubmissionHistoryRow = ({ file }) => {
           <button className="section-download" onClick={returned_errors}>
             {file.year}-{file.quarter}-{file.section}.xlsx
           </button>
-        ) : (
-          'Currently Unavailable'
-        )}
+        ) : null}
       </td>
     </tr>
   )
