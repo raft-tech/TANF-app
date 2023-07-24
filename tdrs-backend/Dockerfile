@@ -27,9 +27,9 @@ WORKDIR /tdpapp/
 RUN groupadd -g ${gid} ${group} && useradd -u ${uid} -g ${group} -s /bin/sh ${user}
 
 RUN chown -R tdpuser /tdpapp && chmod u+x gunicorn_start.sh wait_for_services.sh
-#RUN ./manage.py makemigrations
-#RUN ./manage.py migrate
-#RUN ./manage.py collectstatic --noinput
+RUN ./manage.py makemigrations
+RUN ./manage.py migrate
+RUN ./manage.py collectstatic --noinput
 
 #CMD ["./gunicorn_start.sh"]
 # if the container crashes/loops, we can shell into it by doing the following:
