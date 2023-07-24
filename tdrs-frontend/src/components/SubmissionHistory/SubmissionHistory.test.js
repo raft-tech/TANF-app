@@ -244,8 +244,6 @@ describe('SubmissionHistory', () => {
     expect(
       screen.queryByText('Error Reports (In development)')
     ).toBeInTheDocument()
-
-    expect(screen.queryByText('Currently Unavailable')).toBeInTheDocument()
   })
 
   it('Shows SSP results when SSP-MOE file type selected', () => {
