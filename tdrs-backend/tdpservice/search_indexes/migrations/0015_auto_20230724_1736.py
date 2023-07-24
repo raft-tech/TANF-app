@@ -97,6 +97,11 @@ class Migration(migrations.Migration):
         ),
         migrations.RenameField(
             model_name='tanf_t5',
+            old_name='countable_month_state_tribe',
+            new_name='COUNTABLE_MONTHS_STATE_TRIBE',
+        ),
+        migrations.RenameField(
+            model_name='tanf_t5',
             old_name='date_of_birth',
             new_name='DATE_OF_BIRTH',
         ),
