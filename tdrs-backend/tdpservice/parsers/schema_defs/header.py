@@ -1,7 +1,8 @@
 """Schema for HEADER row of all submission types."""
 
 
-from ..util import RowSchema, Field
+from ..fields import Field
+from ..row_schema import RowSchema
 from .. import validators
 
 
