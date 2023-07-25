@@ -243,7 +243,7 @@ def test_can_create_and_index_tanf_t4_submission(test_datafile):
 
     search = documents.tanf.TANF_T4DataSubmissionDocument.search().query(
         'match',
-        record=record_num
+        RecordType=record_num
     )
     response = search.execute()
 
@@ -293,7 +293,7 @@ def test_can_create_and_index_tanf_t5_submission(test_datafile):
 
     search = documents.tanf.TANF_T5DataSubmissionDocument.search().query(
         'match',
-        record=record_num
+        RecordType=record_num
     )
     response = search.execute()
 
