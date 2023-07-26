@@ -168,7 +168,7 @@ def test_parse_bad_file_missing_header(bad_file_missing_header):
     assert err.content_type is None
     assert err.object_id is None
     assert errors == {
-        'header': list(parser_errors)
+        'header': [parser_errors[1], parser_errors[0]]
     }
 
 
