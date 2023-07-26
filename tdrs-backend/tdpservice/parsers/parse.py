@@ -171,6 +171,7 @@ def parse_datafile_lines(datafile, program_type, section):
             if not record_is_valid:
                 line_errors = errors.get(line_number, {})
                 line_errors.update({record_number: record_errors})
+                errors.update({line_number: record_errors})
                 unsaved_parser_errors.update({line_number: record_errors})
                 num_errors += len(record_errors)
             if record:
