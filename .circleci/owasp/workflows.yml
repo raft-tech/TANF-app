@@ -13,7 +13,7 @@
           filters:
             branches:
               only:
-                - develop
+                - George-Hudson-update-Zap-version
       - nightly-owasp-scan:
           target_env: staging
           filters:
