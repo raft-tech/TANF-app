@@ -31,7 +31,7 @@ m2 = SchemaManager(
                     required=True, validators=[]),
               EncryptedField(decryption_func=ssp_ssn_decryption_func, item="29", name='SSN', type='string',
                              startIndex=29, endIndex=38, required=True, validators=[]),
-              Field(item="30A", name='RACE_HISPANIC', type='number', startIndex=38, endIndex=39,required=True,
+              Field(item="30A", name='RACE_HISPANIC', type='number', startIndex=38, endIndex=39, required=True,
                     validators=[]),
               Field(item="30B", name='RACE_AMER_INDIAN', type='number', startIndex=39, endIndex=40,
                     required=True, validators=[]),
@@ -148,7 +148,7 @@ m2 = SchemaManager(
               Field(item="59D", name='UNEARNED_WORKERS_COMP', type='number', startIndex=142, endIndex=146,
                     required=True, validators=[]),
               Field(item="59E", name='OTHER_UNEARNED_INCOME', type='number', startIndex=146, endIndex=150,
-              required=True, validators=[]),
+                    required=True, validators=[]),
           ],
         )
       ]
