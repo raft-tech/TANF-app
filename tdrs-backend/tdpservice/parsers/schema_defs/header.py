@@ -42,7 +42,7 @@ header = RowSchema(
             validators.oneOf(['1', '2'])
         ]),
         Field(item="9", name='encryption', type='string', startIndex=21, endIndex=22, required=False, validators=[
-            validators.oneOf([' ', 'E'])
+            validators.matches('E')
         ]),
         Field(item="10", name='update', type='string', startIndex=22, endIndex=23, required=True, validators=[
             validators.oneOf(['N', 'D', 'U'])
