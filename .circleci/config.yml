@@ -79,6 +79,7 @@ workflows:
           filters:
             branches:
               only:
+                - George-Hudson-update-Zap-version
                 - develop
                 - main
                 - master
