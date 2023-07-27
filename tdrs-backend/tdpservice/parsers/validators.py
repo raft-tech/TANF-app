@@ -4,8 +4,6 @@ from .util import generate_parser_error
 from .models import ParserErrorCategoryChoices
 from tdpservice.data_files.models import DataFile
 
-import datetime
-
 # higher order validator func
 
 def make_validator(validator_func, error_func):
@@ -151,6 +149,7 @@ def isBlank():
     )
 
 def isInStringRange(lower, upper, zfill=1):
+    """Validate that string value is in a specific range."""
     return make_validator(
         lambda value: value in set([str(i).zfill(zfill) for i in range(lower, upper + 1)]),
         lambda value: f'{value} is not in range [{lower}, {upper}].'
@@ -260,10 +259,10 @@ def validate__FAM_AFF__HOH__FEDTIME():
             getattr(instance, 'FAMILY_AFFILIATION')
         RELATIONSHIP_HOH = instance['RELATIONSHIP_HOH'] if type(instance) is dict else \
             getattr(instance, 'RELATIONSHIP_HOH')
-        COUNTABLE_MONTH_FED_TIME = instance['COUNTABLE_MONTH_FED_TIME'] if type(instance) is dict else getattr(instance,
-                                                                                             'COUNTABLE_MONTH_FED_TIME')
-        if FAMILY_AFFILIATION == 1 and ((RELATIONSHIP_HOH == 1 or RELATIONSHIP_HOH == 2) and
-                                        int(COUNTABLE_MONTH_FED_TIME) >= 1):
+        COUNTABLE_MONTH_FED_TIME = instance['COUNTABLE_MONTH_FED_TIME'] if type(instance) is dict else \
+            getattr(instance, 'COUNTABLE_MONTH_FED_TIME')
+        if FAMILY_AFFILIATION == 1 and ((RELATIONSHIP_HOH == 1 or RELATIONSHIP_HOH == 2)
+                                        and int(COUNTABLE_MONTH_FED_TIME) >= 1):
             return (False, "If FAMILY_AFFILIATION == 1 and RELATIONSHIP_HOH == 1 or 2, "
                     + "then COUNTABLE_MONTH_FED_TIME >= 001.")
         return (True, None)
