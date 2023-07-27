@@ -631,9 +631,11 @@ def test_parse_tanf_section2_file(tanf_section2_file):
     assert TANF_T5.objects.all().count() == 605
 
     parser_errors = ParserError.objects.filter(file=tanf_section2_file)
-    assert parser_errors.count() == 2681
+    assert parser_errors.count() == 3555
+
     err = parser_errors.first()
-    assert err.error_type == ParserErrorCategoryChoices.FIELD_VALUE
-    assert err.error_message == "REC_OASDI_INSURANCE is required but a value was not provided."
+    assert err.error_type == ParserErrorCategoryChoices.VALUE_CONSISTENCY
+    msg = "If FAMILY_AFFILIATION == 1 and RELATIONSHIP_HOH == 1 or 2, then COUNTABLE_MONTH_FED_TIME >= 001."
+    assert err.error_message == msg
     assert err.content_type.model == "tanf_t5"
     assert err.object_id is not None

@@ -4,6 +4,8 @@ from .util import generate_parser_error
 from .models import ParserErrorCategoryChoices
 from tdpservice.data_files.models import DataFile
 
+import datetime
+
 # higher order validator func
 
 def make_validator(validator_func, error_func):
@@ -213,7 +215,6 @@ def isInLimits(LowerBound, UpperBound):
         lambda value: f'{value} is not larger and equal to {LowerBound} and smaller and equal to {UpperBound}.'
     )
 
-
 # custom validators
 
 def month_year_monthIsValid():
@@ -249,6 +250,23 @@ def validate__FAM_AFF__SSN():
                 return (True, None)
         else:
             return (True, None)
+    return lambda instance: validate(instance)
+
+def validate__FAM_AFF__HOH__FEDTIME():
+    """If item 14 == 1 and item 21 == 1 or 2, then item 26 >= 001."""
+    # value is instance
+    def validate(instance):
+        FAMILY_AFFILIATION = instance['FAMILY_AFFILIATION'] if type(instance) is dict else \
+            getattr(instance, 'FAMILY_AFFILIATION')
+        RELATIONSHIP_HOH = instance['RELATIONSHIP_HOH'] if type(instance) is dict else \
+            getattr(instance, 'RELATIONSHIP_HOH')
+        COUNTABLE_MONTH_FED_TIME = instance['COUNTABLE_MONTH_FED_TIME'] if type(instance) is dict else getattr(instance,
+                                                                                             'COUNTABLE_MONTH_FED_TIME')
+        if FAMILY_AFFILIATION == 1 and ((RELATIONSHIP_HOH == 1 or RELATIONSHIP_HOH == 2) and
+                                        int(COUNTABLE_MONTH_FED_TIME) >= 1):
+            return (False, "If FAMILY_AFFILIATION == 1 and RELATIONSHIP_HOH == 1 or 2, "
+                    + "then COUNTABLE_MONTH_FED_TIME >= 001.")
+        return (True, None)
     return lambda instance: validate(instance)
 
 def validate_single_header_trailer(datafile):
