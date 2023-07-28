@@ -51,7 +51,7 @@ t5 = SchemaManager(
                   ),
               validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 2),
-                  result_field='PARENT_WITH_MINOR_CHILD', result_function=validators.oneOf(["1", "2", "3"])
+                  result_field='PARENT_MINOR_CHILD', result_function=validators.oneOf(["1", "2", "3"])
                   ),
               validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
@@ -118,7 +118,7 @@ t5 = SchemaManager(
                     required=True, validators=[validators.oneOf(["0", "1", "2", "3", "4", "5"])]),
               Field(item="21", name='RELATIONSHIP_HOH', type='number', startIndex=50, endIndex=52,
                     required=True, validators=[validators.isInLimits(1, 10)]),
-              Field(item="22", name='PARENT_WITH_MINOR_CHILD', type='string', startIndex=52, endIndex=53,
+              Field(item="22", name='PARENT_MINOR_CHILD', type='string', startIndex=52, endIndex=53,
                     required=True, validators=[validators.oneOf(["0", "1", "2"])]),
               Field(item="23", name='NEEDS_PREGNANT_WOMAN', type='string', startIndex=53, endIndex=54,
                     required=True, validators=[validators.oneOf(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])]),
