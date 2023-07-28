@@ -1,9 +1,9 @@
 """Test the methods of RowSchema to ensure parsing and validation work in all individual cases."""
 
 import pytest
-from ..fields import Field
+from ..fields import Field, value_is_empty
 from ..row_schema import RowSchema
-from ..util import SchemaManager, value_is_empty
+from ..util import SchemaManager
 
 
 def passing_validator():

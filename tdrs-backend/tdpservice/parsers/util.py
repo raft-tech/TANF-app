@@ -3,7 +3,7 @@ from .models import ParserError
 from django.contrib.contenttypes.models import ContentType
 from tdpservice.data_files.models import DataFile
 from pathlib import Path
-
+from .fields import EncryptedField
 
 def create_test_datafile(filename, stt_user, stt, section='Active Case Data'):
     """Create a test DataFile instance with the given file attached."""
@@ -20,16 +20,6 @@ def create_test_datafile(filename, stt_user, stt, section='Active Case Data'):
         datafile.file.save(filename, file)
 
     return datafile
-
-
-def value_is_empty(value, length):
-    """Handle 'empty' values as field inputs."""
-    empty_values = [
-        ' '*length,  # '     '
-        '#'*length,  # '#####'
-    ]
-
-    return value is None or value in empty_values
 
 
 def generate_parser_error(datafile, line_number, schema, error_category, error_message, record=None, field=None):
@@ -83,3 +73,16 @@ class SchemaManager:
             records.append((record, is_valid, errors))
 
         return records
+    
+    def update_encrypted_fields(self, is_encrypted):
+        """Update whether schema fields are encrypted or not."""
+        for schema in self.schemas:
+            for field in schema.fields:
+                if type(field) == EncryptedField:
+                    field.is_encrypted = is_encrypted
+
+def contains_encrypted_indicator(line, encryption_field):
+    """Determine if line contains encryption indicator."""
+    if encryption_field is not None:
+        return encryption_field.parse_value(line) == "E"
+    return False
