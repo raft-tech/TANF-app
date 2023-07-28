@@ -150,8 +150,8 @@ def isBlank():
 
 def isInStringRange(lower, upper, zfill=1):
     """Validate that string value is in a specific range."""
-    return make_validator(
-        lambda value: value in set([str(i).zfill(zfill) for i in range(lower, upper + 1)]),
+    return make_validator( #value in set([str(i).zfill(zfill) for i in range(lower, upper + 1)])
+        lambda value: int(value) >= lower and int(value) <= upper,
         lambda value: f'{value} is not in range [{lower}, {upper}].'
     )
 
