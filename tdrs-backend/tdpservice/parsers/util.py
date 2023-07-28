@@ -73,7 +73,7 @@ class SchemaManager:
             records.append((record, is_valid, errors))
 
         return records
-    
+
     def update_encrypted_fields(self, is_encrypted):
         """Update whether schema fields are encrypted or not."""
         for schema in self.schemas:

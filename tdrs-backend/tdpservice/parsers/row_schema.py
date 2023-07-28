@@ -158,7 +158,7 @@ class RowSchema:
                 )
 
         return is_valid, errors
-    
+
     def get_field_by_name(self, name):
         """Get field by it's name."""
         for field in self.fields:
