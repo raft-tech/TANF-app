@@ -57,3 +57,12 @@ Then('{string} sees the request still submitted', (username) => {
   cy.visit('/')
   cy.contains('Request Submitted').should('exist')
 })
+
+Then('{string} can upload a file', (username) => {
+  cy.get('button').contains('Upload').should('exist').click()
+  cy.get('input[type="file"]').attachFile('test.csv')
+  cy.get('button').contains('Upload').should('exist').click()
+  cy.wait(2000).then(() => {
+  cy.contains('Upload Successful').should('exist')
+  })
+})
