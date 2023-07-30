@@ -57,7 +57,7 @@ update_frontend()
     cp nginx/cloud.gov/ip_whitelist_ipv6.conf deployment/ip_whitelist_ipv6.conf
     cp nginx/mime.types deployment/mime.types
     cp nginx/src/503.html deployment/public/503_.html
-    cp -r nginx/src/static/ deployment/public/static/
+    cp -r nginx/src/static/ deployment/public/
 
     cp manifest.buildpack.yml deployment/manifest.buildpack.yml
     cd deployment || exit
