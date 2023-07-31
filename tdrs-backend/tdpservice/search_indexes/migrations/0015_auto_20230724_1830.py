@@ -315,32 +315,32 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='tanf_t5',
             name='RACE_AMER_INDIAN',
-            field=models.CharField(max_length=1, null=True),
+            field=models.IntegerField(null=True),
         ),
         migrations.AddField(
             model_name='tanf_t5',
             name='RACE_ASIAN',
-            field=models.CharField(max_length=1, null=True),
+            field=models.IntegerField(null=True),
         ),
         migrations.AddField(
             model_name='tanf_t5',
             name='RACE_BLACK',
-            field=models.CharField(max_length=1, null=True),
+            field=models.IntegerField(null=True),
         ),
         migrations.AddField(
             model_name='tanf_t5',
             name='RACE_HAWAIIAN',
-            field=models.CharField(max_length=1, null=True),
+            field=models.IntegerField(null=True),
         ),
         migrations.AddField(
             model_name='tanf_t5',
             name='RACE_HISPANIC',
-            field=models.CharField(max_length=1, null=True),
+            field=models.IntegerField(null=True),
         ),
         migrations.AddField(
             model_name='tanf_t5',
             name='RACE_WHITE',
-            field=models.CharField(max_length=1, null=True),
+            field=models.IntegerField(null=True),
         ),
         migrations.AddField(
             model_name='tanf_t5',
