@@ -224,6 +224,11 @@ def month_year_monthIsValid():
         lambda value: f'{str(value)[4:6]} is not a valid month.'
     )
 
+def yearIsLargerThan(min_age):
+    return make_validator(
+        lambda value: int(str(value)[:4]) > min_age,
+        lambda value: f'{str(value)[:4]} is not larger than {min_age}.'
+    )
 
 def month_year_yearIsLargerThan(year):
     """Validate that in a monthyear combination, the year is larger than the given year."""

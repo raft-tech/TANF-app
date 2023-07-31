@@ -27,6 +27,7 @@ def value_is_empty(value, length):
     empty_values = [
         ' '*length,  # '     '
         '#'*length,  # '#####'
+        '_'*length,  # '_____'
     ]
 
     return value is None or value in empty_values

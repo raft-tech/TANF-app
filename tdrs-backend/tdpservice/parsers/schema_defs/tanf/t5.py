@@ -18,7 +18,10 @@ t5 = SchemaManager(
           postparsing_validators=[
               validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.notMatches(1),
-                  result_field='SSN', result_function=validators.isNumber()
+                  result_field='SSN', result_function=validators.notOneOf(("000000000", "111111111", "222222222",
+                                                                           "333333333", "444444444", "555555555",
+                                                                           "666666666", "777777777", "888888888",
+                                                                           "999999999"))
                   ),
               validators.validate__FAM_AFF__SSN(),
               validators.if_then_validator(
@@ -66,7 +69,7 @@ t5 = SchemaManager(
                   ),
               validators.validate__FAM_AFF__HOH__FEDTIME(),
               validators.if_then_validator(
-                  condition_field='DATE_OF_BIRTH', condition_function=validators.month_year_yearIsLargerThan(19),
+                  condition_field='DATE_OF_BIRTH', condition_function=validators.yearIsLargerThan(18),
                   result_field='REC_OASDI_INSURANCE', result_function=validators.isInLimits(1, 2)
                   ),
               validators.if_then_validator(
@@ -82,7 +85,6 @@ t5 = SchemaManager(
                                                validators.month_year_monthIsValid()]),
               Field(item="6", name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
                     required=True, validators=[validators.isAlphaNumeric(),
-                                               validators.notMatches('_'*11),
                                                validators.notEmpty()]),
               Field(item="14", name='FAMILY_AFFILIATION', type='number', startIndex=19, endIndex=20,
                     required=True, validators=[validators.isInLimits(1, 5)]),
