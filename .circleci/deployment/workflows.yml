@@ -60,7 +60,7 @@
             branches:
               only:
                 - develop
-      - make_erd:
+      - make_erd: # from ../util folder
           filters:
             branches:
               only:
@@ -118,7 +118,7 @@
             branches:
               only:
                 - master
-      - make_erd:
+      - make_erd: # from ../util folder
           filters:
             branches:
               only:
