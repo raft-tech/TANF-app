@@ -47,6 +47,21 @@ const SubmissionSummaryStatusIcon = ({ status }) => {
   )
 }
 
+const CaseAggregatesRow = ({ data }) =>
+  data ? (
+    <>
+      <th scope="row">{data.month}</th>
+      <td>{data.accepted_without_errors}</td>
+      <td>{data.accepted_with_errors}</td>
+    </>
+  ) : (
+    <>
+      <th scope="row">-</th>
+      <td>N/A</td>
+      <td>N/A</td>
+    </>
+  )
+
 const SubmissionHistoryRow = ({ file }) => {
   const dispatch = useDispatch()
 
@@ -82,6 +97,24 @@ const SubmissionHistoryRow = ({ file }) => {
             {file.fileName}
           </button>
         </th>
+        <CaseAggregatesRow
+          data={
+            file.summary &&
+            file.summary.case_aggregates &&
+            file.summary.case_aggregates.months
+              ? file.summary.case_aggregates.months[0]
+              : null
+          }
+        />
+
+        <th scope="rowgroup" rowSpan={3}>
+          {file.summary &&
+          file.summary.case_aggregates &&
+          file.summary.case_aggregates.months
+            ? file.summary.case_aggregates.rejected
+            : 'N/A'}
+        </th>
+
         <th scope="rowgroup" rowSpan={3}>
           <span>
             <SubmissionSummaryStatusIcon
@@ -92,39 +125,6 @@ const SubmissionHistoryRow = ({ file }) => {
             ? file.summary.status
             : 'Pending'}
         </th>
-        {file.summary ? (
-          <>
-            <th scope="row">{Object.keys(file.summary.case_aggregates)[0]}</th>
-            <td>
-              {
-                file.summary.case_aggregates[
-                  Object.keys(file.summary.case_aggregates)[0]
-                ].accepted
-              }
-            </td>
-            <td>
-              {
-                file.summary.case_aggregates[
-                  Object.keys(file.summary.case_aggregates)[0]
-                ].rejected
-              }
-            </td>
-            <td>
-              {
-                file.summary.case_aggregates[
-                  Object.keys(file.summary.case_aggregates)[0]
-                ].total
-              }
-            </td>
-          </>
-        ) : (
-          <>
-            <th scope="row">N/A</th>
-            <td>N/A</td>
-            <td>N/A</td>
-            <td>N/A</td>
-          </>
-        )}
 
         <th scope="rowgroup" rowSpan={3}>
           {file.hasError > 0 ? (
@@ -135,33 +135,28 @@ const SubmissionHistoryRow = ({ file }) => {
         </th>
       </tr>
 
-      {file.summary ? (
-        Object.keys(file.summary.case_aggregates)
-          .slice(1)
-          .map((month) => (
-            <tr>
-              <th scope="row">{month}</th>
-              <td>{file.summary.case_aggregates[month].accepted}</td>
-              <td>{file.summary.case_aggregates[month].rejected}</td>
-              <td>{file.summary.case_aggregates[month].total}</td>
-            </tr>
-          ))
-      ) : (
-        <>
-          <tr>
-            <th scope="row">N/A</th>
-            <td>N/A</td>
-            <td>N/A</td>
-            <td>N/A</td>
-          </tr>
-          <tr>
-            <th scope="row">N/A</th>
-            <td>N/A</td>
-            <td>N/A</td>
-            <td>N/A</td>
-          </tr>
-        </>
-      )}
+      <tr>
+        <CaseAggregatesRow
+          data={
+            file.summary &&
+            file.summary.case_aggregates &&
+            file.summary.case_aggregates.months
+              ? file.summary.case_aggregates.months[1]
+              : null
+          }
+        />
+      </tr>
+      <tr>
+        <CaseAggregatesRow
+          data={
+            file.summary &&
+            file.summary.case_aggregates &&
+            file.summary.case_aggregates.months
+              ? file.summary.case_aggregates.months[2]
+              : null
+          }
+        />
+      </tr>
     </>
   )
 }
@@ -201,19 +196,19 @@ const SectionSubmissionHistory = ({ section, label, files }) => {
                   File Name
                 </th>
                 <th scope="col" rowSpan={2}>
-                  Acceptance Status
-                </th>
-                <th scope="col" rowSpan={2}>
                   Month
                 </th>
                 <th scope="col" rowSpan={2}>
-                  Accepted Cases
+                  Cases Accepted without Errors
                 </th>
                 <th scope="col" rowSpan={2}>
-                  Rejected Cases
+                  Cases Accepted with Errors
                 </th>
                 <th scope="col" rowSpan={2}>
-                  Total Cases
+                  Rejected Rows
+                </th>
+                <th scope="col" rowSpan={2}>
+                  Acceptance Status
                 </th>
                 <th scope="col" rowSpan={2}>
                   Error Reports (In development)
