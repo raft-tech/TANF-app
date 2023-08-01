@@ -116,8 +116,10 @@ t2 = RowSchema(
                   validators.isLargerThan(0),
               ]),
         Field(item="33", name='SSN', type='string', startIndex=29, endIndex=38,
-              required=True, validators=[
-                  validators.isNumber(),
+              required=True, validators=[validators.notOneOf(("000000000", "111111111", "222222222",
+                                                              "333333333", "444444444", "555555555",
+                                                              "666666666", "777777777", "888888888",
+                                                              "999999999")),
               ]),
         Field(item="34A", name='RACE_HISPANIC', type='number', startIndex=38, endIndex=39,
               required=True, validators=[
@@ -174,9 +176,9 @@ t2 = RowSchema(
               required=True, validators=[
                   validators.isInLimits(0, 5),
               ]),
-        Field(item="38", name='RELATIONSHIP_HOH', type='number', startIndex=51, endIndex=53,
+        Field(item="38", name='RELATIONSHIP_HOH', type='string', startIndex=51, endIndex=53,
               required=True, validators=[
-                  validators.isInLimits(1, 10),
+                  validators.isInStringRange(1, 10),
               ]),
         Field(item="39", name='PARENT_WITH_MINOR_CHILD', type='number', startIndex=53, endIndex=54,
               required=True, validators=[
@@ -186,11 +188,11 @@ t2 = RowSchema(
               required=True, validators=[
                   validators.isInLimits(0, 9),
               ]),
-        Field(item="41", name='EDUCATION_LEVEL', type='number', startIndex=55, endIndex=57,
+        Field(item="41", name='EDUCATION_LEVEL', type='string', startIndex=55, endIndex=57,
               required=True, validators=[
                   validators.or_validators(
-                      validators.isInLimits(0, 16),
-                      validators.isInLimits(98, 99)
+                      validators.isInStringRange(0, 16),
+                      validators.isInStringRange(98, 99)
                   )
               ]),
         Field(item="42", name='CITIZENSHIP_STATUS', type='number', startIndex=57, endIndex=58,
@@ -217,162 +219,162 @@ t2 = RowSchema(
               required=True, validators=[
                   validators.isInLimits(0, 3),
               ]),
-        Field(item="48", name='WORK_ELIGIBLE_INDICATOR', type='number', startIndex=66, endIndex=68,
+        Field(item="48", name='WORK_ELIGIBLE_INDICATOR', type='string', startIndex=66, endIndex=68,
               required=True, validators=[
                   validators.or_validators(
-                        validators.isInLimits(0, 9),
-                        validators.matches([12])
+                        validators.isInStringRange(0, 9),
+                        validators.matches('12')
                   )
               ]),
-        Field(item="49", name='WORK_PART_STATUS', type='number', startIndex=68, endIndex=70,
+        Field(item="49", name='WORK_PART_STATUS', type='string', startIndex=68, endIndex=70,
               required=True, validators=[
-                  validators.oneOf([1, 2, 5, 7, 9, 15, 17, 18, 19, 99])
+                  validators.oneOf(['1', '2', '5', '7', '9', '15', '17', '18', '19', '99'])
               ]),
-        Field(item="50", name='UNSUB_EMPLOYMENT', type='number', startIndex=70, endIndex=72,
+        Field(item="50", name='UNSUB_EMPLOYMENT', type='string', startIndex=70, endIndex=72,
               required=True, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="51", name='SUB_PRIVATE_EMPLOYMENT', type='number', startIndex=72, endIndex=74,
+        Field(item="51", name='SUB_PRIVATE_EMPLOYMENT', type='string', startIndex=72, endIndex=74,
               required=True, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="52", name='SUB_PUBLIC_EMPLOYMENT', type='number', startIndex=74, endIndex=76,
+        Field(item="52", name='SUB_PUBLIC_EMPLOYMENT', type='string', startIndex=74, endIndex=76,
               required=True, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="53A", name='WORK_EXPERIENCE_HOP', type='number', startIndex=76, endIndex=78,
+        Field(item="53A", name='WORK_EXPERIENCE_HOP', type='string', startIndex=76, endIndex=78,
               required=True, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="53B", name='WORK_EXPERIENCE_EA', type='number', startIndex=78, endIndex=80,
+        Field(item="53B", name='WORK_EXPERIENCE_EA', type='string', startIndex=78, endIndex=80,
               required=True, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="53C", name='WORK_EXPERIENCE_HOL', type='number', startIndex=80, endIndex=82,
+        Field(item="53C", name='WORK_EXPERIENCE_HOL', type='string', startIndex=80, endIndex=82,
               required=True, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="54", name='OJT', type='number', startIndex=82, endIndex=84,
+        Field(item="54", name='OJT', type='string', startIndex=82, endIndex=84,
               required=True, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
         Field(item="55A", name='JOB_SEARCH_HOP', type='number', startIndex=84, endIndex=86,
               required=True, validators=[
                   validators.isInLimits(0, 99),
               ]),
-        Field(item="55B", name='JOB_SEARCH_EA', type='number', startIndex=86, endIndex=88,
+        Field(item="55B", name='JOB_SEARCH_EA', type='string', startIndex=86, endIndex=88,
               required=True, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="55C", name='JOB_SEARCH_HOL', type='number', startIndex=88, endIndex=90,
+        Field(item="55C", name='JOB_SEARCH_HOL', type='string', startIndex=88, endIndex=90,
               required=True, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="56A", name='COMM_SERVICES_HOP', type='number', startIndex=90, endIndex=92,
+        Field(item="56A", name='COMM_SERVICES_HOP', type='string', startIndex=90, endIndex=92,
               required=True, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="56B", name='COMM_SERVICES_EA', type='number', startIndex=92, endIndex=94,
+        Field(item="56B", name='COMM_SERVICES_EA', type='string', startIndex=92, endIndex=94,
               required=True, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="56C", name='COMM_SERVICES_HOL', type='number', startIndex=94, endIndex=96,
+        Field(item="56C", name='COMM_SERVICES_HOL', type='string', startIndex=94, endIndex=96,
               required=True, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="57A", name='VOCATIONAL_ED_TRAINING_HOP', type='number', startIndex=96, endIndex=98,
+        Field(item="57A", name='VOCATIONAL_ED_TRAINING_HOP', type='string', startIndex=96, endIndex=98,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="57B", name='VOCATIONAL_ED_TRAINING_EA', type='number', startIndex=98, endIndex=100,
+        Field(item="57B", name='VOCATIONAL_ED_TRAINING_EA', type='string', startIndex=98, endIndex=100,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="57C", name='VOCATIONAL_ED_TRAINING_HOL', type='number', startIndex=100, endIndex=102,
+        Field(item="57C", name='VOCATIONAL_ED_TRAINING_HOL', type='string', startIndex=100, endIndex=102,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="58A", name='JOB_SKILLS_TRAINING_HOP', type='number', startIndex=102, endIndex=104,
+        Field(item="58A", name='JOB_SKILLS_TRAINING_HOP', type='string', startIndex=102, endIndex=104,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="58B", name='JOB_SKILLS_TRAINING_EA', type='number', startIndex=104, endIndex=106,
+        Field(item="58B", name='JOB_SKILLS_TRAINING_EA', type='string', startIndex=104, endIndex=106,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="58C", name='JOB_SKILLS_TRAINING_HOL', type='number', startIndex=106, endIndex=108,
+        Field(item="58C", name='JOB_SKILLS_TRAINING_HOL', type='string', startIndex=106, endIndex=108,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="59A", name='ED_NO_HIGH_SCHOOL_DIPL_HOP', type='number', startIndex=108, endIndex=110,
+        Field(item="59A", name='ED_NO_HIGH_SCHOOL_DIPL_HOP', type='string', startIndex=108, endIndex=110,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="59B", name='ED_NO_HIGH_SCHOOL_DIPL_EA', type='number', startIndex=110, endIndex=112,
+        Field(item="59B", name='ED_NO_HIGH_SCHOOL_DIPL_EA', type='string', startIndex=110, endIndex=112,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="59C", name='ED_NO_HIGH_SCHOOL_DIPL_HOL', type='number', startIndex=112, endIndex=114,
+        Field(item="59C", name='ED_NO_HIGH_SCHOOL_DIPL_HOL', type='string', startIndex=112, endIndex=114,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="60A", name='SCHOOL_ATTENDENCE_HOP', type='number', startIndex=114, endIndex=116,
+        Field(item="60A", name='SCHOOL_ATTENDENCE_HOP', type='string', startIndex=114, endIndex=116,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="60B", name='SCHOOL_ATTENDENCE_EA', type='number', startIndex=116, endIndex=118,
+        Field(item="60B", name='SCHOOL_ATTENDENCE_EA', type='string', startIndex=116, endIndex=118,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="60C", name='SCHOOL_ATTENDENCE_HOL', type='number', startIndex=118, endIndex=120,
+        Field(item="60C", name='SCHOOL_ATTENDENCE_HOL', type='string', startIndex=118, endIndex=120,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="61A", name='PROVIDE_CC_HOP', type='number', startIndex=120, endIndex=122,
+        Field(item="61A", name='PROVIDE_CC_HOP', type='string', startIndex=120, endIndex=122,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="61B", name='PROVIDE_CC_EA', type='number', startIndex=122, endIndex=124,
+        Field(item="61B", name='PROVIDE_CC_EA', type='string', startIndex=122, endIndex=124,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="61C", name='PROVIDE_CC_HOL', type='number', startIndex=124, endIndex=126,
+        Field(item="61C", name='PROVIDE_CC_HOL', type='string', startIndex=124, endIndex=126,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="62", name='OTHER_WORK_ACTIVITIES', type='number', startIndex=126, endIndex=128,
+        Field(item="62", name='OTHER_WORK_ACTIVITIES', type='string', startIndex=126, endIndex=128,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="63", name='DEEMED_HOURS_FOR_OVERALL', type='number', startIndex=128, endIndex=130,
+        Field(item="63", name='DEEMED_HOURS_FOR_OVERALL', type='string', startIndex=128, endIndex=130,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="64", name='DEEMED_HOURS_FOR_TWO_PARENT', type='number', startIndex=130, endIndex=132,
+        Field(item="64", name='DEEMED_HOURS_FOR_TWO_PARENT', type='string', startIndex=130, endIndex=132,
               required=False, validators=[
-                  validators.isInLimits(0, 99),
+                  validators.isInStringRange(0, 99),
               ]),
-        Field(item="65", name='EARNED_INCOME', type='number', startIndex=132, endIndex=136,
+        Field(item="65", name='EARNED_INCOME', type='string', startIndex=132, endIndex=136,
               required=False, validators=[
                   validators.isLargerThanOrEqualTo(0),
               ]),
-        Field(item="66A", name='UNEARNED_INCOME_TAX_CREDIT', type='number', startIndex=136, endIndex=140,
+        Field(item="66A", name='UNEARNED_INCOME_TAX_CREDIT', type='string', startIndex=136, endIndex=140,
               required=False, validators=[
                   validators.isLargerThanOrEqualTo(0),
               ]),
-        Field(item="66B", name='UNEARNED_SOCIAL_SECURITY', type='number', startIndex=140, endIndex=144,
+        Field(item="66B", name='UNEARNED_SOCIAL_SECURITY', type='string', startIndex=140, endIndex=144,
               required=False, validators=[
                   validators.isLargerThanOrEqualTo(0),
               ]),
-        Field(item="66C", name='UNEARNED_SSI', type='number', startIndex=144, endIndex=148,
+        Field(item="66C", name='UNEARNED_SSI', type='string', startIndex=144, endIndex=148,
               required=False, validators=[
                   validators.isLargerThanOrEqualTo(0),
               ]),
-        Field(item="66D", name='UNEARNED_WORKERS_COMP', type='number', startIndex=148, endIndex=152,
+        Field(item="66D", name='UNEARNED_WORKERS_COMP', type='string', startIndex=148, endIndex=152,
               required=False, validators=[
                   validators.isLargerThanOrEqualTo(0),
               ]),
-        Field(item="66E", name='OTHER_UNEARNED_INCOME', type='number', startIndex=152, endIndex=156,
+        Field(item="66E", name='OTHER_UNEARNED_INCOME', type='string', startIndex=152, endIndex=156,
               required=False, validators=[
                   validators.isLargerThanOrEqualTo(0),
               ]),
