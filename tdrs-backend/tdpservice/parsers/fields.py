@@ -1,5 +1,13 @@
 """Datafile field representations."""
-from .util import value_is_empty
+
+def value_is_empty(value, length):
+    """Handle 'empty' values as field inputs."""
+    empty_values = [
+        ' '*length,  # '     '
+        '#'*length,  # '#####'
+    ]
+
+    return value is None or value in empty_values
 
 
 class Field:
@@ -39,31 +47,23 @@ class Field:
             case 'string':
                 return value
 
-
-def is_encrypted(value, decryption_dict):
-    """Determine if value is encrypted."""
-    return len([x for x in value if x in decryption_dict]) == 9
-
-def tanf_ssn_decryption_func(value):
+def tanf_ssn_decryption_func(value, is_encrypted):
     """Decrypt TANF SSN value."""
-    decryption_dict = {"@": "1", "9": "2", "Z": "3", "P": "4", "0": "5",
-                       "#": "6", "Y": "7", "B": "8", "W": "9", "T": "0"}
-    decryption_table = str.maketrans(decryption_dict)
-
-    if is_encrypted(value, decryption_dict):
+    if is_encrypted:
+        decryption_dict = {"@": "1", "9": "2", "Z": "3", "P": "4", "0": "5",
+                           "#": "6", "Y": "7", "B": "8", "W": "9", "T": "0"}
+        decryption_table = str.maketrans(decryption_dict)
         return value.translate(decryption_table)
     return value
 
-def ssp_ssn_decryption_func(value):
+def ssp_ssn_decryption_func(value, is_encrypted):
     """Decrypt SSP SSN value."""
-    decryption_dict = {"@": "1", "9": "2", "Z": "3", "P": "4", "0": "5",
-                       "#": "6", "Y": "7", "B": "8", "W": "9", "T": "0"}
-    decryption_table = str.maketrans(decryption_dict)
-
-    if is_encrypted(value, decryption_dict):
+    if is_encrypted:
+        decryption_dict = {"@": "1", "9": "2", "Z": "3", "P": "4", "0": "5",
+                           "#": "6", "Y": "7", "B": "8", "W": "9", "T": "0"}
+        decryption_table = str.maketrans(decryption_dict)
         return value.translate(decryption_table)
     return value
-
 
 class EncryptedField(Field):
     """Represents an encrypted field and its position."""
@@ -71,6 +71,7 @@ class EncryptedField(Field):
     def __init__(self, decryption_func, item, name, type, startIndex, endIndex, required=True, validators=[]):
         super().__init__(item, name, type, startIndex, endIndex, required, validators)
         self.decryption_func = decryption_func
+        self.is_encrypted = False
 
     def parse_value(self, line):
         """Parse and decrypt the value for a field given a line, startIndex, endIndex, and field type."""
@@ -81,6 +82,6 @@ class EncryptedField(Field):
 
         match self.type:
             case 'string':
-                return self.decryption_func(value)
+                return self.decryption_func(value, self.is_encrypted)
             case _:
                 return None
