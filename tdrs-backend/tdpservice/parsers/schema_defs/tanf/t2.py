@@ -54,7 +54,7 @@ t2 = RowSchema(
                 ),
             validators.if_then_validator(
                       condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                      result_field='EDUCATION_LEVEL', result_function=validators.notMatches(0),
+                      result_field='EDUCATION_LEVEL', result_function=validators.notMatches('00'),
                 ),
             validators.if_then_validator(
                       condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
@@ -70,7 +70,7 @@ t2 = RowSchema(
                 ),
             validators.if_then_validator(
                       condition_field='RELATIONSHIP_HOH', condition_function=validators.oneOf((1, 2)),
-                      result_field='MONTHS_FED_TIME_LIMIT', result_function=validators.isLargerThan(1),
+                      result_field='MONTHS_FED_TIME_LIMIT', result_function=validators.isInStringRange(1, 10),
                 ),
             validators.if_then_validator(
                       condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
@@ -78,15 +78,15 @@ t2 = RowSchema(
                 ),
             validators.if_then_validator(
                       condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                      result_field='WORK_PART_STATUS', result_function=validators.isInLimits(1, 3),
+                      result_field='WORK_PART_STATUS', result_function=validators.isInStringRange(1, 3),
                 ),
             validators.if_then_validator(
                       condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                      result_field='WORK_ELIGIBLE_INDICATOR', result_function=validators.notMatches(0),
+                      result_field='WORK_ELIGIBLE_INDICATOR', result_function=validators.notMatches('00'),
                 ),
             validators.if_then_validator(
                       condition_field='WORK_ELIGIBLE_INDICATOR', condition_function=validators.isInLimits(1, 5),
-                      result_field='WORK_PART_STATUS', result_function=validators.notMatches(99),
+                      result_field='WORK_PART_STATUS', result_function=validators.notMatches('99'),
                 ),
         ],
     fields=[

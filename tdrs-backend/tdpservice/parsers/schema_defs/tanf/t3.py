@@ -53,7 +53,7 @@ child_one = RowSchema(
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='EDUCATION_LEVEL', result_function=validators.notMatches(99),
+                  result_field='EDUCATION_LEVEL', result_function=validators.notMatches('99'),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
@@ -132,7 +132,7 @@ child_one = RowSchema(
               required=True, validators=[
                   validators.oneOf([0, 2, 3])
               ]),
-        Field(item="75", name='EDUCATION_LEVEL', type='number', startIndex=49, endIndex=51,
+        Field(item="75", name='EDUCATION_LEVEL', type='string', startIndex=49, endIndex=51,
               required=True, validators=[
                   validators.or_validators(
                       validators.isInLimits(0, 16),
@@ -202,7 +202,7 @@ child_two = RowSchema(
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='EDUCATION_LEVEL', result_function=validators.notMatches(99),
+                  result_field='EDUCATION_LEVEL', result_function=validators.notMatches('99'),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
