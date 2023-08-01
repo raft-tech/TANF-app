@@ -199,16 +199,16 @@ const SectionSubmissionHistory = ({ section, label, files }) => {
                   Month
                 </th>
                 <th scope="col" rowSpan={2}>
-                  Cases Accepted without Errors
+                  Cases Without Errors
                 </th>
                 <th scope="col" rowSpan={2}>
-                  Cases Accepted with Errors
+                  Cases With Errors
                 </th>
                 <th scope="col" rowSpan={2}>
-                  Rejected Rows
+                  Records Unable To Process
                 </th>
                 <th scope="col" rowSpan={2}>
-                  Acceptance Status
+                  Status
                 </th>
                 <th scope="col" rowSpan={2}>
                   Error Reports (In development)
