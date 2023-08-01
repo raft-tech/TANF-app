@@ -155,6 +155,13 @@ def isInStringRange(lower, upper):
         lambda value: f'{value} is not in range [{lower}, {upper}].'
     )
 
+def isStringLargerThan(val):
+    """Validate that string value is larger than val."""
+    return make_validator(
+        lambda value: int(value) > val,
+        lambda value: f'{value} is not larger than {val}.'
+    )
+
 def notEmpty(start=0, end=None):
     """Validate that string value isn't only blanks."""
     return make_validator(

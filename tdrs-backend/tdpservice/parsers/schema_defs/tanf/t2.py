@@ -69,7 +69,7 @@ t2 = SchemaManager(schemas=[
                     ),
                 validators.if_then_validator(
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                        result_field='MONTHS_FED_TIME_LIMIT', result_function=validators.isLargerThan(1),
+                        result_field='MONTHS_FED_TIME_LIMIT', result_function=validators.isStringLargerThan(1),
                     ),
                 validators.if_then_validator(
                         condition_field='RELATIONSHIP_HOH', condition_function=validators.oneOf((1, 2)),
@@ -207,13 +207,13 @@ t2 = SchemaManager(schemas=[
                 required=True, validators=[
                     validators.oneOf([0, 1, 2, 9]),
                 ]),
-            Field(item="44", name='MONTHS_FED_TIME_LIMIT', type='number', startIndex=59, endIndex=62,
+            Field(item="44", name='MONTHS_FED_TIME_LIMIT', type='string', startIndex=59, endIndex=62,
                 required=True, validators=[
-                    validators.isInLimits(0, 999),
+                    validators.isInStringRange(0, 999),
                 ]),
-            Field(item="45", name='MONTHS_STATE_TIME_LIMIT', type='number', startIndex=62, endIndex=64,
+            Field(item="45", name='MONTHS_STATE_TIME_LIMIT', type='string', startIndex=62, endIndex=64,
                 required=True, validators=[
-                    validators.isInLimits(0, 99),
+                    validators.isInStringRange(0, 99),
                 ]),
             Field(item="46", name='CURRENT_MONTH_STATE_EXEMPT', type='number', startIndex=64, endIndex=65,
                 required=True, validators=[
@@ -232,7 +232,7 @@ t2 = SchemaManager(schemas=[
                 ]),
             Field(item="49", name='WORK_PART_STATUS', type='string', startIndex=68, endIndex=70,
                 required=True, validators=[
-                    validators.oneOf(['1', '2', '5', '7', '9', '15', '17', '18', '19', '99'])
+                    validators.oneOf(['01', '02', '05', '07', '09', '15', '17', '18', '19', '99'])
                 ]),
             Field(item="50", name='UNSUB_EMPLOYMENT', type='string', startIndex=70, endIndex=72,
                 required=True, validators=[
@@ -262,9 +262,9 @@ t2 = SchemaManager(schemas=[
                 required=True, validators=[
                     validators.isInStringRange(0, 99),
                 ]),
-            Field(item="55A", name='JOB_SEARCH_HOP', type='number', startIndex=84, endIndex=86,
+            Field(item="55A", name='JOB_SEARCH_HOP', type='string', startIndex=84, endIndex=86,
                 required=True, validators=[
-                    validators.isInLimits(0, 99),
+                    validators.isInStringRange(0, 99),
                 ]),
             Field(item="55B", name='JOB_SEARCH_EA', type='string', startIndex=86, endIndex=88,
                 required=True, validators=[
@@ -360,27 +360,27 @@ t2 = SchemaManager(schemas=[
                 ]),
             Field(item="65", name='EARNED_INCOME', type='string', startIndex=132, endIndex=136,
                 required=False, validators=[
-                    validators.isLargerThanOrEqualTo(0),
+                    validators.isInStringRange(0, 9999),
                 ]),
             Field(item="66A", name='UNEARNED_INCOME_TAX_CREDIT', type='string', startIndex=136, endIndex=140,
                 required=False, validators=[
-                    validators.isLargerThanOrEqualTo(0),
+                    validators.isInStringRange(0, 9999),
                 ]),
             Field(item="66B", name='UNEARNED_SOCIAL_SECURITY', type='string', startIndex=140, endIndex=144,
                 required=False, validators=[
-                    validators.isLargerThanOrEqualTo(0),
+                    validators.isInStringRange(0, 9999),
                 ]),
             Field(item="66C", name='UNEARNED_SSI', type='string', startIndex=144, endIndex=148,
                 required=False, validators=[
-                    validators.isLargerThanOrEqualTo(0),
+                    validators.isInStringRange(0, 9999),
                 ]),
             Field(item="66D", name='UNEARNED_WORKERS_COMP', type='string', startIndex=148, endIndex=152,
                 required=False, validators=[
-                    validators.isLargerThanOrEqualTo(0),
+                    validators.isInStringRange(0, 9999),
                 ]),
             Field(item="66E", name='OTHER_UNEARNED_INCOME', type='string', startIndex=152, endIndex=156,
                 required=False, validators=[
-                    validators.isLargerThanOrEqualTo(0),
+                    validators.isInStringRange(0, 9999),
                 ]),
         ],
     )]

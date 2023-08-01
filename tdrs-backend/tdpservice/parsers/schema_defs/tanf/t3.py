@@ -121,11 +121,11 @@ child_one = RowSchema(
               required=True, validators=[
                   validators.isInLimits(0, 9)
               ]),
-        Field(item="72A", name='RECEIVE_NONSSA_BENEFITS', type='string', startIndex=44, endIndex=45,
+        Field(item="72A", name='RECEIVE_NONSSA_BENEFITS', type='number', startIndex=44, endIndex=45,
               required=True, validators=[
                   validators.oneOf([1, 2])
               ]),
-        Field(item="72B", name='RECEIVE_SSI', type='string', startIndex=45, endIndex=46,
+        Field(item="72B", name='RECEIVE_SSI', type='number', startIndex=45, endIndex=46,
               required=True, validators=[
                   validators.oneOf([1, 2])
               ]),
