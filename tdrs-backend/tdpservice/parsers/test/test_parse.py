@@ -104,8 +104,8 @@ def test_parse_big_file(test_big_file):
 
     errors = parse.parse_datafile(test_big_file)
     parser_errors = ParserError.objects.filter(file=test_big_file)
-    assert parser_errors.count() == 5240
-    assert len(errors) == 1990
+    assert parser_errors.count() == 4105
+    assert len(errors) == 1998
 
     error_message = 'MONTHS_FED_TIME_LIMIT is required but a value was not provided.'
     row_18_error = parser_errors.get(row_number=18, error_message=error_message)
@@ -405,13 +405,13 @@ def test_parse_tanf_section1_datafile(small_tanf_section1_datafile):
     assert t2.RPT_MONTH_YEAR == 202010
     assert t2.CASE_NUMBER == '11111111112'
     assert t2.FAMILY_AFFILIATION == 1
-    assert t2.OTHER_UNEARNED_INCOME == '291'
+    assert t2.OTHER_UNEARNED_INCOME == '0291'
 
     t2_2 = t2_models[1]
     assert t2_2.RPT_MONTH_YEAR == 202010
     assert t2_2.CASE_NUMBER == '11111111115'
     assert t2_2.FAMILY_AFFILIATION == 2
-    assert t2_2.OTHER_UNEARNED_INCOME == '0'
+    assert t2_2.OTHER_UNEARNED_INCOME == '0000'
 
 @pytest.mark.django_db()
 def test_parse_tanf_section1_datafile_obj_counts(small_tanf_section1_datafile):
