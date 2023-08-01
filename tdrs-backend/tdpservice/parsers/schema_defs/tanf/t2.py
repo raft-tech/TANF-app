@@ -1,7 +1,9 @@
 """Schema for HEADER row of all submission types."""
 
 
-from ...util import RowSchema, Field
+from ...util import SchemaManager
+from ...fields import EncryptedField, Field, tanf_ssn_decryption_func
+from ...row_schema import RowSchema
 from ... import validators
 from tdpservice.search_indexes.models.tanf import TANF_T2
 
@@ -115,11 +117,12 @@ t2 = RowSchema(
               required=True, validators=[
                   validators.isLargerThan(0),
               ]),
-        Field(item="33", name='SSN', type='string', startIndex=29, endIndex=38,
-              required=True, validators=[validators.notOneOf(("000000000", "111111111", "222222222",
-                                                              "333333333", "444444444", "555555555",
-                                                              "666666666", "777777777", "888888888",
-                                                              "999999999")),
+        EncryptedField(decryption_func=tanf_ssn_decryption_func, item="33", name='SSN', type='string', startIndex=29,
+                       endIndex=38, required=True, validators=[validators.notOneOf(("000000000", "111111111", 
+                                                                                    "222222222", "333333333",
+                                                                                    "444444444", "555555555",
+                                                                                    "666666666", "777777777",
+                                                                                    "888888888","999999999")),
               ]),
         Field(item="34A", name='RACE_HISPANIC', type='number', startIndex=38, endIndex=39,
               required=True, validators=[

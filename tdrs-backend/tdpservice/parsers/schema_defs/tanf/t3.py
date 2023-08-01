@@ -1,7 +1,9 @@
 """Schema for HEADER row of all submission types."""
 
 
-from ...util import MultiRecordRowSchema, RowSchema, Field
+from ...util import SchemaManager
+from ...fields import EncryptedField, Field, tanf_ssn_decryption_func
+from ...row_schema import RowSchema
 from ... import validators
 from tdpservice.search_indexes.models.tanf import TANF_T3
 
@@ -84,10 +86,13 @@ child_one = RowSchema(
                   validators.month_year_yearIsLargerThan(1998),
                   validators.month_year_monthIsValid(),
               ]),
-        Field(item="69", name='SSN', type='string', startIndex=28, endIndex=37,
-              required=True, validators=[
-                  validators.isNumber(),
-              ]),
+        EncryptedField(decryption_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=28,
+                       endIndex=37, required=True, validators=[validators.notOneOf(("000000000", "111111111", 
+                                                                                    "222222222", "333333333",
+                                                                                    "444444444", "555555555",
+                                                                                    "666666666", "777777777",
+                                                                                    "888888888","999999999"))
+                                                               ]),
         Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=37, endIndex=38,
               required=True, validators=[
                   validators.isInLimits(0, 2)
@@ -233,9 +238,12 @@ child_two = RowSchema(
                   validators.month_year_yearIsLargerThan(1998),
                   validators.month_year_monthIsValid(),
               ]),
-        Field(item="69", name='SSN', type='string', startIndex=69, endIndex=78,
-              required=True, validators=[
-                  validators.isNumber(),
+        EncryptedField(decryption_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=69,
+                       endIndex=78,required=True, validators=[validators.notOneOf(("000000000", "111111111", 
+                                                                                    "222222222", "333333333",
+                                                                                    "444444444", "555555555",
+                                                                                    "666666666", "777777777",
+                                                                                    "888888888","999999999"))
               ]),
         Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=78, endIndex=79,
               required=True, validators=[
@@ -303,7 +311,7 @@ child_two = RowSchema(
     ],
 )
 
-t3 = MultiRecordRowSchema(
+t3 = SchemaManager(
     schemas=[
         child_one,
         child_two
