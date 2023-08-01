@@ -8,7 +8,7 @@ from tdpservice.data_files.models import DataFile
 
 def make_validator(validator_func, error_func):
     """Return a function accepting a value input and returning (bool, string) to represent validation state."""
-    return lambda value: (True, None) if validator_func(value) else (False, error_func(value))
+    return lambda value: (True, None) if value is not None and validator_func(value) else (False, error_func(value))
 
 
 # validator combinators

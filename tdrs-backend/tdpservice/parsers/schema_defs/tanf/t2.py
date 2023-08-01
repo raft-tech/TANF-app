@@ -85,7 +85,7 @@ t2 = RowSchema(
                       result_field='WORK_ELIGIBLE_INDICATOR', result_function=validators.notMatches('00'),
                 ),
             validators.if_then_validator(
-                      condition_field='WORK_ELIGIBLE_INDICATOR', condition_function=validators.isInLimits(1, 5),
+                      condition_field='WORK_ELIGIBLE_INDICATOR', condition_function=validators.isInStringRange(1, 5),
                       result_field='WORK_PART_STATUS', result_function=validators.notMatches('99'),
                 ),
         ],

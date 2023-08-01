@@ -45,7 +45,7 @@ child_one = RowSchema(
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RELATIONSHIP_HOH', result_function=validators.isInLimits(4, 9),
+                  result_field='RELATIONSHIP_HOH', result_function=validators.isInStringRange(4, 9),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
@@ -124,9 +124,9 @@ child_one = RowSchema(
               required=True, validators=[
                   validators.oneOf([1, 2])
               ]),
-        Field(item="73", name='RELATIONSHIP_HOH', type='number', startIndex=46, endIndex=48,
+        Field(item="73", name='RELATIONSHIP_HOH', type='string', startIndex=46, endIndex=48,
               required=True, validators=[
-                  validators.isInLimits(0, 10)
+                  validators.isInStringRange(0, 10)
               ]),
         Field(item="74", name='PARENT_MINOR_CHILD', type='number', startIndex=48, endIndex=49,
               required=True, validators=[
@@ -135,8 +135,8 @@ child_one = RowSchema(
         Field(item="75", name='EDUCATION_LEVEL', type='string', startIndex=49, endIndex=51,
               required=True, validators=[
                   validators.or_validators(
-                      validators.isInLimits(0, 16),
-                      validators.isInLimits(98, 99)
+                      validators.isInStringRange(0, 16),
+                      validators.isInStringRange(98, 99)
                   )
               ]),
         Field(item="76", name='CITIZENSHIP_STATUS', type='number', startIndex=51, endIndex=52,
@@ -145,11 +145,11 @@ child_one = RowSchema(
               ]),
         Field(item="77A", name='UNEARNED_SSI', type='string', startIndex=52, endIndex=56,
               required=False, validators=[
-                  validators.isLargerThanOrEqualTo(0)
+                  validators.isInStringRange(0, 9999)
               ]),
         Field(item="77B", name='OTHER_UNEARNED_INCOME', type='string', startIndex=56, endIndex=60,
               required=False, validators=[
-                  validators.isLargerThanOrEqualTo(0)
+                  validators.isInStringRange(0, 9999)
               ]),
     ],
 )
@@ -194,7 +194,7 @@ child_two = RowSchema(
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RELATIONSHIP_HOH', result_function=validators.isInLimits(4, 9),
+                  result_field='RELATIONSHIP_HOH', result_function=validators.isInStringRange(4, 9),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
@@ -265,7 +265,7 @@ child_two = RowSchema(
               required=True, validators=[
                   validators.isInLimits(0, 9)
               ]),
-        Field(item="72A", name='RECEIVE_NONSSA_BENEFITS', type='nummber', startIndex=85, endIndex=86,
+        Field(item="72A", name='RECEIVE_NONSSA_BENEFITS', type='number', startIndex=85, endIndex=86,
               required=True, validators=[
                   validators.oneOf([1, 2])
               ]),
@@ -273,32 +273,32 @@ child_two = RowSchema(
               required=True, validators=[
                   validators.oneOf([1, 2])
               ]),
-        Field(item="73", name='RELATIONSHIP_HOH', type='number', startIndex=87, endIndex=89,
+        Field(item="73", name='RELATIONSHIP_HOH', type='string', startIndex=87, endIndex=89,
               required=True, validators=[
-                  validators.isInLimits(0, 10)
+                  validators.isInStringRange(0, 10)
               ]),
         Field(item="74", name='PARENT_MINOR_CHILD', type='number', startIndex=89, endIndex=90,
               required=True, validators=[
                   validators.oneOf([0, 2, 3])
               ]),
-        Field(item="75", name='EDUCATION_LEVEL', type='number', startIndex=90, endIndex=92,
+        Field(item="75", name='EDUCATION_LEVEL', type='string', startIndex=90, endIndex=92,
               required=True, validators=[
                   validators.or_validators(
-                      validators.isInLimits(0, 16),
-                      validators.oneOf([98, 99])
+                      validators.isInStringRange(0, 16),
+                      validators.oneOf(['98', '99'])
                   )
               ]),
         Field(item="76", name='CITIZENSHIP_STATUS', type='number', startIndex=92, endIndex=93,
               required=True, validators=[
                   validators.oneOf([0, 1, 2, 9])
               ]),
-        Field(item="77A", name='UNEARNED_SSI', type='number', startIndex=93, endIndex=97,
+        Field(item="77A", name='UNEARNED_SSI', type='string', startIndex=93, endIndex=97,
               required=False, validators=[
-                  validators.isLargerThanOrEqualTo(0)
+                  validators.isInStringRange(0, 9999)
               ]),
-        Field(item="77B", name='OTHER_UNEARNED_INCOME', type='number', startIndex=97, endIndex=101,
+        Field(item="77B", name='OTHER_UNEARNED_INCOME', type='string', startIndex=97, endIndex=101,
               required=False, validators=[
-                  validators.isLargerThanOrEqualTo(0)
+                  validators.isInStringRange(0, 9999)
               ]),
     ],
 )
