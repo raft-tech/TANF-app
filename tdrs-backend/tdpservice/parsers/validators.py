@@ -259,6 +259,27 @@ def validate__FAM_AFF__SSN():
             return (True, None)
     return lambda instance: validate(instance)
 
+def validate__FAM_AFF__HOH__Fed_Time():
+    """If FAMILY_AFFILIATION == 2 and MONTHS_FED_TIME_LIMIT== 1 or 2, then MONTHS_FED_TIME_LIMIT > 1."""
+    # value is instance
+    def validate(instance):
+        FAMILY_AFFILIATION = instance['FAMILY_AFFILIATION'] if type(instance) is dict else \
+            getattr(instance, 'FAMILY_AFFILIATION')
+        RELATIONSHIP_HOH = instance['RELATIONSHIP_HOH'] if type(instance) is dict else \
+            getattr(instance, 'RELATIONSHIP_HOH')
+        MONTHS_FED_TIME_LIMIT = instance['MONTHS_FED_TIME_LIMIT'] if type(instance) is dict else \
+            getattr(instance, 'MONTHS_FED_TIME_LIMIT')
+        if FAMILY_AFFILIATION == 1 and (RELATIONSHIP_HOH == 1 or RELATIONSHIP_HOH == 2):
+            if int(MONTHS_FED_TIME_LIMIT) > 1:
+                return (False,
+                        'If FAMILY_AFFILIATION == 2 and MONTHS_FED_TIME_LIMIT== 1 or 2, then MONTHS_FED_TIME_LIMIT > 1.'
+                        )
+            else:
+                return (True, None)
+        else:
+            return (True, None)
+    return lambda instance: validate(instance)
+
 def validate_single_header_trailer(datafile):
     """Validate that a raw datafile has one trailer and one footer."""
     line_number = 0

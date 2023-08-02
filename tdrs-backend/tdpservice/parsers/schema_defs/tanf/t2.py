@@ -49,7 +49,7 @@ t2 = SchemaManager(schemas=[
                     ),
                 validators.if_then_validator(
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='MARITAL_STATUS', result_function=validators.oneOf((1, 2, 3, 4, 5)),
+                        result_field='MARITAL_STATUS', result_function=validators.isInLimits(1, 5),
                     ),
                 validators.if_then_validator(
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
@@ -57,35 +57,36 @@ t2 = SchemaManager(schemas=[
                     ),
                 validators.if_then_validator(
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='EDUCATION_LEVEL', result_function=validators.notMatches('00'),
+                        result_field='EDUCATION_LEVEL', result_function=validators.or_validators(
+                            validators.isInStringRange(0, 16),
+                            validators.isInStringRange(98, 99)
+                        ),
                     ),
                 validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
+                        condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
                         result_field='CITIZENSHIP_STATUS', result_function=validators.oneOf((1, 2)),
                     ),
                 validators.if_then_validator(
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
                         result_field='COOPERATION_CHILD_SUPPORT', result_function=validators.oneOf((1, 2, 9)),
                     ),
-                validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                        result_field='MONTHS_FED_TIME_LIMIT', result_function=validators.isStringLargerThan(1),
-                    ),
-                validators.if_then_validator(
-                        condition_field='RELATIONSHIP_HOH', condition_function=validators.oneOf((1, 2)),
-                        result_field='MONTHS_FED_TIME_LIMIT', result_function=validators.isInStringRange(1, 10),
-                    ),
+                validators.validate__FAM_AFF__HOH__Fed_Time(),
                 validators.if_then_validator(
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
                         result_field='EMPLOYMENT_STATUS', result_function=validators.isInLimits(1, 3),
                     ),
                 validators.if_then_validator(
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                        result_field='WORK_PART_STATUS', result_function=validators.isInStringRange(1, 3),
+                        result_field='WORK_ELIGIBLE_INDICATOR', result_function=validators.or_validators(
+                            validators.isInStringRange(1, 9),
+                            validators.matches('12')
+                        ),
                     ),
                 validators.if_then_validator(
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                        result_field='WORK_ELIGIBLE_INDICATOR', result_function=validators.notMatches('00'),
+                        result_field='WORK_PART_STATUS', result_function=validators.oneOf(['01', '02', '05', '07', '09',
+                                                                                           '15', '17', '18', '19', '99']
+                                                                                           ),
                     ),
                 validators.if_then_validator(
                         condition_field='WORK_ELIGIBLE_INDICATOR', condition_function=validators.isInStringRange(1, 5),
