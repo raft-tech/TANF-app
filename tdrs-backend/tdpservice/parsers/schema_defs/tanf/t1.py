@@ -1,6 +1,5 @@
 """Schema for HEADER row of all submission types."""
 
-
 from ...util import SchemaManager
 from ...fields import Field
 from ...row_schema import RowSchema
