@@ -15,76 +15,76 @@ t1 = SchemaManager(schemas=[
             ],
             postparsing_validators=[
                   validators.if_then_validator(
-                  condition_field='RECEIVES_FOOD_STAMPS', condition_function=validators.matches(1),
-                  result_field='AMT_FOOD_STAMP_ASSISTANCE', result_function=validators.isLargerThan(0),
+                        condition_field='RECEIVES_FOOD_STAMPS', condition_function=validators.matches(1),
+                        result_field='AMT_FOOD_STAMP_ASSISTANCE', result_function=validators.isLargerThan(0),
                   ),
                   validators.if_then_validator(
-                  condition_field='RECEIVES_SUB_CC', condition_function=validators.notMatches(3),
-                  result_field='AMT_SUB_CC', result_function=validators.isLargerThan(0),
+                        condition_field='RECEIVES_SUB_CC', condition_function=validators.notMatches(3),
+                        result_field='AMT_SUB_CC', result_function=validators.isLargerThan(0),
                   ),
                   validators.if_then_validator(
-                  condition_field='CASH_AMOUNT', condition_function=validators.isLargerThan(0),
-                  result_field='NBR_MONTHS', result_function=validators.isLargerThan(0),
+                        condition_field='CASH_AMOUNT', condition_function=validators.isLargerThan(0),
+                        result_field='NBR_MONTHS', result_function=validators.isLargerThan(0),
                   ),
                   validators.if_then_validator(
-                  condition_field='CC_AMOUNT', condition_function=validators.isLargerThan(0),
-                  result_field='CHILDREN_COVERED', result_function=validators.isLargerThan(0),
+                        condition_field='CC_AMOUNT', condition_function=validators.isLargerThan(0),
+                        result_field='CHILDREN_COVERED', result_function=validators.isLargerThan(0),
                   ),
                   validators.if_then_validator(
-                  condition_field='CC_AMOUNT', condition_function=validators.isLargerThan(0),
-                  result_field='CC_NBR_MONTHS', result_function=validators.isLargerThan(0),
+                        condition_field='CC_AMOUNT', condition_function=validators.isLargerThan(0),
+                        result_field='CC_NBR_MONTHS', result_function=validators.isLargerThan(0),
                   ),
                   validators.if_then_validator(
-                  condition_field='TRANSP_AMOUNT', condition_function=validators.isLargerThan(0),
-                  result_field='TRANSP_NBR_MONTHS', result_function=validators.isLargerThan(0),
+                        condition_field='TRANSP_AMOUNT', condition_function=validators.isLargerThan(0),
+                        result_field='TRANSP_NBR_MONTHS', result_function=validators.isLargerThan(0),
                   ),
                   validators.if_then_validator(
-                  condition_field='TRANSITION_SERVICES_AMOUNT', condition_function=validators.isLargerThan(0),
-                  result_field='TRANSITION_NBR_MONTHS', result_function=validators.isLargerThan(0),
+                        condition_field='TRANSITION_SERVICES_AMOUNT', condition_function=validators.isLargerThan(0),
+                        result_field='TRANSITION_NBR_MONTHS', result_function=validators.isLargerThan(0),
                   ),
                   validators.if_then_validator(
-                  condition_field='OTHER_AMOUNT', condition_function=validators.isLargerThan(0),
-                  result_field='OTHER_NBR_MONTHS', result_function=validators.isLargerThan(0),
+                        condition_field='OTHER_AMOUNT', condition_function=validators.isLargerThan(0),
+                        result_field='OTHER_NBR_MONTHS', result_function=validators.isLargerThan(0),
                   ),
                   validators.if_then_validator(
-                  condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
-                  result_field='WORK_REQ_SANCTION', result_function=validators.oneOf((1, 2)),
+                        condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
+                        result_field='WORK_REQ_SANCTION', result_function=validators.oneOf((1, 2)),
                   ),
                   validators.if_then_validator(
-                  condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
-                  result_field='FAMILY_SANC_ADULT', result_function=validators.oneOf((1, 2)),
+                        condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
+                        result_field='FAMILY_SANC_ADULT', result_function=validators.oneOf((1, 2)),
                   ),
                   validators.if_then_validator(
-                  condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
-                  result_field='SANC_TEEN_PARENT', result_function=validators.oneOf((1, 2)),
+                        condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
+                        result_field='SANC_TEEN_PARENT', result_function=validators.oneOf((1, 2)),
                   ),
                   validators.if_then_validator(
-                  condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
-                  result_field='NON_COOPERATION_CSE', result_function=validators.oneOf((1, 2)),
+                        condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
+                        result_field='NON_COOPERATION_CSE', result_function=validators.oneOf((1, 2)),
                   ),
                   validators.if_then_validator(
-                  condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
-                  result_field='FAILURE_TO_COMPLY', result_function=validators.oneOf((1, 2)),
+                        condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
+                        result_field='FAILURE_TO_COMPLY', result_function=validators.oneOf((1, 2)),
                   ),
                   validators.if_then_validator(
-                  condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
-                  result_field='OTHER_SANCTION', result_function=validators.oneOf((1, 2)),
+                        condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
+                        result_field='OTHER_SANCTION', result_function=validators.oneOf((1, 2)),
                   ),
                   validators.if_then_validator(
-                  condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
-                  result_field='OTHER_SANCTION', result_function=validators.oneOf((1, 2)),
+                        condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
+                        result_field='OTHER_SANCTION', result_function=validators.oneOf((1, 2)),
                   ),
                   validators.if_then_validator(
-                  condition_field='OTHER_TOTAL_REDUCTIONS', condition_function=validators.isLargerThan(0),
-                  result_field='FAMILY_CAP', result_function=validators.oneOf((1, 2)),
+                        condition_field='OTHER_TOTAL_REDUCTIONS', condition_function=validators.isLargerThan(0),
+                        result_field='FAMILY_CAP', result_function=validators.oneOf((1, 2)),
                   ),
                   validators.if_then_validator(
-                  condition_field='OTHER_TOTAL_REDUCTIONS', condition_function=validators.isLargerThan(0),
-                  result_field='REDUCTIONS_ON_RECEIPTS', result_function=validators.oneOf((1, 2)),
+                        condition_field='OTHER_TOTAL_REDUCTIONS', condition_function=validators.isLargerThan(0),
+                        result_field='REDUCTIONS_ON_RECEIPTS', result_function=validators.oneOf((1, 2)),
                   ),
                   validators.if_then_validator(
-                  condition_field='OTHER_TOTAL_REDUCTIONS', condition_function=validators.isLargerThan(0),
-                  result_field='OTHER_NON_SANCTION', result_function=validators.oneOf((1, 2)),
+                        condition_field='OTHER_TOTAL_REDUCTIONS', condition_function=validators.isLargerThan(0),
+                        result_field='OTHER_NON_SANCTION', result_function=validators.oneOf((1, 2)),
                   ),
                   validators.sumIsLarger(("AMT_FOOD_STAMP_ASSISTANCE", "AMT_SUB_CC", "CC_AMOUNT", "TRANSP_AMOUNT",
                                           "TRANSITION_SERVICES_AMOUNT", "OTHER_AMOUNT"), 0)
@@ -273,7 +273,8 @@ t1 = SchemaManager(schemas=[
                         required=True, validators=[
                               validators.oneOf([1, 2]),
                         ]),
-                  Field(item="-1", name='BLANK', type='string', startIndex=117, endIndex=156, required=False, validators=[]),
+                  Field(item="-1", name='BLANK', type='string', startIndex=117, endIndex=156, required=False,
+                        validators=[]),
             ],
       )]
 )

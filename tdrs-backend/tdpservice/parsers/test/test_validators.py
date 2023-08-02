@@ -504,7 +504,7 @@ class TestT2Cat3Validators(TanfSection1TestCat3ValidatorsBase):
         record.FAMILY_AFFILIATION = 3
         record.MARITAL_STATUS = 0
         result = val(record)
-        assert result == (False, 'if FAMILY_AFFILIATION :3 validator1 passed then MARITAL_STATUS 0 is not larger ' + 
+        assert result == (False, 'if FAMILY_AFFILIATION :3 validator1 passed then MARITAL_STATUS 0 is not larger ' +
                           'and equal to 1 and smaller and equal to 5.')
 
     def test_validate_parent_with_minor(self, record):
@@ -554,7 +554,7 @@ class TestT2Cat3Validators(TanfSection1TestCat3ValidatorsBase):
         record.FAMILY_AFFILIATION = 1
         record.CITIZENSHIP_STATUS = 0
         result = val(record)
-        assert result == (False, 'if FAMILY_AFFILIATION :1 validator1 passed then CITIZENSHIP_STATUS 0 ' + 
+        assert result == (False, 'if FAMILY_AFFILIATION :1 validator1 passed then CITIZENSHIP_STATUS 0 ' +
                           'is not in (1, 2).')
 
     def test_validate_cooperation_with_child_support(self, record):
@@ -629,7 +629,7 @@ class TestT2Cat3Validators(TanfSection1TestCat3ValidatorsBase):
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
                         result_field='WORK_PART_STATUS', result_function=validators.oneOf(['01', '02', '05', '07', '09',
                                                                                            '15', '17', '18', '19', '99']
-                                                                                           ),
+                                                                                          ),
                     )
         record.FAMILY_AFFILIATION = 0
         result = val(record)

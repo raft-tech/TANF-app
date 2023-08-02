@@ -190,7 +190,7 @@ class TANF_T3(models.Model):
 
     DATE_OF_BIRTH = models.IntegerField(null=True, blank=False)
     SSN = models.CharField(max_length=9, null=True, blank=False)
-    RACE_HISPANIC = models.IntegerField( null=True, blank=False)
+    RACE_HISPANIC = models.IntegerField(null=True, blank=False)
     RACE_AMER_INDIAN = models.IntegerField(null=True, blank=False)
     RACE_ASIAN = models.IntegerField(null=True, blank=False)
     RACE_BLACK = models.IntegerField(null=True, blank=False)
