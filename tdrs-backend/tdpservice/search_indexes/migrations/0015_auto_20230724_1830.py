@@ -182,4 +182,209 @@ class Migration(migrations.Migration):
             model_name='tanf_t5',
             name='ssn',
         ),
+        migrations.AddField(
+            model_name='tanf_t4',
+            name='CASE_NUMBER',
+            field=models.CharField(max_length=11, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t4',
+            name='CLOSURE_REASON',
+            field=models.CharField(max_length=2, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t4',
+            name='COUNTY_FIPS_CODE',
+            field=models.CharField(max_length=3, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t4',
+            name='DISPOSITION',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t4',
+            name='REC_FOOD_STAMPS',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t4',
+            name='REC_MED_ASSIST',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t4',
+            name='REC_SUB_CC',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t4',
+            name='REC_SUB_HOUSING',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t4',
+            name='RPT_MONTH_YEAR',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t4',
+            name='RecordType',
+            field=models.CharField(max_length=156, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t4',
+            name='STRATUM',
+            field=models.CharField(max_length=2, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t4',
+            name='ZIP_CODE',
+            field=models.CharField(max_length=5, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='AMOUNT_EARNED_INCOME',
+            field=models.CharField(max_length=4, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='AMOUNT_UNEARNED_INCOME',
+            field=models.CharField(max_length=4, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='CASE_NUMBER',
+            field=models.CharField(max_length=11, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='CITIZENSHIP_STATUS',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='COUNTABLE_MONTHS_STATE_TRIBE',
+            field=models.CharField(max_length=2, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='COUNTABLE_MONTH_FED_TIME',
+            field=models.CharField(max_length=3, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='DATE_OF_BIRTH',
+            field=models.CharField(max_length=8, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='EDUCATION_LEVEL',
+            field=models.CharField(max_length=2, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='EMPLOYMENT_STATUS',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='FAMILY_AFFILIATION',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='GENDER',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='MARITAL_STATUS',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='NEEDS_OF_PREGNANT_WOMAN',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='PARENT_MINOR_CHILD',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='RACE_AMER_INDIAN',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='RACE_ASIAN',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='RACE_BLACK',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='RACE_HAWAIIAN',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='RACE_HISPANIC',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='RACE_WHITE',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='REC_AID_AGED_BLIND',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='REC_AID_TOTALLY_DISABLED',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='REC_FEDERAL_DISABILITY',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='REC_OASDI_INSURANCE',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='REC_SSI',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='RELATIONSHIP_HOH',
+            field=models.CharField(max_length=2, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='RPT_MONTH_YEAR',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='RecordType',
+            field=models.CharField(max_length=156, null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t5',
+            name='SSN',
+            field=models.CharField(max_length=9, null=True),
+        ),
     ]
