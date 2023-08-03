@@ -631,7 +631,7 @@ def test_parse_tanf_section2_file(tanf_section2_file):
     assert TANF_T5.objects.all().count() == 605
 
     parser_errors = ParserError.objects.filter(file=tanf_section2_file)
-    assert parser_errors.count() == 3389
+    assert parser_errors.count() == 3067
 
     err = parser_errors.first()
     assert err.error_type == ParserErrorCategoryChoices.FIELD_VALUE
