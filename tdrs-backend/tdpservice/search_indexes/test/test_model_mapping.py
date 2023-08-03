@@ -231,7 +231,7 @@ def test_can_create_and_index_tanf_t4_submission(test_datafile):
     submission.STRATUM = 1
     submission.ZIP_CODE = '1'
     submission.DISPOSITION = 1
-    submission.CLOSURE_REASON = 1
+    submission.CLOSURE_REASON = "1"
     submission.REC_SUB_HOUSING = 1
     submission.REC_MED_ASSIST = 1
     submission.REC_FOOD_STAMPS = 1
@@ -276,16 +276,16 @@ def test_can_create_and_index_tanf_t5_submission(test_datafile):
     submission.REC_AID_AGED_BLIND = 1
     submission.RECEIVE_SSI = 1
     submission.MARITAL_STATUS = 1
-    submission.RELATIONSHIP_HOH = 1
+    submission.RELATIONSHIP_HOH = "1"
     submission.PARENT_WITH_MINOR_CHILD = 1
     submission.NEEDS_PREGNANT_WOMAN = 1
-    submission.EDUCATION_LEVEL = 1
+    submission.EDUCATION_LEVEL = "1"
     submission.CITIZENSHIP_STATUS = 1
-    submission.COUNTABLE_MONTH_FED_TIME = 1
-    submission.COUNTABLE_MONTHS_STATE_TRIBE = 1
+    submission.COUNTABLE_MONTH_FED_TIME = "1"
+    submission.COUNTABLE_MONTHS_STATE_TRIBE = "1"
     submission.EMPLOYMENT_STATUS = 1
-    submission.AMOUNT_EARNED_INCOME = 1
-    submission.AMOUNT_UNEARNED_INCOME = 1
+    submission.AMOUNT_EARNED_INCOME = "1"
+    submission.AMOUNT_UNEARNED_INCOME = "1"
 
     submission.save()
 

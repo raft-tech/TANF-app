@@ -3,7 +3,7 @@ from .models import ParserError
 from django.contrib.contenttypes.models import ContentType
 from tdpservice.data_files.models import DataFile
 from pathlib import Path
-
+from .fields import EncryptedField
 
 def create_test_datafile(filename, stt_user, stt, section='Active Case Data'):
     """Create a test DataFile instance with the given file attached."""
@@ -84,3 +84,16 @@ class SchemaManager:
             records.append((record, is_valid, errors))
 
         return records
+
+    def update_encrypted_fields(self, is_encrypted):
+        """Update whether schema fields are encrypted or not."""
+        for schema in self.schemas:
+            for field in schema.fields:
+                if type(field) == EncryptedField:
+                    field.is_encrypted = is_encrypted
+
+def contains_encrypted_indicator(line, encryption_field):
+    """Determine if line contains encryption indicator."""
+    if encryption_field is not None:
+        return encryption_field.parse_value(line) == "E"
+    return False

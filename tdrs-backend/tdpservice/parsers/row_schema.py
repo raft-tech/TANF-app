@@ -1,7 +1,6 @@
 """Row schema for datafile."""
 from .models import ParserErrorCategoryChoices
-from .fields import Field
-from .util import value_is_empty
+from .fields import Field,  value_is_empty
 
 
 class RowSchema:
@@ -159,3 +158,10 @@ class RowSchema:
                 )
 
         return is_valid, errors
+
+    def get_field_by_name(self, name):
+        """Get field by it's name."""
+        for field in self.fields:
+            if field.name == name:
+                return field
+        return None
