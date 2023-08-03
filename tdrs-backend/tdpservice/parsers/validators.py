@@ -3,6 +3,7 @@
 from .util import generate_parser_error
 from .models import ParserErrorCategoryChoices
 from tdpservice.data_files.models import DataFile
+from datetime import date
 
 # higher order validator func
 
@@ -224,11 +225,11 @@ def month_year_monthIsValid():
         lambda value: f'{str(value)[4:6]} is not a valid month.'
     )
 
-def yearIsLargerThan(min_year):
-    """Validate that the year is larger than min_year."""
+def olderThan(min_age):
+    """Validate that value is larger than min_age."""
     return make_validator(
-        lambda value: int(str(value)[:4]) > min_year,
-        lambda value: f'{str(value)[:4]} is not larger than {min_year}.'
+        lambda value: date.today().year - int(str(value)[:4]) > min_age,
+        lambda value: f'{date.today().year - int(str(value)[:4])} is not larger than {min_age}.'
     )
 
 def month_year_yearIsLargerThan(year):
@@ -248,7 +249,7 @@ def validate__FAM_AFF__SSN():
         CITIZENSHIP_STATUS = instance['CITIZENSHIP_STATUS'] if type(instance) is dict else \
             getattr(instance, 'CITIZENSHIP_STATUS')
         SSN = instance['SSN'] if type(instance) is dict else getattr(instance, 'SSN')
-        if FAMILY_AFFILIATION == 2 and (CITIZENSHIP_STATUS == "1" or CITIZENSHIP_STATUS == "2"):
+        if FAMILY_AFFILIATION == 2 and (CITIZENSHIP_STATUS == 1 or CITIZENSHIP_STATUS == 2):
             if SSN in [str(i) * 9 for i in range(10)]:
                 return (False,
                         'If FAMILY_AFFILIATION ==2 and CITIZENSHIP_STATUS==1 or 2, then SSN != 000000000 -- 999999999.')

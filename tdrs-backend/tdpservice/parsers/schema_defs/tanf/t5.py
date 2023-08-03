@@ -69,7 +69,7 @@ t5 = SchemaManager(
                   ),
               validators.validate__FAM_AFF__HOH__FEDTIME(),
               validators.if_then_validator(
-                  condition_field='DATE_OF_BIRTH', condition_function=validators.yearIsLargerThan(18),
+                  condition_field='DATE_OF_BIRTH', condition_function=validators.olderThan(18),
                   result_field='REC_OASDI_INSURANCE', result_function=validators.isInLimits(1, 2)
                   ),
               validators.if_then_validator(
