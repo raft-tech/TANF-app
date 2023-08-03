@@ -18,10 +18,7 @@ t2 = SchemaManager(schemas=[
                 validators.validate__FAM_AFF__SSN(),
                 validators.if_then_validator(
                     condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                    result_field='SSN', result_function=validators.notOneOf(("000000000", "111111111", "222222222",
-                                                                             "333333333", "444444444", "555555555",
-                                                                             "666666666", "777777777", "888888888",
-                                                                             "999999999")),
+                    result_field='SSN', result_function=validators.notOneOf([str(i)*9 for i in range(0, 9)]),
                 ),
                 validators.if_then_validator(
                     condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
@@ -113,10 +110,7 @@ t2 = SchemaManager(schemas=[
                   validators=[validators.isLargerThan(0),]),
             EncryptedField(decryption_func=tanf_ssn_decryption_func, item="33", name='SSN', type='string',
                            startIndex=29, endIndex=38, required=True,
-                           validators=[validators.notOneOf(("000000000", "111111111", "222222222",
-                                                            "333333333", "444444444", "555555555",
-                                                            "666666666", "777777777", "888888888",
-                                                            "999999999"))]),
+                           validators=[validators.notOneOf([str(i)*9 for i in range(0, 9)])]),
             Field(item="34A", name='RACE_HISPANIC', type='number', startIndex=38, endIndex=39, required=True,
                   validators=[validators.isInLimits(0, 2)]),
             Field(item="34B", name='RACE_AMER_INDIAN', type='number', startIndex=39, endIndex=40, required=True,

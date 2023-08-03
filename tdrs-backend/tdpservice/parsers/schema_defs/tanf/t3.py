@@ -16,10 +16,7 @@ child_one = RowSchema(
     postparsing_validators=[
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='SSN', result_function=validators.notOneOf(("000000000", "111111111", "222222222",
-                                                                           "333333333", "444444444", "555555555",
-                                                                           "666666666", "777777777", "888888888",
-                                                                           "999999999")),
+                  result_field='SSN', result_function=validators.notOneOf([str(i)*9 for i in range(0, 9)]),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
@@ -87,11 +84,7 @@ child_one = RowSchema(
                   validators.month_year_monthIsValid(),
               ]),
         EncryptedField(decryption_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=28,
-                       endIndex=37, required=True, validators=[validators.notOneOf(("000000000", "111111111",
-                                                                                    "222222222", "333333333",
-                                                                                    "444444444", "555555555",
-                                                                                    "666666666", "777777777",
-                                                                                    "888888888", "999999999"))
+                       endIndex=37, required=True, validators=[validators.notOneOf([str(i)*9 for i in range(0, 9)])
                                                                ]),
         Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=37, endIndex=38,
               required=True, validators=[
@@ -168,10 +161,7 @@ child_two = RowSchema(
     postparsing_validators=[
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='SSN', result_function=validators.notOneOf(("000000000", "111111111", "222222222",
-                                                                           "333333333", "444444444", "555555555",
-                                                                           "666666666", "777777777", "888888888",
-                                                                           "999999999")),
+                  result_field='SSN', result_function=validators.notOneOf([str(i)*9 for i in range(0, 9)]),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
@@ -239,11 +229,7 @@ child_two = RowSchema(
                   validators.month_year_monthIsValid(),
               ]),
         EncryptedField(decryption_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=69,
-                       endIndex=78, required=True, validators=[validators.notOneOf(("000000000", "111111111",
-                                                                                    "222222222", "333333333",
-                                                                                    "444444444", "555555555",
-                                                                                    "666666666", "777777777",
-                                                                                    "888888888", "999999999"))]),
+                       endIndex=78, required=True, validators=[validators.notOneOf([str(i)*9 for i in range(0, 9)])]),
         Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=78, endIndex=79,
               required=True, validators=[
                   validators.isInLimits(0, 2)
