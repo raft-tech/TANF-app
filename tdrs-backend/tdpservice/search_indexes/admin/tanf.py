@@ -90,13 +90,15 @@ class TANF_T6Admin(admin.ModelAdmin):
     """ModelAdmin class for parsed T6 data files."""
 
     list_display = [
-        'record',
-        'rpt_month_year',
+        'RecordType',
+        'CALENDAR_YEAR',
+        'CALENDAR_QUARTER',
         'datafile',
     ]
 
     list_filter = [
-        'rpt_month_year',
+        'CALENDAR_YEAR',
+        'CALENDAR_QUARTER'
     ]
 
 
