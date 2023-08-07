@@ -92,7 +92,7 @@ class TanfT6Factory(factory.django.DjangoModelFactory):
         """Hardcoded meta data for TANF_T6."""
 
         model = "search_indexes.TANF_T6"
-    
+
     CALENDAR_YEAR = 1
     CALENDAR_QUARTER = 1
     NUM_APPLICATIONS = 1

@@ -58,11 +58,11 @@ def sumIsEqual(condition_field, sum_fields=[]):
         sum = 0
         for field in sum_fields:
             sum += value[field] if type(value) is dict else getattr(value, field)
-        
+
         condition_val = value[condition_field] if type(value) is dict else getattr(value, condition_field)
-        return (True, None) if sum == condition_val else (False, 
+        return (True, None) if sum == condition_val else (False,
                                                           f"The sum of {sum_fields} does not equal {condition_val}.")
-    
+
     return lambda value: sumIsEqualFunc(value)
 
 def sumIsLarger(fields, val):

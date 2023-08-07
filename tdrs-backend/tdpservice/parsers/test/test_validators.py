@@ -418,7 +418,7 @@ class TestT6Cat3Validators(TestCat3ValidatorsBase):
     def record(self):
         """Override default record with TANF T6 record."""
         return TanfT6Factory.create()
-    
+
     def test_sum_of_applications(self, record):
         """Test cat3 validator for sum of applications."""
         val = validators.sumIsEqual("NUM_APPLICATIONS", ["NUM_APPROVED", "NUM_DENIED"])
@@ -430,7 +430,7 @@ class TestT6Cat3Validators(TestCat3ValidatorsBase):
 
         record.NUM_APPLICATIONS = 1
         result = val(record)
-        
+
         assert result == (False, f"The sum of ['NUM_APPROVED', 'NUM_DENIED'] does not equal {record.NUM_APPLICATIONS}.")
 
     def test_sum_of_families(self, record):
@@ -444,8 +444,9 @@ class TestT6Cat3Validators(TestCat3ValidatorsBase):
 
         record.NUM_FAMILIES = 1
         result = val(record)
-        
-        assert result == (False, f"The sum of ['NUM_2_PARENTS', 'NUM_1_PARENTS', 'NUM_NO_PARENTS'] does not equal {record.NUM_FAMILIES}.")
+
+        assert result == (False, "The sum of ['NUM_2_PARENTS', 'NUM_1_PARENTS', 'NUM_NO_PARENTS'] does not equal " +
+                          f"{record.NUM_FAMILIES}.")
 
     def test_sum_of_recipients(self, record):
         """Test cat3 validator for sum of recipients."""
@@ -458,5 +459,6 @@ class TestT6Cat3Validators(TestCat3ValidatorsBase):
 
         record.NUM_RECIPIENTS = 1
         result = val(record)
-        
-        assert result == (False, f"The sum of ['NUM_ADULT_RECIPIENTS', 'NUM_CHILD_RECIPIENTS'] does not equal {record.NUM_RECIPIENTS}.")
+
+        assert result == (False, "The sum of ['NUM_ADULT_RECIPIENTS', 'NUM_CHILD_RECIPIENTS'] does not equal " +
+                          f"{record.NUM_RECIPIENTS}.")
