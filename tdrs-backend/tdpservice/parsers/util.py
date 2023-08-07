@@ -61,6 +61,7 @@ def make_generate_parser_error(datafile, line_number):
 
 class SchemaManager:
     """Manages one or more RowSchema's and runs all parsers and validators."""
+
     def __init__(self, schemas):
         self.schemas = schemas
 
@@ -73,7 +74,7 @@ class SchemaManager:
             records.append((record, is_valid, errors))
 
         return records
-    
+
     def update_encrypted_fields(self, is_encrypted):
         """Update whether schema fields are encrypted or not."""
         for schema in self.schemas:
@@ -304,16 +305,3 @@ def case_aggregates_by_month(df, dfs_status):
         aggregate_data[month] = {"accepted": accepted, "rejected": rejected, "total": total}
 
     return aggregate_data
-
-    def update_encrypted_fields(self, is_encrypted):
-        """Update whether schema fields are encrypted or not."""
-        for schema in self.schemas:
-            for field in schema.fields:
-                if type(field) == EncryptedField:
-                    field.is_encrypted = is_encrypted
-
-def contains_encrypted_indicator(line, encryption_field):
-    """Determine if line contains encryption indicator."""
-    if encryption_field is not None:
-        return encryption_field.parse_value(line) == "E"
-    return False

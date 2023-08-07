@@ -159,6 +159,7 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
         if prev_sum != header_count + trailer_count:
             prev_sum = header_count + trailer_count
             continue
+
         schema = util.get_schema(line, section, program_type)
         if schema is None:
             err_obj = util.generate_parser_error(
