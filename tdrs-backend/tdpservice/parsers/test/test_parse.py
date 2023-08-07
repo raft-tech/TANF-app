@@ -9,6 +9,7 @@ from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3
 from .factories import DataFileSummaryFactory
 from tdpservice.data_files.models import DataFile
 from .. import schema_defs, util
+
 import logging
 
 es_logger = logging.getLogger('elasticsearch')
@@ -55,7 +56,6 @@ def test_parse_small_correct_file(test_datafile, dfs):
     assert t1.CASH_AMOUNT == 873
     assert t1.SANC_REDUCTION_AMT == 0
     assert t1.FAMILY_NEW_CHILD == 2
-
 
 @pytest.mark.django_db
 def test_parse_section_mismatch(test_datafile, dfs):
@@ -118,7 +118,6 @@ def test_parse_wrong_program_type(test_datafile, dfs):
 def test_big_file(stt_user, stt):
     """Fixture for ADS.E2J.FTP1.TS06."""
     return util.create_test_datafile('ADS.E2J.FTP1.TS06', stt_user, stt)
-
 
 @pytest.mark.django_db
 def test_parse_big_file(test_big_file, dfs):
@@ -185,7 +184,6 @@ def test_parse_bad_test_file(bad_test_file, dfs):
 def bad_file_missing_header(stt_user, stt):
     """Fixture for bad_missing_header."""
     return util.create_test_datafile('bad_missing_header.txt', stt_user, stt)
-
 
 @pytest.mark.django_db
 def test_parse_bad_file_missing_header(bad_file_missing_header, dfs):
@@ -265,7 +263,6 @@ def test_parse_big_bad_test_file(big_bad_test_file, dfs):
 def bad_trailer_file(stt_user, stt):
     """Fixture for bad_trailer_1."""
     return util.create_test_datafile('bad_trailer_1.txt', stt_user, stt)
-
 
 @pytest.mark.django_db
 def test_parse_bad_trailer_file(bad_trailer_file, dfs):
@@ -493,6 +490,7 @@ def test_parse_tanf_section1_datafile(small_tanf_section1_datafile, dfs):
     assert t2_2.FAMILY_AFFILIATION == 2
     assert t2_2.OTHER_UNEARNED_INCOME == '0000'
 
+
 @pytest.mark.django_db()
 def test_parse_tanf_section1_datafile_obj_counts(small_tanf_section1_datafile):
     """Test parsing of small_tanf_section1_datafile in general."""
@@ -530,6 +528,7 @@ def test_parse_tanf_section1_datafile_t3s(small_tanf_section1_datafile):
 def super_big_s1_file(stt_user, stt):
     """Fixture for ADS.E2J.NDM1.TS53_fake."""
     return util.create_test_datafile('ADS.E2J.NDM1.TS53_fake', stt_user, stt)
+
 
 @pytest.mark.django_db()
 def test_parse_super_big_s1_file(super_big_s1_file):
