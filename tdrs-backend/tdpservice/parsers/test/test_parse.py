@@ -119,7 +119,6 @@ def test_big_file(stt_user, stt):
     """Fixture for ADS.E2J.FTP1.TS06."""
     return util.create_test_datafile('ADS.E2J.FTP1.TS06', stt_user, stt)
 
-
 @pytest.mark.django_db
 def test_parse_big_file(test_big_file, dfs):
     """Test parsing of ADS.E2J.FTP1.TS06."""
@@ -185,7 +184,6 @@ def test_parse_bad_test_file(bad_test_file, dfs):
 def bad_file_missing_header(stt_user, stt):
     """Fixture for bad_missing_header."""
     return util.create_test_datafile('bad_missing_header.txt', stt_user, stt)
-
 
 @pytest.mark.django_db
 def test_parse_bad_file_missing_header(bad_file_missing_header, dfs):
@@ -265,7 +263,6 @@ def test_parse_big_bad_test_file(big_bad_test_file, dfs):
 def bad_trailer_file(stt_user, stt):
     """Fixture for bad_trailer_1."""
     return util.create_test_datafile('bad_trailer_1.txt', stt_user, stt)
-
 
 @pytest.mark.django_db
 def test_parse_bad_trailer_file(bad_trailer_file, dfs):

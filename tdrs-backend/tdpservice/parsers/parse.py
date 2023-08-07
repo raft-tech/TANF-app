@@ -106,6 +106,10 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
     errors = {}
 
     line_number = 0
+    schema_manager_options = get_schema_manager_options(program_type)
+
+    unsaved_records = {}
+    unsaved_parser_errors = {}
 
     schema_manager_options = get_schema_manager_options(program_type)
 
@@ -145,7 +149,6 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
         is_last = offset == file_length
         multiple_trailer_errors, trailer_errors = evaluate_trailer(datafile, trailer_count, multiple_trailer_errors,
                                                                    is_last, line, line_number)
-
         if trailer_errors is not None:
             errors['trailer'] = trailer_errors
             unsaved_parser_errors.update({"trailer": trailer_errors})
@@ -221,6 +224,7 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
         rollback_records(unsaved_records, datafile)
         bulk_create_errors(unsaved_parser_errors, num_errors, flush=True)
         return errors
+
 
     bulk_create_errors(unsaved_parser_errors, num_errors, flush=True)
 

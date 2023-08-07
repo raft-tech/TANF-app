@@ -32,7 +32,6 @@ def value_is_empty(value, length):
 
     return value is None or value in empty_values
 
-
 def generate_parser_error(datafile, line_number, schema, error_category, error_message, record=None, field=None):
     """Create and return a ParserError using args."""
     return ParserError(
@@ -68,9 +67,9 @@ def make_generate_parser_error(datafile, line_number):
 
     return generate
 
+
 class SchemaManager:
     """Manages one or more RowSchema's and runs all parsers and validators."""
-
     def __init__(self, schemas):
         self.schemas = schemas
 
@@ -97,6 +96,7 @@ class SchemaManager:
             return encryption_field.parse_value(line) == "E"
         return False
   
+
 def get_schema_options(program, section, query=None, model=None, model_name=None):
     """Centralized function to return the appropriate schema for a given program, section, and query.
 
