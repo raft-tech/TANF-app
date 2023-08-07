@@ -273,6 +273,7 @@ def test_parse_bad_trailer_file(bad_trailer_file, dfs):
     errors = parse.parse_datafile(bad_trailer_file)
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file)
+    print(parser_errors.values())
     assert parser_errors.count() == 2
 
     trailer_error = parser_errors.get(row_number=3)
@@ -305,6 +306,7 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
     errors = parse.parse_datafile(bad_trailer_file_2)
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file_2)
+    print(parser_errors.values())
     assert parser_errors.count() == 4
 
     trailer_errors = parser_errors.filter(row_number=3)

@@ -103,8 +103,6 @@ class DataFileSummary(models.Model):
         elif errors.count() == 0:
             return DataFileSummary.Status.ACCEPTED
         elif precheck_errors.count() > 0:
-            print(precheck_errors.values())
             return DataFileSummary.Status.REJECTED
         else:
-            print(errors)
             return DataFileSummary.Status.ACCEPTED_WITH_ERRORS

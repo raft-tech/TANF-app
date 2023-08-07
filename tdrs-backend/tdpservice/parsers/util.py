@@ -90,11 +90,11 @@ class SchemaManager:
                 if type(field) == EncryptedField:
                     field.is_encrypted = is_encrypted
                     
-    def contains_encrypted_indicator(line, encryption_field):
-        """Determine if line contains encryption indicator."""
-        if encryption_field is not None:
-            return encryption_field.parse_value(line) == "E"
-        return False
+def contains_encrypted_indicator(line, encryption_field):
+    """Determine if line contains encryption indicator."""
+    if encryption_field is not None:
+        return encryption_field.parse_value(line) == "E"
+    return False
   
 
 def get_schema_options(program, section, query=None, model=None, model_name=None):
@@ -298,7 +298,7 @@ def case_aggregates_by_month(df, dfs_status):
 
         case_numbers = set()
         for schema_model in schema_models:
-            if isinstance(schema_model, MultiRecordRowSchema):
+            if isinstance(schema_model, SchemaManager):
                 schema_model = schema_model.schemas[0]
 
             curr_case_numbers = set(schema_model.model.objects.filter(datafile=df).filter(RPT_MONTH_YEAR=rpt_month_year)
