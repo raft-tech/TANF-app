@@ -84,3 +84,29 @@ class TanfT5Factory(factory.django.DjangoModelFactory):
     EMPLOYMENT_STATUS = 1
     AMOUNT_EARNED_INCOME = "1"
     AMOUNT_UNEARNED_INCOME = "1"
+
+class TanfT6Factory(factory.django.DjangoModelFactory):
+    """Generate TANF T6 record for testing."""
+
+    class Meta:
+        """Hardcoded meta data for TANF_T6."""
+
+        model = "search_indexes.TANF_T6"
+    
+    CALENDAR_YEAR = 1
+    CALENDAR_QUARTER = 1
+    NUM_APPLICATIONS = 1
+    NUM_APPROVED = 1
+    NUM_DENIED = 1
+    NUM_ASSISTANCE = 1
+    NUM_FAMILIES = 1
+    NUM_2_PARENTS = 1
+    NUM_1_PARENTS = 1
+    NUM_NO_PARENTS = 1
+    NUM_RECIPIENTS = 1
+    NUM_ADULT_RECIPIENTS = 1
+    NUM_CHILD_RECIPIENTS = 1
+    NUM_NONCUSTODIALS = 1
+    NUM_BIRTHS = 1
+    NUM_OUTWEDLOCK_BIRTHS = 1
+    NUM_CLOSED_CASES = 1
