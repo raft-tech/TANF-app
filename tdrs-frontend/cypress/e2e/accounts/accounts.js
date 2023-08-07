@@ -58,6 +58,29 @@ Then('{string} sees the request still submitted', (username) => {
   cy.contains('Request Submitted').should('exist')
 })
 
+Then('{string} can see Data Files page', (username) => {
+  cy.visit('/data-files')
+  cy.contains('Data Files').should('exist')
+})
+
+Then('{string} can see search form', (username) => {
+  cy.contains('Fiscal Year').should('exist')
+  cy.contains('Quarter').should('exist')
+})
+
+Then('{string} can browse upload file form', (username) => {
+  cy.get('#reportingYears').should('exist').select('2023')
+  cy.get('#quarter').should('exist').select('Q1')
+  cy.get('button').contains('Search').should('exist').click()
+  cy.get('#closed-case-data').selectFile('Doc.txt',{ action: 'drag-drop' })
+  cy.get('button').contains('Submit Data Files').should('exist').click()
+  cy.wait(2000).then(() => {
+    const runout = ['No changes have been made to data files', 'Sucessfully']
+    const regex = new RegExp(`${runout.join('|')}`, 'g')
+    cy.get('p').should('have.class','usa-alert__text').should('exist').contains('No changes have been made to data files')
+  })
+})
+
 Then('{string} can upload a file', (username) => {
   cy.get('button').contains('Upload').should('exist').click()
   cy.get('input[type="file"]').attachFile('test.csv')
