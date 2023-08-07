@@ -44,8 +44,8 @@ if [[ $(docker network inspect external-net 2>&1 | grep -c Scope) == 0 ]]; then
 fi
 
 # Ensure the APP_URL is reachable from the zaproxy container
-if ! docker-compose run --rm zaproxy curl -Is "https://tdp-frontend-develop.acf.hhs.gov/swagger.json" > /dev/null 2>&1; then
-  echo "Target application at https://tdp-frontend-develop.acf.hhs.gov/swagger.json is unreachable by ZAP scanner"
+if ! docker-compose run --rm zaproxy curl -Is "$APP_URL" | grep "HTTP/2 200" ; then
+  echo "Target application at $APP_URL is unreachable by ZAP scanner"
   exit 3
 fi
 
