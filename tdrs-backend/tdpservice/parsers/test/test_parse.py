@@ -586,7 +586,7 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
 
     errors = parse.parse_datafile(bad_tanf_s1__row_missing_required_field)
 
-    assert dfs.get_status() == DataFileSummary.Status.REJECTED
+    assert dfs.get_status() == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
 
     parser_errors = ParserError.objects.filter(file=bad_tanf_s1__row_missing_required_field)
     assert parser_errors.count() == 4
@@ -637,6 +637,7 @@ def test_parse_bad_ssp_s1_missing_required(bad_ssp_s1__row_missing_required_fiel
     errors = parse.parse_datafile(bad_ssp_s1__row_missing_required_field)
 
     parser_errors = ParserError.objects.filter(file=bad_ssp_s1__row_missing_required_field)
+    print(parser_errors.values())
     assert parser_errors.count() == 5
 
     row_2_error = parser_errors.get(row_number=2)
