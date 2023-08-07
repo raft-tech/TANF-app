@@ -98,7 +98,7 @@ class TanfT6Factory(factory.django.DjangoModelFactory):
     NUM_APPLICATIONS = 1
     NUM_APPROVED = 1
     NUM_DENIED = 1
-    NUM_ASSISTANCE = 1
+    ASSISTANCE = 1
     NUM_FAMILIES = 1
     NUM_2_PARENTS = 1
     NUM_1_PARENTS = 1

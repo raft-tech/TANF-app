@@ -310,7 +310,7 @@ class TANF_T6DataSubmissionDocument(DocumentBase, Document):
             'NUM_APPLICATIONS',
             'NUM_APPROVED',
             'NUM_DENIED',
-            'NUM_ASSISTANCE',
+            'ASSISTANCE',
             'NUM_FAMILIES',
             'NUM_2_PARENTS',
             'NUM_1_PARENTS',

@@ -311,7 +311,7 @@ class TANF_T6(models.Model):
     NUM_APPLICATIONS = models.IntegerField(null=True, blank=True)
     NUM_APPROVED = models.IntegerField(null=True, blank=True)
     NUM_DENIED = models.IntegerField(null=True, blank=True)
-    NUM_ASSISTANCE = models.IntegerField(null=True, blank=True)
+    ASSISTANCE = models.IntegerField(null=True, blank=True)
     NUM_FAMILIES = models.IntegerField(null=True, blank=True)
     NUM_2_PARENTS = models.IntegerField(null=True, blank=True)
     NUM_1_PARENTS = models.IntegerField(null=True, blank=True)

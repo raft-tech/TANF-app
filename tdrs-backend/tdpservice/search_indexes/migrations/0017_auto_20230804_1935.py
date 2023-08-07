@@ -123,7 +123,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='tanf_t6',
-            name='NUM_ASSISTANCE',
+            name='ASSISTANCE',
             field=models.IntegerField(blank=True, null=True),
         ),
         migrations.AddField(
