@@ -83,9 +83,6 @@ When('{string} uploads a file', (username) => {
 
 Then('{string} can see the upload successful', (username) => {
   cy.wait(3000).then(() => {
-    const runout = ['No changes have been made to data files', 'Sucessfully']
     cy.contains(/Successfully|No changes/g).should('exist')
-    //const regex = new RegExp(`${runout.join('|')}`, 'g')
-    //cy.get('p').should('have.class','usa-alert__text').should('exist').contains('No changes have been made to data files')
   })
 })
