@@ -60,6 +60,18 @@ ZAP_CLI_OPTIONS="\
   -config globalexcludeurl.url_list.url\(0\).description='Exclude robots.txt' \
   -config globalexcludeurl.url_list.url\(0\).enabled=true \
 
+  -config globalexcludeurl.url_list.url\(1\).regex='^https?://.*\.cdn\.mozilla\.(?:com|org|net)/.*$' \
+  -config globalexcludeurl.url_list.url\(1\).description='Site - Mozilla CDN (requests such as getpocket)' \
+  -config globalexcludeurl.url_list.url\(1\).enabled=true \
+
+  -config globalexcludeurl.url_list.url\(2\).regex='^https?://.*\.amazonaws\.(?:com|org|net)/.*$' \
+  -config globalexcludeurl.url_list.url\(2\).description='TDP S3 buckets' \
+  -config globalexcludeurl.url_list.url\(2\).enabled=true \
+
+  -config globalexcludeurl.url_list.url\(3\).regex='^https?://.*\.hhs.gov\/.*$' \
+  -config globalexcludeurl.url_list.url\(3\).description='Site - acf.hhs.gov' \
+  -config globalexcludeurl.url_list.url\(3\).enabled=true \
+
   -config spider.postform=true"
 
 # How long ZAP will crawl the app with the spider process
