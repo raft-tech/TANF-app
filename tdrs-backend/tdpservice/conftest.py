@@ -388,3 +388,8 @@ def test_private_key():
 # Register factories with pytest-factoryboy for automatic dependency injection
 # of model-related fixtures into tests.
 register(OwaspZapScanFactory)
+
+# Change the working directory to a temporary directory for all tests.
+@pytest.fixture(autouse=True)
+def change_test_dir(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
