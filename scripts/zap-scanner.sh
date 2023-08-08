@@ -177,7 +177,7 @@ else
   # Otherwise, use the full scan as we have been.
   ZAP_SCRIPT="zap-full-scan.py"
   # Allow use of the optional AJAX spider to effectively crawl the React webapp.
-  ZAP_ARGS+=(-j)
+  # ZAP_ARGS+=(-j)
 fi
 
 # Run the ZAP full scan and store output for further processing if needed.
