@@ -76,7 +76,7 @@ Then('{string} can browse upload file form', (username) => {
 
 When('{string} uploads a file', (username) => {
   cy.get('button').contains('Search').should('exist').click()
-  cy.get('#closed-case-data').selectFile('../tdrs-backend/ADS.E2J.FTP1.TS08',{ action: 'drag-drop' })
+  cy.get('#closed-case-data').selectFile('../tdrs-backend/tdpservice/parsers/test/data/small_correct_file',{ action: 'drag-drop' })
   cy.get('button').contains('Submit Data Files').should('exist').click()
 
 })
