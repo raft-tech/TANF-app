@@ -22,17 +22,6 @@ def create_test_datafile(filename, stt_user, stt, section='Active Case Data'):
     return datafile
 
 
-def value_is_empty(value, length):
-    """Handle 'empty' values as field inputs."""
-    empty_values = [
-        ' '*length,  # '     '
-        '#'*length,  # '#####'
-        '_'*length,  # '_____'
-    ]
-
-    return value is None or value in empty_values
-
-
 def generate_parser_error(datafile, line_number, schema, error_category, error_message, record=None, field=None):
     """Create and return a ParserError using args."""
     return ParserError(
