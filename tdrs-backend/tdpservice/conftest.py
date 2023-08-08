@@ -389,7 +389,8 @@ def test_private_key():
 # of model-related fixtures into tests.
 register(OwaspZapScanFactory)
 
-# Change the working directory to a temporary directory for all tests.
+
 @pytest.fixture(autouse=True)
 def change_test_dir(monkeypatch, tmp_path):
+    """Change the working directory to a temporary directory for all tests."""
     monkeypatch.chdir(tmp_path)
