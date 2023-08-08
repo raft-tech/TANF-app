@@ -164,7 +164,7 @@ ZAP_ARGS+=(-I)
 
 # Use custom hook to disable passive scan rules - these don't get disabled by
 # setting them to IGNORE in the config file, unlike active rules.
-ZAP_ARGS+=(--verbose --hook=/zap/scripts/zap-hook.py)
+ZAP_ARGS+=(-d --hook=/zap/scripts/zap-hook.py)
 
 # Alter the script used and options passed to it based on target
 if [ "$TARGET" = "backend" ]; then
