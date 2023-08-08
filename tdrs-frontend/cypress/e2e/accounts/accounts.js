@@ -71,21 +71,21 @@ Then('{string} can see search form', (username) => {
 Then('{string} can browse upload file form', (username) => {
   cy.get('#reportingYears').should('exist').select('2023')
   cy.get('#quarter').should('exist').select('Q1')
-  cy.get('button').contains('Search').should('exist').click()
-  cy.get('#closed-case-data').selectFile('Doc.txt',{ action: 'drag-drop' })
-  cy.get('button').contains('Submit Data Files').should('exist').click()
-  cy.wait(2000).then(() => {
-    const runout = ['No changes have been made to data files', 'Sucessfully']
-    const regex = new RegExp(`${runout.join('|')}`, 'g')
-    cy.get('p').should('have.class','usa-alert__text').should('exist').contains('No changes have been made to data files')
-  })
+  cy.get('button').contains('Search').should('exist')
 })
 
-Then('{string} can upload a file', (username) => {
-  cy.get('button').contains('Upload').should('exist').click()
-  cy.get('input[type="file"]').attachFile('test.csv')
-  cy.get('button').contains('Upload').should('exist').click()
-  cy.wait(2000).then(() => {
-  cy.contains('Upload Successful').should('exist')
+When('{string} uploads a file', (username) => {
+  cy.get('button').contains('Search').should('exist').click()
+  cy.get('#closed-case-data').selectFile('../tdrs-backend/ADS.E2J.FTP1.TS08',{ action: 'drag-drop' })
+  cy.get('button').contains('Submit Data Files').should('exist').click()
+
+})
+
+Then('{string} can see the upload successful', (username) => {
+  cy.wait(3000).then(() => {
+    const runout = ['No changes have been made to data files', 'Sucessfully']
+    cy.contains(/Successfully|No changes/g).should('exist')
+    //const regex = new RegExp(`${runout.join('|')}`, 'g')
+    //cy.get('p').should('have.class','usa-alert__text').should('exist').contains('No changes have been made to data files')
   })
 })
