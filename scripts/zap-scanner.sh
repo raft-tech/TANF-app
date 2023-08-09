@@ -32,7 +32,7 @@ else
 fi
 
 # The backend also needs to include the path of the OpenAPI specification
-if [ "$TARGET" = "backend" || "$TARGET" = "frontend"]; then
+if [ "$TARGET" = "backend"]; then
   APP_URL+="swagger.json"
 fi
 
