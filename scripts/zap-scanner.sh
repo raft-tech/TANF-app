@@ -32,8 +32,8 @@ else
 fi
 
 # The backend also needs to include the path of the OpenAPI specification
-if [ "$TARGET" = "backend" ]; then
-  APP_URL+="gibberishswagger.json"
+if [ "$TARGET" = "backend" || "$TARGET" = "frontend"]; then
+  APP_URL+="swagger.json"
 fi
 
 cd "$TARGET_DIR" || exit 2
