@@ -33,7 +33,7 @@ fi
 
 # The backend also needs to include the path of the OpenAPI specification
 if [ "$TARGET" = "backend" ]; then
-  APP_URL+="swagger.json"
+  APP_URL+="gibberishswagger.json"
 fi
 
 cd "$TARGET_DIR" || exit 2
