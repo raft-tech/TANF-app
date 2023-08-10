@@ -344,11 +344,12 @@ class TANF_T7DataSubmissionDocument(DocumentBase, Document):
 
         model = TANF_T7
         fields = [
-            'record',
-            'rpt_month_year',
-            'fips_code',
-            'calendar_quarter',
-            'tdrs_section_ind',
-            'stratum',
-            'families',
+            "RecordType",
+            "CALENDAR_YEAR",
+            "CALENDAR_QUARTER",
+            "TDRS_SECTION_IND",
+            "STRATUM",
+            "FAMILIES_MONTH_1",
+            "FAMILIES_MONTH_2",
+            "FAMILIES_MONTH_3"
         ]

@@ -344,15 +344,16 @@ class TANF_T7(models.Model):
         related_name='t7_parent'
     )
 
-    record = models.CharField(max_length=156, null=False, blank=False)
-    rpt_month_year = models.IntegerField(null=False, blank=False)
-    fips_code = models.CharField(max_length=100, null=False, blank=False)
+    RecordType = models.CharField(max_length=156, null=True, blank=False)
+    CALENDAR_YEAR = models.IntegerField(null=True, blank=True)
+    CALENDAR_QUARTER = models.IntegerField(null=True, blank=True)
 
-    calendar_quarter = models.IntegerField(null=False, blank=False)
-    tdrs_section_ind = models.CharField(
+    TDRS_SECTION_IND = models.CharField(
         max_length=1,
-        null=False,
+        null=True,
         blank=False
     )
-    stratum = models.CharField(max_length=2, null=False, blank=False)
-    families = models.IntegerField(null=False, blank=False)
+    STRATUM = models.CharField(max_length=2, null=True, blank=False)
+    FAMILIES_MONTH_1 = models.IntegerField(null=True, blank=False)
+    FAMILIES_MONTH_2 = models.IntegerField(null=True, blank=False)
+    FAMILIES_MONTH_3 = models.IntegerField(null=True, blank=False)
