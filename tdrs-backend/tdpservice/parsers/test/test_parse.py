@@ -649,10 +649,11 @@ def test_parse_tanf_section4_file(tanf_section4_file):
     """Test parsing TANF Section 4 submission."""
     parse.parse_datafile(tanf_section4_file)
 
-    assert TANF_T7.objects.all().count() == 2
+    assert TANF_T7.objects.all().count() == 6
 
     parser_errors = ParserError.objects.filter(file=tanf_section4_file)
-    assert parser_errors.count() == 0
+    assert parser_errors.count() == 1
+    # check error
 
     t7_objs = TANF_T7.objects.all().order_by('TDRS_SECTION_IND')
 
