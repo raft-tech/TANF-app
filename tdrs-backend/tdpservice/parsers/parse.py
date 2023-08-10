@@ -249,7 +249,7 @@ def get_schema_manager_options(program_type):
                     # 'T6': schema_options.t6,
                 },
                 'S': {
-                    # 'T7': schema_options.t7,
+                    'T7': schema_defs.tanf.t7,
                 },
             }
         case 'SSP':

@@ -5,7 +5,7 @@ import pytest
 from ..util import create_test_datafile
 from .. import parse
 from ..models import ParserError, ParserErrorCategoryChoices
-from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5
+from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5, TANF_T7
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3
 import logging
 
@@ -637,3 +637,37 @@ def test_parse_tanf_section2_file(tanf_section2_file):
     assert err.error_message == "REC_OASDI_INSURANCE is required but a value was not provided."
     assert err.content_type.model == "tanf_t5"
     assert err.object_id is not None
+
+
+@pytest.fixture
+def tanf_section4_file(stt_user, stt):
+    """Fixture for ADS.E2J.FTP4.TS06."""
+    return create_test_datafile('ADS.E2J.FTP4.TS06', stt_user, stt, "Stratum Data")
+
+@pytest.mark.django_db()
+def test_parse_tanf_section4_file(tanf_section4_file):
+    """Test parsing TANF Section 4 submission."""
+    parse.parse_datafile(tanf_section4_file)
+
+    assert TANF_T7.objects.all().count() == 2
+
+    parser_errors = ParserError.objects.filter(file=tanf_section4_file)
+    assert parser_errors.count() == 0
+
+    t7_objs = TANF_T7.objects.all().order_by('TDRS_SECTION_IND')
+
+    first = t7_objs.first()
+    second = t7_objs[1]
+    # third = t7_objs[2]
+
+    assert first.CALENDAR_YEAR == 2020
+    assert second.CALENDAR_YEAR == 2020
+    # assert third.CALENDAR_YEAR == 2020
+
+    assert first.TDRS_SECTION_IND == '1'
+    assert second.TDRS_SECTION_IND == '1'
+    # assert third.TDRS_SECTION_IND == '1'
+
+    assert first.FAMILIES_MONTH_1 == 68537
+    assert second.FAMILIES_MONTH_1 == 3124
+    # assert third.FAMILIES_MONTH_1 == 5453
