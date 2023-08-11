@@ -21,7 +21,7 @@ pytest-factoryboy = "2.5.1"
 
 [packages]
 pytz = "2022.1"
-boto3 = "==1.28.4"
+boto3 = "==1.28.24"
 cryptography = "==3.4.7"
 dj-database-url = "==0.5.0"
 django = "==3.2.15"
