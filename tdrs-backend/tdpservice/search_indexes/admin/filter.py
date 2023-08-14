@@ -31,7 +31,6 @@ class CreationDateFilter(SimpleListFilter):
     def queryset(self, request, queryset):
         """Sort queryset to show latest records."""
         if self.value() is None and queryset.exists():
-            max_date = DataFile.objects.all().latest('created_at').created_at
-            datafile = DataFile.objects.get(created_at=max_date)
+            datafile = queryset.order_by("-datafile__id").first().datafile
             return queryset.filter(datafile=datafile)
         return queryset

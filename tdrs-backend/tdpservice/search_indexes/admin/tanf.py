@@ -67,6 +67,7 @@ class TANF_T4Admin(admin.ModelAdmin):
     ]
 
     list_filter = [
+        CreationDateFilter,
         'RPT_MONTH_YEAR',
     ]
 
@@ -82,6 +83,7 @@ class TANF_T5Admin(admin.ModelAdmin):
     ]
 
     list_filter = [
+        CreationDateFilter,
         'RPT_MONTH_YEAR',
     ]
 
@@ -96,6 +98,7 @@ class TANF_T6Admin(admin.ModelAdmin):
     ]
 
     list_filter = [
+        CreationDateFilter,
         'rpt_month_year',
     ]
 
@@ -110,5 +113,6 @@ class TANF_T7Admin(admin.ModelAdmin):
     ]
 
     list_filter = [
+        CreationDateFilter,
         'rpt_month_year',
     ]
