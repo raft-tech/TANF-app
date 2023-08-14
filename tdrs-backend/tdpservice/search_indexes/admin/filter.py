@@ -1,7 +1,6 @@
 """Filter classes."""
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.admin import SimpleListFilter
-from tdpservice.data_files.models import DataFile
 
 class CreationDateFilter(SimpleListFilter):
     """Simple filter class to show newest created datafile records."""
