@@ -5,11 +5,7 @@ import pytest
 from ..util import create_test_datafile
 from .. import parse
 from ..models import ParserError, ParserErrorCategoryChoices
-<<<<<<< HEAD
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5, TANF_T6
-=======
-from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5
->>>>>>> 1edfe45a0a359083252d80dcb6d0fd08debd2023
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3
 import logging
 
