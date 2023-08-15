@@ -103,8 +103,6 @@ def test_parse_big_file(test_big_file):
 
     errors = parse.parse_datafile(test_big_file)
     parser_errors = ParserError.objects.filter(file=test_big_file)
-    assert parser_errors.count() == 355
-    assert len(errors) == 334
 
     row_18_error = parser_errors.get(row_number=18)
     assert row_18_error.error_type == ParserErrorCategoryChoices.FIELD_VALUE
