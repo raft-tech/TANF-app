@@ -27,7 +27,7 @@ class ColorFormatter(logging.Formatter):
 
     def __init__(self, *args, **kwargs):
         self._colors = {logging.DEBUG: self.GREEN,
-                        logging.INFO: self.WHITE,
+                        logging.INFO: self.CYAN,
                         logging.WARNING: self.YELLOW,
                         logging.ERROR: self.LIGHT_RED,
                         logging.CRITICAL: self.RED}
