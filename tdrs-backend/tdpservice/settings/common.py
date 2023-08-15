@@ -204,10 +204,12 @@ class Common(Configuration):
             },
             "verbose": {
                 "format": (
-                    "[%(asctime)s %(levelname)s %(filename)s::%(funcName)s:L%(lineno)d :  %(message)s"
+                    "%(asctime)s %(levelname)s %(filename)s::%(funcName)s:L%(lineno)d :  %(message)s"
                 )
             },
             "simple": {"format": "%(levelname)s %(message)s"},
+            "color": {"()": "tdpservice.core.logger.ColorFormatter",
+                      "format": "%(asctime)s %(levelname)s %(filename)s::%(funcName)s:L%(lineno)d :  %(message)s"}
         },
         "filters": {"require_debug_true": {"()": "django.utils.log.RequireDebugTrue"}},
         "handlers": {
@@ -223,13 +225,18 @@ class Common(Configuration):
             },
             "application": {
                 "class": "logging.StreamHandler",
-                "formatter": "verbose",
+                "formatter": "color",
             },
         },
         "loggers": {
             "tdpservice": {
                "handlers": ["application"],
                "propagate": True,
+               "level": LOGGING_LEVEL
+            },
+            "tdpservice.parsers": {
+               "handlers": ["application"],
+               "propagate": False,
                "level": LOGGING_LEVEL
             },
             "django": {"handlers": ["console"], "propagate": True},

@@ -23,15 +23,18 @@ def parse_datafile(datafile):
         util.make_generate_parser_error(datafile, 1)
     )
     if not header_is_valid:
+        logger.error(f"Header errors: {[error.error_message for error in header_errors]}")
         errors['header'] = header_errors
         bulk_create_errors({1: header_errors}, 1, flush=True)
         return errors
 
     is_encrypted = util.contains_encrypted_indicator(header_line, schema_defs.header.get_field_by_name("encryption"))
+    logger.info(f"Datafile has encrypted fields: {is_encrypted}.")
 
     # ensure file section matches upload section
     program_type = header['program_type']
     section = header['type']
+    logger.info(f"Program type: {program_type}, Section: {section}.")
 
     section_is_valid, section_error = validators.validate_header_section_matches_submission(
         datafile,
@@ -40,6 +43,7 @@ def parse_datafile(datafile):
     )
 
     if not section_is_valid:
+        logger.error(f"Section is not valid: {section_error.error_message}")
         errors['document'] = [section_error]
         unsaved_parser_errors = {1: [section_error]}
         bulk_create_errors(unsaved_parser_errors, 1, flush=True)
@@ -55,12 +59,17 @@ def parse_datafile(datafile):
 def bulk_create_records(unsaved_records, line_number, header_count, batch_size=10000, flush=False):
     """Bulk create passed in records."""
     if (line_number % batch_size == 0 and header_count > 0) or flush:
+        logger.info("Bulk creating records.")
         try:
             num_created = 0
             num_expected = 0
             for model, records in unsaved_records.items():
                 num_expected += len(records)
                 num_created += len(model.objects.bulk_create(records))
+            if num_created != num_expected:
+                logger.error(f"Bulk create only created {num_created}/{num_expected}!")
+            else:
+                logger.info(f"Created {num_created}/{num_expected} records.")
             return num_created == num_expected, {}
         except DatabaseError as e:
             logger.error(f"Encountered error while creating datafile records: {e}")
@@ -70,7 +79,9 @@ def bulk_create_records(unsaved_records, line_number, header_count, batch_size=1
 def bulk_create_errors(unsaved_parser_errors, num_errors, batch_size=500, flush=False):
     """Bulk create all ParserErrors."""
     if flush or (unsaved_parser_errors and num_errors >= batch_size):
-        ParserError.objects.bulk_create(list(itertools.chain.from_iterable(unsaved_parser_errors.values())))
+        num_created = len(ParserError.objects.bulk_create(list(itertools.chain.from_iterable(
+            unsaved_parser_errors.values()))))
+        logger.info(f"Created {num_created}/{num_errors} ParserErrors.")
         return {}, 0
     return unsaved_parser_errors, num_errors
 
@@ -127,6 +138,8 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
         offset += len(rawline)
         line = rawline.decode().strip('\r\n')
 
+        logger.debug(f"Parsing line #{line_number}.")
+
         header_count += int(line.startswith('HEADER'))
         trailer_count += int(line.startswith('TRAILER'))
 
@@ -135,6 +148,8 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
                                                                    is_last, line, line_number)
 
         if trailer_errors is not None:
+            logger.warn(f"{len(trailer_errors)} trailer error(s) detected for file " +
+                        f"'{datafile.original_filename}' on line {line_number}.")
             errors['trailer'] = trailer_errors
             unsaved_parser_errors.update({"trailer": trailer_errors})
             num_errors += len(trailer_errors)
@@ -142,6 +157,7 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
         generate_error = util.make_generate_parser_error(datafile, line_number)
 
         if header_count > 1:
+            logger.error(f"Multiple headers found for file '{datafile.original_filename}' on line {line_number}.")
             errors.update({'document': ['Multiple headers found.']})
             err_obj = generate_error(
                 schema=None,
@@ -166,6 +182,7 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
         schema_manager.update_encrypted_fields(is_encrypted)
 
         records = manager_parse_line(line, schema_manager, generate_error)
+        logger.debug(f"Parsed {len(records)} from line #{line_number}.")
 
         record_number = 0
         for i in range(len(records)):
@@ -173,6 +190,7 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
             record_number += 1
             record, record_is_valid, record_errors = r
             if not record_is_valid:
+                logger.debug(f"Record #{i} from line {line_number} is invalid.")
                 line_errors = errors.get(line_number, {})
                 line_errors.update({record_number: record_errors})
                 errors.update({line_number: record_errors})
@@ -187,6 +205,7 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
         unsaved_parser_errors, num_errors = bulk_create_errors(unsaved_parser_errors, num_errors)
 
     if header_count == 0:
+        logger.error(f"No headers found for file '{datafile.original_filename}'.")
         errors.update({'document': ['No headers found.']})
         err_obj = generate_error(
             schema=None,
@@ -205,6 +224,7 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
     # successfully create the records.
     all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count, flush=True)
     if not all_created:
+        logger.error(f"Not all parsed records created for file '{datafile.original_filename}'!")
         rollback_records(unsaved_records, datafile)
         bulk_create_errors(unsaved_parser_errors, num_errors, flush=True)
         return errors
