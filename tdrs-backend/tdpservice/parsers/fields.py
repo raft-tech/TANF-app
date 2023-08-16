@@ -96,7 +96,6 @@ class TransformField(Field):
     def parse_value(self, line):
         """Parse and transform the value for a field given a line, startIndex, endIndex, and field type."""
         value = line[self.startIndex:self.endIndex]
-        print(f"\n\nORIGINAL VALUE: {value}")
 
         if value_is_empty(value, self.endIndex-self.startIndex):
             return None
@@ -109,7 +108,6 @@ class TransformField(Field):
             case 'number':
                 try:
                     value = int(value)
-                    print(f"TRANSFORMED VALUE: {value}\n\n")
                     return value
                 except ValueError:
                     return None
