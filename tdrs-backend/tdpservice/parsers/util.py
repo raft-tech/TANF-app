@@ -3,7 +3,7 @@ from .models import ParserError
 from django.contrib.contenttypes.models import ContentType
 from tdpservice.data_files.models import DataFile
 from pathlib import Path
-from .fields import EncryptedField
+from .fields import TransformField
 from datetime import datetime
 
 def create_test_datafile(filename, stt_user, stt, section='Active Case Data'):
@@ -79,7 +79,7 @@ class SchemaManager:
         """Update whether schema fields are encrypted or not."""
         for schema in self.schemas:
             for field in schema.fields:
-                if type(field) == EncryptedField:
+                if type(field) == TransformField:
                     field.is_encrypted = is_encrypted
 
 def contains_encrypted_indicator(line, encryption_field):
@@ -87,6 +87,10 @@ def contains_encrypted_indicator(line, encryption_field):
     if encryption_field is not None:
         return encryption_field.parse_value(line) == "E"
     return False
+
+def month_to_int(month):
+    """Return the integer value of a month."""
+    return datetime.strptime(month, '%b').strftime('%m')
 
 def transform_to_months(quarter):
     """Return a list of months in a quarter."""
@@ -101,16 +105,3 @@ def transform_to_months(quarter):
             return ["Oct", "Nov", "Dec"]
         case _:
             raise ValueError("Invalid quarter value.")
-
-def month_to_int(month):
-    """Return the integer value of a month."""
-    return datetime.strptime(month, '%b').strftime('%m')
-
-def calendar_year_to_rpt_month_year(month_index):
-    """Transform calendar year and quarter to RPT_MONTH_YEAR."""
-    def transform(value):
-        year = value[:4]
-        quarter = f"Q{value[-1]}"
-        month = transform_to_months(quarter)[month_index]
-        return f"{year}{month_to_int(month)}"
-    return transform

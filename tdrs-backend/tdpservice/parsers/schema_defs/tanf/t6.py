@@ -1,7 +1,8 @@
 """Schema for HEADER row of all submission types."""
 
 
-from ...util import SchemaManager, calendar_year_to_rpt_month_year
+from ...util import SchemaManager
+from ...transforms import calendar_quarter_to_rpt_month_year
 from ...fields import Field, TransformField
 from ...row_schema import RowSchema
 from ... import validators
@@ -24,8 +25,8 @@ s1 = RowSchema(
         Field(item="3", name='CALENDAR_QUARTER', type='number', startIndex=2, endIndex=7,
               required=True, validators=[validators.year_quarter_yearIsValid(),
                                          validators.year_quarter_quarterIsValid()]),
-        TransformField(calendar_year_to_rpt_month_year(0), item="4", name='RPT_MONTH_YEAR', type='number', startIndex=2,
-                       endIndex=7, required=True, validators=[]),
+        TransformField(calendar_quarter_to_rpt_month_year(0), item="4", name='RPT_MONTH_YEAR', type='number',
+                       startIndex=2, endIndex=7, required=True, validators=[]),
         Field(item="4A", name='NUM_APPLICATIONS', type='number', startIndex=7, endIndex=15,
               required=True, validators=[validators.isInLimits(0, 99999999)]),
         Field(item="5A", name='NUM_APPROVED', type='number', startIndex=31, endIndex=39,
@@ -74,8 +75,8 @@ s2 = RowSchema(
               required=True, validators=[]),
         Field(item="3", name='CALENDAR_QUARTER', type='number', startIndex=2, endIndex=7,
               required=True, validators=[]),
-        TransformField(calendar_year_to_rpt_month_year(1), item="4", name='RPT_MONTH_YEAR', type='number', startIndex=2,
-                       endIndex=7, required=True, validators=[]),
+        TransformField(calendar_quarter_to_rpt_month_year(1), item="4", name='RPT_MONTH_YEAR', type='number',
+                       startIndex=2, endIndex=7, required=True, validators=[]),
         Field(item="4B", name='NUM_APPLICATIONS', type='number', startIndex=15, endIndex=23,
               required=True, validators=[validators.isInLimits(0, 99999999)]),
         Field(item="5B", name='NUM_APPROVED', type='number', startIndex=39, endIndex=47,
@@ -124,8 +125,8 @@ s3 = RowSchema(
               required=True, validators=[]),
         Field(item="3", name='CALENDAR_QUARTER', type='number', startIndex=2, endIndex=7,
               required=True, validators=[]),
-        TransformField(calendar_year_to_rpt_month_year(2), item="4", name='RPT_MONTH_YEAR', type='number', startIndex=2,
-                       endIndex=7, required=True, validators=[]),
+        TransformField(calendar_quarter_to_rpt_month_year(2), item="4", name='RPT_MONTH_YEAR', type='number',
+                       startIndex=2, endIndex=7, required=True, validators=[]),
         Field(item="4C", name='NUM_APPLICATIONS', type='number', startIndex=23, endIndex=31,
               required=True, validators=[validators.isInLimits(0, 99999999)]),
         Field(item="5C", name='NUM_APPROVED', type='number', startIndex=47, endIndex=55,

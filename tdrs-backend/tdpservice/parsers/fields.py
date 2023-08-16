@@ -47,51 +47,13 @@ class Field:
             case 'string':
                 return value
 
-def tanf_ssn_decryption_func(value, is_encrypted):
-    """Decrypt TANF SSN value."""
-    if is_encrypted:
-        decryption_dict = {"@": "1", "9": "2", "Z": "3", "P": "4", "0": "5",
-                           "#": "6", "Y": "7", "B": "8", "W": "9", "T": "0"}
-        decryption_table = str.maketrans(decryption_dict)
-        return value.translate(decryption_table)
-    return value
-
-def ssp_ssn_decryption_func(value, is_encrypted):
-    """Decrypt SSP SSN value."""
-    if is_encrypted:
-        decryption_dict = {"@": "1", "9": "2", "Z": "3", "P": "4", "0": "5",
-                           "#": "6", "Y": "7", "B": "8", "W": "9", "T": "0"}
-        decryption_table = str.maketrans(decryption_dict)
-        return value.translate(decryption_table)
-    return value
-
-class EncryptedField(Field):
-    """Represents an encrypted field and its position."""
-
-    def __init__(self, decryption_func, item, name, type, startIndex, endIndex, required=True, validators=[]):
-        super().__init__(item, name, type, startIndex, endIndex, required, validators)
-        self.decryption_func = decryption_func
-        self.is_encrypted = False
-
-    def parse_value(self, line):
-        """Parse and decrypt the value for a field given a line, startIndex, endIndex, and field type."""
-        value = line[self.startIndex:self.endIndex]
-
-        if value_is_empty(value, self.endIndex-self.startIndex):
-            return None
-
-        match self.type:
-            case 'string':
-                return self.decryption_func(value, self.is_encrypted)
-            case _:
-                return None
-
 class TransformField(Field):
     """Represents a field that requires some transformation before serializing."""
 
-    def __init__(self, transform_func, item, name, type, startIndex, endIndex, required=True, validators=[]):
+    def __init__(self, transform_func, item, name, type, startIndex, endIndex, required=True, validators=[], **kwargs):
         super().__init__(item, name, type, startIndex, endIndex, required, validators)
         self.transform_func = transform_func
+        self.__dict__.update(kwargs)
 
     def parse_value(self, line):
         """Parse and transform the value for a field given a line, startIndex, endIndex, and field type."""
@@ -100,8 +62,7 @@ class TransformField(Field):
         if value_is_empty(value, self.endIndex-self.startIndex):
             return None
 
-        value = self.transform_func(value)
-
+        value = self.transform_func(value, **self.__dict__)
         match self.type:
             case 'string':
                 return value

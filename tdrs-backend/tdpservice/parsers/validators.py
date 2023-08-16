@@ -252,12 +252,14 @@ def month_year_yearIsLargerThan(year):
     )
 
 def year_quarter_yearIsValid():
+    """Validate in a year quarter combination, the year is valid."""
     return make_validator(
         lambda value: int(str(value)[:4]) > 1998,
         lambda value: f'{str(value)[:4]} is not a valid year.'
     )
 
 def year_quarter_quarterIsValid():
+    """Validate in a year quarter combination, the quarter is valid."""
     return make_validator(
         lambda value: int(str(value)[-1]) > 0 and int(str(value)[-1]) < 5,
         lambda value: f'{str(value)[-1]} is not a valid quarter.'

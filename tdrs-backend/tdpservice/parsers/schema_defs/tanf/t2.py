@@ -2,7 +2,8 @@
 
 
 from ...util import SchemaManager
-from ...fields import EncryptedField, Field, tanf_ssn_decryption_func
+from ...transforms import tanf_ssn_decryption_func
+from ...fields import TransformField, Field
 from ...row_schema import RowSchema
 from ... import validators
 from tdpservice.search_indexes.models.tanf import TANF_T2
@@ -29,8 +30,8 @@ t2 = SchemaManager(
                     required=True, validators=[]),
               Field(item="32", name='DATE_OF_BIRTH', type='number', startIndex=21, endIndex=29,
                     required=True, validators=[]),
-              EncryptedField(decryption_func=tanf_ssn_decryption_func, item="33", name='SSN', type='string',
-                             startIndex=29, endIndex=38, required=True, validators=[]),
+              TransformField(transform_func=tanf_ssn_decryption_func, item="33", name='SSN', type='string',
+                             startIndex=29, endIndex=38, required=True, validators=[], is_encrypted=False),
               Field(item="34A", name='RACE_HISPANIC', type='string', startIndex=38, endIndex=39,
                     required=True, validators=[]),
               Field(item="34B", name='RACE_AMER_INDIAN', type='string', startIndex=39, endIndex=40,
