@@ -251,6 +251,18 @@ def month_year_yearIsLargerThan(year):
         lambda value: f'{str(value)[:4]} year must be larger than {year}.'
     )
 
+def year_quarter_yearIsValid():
+    return make_validator(
+        lambda value: int(str(value)[:4]) > 1998,
+        lambda value: f'{str(value)[:4]} is not a valid year.'
+    )
+
+def year_quarter_quarterIsValid():
+    return make_validator(
+        lambda value: int(str(value)[-1]) > 0 and int(str(value)[-1]) < 5,
+        lambda value: f'{str(value)[-1]} is not a valid quarter.'
+    )
+
 # outlier validators
 def validate__FAM_AFF__SSN():
     """If item 30 ==2 and item 42 ==1 or 2, then item 33 != 000000000 -- 999999999."""
