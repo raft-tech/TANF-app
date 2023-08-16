@@ -1,26 +1,13 @@
 """Elasticsearch document mappings for TANF submission models."""
 
-from django_elasticsearch_dsl import Document, fields
+from django_elasticsearch_dsl import Document
 from django_elasticsearch_dsl.registries import registry
 from ..models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5, TANF_T6, TANF_T7
-from tdpservice.data_files.models import DataFile
 from .document_base import DocumentBase
 
 @registry.register_document
 class TANF_T1DataSubmissionDocument(DocumentBase, Document):
     """Elastic search model mapping for a parsed TANF T1 data file."""
-
-    datafile = fields.ObjectField(properties={
-                      'pk': fields.IntegerField(),
-                      'created_at': fields.DateField(),
-                      'version': fields.IntegerField(),
-                      'quarter': fields.TextField()
-                  })
-
-    def get_instances_from_related(self, related_instance):
-        """Return correct instance."""
-        if isinstance(related_instance, DataFile):
-            return related_instance
 
     class Index:
         """ElasticSearch index generation settings."""
@@ -87,18 +74,6 @@ class TANF_T1DataSubmissionDocument(DocumentBase, Document):
 @registry.register_document
 class TANF_T2DataSubmissionDocument(DocumentBase, Document):
     """Elastic search model mapping for a parsed TANF T2 data file."""
-
-    datafile = fields.ObjectField(properties={
-                      'pk': fields.IntegerField(),
-                      'created_at': fields.DateField(),
-                      'version': fields.IntegerField(),
-                      'quarter': fields.TextField()
-                  })
-
-    def get_instances_from_related(self, related_instance):
-        """Return correct instance."""
-        if isinstance(related_instance, DataFile):
-            return related_instance
 
     class Index:
         """ElasticSearch index generation settings."""
@@ -190,18 +165,6 @@ class TANF_T2DataSubmissionDocument(DocumentBase, Document):
 class TANF_T3DataSubmissionDocument(DocumentBase, Document):
     """Elastic search model mapping for a parsed TANF T3 data file."""
 
-    datafile = fields.ObjectField(properties={
-                      'pk': fields.IntegerField(),
-                      'created_at': fields.DateField(),
-                      'version': fields.IntegerField(),
-                      'quarter': fields.TextField()
-                  })
-
-    def get_instances_from_related(self, related_instance):
-        """Return correct instance."""
-        if isinstance(related_instance, DataFile):
-            return related_instance
-
     class Index:
         """ElasticSearch index generation settings."""
 
@@ -244,18 +207,6 @@ class TANF_T3DataSubmissionDocument(DocumentBase, Document):
 class TANF_T4DataSubmissionDocument(DocumentBase, Document):
     """Elastic search model mapping for a parsed TANF T4 data file."""
 
-    datafile = fields.ObjectField(properties={
-                      'pk': fields.IntegerField(),
-                      'created_at': fields.DateField(),
-                      'version': fields.IntegerField(),
-                      'quarter': fields.TextField()
-                  })
-
-    def get_instances_from_related(self, related_instance):
-        """Return correct instance."""
-        if isinstance(related_instance, DataFile):
-            return related_instance
-
     class Index:
         """ElasticSearch index generation settings."""
 
@@ -270,38 +221,24 @@ class TANF_T4DataSubmissionDocument(DocumentBase, Document):
 
         model = TANF_T4
         fields = [
-            'record',
-            'rpt_month_year',
-            'case_number',
-            'disposition',
-            'fips_code',
-
-            'county_fips_code',
-            'stratum',
-            'zip_code',
-            'closure_reason',
-            'rec_sub_housing',
-            'rec_med_assist',
-            'rec_food_stamps',
-            'rec_sub_cc',
+            'RecordType',
+            'RPT_MONTH_YEAR',
+            'CASE_NUMBER',
+            'COUNTY_FIPS_CODE',
+            'STRATUM',
+            'ZIP_CODE',
+            'DISPOSITION',
+            'CLOSURE_REASON',
+            'REC_SUB_HOUSING',
+            'REC_MED_ASSIST',
+            'REC_FOOD_STAMPS',
+            'REC_SUB_CC',
         ]
 
 
 @registry.register_document
 class TANF_T5DataSubmissionDocument(DocumentBase, Document):
     """Elastic search model mapping for a parsed TANF T5 data file."""
-
-    datafile = fields.ObjectField(properties={
-                      'pk': fields.IntegerField(),
-                      'created_at': fields.DateField(),
-                      'version': fields.IntegerField(),
-                      'quarter': fields.TextField()
-                  })
-
-    def get_instances_from_related(self, related_instance):
-        """Return correct instance."""
-        if isinstance(related_instance, DataFile):
-            return related_instance
 
     class Index:
         """ElasticSearch index generation settings."""
@@ -317,54 +254,41 @@ class TANF_T5DataSubmissionDocument(DocumentBase, Document):
 
         model = TANF_T5
         fields = [
-            'record',
-            'rpt_month_year',
-            'case_number',
-            'fips_code',
-            'family_affiliation',
-            'date_of_birth',
-            'ssn',
-            'race_hispanic',
-            'race_amer_indian',
-            'race_asian',
-            'race_black',
-            'race_hawaiian',
-            'race_white',
-            'gender',
-            'rec_oasdi_insurance',
-            'rec_federal_disability',
-            'rec_aid_totally_disabled',
-            'rec_aid_aged_blind',
-            'rec_ssi',
-            'marital_status',
-            'relationship_hoh',
-            'parent_minor_child',
-            'needs_of_pregnant_woman',
-            'education_level',
-            'citizenship_status',
-            'countable_month_fed_time',
-            'countable_months_state_tribe',
-            'employment_status',
-            'amount_earned_income',
-            'amount_unearned_income',
+            'RecordType',
+            'RPT_MONTH_YEAR',
+            'CASE_NUMBER',
+            'FAMILY_AFFILIATION',
+            'DATE_OF_BIRTH',
+            'SSN',
+            'RACE_HISPANIC',
+            'RACE_AMER_INDIAN',
+            'RACE_ASIAN',
+            'RACE_BLACK',
+            'RACE_HAWAIIAN',
+            'RACE_WHITE',
+            'GENDER',
+            'REC_OASDI_INSURANCE',
+            'REC_FEDERAL_DISABILITY',
+            'REC_AID_TOTALLY_DISABLED',
+            'REC_AID_AGED_BLIND',
+            'REC_SSI',
+            'MARITAL_STATUS',
+            'RELATIONSHIP_HOH',
+            'PARENT_MINOR_CHILD',
+            'NEEDS_OF_PREGNANT_WOMAN',
+            'EDUCATION_LEVEL',
+            'CITIZENSHIP_STATUS',
+            'COUNTABLE_MONTH_FED_TIME',
+            'COUNTABLE_MONTHS_STATE_TRIBE',
+            'EMPLOYMENT_STATUS',
+            'AMOUNT_EARNED_INCOME',
+            'AMOUNT_UNEARNED_INCOME'
         ]
 
 
 @registry.register_document
 class TANF_T6DataSubmissionDocument(DocumentBase, Document):
     """Elastic search model mapping for a parsed TANF T6 data file."""
-
-    datafile = fields.ObjectField(properties={
-                      'pk': fields.IntegerField(),
-                      'created_at': fields.DateField(),
-                      'version': fields.IntegerField(),
-                      'quarter': fields.TextField()
-                  })
-
-    def get_instances_from_related(self, related_instance):
-        """Return correct instance."""
-        if isinstance(related_instance, DataFile):
-            return related_instance
 
     class Index:
         """ElasticSearch index generation settings."""
@@ -405,18 +329,6 @@ class TANF_T6DataSubmissionDocument(DocumentBase, Document):
 @registry.register_document
 class TANF_T7DataSubmissionDocument(DocumentBase, Document):
     """Elastic search model mapping for a parsed TANF T7 data file."""
-
-    datafile = fields.ObjectField(properties={
-                      'pk': fields.IntegerField(),
-                      'created_at': fields.DateField(),
-                      'version': fields.IntegerField(),
-                      'quarter': fields.TextField()
-                  })
-
-    def get_instances_from_related(self, related_instance):
-        """Return correct instance."""
-        if isinstance(related_instance, DataFile):
-            return related_instance
 
     class Index:
         """ElasticSearch index generation settings."""

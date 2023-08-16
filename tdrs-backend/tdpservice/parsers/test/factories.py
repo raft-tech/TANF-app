@@ -37,21 +37,24 @@ class DataFileSummaryFactory(factory.django.DjangoModelFactory):
     status = DataFileSummary.Status.PENDING
 
     case_aggregates = {
-        "Jan": {
-            "accepted": 100,
-            "rejected": 10,
-            "total": 110
-        },
-        "Feb": {
-            "accepted": 100,
-            "rejected": 10,
-            "total": 110
-        },
-        "Mar": {
-            "accepted": 100,
-            "rejected": 10,
-            "total": 110
-        }
+        "rejected": 0,
+        "months": [
+            {
+                "accepted_without_errors": 100,
+                "accepted_with_errors": 10,
+                "month": "Jan",
+            },
+            {
+                "accepted_without_errors": 100,
+                "accepted_with_errors": 10,
+                "month": "Feb",
+            },
+            {
+                "accepted_without_errors": 100,
+                "accepted_with_errors": 10,
+                "month": "Mar",
+            },
+        ]
     }
 
     datafile = factory.SubFactory(DataFileFactory)
@@ -67,7 +70,7 @@ class ParserErrorFactory(factory.django.DjangoModelFactory):
 
     file = factory.SubFactory(DataFileFactory)
     row_number = 1
-    column_number = 1
+    column_number = "1"
     item_number = "1"
     field_name = "test field name"
     case_number = '1'
