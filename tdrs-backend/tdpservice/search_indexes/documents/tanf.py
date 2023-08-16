@@ -305,8 +305,8 @@ class TANF_T6DataSubmissionDocument(DocumentBase, Document):
         model = TANF_T6
         fields = [
             'RecordType',
-            'CALENDAR_YEAR',
             'CALENDAR_QUARTER',
+            'RPT_MONTH_YEAR',
             'NUM_APPLICATIONS',
             'NUM_APPROVED',
             'NUM_DENIED',

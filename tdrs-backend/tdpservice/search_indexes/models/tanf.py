@@ -306,8 +306,8 @@ class TANF_T6(models.Model):
     )
 
     RecordType = models.CharField(max_length=156, null=True, blank=False)
-    CALENDAR_YEAR = models.IntegerField(null=True, blank=True)
     CALENDAR_QUARTER = models.IntegerField(null=True, blank=True)
+    RPT_MONTH_YEAR = models.IntegerField(null=True, blank=False)
     NUM_APPLICATIONS = models.IntegerField(null=True, blank=True)
     NUM_APPROVED = models.IntegerField(null=True, blank=True)
     NUM_DENIED = models.IntegerField(null=True, blank=True)

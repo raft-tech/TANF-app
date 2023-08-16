@@ -308,8 +308,8 @@ def test_can_create_and_index_tanf_t6_submission(test_datafile):
     submission = models.tanf.TANF_T6()
     submission.datafile = test_datafile
     submission.RecordType = record_num
-    submission.CALENDAR_YEAR = 1
     submission.CALENDAR_QUARTER = 1
+    submission.RPT_MONTH_YEAR = 1
     submission.NUM_APPLICATIONS = 1
     submission.NUM_APPROVED = 1
     submission.NUM_DENIED = 1

@@ -93,8 +93,8 @@ class TanfT6Factory(factory.django.DjangoModelFactory):
 
         model = "search_indexes.TANF_T6"
 
-    CALENDAR_YEAR = 1
     CALENDAR_QUARTER = 1
+    RPT_MONTH_YEAR = 202301
     NUM_APPLICATIONS = 1
     NUM_APPROVED = 1
     NUM_DENIED = 1

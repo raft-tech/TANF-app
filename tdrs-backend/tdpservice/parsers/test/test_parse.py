@@ -657,9 +657,9 @@ def test_parse_tanf_section3_file(tanf_section3_file):
     second = t6_objs[1]
     third = t6_objs[2]
 
-    assert first.CALENDAR_YEAR == 2020
-    assert second.CALENDAR_YEAR == 2020
-    assert third.CALENDAR_YEAR == 2020
+    assert first.RPT_MONTH_YEAR == 202012
+    assert second.RPT_MONTH_YEAR == 202011
+    assert third.RPT_MONTH_YEAR == 202010
 
     assert first.NUM_APPROVED == 3924
     assert second.NUM_APPROVED == 3977

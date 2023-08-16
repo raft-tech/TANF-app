@@ -85,3 +85,33 @@ class EncryptedField(Field):
                 return self.decryption_func(value, self.is_encrypted)
             case _:
                 return None
+
+class TransformField(Field):
+    """Represents a field that requires some transformation before serializing."""
+
+    def __init__(self, transform_func, item, name, type, startIndex, endIndex, required=True, validators=[]):
+        super().__init__(item, name, type, startIndex, endIndex, required, validators)
+        self.transform_func = transform_func
+
+    def parse_value(self, line):
+        """Parse and transform the value for a field given a line, startIndex, endIndex, and field type."""
+        value = line[self.startIndex:self.endIndex]
+        print(f"\n\nORIGINAL VALUE: {value}")
+
+        if value_is_empty(value, self.endIndex-self.startIndex):
+            return None
+
+        value = self.transform_func(value)
+
+        match self.type:
+            case 'string':
+                return value
+            case 'number':
+                try:
+                    value = int(value)
+                    print(f"TRANSFORMED VALUE: {value}\n\n")
+                    return value
+                except ValueError:
+                    return None
+            case _:
+                return None

@@ -93,15 +93,15 @@ class TANF_T6Admin(admin.ModelAdmin):
 
     list_display = [
         'RecordType',
-        'CALENDAR_YEAR',
         'CALENDAR_QUARTER',
+        'RPT_MONTH_YEAR',
         'datafile',
     ]
 
     list_filter = [
-        'CALENDAR_YEAR',
         'CALENDAR_QUARTER',
         CreationDateFilter,
+        'RPT_MONTH_YEAR'
     ]
 
 
