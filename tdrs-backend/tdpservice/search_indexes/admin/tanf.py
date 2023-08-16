@@ -102,7 +102,6 @@ class TANF_T6Admin(admin.ModelAdmin):
         'CALENDAR_YEAR',
         'CALENDAR_QUARTER',
         CreationDateFilter,
-        'rpt_month_year',
     ]
 
 
