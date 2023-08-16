@@ -34,7 +34,7 @@ class ParserError(models.Model):
         null=True,
     )
     row_number = models.IntegerField(null=False)
-    column_number = models.IntegerField(null=True)
+    column_number = models.CharField(null=True, max_length=8)
     item_number = models.CharField(null=True, max_length=8)
     field_name = models.TextField(null=True, max_length=128)
     rpt_month_year = models.IntegerField(null=True,  blank=False)
@@ -61,7 +61,7 @@ class ParserError(models.Model):
 
     def __str__(self):
         """Return a string representation of the model."""
-        return f"ParserError {self.id}"
+        return f"ParserError {self.__dict__}"
 
     def _get_error_message(self):
         """Return the error message."""
@@ -88,39 +88,21 @@ class DataFileSummary(models.Model):
 
     case_aggregates = models.JSONField(null=True, blank=False)
 
-    def get_status(self, errors):
+    def get_status(self):
         """Set and return the status field based on errors and models associated with datafile."""
+        errors = ParserError.objects.filter(file=self.datafile)
+
+        # excluding row-level pre-checks and trailer pre-checks.
+        precheck_errors = errors.filter(error_type=ParserErrorCategoryChoices.PRE_CHECK)\
+                                .exclude(field_name="Record_Type")\
+                                .exclude(error_message__icontains="trailer")\
+                                .exclude(error_message__icontains="Unknown Record_Type was found.")
+
         if errors is None:
             return DataFileSummary.Status.PENDING
-
-        if type(errors) != dict:
-            raise TypeError("errors parameter must be a dictionary.")
-
-        if errors == {}:
+        elif errors.count() == 0:
             return DataFileSummary.Status.ACCEPTED
-        elif DataFileSummary.find_precheck(errors):
+        elif precheck_errors.count() > 0:
             return DataFileSummary.Status.REJECTED
         else:
             return DataFileSummary.Status.ACCEPTED_WITH_ERRORS
-
-    def find_precheck(errors):
-        """Check for pre-parsing errors.
-
-        @param errors: dict of errors keyed by location in datafile.
-        e.g.
-        errors =
-        {
-            "trailer": [ParserError, ...],
-            "header": [ParserError, ...],
-            "document": [ParserError, ...],
-            "123": [ParserError, ...],
-            ...
-        }
-        """
-        for key in errors.keys():
-            if key == 'trailer':
-                continue
-            for parserError in errors[key]:
-                if type(parserError) is ParserError and parserError.error_type == ParserErrorCategoryChoices.PRE_CHECK:
-                    return True
-        return False

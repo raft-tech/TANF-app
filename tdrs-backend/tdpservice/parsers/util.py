@@ -1,11 +1,14 @@
 """Utility file for functions shared between all parsers even preparser."""
-from .models import ParserError, ParserErrorCategoryChoices
+from .models import ParserError
 from django.contrib.contenttypes.models import ContentType
 from . import schema_defs
 from tdpservice.data_files.models import DataFile
 from datetime import datetime
 from pathlib import Path
+from .fields import EncryptedField
+import logging
 
+logger = logging.getLogger(__name__)
 
 def create_test_datafile(filename, stt_user, stt, section='Active Case Data'):
     """Create a test DataFile instance with the given file attached."""
@@ -23,19 +26,10 @@ def create_test_datafile(filename, stt_user, stt, section='Active Case Data'):
 
     return datafile
 
-def value_is_empty(value, length):
-    """Handle 'empty' values as field inputs."""
-    empty_values = [
-        ' '*length,  # '     '
-        '#'*length,  # '#####'
-    ]
-
-    return value is None or value in empty_values
-
 
 def generate_parser_error(datafile, line_number, schema, error_category, error_message, record=None, field=None):
     """Create and return a ParserError using args."""
-    return ParserError.objects.create(
+    return ParserError(
         file=datafile,
         row_number=line_number,
         column_number=getattr(field, 'item', None),
@@ -68,208 +62,8 @@ def make_generate_parser_error(datafile, line_number):
 
     return generate
 
-class Field:
-    """Provides a mapping between a field name and its position."""
-
-    def __init__(self, item, name, type, startIndex, endIndex, required=True, validators=[]):
-        self.item = item
-        self.name = name
-        self.type = type
-        self.startIndex = startIndex
-        self.endIndex = endIndex
-        self.required = required
-        self.validators = validators
-
-    def create(self, item, name, length, start, end, type):
-        """Create a new field."""
-        return Field(item, name, type, length, start, end)
-
-    def __repr__(self):
-        """Return a string representation of the field."""
-        return f"{self.name}({self.startIndex}-{self.endIndex})"
-
-    def parse_value(self, line):
-        """Parse the value for a field given a line, startIndex, endIndex, and field type."""
-        value = line[self.startIndex:self.endIndex]
-
-        if value_is_empty(value, self.endIndex-self.startIndex):
-            return None
-
-        match self.type:
-            case 'number':
-                try:
-                    value = int(value)
-                    return value
-                except ValueError:
-                    return None
-            case 'string':
-                return value
-
-
-class RowSchema:
-    """Maps the schema for data lines."""
-
-    def __init__(
-            self,
-            model=dict,
-            preparsing_validators=[],
-            postparsing_validators=[],
-            fields=[],
-            quiet_preparser_errors=False
-            ):
-        self.model = model
-        self.preparsing_validators = preparsing_validators
-        self.postparsing_validators = postparsing_validators
-        self.fields = fields
-        self.quiet_preparser_errors = quiet_preparser_errors
-
-    def _add_field(self, item, name, length, start, end, type):
-        """Add a field to the schema."""
-        self.fields.append(
-            Field(item, name, type, start, end)
-        )
-
-    def add_fields(self, fields: list):
-        """Add multiple fields to the schema."""
-        for field, length, start, end, type in fields:
-            self._add_field(field, length, start, end, type)
-
-    def get_all_fields(self):
-        """Get all fields from the schema."""
-        return self.fields
-
-    def get_field(self, name):
-        """Get a field from the schema by name."""
-        for field in self.fields:
-            if field.name == name:
-                return field
-
-    def parse_and_validate(self, line, generate_error):
-        """Run all validation steps in order, and parse the given line into a record."""
-        errors = []
-
-        # run preparsing validators
-        preparsing_is_valid, preparsing_errors = self.run_preparsing_validators(line, generate_error)
-
-        if not preparsing_is_valid:
-            if self.quiet_preparser_errors:
-                return None, True, []
-            return None, False, preparsing_errors
-
-        # parse line to model
-        record = self.parse_line(line)
-
-        # run field validators
-        fields_are_valid, field_errors = self.run_field_validators(record, generate_error)
-
-        # run postparsing validators
-        postparsing_is_valid, postparsing_errors = self.run_postparsing_validators(record, generate_error)
-
-        is_valid = fields_are_valid and postparsing_is_valid
-        errors = field_errors + postparsing_errors
-
-        return record, is_valid, errors
-
-    def run_preparsing_validators(self, line, generate_error):
-        """Run each of the `preparsing_validator` functions in the schema against the un-parsed line."""
-        is_valid = True
-        errors = []
-
-        for validator in self.preparsing_validators:
-            validator_is_valid, validator_error = validator(line)
-            is_valid = False if not validator_is_valid else is_valid
-
-            if validator_error and not self.quiet_preparser_errors:
-                errors.append(
-                    generate_error(
-                        schema=self,
-                        error_category=ParserErrorCategoryChoices.PRE_CHECK,
-                        error_message=validator_error,
-                        record=None,
-                        field=None
-                    )
-                )
-
-        return is_valid, errors
-
-    def parse_line(self, line):
-        """Create a model for the line based on the schema."""
-        record = self.model()
-
-        for field in self.fields:
-            value = field.parse_value(line)
-
-            if value is not None:
-                if isinstance(record, dict):
-                    record[field.name] = value
-                else:
-                    setattr(record, field.name, value)
-
-        return record
-
-    def run_field_validators(self, instance, generate_error):
-        """Run all validators for each field in the parsed model."""
-        is_valid = True
-        errors = []
-
-        for field in self.fields:
-            value = None
-            if isinstance(instance, dict):
-                value = instance.get(field.name, None)
-            else:
-                value = getattr(instance, field.name, None)
-
-            if field.required and not value_is_empty(value, field.endIndex-field.startIndex):
-                for validator in field.validators:
-                    validator_is_valid, validator_error = validator(value)
-                    is_valid = False if not validator_is_valid else is_valid
-                    if validator_error:
-                        errors.append(
-                            generate_error(
-                                schema=self,
-                                error_category=ParserErrorCategoryChoices.FIELD_VALUE,
-                                error_message=validator_error,
-                                record=instance,
-                                field=field
-                            )
-                        )
-            elif field.required:
-                is_valid = False
-                errors.append(
-                    generate_error(
-                        schema=self,
-                        error_category=ParserErrorCategoryChoices.FIELD_VALUE,
-                        error_message=f"{field.name} is required but a value was not provided.",
-                        record=instance,
-                        field=field
-                    )
-                )
-
-        return is_valid, errors
-
-    def run_postparsing_validators(self, instance, generate_error):
-        """Run each of the `postparsing_validator` functions against the parsed model."""
-        is_valid = True
-        errors = []
-
-        for validator in self.postparsing_validators:
-            validator_is_valid, validator_error = validator(instance)
-            is_valid = False if not validator_is_valid else is_valid
-            if validator_error:
-                errors.append(
-                    generate_error(
-                        schema=self,
-                        error_category=ParserErrorCategoryChoices.VALUE_CONSISTENCY,
-                        error_message=validator_error,
-                        record=instance,
-                        field=None
-                    )
-                )
-
-        return is_valid, errors
-
-class MultiRecordRowSchema:
-    """Maps a line to multiple `RowSchema`s and runs all parsers and validators."""
+class SchemaManager:
+    """Manages one or more RowSchema's and runs all parsers and validators."""
 
     def __init__(self, schemas):
         self.schemas = schemas
@@ -279,10 +73,24 @@ class MultiRecordRowSchema:
         records = []
 
         for schema in self.schemas:
-            r = schema.parse_and_validate(line, generate_error)
-            records.append(r)
+            record, is_valid, errors = schema.parse_and_validate(line, generate_error)
+            records.append((record, is_valid, errors))
 
         return records
+
+    def update_encrypted_fields(self, is_encrypted):
+        """Update whether schema fields are encrypted or not."""
+        for schema in self.schemas:
+            for field in schema.fields:
+                if type(field) == EncryptedField:
+                    field.is_encrypted = is_encrypted
+
+def contains_encrypted_indicator(line, encryption_field):
+    """Determine if line contains encryption indicator."""
+    if encryption_field is not None:
+        return encryption_field.parse_value(line) == "E"
+    return False
+
 
 def get_schema_options(program, section, query=None, model=None, model_name=None):
     """Centralized function to return the appropriate schema for a given program, section, and query.
@@ -307,8 +115,8 @@ def get_schema_options(program, section, query=None, model=None, model_name=None
             'C': {
                 'section': DataFile.Section.CLOSED_CASE_DATA,
                 'models': {
-                    # 'T4': schema_defs.tanf.t4,
-                    # 'T5': schema_defs.tanf.t5,
+                    'T4': schema_defs.tanf.t4,
+                    'T5': schema_defs.tanf.t5,
                 }
             },
             'G': {
@@ -374,7 +182,8 @@ def get_schema_options(program, section, query=None, model=None, model_name=None
         if model_name is None:
             return models
         elif model_name not in models.keys():
-            return None  # intentionally trigger the error_msg for unknown record type
+            logger.debug(f"Model {model_name} not found in schema_defs")
+            return []  # intentionally trigger the error_msg for unknown record type
         else:
             return models.get(model_name, models)
 
@@ -453,7 +262,7 @@ def transform_to_months(quarter):
 
 def month_to_int(month):
     """Return the integer value of a month."""
-    return datetime.strptime(month, '%b').month
+    return datetime.strptime(month, '%b').strftime('%m')
 
 
 def case_aggregates_by_month(df, dfs_status):
@@ -469,10 +278,10 @@ def case_aggregates_by_month(df, dfs_status):
     schema_models_dict = get_program_models(program_type, short_section)
     schema_models = [model for model in schema_models_dict.values()]
 
-    aggregate_data = {}
+    aggregate_data = {"months": [], "rejected": 0}
     for month in month_list:
         total = 0
-        rejected = 0
+        cases_with_errors = 0
         accepted = 0
         month_int = month_to_int(month)
         rpt_month_year = int(f"{calendar_year}{month_int}")
@@ -480,12 +289,14 @@ def case_aggregates_by_month(df, dfs_status):
         if dfs_status == "Rejected":
             # we need to be careful here on examples of bad headers or empty files, since no month will be found
             # but we can rely on the frontend submitted year-quarter to still generate the list of months
-            aggregate_data[month] = {"accepted": "N/A", "rejected": "N/A", "total": "N/A"}
+            aggregate_data["months"].append({"accepted_with_errors": "N/A",
+                                             "accepted_without_errors": "N/A",
+                                             "month": month})
             continue
 
         case_numbers = set()
         for schema_model in schema_models:
-            if isinstance(schema_model, MultiRecordRowSchema):
+            if isinstance(schema_model, SchemaManager):
                 schema_model = schema_model.schemas[0]
 
             curr_case_numbers = set(schema_model.model.objects.filter(datafile=df).filter(RPT_MONTH_YEAR=rpt_month_year)
@@ -493,10 +304,13 @@ def case_aggregates_by_month(df, dfs_status):
             case_numbers = case_numbers.union(curr_case_numbers)
 
         total += len(case_numbers)
-        rejected += ParserError.objects.filter(case_number__in=case_numbers).distinct('case_number').count()
+        cases_with_errors += ParserError.objects.filter(case_number__in=case_numbers).distinct('case_number').count()
+        accepted = total - cases_with_errors
 
-        accepted = total - rejected
+        aggregate_data['months'].append({"month": month,
+                                         "accepted_without_errors": accepted,
+                                         "accepted_with_errors": cases_with_errors})
 
-        aggregate_data[month] = {"accepted": accepted, "rejected": rejected, "total": total}
+    aggregate_data['rejected'] = ParserError.objects.filter(file=df).filter(case_number=None).count()
 
     return aggregate_data
