@@ -8,12 +8,28 @@ from tdpservice.parsers.test.factories import TanfT1Factory, TanfT2Factory, Tanf
 def test_or_validators():
     """Test `or_validators` gives a valid result."""
     value = "2"
-    validator = validators.or_validators(validators.matches(("2")), validators.matches(("3", "4")))
+    validator = validators.or_validators(validators.matches(("2")), validators.matches(("3")))
+    assert validator(value) == (True, None)
+    assert validator("2") == (True, None)
+    assert validator("3") == (True, None)
+    assert validator("5") == (False, "5 does not match 2. or 5 does not match 3.")
+    
+
+    validator = validators.or_validators(validators.matches(("2")), validators.matches(("3")), validators.matches(("4")))
     assert validator(value) == (True, None)
 
-    validator = validators.or_validators(validators.matches(("5")), validators.matches(("3", "4")))
-    assert validator(value) == (False, "2 does not match 5. or 2 does not match ('3', '4').")
+    value = "3"
+    assert validator(value) == (True, None)
 
+    value = "4"
+    assert validator(value) == (True, None)
+
+    value = "5"
+    assert validator(value) == (False, "5 does not match 2. or 5 does not match 3. or 5 does not match 4.")
+
+    validator = validators.or_validators(validators.matches((2)), validators.matches((3)), validators.isLargerThan(4))
+    assert validator(5) == (True, None)
+    assert validator(1) == (False, "1 does not match 2. or 1 does not match 3. or 1 is not larger than 4.")
 
 def test_if_validators():
     """Test `if_then_validator` gives a valid result."""
@@ -30,6 +46,13 @@ def test_if_validators():
       )
     result = validator(value)
     assert result == (False, 'if Field1 :1 validator1 passed then Field2 2 does not match 1.')
+
+
+def test_and_validators():
+    """Test `and_validators` gives a valid result."""
+    validator = validators.and_validators(validators.isLargerThan(2), validators.isLargerThan(0))
+    assert validator(1) == (False, '1 is not larger than 2.')
+    assert validator(3) == (True, None)
 
 
 def test_validate__FAM_AFF__SSN():

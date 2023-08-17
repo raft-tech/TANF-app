@@ -11,18 +11,22 @@ def make_validator(validator_func, error_func):
     return lambda value: (True, None) if value is not None and validator_func(value) else (False, error_func(value))
 
 
-# validator combinators
-
-def or_validators(validator1, validator2):
-    """Return a validator that is true only if one of the two validators is true."""
-    return lambda value: (True, None) if (validator1(value)[0] or validator2(value)[0])\
-        else (False, validator1(value)[1] + ' or ' + validator2(value)[1])
+def or_validators(*args, **kwargs):
+    """Return a validator that is true only if one of the validators is true."""
+    return lambda value: (True, None) if any([validator(value)[0] for validator in args])\
+        else (False, ' or '.join([validator(value)[1] for validator in args]))
 
 
 def and_validators(validator1, validator2):
     """Return a validator that is true only if both validators are true."""
     return lambda value: (True, None) if (validator1(value)[0] and validator2(value)[0])\
-        else (False, validator1(value)[1] + ' and ' + validator2(value)[1])
+        else (False, (validator1(value)[1]) if validator1(value)[1] is not None else '' + 
+              ' and ' + validator2(value)[1] if validator2(value)[1] is not None else '')
+
+def extended_and_validators(*args, **kwargs):
+    """Return a validator that is true only if all validators are true."""
+    return lambda value: (True, None) if all([validator(value)[0] for validator in args])\
+        else (False, ''.join([' and ' + validator(value)[1] if validator(value)[0] else '' for validator in args]))
 
 
 def if_then_validator(condition_field, condition_function,

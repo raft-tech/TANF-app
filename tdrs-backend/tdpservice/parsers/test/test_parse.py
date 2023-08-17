@@ -265,7 +265,7 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
     parser_errors = ParserError.objects.filter(file=bad_trailer_file_2)
     assert parser_errors.count() == 4
 
-    trailer_errors = parser_errors.filter(row_number=3)
+    trailer_errors = parser_errors.filter(row_number=3).order_by('id')
 
     trailer_error_1 = trailer_errors.first()
     assert trailer_error_1.error_type == ParserErrorCategoryChoices.PRE_CHECK
@@ -309,7 +309,7 @@ def test_parse_empty_file(empty_file):
     """Test parsing of empty_file."""
     errors = parse.parse_datafile(empty_file)
 
-    parser_errors = ParserError.objects.filter(file=empty_file)
+    parser_errors = ParserError.objects.filter(file=empty_file).order_by('id')
     assert parser_errors.count() == 2
 
     err = parser_errors.first()
