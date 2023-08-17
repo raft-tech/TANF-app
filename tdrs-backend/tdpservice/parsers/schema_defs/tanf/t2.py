@@ -49,7 +49,7 @@ t2 = SchemaManager(schemas=[
                         result_field='MARITAL_STATUS', result_function=validators.isInLimits(1, 5),
                     ),
                 validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
+                        condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 2),
                         result_field='PARENT_WITH_MINOR_CHILD', result_function=validators.isInLimits(1, 3),
                     ),
                 validators.if_then_validator(
@@ -76,7 +76,7 @@ t2 = SchemaManager(schemas=[
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
                         result_field='WORK_ELIGIBLE_INDICATOR', result_function=validators.or_validators(
                             validators.isInStringRange(1, 9),
-                            validators.matches('12')
+                            validators.oneOf(('11', '12'))
                         ),
                     ),
                 validators.if_then_validator(

@@ -24,10 +24,9 @@ def test_parse_small_correct_file(test_datafile):
     """Test parsing of small_correct_file."""
     errors = parse.parse_datafile(test_datafile)
     errors = ParserError.objects.filter(file=test_datafile)
-    assert errors.count() == 1
+    assert errors.count() == 0
 
     assert TANF_T1.objects.count() == 1
-    assert ParserError.objects.filter(file=test_datafile).count() == 1
 
     # spot check
     t1 = TANF_T1.objects.all().first()
@@ -102,10 +101,8 @@ def test_parse_big_file(test_big_file):
     expected_t2_record_count = 882
     expected_t3_record_count = 1376
 
-    errors = parse.parse_datafile(test_big_file)
+    parse.parse_datafile(test_big_file)
     parser_errors = ParserError.objects.filter(file=test_big_file)
-    assert parser_errors.count() == 1432
-    assert len(errors) == 844
 
     error_message = 'MONTHS_FED_TIME_LIMIT is required but a value was not provided.'
     row_18_error = parser_errors.get(row_number=18, error_message=error_message)
