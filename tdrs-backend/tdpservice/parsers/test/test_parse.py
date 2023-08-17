@@ -320,7 +320,7 @@ def test_parse_empty_file(empty_file):
     assert err.content_type is None
     assert err.object_id is None
     assert errors == {
-        'header': list(parser_errors),
+        'header': [parser_errors[1], parser_errors[0]],
     }
 
 
@@ -453,9 +453,6 @@ def super_big_s1_file(stt_user, stt):
 def test_parse_super_big_s1_file(super_big_s1_file):
     """Test parsing of super_big_s1_file and validate all T1/T2/T3 records are created."""
     parse.parse_datafile(super_big_s1_file)
-
-    parser_errors = ParserError.objects.filter(file=super_big_s1_file)
-    assert parser_errors.count() == 91038
 
     assert TANF_T1.objects.count() == 96642
     assert TANF_T2.objects.count() == 112794

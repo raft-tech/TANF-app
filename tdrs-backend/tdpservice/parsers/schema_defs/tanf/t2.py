@@ -110,7 +110,7 @@ t2 = SchemaManager(schemas=[
                   validators=[validators.isLargerThan(0),]),
             EncryptedField(decryption_func=tanf_ssn_decryption_func, item="33", name='SSN', type='string',
                            startIndex=29, endIndex=38, required=True,
-                           validators=[validators.notOneOf([str(i)*9 for i in range(0, 9)])]),
+                           validators=[validators.notOneOf([str(i)*9 for i in range(0, 10)])]),
             Field(item="34A", name='RACE_HISPANIC', type='number', startIndex=38, endIndex=39, required=True,
                   validators=[validators.isInLimits(0, 2)]),
             Field(item="34B", name='RACE_AMER_INDIAN', type='number', startIndex=39, endIndex=40, required=True,
@@ -161,10 +161,10 @@ t2 = SchemaManager(schemas=[
                   validators=[validators.isInLimits(0, 3),]),
             Field(item="48", name='WORK_ELIGIBLE_INDICATOR', type='string', startIndex=66, endIndex=68, required=True,
                   validators=[validators.or_validators(validators.isInStringRange(0, 9),
-                                                       validators.matches('12')
+                                                       validators.oneOf(('11', '12'))
                                                        )]),
             Field(item="49", name='WORK_PART_STATUS', type='string', startIndex=68, endIndex=70, required=True,
-                  validators=[validators.oneOf(['01', '02', '05', '07', '09', '15', '17', '18', '19', '99'])]),
+                  validators=[validators.oneOf(['01', '02', '05', '07', '09', '15', '16', '17', '18', '19', '99'])]),
             Field(item="50", name='UNSUB_EMPLOYMENT', type='string', startIndex=70, endIndex=72, required=True,
                   validators=[validators.isInStringRange(0, 99),]),
             Field(item="51", name='SUB_PRIVATE_EMPLOYMENT', type='string', startIndex=72, endIndex=74, required=True,

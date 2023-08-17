@@ -48,7 +48,7 @@ child_one = RowSchema(
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='PARENT_MINOR_CHILD', result_function=validators.oneOf((1, 2, 3)),
+                  result_field='PARENT_MINOR_CHILD', result_function=validators.oneOf((2, 3)),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
@@ -84,7 +84,7 @@ child_one = RowSchema(
                   validators.month_year_monthIsValid(),
               ]),
         EncryptedField(decryption_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=28,
-                       endIndex=37, required=True, validators=[validators.notOneOf([str(i)*9 for i in range(0, 9)])
+                       endIndex=37, required=True, validators=[validators.notOneOf([str(i)*9 for i in range(0, 10)])
                                                                ]),
         Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=37, endIndex=38,
               required=True, validators=[
@@ -193,7 +193,7 @@ child_two = RowSchema(
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='PARENT_MINOR_CHILD', result_function=validators.oneOf((1, 2, 3)),
+                  result_field='PARENT_MINOR_CHILD', result_function=validators.oneOf((2, 3)),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
@@ -229,7 +229,7 @@ child_two = RowSchema(
                   validators.month_year_monthIsValid(),
               ]),
         EncryptedField(decryption_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=69,
-                       endIndex=78, required=True, validators=[validators.notOneOf([str(i)*9 for i in range(0, 9)])]),
+                       endIndex=78, required=True, validators=[validators.notOneOf([str(i)*9 for i in range(0, 10)])]),
         Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=78, endIndex=79,
               required=True, validators=[
                   validators.isInLimits(0, 2)
