@@ -39,10 +39,10 @@ class TanfT1Factory(factory.django.DjangoModelFactory):
 
     RecordType = fake.uuid4()
     RPT_MONTH_YEAR = 1
-    CASE_NUMBER = 1
+    CASE_NUMBER = "1"
     COUNTY_FIPS_CODE = 1
-    STRATUM = 1
-    ZIP_CODE = 1
+    STRATUM = "1"
+    ZIP_CODE = "01"
     FUNDING_STREAM = 1
     DISPOSITION = 1
     NEW_APPLICANT = 1
@@ -112,7 +112,7 @@ class TanfT2Factory(factory.django.DjangoModelFactory):
     AID_AGED_BLIND = 1
     RECEIVE_SSI = 1
     MARITAL_STATUS = 1
-    RELATIONSHIP_HOH = 1
+    RELATIONSHIP_HOH = "01"
     PARENT_WITH_MINOR_CHILD = 1
     NEEDS_PREGNANT_WOMAN = 1
     EDUCATION_LEVEL = "01"
@@ -187,7 +187,7 @@ class TanfT3Factory(factory.django.DjangoModelFactory):
     GENDER = 1
     RECEIVE_NONSSA_BENEFITS = 1
     RECEIVE_SSI = 1
-    RELATIONSHIP_HOH = 1
+    RELATIONSHIP_HOH = "01"
     PARENT_MINOR_CHILD = 1
     EDUCATION_LEVEL = 1
     CITIZENSHIP_STATUS = 1

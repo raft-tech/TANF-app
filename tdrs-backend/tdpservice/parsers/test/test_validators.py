@@ -606,7 +606,7 @@ class TestT2Cat3Validators(TanfSection1TestCat3ValidatorsBase):
 
         record.FAMILY_AFFILIATION = 1
         record.MONTHS_FED_TIME_LIMIT = "000"
-        record.RELATIONSHIP_HOH = 1
+        record.RELATIONSHIP_HOH = "01"
         result = val(record)
         assert result == (False, 'If FAMILY_AFFILIATION == 2 and MONTHS_FED_TIME_LIMIT== 1 or 2, ' +
                           'then MONTHS_FED_TIME_LIMIT > 1.')
@@ -725,18 +725,18 @@ class TestT3Cat3Validators(TanfSection1TestCat3ValidatorsBase):
         """Test cat3 validator for relationship to head of household."""
         val = validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RELATIONSHIP_HOH', result_function=validators.isInLimits(4, 9),
+                  result_field='RELATIONSHIP_HOH', result_function=validators.isInStringRange(4, 9),
             )
         record.FAMILY_AFFILIATION = 0
-        record.RELATIONSHIP_HOH = 4
+        record.RELATIONSHIP_HOH = "04"
         result = val(record)
         assert result == (True, None)
 
         record.FAMILY_AFFILIATION = 1
-        record.RELATIONSHIP_HOH = 1
+        record.RELATIONSHIP_HOH = "01"
         result = val(record)
-        assert result == (False, "if FAMILY_AFFILIATION :1 validator1 passed then RELATIONSHIP_HOH " +
-                          "1 is not larger and equal to 4 and smaller and equal to 9.")
+        assert result == (False, 'if FAMILY_AFFILIATION :1 validator1 passed then RELATIONSHIP_HOH 01 is ' +
+                          'not in range [4, 9].')
 
     def test_validate_t3_education_level(self, record):
         """Test cat3 validator for education level."""

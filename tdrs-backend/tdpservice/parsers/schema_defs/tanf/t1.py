@@ -15,14 +15,6 @@ t1 = SchemaManager(schemas=[
             ],
             postparsing_validators=[
                   validators.if_then_validator(
-                        condition_field='RECEIVES_FOOD_STAMPS', condition_function=validators.matches(1),
-                        result_field='AMT_FOOD_STAMP_ASSISTANCE', result_function=validators.isLargerThan(0),
-                  ),
-                  validators.if_then_validator(
-                        condition_field='RECEIVES_SUB_CC', condition_function=validators.notMatches(3),
-                        result_field='AMT_SUB_CC', result_function=validators.isLargerThan(0),
-                  ),
-                  validators.if_then_validator(
                         condition_field='CASH_AMOUNT', condition_function=validators.isLargerThan(0),
                         result_field='NBR_MONTHS', result_function=validators.isLargerThan(0),
                   ),
@@ -71,10 +63,6 @@ t1 = SchemaManager(schemas=[
                         result_field='OTHER_SANCTION', result_function=validators.oneOf((1, 2)),
                   ),
                   validators.if_then_validator(
-                        condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
-                        result_field='OTHER_SANCTION', result_function=validators.oneOf((1, 2)),
-                  ),
-                  validators.if_then_validator(
                         condition_field='OTHER_TOTAL_REDUCTIONS', condition_function=validators.isLargerThan(0),
                         result_field='FAMILY_CAP', result_function=validators.oneOf((1, 2)),
                   ),
@@ -86,8 +74,8 @@ t1 = SchemaManager(schemas=[
                         condition_field='OTHER_TOTAL_REDUCTIONS', condition_function=validators.isLargerThan(0),
                         result_field='OTHER_NON_SANCTION', result_function=validators.oneOf((1, 2)),
                   ),
-                  validators.sumIsLarger(("AMT_FOOD_STAMP_ASSISTANCE", "AMT_SUB_CC", "CC_AMOUNT", "TRANSP_AMOUNT",
-                                          "TRANSITION_SERVICES_AMOUNT", "OTHER_AMOUNT"), 0)
+                  validators.sumIsLarger(("AMT_FOOD_STAMP_ASSISTANCE", "AMT_SUB_CC", "CASH_AMOUNT", "CC_AMOUNT",
+                                          "TRANSP_AMOUNT", "TRANSITION_SERVICES_AMOUNT", "OTHER_AMOUNT"), 0)
             ],
             fields=[
                   Field(item="0", name='RecordType', type='string', startIndex=0, endIndex=2,
@@ -107,9 +95,9 @@ t1 = SchemaManager(schemas=[
                         required=True, validators=[
                               validators.isNumber(),
                         ]),
-                  Field(item="5", name='STRATUM', type='number', startIndex=22, endIndex=24,
+                  Field(item="5", name='STRATUM', type='string', startIndex=22, endIndex=24,
                         required=True, validators=[
-                              validators.isInLimits(0, 99),
+                              validators.isInStringRange(0, 99),
                         ]),
                   Field(item="7", name='ZIP_CODE', type='string', startIndex=24, endIndex=29,
                         required=True, validators=[
@@ -117,7 +105,7 @@ t1 = SchemaManager(schemas=[
                         ]),
                   Field(item="8", name='FUNDING_STREAM', type='number', startIndex=29, endIndex=30,
                         required=True, validators=[
-                              validators.oneOf([1, 2]),
+                              validators.isInLimits(1, 3),
                         ]),
                   Field(item="9", name='DISPOSITION', type='number', startIndex=30, endIndex=31,
                         required=True, validators=[
