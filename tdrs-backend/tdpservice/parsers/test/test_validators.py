@@ -13,9 +13,9 @@ def test_or_validators():
     assert validator("2") == (True, None)
     assert validator("3") == (True, None)
     assert validator("5") == (False, "5 does not match 2. or 5 does not match 3.")
-    
 
-    validator = validators.or_validators(validators.matches(("2")), validators.matches(("3")), validators.matches(("4")))
+    validator = validators.or_validators(validators.matches(("2")), validators.matches(("3")),
+                                         validators.matches(("4")))
     assert validator(value) == (True, None)
 
     value = "3"
