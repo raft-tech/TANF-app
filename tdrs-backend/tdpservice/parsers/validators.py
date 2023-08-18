@@ -20,7 +20,7 @@ def or_validators(*args, **kwargs):
 def and_validators(validator1, validator2):
     """Return a validator that is true only if both validators are true."""
     return lambda value: (True, None) if (validator1(value)[0] and validator2(value)[0])\
-        else (False, (validator1(value)[1]) if validator1(value)[1] is not None else '' + 
+        else (False, (validator1(value)[1]) if validator1(value)[1] is not None else '' +
               ' and ' + validator2(value)[1] if validator2(value)[1] is not None else '')
 
 def extended_and_validators(*args, **kwargs):
