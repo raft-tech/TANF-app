@@ -317,7 +317,7 @@ def test_parse_empty_file(empty_file):
     assert err.content_type is None
     assert err.object_id is None
     assert errors == {
-        'header': [parser_errors[1], parser_errors[0]],
+        'header': [parser_errors[0], parser_errors[1]],
     }
 
 

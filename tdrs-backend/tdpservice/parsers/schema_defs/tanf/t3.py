@@ -16,7 +16,7 @@ child_one = RowSchema(
     postparsing_validators=[
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='SSN', result_function=validators.notOneOf([str(i)*9 for i in range(0, 9)]),
+                  result_field='SSN', result_function=validators.notOneOf([str(i)*9 for i in range(0, 10)]),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
@@ -161,7 +161,7 @@ child_two = RowSchema(
     postparsing_validators=[
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='SSN', result_function=validators.notOneOf([str(i)*9 for i in range(0, 9)]),
+                  result_field='SSN', result_function=validators.notOneOf([str(i)*9 for i in range(0, 10)]),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
