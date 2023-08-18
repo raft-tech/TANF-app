@@ -53,7 +53,7 @@ class TransformField(Field):
     def __init__(self, transform_func, item, name, type, startIndex, endIndex, required=True, validators=[], **kwargs):
         super().__init__(item, name, type, startIndex, endIndex, required, validators)
         self.transform_func = transform_func
-        self.__dict__.update(kwargs)
+        self.kwargs = kwargs
 
     def parse_value(self, line):
         """Parse and transform the value for a field given a line, startIndex, endIndex, and field type."""
@@ -62,7 +62,7 @@ class TransformField(Field):
         if value_is_empty(value, self.endIndex-self.startIndex):
             return None
 
-        value = self.transform_func(value, **self.__dict__)
+        value = self.transform_func(value, **self.kwargs)
         match self.type:
             case 'string':
                 return value
