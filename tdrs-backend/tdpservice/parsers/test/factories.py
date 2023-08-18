@@ -42,7 +42,7 @@ class TanfT1Factory(factory.django.DjangoModelFactory):
     CASE_NUMBER = "1"
     COUNTY_FIPS_CODE = 1
     STRATUM = "1"
-    ZIP_CODE = "01"
+    ZIP_CODE = "00001"
     FUNDING_STREAM = 1
     DISPOSITION = 1
     NEW_APPLICANT = 1
