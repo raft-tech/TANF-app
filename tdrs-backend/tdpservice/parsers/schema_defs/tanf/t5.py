@@ -18,32 +18,32 @@ t5 = SchemaManager(
           postparsing_validators=[
               validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.notMatches(1),
-                  result_field='SSN', result_function=validators.notOneOf([str(i)*9 for i in range(0, 9)])
+                  result_field='SSN', result_function=validators.validateSSN()
                   ),
               validators.validate__FAM_AFF__SSN(),
               validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                  result_field='RACE_HISPANIC', result_function=validators.isInLimits(1, 2)
+                  result_field='RACE_HISPANIC', result_function=validators.validateRace()
                   ),
               validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                  result_field='RACE_AMER_INDIAN', result_function=validators.isInLimits(1, 2)
+                  result_field='RACE_AMER_INDIAN', result_function=validators.validateRace()
                   ),
               validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                  result_field='RACE_ASIAN', result_function=validators.isInLimits(1, 2)
+                  result_field='RACE_ASIAN', result_function=validators.validateRace()
                   ),
               validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                  result_field='RACE_BLACK', result_function=validators.isInLimits(1, 2)
+                  result_field='RACE_BLACK', result_function=validators.validateRace()
                   ),
               validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                  result_field='RACE_HAWAIIAN', result_function=validators.isInLimits(1, 2)
+                  result_field='RACE_HAWAIIAN', result_function=validators.validateRace()
                   ),
               validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                  result_field='RACE_WHITE', result_function=validators.isInLimits(1, 2)
+                  result_field='RACE_WHITE', result_function=validators.validateRace()
                   ),
               validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
@@ -78,8 +78,8 @@ t5 = SchemaManager(
               Field(item="0", name='RecordType', type='string', startIndex=0, endIndex=2,
                     required=True, validators=[]),
               Field(item="4", name='RPT_MONTH_YEAR', type='number', startIndex=2, endIndex=8,
-                    required=True, validators=[validators.month_year_yearIsLargerThan(1998),
-                                               validators.month_year_monthIsValid()]),
+                    required=True, validators=[validators.dateYearIsLargerThan(1998),
+                                               validators.dateMonthIsValid()]),
               Field(item="6", name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
                     required=True, validators=[validators.isAlphaNumeric(),
                                                validators.notEmpty()]),

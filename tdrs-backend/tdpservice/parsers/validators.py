@@ -217,7 +217,7 @@ def isInLimits(LowerBound, UpperBound):
 
 # custom validators
 
-def month_year_monthIsValid():
+def dateMonthIsValid():
     """Validate that in a monthyear combination, the month is a valid month."""
     return make_validator(
         lambda value: int(str(value)[4:6]) in range(1, 13),
@@ -231,12 +231,28 @@ def olderThan(min_age):
         lambda value: f'{date.today().year - int(str(value)[:4])} is not larger than {min_age}.'
     )
 
-def month_year_yearIsLargerThan(year):
+def dateYearIsLargerThan(year):
     """Validate that in a monthyear combination, the year is larger than the given year."""
     return make_validator(
         lambda value: int(str(value)[:4]) > year,
         lambda value: f'{str(value)[:4]} year must be larger than {year}.'
     )
+
+def validateSSN():
+    """Validate that SSN value is not a repeating digit."""
+    options = [str(i)*9 for i in range(0, 10)]
+    return make_validator(
+        lambda value: value not in options,
+        lambda value: f'{value} is in {options}.'
+    )
+
+def validateRace():
+    """Validate race."""
+    return make_validator(
+        lambda value: value >= 1 and value <= 2,
+        lambda value: f'{value} is not larger and equal to {1} and smaller and equal to {2}.'
+    )
+
 
 # outlier validators
 def validate__FAM_AFF__SSN():
