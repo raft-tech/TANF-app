@@ -1,6 +1,9 @@
 """Row schema for datafile."""
 from .models import ParserErrorCategoryChoices
 from .fields import Field,  value_is_empty
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class RowSchema:
@@ -45,6 +48,7 @@ class RowSchema:
         if not preparsing_is_valid:
             if self.quiet_preparser_errors:
                 return None, True, []
+            logger.info(f"Preparser error encountered. Errors: {preparsing_errors}.")
             return None, False, preparsing_errors
 
         # parse line to model
@@ -86,6 +90,8 @@ class RowSchema:
     def parse_line(self, line):
         """Create a model for the line based on the schema."""
         record = self.model()
+
+        logger.debug(f"Parsing record of type: {self.model}.")
 
         for field in self.fields:
             value = field.parse_value(line)

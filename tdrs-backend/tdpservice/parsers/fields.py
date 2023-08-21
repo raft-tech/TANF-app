@@ -1,5 +1,9 @@
 """Datafile field representations."""
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 def value_is_empty(value, length):
     """Handle 'empty' values as field inputs."""
     empty_values = [
@@ -34,7 +38,11 @@ class Field:
         """Parse the value for a field given a line, startIndex, endIndex, and field type."""
         value = line[self.startIndex:self.endIndex]
 
+        logger.debug(f"Parsing value -> field name: {self.name}, position: [{self.startIndex}, {self.endIndex}), " +
+                     f"field: {value}")
+
         if value_is_empty(value, self.endIndex-self.startIndex):
+            logger.debug(f"Field at position: [{self.startIndex}, {self.endIndex}) is empty.")
             return None
 
         match self.type:
@@ -43,9 +51,13 @@ class Field:
                     value = int(value)
                     return value
                 except ValueError:
+                    logger.error(f"Error parsing field value: {value} to integer.")
                     return None
             case 'string':
                 return value
+            case _:
+                logger.warn(f"Unknown field type: {self.type}.")
+                return None
 
 def tanf_ssn_decryption_func(value, is_encrypted):
     """Decrypt TANF SSN value."""
@@ -77,11 +89,16 @@ class EncryptedField(Field):
         """Parse and decrypt the value for a field given a line, startIndex, endIndex, and field type."""
         value = line[self.startIndex:self.endIndex]
 
+        logger.debug(f"Parsing value for EncryptedField -> field name: {self.name}, " +
+                     f"position: [{self.startIndex}, {self.endIndex}), field: {value}")
+
         if value_is_empty(value, self.endIndex-self.startIndex):
+            logger.debug(f"Field at position: [{self.startIndex}, {self.endIndex}) is empty.")
             return None
 
         match self.type:
             case 'string':
                 return self.decryption_func(value, self.is_encrypted)
             case _:
+                logger.warn(f"Unknown field type: {self.type}.")
                 return None
