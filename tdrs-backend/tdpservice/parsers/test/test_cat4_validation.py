@@ -18,36 +18,47 @@ def dfs():
     """Fixture for DataFileSummary."""
     return DataFileSummaryFactory.create()
 
-@pytest.mark.django_db
-def test_cat4_validation(test_datafile, dfs):
-    """Test pen for class 4 validation."""
-    x = util.get_text_from_df(test_datafile)
-    x_prog = x['program_type']
-    x_section = x['section']
-    print(x_prog, x_section)
+class TestCat4Validation:
+    """Tests cat4 validation."""
+
+    @pytest.mark.django_db
+    def test_cat4_header(self, test_datafile, dfs):
+        """Test pen for class 4 validation."""
+        x = util.get_text_from_df(test_datafile)
+        x_prog = x['program_type']
+        x_section = x['section']
+        
+        models = list((util.get_program_models(x_prog, x_section)).values())
+        models.append(header)
+
+        active_section_schema_manager = active_section.SectionSchemaManager(
+            schema_managers=models
+        )
+
+        #TODO: create header object/model from test_datafile
+        raw_header = test_datafile.file.readline()
+        line=raw_header.decode().strip('\r\n')
+        header_obj = header.parse_and_validate(
+            line,
+            util.make_generate_parser_error(test_datafile, 1)
+        )
+        print(header_obj)
+        record, is_valid, errors = header_obj[0]
+
+        active_section_schema_manager.parse_and_validate(test_datafile, util.make_generate_parser_error)
+
+        # TODO: header date vs RMY checks
     
-    models = list((util.get_program_models(x_prog, x_section)).values())
-    models.append(header)
-    print(models)
+    @pytest.mark.django_db
+    def test_cat4_tanf_active(self, test_datafile, dfs):
+        """Run essential checks for TANF/A."""
+        # active cases
+        # TODO: t2 should have matching t1 via case_number and RMY
 
-    active_section_schema_manager = active_section.SectionSchemaManager(
-        schema_managers=models
-    )
+        # TODO: t3 should have matching t1 via case_number and RMY
 
-    #TODO: create header object/model from test_datafile
-
-
-
-    active_section_schema_manager.parse_and_validate(test_datafile, util.make_generate_parser_error)
-
-    # TODO: header date vs RMY checks
-
-    # active cases
-    # TODO: t2 should have matching t1 via case_number and RMY
-
-    # TODO: t3 should have matching t1 via case_number and RMY
-
-    # TODO: t1 should have matching t2/t3 via case_number, RMY if fam_affil==1
+        # TODO: t1 should have matching t2/t3 via case_number, RMY if fam_affil==1
+        pass
 
     # closed cases
     # same header checks
