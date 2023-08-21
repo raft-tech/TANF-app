@@ -38,11 +38,8 @@ class Field:
         """Parse the value for a field given a line, startIndex, endIndex, and field type."""
         value = line[self.startIndex:self.endIndex]
 
-        logger.debug(f"Parsing value -> field name: {self.name}, position: [{self.startIndex}, {self.endIndex}), " +
-                     f"field: {value}")
-
         if value_is_empty(value, self.endIndex-self.startIndex):
-            logger.debug(f"Field at position: [{self.startIndex}, {self.endIndex}) is empty.")
+            logger.debug(f"Field name: {self.name} at position: [{self.startIndex}, {self.endIndex}) is empty.")
             return None
 
         match self.type:
@@ -89,11 +86,8 @@ class EncryptedField(Field):
         """Parse and decrypt the value for a field given a line, startIndex, endIndex, and field type."""
         value = line[self.startIndex:self.endIndex]
 
-        logger.debug(f"Parsing value for EncryptedField -> field name: {self.name}, " +
-                     f"position: [{self.startIndex}, {self.endIndex}), field: {value}")
-
         if value_is_empty(value, self.endIndex-self.startIndex):
-            logger.debug(f"Field at position: [{self.startIndex}, {self.endIndex}) is empty.")
+            logger.debug(f"Field name: {self.name} at position: [{self.startIndex}, {self.endIndex}) is empty.")
             return None
 
         match self.type:
