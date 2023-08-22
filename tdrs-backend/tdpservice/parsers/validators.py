@@ -60,7 +60,7 @@ def sumIsEqual(condition_field, sum_fields=[]):
 
         condition_val = value[condition_field] if type(value) is dict else getattr(value, condition_field)
         return (True, None) if sum == condition_val else (False,
-                                                          f"The sum of {sum_fields} does not equal {condition_val}.")
+                                                          f"The sum of {sum_fields} does not equal {condition_field}.")
 
     return lambda value: sumIsEqualFunc(value)
 

@@ -431,7 +431,7 @@ class TestT6Cat3Validators(TestCat3ValidatorsBase):
         record.NUM_APPLICATIONS = 1
         result = val(record)
 
-        assert result == (False, f"The sum of ['NUM_APPROVED', 'NUM_DENIED'] does not equal {record.NUM_APPLICATIONS}.")
+        assert result == (False, f"The sum of ['NUM_APPROVED', 'NUM_DENIED'] does not equal NUM_APPLICATIONS.")
 
     def test_sum_of_families(self, record):
         """Test cat3 validator for sum of families."""
@@ -446,7 +446,7 @@ class TestT6Cat3Validators(TestCat3ValidatorsBase):
         result = val(record)
 
         assert result == (False, "The sum of ['NUM_2_PARENTS', 'NUM_1_PARENTS', 'NUM_NO_PARENTS'] does not equal " +
-                          f"{record.NUM_FAMILIES}.")
+                          "NUM_FAMILIES.")
 
     def test_sum_of_recipients(self, record):
         """Test cat3 validator for sum of recipients."""
@@ -461,4 +461,4 @@ class TestT6Cat3Validators(TestCat3ValidatorsBase):
         result = val(record)
 
         assert result == (False, "The sum of ['NUM_ADULT_RECIPIENTS', 'NUM_CHILD_RECIPIENTS'] does not equal " +
-                          f"{record.NUM_RECIPIENTS}.")
+                          "NUM_RECIPIENTS.")
