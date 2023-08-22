@@ -173,8 +173,8 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
             record_number += 1
             record, record_is_valid, record_errors = r
             if not record_is_valid:
-                errors.update({line_number: record_errors})
-                unsaved_parser_errors.update({line_number: record_errors})
+                errors.update({f"{line_number}_{i}": record_errors})
+                unsaved_parser_errors.update({f"{line_number}_{i}": record_errors})
                 num_errors += len(record_errors)
             if record:
                 s = schema_manager.schemas[i]

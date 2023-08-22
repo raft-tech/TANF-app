@@ -244,7 +244,7 @@ def test_parse_bad_trailer_file(bad_trailer_file):
 
     assert errors == {
         'trailer': [trailer_error],
-        2: [row_error]
+        "2_0": [row_error]
     }
 
 
@@ -289,8 +289,8 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
     assert row_3_error.object_id is None
 
     assert errors == {
-        2: [row_2_error],
-        3: [row_3_error],
+        "2_0": [row_2_error],
+        "3_0": [row_3_error],
         "trailer": [trailer_error_1, trailer_error_2],
     }
 
@@ -570,10 +570,10 @@ def test_parse_bad_ssp_s1_missing_required(bad_ssp_s1__row_missing_required_fiel
     assert trailer_error.object_id is None
 
     assert errors == {
-        2: [row_2_error],
-        3: [row_3_error],
-        4: [row_4_error],
-        5: [row_5_error],
+        "2_0": [row_2_error],
+        "3_0": [row_3_error],
+        "4_0": [row_4_error],
+        "5_0": [row_5_error],
         'trailer': [trailer_error],
     }
 
