@@ -241,7 +241,7 @@ def manager_parse_line(line, schema_manager, generate_error):
         records = schema_manager.parse_and_validate(line, generate_error)
         return records
 
-    logger.info(f"Record Type is missing from record.")
+    logger.info("Record Type is missing from record.")
     return [(None, False, [
         generate_error(
             schema=None,
