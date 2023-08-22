@@ -51,6 +51,19 @@ def if_then_validator(condition_field, condition_function,
 
     return lambda value: if_then_validator_func(value)
 
+def sumIsEqual(condition_field, sum_fields=[]):
+    """Validate that the sum of the sum_fields equals the condition_field."""
+    def sumIsEqualFunc(value):
+        sum = 0
+        for field in sum_fields:
+            sum += value[field] if type(value) is dict else getattr(value, field)
+
+        condition_val = value[condition_field] if type(value) is dict else getattr(value, condition_field)
+        return (True, None) if sum == condition_val else (False,
+                                                          f"The sum of {sum_fields} does not equal {condition_field}.")
+
+    return lambda value: sumIsEqualFunc(value)
+
 def sumIsLarger(fields, val):
     """Validate that the sum of the fields is larger than val."""
     def sumIsLargerFunc(value):
@@ -236,6 +249,13 @@ def dateYearIsLargerThan(year):
     return make_validator(
         lambda value: int(str(value)[:4]) > year,
         lambda value: f'{str(value)[:4]} year must be larger than {year}.'
+    )
+
+def quarterIsValid():
+    """Validate in a year quarter combination, the quarter is valid."""
+    return make_validator(
+        lambda value: int(str(value)[-1]) > 0 and int(str(value)[-1]) < 5,
+        lambda value: f'{str(value)[-1]} is not a valid quarter.'
     )
 
 def validateSSN():

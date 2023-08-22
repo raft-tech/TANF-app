@@ -2,7 +2,7 @@
 
 import pytest
 from .. import validators
-from tdpservice.parsers.test.factories import TanfT5Factory
+from tdpservice.parsers.test.factories import TanfT5Factory, TanfT6Factory
 
 
 def test_matches_returns_valid():
@@ -205,7 +205,7 @@ def test_notEmpty_returns_invalid_substring():
     assert error == "111  333 contains blanks between positions 3 and 5."
 
 @pytest.mark.usefixtures('db')
-class TanfSection2TestCat3ValidatorsBase:
+class TestCat3ValidatorsBase:
     """A base test class for tests that evaluate category three validators."""
 
     @pytest.fixture
@@ -217,7 +217,7 @@ class TanfSection2TestCat3ValidatorsBase:
         raise NotImplementedError()
 
 
-class TestT5Cat3Validators(TanfSection2TestCat3ValidatorsBase):
+class TestT5Cat3Validators(TestCat3ValidatorsBase):
     """Test category three validators for TANF T5 records."""
 
     @pytest.fixture
@@ -409,3 +409,56 @@ class TestT5Cat3Validators(TanfSection2TestCat3ValidatorsBase):
         result = val(record)
         assert result == (False, 'if FAMILY_AFFILIATION :1 validator1 passed then REC_FEDERAL_DISABILITY 0 is not ' +
                           'larger and equal to 1 and smaller and equal to 2.')
+
+
+class TestT6Cat3Validators(TestCat3ValidatorsBase):
+    """Test category three validators for TANF T6 records."""
+
+    @pytest.fixture
+    def record(self):
+        """Override default record with TANF T6 record."""
+        return TanfT6Factory.create()
+
+    def test_sum_of_applications(self, record):
+        """Test cat3 validator for sum of applications."""
+        val = validators.sumIsEqual("NUM_APPLICATIONS", ["NUM_APPROVED", "NUM_DENIED"])
+
+        record.NUM_APPLICATIONS = 2
+        result = val(record)
+
+        assert result == (True, None)
+
+        record.NUM_APPLICATIONS = 1
+        result = val(record)
+
+        assert result == (False, "The sum of ['NUM_APPROVED', 'NUM_DENIED'] does not equal NUM_APPLICATIONS.")
+
+    def test_sum_of_families(self, record):
+        """Test cat3 validator for sum of families."""
+        val = validators.sumIsEqual("NUM_FAMILIES", ["NUM_2_PARENTS", "NUM_1_PARENTS", "NUM_NO_PARENTS"])
+
+        record.NUM_FAMILIES = 3
+        result = val(record)
+
+        assert result == (True, None)
+
+        record.NUM_FAMILIES = 1
+        result = val(record)
+
+        assert result == (False, "The sum of ['NUM_2_PARENTS', 'NUM_1_PARENTS', 'NUM_NO_PARENTS'] does not equal " +
+                          "NUM_FAMILIES.")
+
+    def test_sum_of_recipients(self, record):
+        """Test cat3 validator for sum of recipients."""
+        val = validators.sumIsEqual("NUM_RECIPIENTS", ["NUM_ADULT_RECIPIENTS", "NUM_CHILD_RECIPIENTS"])
+
+        record.NUM_RECIPIENTS = 2
+        result = val(record)
+
+        assert result == (True, None)
+
+        record.NUM_RECIPIENTS = 1
+        result = val(record)
+
+        assert result == (False, "The sum of ['NUM_ADULT_RECIPIENTS', 'NUM_CHILD_RECIPIENTS'] does not equal " +
+                          "NUM_RECIPIENTS.")
