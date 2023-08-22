@@ -18,16 +18,17 @@ def parse_datafile(datafile):
     # parse header, trailer
     rawfile.seek(0)
     header_line = rawfile.readline().decode().strip()
+    header_schema = schema_defs.header.schemas[0]
     header, header_is_valid, header_errors = schema_defs.header.parse_and_validate(
         header_line,
         util.make_generate_parser_error(datafile, 1)
-    )
+    )[0]  # TODO: adding schemamanager to header requires this now :grimace:
     if not header_is_valid:
         errors['header'] = header_errors
         bulk_create_errors({1: header_errors}, 1, flush=True)
         return errors
 
-    is_encrypted = util.contains_encrypted_indicator(header_line, schema_defs.header.get_field_by_name("encryption"))
+    is_encrypted = util.contains_encrypted_indicator(header_line, header_schema.get_field_by_name("encryption"))
 
     # ensure file section matches upload section
     program_type = header['program_type']

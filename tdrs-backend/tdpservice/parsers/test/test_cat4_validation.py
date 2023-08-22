@@ -4,7 +4,7 @@ import pytest
 from ..models import ParserError, ParserErrorCategoryChoices, DataFileSummary
 from ..schema_defs import header, trailer
 from ..schema_defs.tanf import active_section
-from tdpservice.parsers import util
+from tdpservice.parsers import util, parse
 from .factories import DataFileSummaryFactory
 from tdpservice.data_files.models import DataFile
 
@@ -38,27 +38,66 @@ class TestCat4Validation:
         #TODO: create header object/model from test_datafile
         raw_header = test_datafile.file.readline()
         line=raw_header.decode().strip('\r\n')
-        header_obj = header.parse_and_validate(
+        validate_results = header.parse_and_validate(
             line,
             util.make_generate_parser_error(test_datafile, 1)
         )
-        print(header_obj)
-        record, is_valid, errors = header_obj[0]
+        print(validate_results)
+        record, is_valid, errors = validate_results[0]
 
-        active_section_schema_manager.parse_and_validate(test_datafile, util.make_generate_parser_error)
+        #active_section_schema_manager.parse_and_validate(test_datafile, util.make_generate_parser_error)
 
         # TODO: header date vs RMY checks
+        header_rmy = active_section_schema_manager.get_header_rmy(record)
+        month_list = map(util.month_to_int, util.transform_to_months(f"Q{header_rmy[-1:]}"))
+        rpt_month_years = [int(f"{record['year']}{month}") for month in month_list]
+
+        # queryset for all records matching test_datafile
+        records = []
+        err_objs = []
+        for schema in active_section_schema_manager.schemas:
+            model = schema[0].model
+            if model == dict: continue  # need a more elegant skip over header/trailer
+            qs = model.objects.filter(datafile=test_datafile).exclude(RPT_MONTH_YEAR__in=rpt_month_years)
+            records.append(qs)  # evaluate qs, get objects not matching rpt_month_year
+        
+            for record in records:
+                print(record)
+                # generate parserError for any records not matching rpt_month_year
+                err_objs.append(util.generate_parser_error(
+                    schema=schema[0],
+                    line_number=0,
+                    datafile=test_datafile,
+                    error_category=ParserErrorCategoryChoices.CASE_CONSISTENCY,
+                    error_message="RPT_MONTH_YEAR does not match header RPT_MONTH_YEAR",
+                    record=record,
+                    field="RPT_MONTH_YEAR"
+                ))
+        parse.bulk_create_errors({1: (err_objs)}, len(err_objs), flush=True)
+        assert False
+                
+        # create parserError for any record not matching rpt_month_year
+        for schema in active_section_schema_manager.schemas:
+            pass
+            
+        dfs.datafile = test_datafile
+        dfs.save()
+
+        errors = parse.parse_datafile(test_datafile)
+        dfs.status = dfs.get_status()
+
+
     
-    @pytest.mark.django_db
-    def test_cat4_tanf_active(self, test_datafile, dfs):
-        """Run essential checks for TANF/A."""
-        # active cases
-        # TODO: t2 should have matching t1 via case_number and RMY
+    # @pytest.mark.django_db
+    # def test_cat4_tanf_active(self, test_datafile, dfs):
+    #     """Run essential checks for TANF/A."""
+    #     # active cases
+    #     # TODO: t2 should have matching t1 via case_number and RMY
 
-        # TODO: t3 should have matching t1 via case_number and RMY
+    #     # TODO: t3 should have matching t1 via case_number and RMY
 
-        # TODO: t1 should have matching t2/t3 via case_number, RMY if fam_affil==1
-        pass
+    #     # TODO: t1 should have matching t2/t3 via case_number, RMY if fam_affil==1
+    #     pass
 
     # closed cases
     # same header checks
