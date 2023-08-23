@@ -31,6 +31,10 @@ const SubmissionSummaryStatusIcon = ({ status }) => {
       icon = faCheckCircle
       color = '#40bb45'
       break
+    case 'Partially Accepted with Errors':
+      icon = faExclamationCircle
+      color = '#ec4e11'
+      break
     case 'Accepted with Errors':
       icon = faExclamationCircle
       color = '#ec4e11'
