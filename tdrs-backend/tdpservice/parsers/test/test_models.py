@@ -21,3 +21,8 @@ def test_parser_error_rpt_month_name(parser_error_instance):
     """Test that the parser error instance is created."""
     parser_error_instance.rpt_month_year = 202001
     assert parser_error_instance.rpt_month_name == "January"
+
+
+@pytest.mark.django_db
+def test_datafile_summary_status_approved():
+    pass
