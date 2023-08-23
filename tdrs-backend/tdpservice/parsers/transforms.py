@@ -5,6 +5,7 @@ from .util import transform_to_months, month_to_int
 def calendar_quarter_to_rpt_month_year(month_index):
     """Transform calendar year and quarter to RPT_MONTH_YEAR."""
     def transform(value, **kwargs):
+        value = str(value)
         year = value[:4]
         quarter = f"Q{value[-1]}"
         month = transform_to_months(quarter)[month_index]
