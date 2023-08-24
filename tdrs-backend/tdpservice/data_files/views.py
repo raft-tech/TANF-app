@@ -66,7 +66,7 @@ class DataFileViewSet(ModelViewSet):
             data_file_id = response.data.get('id')
             data_file = DataFile.objects.get(id=data_file_id)
 
-            logger.debug(f"Preparing parse task: User META -> user: {request.user}, stt: {data_file.stt}. " +
+            logger.info(f"Preparing parse task: User META -> user: {request.user}, stt: {data_file.stt}. " +
                          f"Datafile META -> datafile: {data_file_id}, section: {data_file.section}, " +
                          f"quarter {data_file.quarter}, year {data_file.year}.")
 

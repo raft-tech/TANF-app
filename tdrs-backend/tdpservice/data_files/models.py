@@ -220,6 +220,15 @@ class DataFile(FileRecord):
         return self.objects.filter(
             version=version, year=year, quarter=quarter, section=section, stt=stt,
         ).first()
+    
+    def __repr__(self):
+        """Return a string representation of the model."""
+        return f"{{id: {self.id}, filename: {self.original_filename}, STT: {self.stt}, S3 location: " + \
+               f"{self.s3_location}}}"
+
+    def __str__(self):
+        """Return a string representation of the model."""
+        return f"filename: {self.original_filename}"
 
 class LegacyFileTransferManager(models.Manager):
     """Extends object manager functionality for LegacyFileTransfer model."""

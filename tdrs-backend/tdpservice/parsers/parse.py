@@ -23,7 +23,7 @@ def parse_datafile(datafile):
         util.make_generate_parser_error(datafile, 1)
     )
     if not header_is_valid:
-        logger.info(f"Preparser Error -> Header errors: {[error.error_message for error in header_errors]}")
+        logger.info(f"Preparser Error -> Header errors: {[error for error in header_errors]}")
         errors['header'] = header_errors
         bulk_create_errors({1: header_errors}, 1, flush=True)
         return errors
@@ -59,7 +59,7 @@ def parse_datafile(datafile):
 def bulk_create_records(unsaved_records, line_number, header_count, batch_size=10000, flush=False):
     """Bulk create passed in records."""
     if (line_number % batch_size == 0 and header_count > 0) or flush:
-        logger.debug(f"Bulk creating records. Batch size: {batch_size}.")
+        logger.debug(f"Bulk creating records.")
         try:
             num_created = 0
             num_expected = 0
@@ -79,6 +79,7 @@ def bulk_create_records(unsaved_records, line_number, header_count, batch_size=1
 def bulk_create_errors(unsaved_parser_errors, num_errors, batch_size=500, flush=False):
     """Bulk create all ParserErrors."""
     if flush or (unsaved_parser_errors and num_errors >= batch_size):
+        logger.debug("Bulk creating ParserErrors.")
         num_created = len(ParserError.objects.bulk_create(list(itertools.chain.from_iterable(
             unsaved_parser_errors.values()))))
         logger.info(f"Created {num_created}/{num_errors} ParserErrors.")
@@ -241,7 +242,7 @@ def manager_parse_line(line, schema_manager, generate_error):
         records = schema_manager.parse_and_validate(line, generate_error)
         return records
 
-    logger.info("Record Type is missing from record.")
+    logger.debug("Record Type is missing from record.")
     return [(None, False, [
         generate_error(
             schema=None,

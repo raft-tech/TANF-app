@@ -39,7 +39,7 @@ class Field:
         value = line[self.startIndex:self.endIndex]
 
         if value_is_empty(value, self.endIndex-self.startIndex):
-            logger.debug(f"Field name: {self.name} at position: [{self.startIndex}, {self.endIndex}) is empty.")
+            logger.debug(f"Field: '{self.name}' at position: [{self.startIndex}, {self.endIndex}) is empty.")
             return None
 
         match self.type:
@@ -87,7 +87,7 @@ class EncryptedField(Field):
         value = line[self.startIndex:self.endIndex]
 
         if value_is_empty(value, self.endIndex-self.startIndex):
-            logger.debug(f"Field name: {self.name} at position: [{self.startIndex}, {self.endIndex}) is empty.")
+            logger.debug(f"Field: '{self.name}' at position: [{self.startIndex}, {self.endIndex}) is empty.")
             return None
 
         match self.type:
