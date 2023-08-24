@@ -1,4 +1,4 @@
-# 1. Record architecture decisions
+# 21. Backend email relay - SendGrid
 
 Date: 2023-08-22
 
