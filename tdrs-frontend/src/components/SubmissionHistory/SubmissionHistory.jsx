@@ -51,17 +51,59 @@ const SubmissionSummaryStatusIcon = ({ status }) => {
   )
 }
 
-const CaseAggregatesRow = ({ data }) =>
-  data ? (
+const CaseAggregatesHeader = ({ section }) =>
+  section === '1' || section === '2' ? (
+    <>
+      <th scope="col" rowSpan={2}>
+        Month
+      </th>
+      <th scope="col" rowSpan={2}>
+        Cases Without Errors
+      </th>
+      <th scope="col" rowSpan={2}>
+        Cases With Errors
+      </th>
+      <th scope="col" rowSpan={2}>
+        Records Unable To Process
+      </th>
+    </>
+  ) : (
+    <>
+      <th scope="col" rowSpan={2}>
+        Month
+      </th>
+      <th scope="col" rowSpan={2}>
+        Total
+      </th>
+      <th scope="col" rowSpan={2}>
+        Cases With Errors
+      </th>
+    </>
+  )
+
+const CaseAggregatesRow = ({ data, section }) =>
+  section === '1' || section === '2' ? (
+    data ? (
+      <>
+        <th scope="row">{data.month}</th>
+        <td>{data.accepted_without_errors}</td>
+        <td>{data.accepted_with_errors}</td>
+      </>
+    ) : (
+      <>
+        <th scope="row">-</th>
+        <td>N/A</td>
+        <td>N/A</td>
+      </>
+    )
+  ) : data ? (
     <>
       <th scope="row">{data.month}</th>
-      <td>{data.accepted_without_errors}</td>
-      <td>{data.accepted_with_errors}</td>
+      <td>{data.total}</td>
     </>
   ) : (
     <>
       <th scope="row">-</th>
-      <td>N/A</td>
       <td>N/A</td>
     </>
   )
@@ -199,18 +241,7 @@ const SectionSubmissionHistory = ({ section, label, files }) => {
                 <th scope="col" rowSpan={2}>
                   File Name
                 </th>
-                <th scope="col" rowSpan={2}>
-                  Month
-                </th>
-                <th scope="col" rowSpan={2}>
-                  Cases Without Errors
-                </th>
-                <th scope="col" rowSpan={2}>
-                  Cases With Errors
-                </th>
-                <th scope="col" rowSpan={2}>
-                  Records Unable To Process
-                </th>
+                <CaseAggregatesHeader section={section} />
                 <th scope="col" rowSpan={2}>
                   Status
                 </th>
