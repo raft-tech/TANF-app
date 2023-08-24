@@ -216,7 +216,7 @@ def manager_parse_line(line, schema_manager, generate_error, is_encrypted=False)
         schema_manager.update_encrypted_fields(is_encrypted)
         records = schema_manager.parse_and_validate(line, generate_error)
         return records
-    except AttributeError as e:
+    except AttributeError:
         return [(None, False, [
             generate_error(
                 schema=None,
