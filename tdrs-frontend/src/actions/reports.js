@@ -254,7 +254,7 @@ export const submit =
         setLocalAlertState({
           active: true,
           type: 'error',
-          message: error.message,
+          message: error.message.concat(': ', error.response.data.file[0]),
         })
       )
   }
