@@ -67,8 +67,8 @@ class DataFileViewSet(ModelViewSet):
             data_file = DataFile.objects.get(id=data_file_id)
 
             logger.info(f"Preparing parse task: User META -> user: {request.user}, stt: {data_file.stt}. " +
-                         f"Datafile META -> datafile: {data_file_id}, section: {data_file.section}, " +
-                         f"quarter {data_file.quarter}, year {data_file.year}.")
+                        f"Datafile META -> datafile: {data_file_id}, section: {data_file.section}, " +
+                        f"quarter {data_file.quarter}, year {data_file.year}.")
 
             parser_task.parse.delay(data_file_id)
             logger.info("Submitted parse task to queue for datafile %s.", data_file_id)

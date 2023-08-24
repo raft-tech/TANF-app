@@ -59,7 +59,7 @@ def parse_datafile(datafile):
 def bulk_create_records(unsaved_records, line_number, header_count, batch_size=10000, flush=False):
     """Bulk create passed in records."""
     if (line_number % batch_size == 0 and header_count > 0) or flush:
-        logger.debug(f"Bulk creating records.")
+        logger.debug("Bulk creating records.")
         try:
             num_created = 0
             num_expected = 0
