@@ -392,7 +392,7 @@ describe('SubmissionHistory', () => {
 
     setup(store)
 
-    expect(screen.queryByText('Acceptance Status')).toBeInTheDocument()
+    expect(screen.queryByText('Status')).toBeInTheDocument()
     expect(screen.queryByText('test1.txt')).toBeInTheDocument()
     expect(screen.queryByText(status || 'Pending')).toBeInTheDocument()
   })
