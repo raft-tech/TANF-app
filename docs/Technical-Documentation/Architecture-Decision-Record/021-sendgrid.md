@@ -8,7 +8,7 @@ Accepted
 
 ## Context
 
-[OCIO, HHS, the Government] has moved to deprecate connections to their SMTP server via IronPort and has required all services to switch to a different email provider as described in this message, received 06/28/2023
+HHS ITIO has moved to deprecate connections to their SMTP server via IronPort and has required all services to switch to a different email provider as described in this message, received 06/28/2023
 
 > In quick summary we will need you to:
 > 1. Establish a relationship with a third-party email service provider
