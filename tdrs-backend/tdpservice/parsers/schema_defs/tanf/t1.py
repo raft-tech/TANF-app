@@ -141,7 +141,7 @@ t1 = SchemaManager(schemas=[
                         ]),
                   Field(item="17", name='RECEIVES_SUB_CC', type='number', startIndex=42, endIndex=43,
                         required=True, validators=[
-                              validators.isInLimits(1, 3),
+                              validators.isInLimits(0, 3),
                         ]),
                   Field(item="18", name='AMT_SUB_CC', type='number', startIndex=43, endIndex=47,
                         required=True, validators=[
