@@ -43,7 +43,7 @@ class CloudGov(Common):
 
     cloudgov_space = cloudgov_app.get('space_name', 'tanf-dev')
     cloudgov_space_suffix = cloudgov_space.strip('tanf-')
-    AV_SCAN_URL = f'http://tanf-prod-clamav-rest.apps.internal:9000/scan'
+    AV_SCAN_URL = 'http://tanf-prod-clamav-rest.apps.internal:9000/scan'
     cloudgov_name = cloudgov_app.get('name').split("-")[-1]  # converting "tdp-backend-name" to just "name"
     services_basename = cloudgov_name if (
         cloudgov_name == "develop" and cloudgov_space_suffix == "staging"
