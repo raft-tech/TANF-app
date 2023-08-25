@@ -209,7 +209,7 @@ t1 = SchemaManager(schemas=[
                         ]),
                   Field(item="26AIII", name='FAMILY_SANC_ADULT', type='number', startIndex=97, endIndex=98,
                         required=True, validators=[
-                              validators.oneOf([1, 2]),
+                              validators.oneOf([0, 1, 2]),
                         ]),
                   Field(item="26AIV", name='SANC_TEEN_PARENT', type='number', startIndex=98, endIndex=99,
                         required=True, validators=[
