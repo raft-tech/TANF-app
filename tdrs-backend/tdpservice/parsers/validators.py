@@ -222,7 +222,7 @@ def isInLimits(LowerBound, UpperBound):
     """Validate that value is in a range including the limits."""
     return make_validator(
         lambda value: value >= LowerBound and value <= UpperBound,
-        lambda value: f'{value} is not larger and equal to {LowerBound} and smaller and equal to {UpperBound}.'
+        lambda value: f'{value} is not larger or equal to {LowerBound} and smaller or equal to {UpperBound}.'
     )
 
 
