@@ -133,7 +133,7 @@ t1 = SchemaManager(schemas=[
                         ]),
                   Field(item="15", name='RECEIVES_FOOD_STAMPS', type='number', startIndex=37, endIndex=38,
                         required=True, validators=[
-                              validators.isInLimits(1, 2),
+                              validators.isInLimits(0, 2),
                         ]),
                   Field(item="16", name='AMT_FOOD_STAMP_ASSISTANCE', type='number', startIndex=38, endIndex=42,
                         required=True, validators=[
