@@ -88,30 +88,30 @@ function FileUpload({ section, setLocalAlertState }) {
     const input = inputRef.current
     const dropTarget = inputRef.current.parentNode
 
-    // Validate file extension before proceeding
-    const re = /(\.txt|\.ms\d{2}|\.ts\d{2,3})/i
-    const filename = event.target.files[0].name
-    const n = filename.lastIndexOf('.')
-    const ext = filename.substring(n)
-    if (!re.exec(ext)) {
-      // reject the file and create an error message
-      createFileInputErrorState(input, dropTarget) // Why doesnt this work?
-
-      dispatch({
-        type: FILE_EXT_ERROR,
-        payload: {
-          error: { message: INVALID_EXT_ERROR },
-          section,
-        },
-      })
-      return
-    }
-
     const filereader = new FileReader()
 
     filereader.onloadend = (evt) => {
-      /* istanbul ignore next */
       if (!evt.target.error) {
+        // Validate file extension before proceeding
+        const re = /(\.txt|\.ms\d{2}|\.ts\d{2,3})/i
+        const filename = file.name
+        const n = filename.lastIndexOf('.')
+        const ext = filename.substring(n)
+        if (!re.exec(ext)) {
+          // reject the file and create an error message
+          createFileInputErrorState(input, dropTarget) // Why doesnt this work?
+
+          dispatch({
+            type: FILE_EXT_ERROR,
+            payload: {
+              error: { message: INVALID_EXT_ERROR },
+              section,
+            },
+          })
+          return
+        }
+
+        /* istanbul ignore next */
         // Read in the file blob "headers: and create a hex string signature
         const uint = new Uint8Array(evt.target.result)
         const bytes = []
