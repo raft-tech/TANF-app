@@ -239,51 +239,6 @@ def isInLimits(LowerBound, UpperBound):
         lambda value: f'{value} is not larger or equal to {LowerBound} and smaller or equal to {UpperBound}.'
     )
 
-
-def notZero(number_of_zeros=1):
-    """Validate that value is not zero."""
-    return make_validator(
-        lambda value: value != '0' * number_of_zeros,
-        lambda value: f'{value} is zero.'
-    )
-
-
-def isLargerThan(LowerBound):
-    """Validate that value is larger than the given value."""
-    return make_validator(
-        lambda value: float(value) > LowerBound if value is not None else False,
-        lambda value: f'{value} is not larger than {LowerBound}.'
-    )
-
-
-def isSmallerThan(UpperBound):
-    """Validate that value is smaller than the given value."""
-    return make_validator(
-        lambda value: value < UpperBound,
-        lambda value: f'{value} is not smaller than {UpperBound}.'
-    )
-
-def isLargerThanOrEqualTo(LowerBound):
-    """Validate that value is larger than the given value."""
-    return make_validator(
-        lambda value: value >= LowerBound,
-        lambda value: f'{value} is not larger than {LowerBound}.'
-    )
-
-def isSmallerThanOrEqualTo(UpperBound):
-    """Validate that value is smaller than the given value."""
-    return make_validator(
-        lambda value: value <= UpperBound,
-        lambda value: f'{value} is not smaller than {UpperBound}.'
-    )
-
-def isInLimits(LowerBound, UpperBound):
-    """Validate that value is in a range including the limits."""
-    return make_validator(
-        lambda value: value >= LowerBound and value <= UpperBound,
-        lambda value: f'{value} is not larger and equal to {LowerBound} and smaller and equal to {UpperBound}.'
-    )
-
 # custom validators
 
 def dateMonthIsValid():
