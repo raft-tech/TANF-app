@@ -526,8 +526,8 @@ class TestT2Cat3Validators(TestCat3ValidatorsBase):
         record.FAMILY_AFFILIATION = 3
         record.MARITAL_STATUS = 0
         result = val(record)
-        assert result == (False, 'if FAMILY_AFFILIATION :3 validator1 passed then MARITAL_STATUS 0 is not larger and ' +
-                          'equal to 1 and smaller and equal to 5.')
+        assert result == (False, 'if FAMILY_AFFILIATION :3 validator1 passed then MARITAL_STATUS 0 is not larger or ' +
+                          'equal to 1 and smaller or equal to 5.')
 
     def test_validate_parent_with_minor(self, record):
         """Test cat3 validator for parent with a minor child."""
@@ -541,7 +541,7 @@ class TestT2Cat3Validators(TestCat3ValidatorsBase):
         record.PARENT_WITH_MINOR_CHILD = 0
         result = val(record)
         assert result == (False, 'if FAMILY_AFFILIATION :1 validator1 passed then PARENT_WITH_MINOR_CHILD 0 is not ' +
-                          'larger and equal to 1 and smaller and equal to 3.')
+                          'larger or equal to 1 and smaller or equal to 3.')
 
     def test_validate_education_level(self, record):
         """Test cat3 validator for education level."""
@@ -624,7 +624,7 @@ class TestT2Cat3Validators(TestCat3ValidatorsBase):
         record.EMPLOYMENT_STATUS = 4
         result = val(record)
         assert result == (False, 'if FAMILY_AFFILIATION :3 validator1 passed then EMPLOYMENT_STATUS 4 is not larger ' +
-                          'and equal to 1 and smaller and equal to 3.')
+                          'or equal to 1 and smaller or equal to 3.')
 
     def test_validate_work_eligible_indicator(self, record):
         """Test cat3 validator for work eligibility."""
@@ -842,8 +842,8 @@ class TestT5Cat3Validators(TestCat3ValidatorsBase):
                     result_field=race, result_function=validators.isInLimits(1, 2)
                   )
             result = val(record)
-            assert result == (False, f'if FAMILY_AFFILIATION :1 validator1 passed then {race} 0 is not ' +
-                              'larger and equal to 1 and smaller and equal to 2.')
+            assert result == (False, f'if FAMILY_AFFILIATION :1 validator1 passed then {race} 0 is not larger or ' +
+                              'equal to 1 and smaller or equal to 2.')
 
     def test_validate_marital_status(self, record):
         """Test cat3 validator for marital status."""
@@ -860,8 +860,8 @@ class TestT5Cat3Validators(TestCat3ValidatorsBase):
         record.MARITAL_STATUS = 6
 
         result = val(record)
-        assert result == (False, 'if FAMILY_AFFILIATION :2 validator1 passed then MARITAL_STATUS 6 is not ' +
-                          'larger and equal to 0 and smaller and equal to 5.')
+        assert result == (False, 'if FAMILY_AFFILIATION :2 validator1 passed then MARITAL_STATUS 6 is not larger or ' +
+                          'equal to 0 and smaller or equal to 5.')
 
     def test_validate_parent_minor(self, record):
         """Test cat3 validator for parent with minor."""
@@ -878,8 +878,8 @@ class TestT5Cat3Validators(TestCat3ValidatorsBase):
         record.PARENT_MINOR_CHILD = 0
 
         result = val(record)
-        assert result == (False, 'if FAMILY_AFFILIATION :2 validator1 passed then PARENT_MINOR_CHILD 0 is not ' +
-                          'larger and equal to 1 and smaller and equal to 3.')
+        assert result == (False, 'if FAMILY_AFFILIATION :2 validator1 passed then PARENT_MINOR_CHILD 0 is not larger ' +
+                          'or equal to 1 and smaller or equal to 3.')
 
     def test_validate_education(self, record):
         """Test cat3 validator for education level."""
@@ -917,8 +917,8 @@ class TestT5Cat3Validators(TestCat3ValidatorsBase):
         record.CITIZENSHIP_STATUS = 0
 
         result = val(record)
-        assert result == (False, 'if FAMILY_AFFILIATION :1 validator1 passed then CITIZENSHIP_STATUS 0 is not ' +
-                          'larger and equal to 1 and smaller and equal to 2.')
+        assert result == (False, 'if FAMILY_AFFILIATION :1 validator1 passed then CITIZENSHIP_STATUS 0 is not larger ' +
+                          'or equal to 1 and smaller or equal to 2.')
 
     def test_validate_hoh_fed_time(self, record):
         """Test cat3 validator for federal disability."""
@@ -952,7 +952,7 @@ class TestT5Cat3Validators(TestCat3ValidatorsBase):
 
         result = val(record)
         assert result == (False, 'if DATE_OF_BIRTH :200001 validator1 passed then REC_OASDI_INSURANCE 0 is not ' +
-                          'larger and equal to 1 and smaller and equal to 2.')
+                          'larger or equal to 1 and smaller or equal to 2.')
 
     def test_validate_federal_disability(self, record):
         """Test cat3 validator for federal disability."""
@@ -970,7 +970,7 @@ class TestT5Cat3Validators(TestCat3ValidatorsBase):
 
         result = val(record)
         assert result == (False, 'if FAMILY_AFFILIATION :1 validator1 passed then REC_FEDERAL_DISABILITY 0 is not ' +
-                          'larger and equal to 1 and smaller and equal to 2.')
+                          'larger or equal to 1 and smaller or equal to 2.')
 
 
 class TestT6Cat3Validators(TestCat3ValidatorsBase):
