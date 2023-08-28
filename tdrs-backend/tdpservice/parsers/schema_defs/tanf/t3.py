@@ -81,8 +81,8 @@ child_one = RowSchema(
               ]),
         Field(item="68", name='DATE_OF_BIRTH', type='number', startIndex=20, endIndex=28,
               required=True, validators=[
-                  validators.month_year_yearIsLargerThan(1998),
-                  validators.month_year_monthIsValid(),
+                  validators.dateYearIsLargerThan(1998),
+                  validators.dateMonthIsValid(),
               ]),
         TransformField(transform_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=28,
                        endIndex=37, required=True, validators=[validators.notOneOf([str(i)*9 for i in range(0, 10)])],
@@ -226,8 +226,8 @@ child_two = RowSchema(
               ]),
         Field(item="68", name='DATE_OF_BIRTH', type='number', startIndex=61, endIndex=69,
               required=True, validators=[
-                  validators.month_year_yearIsLargerThan(1998),
-                  validators.month_year_monthIsValid(),
+                  validators.dateYearIsLargerThan(1998),
+                  validators.dateMonthIsValid(),
               ]),
         TransformField(transform_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=69,
                        endIndex=78, required=True, validators=[validators.notOneOf([str(i)*9 for i in range(0, 10)])],

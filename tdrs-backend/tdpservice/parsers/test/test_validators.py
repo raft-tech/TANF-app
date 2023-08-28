@@ -69,10 +69,10 @@ def test_validate__FAM_AFF__SSN():
     result = validators.validate__FAM_AFF__SSN()(instance)
     assert result == (True, None)
 
-def test_month_year_yearIsLargerThan():
-    """Test `month_year_yearIsLargerThan` gives a valid result."""
+def test_dateYearIsLargerThan():
+    """Test `dateYearIsLargerThan` gives a valid result."""
     value = "199806"
-    validator = validators.month_year_yearIsLargerThan(1999)
+    validator = validators.dateYearIsLargerThan(1999)
     result = validator(value)
     assert result == (False, '1998 year must be larger than 1999.')
 
@@ -156,19 +156,19 @@ def test_between_returns_invalid():
     assert error == '47 is not between 48 and 400.'
 
 
-def test_month_year_monthIsValid_returns_valid():
-    """Test `month_year_monthIsValid` gives a valid result."""
+def test_date_month_is_valid_returns_valid():
+    """Test `dateMonthIsValid` gives a valid result."""
     value = '20191027'
-    validator = validators.month_year_monthIsValid()
+    validator = validators.dateMonthIsValid()
     is_valid, error = validator(value)
     assert is_valid is True
     assert error is None
 
 
-def test_month_year_monthIsValid_returns_invalid():
-    """Test `month_year_monthIsValid` gives an invalid result."""
+def test_date_month_is_valid_returns_invalid():
+    """Test `dateMonthIsValid` gives an invalid result."""
     value = '20191327'
-    validator = validators.month_year_monthIsValid()
+    validator = validators.dateMonthIsValid()
     is_valid, error = validator(value)
     assert is_valid is False
     assert error == '13 is not a valid month.'
@@ -526,8 +526,8 @@ class TestT2Cat3Validators(TestCat3ValidatorsBase):
         record.FAMILY_AFFILIATION = 3
         record.MARITAL_STATUS = 0
         result = val(record)
-        assert result == (False, 'if FAMILY_AFFILIATION :3 validator1 passed then MARITAL_STATUS 0 is not larger ' +
-                          'or equal to 1 and smaller or equal to 5.')
+        assert result == (False, 'if FAMILY_AFFILIATION :3 validator1 passed then MARITAL_STATUS 0 is not larger and ' +
+                          'equal to 1 and smaller and equal to 5.')
 
     def test_validate_parent_with_minor(self, record):
         """Test cat3 validator for parent with a minor child."""
@@ -540,8 +540,8 @@ class TestT2Cat3Validators(TestCat3ValidatorsBase):
 
         record.PARENT_WITH_MINOR_CHILD = 0
         result = val(record)
-        assert result == (False, 'if FAMILY_AFFILIATION :1 validator1 passed then PARENT_WITH_MINOR_CHILD 0 is ' +
-                          'not larger or equal to 1 and smaller or equal to 3.')
+        assert result == (False, 'if FAMILY_AFFILIATION :1 validator1 passed then PARENT_WITH_MINOR_CHILD 0 is not ' +
+                          'larger and equal to 1 and smaller and equal to 3.')
 
     def test_validate_education_level(self, record):
         """Test cat3 validator for education level."""
@@ -623,8 +623,8 @@ class TestT2Cat3Validators(TestCat3ValidatorsBase):
         record.FAMILY_AFFILIATION = 3
         record.EMPLOYMENT_STATUS = 4
         result = val(record)
-        assert result == (False, 'if FAMILY_AFFILIATION :3 validator1 passed then EMPLOYMENT_STATUS 4 is not ' +
-                          'larger or equal to 1 and smaller or equal to 3.')
+        assert result == (False, 'if FAMILY_AFFILIATION :3 validator1 passed then EMPLOYMENT_STATUS 4 is not larger ' +
+                          'and equal to 1 and smaller and equal to 3.')
 
     def test_validate_work_eligible_indicator(self, record):
         """Test cat3 validator for work eligibility."""
@@ -922,7 +922,7 @@ class TestT5Cat3Validators(TestCat3ValidatorsBase):
 
     def test_validate_hoh_fed_time(self, record):
         """Test cat3 validator for federal disability."""
-        val = validators.validate__FAM_AFF__HOH__Fed_Time()
+        val = validators.validate__FAM_AFF__HOH__Count_Fed_Time()
 
         record.FAMILY_AFFILIATION = 0
         result = val(record)
@@ -930,11 +930,11 @@ class TestT5Cat3Validators(TestCat3ValidatorsBase):
 
         record.FAMILY_AFFILIATION = 1
         record.RELATIONSHIP_HOH = 1
-        record.COUNTABLE_MONTH_FED_TIME = 1
+        record.COUNTABLE_MONTH_FED_TIME = 0
 
         result = val(record)
-        assert result == (False, "If FAMILY_AFFILIATION == 1 and RELATIONSHIP_HOH == 1 or 2, "
-                          + "then COUNTABLE_MONTH_FED_TIME >= 001.")
+        assert result == (False, 'If FAMILY_AFFILIATION == 2 and COUNTABLE_MONTH_FED_TIME== 1 or 2, then ' +
+                          'COUNTABLE_MONTH_FED_TIME > 1.')
 
     def test_validate_oasdi_insurance(self, record):
         """Test cat3 validator for OASDI insurance."""
