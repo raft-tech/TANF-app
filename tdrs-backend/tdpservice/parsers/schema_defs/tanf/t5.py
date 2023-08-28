@@ -18,7 +18,7 @@ t5 = SchemaManager(
           ],
           postparsing_validators=[
               validators.if_then_validator(
-                  condition_field='FAMILY_AFFILIATION', condition_function=validators.notMatches(1),
+                  condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
                   result_field='SSN', result_function=validators.validateSSN()
                   ),
               validators.validate__FAM_AFF__SSN(),
