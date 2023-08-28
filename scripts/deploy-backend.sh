@@ -108,7 +108,7 @@ update_backend()
     cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_BACKEND" --protocol tcp --port 8080
 
     # Add network policy to allow conection to prod clamAV to access backend
-    cf add-network-policy "$CGAPPNAME_BACKEND" "clamav-rest" -s "tanf-prod" --protocol tcp --port 9000
+    cf add-network-policy "$CGAPPNAME_BACKEND" clamav-rest -s tanf-prod --protocol tcp --port 9000
     
     cd ..
 }
