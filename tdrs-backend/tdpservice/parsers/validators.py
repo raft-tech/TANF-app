@@ -12,18 +12,22 @@ def make_validator(validator_func, error_func):
     return lambda value: (True, None) if value is not None and validator_func(value) else (False, error_func(value))
 
 
-# validator combinators
-
-def or_validators(validator1, validator2):
-    """Return a validator that is true only if one of the two validators is true."""
-    return lambda value: (True, None) if (validator1(value)[0] or validator2(value)[0])\
-        else (False, validator1(value)[1] + ' or ' + validator2(value)[1])
+def or_validators(*args, **kwargs):
+    """Return a validator that is true only if one of the validators is true."""
+    return lambda value: (True, None) if any([validator(value)[0] for validator in args])\
+        else (False, ' or '.join([validator(value)[1] for validator in args]))
 
 
 def and_validators(validator1, validator2):
     """Return a validator that is true only if both validators are true."""
     return lambda value: (True, None) if (validator1(value)[0] and validator2(value)[0])\
-        else (False, validator1(value)[1] + ' and ' + validator2(value)[1])
+        else (False, (validator1(value)[1]) if validator1(value)[1] is not None else '' +
+              ' and ' + validator2(value)[1] if validator2(value)[1] is not None else '')
+
+def extended_and_validators(*args, **kwargs):
+    """Return a validator that is true only if all validators are true."""
+    return lambda value: (True, None) if all([validator(value)[0] for validator in args])\
+        else (False, ''.join([' and ' + validator(value)[1] if validator(value)[0] else '' for validator in args]))
 
 
 def if_then_validator(condition_field, condition_function,
@@ -169,6 +173,13 @@ def isInStringRange(lower, upper, zfill=1):
         lambda value: f'{value} is not in range [{lower}, {upper}].'
     )
 
+def isStringLargerThan(val):
+    """Validate that string value is larger than val."""
+    return make_validator(
+        lambda value: int(value) > val,
+        lambda value: f'{value} is not larger than {val}.'
+    )
+
 def notEmpty(start=0, end=None):
     """Validate that string value isn't only blanks."""
     return make_validator(
@@ -181,6 +192,51 @@ def isEmpty(start=0, end=None):
     return make_validator(
         lambda value: value[start:end if end else len(value)].isspace(),
         lambda value: f'{value} is not blank between positions {start} and {end if end else len(value)}.'
+    )
+
+
+def notZero(number_of_zeros=1):
+    """Validate that value is not zero."""
+    return make_validator(
+        lambda value: value != '0' * number_of_zeros,
+        lambda value: f'{value} is zero.'
+    )
+
+
+def isLargerThan(LowerBound):
+    """Validate that value is larger than the given value."""
+    return make_validator(
+        lambda value: float(value) > LowerBound if value is not None else False,
+        lambda value: f'{value} is not larger than {LowerBound}.'
+    )
+
+
+def isSmallerThan(UpperBound):
+    """Validate that value is smaller than the given value."""
+    return make_validator(
+        lambda value: value < UpperBound,
+        lambda value: f'{value} is not smaller than {UpperBound}.'
+    )
+
+def isLargerThanOrEqualTo(LowerBound):
+    """Validate that value is larger than the given value."""
+    return make_validator(
+        lambda value: value >= LowerBound,
+        lambda value: f'{value} is not larger than {LowerBound}.'
+    )
+
+def isSmallerThanOrEqualTo(UpperBound):
+    """Validate that value is smaller than the given value."""
+    return make_validator(
+        lambda value: value <= UpperBound,
+        lambda value: f'{value} is not smaller than {UpperBound}.'
+    )
+
+def isInLimits(LowerBound, UpperBound):
+    """Validate that value is in a range including the limits."""
+    return make_validator(
+        lambda value: value >= LowerBound and value <= UpperBound,
+        lambda value: f'{value} is not larger or equal to {LowerBound} and smaller or equal to {UpperBound}.'
     )
 
 
@@ -294,21 +350,26 @@ def validate__FAM_AFF__SSN():
             return (True, None)
     return lambda instance: validate(instance)
 
-def validate__FAM_AFF__HOH__FEDTIME():
-    """If item 14 == 1 and item 21 == 1 or 2, then item 26 >= 001."""
+def validate__FAM_AFF__HOH__Fed_Time():
+    """If FAMILY_AFFILIATION == 1 and RELATIONSHIP_HOH== 1 or 2, then MONTHS_FED_TIME_LIMIT >= 1."""
     # value is instance
     def validate(instance):
         FAMILY_AFFILIATION = instance['FAMILY_AFFILIATION'] if type(instance) is dict else \
             getattr(instance, 'FAMILY_AFFILIATION')
         RELATIONSHIP_HOH = instance['RELATIONSHIP_HOH'] if type(instance) is dict else \
             getattr(instance, 'RELATIONSHIP_HOH')
-        COUNTABLE_MONTH_FED_TIME = instance['COUNTABLE_MONTH_FED_TIME'] if type(instance) is dict else \
-            getattr(instance, 'COUNTABLE_MONTH_FED_TIME')
-        if FAMILY_AFFILIATION == 1 and ((RELATIONSHIP_HOH == 1 or RELATIONSHIP_HOH == 2)
-                                        and int(COUNTABLE_MONTH_FED_TIME) >= 1):
-            return (False, "If FAMILY_AFFILIATION == 1 and RELATIONSHIP_HOH == 1 or 2, "
-                    + "then COUNTABLE_MONTH_FED_TIME >= 001.")
-        return (True, None)
+        RELATIONSHIP_HOH = int(RELATIONSHIP_HOH)
+        MONTHS_FED_TIME_LIMIT = instance['MONTHS_FED_TIME_LIMIT'] if type(instance) is dict else \
+            getattr(instance, 'MONTHS_FED_TIME_LIMIT')
+        if FAMILY_AFFILIATION == 1 and (RELATIONSHIP_HOH == 1 or RELATIONSHIP_HOH == 2):
+            if int(MONTHS_FED_TIME_LIMIT) < 1:
+                return (False,
+                        'If FAMILY_AFFILIATION == 2 and MONTHS_FED_TIME_LIMIT== 1 or 2, then MONTHS_FED_TIME_LIMIT > 1.'
+                        )
+            else:
+                return (True, None)
+        else:
+            return (True, None)
     return lambda instance: validate(instance)
 
 def validate_single_header_trailer(datafile):
