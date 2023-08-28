@@ -65,7 +65,7 @@ t5 = SchemaManager(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
                   result_field='CITIZENSHIP_STATUS', result_function=validators.isInLimits(1, 2)
                   ),
-              validators.validate__FAM_AFF__HOH__FEDTIME(),
+              validators.validate__FAM_AFF__HOH__Fed_Time(),
               validators.if_then_validator(
                   condition_field='DATE_OF_BIRTH', condition_function=validators.olderThan(18),
                   result_field='REC_OASDI_INSURANCE', result_function=validators.isInLimits(1, 2)

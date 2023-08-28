@@ -922,7 +922,7 @@ class TestT5Cat3Validators(TestCat3ValidatorsBase):
 
     def test_validate_hoh_fed_time(self, record):
         """Test cat3 validator for federal disability."""
-        val = validators.validate__FAM_AFF__HOH__FEDTIME()
+        val = validators.validate__FAM_AFF__HOH__Fed_Time()
 
         record.FAMILY_AFFILIATION = 0
         result = val(record)
