@@ -47,6 +47,11 @@ We will utilize a third-party, non-SMTP email service - [SendGrid](https://sendg
 * Reliable managed email service, less flaky than SMTP
 * Increased visibility vs. SMTP - deliverability insights allow us to view whether or not an email was delivered and reason it bounced back, as well as if it has been opened.
 * Large feature set - retry, analytics, automation, templates; saves us debugging/implementation time by utilizing a well-used, well-documented service.
+* ACF Tech security team assessed SendGrid along the following dimensions and approved its use for TDP:
+  - _compliance:_ SendGrid earned the SOC 2 Type II certification, based on rigorous controls to safeguard customer data
+  - _data security:_ access to SendGrid system and data is restricted only to to those who need access in order to provide support. All customer data is encrypted in transit via TLS. 
+  - _business continuity/disaster recovery:_ SendGrid has separate data centers to support consistent service delivery for customers in the event of an outage 
+  - _privacy:_ SendGrid takes appropriate technical and organizational measures to protect the security of users/ PII both online and offline. For reference, SendGrid only accesses TDP user emails. 
 
 ### Risks
 * Api/library versioning - any breaking changes to the api or python library will have to be prioritized and fixed quickly or risk breaking email notifications for the application.
@@ -54,5 +59,7 @@ We will utilize a third-party, non-SMTP email service - [SendGrid](https://sendg
 
 ## Notes
 
+* [link to boundary diagram]()
+* [link to technical diagram]()
 * [Pro/Con List for SendGrid and Amazon SES](https://hackmd.io/25liUecySPSXOtyiF6YugA)
 * [[SPIKE] Backend Email Relay](https://github.com/raft-tech/TANF-app/issues/1784)
