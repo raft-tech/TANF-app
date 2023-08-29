@@ -23,7 +23,7 @@ Options
 * Host an SMTP server
     * Pro: theoretically, we would have more control over our system and security by deploying our own services
     * Con: this comes with a potentially high maintenance cost
-    * Con: no gloud.gov provided SMTP infrastructure available
+    * Con: no cloud.gov provided SMTP infrastructure available
     * Con: SMTP in general is somewhat flaky with low visibility into failures, may be increased effort to debug or add necessary features
 * Utilize a third-party SMTP email service
     * Pro: a managed service means less maintenance for our team
