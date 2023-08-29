@@ -638,23 +638,18 @@ def test_parse_tanf_section4_file(tanf_section4_file):
     assert TANF_T7.objects.all().count() == 6
 
     parser_errors = ParserError.objects.filter(file=tanf_section4_file)
-    assert parser_errors.count() == 1
-    # check error
+    assert parser_errors.count() == 0
 
-    t7_objs = TANF_T7.objects.all().order_by('TDRS_SECTION_IND')
+    t7_objs = TANF_T7.objects.all().order_by('FAMILIES_MONTH_1')
 
     first = t7_objs.first()
-    second = t7_objs[1]
-    # third = t7_objs[2]
+    sixth = t7_objs[5]
 
     assert first.CALENDAR_YEAR == 2020
-    assert second.CALENDAR_YEAR == 2020
-    # assert third.CALENDAR_YEAR == 2020
+    assert sixth.CALENDAR_YEAR == 2020
 
-    assert first.TDRS_SECTION_IND == '1'
-    assert second.TDRS_SECTION_IND == '1'
-    # assert third.TDRS_SECTION_IND == '1'
+    assert first.TDRS_SECTION_IND == '2'
+    assert sixth.TDRS_SECTION_IND == '1'
 
-    assert first.FAMILIES_MONTH_1 == 68537
-    assert second.FAMILIES_MONTH_1 == 3124
-    # assert third.FAMILIES_MONTH_1 == 5453
+    assert first.FAMILIES_MONTH_1 == 391
+    assert sixth.FAMILIES_MONTH_1 == 68537
