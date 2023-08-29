@@ -5,6 +5,7 @@ import {
   SET_FILE,
   CLEAR_FILE,
   SET_FILE_ERROR,
+  FILE_EXT_ERROR,
   SET_SELECTED_YEAR,
   SET_SELECTED_STT,
   SET_FILE_LIST,
@@ -272,6 +273,59 @@ describe('reducers/reports', () => {
     expect(
       reducer(undefined, {
         type: SET_FILE_ERROR,
+        payload: {
+          error: fakeError,
+          section: 'Stratum Data',
+        },
+      })
+    ).toEqual({
+      files: initialState.files,
+      isLoadingCurrentSubmission: initialState.isLoadingCurrentSubmission,
+      currentSubmissionError: initialState.currentSubmissionError,
+      submittedFiles: [
+        {
+          section: 'Active Case Data',
+          fileName: null,
+          fileType: null,
+          error: null,
+          uuid: null,
+        },
+        {
+          section: 'Closed Case Data',
+          fileName: null,
+          fileType: null,
+          error: null,
+          uuid: null,
+        },
+        {
+          section: 'Aggregate Data',
+          fileName: null,
+          fileType: null,
+          error: null,
+          uuid: null,
+        },
+        {
+          section: 'Stratum Data',
+          file: null,
+          fileName: undefined,
+          fileType: null,
+          id: null,
+          error: fakeError,
+          uuid: null,
+        },
+      ],
+      stt: '',
+      year: '',
+      quarter: '',
+      fileType: 'tanf',
+    })
+  })
+
+  it('should handle FILE_EXT_ERROR', () => {
+    const fakeError = new Error({ message: 'something went wrong' })
+    expect(
+      reducer(undefined, {
+        type: FILE_EXT_ERROR,
         payload: {
           error: fakeError,
           section: 'Stratum Data',
