@@ -37,6 +37,10 @@ for test failures. For each of these, we should have a comment as to why the tes
 ignored.
 
 Can use Postman to mimic the test parameters before ignoring to verify
+The [free version of Postman](https://www.postman.com/downloads/), the app or web version, can be used for this.
+examples:
+![image](images/postman_example1.png)
+![image](images/postman_example2.png)
 
 ### Invoking the OWASP Zap Scanner
 
