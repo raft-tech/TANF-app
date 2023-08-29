@@ -2,7 +2,8 @@
 
 
 from ...util import SchemaManager
-from ...fields import EncryptedField, Field, tanf_ssn_decryption_func
+from ...transforms import tanf_ssn_decryption_func
+from ...fields import TransformField, Field
 from ...row_schema import RowSchema
 from ... import validators
 from tdpservice.search_indexes.models.tanf import TANF_T3
@@ -80,12 +81,12 @@ child_one = RowSchema(
               ]),
         Field(item="68", name='DATE_OF_BIRTH', type='number', startIndex=20, endIndex=28,
               required=True, validators=[
-                  validators.month_year_yearIsLargerThan(1998),
-                  validators.month_year_monthIsValid(),
+                  validators.dateYearIsLargerThan(1998),
+                  validators.dateMonthIsValid(),
               ]),
-        EncryptedField(decryption_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=28,
-                       endIndex=37, required=True, validators=[validators.notOneOf([str(i)*9 for i in range(0, 10)])
-                                                               ]),
+        TransformField(transform_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=28,
+                       endIndex=37, required=True, validators=[validators.notOneOf([str(i)*9 for i in range(0, 10)])],
+                       is_encrypted=False),
         Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=37, endIndex=38,
               required=True, validators=[
                   validators.isInLimits(0, 2)
@@ -225,11 +226,12 @@ child_two = RowSchema(
               ]),
         Field(item="68", name='DATE_OF_BIRTH', type='number', startIndex=61, endIndex=69,
               required=True, validators=[
-                  validators.month_year_yearIsLargerThan(1998),
-                  validators.month_year_monthIsValid(),
+                  validators.dateYearIsLargerThan(1998),
+                  validators.dateMonthIsValid(),
               ]),
-        EncryptedField(decryption_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=69,
-                       endIndex=78, required=True, validators=[validators.notOneOf([str(i)*9 for i in range(0, 10)])]),
+        TransformField(transform_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=69,
+                       endIndex=78, required=True, validators=[validators.notOneOf([str(i)*9 for i in range(0, 10)])],
+                       is_encrypted=False),
         Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=78, endIndex=79,
               required=True, validators=[
                   validators.isInLimits(0, 2)

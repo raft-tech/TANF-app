@@ -67,6 +67,7 @@ class TANF_T4Admin(admin.ModelAdmin):
     ]
 
     list_filter = [
+        CreationDateFilter,
         'RPT_MONTH_YEAR',
     ]
 
@@ -82,6 +83,7 @@ class TANF_T5Admin(admin.ModelAdmin):
     ]
 
     list_filter = [
+        CreationDateFilter,
         'RPT_MONTH_YEAR',
     ]
 
@@ -90,13 +92,16 @@ class TANF_T6Admin(admin.ModelAdmin):
     """ModelAdmin class for parsed T6 data files."""
 
     list_display = [
-        'record',
-        'rpt_month_year',
+        'RecordType',
+        'CALENDAR_QUARTER',
+        'RPT_MONTH_YEAR',
         'datafile',
     ]
 
     list_filter = [
-        'rpt_month_year',
+        'CALENDAR_QUARTER',
+        CreationDateFilter,
+        'RPT_MONTH_YEAR'
     ]
 
 
@@ -105,12 +110,12 @@ class TANF_T7Admin(admin.ModelAdmin):
 
     list_display = [
         'RecordType',
-        'CALENDAR_YEAR',
         'CALENDAR_QUARTER',
         'datafile',
     ]
 
     list_filter = [
-        'CALENDAR_YEAR',
         'CALENDAR_QUARTER',
+        CreationDateFilter,
+        'RPT_MONTH_YEAR',
     ]
