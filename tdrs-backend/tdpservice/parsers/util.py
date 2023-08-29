@@ -79,7 +79,7 @@ class SchemaManager:
         """Update whether schema fields are encrypted or not."""
         for schema in self.schemas:
             for field in schema.fields:
-                if type(field) == TransformField and not field.kwargs.get("is_encrypted", True):
+                if type(field) == TransformField and "is_encrypted" in field.kwargs:
                     field.kwargs['is_encrypted'] = is_encrypted
 
 def contains_encrypted_indicator(line, encryption_field):
