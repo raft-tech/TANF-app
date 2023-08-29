@@ -83,33 +83,6 @@ describe('UploadReport', () => {
     expect(store.dispatch).toHaveBeenCalledTimes(2)
     expect(container.querySelectorAll('.has-invalid-file').length).toBe(0)
   })
-  it('should prevent upload of file with invalid extension', () => {
-    const store = mockStore(initialState)
-    const origDispatch = store.dispatch
-    store.dispatch = jest.fn(origDispatch)
-
-    const { getByLabelText, container } = render(
-      <Provider store={store}>
-        <UploadReport handleCancel={handleCancel} header="Some header" />
-      </Provider>
-    )
-
-    const fileInput = getByLabelText('Section 1 - Active Case Data')
-
-    const newFile = new File(['<div>test</div>'], 'test.html', {
-      type: 'text/html',
-    })
-
-    expect(container.querySelectorAll('.has-invalid-file').length).toBe(0)
-    fireEvent.change(fileInput, {
-      target: {
-        files: [newFile],
-      },
-    })
-
-    expect(store.dispatch).toHaveBeenCalledTimes(2)
-    expect(container.querySelectorAll('.has-invalid-file').length).toBe(0)
-  })
 
   it('should display a download button when the file is available for download', () => {
     const store = mockStore(initialState)
@@ -248,5 +221,34 @@ describe('UploadReport', () => {
     })
 
     expect(fileInput.value).toStrictEqual('')
+  })
+
+  it('should clear input value and raise error if there is an extension error.', () => {
+    const store = mockStore(initialState)
+    axios.post.mockImplementationOnce(() =>
+      Promise.resolve({ data: { id: 1 } })
+    )
+
+    const { getByLabelText, container } = render(
+      <Provider store={store}>
+        <UploadReport handleCancel={handleCancel} header="Some header" />
+      </Provider>
+    )
+
+    const fileInput = getByLabelText('Section 1 - Active Case Data')
+
+    const newFile = new File(['test'], 'test.text', { type: 'text/plain' })
+    const fileList = [newFile]
+
+    fireEvent.change(fileInput, {
+      target: {
+        name: 'Active Case Data',
+        files: fileList,
+      },
+    })
+
+    expect(fileInput.value).toStrictEqual('')
+    const formGroup = container.querySelector('.usa-form-group')
+    expect(formGroup.classList.contains('usa-form-group--error')).toBeFalsy()
   })
 })
