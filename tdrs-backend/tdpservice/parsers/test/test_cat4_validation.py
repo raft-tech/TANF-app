@@ -11,7 +11,8 @@ from tdpservice.data_files.models import DataFile
 @pytest.fixture
 def test_datafile(stt_user, stt):
     """Fixture for small_correct_file."""
-    return util.create_test_datafile('small_correct_file', stt_user, stt)
+    return util.create_test_datafile('small_bad_tanf_s1_cat4_rmy', stt_user, stt)
+                                     #small_correct_file', stt_user, stt)
 
 @pytest.fixture
 def dfs():
@@ -31,48 +32,64 @@ class TestCat4Validation:
         models = list((util.get_program_models(x_prog, x_section)).values())
         models.append(header)
 
-        active_section_schema_manager = active_section.SectionSchemaManager(
-            schema_managers=models
-        )
+        # active_section_schema_manager = active_section.SectionSchemaManager(
+        #     schema_managers=models
+        # )
 
-        #TODO: create header object/model from test_datafile
-        raw_header = test_datafile.file.readline()
-        line=raw_header.decode().strip('\r\n')
-        validate_results = header.parse_and_validate(
-            line,
-            util.make_generate_parser_error(test_datafile, 1)
-        )
-        print(validate_results)
-        record, is_valid, errors = validate_results[0]
+        # #TODO: create header object/model from test_datafile
+        # raw_header = test_datafile.file.readline()
+        # line=raw_header.decode().strip('\r\n')
+        # validate_results = header.parse_and_validate(
+        #     line,
+        #     util.make_generate_parser_error(test_datafile, 1)
+        # )
+        # print(validate_results)
+        # record, is_valid, errors = validate_results[0]
+
+        dfs.datafile = test_datafile
+        dfs.save()
+
+        errors = parse.parse_datafile(test_datafile)
+        dfs.status = dfs.get_status()
+
 
         #active_section_schema_manager.parse_and_validate(test_datafile, util.make_generate_parser_error)
 
         # TODO: header date vs RMY checks
-        header_rmy = active_section_schema_manager.get_header_rmy(record)
-        month_list = map(util.month_to_int, util.transform_to_months(f"Q{header_rmy[-1:]}"))
-        rpt_month_years = [int(f"{record['year']}{month}") for month in month_list]
-
+        year, header_rmy = util.fiscal_to_calendar(test_datafile.year, test_datafile.quarter)
+        # active_section_schema_manager.get_header_rmy(record)
+        month_list = map(util.month_to_int, util.transform_to_months(header_rmy))  # f"Q{header_rmy[-1:]}"))
+        rpt_month_years = [int(f"{year}{month}") for month in month_list]
+        # [int(f"{record['year']}{month}") for month in month_list]  # 202010, 202011, 202012
+        print(rpt_month_years)
         # queryset for all records matching test_datafile
         records = []
         err_objs = []
-        for schema in active_section_schema_manager.schemas:
-            model = schema[0].model
+        # active_section_schema_manager.schemas: # TODO: see if we can replace w/ 'models' L35
+        for schema in models:
+            model = schema.schemas[0].model
             if model == dict: continue  # need a more elegant skip over header/trailer
-            qs = model.objects.filter(datafile=test_datafile).exclude(RPT_MONTH_YEAR__in=rpt_month_years)
-            records.append(qs)  # evaluate qs, get objects not matching rpt_month_year
+            # TODO for above, named rowschema/schema manager
+            qs = model.objects.filter(datafile=test_datafile)
+            print(qs)
+            qs2 = qs.exclude(RPT_MONTH_YEAR__in=rpt_month_years)
+            print(qs2)
+            if len(qs) > 0:
+                records.append(qs)  # evaluate qs, get objects not matching rpt_month_year
         
             for record in records:
                 print(record)
                 # generate parserError for any records not matching rpt_month_year
                 err_objs.append(util.generate_parser_error(
-                    schema=schema[0],
-                    line_number=0,
+                    schema=schema.schemas[0],
+                    line_number=0,  # TODO: can we make this nullable?
                     datafile=test_datafile,
                     error_category=ParserErrorCategoryChoices.CASE_CONSISTENCY,
                     error_message="RPT_MONTH_YEAR does not match header RPT_MONTH_YEAR",
                     record=record,
                     field="RPT_MONTH_YEAR"
                 ))
+        [print(err_obj) for err_obj in err_objs]
         parse.bulk_create_errors({1: (err_objs)}, len(err_objs), flush=True)
         assert False
                 
@@ -80,11 +97,6 @@ class TestCat4Validation:
         for schema in active_section_schema_manager.schemas:
             pass
             
-        dfs.datafile = test_datafile
-        dfs.save()
-
-        errors = parse.parse_datafile(test_datafile)
-        dfs.status = dfs.get_status()
 
 
     
