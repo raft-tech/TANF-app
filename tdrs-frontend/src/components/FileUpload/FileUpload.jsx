@@ -99,7 +99,7 @@ function FileUpload({ section, setLocalAlertState }) {
         const ext = filename.substring(n)
         if (!re.exec(ext)) {
           // reject the file and create an error message
-          createFileInputErrorState(input, dropTarget) // Why doesnt this work?
+          createFileInputErrorState(input, dropTarget)
 
           dispatch({
             type: FILE_EXT_ERROR,
