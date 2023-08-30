@@ -667,21 +667,21 @@ def test_parse_tanf_section4_file(tanf_section4_file):
     """Test parsing TANF Section 4 submission."""
     parse.parse_datafile(tanf_section4_file)
 
-    assert TANF_T7.objects.all().count() == 6
+    assert TANF_T7.objects.all().count() == 18
 
     parser_errors = ParserError.objects.filter(file=tanf_section4_file)
     assert parser_errors.count() == 0
 
-    t7_objs = TANF_T7.objects.all().order_by('FAMILIES_MONTH_1')
+    t7_objs = TANF_T7.objects.all().order_by('FAMILIES_MONTH')
 
     first = t7_objs.first()
     sixth = t7_objs[5]
 
-    assert first.CALENDAR_YEAR == 2020
-    assert sixth.CALENDAR_YEAR == 2020
+    assert first.RPT_MONTH_YEAR == 202011
+    assert sixth.RPT_MONTH_YEAR == 202012
 
     assert first.TDRS_SECTION_IND == '2'
-    assert sixth.TDRS_SECTION_IND == '1'
+    assert sixth.TDRS_SECTION_IND == '2'
 
-    assert first.FAMILIES_MONTH_1 == 391
-    assert sixth.FAMILIES_MONTH_1 == 68537
+    assert first.FAMILIES_MONTH == 274
+    assert sixth.FAMILIES_MONTH == 499

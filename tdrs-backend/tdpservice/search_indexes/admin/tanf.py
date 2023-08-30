@@ -111,6 +111,7 @@ class TANF_T7Admin(admin.ModelAdmin):
     list_display = [
         'RecordType',
         'CALENDAR_QUARTER',
+        'RPT_MONTH_YEAR',
         'datafile',
     ]
 
