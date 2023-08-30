@@ -351,6 +351,4 @@ class TANF_T7(models.Model):
         blank=False
     )
     STRATUM = models.CharField(max_length=2, null=True, blank=False)
-    FAMILIES_MONTH_1 = models.IntegerField(null=True, blank=False)
-    FAMILIES_MONTH_2 = models.IntegerField(null=True, blank=False)
-    FAMILIES_MONTH_3 = models.IntegerField(null=True, blank=False)
+    FAMILIES_MONTH = models.IntegerField(null=True, blank=False)

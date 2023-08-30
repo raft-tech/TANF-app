@@ -45,22 +45,12 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='tanf_t7',
+            name='FAMILIES_MONTH',
+            field=models.IntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name='tanf_t7',
             name='RPT_MONTH_YEAR',
-            field=models.IntegerField(null=True),
-        ),
-        migrations.AddField(
-            model_name='tanf_t7',
-            name='FAMILIES_MONTH_1',
-            field=models.IntegerField(null=True),
-        ),
-        migrations.AddField(
-            model_name='tanf_t7',
-            name='FAMILIES_MONTH_2',
-            field=models.IntegerField(null=True),
-        ),
-        migrations.AddField(
-            model_name='tanf_t7',
-            name='FAMILIES_MONTH_3',
             field=models.IntegerField(null=True),
         ),
         migrations.AddField(

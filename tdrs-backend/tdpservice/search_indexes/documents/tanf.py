@@ -348,7 +348,5 @@ class TANF_T7DataSubmissionDocument(DocumentBase, Document):
             "RPT_MONTH_YEAR",
             "TDRS_SECTION_IND",
             "STRATUM",
-            "FAMILIES_MONTH_1",
-            "FAMILIES_MONTH_2",
-            "FAMILIES_MONTH_3"
+            "FAMILIES_MONTH",
         ]
