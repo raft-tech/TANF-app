@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('search_indexes', '0016_auto_20230817_1635'),
+        ('search_indexes', '0017_auto_20230804_1935'),
     ]
 
     operations = [
@@ -45,8 +45,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='tanf_t7',
-            name='CALENDAR_YEAR',
-            field=models.IntegerField(blank=True, null=True),
+            name='RPT_MONTH_YEAR',
+            field=models.IntegerField(null=True),
         ),
         migrations.AddField(
             model_name='tanf_t7',

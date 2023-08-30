@@ -93,8 +93,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='tanf_t6',
-            name='CALENDAR_YEAR',
-            field=models.IntegerField(blank=True, null=True),
+            name='RPT_MONTH_YEAR',
+            field=models.IntegerField(null=True),
         ),
         migrations.AddField(
             model_name='tanf_t6',
