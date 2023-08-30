@@ -86,11 +86,7 @@ t1 = SchemaManager(schemas=[
                               validators.dateMonthIsValid(),
                         ]),
                   Field(item="6", name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
-                        required=True, validators=[
-                              validators.isAlphaNumeric(),
-                              validators.notMatches('_'*11),
-                              validators.notEmpty(),
-                        ]),
+                        required=True, validators=[validators.isAlphaNumeric()]),
                   Field(item="2", name='COUNTY_FIPS_CODE', type='string', startIndex=19, endIndex=22,
                         required=True, validators=[
                               validators.isNumber(),

@@ -70,11 +70,7 @@ child_one = RowSchema(
         Field(item="4", name='RPT_MONTH_YEAR', type='number', startIndex=2, endIndex=8,
               required=True, validators=[]),
         Field(item="6", name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
-              required=True, validators=[
-                  validators.isAlphaNumeric(),
-                  validators.notMatches('_'*11),
-                  validators.notEmpty(),
-              ]),
+              required=True, validators=[validators.isAlphaNumeric()]),
         Field(item="67", name='FAMILY_AFFILIATION', type='number', startIndex=19, endIndex=20,
               required=True, validators=[
                   validators.oneOf([1, 2, 4])
@@ -215,11 +211,7 @@ child_two = RowSchema(
         Field(item="4", name='RPT_MONTH_YEAR', type='number', startIndex=2, endIndex=8,
               required=True, validators=[]),
         Field(item="6", name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
-              required=True, validators=[
-                  validators.isAlphaNumeric(),
-                  validators.notMatches('_'*11),
-                  validators.notEmpty(),
-              ]),
+              required=True, validators=[validators.isAlphaNumeric()]),
         Field(item="67", name='FAMILY_AFFILIATION', type='number', startIndex=60, endIndex=61,
               required=True, validators=[
                   validators.oneOf([1, 2, 4])
