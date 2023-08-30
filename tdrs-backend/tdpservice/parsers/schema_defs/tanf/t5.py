@@ -105,7 +105,7 @@ t5 = SchemaManager(
               Field(item="18", name='GENDER', type='number', startIndex=43, endIndex=44,
                     required=True, validators=[validators.isInLimits(0, 9)]),
               Field(item="19A", name='REC_OASDI_INSURANCE', type='number', startIndex=44, endIndex=45,
-                    required=True, validators=[validators.isInLimits(1, 3)]),
+                    required=True, validators=[validators.isInLimits(0, 2)]),
               Field(item="19B", name='REC_FEDERAL_DISABILITY', type='number', startIndex=45, endIndex=46,
                     required=True, validators=[validators.isInLimits(1, 2)]),
               Field(item="19C", name='REC_AID_TOTALLY_DISABLED', type='number', startIndex=46, endIndex=47,
