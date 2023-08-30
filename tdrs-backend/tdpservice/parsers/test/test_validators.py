@@ -886,7 +886,7 @@ class TestT5Cat3Validators(TestCat3ValidatorsBase):
         val = validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
                   result_field='EDUCATION_LEVEL', result_function=validators.or_validators(
-                      validators.isInStringRange(1, 16, 2),
+                      validators.isInStringRange(1, 16),
                       validators.isInStringRange(98, 99)
                       )
                   )
