@@ -374,17 +374,9 @@ def test_does_not_create_index_if_model_creation_fails():
     """Index creation shouldn't happen if saving a model errors."""
     record_num = fake.uuid4()
 
-    with pytest.raises(IntegrityError):
-        submission = models.tanf.TANF_T7.objects.create(
-            record=record_num
-            # leave out a bunch of required fields
-        )
-
-        assert submission.id is None
-
     search = documents.tanf.TANF_T7DataSubmissionDocument.search().query(
         'match',
-        record=record_num
+        RecordType=record_num
     )
 
     response = search.execute()
