@@ -23,27 +23,27 @@ t2 = SchemaManager(schemas=[
                 ),
                 validators.if_then_validator(
                     condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                    result_field='RACE_HISPANIC', result_function=validators.validateRace(),
+                    result_field='RACE_HISPANIC', result_function=validators.isInLimits(1, 2),
                 ),
                 validators.if_then_validator(
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='RACE_AMER_INDIAN', result_function=validators.validateRace(),
+                        result_field='RACE_AMER_INDIAN', result_function=validators.isInLimits(1, 2),
                     ),
                 validators.if_then_validator(
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='RACE_ASIAN', result_function=validators.validateRace(),
+                        result_field='RACE_ASIAN', result_function=validators.isInLimits(1, 2),
                     ),
                 validators.if_then_validator(
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='RACE_BLACK', result_function=validators.validateRace(),
+                        result_field='RACE_BLACK', result_function=validators.isInLimits(1, 2),
                     ),
                 validators.if_then_validator(
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='RACE_HAWAIIAN', result_function=validators.validateRace(),
+                        result_field='RACE_HAWAIIAN', result_function=validators.isInLimits(1, 2),
                     ),
                 validators.if_then_validator(
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='RACE_WHITE', result_function=validators.validateRace(),
+                        result_field='RACE_WHITE', result_function=validators.isInLimits(1, 2),
                     ),
                 validators.if_then_validator(
                         condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
