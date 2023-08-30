@@ -19,7 +19,7 @@ t2 = SchemaManager(schemas=[
                 validators.validate__FAM_AFF__SSN(),
                 validators.if_then_validator(
                     condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                    result_field='SSN', result_function=validators.validateSSN()]),
+                    result_field='SSN', result_function=validators.validateSSN(),
                 ),
                 validators.if_then_validator(
                     condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
