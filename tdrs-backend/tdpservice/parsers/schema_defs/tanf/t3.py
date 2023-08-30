@@ -17,31 +17,31 @@ child_one = RowSchema(
     postparsing_validators=[
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='SSN', result_function=validators.notOneOf([str(i)*9 for i in range(0, 10)]),
+                  result_field='SSN', result_function=validators.validateSSN(),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RACE_HISPANIC', result_function=validators.oneOf((1, 2)),
+                  result_field='RACE_HISPANIC', result_function=validators.validateRace(),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RACE_AMER_INDIAN', result_function=validators.oneOf((1, 2)),
+                  result_field='RACE_AMER_INDIAN', result_function=validators.validateRace(),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RACE_ASIAN', result_function=validators.oneOf((1, 2)),
+                  result_field='RACE_ASIAN', result_function=validators.validateRace(),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RACE_BLACK', result_function=validators.oneOf((1, 2)),
+                  result_field='RACE_BLACK', result_function=validators.validateRace(),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RACE_HAWAIIAN', result_function=validators.oneOf((1, 2)),
+                  result_field='RACE_HAWAIIAN', result_function=validators.validateRace(),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RACE_WHITE', result_function=validators.oneOf((1, 2)),
+                  result_field='RACE_WHITE', result_function=validators.validateRace(),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
@@ -81,32 +81,20 @@ child_one = RowSchema(
                   validators.dateMonthIsValid(),
               ]),
         TransformField(transform_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=28,
-                       endIndex=37, required=True, validators=[validators.notOneOf([str(i)*9 for i in range(0, 10)])],
+                       endIndex=37, required=True, validators=[validators.validateSSN()],
                        is_encrypted=False),
         Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=37, endIndex=38,
-              required=True, validators=[
-                  validators.isInLimits(0, 2)
-              ]),
+              required=True, validators=[validators.validateRace()]),
         Field(item="70B", name='RACE_AMER_INDIAN', type='number', startIndex=38, endIndex=39,
-              required=True, validators=[
-                  validators.isInLimits(0, 2)
-              ]),
+              required=True, validators=[validators.validateRace()]),
         Field(item="70C", name='RACE_ASIAN', type='number', startIndex=39, endIndex=40,
-              required=True, validators=[
-                  validators.isInLimits(0, 2)
-              ]),
+              required=True, validators=[validators.validateRace()]),
         Field(item="70D", name='RACE_BLACK', type='number', startIndex=40, endIndex=41,
-              required=True, validators=[
-                  validators.isInLimits(0, 2)
-              ]),
+              required=True, validators=[validators.validateRace()]),
         Field(item="70E", name='RACE_HAWAIIAN', type='number', startIndex=41, endIndex=42,
-              required=True, validators=[
-                  validators.isInLimits(0, 2)
-              ]),
+              required=True, validators=[validators.validateRace()]),
         Field(item="70F", name='RACE_WHITE', type='number', startIndex=42, endIndex=43,
-              required=True, validators=[
-                  validators.isInLimits(0, 2)
-              ]),
+              required=True, validators=[validators.validateRace()]),
         Field(item="71", name='GENDER', type='number', startIndex=43, endIndex=44,
               required=True, validators=[
                   validators.isInLimits(0, 9)
@@ -158,31 +146,31 @@ child_two = RowSchema(
     postparsing_validators=[
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                  result_field='SSN', result_function=validators.notOneOf([str(i)*9 for i in range(0, 10)]),
+                  result_field='SSN', result_function=validators.validateSSN(),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RACE_HISPANIC', result_function=validators.oneOf((1, 2)),
+                  result_field='RACE_HISPANIC', result_function=validators..validateRace(),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RACE_AMER_INDIAN', result_function=validators.oneOf((1, 2)),
+                  result_field='RACE_AMER_INDIAN', result_function=validators..validateRace(),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RACE_ASIAN', result_function=validators.oneOf((1, 2)),
+                  result_field='RACE_ASIAN', result_function=validators..validateRace(),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RACE_BLACK', result_function=validators.oneOf((1, 2)),
+                  result_field='RACE_BLACK', result_function=validators..validateRace(),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RACE_HAWAIIAN', result_function=validators.oneOf((1, 2)),
+                  result_field='RACE_HAWAIIAN', result_function=validators..validateRace(),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RACE_WHITE', result_function=validators.oneOf((1, 2)),
+                  result_field='RACE_WHITE', result_function=validators..validateRace(),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
@@ -222,32 +210,20 @@ child_two = RowSchema(
                   validators.dateMonthIsValid(),
               ]),
         TransformField(transform_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=69,
-                       endIndex=78, required=True, validators=[validators.notOneOf([str(i)*9 for i in range(0, 10)])],
+                       endIndex=78, required=True, validators=[validators.validateSSN()],
                        is_encrypted=False),
         Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=78, endIndex=79,
-              required=True, validators=[
-                  validators.isInLimits(0, 2)
-              ]),
+              required=True, validators=[validators.validateRace()]),
         Field(item="70B", name='RACE_AMER_INDIAN', type='number', startIndex=79, endIndex=80,
-              required=True, validators=[
-                  validators.isInLimits(0, 2)
-              ]),
+              required=True, validators=[validators.validateRace()]),
         Field(item="70C", name='RACE_ASIAN', type='number', startIndex=80, endIndex=81,
-              required=True, validators=[
-                  validators.isInLimits(0, 2)
-              ]),
+              required=True, validators=[validators.validateRace()]),
         Field(item="70D", name='RACE_BLACK', type='number', startIndex=81, endIndex=82,
-              required=True, validators=[
-                  validators.isInLimits(0, 2)
-              ]),
+              required=True, validators=[validators.validateRace()]),
         Field(item="70E", name='RACE_HAWAIIAN', type='number', startIndex=82, endIndex=83,
-              required=True, validators=[
-                  validators.isInLimits(0, 2)
-              ]),
+              required=True, validators=[validators.validateRace()]),
         Field(item="70F", name='RACE_WHITE', type='number', startIndex=83, endIndex=84,
-              required=True, validators=[
-                  validators.isInLimits(0, 2)
-              ]),
+              required=True, validators=[validators.validateRace()]),
         Field(item="71", name='GENDER', type='number', startIndex=84, endIndex=85,
               required=True, validators=[
                   validators.isInLimits(0, 9)
