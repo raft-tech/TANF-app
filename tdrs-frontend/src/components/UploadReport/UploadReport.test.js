@@ -249,4 +249,33 @@ describe('UploadReport', () => {
 
     expect(fileInput.value).toStrictEqual('')
   })
+
+  it('should clear input value and raise error if there is an extension error.', () => {
+    const store = mockStore(initialState)
+    axios.post.mockImplementationOnce(() =>
+      Promise.resolve({ data: { id: 1 } })
+    )
+
+    const { getByLabelText, container } = render(
+      <Provider store={store}>
+        <UploadReport handleCancel={handleCancel} header="Some header" />
+      </Provider>
+    )
+
+    const fileInput = getByLabelText('Section 1 - Active Case Data')
+
+    const newFile = new File(['test'], 'test.text', { type: 'text/plain' })
+    const fileList = [newFile]
+
+    fireEvent.change(fileInput, {
+      target: {
+        name: 'Active Case Data',
+        files: fileList,
+      },
+    })
+
+    expect(fileInput.value).toStrictEqual('')
+    const formGroup = container.querySelector('.usa-form-group')
+    expect(formGroup.classList.contains('usa-form-group--error')).toBeFalsy()
+  })
 })
