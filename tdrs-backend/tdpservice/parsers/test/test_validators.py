@@ -2,8 +2,7 @@
 
 import pytest
 from .. import validators
-from tdpservice.parsers.test.factories import TanfT1Factory, TanfT2Factory, TanfT3Factory
-from tdpservice.parsers.test.factories import TanfT5Factory, TanfT6Factory, TanfT7Factory
+from tdpservice.parsers.test.factories import TanfT1Factory, TanfT2Factory, TanfT3Factory, TanfT5Factory, TanfT6Factory
 
 
 def test_or_validators():
