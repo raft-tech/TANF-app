@@ -15,13 +15,13 @@ es_logger.setLevel(logging.WARNING)
 
 @pytest.fixture
 def test_datafile(stt_user, stt):
-    """Fixture for small_correct_file."""
-    return create_test_datafile('small_correct_file', stt_user, stt)
+    """Fixture for small_correct_file.txt."""
+    return create_test_datafile('small_correct_file.txt', stt_user, stt)
 
 
 @pytest.mark.django_db()
 def test_parse_small_correct_file(test_datafile):
-    """Test parsing of small_correct_file."""
+    """Test parsing of small_correct_file.txt."""
     errors = parse.parse_datafile(test_datafile)
     errors = ParserError.objects.filter(file=test_datafile)
     assert errors.count() == 0
@@ -44,7 +44,7 @@ def test_parse_small_correct_file(test_datafile):
 
 @pytest.mark.django_db()
 def test_parse_section_mismatch(test_datafile):
-    """Test parsing of small_correct_file where the DataFile section doesn't match the rawfile section."""
+    """Test parsing of small_correct_file.txt where the DataFile section doesn't match the rawfile section."""
     test_datafile.section = 'Closed Case Data'
     test_datafile.save()
 
@@ -67,7 +67,7 @@ def test_parse_section_mismatch(test_datafile):
 
 @pytest.mark.django_db()
 def test_parse_wrong_program_type(test_datafile):
-    """Test parsing of small_correct_file where the DataFile program type doesn't match the rawfile."""
+    """Test parsing of small_correct_file.txt where the DataFile program type doesn't match the rawfile."""
     test_datafile.section = 'SSP Active Case Data'
     test_datafile.save()
 
@@ -457,8 +457,8 @@ def test_parse_super_big_s1_file(super_big_s1_file):
 
 @pytest.fixture
 def super_big_s1_rollback_file(stt_user, stt):
-    """Fixture for ADS.E2J.NDM1.TS53_fake.rollback."""
-    return create_test_datafile('ADS.E2J.NDM1.TS53_fake.rollback', stt_user, stt)
+    """Fixture for ADS.E2J.NDM1.TS53_fake.rollback.txt."""
+    return create_test_datafile('ADS.E2J.NDM1.TS53_fake.rollback.txt', stt_user, stt)
 
 @pytest.mark.django_db()
 def test_parse_super_big_s1_file_with_rollback(super_big_s1_rollback_file):
@@ -487,7 +487,7 @@ def test_parse_super_big_s1_file_with_rollback(super_big_s1_rollback_file):
 @pytest.fixture
 def bad_tanf_s1__row_missing_required_field(stt_user, stt):
     """Fixture for small_tanf_section1."""
-    return create_test_datafile('small_bad_tanf_s1', stt_user, stt)
+    return create_test_datafile('small_bad_tanf_s1.txt', stt_user, stt)
 
 
 @pytest.mark.django_db()
@@ -528,7 +528,7 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
 @pytest.fixture
 def bad_ssp_s1__row_missing_required_field(stt_user, stt):
     """Fixture for ssp_section1_datafile."""
-    return create_test_datafile('small_bad_ssp_s1', stt_user, stt, 'SSP Active Case Data')
+    return create_test_datafile('small_bad_ssp_s1.txt', stt_user, stt, 'SSP Active Case Data')
 
 
 @pytest.mark.django_db()
