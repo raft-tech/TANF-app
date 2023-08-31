@@ -1025,12 +1025,3 @@ class TestT6Cat3Validators(TestCat3ValidatorsBase):
 
         assert result == (False, "The sum of ['NUM_ADULT_RECIPIENTS', 'NUM_CHILD_RECIPIENTS'] does not equal " +
                           "NUM_RECIPIENTS.")
-
-class TestT7Cat3Validators(TestCat3ValidatorsBase):
-    """Test category three validators for TANF T6 records."""
-
-    @pytest.fixture
-    def record(self):
-        """Override default record with TANF T6 record."""
-        return TanfT7Factory.create()
-
