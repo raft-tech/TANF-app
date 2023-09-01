@@ -4,6 +4,36 @@ We are using Nexus as an artifact store in order to retain docker images and oth
 
 Nexus UI can be accessed at [https://tdp-nexus.dev.raftlabs.tech/](https://tdp-nexus.dev.raftlabs.tech/)
 
+## Nexus Image Management
+
+### Host Information
+
+The VM that runs the [Sonatype Nexus Image](https://help.sonatype.com/repomanager3/product-information/download) currently resides at 172.10.4.102 on Raft's internal network and muct be connected to through our VPN. Current points of contact for this is Connor Meehan and Barak Stout.
+
+### Nexus Container Setup
+
+From our virtual machine, here is how to get Nexus up and running.
+Pull and run nexus image:
+```
+docker pull sonatype/nexus3
+docker volume create --name nexus-data
+docker run -d -p 8081:8081 -p 8082:8082 -p 8083:8083 --name nexus -v nexus-data:/nexus-data sonatype/nexus3
+```
+
+wait for nexus to be running
+```
+docker logs -f nexus
+```
+
+The first time you need to log in as root, you will need the auto-generated admin password that is created upon initialization of the container.
+exec to container and get docker admin.password:
+```
+docker exec -it nexus /bin/bash
+cat /nexus-data/admin.password
+```
+
+After logging in as root for the first time, you will be taken to a page to set a new password.
+
 ## Hosted Docker Repository
 
 ### Setup
@@ -32,4 +62,7 @@ then you can push:
 
 ### Pulling Images
 
-`docker pull tdp-docker.dev.raftlabs.tech/${ImageName}:${Version}`
+We have set up a proxy mirror to dockerhub that can pull and cache DockerHub images.
+Then we have created a group docker repository that can be pulled from. If the container is in our hosted repo, the group will return that container. If not, it will see if we have a chached version of that container in our proxy repo and, if not, pull that from dockerhub, cache it and allow the docker pull to happen.
+
+`docker pull https://tdp-docker-store.dev.raftlabs.tech/${ImageName}:${Version}`
