@@ -280,8 +280,8 @@ def validateSSN():
 def validateRace():
     """Validate race."""
     return make_validator(
-        lambda value: value >= 1 and value <= 2,
-        lambda value: f'{value} is not larger and equal to {1} and smaller and equal to {2}.'
+        lambda value: value >= 0 and value <= 2,
+        lambda value: f'{value} is not greater than or equal to 0 or smaller than or equal to 1.'
     )
 
 
