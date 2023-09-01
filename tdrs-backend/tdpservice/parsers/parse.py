@@ -76,7 +76,7 @@ def bulk_create_records(unsaved_records, line_number, header_count, batch_size=1
             return False, unsaved_records
     return True, unsaved_records
 
-def bulk_create_errors(unsaved_parser_errors, num_errors, batch_size=500, flush=False):
+def bulk_create_errors(unsaved_parser_errors, num_errors, batch_size=5000, flush=False):
     """Bulk create all ParserErrors."""
     if flush or (unsaved_parser_errors and num_errors >= batch_size):
         logger.debug("Bulk creating ParserErrors.")
@@ -193,10 +193,10 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
             record, record_is_valid, record_errors = r
             if not record_is_valid:
                 logger.debug(f"Record #{i} from line {line_number} is invalid.")
-                line_errors = errors.get(line_number, {})
+                line_errors = errors.get(f"{line_number}_{i}", {})
                 line_errors.update({record_number: record_errors})
-                errors.update({line_number: record_errors})
-                unsaved_parser_errors.update({line_number: record_errors})
+                errors.update({f"{line_number}_{i}": record_errors})
+                unsaved_parser_errors.update({f"{line_number}_{i}": record_errors})
                 num_errors += len(record_errors)
             if record:
                 s = schema_manager.schemas[i]
@@ -265,11 +265,11 @@ def get_schema_manager_options(program_type):
                     'T3': schema_defs.tanf.t3,
                 },
                 'C': {
-                    # 'T4': schema_options.t4,
-                    # 'T5': schema_options.t5,
+                    'T4': schema_defs.tanf.t4,
+                    'T5': schema_defs.tanf.t5,
                 },
                 'G': {
-                    # 'T6': schema_options.t6,
+                    'T6': schema_defs.tanf.t6,
                 },
                 'S': {
                     # 'T7': schema_options.t7,
