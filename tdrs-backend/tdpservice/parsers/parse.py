@@ -23,7 +23,7 @@ def parse_datafile(datafile):
         util.make_generate_parser_error(datafile, 1)
     )
     if not header_is_valid:
-        logger.info(f"Preparser Error -> Header errors: {[error for error in header_errors]}")
+        logger.info(f"Preparser Error: {len(header_errors)} header errors encountered.")
         errors['header'] = header_errors
         bulk_create_errors({1: header_errors}, 1, flush=True)
         return errors
