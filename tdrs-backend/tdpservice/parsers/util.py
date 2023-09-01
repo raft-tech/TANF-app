@@ -5,10 +5,12 @@ from . import schema_defs
 from tdpservice.data_files.models import DataFile
 from datetime import datetime
 from pathlib import Path
-from .fields import EncryptedField
+from .fields import TransformField
+from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 def create_test_datafile(filename, stt_user, stt, section='Active Case Data'):
     """Create a test DataFile instance with the given file attached."""
@@ -82,8 +84,8 @@ class SchemaManager:
         """Update whether schema fields are encrypted or not."""
         for schema in self.schemas:
             for field in schema.fields:
-                if type(field) == EncryptedField:
-                    field.is_encrypted = is_encrypted
+                if type(field) == TransformField and "is_encrypted" in field.kwargs:
+                    field.kwargs['is_encrypted'] = is_encrypted
 
 def contains_encrypted_indicator(line, encryption_field):
     """Determine if line contains encryption indicator."""
