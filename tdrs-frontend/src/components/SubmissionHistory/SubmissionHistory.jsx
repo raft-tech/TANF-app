@@ -151,6 +151,7 @@ const SubmissionHistoryRow = ({ file }) => {
               ? file.summary.case_aggregates.months[0]
               : null
           }
+          section={file.section}
         />
 
         <th scope="rowgroup" rowSpan={3}>
