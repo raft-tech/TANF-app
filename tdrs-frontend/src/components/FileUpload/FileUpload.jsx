@@ -94,11 +94,8 @@ function FileUpload({ section, setLocalAlertState }) {
       /* istanbul ignore next */
       if (!evt.target.error) {
         // Validate file extension before proceeding
-        const re = /(\.txt|\.ms\d{2}|\.ts\d{2,3})/i
-        const filename = file.name
-        const n = filename.lastIndexOf('.')
-        const ext = filename.substring(n)
-        if (!re.exec(ext)) {
+        const re = /(\.txt|\.ms\d{2}|\.ts\d{2,3})$/i
+        if (!re.exec(file.name)) {
           // reject the file and create an error message
           createFileInputErrorState(input, dropTarget)
 
