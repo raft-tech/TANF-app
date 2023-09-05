@@ -129,7 +129,7 @@ def get_schema_options(program, section, query=None, model=None, model_name=None
             'S': {
                 'section': DataFile.Section.STRATUM_DATA,
                 'models': {
-                    #'T7': schema_defs.tanf.t7,
+                    # 'T7': schema_defs.tanf.t7,
                 }
             }
         },
@@ -145,20 +145,20 @@ def get_schema_options(program, section, query=None, model=None, model_name=None
             'C': {
                 'section': DataFile.Section.SSP_CLOSED_CASE_DATA,
                 'models': {
-                    #'S4': schema_defs.ssp.m4,
-                    #'S5': schema_defs.ssp.m5,
+                    # 'S4': schema_defs.ssp.m4,
+                    # 'S5': schema_defs.ssp.m5,
                 }
             },
             'G': {
                 'section': DataFile.Section.SSP_AGGREGATE_DATA,
                 'models': {
-                    #'S6': schema_defs.ssp.m6,
+                    # 'S6': schema_defs.ssp.m6,
                 }
             },
             'S': {
                 'section': DataFile.Section.SSP_STRATUM_DATA,
                 'models': {
-                    #'S7': schema_defs.ssp.m7,
+                    # 'S7': schema_defs.ssp.m7,
                 }
             }
         },
