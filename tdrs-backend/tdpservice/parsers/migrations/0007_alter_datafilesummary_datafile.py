@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('data_files', '0012_datafile_s3_versioning_id'),
-        ('parsers', '0006_auto_20230726_1448'),
+        ('parsers', '0006_auto_20230810_1500'),
     ]
 
     operations = [
