@@ -64,6 +64,7 @@ def make_generate_parser_error(datafile, line_number):
 
     return generate
 
+
 class SchemaManager:
     """Manages one or more RowSchema's and runs all parsers and validators."""
 
@@ -92,7 +93,6 @@ def contains_encrypted_indicator(line, encryption_field):
     if encryption_field is not None:
         return encryption_field.parse_value(line) == "E"
     return False
-
 
 def get_schema_options(program, section, query=None, model=None, model_name=None):
     """Centralized function to return the appropriate schema for a given program, section, and query.
@@ -124,7 +124,7 @@ def get_schema_options(program, section, query=None, model=None, model_name=None
             'G': {
                 'section': DataFile.Section.AGGREGATE_DATA,
                 'models': {
-                    # 'T6': schema_defs.tanf.t6,
+                    'T6': schema_defs.tanf.t6,
                 }
             },
             'S': {
@@ -246,7 +246,6 @@ def fiscal_to_calendar(year, fiscal_quarter):
 
     ind_qtr = array.index(int_qtr)  # get the index so we can easily wrap-around end of array
     return year, "Q{}".format(array[ind_qtr - 1])  # return the previous quarter
-
 
 def transform_to_months(quarter):
     """Return a list of months in a quarter."""

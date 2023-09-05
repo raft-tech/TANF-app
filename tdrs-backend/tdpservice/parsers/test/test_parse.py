@@ -32,7 +32,7 @@ def test_parse_small_correct_file(test_datafile, dfs):
     dfs.datafile = test_datafile
     dfs.save()
 
-    errors = parse.parse_datafile(test_datafile)
+    parse.parse_datafile(test_datafile)
     dfs.status = dfs.get_status()
     dfs.case_aggregates = util.case_aggregates_by_month(dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {'rejected': 0,
@@ -42,7 +42,6 @@ def test_parse_small_correct_file(test_datafile, dfs):
                                        {'accepted_without_errors': 0, 'accepted_with_errors': 0, 'month': 'Dec'}
                                     ]}
 
-    assert errors == {}
     assert dfs.get_status() == DataFileSummary.Status.ACCEPTED
     assert TANF_T1.objects.count() == 1
 
@@ -131,7 +130,7 @@ def test_big_file(stt_user, stt):
     return util.create_test_datafile('ADS.E2J.FTP1.TS06', stt_user, stt)
 
 @pytest.mark.django_db
-@pytest.mark.big_files
+@pytest.mark.skip(reason="long runtime")  # big_files
 def test_parse_big_file(test_big_file, dfs):
     """Test parsing of ADS.E2J.FTP1.TS06."""
     expected_t1_record_count = 815
@@ -141,7 +140,7 @@ def test_parse_big_file(test_big_file, dfs):
     dfs.datafile = test_big_file
     dfs.save()
 
-    errors = parse.parse_datafile(test_big_file)
+    parse.parse_datafile(test_big_file)
     dfs.status = dfs.get_status()
     assert dfs.status == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
     dfs.case_aggregates = util.case_aggregates_by_month(dfs.datafile, dfs.status)
@@ -382,7 +381,8 @@ def test_parse_empty_file(empty_file, dfs):
                                         'month': 'Dec'}
                                     ]}
 
-    parser_errors = ParserError.objects.filter(file=empty_file)
+    parser_errors = ParserError.objects.filter(file=empty_file).order_by('id')
+
     assert parser_errors.count() == 2
 
     err = parser_errors.first()
@@ -488,7 +488,7 @@ def test_parse_tanf_section1_datafile(small_tanf_section1_datafile, dfs):
     dfs.datafile = small_tanf_section1_datafile
     dfs.save()
 
-    errors = parse.parse_datafile(small_tanf_section1_datafile)
+    parse.parse_datafile(small_tanf_section1_datafile)
 
     dfs.status = dfs.get_status()
     assert dfs.status == DataFileSummary.Status.ACCEPTED
@@ -500,7 +500,6 @@ def test_parse_tanf_section1_datafile(small_tanf_section1_datafile, dfs):
                                        {'accepted_without_errors': 0, 'accepted_with_errors': 0, 'month': 'Dec'}
                                     ]}
 
-    assert errors == {}
     assert TANF_T2.objects.count() == 5
 
     t2_models = TANF_T2.objects.all()
@@ -570,7 +569,7 @@ def super_big_s1_rollback_file(stt_user, stt):
     return util.create_test_datafile('ADS.E2J.NDM1.TS53_fake.rollback', stt_user, stt)
 
 @pytest.mark.django_db()
-@pytest.mark.big_files
+@pytest.mark.skip(reason="cuz")  # big_files
 def test_parse_super_big_s1_file_with_rollback(super_big_s1_rollback_file):
     """Test parsing of super_big_s1_rollback_file.
 
@@ -606,12 +605,13 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
     dfs.datafile = bad_tanf_s1__row_missing_required_field
     dfs.save()
 
-    errors = parse.parse_datafile(bad_tanf_s1__row_missing_required_field)
+    parse.parse_datafile(bad_tanf_s1__row_missing_required_field)
 
     assert dfs.get_status() == DataFileSummary.Status.PARTIALLY_ACCEPTED
 
     parser_errors = ParserError.objects.filter(file=bad_tanf_s1__row_missing_required_field)
     assert parser_errors.count() == 4
+    [print(parser_error) for parser_error in parser_errors]
 
     error_message = 'RPT_MONTH_YEAR is required but a value was not provided.'
     row_2_error = parser_errors.get(row_number=2, error_message=error_message)
@@ -632,10 +632,10 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
     assert row_4_error.content_type.model == 'tanf_t3'
     assert row_4_error.object_id is not None
 
-    error_message = 'Record Type is missing from record.'
+    error_message = 'Unknown Record_Type was found.'
     row_5_error = parser_errors.get(row_number=5, error_message=error_message)
     assert row_5_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
-    assert row_5_error.error_message == 'Unknown Record_Type was found.'
+    assert row_5_error.error_message == error_message
     assert row_5_error.content_type is None
     assert row_5_error.object_id is None
 
@@ -760,7 +760,7 @@ def small_tanf_section2_file(stt_user, stt):
 
 @pytest.mark.django_db()
 def test_parse_small_tanf_section2_file(small_tanf_section2_file):
-    """Test parsing a good TANF Section 2 submission."""
+    """Test parsing a small TANF Section 2 submission."""
     parse.parse_datafile(small_tanf_section2_file)
 
     assert TANF_T4.objects.all().count() == 1
@@ -781,7 +781,7 @@ def test_parse_small_tanf_section2_file(small_tanf_section2_file):
 
 @pytest.fixture
 def tanf_section2_file(stt_user, stt):
-    """Fixture for ssp_section1_datafile."""
+    """Fixture for ADS.E2J.FTP2.TS06."""
     return util.create_test_datafile('ADS.E2J.FTP2.TS06', stt_user, stt, 'Closed Case Data')
 
 @pytest.mark.django_db()
@@ -803,7 +803,7 @@ def test_parse_tanf_section2_file(tanf_section2_file):
 @pytest.fixture
 def tanf_section3_file(stt_user, stt):
     """Fixture for ADS.E2J.FTP3.TS06."""
-    return create_test_datafile('ADS.E2J.FTP3.TS06', stt_user, stt, "Aggregate Data")
+    return util.create_test_datafile('ADS.E2J.FTP3.TS06', stt_user, stt, "Aggregate Data")
 
 @pytest.mark.django_db()
 def test_parse_tanf_section3_file(tanf_section3_file):

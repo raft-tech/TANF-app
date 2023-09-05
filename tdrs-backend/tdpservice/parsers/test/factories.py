@@ -1,6 +1,6 @@
 """Factories for generating test data for parsers."""
 import factory
-
+from tdpservice.parsers.models import DataFileSummary, ParserErrorCategoryChoices
 from faker import Faker
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.users.test.factories import UserFactory
