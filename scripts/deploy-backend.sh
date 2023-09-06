@@ -106,7 +106,7 @@ update_backend()
 
     # Add network policy to allow frontend to access backend
     cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_BACKEND" --protocol tcp --port 8080
-    
+
     cd ..
 }
 
