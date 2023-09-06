@@ -191,6 +191,7 @@ const SubmissionHistoryRow = ({ file }) => {
               ? file.summary.case_aggregates.months[1]
               : null
           }
+          section={file.section}
         />
       </tr>
       <tr>
@@ -202,6 +203,7 @@ const SubmissionHistoryRow = ({ file }) => {
               ? file.summary.case_aggregates.months[2]
               : null
           }
+          section={file.section}
         />
       </tr>
     </>
