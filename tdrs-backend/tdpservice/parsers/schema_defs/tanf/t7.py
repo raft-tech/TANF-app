@@ -31,7 +31,7 @@ for i in range(1, 31):
                                                validators.quarterIsValid()]),
               TransformField(calendar_quarter_to_rpt_month_year(i % 3), item="3A", name='RPT_MONTH_YEAR', type='number',
                              startIndex=2, endIndex=7, required=True, validators=[validators.dateYearIsLargerThan(1998),
-                                                                                validators.dateMonthIsValid()]),
+                                                                                  validators.dateMonthIsValid()]),
               Field(item="4", name='TDRS_SECTION_IND', type='string', startIndex=section_ind_start_index,
                     endIndex=section_ind_start_index + 1, required=True, validators=[validators.oneOf(['1', '2'])]),
               Field(item="5", name='STRATUM', type='string', startIndex=stratum_start_index,
