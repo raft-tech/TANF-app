@@ -226,7 +226,7 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
     # successfully create the records.
     all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count, flush=True)
     if not all_created:
-        logger.error(f"Not all parsed records created for file: {datafile.id}!")
+        logger.error(f"Not all parsed records created for file: {datafile.id}! Rolling back records and errors!")
         rollback_records(unsaved_records, datafile)
         bulk_create_errors(unsaved_parser_errors, num_errors, flush=True)
         return errors
