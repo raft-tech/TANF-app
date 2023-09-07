@@ -52,7 +52,7 @@ const SubmissionSummaryStatusIcon = ({ status }) => {
 }
 
 const CaseAggregatesHeader = ({ section }) =>
-  section === '1' || section === '2' ? (
+  section === 1 || section === 2 ? (
     <>
       <th scope="col" rowSpan={2}>
         Month
@@ -82,7 +82,7 @@ const CaseAggregatesHeader = ({ section }) =>
   )
 
 const CaseAggregatesRow = ({ data, section }) =>
-  section === '1' || section === '2' ? (
+  section === 1 || section === 2 ? (
     data ? (
       <>
         <th scope="row">{data.month}</th>
@@ -129,6 +129,10 @@ const SubmissionHistoryRow = ({ file }) => {
     }
   }
 
+  const section_index = (element) => element == file.section
+
+  const section = fileUploadSections.findIndex(section_index) + 1
+
   return (
     <>
       <tr>
@@ -151,7 +155,7 @@ const SubmissionHistoryRow = ({ file }) => {
               ? file.summary.case_aggregates.months[0]
               : null
           }
-          section={file.section}
+          section={section}
         />
 
         <th scope="rowgroup" rowSpan={3}>
@@ -191,7 +195,7 @@ const SubmissionHistoryRow = ({ file }) => {
               ? file.summary.case_aggregates.months[1]
               : null
           }
-          section={file.section}
+          section={section}
         />
       </tr>
       <tr>
@@ -203,7 +207,7 @@ const SubmissionHistoryRow = ({ file }) => {
               ? file.summary.case_aggregates.months[2]
               : null
           }
-          section={file.section}
+          section={section}
         />
       </tr>
     </>
