@@ -344,7 +344,7 @@ describe('SubmissionHistory', () => {
     'Accepted with Errors',
     'Partially Accepted with Errors',
     'Rejected',
-    null
+    null,
   ])('Shows the submission acceptance status section 1', (status) => {
     const state = {
       reports: {
@@ -403,7 +403,7 @@ describe('SubmissionHistory', () => {
     'Accepted with Errors',
     'Partially Accepted with Errors',
     'Rejected',
-    null
+    null,
   ])('Shows the submission acceptance status section 2', (status) => {
     const state = {
       reports: {
@@ -462,7 +462,7 @@ describe('SubmissionHistory', () => {
     'Accepted with Errors',
     'Partially Accepted with Errors',
     'Rejected',
-    null
+    null,
   ])('Shows the submission acceptance status section 3', (status) => {
     const state = {
       reports: {
