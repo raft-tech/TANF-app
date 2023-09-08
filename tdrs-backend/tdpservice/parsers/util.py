@@ -6,7 +6,6 @@ from tdpservice.data_files.models import DataFile
 from datetime import datetime
 from pathlib import Path
 from .fields import TransformField
-from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)

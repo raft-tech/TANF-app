@@ -5,7 +5,6 @@ from faker import Faker
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.users.test.factories import UserFactory
 from tdpservice.stts.test.factories import STTFactory
-from tdpservice.parsers.models import DataFileSummary, ParserErrorCategoryChoices
 
 class ParsingFileFactory(factory.django.DjangoModelFactory):
     """Generate test data for data files."""
