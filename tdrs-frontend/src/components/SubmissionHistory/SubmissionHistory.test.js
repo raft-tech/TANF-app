@@ -339,13 +339,25 @@ describe('SubmissionHistory', () => {
   })
 
   it.each([
-    'Pending',
-    'Accepted',
-    'Accepted with Errors',
-    'Partially Accepted with Errors',
-    'Rejected',
-    null,
-  ])('Shows the submission acceptance status section 1', (status) => {
+    ['Pending', 'Active Case Data'],
+    ['Pending', 'Closed Case Data'],
+    ['Pending', 'Aggregate Data'],
+    ['Accepted', 'Active Case Data'],
+    ['Accepted', 'Closed Case Data'],
+    ['Accepted', 'Aggregate Data'],
+    ['Accepted with Errors', 'Active Case Data'],
+    ['Accepted with Errors', 'Closed Case Data'],
+    ['Accepted with Errors', 'Aggregate Data'],
+    ['Partially Accepted with Errors', 'Active Case Data'],
+    ['Partially Accepted with Errors', 'Closed Case Data'],
+    ['Partially Accepted with Errors', 'Aggregate Data'],
+    ['Rejected', 'Active Case Data'],
+    ['Rejected', 'Closed Case Data'],
+    ['Rejected', 'Aggregate Data'],
+    [null, 'Active Case Data'],
+    [null, 'Closed Case Data'],
+    [null, 'Aggregate Data'],
+  ])('Shows the submission acceptance status section 3', (status, section) => {
     const state = {
       reports: {
         files: [
@@ -354,125 +366,7 @@ describe('SubmissionHistory', () => {
             fileName: 'test1.txt',
             fileType: 'TANF',
             quarter: 'Q1',
-            section: 'Active Case Data',
-            uuid: '123-4-4-321',
-            year: '2023',
-            s3_version_id: '321-0-0-123',
-            createdAt: '12/12/2012 12:12',
-            submittedBy: 'test@teamraft.com',
-            summary: {
-              datafile: '123',
-              status: status,
-              case_aggregates: {
-                Oct: {
-                  total: 0,
-                  accepted: 0,
-                  rejected: 0,
-                },
-                Nov: {
-                  total: 0,
-                  accepted: 0,
-                  rejected: 0,
-                },
-                Dec: {
-                  total: 0,
-                  accepted: 0,
-                  rejected: 0,
-                },
-              },
-            },
-          },
-        ],
-      },
-    }
-
-    const store = appConfigureStore(state)
-    const dispatch = jest.fn(store.dispatch)
-    store.dispatch = dispatch
-
-    setup(store)
-
-    expect(screen.queryByText('Status')).toBeInTheDocument()
-    expect(screen.queryByText('test1.txt')).toBeInTheDocument()
-    expect(screen.queryByText(status || 'Pending')).toBeInTheDocument()
-  })
-
-  it.each([
-    'Pending',
-    'Accepted',
-    'Accepted with Errors',
-    'Partially Accepted with Errors',
-    'Rejected',
-    null,
-  ])('Shows the submission acceptance status section 2', (status) => {
-    const state = {
-      reports: {
-        files: [
-          {
-            id: '123',
-            fileName: 'test1.txt',
-            fileType: 'TANF',
-            quarter: 'Q1',
-            section: 'Closed Case Data',
-            uuid: '123-4-4-321',
-            year: '2023',
-            s3_version_id: '321-0-0-123',
-            createdAt: '12/12/2012 12:12',
-            submittedBy: 'test@teamraft.com',
-            summary: {
-              datafile: '123',
-              status: status,
-              case_aggregates: {
-                Oct: {
-                  total: 0,
-                  accepted: 0,
-                  rejected: 0,
-                },
-                Nov: {
-                  total: 0,
-                  accepted: 0,
-                  rejected: 0,
-                },
-                Dec: {
-                  total: 0,
-                  accepted: 0,
-                  rejected: 0,
-                },
-              },
-            },
-          },
-        ],
-      },
-    }
-
-    const store = appConfigureStore(state)
-    const dispatch = jest.fn(store.dispatch)
-    store.dispatch = dispatch
-
-    setup(store)
-
-    expect(screen.queryByText('Status')).toBeInTheDocument()
-    expect(screen.queryByText('test1.txt')).toBeInTheDocument()
-    expect(screen.queryByText(status || 'Pending')).toBeInTheDocument()
-  })
-
-  it.each([
-    'Pending',
-    'Accepted',
-    'Accepted with Errors',
-    'Partially Accepted with Errors',
-    'Rejected',
-    null,
-  ])('Shows the submission acceptance status section 3', (status) => {
-    const state = {
-      reports: {
-        files: [
-          {
-            id: '123',
-            fileName: 'test1.txt',
-            fileType: 'TANF',
-            quarter: 'Q1',
-            section: 'Aggregate Data',
+            section: section,
             uuid: '123-4-4-321',
             year: '2023',
             s3_version_id: '321-0-0-123',
