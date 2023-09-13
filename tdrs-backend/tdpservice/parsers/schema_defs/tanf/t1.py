@@ -93,7 +93,8 @@ t1 = SchemaManager(schemas=[
                         ]),
                   Field(item="5", name='STRATUM', type='string', startIndex=22, endIndex=24,
                         required=True, validators=[
-                              validators.isInStringRange(0, 99),
+                              validators.or_validators(validators.isInStringRange(0, 99),
+                                                       validators.isBlank()),
                         ]),
                   Field(item="7", name='ZIP_CODE', type='string', startIndex=24, endIndex=29,
                         required=True, validators=[
@@ -129,7 +130,8 @@ t1 = SchemaManager(schemas=[
                         ]),
                   Field(item="15", name='RECEIVES_FOOD_STAMPS', type='number', startIndex=37, endIndex=38,
                         required=True, validators=[
-                              validators.isInLimits(0, 2),
+                              validators.or_validators(validators.isInLimits(0, 2),
+                                                       validators.numIsBlank()),
                         ]),
                   Field(item="16", name='AMT_FOOD_STAMP_ASSISTANCE', type='number', startIndex=38, endIndex=42,
                         required=True, validators=[
@@ -137,7 +139,8 @@ t1 = SchemaManager(schemas=[
                         ]),
                   Field(item="17", name='RECEIVES_SUB_CC', type='number', startIndex=42, endIndex=43,
                         required=True, validators=[
-                              validators.isInLimits(0, 3),
+                              validators.or_validators(validators.isInLimits(0, 3),
+                                                       validators.numIsBlank()),
                         ]),
                   Field(item="18", name='AMT_SUB_CC', type='number', startIndex=43, endIndex=47,
                         required=True, validators=[
@@ -181,19 +184,23 @@ t1 = SchemaManager(schemas=[
                         ]),
                   Field(item="24A", name='TRANSITION_SERVICES_AMOUNT', type='number', startIndex=78, endIndex=82,
                         required=True, validators=[
-                              validators.isLargerThanOrEqualTo(0),
+                              validators.or_validators(validators.isLargerThanOrEqualTo(0),
+                                                       validators.numIsBlank()),
                         ]),
                   Field(item="24B", name='TRANSITION_NBR_MONTHS', type='number', startIndex=82, endIndex=85,
                         required=True, validators=[
-                              validators.isLargerThanOrEqualTo(0),
+                              validators.or_validators(validators.isLargerThanOrEqualTo(0),
+                                                       validators.numIsBlank()),
                         ]),
                   Field(item="25A", name='OTHER_AMOUNT', type='number', startIndex=85, endIndex=89,
                         required=True, validators=[
-                              validators.isLargerThanOrEqualTo(0),
+                              validators.or_validators(validators.isLargerThanOrEqualTo(0),
+                                                       validators.numIsBlank()),
                         ]),
                   Field(item="25B", name='OTHER_NBR_MONTHS', type='number', startIndex=89, endIndex=92,
                         required=True, validators=[
-                              validators.isLargerThanOrEqualTo(0),
+                              validators.or_validators(validators.isLargerThanOrEqualTo(0),
+                                                       validators.numIsBlank()),
                         ]),
                   Field(item="26AI", name='SANC_REDUCTION_AMT', type='number', startIndex=92, endIndex=96,
                         required=True, validators=[
@@ -205,7 +212,8 @@ t1 = SchemaManager(schemas=[
                         ]),
                   Field(item="26AIII", name='FAMILY_SANC_ADULT', type='number', startIndex=97, endIndex=98,
                         required=True, validators=[
-                              validators.oneOf([0, 1, 2]),
+                              validators.or_validators(validators.oneOf([0, 1, 2]),
+                                                       validators.numIsBlank()),
                         ]),
                   Field(item="26AIV", name='SANC_TEEN_PARENT', type='number', startIndex=98, endIndex=99,
                         required=True, validators=[
@@ -245,8 +253,12 @@ t1 = SchemaManager(schemas=[
                         ]),
                   Field(item="27", name='WAIVER_EVAL_CONTROL_GRPS', type='string', startIndex=113, endIndex=114,
                         required=True, validators=[
-                              validators.or_validators(validators.matches('9'), validators.isEmpty()),
-                              validators.isAlphaNumeric(),
+                            validators.or_validators(
+                                  validators.and_validators(
+                                      validators.or_validators(validators.matches('9'), validators.isEmpty()),
+                                      validators.isAlphaNumeric()
+                                  ),
+                                  validators.isBlank()),
                         ]),
                   Field(item="28", name='FAMILY_EXEMPT_TIME_LIMITS', type='number', startIndex=114, endIndex=116,
                         required=True, validators=[
@@ -255,7 +267,8 @@ t1 = SchemaManager(schemas=[
                         ]),
                   Field(item="29", name='FAMILY_NEW_CHILD', type='number', startIndex=116, endIndex=117,
                         required=True, validators=[
-                              validators.oneOf([1, 2]),
+                              validators.or_validators(validators.oneOf([1, 2]),
+                                                       validators.numIsBlank()),
                         ]),
                   Field(item="-1", name='BLANK', type='string', startIndex=117, endIndex=156, required=False,
                         validators=[]),

@@ -4,12 +4,23 @@ from .util import generate_parser_error
 from .models import ParserErrorCategoryChoices
 from tdpservice.data_files.models import DataFile
 from datetime import date
+import logging
+
+logger = logging.getLogger(__name__)
 
 # higher order validator func
 
 def make_validator(validator_func, error_func):
     """Return a function accepting a value input and returning (bool, string) to represent validation state."""
-    return lambda value: (True, None) if value is not None and validator_func(value) else (False, error_func(value))
+    def validator(value):
+        try:
+            if validator_func(value):
+                return (True, None)
+            return (False, error_func(value))
+        except Exception as e:
+            logger.debug(f"Caught exception in make_validator. Exception: {e}")
+            return (False, error_func(value))
+    return validator
 
 
 def or_validators(*args, **kwargs):
@@ -164,6 +175,13 @@ def isBlank():
     return make_validator(
         lambda value: value.isspace(),
         lambda value: f'{value} is not blank.'
+    )
+
+def numIsBlank():
+    """Validate that a number field was all blanks at parse time."""
+    return make_validator(
+        lambda value: value == None,
+        lambda value: f'{value} is not a blank integer.'
     )
 
 def isInStringRange(lower, upper):
