@@ -180,7 +180,7 @@ def isBlank():
 def numIsBlank():
     """Validate that a number field was all blanks at parse time."""
     return make_validator(
-        lambda value: value == None,
+        lambda value: value is None,
         lambda value: f'{value} is not a blank integer.'
     )
 
