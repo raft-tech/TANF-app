@@ -166,7 +166,7 @@ def isBlank():
         lambda value: f'{value} is not blank.'
     )
 
-def isInStringRange(lower, upper, zfill=1):
+def isInStringRange(lower, upper):
     """Validate that string value is in a specific range."""
     return make_validator(
         lambda value: int(value) >= lower and int(value) <= upper,
