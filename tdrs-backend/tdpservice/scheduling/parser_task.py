@@ -25,4 +25,4 @@ def parse(data_file_id):
     dfs.status = dfs.get_status()
     dfs.case_aggregates = case_aggregates_by_month(data_file, dfs.status)
     dfs.save()
-    logger.info(f"DataFile parsing finished with status {dfs.status} and {len(errors)} errors, for file -> {repr(data_file)}.")
+    logger.info(f"Parsing finished for file -> {repr(data_file)} with status {dfs.status} and {len(errors)} errors.")
