@@ -45,18 +45,9 @@
 
   clamav-cloud-dot-gov:
     parameters:
-      backend-appname:
-        default: tdp-backend
-        type: string
       cf-password:
         default: CF_PASSWORD_DEV
         type: env_var_name
-      cf-org:
-        default: CF_ORG
-        type: env_var_name
-      cf-space:
-        default: tanf-dev
-        type: string
       cf-username:
         default: CF_USERNAME_DEV
         type: env_var_name
@@ -66,13 +57,10 @@
       - cf-check
       - login-cloud-dot-gov:
           cf-password: <<parameters.cf-password>>
-          cf-org: <<parameters.cf-org>>
-          cf-space: <<parameters.cf-space>>
+          cf-org: hhs-acf-ofa
+          cf-space: tanf-prod
           cf-username: <<parameters.cf-username>>
-      - deploy-clamav:
-          backend-appname: <<parameters.backend-appname>>
-          cf-org: <<parameters.cf-org>>
-          cf-space: <<parameters.cf-space>>
+      - deploy-clamav
 
   deploy-backend:
     parameters:
@@ -98,28 +86,18 @@
               <<parameters.cf-space>>
 
   deploy-clamav:
-    parameters:
-      backend-appname:
-        default: tdp-backend
-        type: string
-      cf-org:
-        default: CF_ORG
-        type: env_var_name
-      cf-space:
-        default: tanf-dev
-        type: string
     steps:
       - run:
           name: Deploy ClamAV REST application
           command: |
             cf push clamav-rest -f tdrs-backend/manifest.clamav.yml \
-              --var cf-space=<<parameters.cf-space>> \
+              --var cf-space=tanf-prod \
       - run:
           name: Enable internal route between backend and clamav-rest app
           command: |
-            cf add-network-policy <<parameters.backend-appname>> clamav-rest \
-              -s <<parameters.cf-space>> \
-              -o ${<<parameters.cf-org>>} \
+            cf add-network-policy tdp-backend-prod clamav-rest \
+              -s tanf-prod \
+              -o hhs-acf-ofa \
               --protocol tcp \
               --port 9000
 

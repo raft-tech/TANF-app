@@ -118,7 +118,7 @@
             branches:
               only:
                 - master
-      - deploy-clamav:
+      - prod-deploy-clamav:
           requires:
             - deploy-infrastructure-production
           filters:
