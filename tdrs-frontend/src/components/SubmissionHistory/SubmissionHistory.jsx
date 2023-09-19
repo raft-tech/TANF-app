@@ -230,7 +230,7 @@ const SectionSubmissionHistory = ({ section, label, files }) => {
   return (
     <div
       className="submission-history-section usa-table-container--scrollable"
-      style={{ maxWidth: '1400px', margin: '100px' }}
+      style={{ maxWidth: '100%', margin: '100px' }}
       tabIndex={0}
     >
       <table className="usa-table usa-table--striped">
