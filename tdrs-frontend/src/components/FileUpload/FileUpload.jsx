@@ -96,9 +96,6 @@ function FileUpload({ section, setLocalAlertState }) {
         // Validate file extension before proceeding
         const re = /(\.txt|\.ms\d{2}|\.ts\d{2,3})$/i
         if (!re.exec(file.name)) {
-          // reject the file and create an error message
-          createFileInputErrorState(input, dropTarget)
-
           dispatch({
             type: FILE_EXT_ERROR,
             payload: {
