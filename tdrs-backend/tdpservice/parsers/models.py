@@ -62,7 +62,7 @@ class ParserError(models.Model):
 
     def __str__(self):
         """Return a string representation of the model."""
-        return f"error_message: {self.error_message}"
+        return f"ParserError {self.__dict__}"
 
     def _get_error_message(self):
         """Return the error message."""
