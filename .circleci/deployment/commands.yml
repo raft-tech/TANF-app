@@ -45,8 +45,14 @@
 
   clamav-cloud-dot-gov:
     parameters:
+      cf-org:
+        default: hhs-acf-ofa
+        type: env_var_name
       cf-password:
         default: CF_PASSWORD_DEV
+        type: env_var_name
+      cf-space:
+        default: tanf-prod
         type: env_var_name
       cf-username:
         default: CF_USERNAME_DEV
@@ -57,8 +63,8 @@
       - cf-check
       - login-cloud-dot-gov:
           cf-password: <<parameters.cf-password>>
-          cf-org: hhs-acf-ofa
-          cf-space: tanf-prod
+          cf-org: <<parameters.cf-org>>
+          cf-space: <<parameters.cf-space>>
           cf-username: <<parameters.cf-username>>
       - deploy-clamav
 
