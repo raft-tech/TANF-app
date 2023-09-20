@@ -656,3 +656,19 @@ def test_parse_tanf_section3_file(tanf_section3_file):
     assert first.NUM_CLOSED_CASES == 3884
     assert second.NUM_CLOSED_CASES == 3881
     assert third.NUM_CLOSED_CASES == 5453
+
+@pytest.fixture
+def tanf_section1_file_with_blanks(stt_user, stt):
+    """Fixture for ADS.E2J.FTP3.TS06."""
+    return create_test_datafile('tanf_section1_blanks.txt', stt_user, stt)
+
+@pytest.mark.django_db()
+def test_parse_tanf_section1_blanks_file(tanf_section1_file_with_blanks):
+    parse.parse_datafile(tanf_section1_file_with_blanks)
+
+    parser_errors = ParserError.objects.filter(file=tanf_section1_file_with_blanks)
+
+    for e in parser_errors:
+        print(e.error_message)
+
+    assert False

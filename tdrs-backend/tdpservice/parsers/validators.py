@@ -18,7 +18,7 @@ def make_validator(validator_func, error_func):
                 return (True, None)
             return (False, error_func(value))
         except Exception as e:
-            logger.debug(f"Caught exception in make_validator. Exception: {e}")
+            logger.debug(f"Caught exception in validator. Exception: {e}")
             return (False, error_func(value))
     return validator
 
@@ -71,7 +71,8 @@ def sumIsEqual(condition_field, sum_fields=[]):
     def sumIsEqualFunc(value):
         sum = 0
         for field in sum_fields:
-            sum += value[field] if type(value) is dict else getattr(value, field)
+            val = value[field] if type(value) is dict else getattr(value, field)
+            sum += 0 if val is None else val
 
         condition_val = value[condition_field] if type(value) is dict else getattr(value, condition_field)
         return (True, None) if sum == condition_val else (False,
@@ -84,8 +85,8 @@ def sumIsLarger(fields, val):
     def sumIsLargerFunc(value):
         sum = 0
         for field in fields:
-            val = value[field] if type(value) is dict else getattr(value, field)
-            sum += 0 if val is None else val
+            temp_val = value[field] if type(value) is dict else getattr(value, field)
+            sum += 0 if temp_val is None else temp_val
 
         return (True, None) if sum > val else (False, f"The sum of {fields} is not larger than {val}.")
 
