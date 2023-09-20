@@ -84,7 +84,8 @@ def sumIsLarger(fields, val):
     def sumIsLargerFunc(value):
         sum = 0
         for field in fields:
-            sum += value[field] if type(value) is dict else getattr(value, field)
+            val = value[field] if type(value) is dict else getattr(value, field)
+            sum += 0 if val is None else val
 
         return (True, None) if sum > val else (False, f"The sum of {fields} is not larger than {val}.")
 
