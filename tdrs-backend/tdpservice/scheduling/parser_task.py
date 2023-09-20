@@ -18,7 +18,6 @@ def parse(data_file_id):
     # to avoid those. I suppose good practice to not store/serializer large file contents in memory when stored in redis
     # for undetermined amount of time.
     data_file = DataFile.objects.get(id=data_file_id)
-
     logger.info(f"DataFile parsing started for file {data_file.filename}")
 
     dfs = DataFileSummary.objects.create(datafile=data_file, status=DataFileSummary.Status.PENDING)
