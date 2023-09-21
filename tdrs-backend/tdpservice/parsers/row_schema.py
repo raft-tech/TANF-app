@@ -114,7 +114,7 @@ class RowSchema:
             else:
                 value = getattr(instance, field.name, None)
 
-            if field.required and not value_is_empty(value, field.endIndex-field.startIndex):
+            if (field.required and not value_is_empty(value, field.endIndex-field.startIndex)) or field.can_be_empty:
                 for validator in field.validators:
                     validator_is_valid, validator_error = validator(value)
                     is_valid = False if not validator_is_valid else is_valid

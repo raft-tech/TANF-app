@@ -83,24 +83,24 @@ child_one = RowSchema(
         TransformField(transform_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=28,
                        endIndex=37, required=True, validators=[validators.validateSSN()],
                        is_encrypted=False),
-        Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=37, endIndex=38,
+        Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=37, endIndex=38, can_be_empty=True,
               required=True, validators=[validators.or_validators(validators.validateRace(),
-                                                                   validators.numIsBlank()),]),
-        Field(item="70B", name='RACE_AMER_INDIAN', type='number', startIndex=38, endIndex=39,
+                                                                   validators.isBlank()),]),
+        Field(item="70B", name='RACE_AMER_INDIAN', type='number', startIndex=38, endIndex=39, can_be_empty=True,
               required=True, validators=[validators.or_validators(validators.validateRace(),
-                                                                   validators.numIsBlank()),]),
-        Field(item="70C", name='RACE_ASIAN', type='number', startIndex=39, endIndex=40,
+                                                                   validators.isBlank()),]),
+        Field(item="70C", name='RACE_ASIAN', type='number', startIndex=39, endIndex=40, can_be_empty=True,
               required=True, validators=[validators.or_validators(validators.validateRace(),
-                                                                   validators.numIsBlank()),]),
-        Field(item="70D", name='RACE_BLACK', type='number', startIndex=40, endIndex=41,
+                                                                   validators.isBlank()),]),
+        Field(item="70D", name='RACE_BLACK', type='number', startIndex=40, endIndex=41, can_be_empty=True,
               required=True, validators=[validators.or_validators(validators.validateRace(),
-                                                                   validators.numIsBlank()),]),
-        Field(item="70E", name='RACE_HAWAIIAN', type='number', startIndex=41, endIndex=42,
+                                                                   validators.isBlank()),]),
+        Field(item="70E", name='RACE_HAWAIIAN', type='number', startIndex=41, endIndex=42, can_be_empty=True,
               required=True, validators=[validators.or_validators(validators.validateRace(),
-                                                                   validators.numIsBlank()),]),
-        Field(item="70F", name='RACE_WHITE', type='number', startIndex=42, endIndex=43,
+                                                                   validators.isBlank()),]),
+        Field(item="70F", name='RACE_WHITE', type='number', startIndex=42, endIndex=43, can_be_empty=True,
               required=True, validators=[validators.or_validators(validators.validateRace(),
-                                                                   validators.numIsBlank()),]),
+                                                                   validators.isBlank()),]),
         Field(item="71", name='GENDER', type='number', startIndex=43, endIndex=44,
               required=True, validators=[
                   validators.isInLimits(0, 9)
@@ -113,15 +113,15 @@ child_one = RowSchema(
               required=True, validators=[
                   validators.oneOf([1, 2])
               ]),
-        Field(item="73", name='RELATIONSHIP_HOH', type='string', startIndex=46, endIndex=48,
+        Field(item="73", name='RELATIONSHIP_HOH', type='string', startIndex=46, endIndex=48, can_be_empty=True,
               required=True, validators=[
                   validators.or_validators(validators.isInStringRange(0, 10),
                                            validators.isBlank())
               ]),
-        Field(item="74", name='PARENT_MINOR_CHILD', type='number', startIndex=48, endIndex=49,
+        Field(item="74", name='PARENT_MINOR_CHILD', type='number', startIndex=48, endIndex=49, can_be_empty=True,
               required=True, validators=[
                   validators.or_validators(validators.oneOf([0, 2, 3]),
-                                           validators.numIsBlank())
+                                           validators.isBlank())
               ]),
         Field(item="75", name='EDUCATION_LEVEL', type='string', startIndex=49, endIndex=51,
               required=True, validators=[
@@ -130,10 +130,10 @@ child_one = RowSchema(
                       validators.isInStringRange(98, 99)
                   )
               ]),
-        Field(item="76", name='CITIZENSHIP_STATUS', type='number', startIndex=51, endIndex=52,
+        Field(item="76", name='CITIZENSHIP_STATUS', type='number', startIndex=51, endIndex=52, can_be_empty=True,
               required=True, validators=[
                   validators.or_validators(validators.oneOf([0, 1, 2, 9]),
-                                           validators.numIsBlank())
+                                           validators.isBlank())
               ]),
         Field(item="77A", name='UNEARNED_SSI', type='string', startIndex=52, endIndex=56,
               required=True, validators=[
@@ -221,24 +221,24 @@ child_two = RowSchema(
         TransformField(transform_func=tanf_ssn_decryption_func, item="69", name='SSN', type='string', startIndex=69,
                        endIndex=78, required=True, validators=[validators.validateSSN()],
                        is_encrypted=False),
-        Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=78, endIndex=79,
+        Field(item="70A", name='RACE_HISPANIC', type='number', startIndex=78, endIndex=79, can_be_empty=True,
               required=True, validators=[validators.or_validators(validators.validateRace(),
-                                                                   validators.numIsBlank()),]),
-        Field(item="70B", name='RACE_AMER_INDIAN', type='number', startIndex=79, endIndex=80,
+                                                                   validators.isBlank()),]),
+        Field(item="70B", name='RACE_AMER_INDIAN', type='number', startIndex=79, endIndex=80, can_be_empty=True,
               required=True, validators=[validators.or_validators(validators.validateRace(),
-                                                                   validators.numIsBlank()),]),
-        Field(item="70C", name='RACE_ASIAN', type='number', startIndex=80, endIndex=81,
+                                                                   validators.isBlank()),]),
+        Field(item="70C", name='RACE_ASIAN', type='number', startIndex=80, endIndex=81, can_be_empty=True,
               required=True, validators=[validators.or_validators(validators.validateRace(),
-                                                                   validators.numIsBlank()),]),
-        Field(item="70D", name='RACE_BLACK', type='number', startIndex=81, endIndex=82,
+                                                                   validators.isBlank()),]),
+        Field(item="70D", name='RACE_BLACK', type='number', startIndex=81, endIndex=82, can_be_empty=True,
               required=True, validators=[validators.or_validators(validators.validateRace(),
-                                                                   validators.numIsBlank()),]),
-        Field(item="70E", name='RACE_HAWAIIAN', type='number', startIndex=82, endIndex=83,
+                                                                   validators.isBlank()),]),
+        Field(item="70E", name='RACE_HAWAIIAN', type='number', startIndex=82, endIndex=83, can_be_empty=True,
               required=True, validators=[validators.or_validators(validators.validateRace(),
-                                                                   validators.numIsBlank()),]),
-        Field(item="70F", name='RACE_WHITE', type='number', startIndex=83, endIndex=84,
+                                                                   validators.isBlank()),]),
+        Field(item="70F", name='RACE_WHITE', type='number', startIndex=83, endIndex=84, can_be_empty=True,
               required=True, validators=[validators.or_validators(validators.validateRace(),
-                                                                   validators.numIsBlank()),]),
+                                                                   validators.isBlank()),]),
         Field(item="71", name='GENDER', type='number', startIndex=84, endIndex=85,
               required=True, validators=[
                   validators.isInLimits(0, 9)
@@ -251,15 +251,15 @@ child_two = RowSchema(
               required=True, validators=[
                   validators.oneOf([1, 2])
               ]),
-        Field(item="73", name='RELATIONSHIP_HOH', type='string', startIndex=87, endIndex=89,
+        Field(item="73", name='RELATIONSHIP_HOH', type='string', startIndex=87, endIndex=89, can_be_empty=True,
               required=True, validators=[
                   validators.or_validators(validators.isInStringRange(0, 10),
                                            validators.isBlank())
               ]),
-        Field(item="74", name='PARENT_MINOR_CHILD', type='number', startIndex=89, endIndex=90,
+        Field(item="74", name='PARENT_MINOR_CHILD', type='number', startIndex=89, endIndex=90, can_be_empty=True,
               required=True, validators=[
                   validators.or_validators(validators.oneOf([0, 2, 3]),
-                                           validators.numIsBlank())
+                                           validators.isBlank())
               ]),
         Field(item="75", name='EDUCATION_LEVEL', type='string', startIndex=90, endIndex=92,
               required=True, validators=[
@@ -268,10 +268,10 @@ child_two = RowSchema(
                       validators.oneOf(['98', '99'])
                   )
               ]),
-        Field(item="76", name='CITIZENSHIP_STATUS', type='number', startIndex=92, endIndex=93,
+        Field(item="76", name='CITIZENSHIP_STATUS', type='number', startIndex=92, endIndex=93, can_be_empty=True,
               required=True, validators=[
                   validators.or_validators(validators.oneOf([0, 1, 2, 9]),
-                                           validators.numIsBlank())
+                                           validators.isBlank())
               ]),
         Field(item="77A", name='UNEARNED_SSI', type='string', startIndex=93, endIndex=97,
               required=True, validators=[
