@@ -173,10 +173,17 @@ def isAlphaNumeric():
     )
 
 def isBlank():
-    """Validate that value is blank."""
+    """Validate that string value is blank."""
     return make_validator(
-        lambda value: value.isspace() or value is None,
+        lambda value: value.isspace(),
         lambda value: f'{value} is not blank.'
+    )
+
+def numIsBlank():
+    """Validate that a number field was all blanks at parse time."""
+    return make_validator(
+        lambda value: value is None,
+        lambda value: f'{value} is not a blank integer.'
     )
 
 def isInStringRange(lower, upper):

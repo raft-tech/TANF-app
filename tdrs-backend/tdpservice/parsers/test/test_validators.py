@@ -1034,7 +1034,7 @@ def test_t1_blank_fields():
 
     stratum_val = validators.or_validators(validators.isInStringRange(0, 99), validators.isBlank())
 
-    tsa_val = validators.or_validators(validators.isLargerThanOrEqualTo(0), validators.isBlank())
+    tsa_val = validators.or_validators(validators.isLargerThanOrEqualTo(0), validators.numIsBlank())
 
     assert stratum_val(t1.STRATUM) == (True, None)
     assert tsa_val(t1.TRANSITION_SERVICES_AMOUNT) == (True, None)
@@ -1047,7 +1047,7 @@ def test_t2_blank_fields():
     t2.EDUCATION_LEVEL = "  "
     t2.WORK_EXPERIENCE_HOL = " "
 
-    race_val = validators.or_validators(validators.isInLimits(0, 2), validators.isBlank())
+    race_val = validators.or_validators(validators.isInLimits(0, 2), validators.numIsBlank())
     ed_level_val = validators.or_validators(validators.isInStringRange(0, 16),
                                             validators.isInStringRange(98, 99),
                                             validators.isBlank())
@@ -1065,9 +1065,9 @@ def test_t3_blank_fields():
     t3.RELATIONSHIP_HOH = "  "
     t3.CITIZENSHIP_STATUS = None
 
-    race_val = validators.or_validators(validators.validateRace(), validators.isBlank())
+    race_val = validators.or_validators(validators.validateRace(), validators.numIsBlank())
     hoh_val = validators.or_validators(validators.isInStringRange(0, 10), validators.isBlank())
-    cit_status_val = validators.or_validators(validators.oneOf([0, 1, 2, 9]), validators.isBlank())
+    cit_status_val = validators.or_validators(validators.oneOf([0, 1, 2, 9]), validators.numIsBlank())
 
     assert race_val(t3.RACE_HISPANIC) == (True, None)
     assert hoh_val(t3.RELATIONSHIP_HOH) == (True, None)
