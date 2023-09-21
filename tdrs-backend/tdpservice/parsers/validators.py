@@ -179,11 +179,11 @@ def isBlank():
         lambda value: f'{value} is not blank.'
     )
 
-def numIsBlank():
-    """Validate that a number field was all blanks at parse time."""
+def isNone():
+    """Validate that a value is None/blank."""
     return make_validator(
         lambda value: value is None,
-        lambda value: f'{value} is not a blank integer.'
+        lambda value: f'{value} is not blank.'
     )
 
 def isInStringRange(lower, upper):
