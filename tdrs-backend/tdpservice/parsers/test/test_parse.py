@@ -664,11 +664,22 @@ def tanf_section1_file_with_blanks(stt_user, stt):
 
 @pytest.mark.django_db()
 def test_parse_tanf_section1_blanks_file(tanf_section1_file_with_blanks):
+    """Test section 1 fields that are allowed to have blanks."""
     parse.parse_datafile(tanf_section1_file_with_blanks)
 
     parser_errors = ParserError.objects.filter(file=tanf_section1_file_with_blanks)
 
-    for e in parser_errors:
-        print(e.field_name, e.error_message)
+    assert parser_errors.count() == 23
 
-    assert False
+    # Should only be cat3 validator errors
+    for error in parser_errors:
+        assert error.error_type == ParserErrorCategoryChoices.VALUE_CONSISTENCY
+    
+    t1 = TANF_T1.objects.first()
+    t2 = TANF_T2.objects.first()
+    t3 = TANF_T3.objects.first()
+
+    assert t1.FAMILY_SANC_ADULT is None
+    assert t2.MARITAL_STATUS is None
+    assert t3.CITIZENSHIP_STATUS is None
+    
