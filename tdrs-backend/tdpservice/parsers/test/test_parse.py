@@ -669,6 +669,6 @@ def test_parse_tanf_section1_blanks_file(tanf_section1_file_with_blanks):
     parser_errors = ParserError.objects.filter(file=tanf_section1_file_with_blanks)
 
     for e in parser_errors:
-        print(e.error_message)
+        print(e.field_name, e.error_message)
 
     assert False
