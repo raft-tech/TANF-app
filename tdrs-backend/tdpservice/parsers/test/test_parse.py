@@ -674,7 +674,7 @@ def test_parse_tanf_section1_blanks_file(tanf_section1_file_with_blanks):
     # Should only be cat3 validator errors
     for error in parser_errors:
         assert error.error_type == ParserErrorCategoryChoices.VALUE_CONSISTENCY
-    
+
     t1 = TANF_T1.objects.first()
     t2 = TANF_T2.objects.first()
     t3 = TANF_T3.objects.first()
@@ -682,4 +682,3 @@ def test_parse_tanf_section1_blanks_file(tanf_section1_file_with_blanks):
     assert t1.FAMILY_SANC_ADULT is None
     assert t2.MARITAL_STATUS is None
     assert t3.CITIZENSHIP_STATUS is None
-    
