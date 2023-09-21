@@ -45,15 +45,18 @@
 
   clamav-cloud-dot-gov:
     parameters:
-      cf-org:
-        default: hhs-acf-ofa
-        type: env_var_name
+      backend-appname:
+        default: tdp-backend
+        type: string
       cf-password:
         default: CF_PASSWORD_DEV
         type: env_var_name
-      cf-space:
-        default: tanf-prod
+      cf-org:
+        default: CF_ORG
         type: env_var_name
+      cf-space:
+        default: tanf-dev
+        type: string
       cf-username:
         default: CF_USERNAME_DEV
         type: env_var_name
