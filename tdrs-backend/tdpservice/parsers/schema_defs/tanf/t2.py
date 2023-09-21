@@ -298,8 +298,9 @@ t2 = SchemaManager(schemas=[
             Field(item="65", name='EARNED_INCOME', type='string', startIndex=132, endIndex=136,
                   required=True, validators=[validators.isInStringRange(0, 9999),]),
             Field(item="66A", name='UNEARNED_INCOME_TAX_CREDIT', type='string', startIndex=136, endIndex=140,
-                  required=True, validators=[validators.or_validators(validators.isInStringRange(0, 9999),
-                                                                       validators.isNone()),]),
+                  can_be_empty=True, required=True, validators=[validators.or_validators(
+                      validators.isInStringRange(0, 9999), 
+                      validators.isNone()),]),
             Field(item="66B", name='UNEARNED_SOCIAL_SECURITY', type='string', startIndex=140, endIndex=144,
                   required=True, validators=[validators.isInStringRange(0, 9999),]),
             Field(item="66C", name='UNEARNED_SSI', type='string', startIndex=144, endIndex=148, required=True,

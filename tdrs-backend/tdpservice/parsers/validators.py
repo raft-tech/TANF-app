@@ -337,7 +337,7 @@ def validate__FAM_AFF__HOH__Fed_Time():
         MONTHS_FED_TIME_LIMIT = instance['MONTHS_FED_TIME_LIMIT'] if type(instance) is dict else \
             getattr(instance, 'MONTHS_FED_TIME_LIMIT')
         if FAMILY_AFFILIATION == 1 and (RELATIONSHIP_HOH == 1 or RELATIONSHIP_HOH == 2):
-            if int(MONTHS_FED_TIME_LIMIT) < 1:
+            if MONTHS_FED_TIME_LIMIT is None or int(MONTHS_FED_TIME_LIMIT) < 1:
                 return (False,
                         'If FAMILY_AFFILIATION == 2 and MONTHS_FED_TIME_LIMIT== 1 or 2, then MONTHS_FED_TIME_LIMIT > 1.'
                         )
