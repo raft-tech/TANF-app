@@ -4,6 +4,7 @@ from django.contrib import admin
 from ..core.utils import ReadOnlyAdminMixin
 from .models import DataFile, LegacyFileTransfer
 from tdpservice.parsers.models import DataFileSummary
+from django.conf import settings
 
 class DataFileSummaryStatusFilter(admin.SimpleListFilter):
     """Admin class filter for file status (accepted, rejected) for datafile model"""
@@ -60,6 +61,13 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         """Return the case totals."""
         return DataFileSummary.objects.get(datafile=obj).case_aggregates
 
+    def error_report_link(self, obj):
+        from django.utils.html import format_html
+        #Return the link to the error report.
+        domain = settings.FRONTEND_BASE_URL
+        # have to find the error id from obj
+        return format_html("<a href='{url}'>Error Report</a>", url=f"{domain}/admin/parsers/parsererror/{obj.id}/change/")
+    error_report_link.allow_tags = True  
 
     list_display = [
         'id',
@@ -70,6 +78,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         'version',
         'status',
         'case_totals',
+        'error_report_link',
     ]
 
     list_filter = [
