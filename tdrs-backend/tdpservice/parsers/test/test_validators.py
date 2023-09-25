@@ -1030,11 +1030,11 @@ def test_t1_blank_fields():
     """Test blank validators on expected fields for T1 record."""
     t1 = TanfT1Factory.create()
     t1.TRANSITION_SERVICES_AMOUNT = None
-    t1.STRATUM = "  "
+    t1.STRATUM = None
 
-    stratum_val = validators.or_validators(validators.isInStringRange(0, 99), validators.isBlank())
+    stratum_val = validators.or_validators(validators.isInStringRange(0, 99), validators.isNone())
 
-    tsa_val = validators.or_validators(validators.isLargerThanOrEqualTo(0), validators.numIsBlank())
+    tsa_val = validators.or_validators(validators.isLargerThanOrEqualTo(0), validators.isNone())
 
     assert stratum_val(t1.STRATUM) == (True, None)
     assert tsa_val(t1.TRANSITION_SERVICES_AMOUNT) == (True, None)
@@ -1044,14 +1044,14 @@ def test_t2_blank_fields():
     """Test blank validators on expected fields for T2 record."""
     t2 = TanfT2Factory.create()
     t2.RACE_HISPANIC = None
-    t2.EDUCATION_LEVEL = "  "
-    t2.WORK_EXPERIENCE_HOL = " "
+    t2.EDUCATION_LEVEL = None
+    t2.WORK_EXPERIENCE_HOL = None
 
-    race_val = validators.or_validators(validators.isInLimits(0, 2), validators.numIsBlank())
+    race_val = validators.or_validators(validators.isInLimits(0, 2), validators.isNone())
     ed_level_val = validators.or_validators(validators.isInStringRange(0, 16),
                                             validators.isInStringRange(98, 99),
-                                            validators.isBlank())
-    hol_val = validators.or_validators(validators.isInStringRange(0, 99), validators.isBlank())
+                                            validators.isNone())
+    hol_val = validators.or_validators(validators.isInStringRange(0, 99), validators.isNone())
 
     assert race_val(t2.RACE_HISPANIC) == (True, None)
     assert ed_level_val(t2.EDUCATION_LEVEL) == (True, None)
@@ -1062,12 +1062,12 @@ def test_t3_blank_fields():
     """Test blank validators on expected fields for T3 record."""
     t3 = TanfT3Factory.create()
     t3.RACE_HISPANIC = None
-    t3.RELATIONSHIP_HOH = "  "
+    t3.RELATIONSHIP_HOH = None
     t3.CITIZENSHIP_STATUS = None
 
-    race_val = validators.or_validators(validators.validateRace(), validators.numIsBlank())
-    hoh_val = validators.or_validators(validators.isInStringRange(0, 10), validators.isBlank())
-    cit_status_val = validators.or_validators(validators.oneOf([0, 1, 2, 9]), validators.numIsBlank())
+    race_val = validators.or_validators(validators.validateRace(), validators.isNone())
+    hoh_val = validators.or_validators(validators.isInStringRange(0, 10), validators.isNone())
+    cit_status_val = validators.or_validators(validators.oneOf([0, 1, 2, 9]), validators.isNone())
 
     assert race_val(t3.RACE_HISPANIC) == (True, None)
     assert hoh_val(t3.RELATIONSHIP_HOH) == (True, None)
