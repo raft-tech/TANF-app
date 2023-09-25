@@ -104,12 +104,13 @@ def test_parse_big_file(test_big_file):
     parse.parse_datafile(test_big_file)
     parser_errors = ParserError.objects.filter(file=test_big_file)
 
-    error_message = 'MONTHS_FED_TIME_LIMIT is required but a value was not provided.'
-    row_18_error = parser_errors.get(row_number=18, error_message=error_message)
-    assert row_18_error.error_type == ParserErrorCategoryChoices.FIELD_VALUE
-    assert row_18_error.error_message == error_message
-    assert row_18_error.content_type.model == 'tanf_t2'
-    assert row_18_error.object_id is not None
+    error_message = "14 is not in ['01', '02', '05', '07', '09', '15', '16', '17', '18', '19', '99']. " + \
+        "or 14 is not blank."
+    row_118_error = parser_errors.get(row_number=118, error_message=error_message)
+    assert row_118_error.error_type == ParserErrorCategoryChoices.FIELD_VALUE
+    assert row_118_error.error_message == error_message
+    assert row_118_error.content_type.model == 'tanf_t2'
+    assert row_118_error.object_id is not None
 
     assert TANF_T1.objects.count() == expected_t1_record_count
     assert TANF_T2.objects.count() == expected_t2_record_count
@@ -153,7 +154,7 @@ def test_parse_bad_file_missing_header(bad_file_missing_header):
     """Test parsing of bad_missing_header."""
     errors = parse.parse_datafile(bad_file_missing_header)
 
-    parser_errors = ParserError.objects.filter(file=bad_file_missing_header)
+    parser_errors = ParserError.objects.filter(file=bad_file_missing_header).order_by('created_at')
 
     assert parser_errors.count() == 2
 
@@ -165,7 +166,7 @@ def test_parse_bad_file_missing_header(bad_file_missing_header):
     assert err.content_type is None
     assert err.object_id is None
     assert errors == {
-        'header': [parser_errors[1], parser_errors[0]]
+        'header': list(parser_errors)
     }
 
 

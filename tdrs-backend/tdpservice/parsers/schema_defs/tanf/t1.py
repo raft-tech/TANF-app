@@ -96,7 +96,43 @@ t1 = SchemaManager(schemas=[
                               validators.or_validators(validators.isInStringRange(0, 99),
                                                        validators.isNone()),
                         ]),
-
+                  Field(item="7", name='ZIP_CODE', type='string', startIndex=24, endIndex=29,
+                        required=True, validators=[
+                              validators.isNumber(),
+                        ]),
+                  Field(item="8", name='FUNDING_STREAM', type='number', startIndex=29, endIndex=30,
+                        required=True, validators=[
+                              validators.isInLimits(1, 3),
+                        ]),
+                  Field(item="9", name='DISPOSITION', type='number', startIndex=30, endIndex=31,
+                        required=True, validators=[
+                              validators.oneOf([1, 2]),
+                        ]),
+                  Field(item="10", name='NEW_APPLICANT', type='number', startIndex=31, endIndex=32,
+                        required=True, validators=[
+                              validators.oneOf([1, 2]),
+                        ]),
+                  Field(item="11", name='NBR_FAMILY_MEMBERS', type='number', startIndex=32, endIndex=34,
+                        required=True, validators=[
+                              validators.isLargerThan(0),
+                        ]),
+                  Field(item="12", name='FAMILY_TYPE', type='number', startIndex=34, endIndex=35,
+                        required=True, validators=[
+                              validators.isInLimits(1, 3),
+                        ]),
+                  Field(item="13", name='RECEIVES_SUB_HOUSING', type='number', startIndex=35, endIndex=36,
+                        required=True, validators=[
+                              validators.isInLimits(1, 3),
+                        ]),
+                  Field(item="14", name='RECEIVES_MED_ASSISTANCE', type='number', startIndex=36, endIndex=37,
+                        required=True, validators=[
+                              validators.isInLimits(1, 2)
+                        ]),
+                  Field(item="15", name='RECEIVES_FOOD_STAMPS', type='number', startIndex=37, endIndex=38,
+                        can_be_empty=True, required=True, validators=[
+                              validators.or_validators(validators.isInLimits(0, 2),
+                                                       validators.isNone()),
+                        ]),
                   Field(item="16", name='AMT_FOOD_STAMP_ASSISTANCE', type='number', startIndex=38, endIndex=42,
                         required=True, validators=[
                               validators.isLargerThanOrEqualTo(0),
