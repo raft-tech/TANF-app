@@ -27,7 +27,7 @@ From [this github](https://github.com/cloud-gov/cf-service-connect) which has so
 # How to DROP existing DB and Recreate a fresh DB
 
 ### Connecting to DB service
-First step is to connect to the instance DB (see [this](CloudFoundry-DB-Connection.md)).
+First step is to connect to the instance DB (see above).
 
 #### Optional: DB backup
 Before deleting the DB and recreating a fresh DB, you might want to create a backup from the existing data in case you decide to revert the DB changes back.
