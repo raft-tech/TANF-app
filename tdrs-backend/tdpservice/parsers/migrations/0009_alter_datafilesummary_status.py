@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('parsers', '0007_alter_datafilesummary_datafile'),
+        ('parsers', '0008_alter_datafilesummary_datafile'),
     ]
 
     operations = [
