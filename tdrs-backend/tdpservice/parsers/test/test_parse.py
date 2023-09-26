@@ -837,7 +837,7 @@ def test_parse_tanf_section3_file(tanf_section3_file):
 @pytest.fixture
 def tanf_section4_file(stt_user, stt):
     """Fixture for ADS.E2J.FTP4.TS06."""
-    return create_test_datafile('ADS.E2J.FTP4.TS06', stt_user, stt, "Stratum Data")
+    return util.create_test_datafile('ADS.E2J.FTP4.TS06', stt_user, stt, "Stratum Data")
 
 @pytest.mark.django_db()
 def test_parse_tanf_section4_file(tanf_section4_file):
