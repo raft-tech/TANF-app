@@ -235,3 +235,5 @@ alias tdrs-functions='declare -F|grep tdrs && alias|grep tdrs|cut -d" " -f1 --co
 
 # Get logs on backend
 alias tdrs-backend-log="docker logs $(docker ps|grep web|awk '{print $1}')"
+
+##
