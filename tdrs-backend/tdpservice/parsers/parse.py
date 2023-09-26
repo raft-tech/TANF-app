@@ -295,7 +295,7 @@ def get_schema_manager_options(program_type):
     return None
 
 
-def get_schema_manager(line, section, schema_options):
+def get_schema_manager(line, section, program_type):
     """Return the appropriate schema for the line."""
     line_type = line[0:2]
     return util.get_program_model(program_type, section, line_type)
