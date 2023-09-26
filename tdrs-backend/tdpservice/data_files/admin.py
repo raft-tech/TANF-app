@@ -66,11 +66,14 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
     def error_report_link(self, obj):
         #Return the link to the error report.
-        pe = ParserError.objects.get(file=obj)
+        pe_len = ParserError.objects.filter(file=obj).count()
+
+        filtered_parserror_list_url = f'{DOMAIN}/admin/parsers/parsererror/?file=' + str(obj.id)
         # have to find the error id from obj
         return format_html("<a href='{url}'>{field}</a>",
-                           field = pe.id,
-                           url=f"{DOMAIN}/admin/parsers/parsererror/{pe.id}/change/")
+                           field = 'Parser Error List: ' + str(pe_len) + " errors",
+                           url=filtered_parserror_list_url)
+    
     error_report_link.allow_tags = True
 
     def data_file_summary(self, obj):
@@ -88,7 +91,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         'quarter',
         'section',
         'version',
-        'status',
+        #'status',
         'data_file_summary',
         'error_report_link',
     ]
