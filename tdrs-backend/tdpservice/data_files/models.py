@@ -151,6 +151,7 @@ class DataFile(FileRecord):
                                         blank=False,
                                         null=True
                                         )
+
     @property
     def prog_type(self):
         """Return the program type for a given section."""
@@ -165,7 +166,6 @@ class DataFile(FileRecord):
         # TODO: if given a datafile (section), we can reverse back to the program b/c the
         # section string has "tribal/ssp" in it, then process of elimination we have tanf
 
-  
     @property
     def filename(self):
         """Return the correct filename for this data file."""
