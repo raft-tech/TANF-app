@@ -26,6 +26,7 @@ def parse(data_file_id):
 
     if "Case Data" in data_file.section:
         dfs.case_aggregates = case_aggregates_by_month(data_file, dfs.status)
-        dfs.save()
+
+    dfs.save()
 
     logger.info(f"Parsing finished for file -> {repr(data_file)} with status {dfs.status} and {len(errors)} errors.")
