@@ -123,7 +123,7 @@ def get_schema_options(program, section, query=None, model=None, model_name=None
             'G': {
                 'section': DataFile.Section.AGGREGATE_DATA,
                 'models': {
-                    # 'T6': schema_defs.tanf.t6,
+                    'T6': schema_defs.tanf.t6,
                 }
             },
             'S': {

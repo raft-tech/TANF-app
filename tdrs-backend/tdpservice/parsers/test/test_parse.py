@@ -612,6 +612,7 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
 
     parser_errors = ParserError.objects.filter(file=bad_tanf_s1__row_missing_required_field)
     assert parser_errors.count() == 4
+    [print(parser_error) for parser_error in parser_errors]
 
     error_message = 'RPT_MONTH_YEAR is required but a value was not provided.'
     row_2_error = parser_errors.get(row_number=2, error_message=error_message)
@@ -632,7 +633,7 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
     assert row_4_error.content_type.model == 'tanf_t3'
     assert row_4_error.object_id is not None
 
-    error_message = 'Record Type is missing from record.'
+    error_message = 'Unknown Record_Type was found.'
     row_5_error = parser_errors.get(row_number=5, error_message=error_message)
     assert row_5_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
     assert row_5_error.error_message == error_message
