@@ -35,6 +35,10 @@ function FileUpload({ section, setLocalAlertState }) {
     (file) => file.section.includes(sectionName) && file.uuid
   )
 
+  const hasPreview = files?.some(
+    (file) => file.section.includes(sectionName) && file.name
+  )
+
   const selectedFile = files?.find((file) => file.section.includes(sectionName))
 
   const formattedSectionName = selectedFile?.section
@@ -58,8 +62,10 @@ function FileUpload({ section, setLocalAlertState }) {
         setTimeout(trySettingPreview, 100)
       }
     }
-    if (hasFile) trySettingPreview()
-  }, [hasFile, fileName, targetClassName])
+    if (hasPreview) {
+      trySettingPreview()
+    }
+  }, [hasPreview, fileName, targetClassName])
 
   const downloadFile = ({ target }) => {
     dispatch(clearError({ section: sectionName }))
