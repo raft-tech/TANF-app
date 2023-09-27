@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchSttList } from '../../actions/sttList'
@@ -12,15 +12,19 @@ import ComboBox from '../ComboBox'
  * @param {function} handleBlur - Runs on blur of combo box element.
  * @param {function} error - Reference to stt errors object.
  */
+
 function STTComboBox({ selectStt, selectedStt, handleBlur, error }) {
   const sttList = useSelector((state) => state?.stts?.sttList)
   const dispatch = useDispatch()
+  const [numTries, setNumTries] = useState(0)
 
   useEffect(() => {
-    if (sttList.length === 0) {
+    if (sttList.length === 0 && numTries < 6) {
       dispatch(fetchSttList())
+      console.log('Num Tries: %d', numTries)
+      setNumTries(numTries + 1)
     }
-  }, [dispatch, sttList])
+  }, [dispatch, sttList, numTries])
 
   return (
     <ComboBox
