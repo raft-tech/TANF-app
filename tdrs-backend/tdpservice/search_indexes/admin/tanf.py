@@ -112,6 +112,9 @@ class TANF_T7Admin(admin.ModelAdmin):
         'RecordType',
         'CALENDAR_QUARTER',
         'RPT_MONTH_YEAR',
+        'TDRS_SECTION_IND',
+        'STRATUM',
+        'FAMILIES_MONTH',
         'datafile',
     ]
 
