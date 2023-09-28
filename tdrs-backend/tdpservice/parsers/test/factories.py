@@ -337,7 +337,7 @@ class TanfT6Factory(factory.django.DjangoModelFactory):
     NUM_CLOSED_CASES = 1
 
 class TanfT7Factory(factory.django.DjangoModelFactory):
-    """Generate TANF T6 record for testing."""
+    """Generate TANF T7 record for testing."""
 
     class Meta:
         """Hardcoded meta data for TANF_T7."""
