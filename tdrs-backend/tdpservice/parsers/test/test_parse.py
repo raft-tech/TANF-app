@@ -854,8 +854,8 @@ def test_parse_tanf_section4_file(tanf_section4_file):
     first = t7_objs.first()
     sixth = t7_objs[5]
 
-    assert first.RPT_MONTH_YEAR == 202012
-    assert sixth.RPT_MONTH_YEAR == 202010
+    assert first.RPT_MONTH_YEAR == 202011
+    assert sixth.RPT_MONTH_YEAR == 202012
 
     assert first.TDRS_SECTION_IND == '2'
     assert sixth.TDRS_SECTION_IND == '2'

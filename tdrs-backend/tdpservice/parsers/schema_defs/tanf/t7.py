@@ -29,7 +29,7 @@ for i in range(1, 31):
               Field(item="3", name='CALENDAR_QUARTER', type='number', startIndex=2, endIndex=7,
                     required=True, validators=[validators.dateYearIsLargerThan(1998),
                                                validators.quarterIsValid()]),
-              TransformField(calendar_quarter_to_rpt_month_year(i % 3), item="3A", name='RPT_MONTH_YEAR', type='number',
+              TransformField(calendar_quarter_to_rpt_month_year((i - 1) % 3), item="3A", name='RPT_MONTH_YEAR', type='number',
                              startIndex=2, endIndex=7, required=True, validators=[validators.dateYearIsLargerThan(1998),
                                                                                   validators.dateMonthIsValid()]),
               Field(item="4", name='TDRS_SECTION_IND', type='string', startIndex=section_ind_index,
