@@ -14,6 +14,10 @@ section_ind_index = 7
 stratum_index = 8
 families_index = 10
 for i in range(1, 31):
+    month_index = (i - 1) % 3
+    sub_item_labels = ['A', 'B', 'C']
+    families_value_item_number = f"6{sub_item_labels[month_index]}"
+
     schemas.append(
       RowSchema(
           model=TANF_T7,
@@ -30,7 +34,7 @@ for i in range(1, 31):
                     required=True, validators=[validators.dateYearIsLargerThan(1998),
                                                validators.quarterIsValid()]),
               TransformField(
-                  transform_func=calendar_quarter_to_rpt_month_year((i - 1) % 3),
+                  transform_func=calendar_quarter_to_rpt_month_year(month_index),
                   item="3A",
                   name='RPT_MONTH_YEAR',
                   type='number',
@@ -46,7 +50,7 @@ for i in range(1, 31):
                     endIndex=section_ind_index + 1, required=True, validators=[validators.oneOf(['1', '2'])]),
               Field(item="5", name='STRATUM', type='string', startIndex=stratum_index,
                     endIndex=stratum_index + 2, required=True, validators=[validators.isInStringRange(1, 99)]),
-              Field(item="6A", name='FAMILIES_MONTH', type='number', startIndex=families_index,
+              Field(item=families_value_item_number, name='FAMILIES_MONTH', type='number', startIndex=families_index,
                     endIndex=families_index + 7, required=True, validators=[validators.isInLimits(0, 9999999)]),
           ]
       )
