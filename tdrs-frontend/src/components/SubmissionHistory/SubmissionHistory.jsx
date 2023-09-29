@@ -178,11 +178,19 @@ const SubmissionHistoryRow = ({ file }) => {
         </th>
 
         <th scope="rowgroup" rowSpan={3}>
-          {file.hasError > 0 ? (
-            <button className="section-download" onClick={returned_errors}>
-              {file.year}-{file.quarter}-{file.section}.xlsx
-            </button>
-          ) : null}
+          {file.summary &&
+          file.summary.status &&
+          file.summary.status !== 'Pending' ? (
+            file.hasError > 0 ? (
+              <button className="section-download" onClick={returned_errors}>
+                {file.year}-{file.quarter}-{file.section}.xlsx
+              </button>
+            ) : (
+              'No Errors'
+            )
+          ) : (
+            'Pending'
+          )}
         </th>
       </tr>
 
@@ -230,7 +238,7 @@ const SectionSubmissionHistory = ({ section, label, files }) => {
   return (
     <div
       className="submission-history-section usa-table-container--scrollable"
-      style={{ maxWidth: '100%', margin: '100px' }}
+      style={{ maxWidth: '100%' }}
       tabIndex={0}
     >
       <table className="usa-table usa-table--striped">
