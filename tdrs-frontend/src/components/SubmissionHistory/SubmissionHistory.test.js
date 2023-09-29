@@ -406,6 +406,11 @@ describe('SubmissionHistory', () => {
 
     expect(screen.queryByText('Status')).toBeInTheDocument()
     expect(screen.queryByText('test1.txt')).toBeInTheDocument()
-    expect(screen.queryByText(status || 'Pending')).toBeInTheDocument()
+
+    if (status && status !== 'Pending') {
+      expect(screen.queryByText(status)).toBeInTheDocument()
+    } else {
+      expect(screen.queryAllByText('Pending')).toHaveLength(2)
+    }
   })
 })
