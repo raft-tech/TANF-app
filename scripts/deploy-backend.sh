@@ -107,6 +107,13 @@ update_backend()
     # Add network policy to allow frontend to access backend
     cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_BACKEND" --protocol tcp --port 8080
 
+    if ["$CF_SPACE" = "tanf-prod" ]; then
+      # Add network policy to allow backend to access tanf-prod services
+      cf add-network-policy "$CGAPPNAME_BACKEND" clamav-rest --protocol tcp --port 9000
+    else
+      cf add-network-policy "$CGAPPNAME_BACKEND" tdp-clamav-nginx-$env --protocol tcp --port 9000
+    fi
+
     cd ..
 }
 
