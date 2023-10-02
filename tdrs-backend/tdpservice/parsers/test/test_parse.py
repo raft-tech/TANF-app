@@ -838,7 +838,7 @@ def test_parse_tanf_section3_file(tanf_section3_file):
 @pytest.fixture
 def tanf_section1_file_with_blanks(stt_user, stt):
     """Fixture for ADS.E2J.FTP3.TS06."""
-    return create_test_datafile('tanf_section1_blanks.txt', stt_user, stt)
+    return util.create_test_datafile('tanf_section1_blanks.txt', stt_user, stt)
 
 @pytest.mark.django_db()
 def test_parse_tanf_section1_blanks_file(tanf_section1_file_with_blanks):
@@ -861,6 +861,7 @@ def test_parse_tanf_section1_blanks_file(tanf_section1_file_with_blanks):
     assert t2.MARITAL_STATUS is None
     assert t3.CITIZENSHIP_STATUS is None
 
+@pytest.fixture
 def tanf_section4_file(stt_user, stt):
     """Fixture for ADS.E2J.FTP4.TS06."""
     return util.create_test_datafile('ADS.E2J.FTP4.TS06', stt_user, stt, "Stratum Data")
