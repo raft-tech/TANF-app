@@ -18,7 +18,7 @@ def value_is_empty(value, length):
 class Field:
     """Provides a mapping between a field name and its position."""
 
-    def __init__(self, item, name, type, startIndex, endIndex, can_be_empty=False, required=True, validators=[]):
+    def __init__(self, item, name, type, startIndex, endIndex, required=True, validators=[]):
         self.item = item
         self.name = name
         self.type = type
@@ -26,7 +26,6 @@ class Field:
         self.endIndex = endIndex
         self.required = required
         self.validators = validators
-        self.can_be_empty = can_be_empty
 
     def create(self, item, name, length, start, end, type):
         """Create a new field."""
@@ -61,9 +60,9 @@ class Field:
 class TransformField(Field):
     """Represents a field that requires some transformation before serializing."""
 
-    def __init__(self, transform_func, item, name, type, startIndex, endIndex, can_be_empty=False, required=True,
+    def __init__(self, transform_func, item, name, type, startIndex, endIndex, required=True,
                  validators=[], **kwargs):
-        super().__init__(item, name, type, startIndex, endIndex, can_be_empty, required, validators)
+        super().__init__(item, name, type, startIndex, endIndex, required, validators)
         self.transform_func = transform_func
         self.kwargs = kwargs
 
