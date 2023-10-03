@@ -21,12 +21,16 @@ function STTComboBox({ selectStt, selectedStt, handleBlur, error }) {
   const [reachedMaxTries, setReachedMaxTries] = useState(false)
 
   useEffect(() => {
-    if (sttReduction.sttList.length === 0 && numTries <= 5) {
+    if (
+      sttReduction.sttList.length === 0 &&
+      numTries <= 3 &&
+      !sttReduction.loading
+    ) {
       dispatch(fetchSttList())
-      if (!sttReduction.loading) setNumTries(numTries + 1)
+      setNumTries(numTries + 1)
     } else if (
       sttReduction.sttList.length === 0 &&
-      numTries > 5 &&
+      numTries > 3 &&
       !reachedMaxTries
     ) {
       setReachedMaxTries(true)
