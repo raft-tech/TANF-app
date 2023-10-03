@@ -49,7 +49,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         filtered_parserror_list_url = f'{DOMAIN}/admin/parsers/parsererror/?file=' + str(obj.id)
         # have to find the error id from obj
         return format_html("<a href='{url}'>{field}</a>",
-                           field='Parser Error List: ' + str(pe_len) + " errors",
+                           field="Parser Errors: " + str(pe_len),
                            url=filtered_parserror_list_url)
 
     error_report_link.allow_tags = True

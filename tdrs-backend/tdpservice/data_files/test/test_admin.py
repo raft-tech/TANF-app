@@ -19,4 +19,4 @@ def test_DataFileAdmin_status():
     assert data_file_admin.case_totals(data_file) == data_file_summary.case_aggregates
     DOMAIN = settings.FRONTEND_BASE_URL
     assert data_file_admin.error_report_link(data_file) == \
-        f"<a href='{DOMAIN}/admin/parsers/parsererror/?file={data_file.id}'>Parser Error List: 0 errors</a>"
+        f"<a href='{DOMAIN}/admin/parsers/parsererror/?file={data_file.id}'>Parser Errors: 0</a>"
