@@ -15,19 +15,23 @@ import Button from '../Button'
  */
 
 function STTComboBox({ selectStt, selectedStt, handleBlur, error }) {
-  const sttList = useSelector((state) => state?.stts?.sttList)
+  const sttReduction = useSelector((state) => state?.stts)
   const dispatch = useDispatch()
   const [numTries, setNumTries] = useState(0)
   const [reachedMaxTries, setReachedMaxTries] = useState(false)
 
   useEffect(() => {
-    if (sttList.length === 0 && numTries <= 5) {
+    if (sttReduction.sttList.length === 0 && numTries <= 5) {
       dispatch(fetchSttList())
-      setNumTries(numTries + 1)
-    } else if (sttList.length === 0 && numTries > 5 && !reachedMaxTries) {
+      if (!sttReduction.loading) setNumTries(numTries + 1)
+    } else if (
+      sttReduction.sttList.length === 0 &&
+      numTries > 5 &&
+      !reachedMaxTries
+    ) {
       setReachedMaxTries(true)
     }
-  }, [dispatch, sttList, numTries, reachedMaxTries])
+  }, [dispatch, sttReduction.sttList, numTries, reachedMaxTries])
 
   const modalRef = useRef()
   const headerRef = useRef()
@@ -50,7 +54,7 @@ function STTComboBox({ selectStt, selectedStt, handleBlur, error }) {
         <option value="" disabled hidden>
           - Select or Search -
         </option>
-        {sttList.map((stt) => (
+        {sttReduction.sttList.map((stt) => (
           <option className="sttOption" key={stt.id} value={stt.name}>
             {stt.name}
           </option>
