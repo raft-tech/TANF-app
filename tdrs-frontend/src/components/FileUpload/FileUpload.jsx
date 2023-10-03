@@ -62,7 +62,7 @@ function FileUpload({ section, setLocalAlertState }) {
         setTimeout(trySettingPreview, 100)
       }
     }
-    if (hasPreview) {
+    if (hasPreview || hasFile) {
       trySettingPreview()
     }
   }, [hasPreview, fileName, targetClassName])
