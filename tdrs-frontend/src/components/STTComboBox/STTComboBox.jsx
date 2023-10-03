@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { useDispatch, useSelector } from 'react-redux'
-import { fetchSttList, EMPTY_STTS_LIST_ERROR } from '../../actions/sttList'
+import { fetchSttList } from '../../actions/sttList'
 import ComboBox from '../ComboBox'
 import Button from '../Button'
 
@@ -21,13 +21,13 @@ function STTComboBox({ selectStt, selectedStt, handleBlur, error }) {
   const [reachedMaxTries, setReachedMaxTries] = useState(false)
 
   useEffect(() => {
-    if (sttList.length === 0 && numTries < 6) {
+    if (sttList.length === 0 && numTries <= 5) {
       dispatch(fetchSttList())
       setNumTries(numTries + 1)
-    } else {
+    } else if (sttList.length === 0 && numTries > 5 && !reachedMaxTries) {
       setReachedMaxTries(true)
     }
-  }, [dispatch, sttList, numTries])
+  }, [dispatch, sttList, numTries, reachedMaxTries])
 
   const modalRef = useRef()
   const headerRef = useRef()
