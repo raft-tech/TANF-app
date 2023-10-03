@@ -38,8 +38,8 @@ def parse_datafile(datafile):
 
     section_is_valid, section_error = validators.validate_header_section_matches_submission(
         datafile,
-        program_type,
-        section,
+        util.get_section_reference(program_type, section),
+        util.make_generate_parser_error(datafile, 1)
     )
 
     if not section_is_valid:
@@ -123,7 +123,6 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
     errors = {}
 
     line_number = 0
-    schema_manager_options = get_schema_manager_options(program_type)
 
     unsaved_records = {}
     unsaved_parser_errors = {}
@@ -180,11 +179,9 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
             prev_sum = header_count + trailer_count
             continue
 
-        schema_manager = get_schema_manager(line, section, schema_manager_options)
+        schema_manager = get_schema_manager(line, section, program_type)
 
-        schema_manager.update_encrypted_fields(is_encrypted)
-
-        records = manager_parse_line(line, schema_manager, generate_error)
+        records = manager_parse_line(line, schema_manager, generate_error, is_encrypted)
 
         record_number = 0
         for i in range(len(records)):
@@ -236,22 +233,23 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
     return errors
 
 
-def manager_parse_line(line, schema_manager, generate_error):
+def manager_parse_line(line, schema_manager, generate_error, is_encrypted=False):
     """Parse and validate a datafile line using SchemaManager."""
-    if schema_manager.schemas:
+    try:
+        schema_manager.update_encrypted_fields(is_encrypted)
         records = schema_manager.parse_and_validate(line, generate_error)
         return records
-
-    logger.debug("Record Type is missing from record.")
-    return [(None, False, [
-        generate_error(
-            schema=None,
-            error_category=ParserErrorCategoryChoices.PRE_CHECK,
-            error_message="Record Type is missing from record.",
-            record=None,
-            field=None
-        )
-    ])]
+    except AttributeError as e:
+        logging.error(e)
+        return [(None, False, [
+            generate_error(
+                schema=None,
+                error_category=ParserErrorCategoryChoices.PRE_CHECK,
+                error_message="Unknown Record_Type was found.",
+                record=None,
+                field="Record_Type",
+            )
+        ])]
 
 
 def get_schema_manager_options(program_type):
@@ -272,7 +270,7 @@ def get_schema_manager_options(program_type):
                     'T6': schema_defs.tanf.t6,
                 },
                 'S': {
-                    # 'T7': schema_options.t7,
+                    'T7': schema_defs.tanf.t7,
                 },
             }
         case 'SSP':
@@ -297,7 +295,7 @@ def get_schema_manager_options(program_type):
     return None
 
 
-def get_schema_manager(line, section, schema_options):
+def get_schema_manager(line, section, program_type):
     """Return the appropriate schema for the line."""
     line_type = line[0:2]
-    return schema_options.get(section, {}).get(line_type, util.SchemaManager([]))
+    return util.get_program_model(program_type, section, line_type)
