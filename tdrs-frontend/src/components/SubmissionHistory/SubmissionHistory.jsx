@@ -129,7 +129,7 @@ const SubmissionHistoryRow = ({ file }) => {
     }
   }
 
-  const section_index = (element) => element == file.section
+  const section_index = (element) => file.section.includes(element)
 
   const section = fileUploadSections.findIndex(section_index) + 1
 
