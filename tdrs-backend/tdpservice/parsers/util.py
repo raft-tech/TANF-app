@@ -64,6 +64,21 @@ def make_generate_parser_error(datafile, line_number):
     return generate
 
 
+def make_generate_file_precheck_parser_error(datafile, line_number):
+    def generate(schema, error_category, error_message, record=None, field=None):
+        return generate_parser_error(
+            datafile=datafile,
+            line_number=line_number,
+            schema=schema,
+            error_category=error_category,
+            error_message=error_message,
+            record=record,
+            field=None,  # purposely overridden to force a "Rejected" status for certain file precheck errors
+        )
+
+    return generate
+
+
 class SchemaManager:
     """Manages one or more RowSchema's and runs all parsers and validators."""
 
