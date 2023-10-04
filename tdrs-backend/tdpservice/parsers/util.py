@@ -65,6 +65,7 @@ def make_generate_parser_error(datafile, line_number):
 
 
 def make_generate_file_precheck_parser_error(datafile, line_number):
+    """Configure a generate_parser_error that acts as a file pre-check error."""
     def generate(schema, error_category, error_message, record=None, field=None):
         return generate_parser_error(
             datafile=datafile,
