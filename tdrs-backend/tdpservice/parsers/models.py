@@ -102,7 +102,7 @@ class DataFileSummary(models.Model):
                                 .exclude(error_message__icontains="Unknown Record_Type was found.")
 
         row_precheck_errors = errors.filter(error_type=ParserErrorCategoryChoices.PRE_CHECK)\
-                                    .filter(error_message__icontains="Unknown Record_Type was found.")\
+                                    .filter(field_name="Record_Type")\
                                     .exclude(error_message__icontains="trailer")
 
         if errors is None:
