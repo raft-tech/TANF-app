@@ -35,7 +35,7 @@ def generate_parser_error(datafile, line_number, schema, error_category, error_m
         row_number=line_number,
         column_number=getattr(field, 'item', None),
         item_number=getattr(field, 'item', None),
-        field_name=getattr(field, 'name', None),
+        field_name=getattr(field, 'name', None) if hasattr(field, 'name') else field,
         rpt_month_year=getattr(record, 'RPT_MONTH_YEAR', None),
         case_number=getattr(record, 'CASE_NUMBER', None),
         error_message=error_message,
