@@ -79,7 +79,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         'user',
         'year',
         'version',
-        'datafilesummary__status',
+        'summary__status',
         DataFileSummaryPrgTypeFilter
     ]
 
