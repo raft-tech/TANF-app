@@ -18,9 +18,9 @@ def zap_started(zap, target):
 
 
     ignored_passive_scan_ids = [
-            10020,  # X-Frame-Option Header Not Set
-            10021,  # X-Content-Type-Options Header Missing
-            10027,  # Informational: Suspicious Comments
+            #10020,  # X-Frame-Option Header Not Set
+            #10021,  # X-Content-Type-Options Header Missing
+            #10027,  # Informational: Suspicious Comments
             10036,  # Server Leaks Version Information
             10055,  # CSP unsafe inline
             10096,  # Informational: Timestamp Disclosure - Unix

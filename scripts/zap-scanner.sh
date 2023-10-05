@@ -19,7 +19,7 @@ if [ "$ENVIRONMENT" = "nightly" ]; then
     fi
 elif [ "$ENVIRONMENT" = "circle" ] || [ "$ENVIRONMENT" = "local" ]; then
     if [ "$TARGET" = "frontend" ]; then
-        APP_URL="http://tdp-frontend/"
+        APP_URL="https://tdp-frontend-raft.app.cloud.gov"
     elif [ "$TARGET" = "backend" ]; then
         APP_URL="http://tdp-frontend/"
     else
@@ -112,10 +112,6 @@ ZAP_CLI_OPTIONS="\
   -config globalexcludeurl.url_list.url\(14\).description='Site - FontAwesome.com' \
   -config globalexcludeurl.url_list.url\(14\).enabled=true \
 
-  -config globalexcludeurl.url_list.url\(15\).regex='^https:\/\/.*\.cloud.gov\/.*$' \
-  -config globalexcludeurl.url_list.url\(15\).description='Site - Cloud.gov' \
-  -config globalexcludeurl.url_list.url\(15\).enabled=true \
-
   -config globalexcludeurl.url_list.url\(16\).regex='^https:\/\/.*\.googletagmanager.com\/.*$' \
   -config globalexcludeurl.url_list.url\(16\).description='Site - googletagmanager.com' \
   -config globalexcludeurl.url_list.url\(16\).enabled=true \
@@ -140,7 +136,7 @@ ZAP_CLI_OPTIONS="\
   -config globalexcludeurl.url_list.url\(21\).description='Site - IdentitySandbox.gov' \
   -config globalexcludeurl.url_list.url\(21\).enabled=true \
   -config spider.postform=true"
-
+  
 # How long ZAP will crawl the app with the spider process
 ZAP_SPIDER_MINS=10
 
@@ -174,6 +170,8 @@ else
   # Allow use of the optional AJAX spider to effectively crawl the React webapp.
   ZAP_ARGS+=(-j)
 fi
+
+ZAP_ARGS+=(-d)
 
 # Run the ZAP full scan and store output for further processing if needed.
 ZAP_OUTPUT=$(docker-compose run --rm zaproxy "$ZAP_SCRIPT" "${ZAP_ARGS[@]}" | tee /dev/tty)
