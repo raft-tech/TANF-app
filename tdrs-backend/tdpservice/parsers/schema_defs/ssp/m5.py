@@ -9,12 +9,12 @@ from ... import validators
 from tdpservice.search_indexes.models.ssp import SSP_M5
 
 
-m2 = SchemaManager(
+m5 = SchemaManager(
       schemas=[
         RowSchema(
           model=SSP_M5,
           preparsing_validators=[
-              validators.hasLength(150),
+              validators.hasLength(66),
           ],
           postparsing_validators=[],
           fields=[

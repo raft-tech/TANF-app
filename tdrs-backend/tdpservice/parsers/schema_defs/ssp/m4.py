@@ -7,7 +7,7 @@ from ...row_schema import RowSchema
 from ... import validators
 from tdpservice.search_indexes.models.ssp import SSP_M4
 
-m1 = SchemaManager(
+m4 = SchemaManager(
       schemas=[
         RowSchema(
           model=SSP_M4,
