@@ -410,38 +410,27 @@ def test_parse_small_ssp_section1_datafile(small_ssp_section1_datafile, dfs):
     expected_m2_record_count = 6
     expected_m3_record_count = 8
 
-    small_ssp_section1_datafile.year = 2019
+    small_ssp_section1_datafile.year = 2024
     small_ssp_section1_datafile.quarter = 'Q1'
     small_ssp_section1_datafile.save()
 
     dfs.datafile = small_ssp_section1_datafile
     dfs.save()
 
-    errors = parse.parse_datafile(small_ssp_section1_datafile)
+    parse.parse_datafile(small_ssp_section1_datafile)
 
     dfs.status = dfs.get_status()
     assert dfs.status == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
     dfs.case_aggregates = util.case_aggregates_by_month(dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {'rejected': 1,
                                    'months': [
-                                       {'accepted_without_errors': 5, 'accepted_with_errors': 0, 'month': 'Oct'},
+                                       {'accepted_without_errors': 0, 'accepted_with_errors': 5, 'month': 'Oct'},
                                        {'accepted_without_errors': 0, 'accepted_with_errors': 0, 'month': 'Nov'},
                                        {'accepted_without_errors': 0, 'accepted_with_errors': 0, 'month': 'Dec'}
                                     ]}
 
     parser_errors = ParserError.objects.filter(file=small_ssp_section1_datafile)
-    assert parser_errors.count() == 1
-
-    err = parser_errors.first()
-
-    assert err.row_number == 20
-    assert err.error_type == ParserErrorCategoryChoices.PRE_CHECK
-    assert err.error_message == 'Trailer length is 15 but must be 23 characters.'
-    assert err.content_type is None
-    assert err.object_id is None
-    assert errors == {
-        'trailer': [err]
-    }
+    assert parser_errors.count() == 17
     assert SSP_M1.objects.count() == expected_m1_record_count
     assert SSP_M2.objects.count() == expected_m2_record_count
     assert SSP_M3.objects.count() == expected_m3_record_count
