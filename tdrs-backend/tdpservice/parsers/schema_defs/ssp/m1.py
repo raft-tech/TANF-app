@@ -249,7 +249,8 @@ m1 = SchemaManager(
                     ]),
               Field(item="25", name='WAIVER_EVAL_CONTROL_GRPS', type='number', startIndex=112, endIndex=113,
                     required=True, validators=[
-                        validators.isAlphaNumeric(), # diff than t1 (blank or 9, alpha)
+                        validators.isInLimits(0, 9),
+                        # validators.isAlphaNumeric(), # diff than t1 (blank or 9, alpha)
                     ]),
               Field(item="-1", name='BLANK', type='string', startIndex=113, endIndex=150,
                     required=False, validators=[]),

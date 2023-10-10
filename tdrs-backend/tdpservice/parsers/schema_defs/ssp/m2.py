@@ -17,81 +17,81 @@ m2 = SchemaManager(
               validators.hasLength(150),
           ],
           postparsing_validators=[
-              validators.validate__FAM_AFF__SSN(),
-                validators.if_then_validator(
-                    condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                    result_field='SSN', result_function=validators.validateSSN(),
-                ),
-                validators.if_then_validator(
+            validators.validate__FAM_AFF__SSN(),
+            validators.if_then_validator(
+                condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                result_field='SSN', result_function=validators.validateSSN(),
+            ),
+            validators.if_then_validator(
+                condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
+                result_field='RACE_HISPANIC', result_function=validators.isInLimits(1, 2),
+            ),
+            validators.if_then_validator(
                     condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                    result_field='RACE_HISPANIC', result_function=validators.isInLimits(1, 2),
+                    result_field='RACE_AMER_INDIAN', result_function=validators.isInLimits(1, 2),
                 ),
-                validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='RACE_AMER_INDIAN', result_function=validators.isInLimits(1, 2),
+            validators.if_then_validator(
+                    condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
+                    result_field='RACE_ASIAN', result_function=validators.isInLimits(1, 2),
+                ),
+            validators.if_then_validator(
+                    condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
+                    result_field='RACE_BLACK', result_function=validators.isInLimits(1, 2),
+                ),
+            validators.if_then_validator(
+                    condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
+                    result_field='RACE_HAWAIIAN', result_function=validators.isInLimits(1, 2),
+                ),
+            validators.if_then_validator(
+                    condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
+                    result_field='RACE_WHITE', result_function=validators.isInLimits(1, 2),
+                ),
+            validators.if_then_validator(
+                    condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
+                    result_field='MARITAL_STATUS', result_function=validators.isInLimits(1, 5),
+                ),
+            validators.if_then_validator(
+                    condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 2),
+                    result_field='PARENT_MINOR_CHILD', result_function=validators.isInLimits(1, 3),
+                ),
+            validators.if_then_validator(
+                    condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
+                    result_field='EDUCATION_LEVEL', result_function=validators.or_validators(
+                        validators.isInStringRange(1, 16),  # excl 0
+                        validators.isInStringRange(98, 99)
                     ),
-                validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='RACE_ASIAN', result_function=validators.isInLimits(1, 2),
+                ),
+            validators.if_then_validator(
+                    condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
+                    result_field='CITIZENSHIP_STATUS', result_function=validators.oneOf((1, 2)),
+                ),
+            validators.if_then_validator(
+                    condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
+                    result_field='COOPERATION_CHILD_SUPPORT', result_function=validators.oneOf((1, 2, 9)),
+                ),
+            # validators.validate__FAM_AFF__HOH__Fed_Time(),
+            validators.if_then_validator(
+                    condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
+                    result_field='EMPLOYMENT_STATUS', result_function=validators.isInLimits(1, 3),
+                ),
+            validators.if_then_validator(
+                    condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                    result_field='WORK_ELIGIBLE_INDICATOR', result_function=validators.or_validators(
+                        validators.isInStringRange(1, 9),
+                        validators.oneOf(('11', '12'))
                     ),
-                validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='RACE_BLACK', result_function=validators.isInLimits(1, 2),
-                    ),
-                validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='RACE_HAWAIIAN', result_function=validators.isInLimits(1, 2),
-                    ),
-                validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='RACE_WHITE', result_function=validators.isInLimits(1, 2),
-                    ),
-                validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='MARITAL_STATUS', result_function=validators.isInLimits(1, 5),
-                    ),
-                validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 2),
-                        result_field='PARENT_WITH_MINOR_CHILD', result_function=validators.isInLimits(1, 3),
-                    ),
-                validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='EDUCATION_LEVEL', result_function=validators.or_validators(
-                            validators.isInStringRange(1, 16),  # excl 0
-                            validators.isInStringRange(98, 99)
-                        ),
-                    ),
-                validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
-                        result_field='CITIZENSHIP_STATUS', result_function=validators.oneOf((1, 2)),
-                    ),
-                validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='COOPERATION_CHILD_SUPPORT', result_function=validators.oneOf((1, 2, 9)),
-                    ),
-                validators.validate__FAM_AFF__HOH__Fed_Time(),
-                validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
-                        result_field='EMPLOYMENT_STATUS', result_function=validators.isInLimits(1, 3),
-                    ),
-                validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                        result_field='WORK_ELIGIBLE_INDICATOR', result_function=validators.or_validators(
-                            validators.isInStringRange(1, 9),
-                            validators.oneOf(('11', '12'))
-                        ),
-                    ),
-                validators.if_then_validator(
-                        condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                        result_field='WORK_PART_STATUS', result_function=validators.oneOf([
-                            '01', '02', '05', '07', '09',
-                            '15', '16', '17', '18', '99'  # adds 16, rm 19
-                        ]),
-                    ),
-                validators.if_then_validator(
-                        condition_field='WORK_ELIGIBLE_INDICATOR', condition_function=validators.isInStringRange(1, 5),
-                        result_field='WORK_PART_STATUS', result_function=validators.notMatches('99'),
-                    ),
+                ),
+            validators.if_then_validator(
+                    condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
+                    result_field='WORK_PART_STATUS', result_function=validators.oneOf([
+                        '01', '02', '05', '07', '09',
+                        '15', '16', '17', '18', '99'  # adds 16, rm 19
+                    ]),
+                ),
+            validators.if_then_validator(
+                    condition_field='WORK_ELIGIBLE_INDICATOR', condition_function=validators.isInStringRange(1, 5),
+                    result_field='WORK_PART_STATUS', result_function=validators.notMatches('99'),
+                ),
           ],
           fields=[
               Field(item="0", name='RecordType', type='string', startIndex=0, endIndex=2,
@@ -176,7 +176,7 @@ m2 = SchemaManager(
                     required=True, validators=[
                         validators.isInStringRange(1, 10)
                     ]),
-              Field(item="35", name='PARENT_MINOR_CHILD', type='number', startIndex=53, endIndex=54,
+              Field(item="35", name='PARENT_MINOR_CHILD', type='number', startIndex=53, endIndex=54,  # naming difference between t2?
                     required=True, validators=[
                         validators.isInLimits(0, 3)
                     ]),
