@@ -48,7 +48,8 @@ first_part_schema = RowSchema(
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='PARENT_MINOR_CHILD', result_function=validators.oneOf((1, 2, 3)),  ## incl 1 - not allowed in c2
+                  result_field='PARENT_MINOR_CHILD', result_function=validators.oneOf((1, 2, 3)),
+                  # incl 1 - not allowed in c2
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
@@ -80,7 +81,7 @@ first_part_schema = RowSchema(
               required=True, validators=[
                   validators.oneOf([1, 2, 4])
               ]),
-        Field(item="61", name='DATE_OF_BIRTH', type='string', startIndex=20, endIndex=28, # number in t3
+        Field(item="61", name='DATE_OF_BIRTH', type='string', startIndex=20, endIndex=28,  # number in t3
               required=True, validators=[
                   validators.dateYearIsLargerThan(1998),
                   validators.dateMonthIsValid(),
@@ -91,7 +92,7 @@ first_part_schema = RowSchema(
                         ]),
         Field(item="63A", name='RACE_HISPANIC', type='number', startIndex=37, endIndex=38,
               required=True, validators=[
-                  validators.isInLimits(0, 2) # validateRace?
+                  validators.isInLimits(0, 2)  # validateRace?
               ]),
         Field(item="63B", name='RACE_AMER_INDIAN', type='number', startIndex=38, endIndex=39,
               required=True, validators=[
@@ -125,7 +126,7 @@ first_part_schema = RowSchema(
               required=True, validators=[
                   validators.oneOf([1, 2])
               ]),
-        Field(item="66", name='RELATIONSHIP_HOH', type='number', startIndex=46, endIndex=48, # string in t3
+        Field(item="66", name='RELATIONSHIP_HOH', type='number', startIndex=46, endIndex=48,  # string in t3
               required=True, validators=[
                   validators.isInStringRange(0, 10)
               ]),
@@ -133,7 +134,7 @@ first_part_schema = RowSchema(
               required=True, validators=[
                   validators.oneOf([0, 2, 3])
               ]),
-        Field(item="68", name='EDUCATION_LEVEL', type='number', startIndex=49, endIndex=51, # string in t3
+        Field(item="68", name='EDUCATION_LEVEL', type='number', startIndex=49, endIndex=51,  # string in t3
               required=True, validators=[
                   validators.or_validators(
                       validators.isInStringRange(0, 16),
@@ -142,13 +143,13 @@ first_part_schema = RowSchema(
               ]),
         Field(item="69", name='CITIZENSHIP_STATUS', type='number', startIndex=51, endIndex=52,
               required=True, validators=[
-                  validators.oneOf([0, 1, 2, 3, 9]) # 3 not in t3
+                  validators.oneOf([0, 1, 2, 3, 9])  # 3 not in t3
               ]),
-        Field(item="70A", name='UNEARNED_SSI', type='number', startIndex=52, endIndex=56, # string in t3
+        Field(item="70A", name='UNEARNED_SSI', type='number', startIndex=52, endIndex=56,  # string in t3
               required=True, validators=[
                   validators.isInLimits(0, 9999)
               ]),
-        Field(item="70B", name='OTHER_UNEARNED_INCOME', type='number', startIndex=56, endIndex=60, # string in t3
+        Field(item="70B", name='OTHER_UNEARNED_INCOME', type='number', startIndex=56, endIndex=60,  # string in t3
               required=True, validators=[
                   validators.isInLimits(0, 9999)
               ])
@@ -196,7 +197,8 @@ second_part_schema = RowSchema(
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='PARENT_MINOR_CHILD', result_function=validators.oneOf((1, 2, 3)),  ## incl 1 - not allowed in c2
+                  result_field='PARENT_MINOR_CHILD', result_function=validators.oneOf((1, 2, 3)),
+                  # incl 1 - not allowed in c2
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(1),
@@ -208,7 +210,8 @@ second_part_schema = RowSchema(
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.matches(2),
-                  result_field='CITIZENSHIP_STATUS', result_function=validators.oneOf((1, 2, 3, 9)),  # incl 3
+                  result_field='CITIZENSHIP_STATUS', result_function=validators.oneOf((1, 2, 3, 9)),
+                  # incl 3
             ),
     ],
     fields=[
@@ -290,7 +293,7 @@ second_part_schema = RowSchema(
               ]),
         Field(item="69", name='CITIZENSHIP_STATUS', type='number', startIndex=92, endIndex=93,
               required=True, validators=[
-                  validators.oneOf([0, 1, 2, 3, 9]) # 3 not in t3
+                  validators.oneOf([0, 1, 2, 3, 9])  # 3 not in t3
               ]),
         Field(item="70A", name='UNEARNED_SSI', type='number', startIndex=93, endIndex=97,
               required=True, validators=[

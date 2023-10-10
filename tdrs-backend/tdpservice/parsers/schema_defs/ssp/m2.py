@@ -158,7 +158,7 @@ m2 = SchemaManager(
                     ]),
               Field(item="32C", name='DISABLED_TITLE_XIVAPDT', type='number', startIndex=47, endIndex=48,
                     required=True, validators=[
-                        validators.oneOf([1, 2]) # string field in t2
+                        validators.oneOf([1, 2])  # string field in t2
                     ]),
               Field(item="32D", name='AID_AGED_BLIND', type='number', startIndex=48, endIndex=49,
                     required=True, validators=[
@@ -176,7 +176,9 @@ m2 = SchemaManager(
                     required=True, validators=[
                         validators.isInStringRange(1, 10)
                     ]),
-              Field(item="35", name='PARENT_MINOR_CHILD', type='number', startIndex=53, endIndex=54,  # naming difference between t2?
+
+              # naming difference between t2?
+              Field(item="35", name='PARENT_MINOR_CHILD', type='number', startIndex=53, endIndex=54,
                     required=True, validators=[
                         validators.isInLimits(0, 3)
                     ]),
@@ -195,7 +197,7 @@ m2 = SchemaManager(
                     ]),
               Field(item="38", name='CITIZENSHIP_STATUS', type='number', startIndex=57, endIndex=58,
                     required=True, validators=[
-                        validators.oneOf([0, 1, 2, 3, 9]) # option 3 missing from t2
+                        validators.oneOf([0, 1, 2, 3, 9])  # option 3 missing from t2
                     ]),
               Field(item="39", name='COOPERATION_CHILD_SUPPORT', type='number', startIndex=58, endIndex=59,
                     required=True, validators=[
@@ -216,7 +218,8 @@ m2 = SchemaManager(
                     ]),
               Field(item="42", name='WORK_PART_STATUS', type='number', startIndex=62, endIndex=64,
                     required=True, validators=[
-                        # validators.oneOf(['01', '02', '05', '07', '09', '15', '16', '17', '18', '19', '99']) # 15 repeated, no 16 in m2 (assumed typo in doc)
+                        # validators.oneOf(['01', '02', '05', '07', '09', '15', '16', '17', '18', '19', '99'])
+                        # 15 repeated, no 16 in m2 (assumed typo in doc)
                         validators.oneOf([1, 2, 5, 7, 9, 15, 16, 17, 18, 19, 99])
                     ]),
               Field(item="43", name='UNSUB_EMPLOYMENT', type='number', startIndex=64, endIndex=66,
