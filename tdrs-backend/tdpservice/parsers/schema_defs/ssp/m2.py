@@ -77,20 +77,20 @@ m2 = SchemaManager(
             validators.if_then_validator(
                     condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
                     result_field='WORK_ELIGIBLE_INDICATOR', result_function=validators.or_validators(
-                        validators.isInStringRange(1, 9),
-                        validators.oneOf(('11', '12'))
+                        validators.isInLimits(1, 9),
+                        validators.oneOf((11, 12))
                     ),
                 ),
             validators.if_then_validator(
                     condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
                     result_field='WORK_PART_STATUS', result_function=validators.oneOf([
-                        '01', '02', '05', '07', '09',
-                        '15', '16', '17', '18', '99'  # adds 16, rm 19
+                        1, 2, 5, 7, 9,
+                        15, 16, 17, 18, 99  # adds 16, rm 19
                     ]),
                 ),
             validators.if_then_validator(
-                    condition_field='WORK_ELIGIBLE_INDICATOR', condition_function=validators.isInStringRange(1, 5),
-                    result_field='WORK_PART_STATUS', result_function=validators.notMatches('99'),
+                    condition_field='WORK_ELIGIBLE_INDICATOR', condition_function=validators.isInLimits(1, 5),
+                    result_field='WORK_PART_STATUS', result_function=validators.notMatches(99),
                 ),
           ],
           fields=[
@@ -187,8 +187,10 @@ m2 = SchemaManager(
               Field(item="37", name='EDUCATION_LEVEL', type='number', startIndex=55, endIndex=57,
                     required=True, validators=[
                         validators.or_validators(
-                              validators.isInStringRange(0, 16),
-                              validators.isInStringRange(98, 99)
+                            #   validators.isInStringRange(0, 16),
+                            validators.isInLimits(0, 16),
+                            #   validators.isInStringRange(98, 99)
+                            validators.isInLimits(98, 99)
                         )
                     ]),
               Field(item="38", name='CITIZENSHIP_STATUS', type='number', startIndex=57, endIndex=58,
@@ -206,161 +208,201 @@ m2 = SchemaManager(
               Field(item="41", name='WORK_ELIGIBLE_INDICATOR', type='number', startIndex=60, endIndex=62,
                     required=True, validators=[
                         validators.or_validators(
-                              validators.isInStringRange(0, 9),
-                              validators.matches('12') # missing 11 from t2
+                            #   validators.isInStringRange(0, 9),
+                            validators.isInLimits(0, 9),
+                            #   validators.matches('12') # missing 11 from t2
+                            validators.matches(12)
                         )
                     ]),
               Field(item="42", name='WORK_PART_STATUS', type='number', startIndex=62, endIndex=64,
                     required=True, validators=[
-                        validators.oneOf(['01', '02', '05', '07', '09', '15', '16', '17', '18', '19', '99']) # 15 repeated, no 16 in m2 (assumed typo in doc)
+                        # validators.oneOf(['01', '02', '05', '07', '09', '15', '16', '17', '18', '19', '99']) # 15 repeated, no 16 in m2 (assumed typo in doc)
+                        validators.oneOf([1, 2, 5, 7, 9, 15, 16, 17, 18, 19, 99])
                     ]),
               Field(item="43", name='UNSUB_EMPLOYMENT', type='number', startIndex=64, endIndex=66,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="44", name='SUB_PRIVATE_EMPLOYMENT', type='number', startIndex=66, endIndex=68,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="45", name='SUB_PUBLIC_EMPLOYMENT', type='number', startIndex=68, endIndex=70,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="46A", name='WORK_EXPERIENCE_HOP', type='number', startIndex=70, endIndex=72,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="46B", name='WORK_EXPERIENCE_EA', type='number', startIndex=72, endIndex=74,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="46C", name='WORK_EXPERIENCE_HOL', type='number', startIndex=74, endIndex=76,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="47", name='OJT', type='number', startIndex=76, endIndex=78,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="48A", name='JOB_SEARCH_HOP', type='number', startIndex=78, endIndex=80,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="48B", name='JOB_SEARCH_EA', type='number', startIndex=80, endIndex=82,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="48C", name='JOB_SEARCH_HOL', type='number', startIndex=82, endIndex=84,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="49A", name='COMM_SERVICES_HOP', type='number', startIndex=84, endIndex=86,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="49B", name='COMM_SERVICES_EA', type='number', startIndex=86, endIndex=88,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="49C", name='COMM_SERVICES_HOL', type='number', startIndex=88, endIndex=90,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="50A", name='VOCATIONAL_ED_TRAINING_HOP', type='number', startIndex=90, endIndex=92,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="50B", name='VOCATIONAL_ED_TRAINING_EA', type='number', startIndex=92, endIndex=94,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="50C", name='VOCATIONAL_ED_TRAINING_HOL', type='number', startIndex=94, endIndex=96,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="51A", name='JOB_SKILLS_TRAINING_HOP', type='number', startIndex=96, endIndex=98,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="51B", name='JOB_SKILLS_TRAINING_EA', type='number', startIndex=98, endIndex=100,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="51C", name='JOB_SKILLS_TRAINING_HOL', type='number', startIndex=100, endIndex=102,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="52A", name='ED_NO_HIGH_SCHOOL_DIPL_HOP', type='number', startIndex=102, endIndex=104,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="52B", name='ED_NO_HIGH_SCHOOL_DIPL_EA', type='number', startIndex=104, endIndex=106,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="52C", name='ED_NO_HIGH_SCHOOL_DIPL_HOL', type='number', startIndex=106, endIndex=108,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="53A", name='SCHOOL_ATTENDENCE_HOP', type='number', startIndex=108, endIndex=110,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="53B", name='SCHOOL_ATTENDENCE_EA', type='number', startIndex=110, endIndex=112,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="53C", name='SCHOOL_ATTENDENCE_HOL', type='number', startIndex=112, endIndex=114,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="54A", name='PROVIDE_CC_HOP', type='number', startIndex=114, endIndex=116,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="54B", name='PROVIDE_CC_EA', type='number', startIndex=116, endIndex=118,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="54C", name='PROVIDE_CC_HOL', type='number', startIndex=118, endIndex=120,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="55", name='OTHER_WORK_ACTIVITIES', type='number', startIndex=120, endIndex=122,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="56", name='DEEMED_HOURS_FOR_OVERALL', type='number', startIndex=122, endIndex=124,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="57", name='DEEMED_HOURS_FOR_TWO_PARENT', type='number', startIndex=124, endIndex=126,
                     required=True, validators=[
-                        validators.isInStringRange(0, 99) # string in t2
+                        # validators.isInStringRange(0, 99) # string in t2
+                        validators.isInLimits(0, 99)
                     ]),
               Field(item="58", name='EARNED_INCOME', type='number', startIndex=126, endIndex=130,
                     required=True, validators=[
-                        validators.isInStringRange(0, 9999) # string in t2
+                        # validators.isInStringRange(0, 9999) # string in t2
+                        validators.isInLimits(0, 9999)
                     ]),
               Field(item="59A", name='UNEARNED_INCOME_TAX_CREDIT', type='number', startIndex=130, endIndex=134,
                     required=True, validators=[
-                        validators.isInStringRange(0, 9999) # string in t2
+                        # validators.isInStringRange(0, 9999) # string in t2
+                        validators.isInLimits(0, 9999)
                     ]),
               Field(item="59B", name='UNEARNED_SOCIAL_SECURITY', type='number', startIndex=134, endIndex=138,
                     required=True, validators=[
-                        validators.isInStringRange(0, 9999) # string in t2
+                        # validators.isInStringRange(0, 9999) # string in t2
+                        validators.isInLimits(0, 9999)
                     ]),
               Field(item="59C", name='UNEARNED_SSI', type='number', startIndex=138, endIndex=142,
                     required=True, validators=[
-                        validators.isInStringRange(0, 9999) # string in t2
+                        # validators.isInStringRange(0, 9999) # string in t2
+                        validators.isInLimits(0, 9999)
                     ]),
               Field(item="59D", name='UNEARNED_WORKERS_COMP', type='number', startIndex=142, endIndex=146,
                     required=True, validators=[
-                        validators.isInStringRange(0, 9999) # string in t2
+                        # validators.isInStringRange(0, 9999) # string in t2
+                        validators.isInLimits(0, 9999)
                     ]),
               Field(item="59E", name='OTHER_UNEARNED_INCOME', type='number', startIndex=146, endIndex=150,
                     required=True, validators=[
-                        validators.isInStringRange(0, 9999) # string in t2
+                        # validators.isInStringRange(0, 9999) # string in t2
+                        validators.isInLimits(0, 9999)
                     ]),
           ],
         )

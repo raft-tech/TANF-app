@@ -44,7 +44,7 @@ first_part_schema = RowSchema(
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
-                  result_field='RELATIONSHIP_HOH', result_function=validators.isInStringRange(4, 9),
+                  result_field='RELATIONSHIP_HOH', result_function=validators.isInLimits(4, 9),
             ),
         validators.if_then_validator(
                   condition_field='FAMILY_AFFILIATION', condition_function=validators.oneOf((1, 2)),
@@ -274,7 +274,8 @@ second_part_schema = RowSchema(
               ]),
         Field(item="66", name='RELATIONSHIP_HOH', type='number', startIndex=87, endIndex=89,
               required=True, validators=[
-                  validators.isInStringRange(0, 10) # string in t3
+                #   validators.isInStringRange(0, 10) # string in t3
+                validators.isInLimits(0, 10)
               ]),
         Field(item="67", name='PARENT_MINOR_CHILD', type='number', startIndex=89, endIndex=90,
               required=True, validators=[
