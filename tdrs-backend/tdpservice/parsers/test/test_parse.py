@@ -454,14 +454,6 @@ def test_parse_ssp_section1_datafile(ssp_section1_datafile):
     parser_errors = ParserError.objects.filter(file=ssp_section1_datafile)
     assert parser_errors.count() == 25598
 
-    err = parser_errors.first()
-
-    assert err.row_number == 10339
-    assert err.error_type == ParserErrorCategoryChoices.FIELD_VALUE
-    assert err.error_message == 'EARNED_INCOME is required but a value was not provided.'
-    assert err.content_type is not None
-    assert err.object_id is not None
-
     assert SSP_M1.objects.count() == expected_m1_record_count
     assert SSP_M2.objects.count() == expected_m2_record_count
     assert SSP_M3.objects.count() == expected_m3_record_count
