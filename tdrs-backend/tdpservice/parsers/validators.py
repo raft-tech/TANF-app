@@ -177,13 +177,6 @@ def isBlank():
         lambda value: f'{value} is not blank.'
     )
 
-def isNone():
-    """Validate that a value is None/blank."""
-    return make_validator(
-        lambda value: value is None,
-        lambda value: f'{value} is not blank.'
-    )
-
 def isInStringRange(lower, upper):
     """Validate that string value is in a specific range."""
     return make_validator(
