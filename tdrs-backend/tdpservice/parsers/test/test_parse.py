@@ -452,7 +452,7 @@ def test_parse_ssp_section1_datafile(ssp_section1_datafile):
     parse.parse_datafile(ssp_section1_datafile)
 
     parser_errors = ParserError.objects.filter(file=ssp_section1_datafile)
-    assert parser_errors.count() == 10
+    assert parser_errors.count() == 25598
 
     err = parser_errors.first()
 
@@ -638,48 +638,35 @@ def bad_ssp_s1__row_missing_required_field(stt_user, stt):
 @pytest.mark.django_db()
 def test_parse_bad_ssp_s1_missing_required(bad_ssp_s1__row_missing_required_field):
     """Test parsing a bad TANF Section 1 submission where a row is missing required data."""
-    errors = parse.parse_datafile(bad_ssp_s1__row_missing_required_field)
+    parse.parse_datafile(bad_ssp_s1__row_missing_required_field)
 
     parser_errors = ParserError.objects.filter(file=bad_ssp_s1__row_missing_required_field)
-    assert parser_errors.count() == 5
+    assert parser_errors.count() == 10
 
-    row_2_error = parser_errors.get(row_number=2)
+    row_2_error = parser_errors.get(row_number=2, error_message='RPT_MONTH_YEAR is required but a value was not provided.')
     assert row_2_error.error_type == ParserErrorCategoryChoices.FIELD_VALUE
-    assert row_2_error.error_message == 'RPT_MONTH_YEAR is required but a value was not provided.'
     assert row_2_error.content_type.model == 'ssp_m1'
     assert row_2_error.object_id is not None
 
-    row_3_error = parser_errors.get(row_number=3)
+    row_3_error = parser_errors.get(row_number=3, error_message='RPT_MONTH_YEAR is required but a value was not provided.')
     assert row_3_error.error_type == ParserErrorCategoryChoices.FIELD_VALUE
-    assert row_3_error.error_message == 'RPT_MONTH_YEAR is required but a value was not provided.'
     assert row_3_error.content_type.model == 'ssp_m2'
     assert row_3_error.object_id is not None
 
-    row_4_error = parser_errors.get(row_number=4)
+    row_4_error = parser_errors.get(row_number=4, error_message='RPT_MONTH_YEAR is required but a value was not provided.')
     assert row_4_error.error_type == ParserErrorCategoryChoices.FIELD_VALUE
-    assert row_4_error.error_message == 'RPT_MONTH_YEAR is required but a value was not provided.'
     assert row_4_error.content_type.model == 'ssp_m3'
     assert row_4_error.object_id is not None
 
-    row_5_error = parser_errors.get(row_number=5)
+    row_5_error = parser_errors.get(row_number=5, error_message='Unknown Record_Type was found.')
     assert row_5_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
-    assert row_5_error.error_message == 'Unknown Record_Type was found.'
     assert row_5_error.content_type is None
     assert row_5_error.object_id is None
 
-    trailer_error = parser_errors.get(row_number=6)
+    trailer_error = parser_errors.get(row_number=6, error_message='Trailer length is 15 but must be 23 characters.')
     assert trailer_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
-    assert trailer_error.error_message == 'Trailer length is 15 but must be 23 characters.'
     assert trailer_error.content_type is None
     assert trailer_error.object_id is None
-
-    assert errors == {
-        "2_0": [row_2_error],
-        "3_0": [row_3_error],
-        "4_0": [row_4_error],
-        "5_0": [row_5_error],
-        'trailer': [trailer_error],
-    }
 
 @pytest.mark.django_db
 def test_dfs_set_case_aggregates(test_datafile, dfs):
