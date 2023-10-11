@@ -261,7 +261,7 @@ class SSP_M5DataSubmissionDocument(DocumentBase, Document):
             'RACE_HAWAIIAN',
             'RACE_WHITE',
             'GENDER',
-            'REC_OASDI_INSURANCE' ,
+            'REC_OASDI_INSURANCE',
             'REC_FEDERAL_DISABILITY',
             'REC_AID_TOTALLY_DISABLED',
             'REC_AID_AGED_BLIND',

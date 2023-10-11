@@ -882,5 +882,5 @@ def test_parse_ssp_section2_file(ssp_section2_file):
 
     m5 = SSP_M5.objects.first()
     assert m5.FAMILY_AFFILIATION == 1
-    assert m5.AMOUNT_EARNED_INCOME == None
+    assert m5.AMOUNT_EARNED_INCOME is None
     assert m5.AMOUNT_UNEARNED_INCOME == '0000'

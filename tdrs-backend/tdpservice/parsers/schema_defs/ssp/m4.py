@@ -19,7 +19,7 @@ m4 = SchemaManager(
               Field(item="0", name='RecordType', type='string', startIndex=0, endIndex=2,
                     required=True, validators=[]),
               Field(item="3", name='RPT_MONTH_YEAR', type='number', startIndex=2, endIndex=8,
-                    required=True, validators=[validators.dateYearIsLargerThan(1998), 
+                    required=True, validators=[validators.dateYearIsLargerThan(1998),
                                                validators.dateMonthIsValid(),]),
               Field(item="5", name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
                     required=True, validators=[validators.isAlphaNumeric()]),
@@ -43,7 +43,7 @@ m4 = SchemaManager(
               Field(item="12", name='REC_SUB_CC', type='number', startIndex=35, endIndex=36,
                     required=True, validators=[validators.isInLimits(1, 3)]),
               Field(item="-1", name='BLANK', type='string', startIndex=36, endIndex=66, required=False,
-                        validators=[]),
+                    validators=[]),
           ]
         )
       ]

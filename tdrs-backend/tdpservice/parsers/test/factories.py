@@ -371,7 +371,7 @@ class SSPM5Factory(factory.django.DjangoModelFactory):
     RACE_HAWAIIAN = 1
     RACE_WHITE = 1
     GENDER = 1
-    REC_OASDI_INSURANCE  = 1
+    REC_OASDI_INSURANCE = 1
     REC_FEDERAL_DISABILITY = 1
     REC_AID_TOTALLY_DISABLED = 1
     REC_AID_AGED_BLIND = 1

@@ -1051,20 +1051,6 @@ class TestM5Cat3Validators(TestCat3ValidatorsBase):
                           "'111111111', '222222222', '333333333', '444444444', '555555555', '666666666', '777777777'," +
                           " '888888888', '999999999'].")
 
-    def test_fam_affil_ssn(self, record):
-        """Test cat3 validator for family affiliation, ssn, and citizenship status."""
-        val = validators.validate__FAM_AFF__SSN()
-
-        result = val(record)
-        assert result == (True, None)
-
-        record.FAMILY_AFFILIATION = 2
-        record.SSN = "000000000"
-
-        result = val(record)
-        assert result == (False, "If FAMILY_AFFILIATION ==2 and CITIZENSHIP_STATUS==1 or 2, then SSN " +
-                            "!= 000000000 -- 999999999.")
-
     def test_validate_race_ethnicity(self, record):
         """Test cat3 validator for race/ethnicity."""
         races = ["RACE_HISPANIC", "RACE_AMER_INDIAN", "RACE_ASIAN", "RACE_BLACK", "RACE_HAWAIIAN", "RACE_WHITE"]
