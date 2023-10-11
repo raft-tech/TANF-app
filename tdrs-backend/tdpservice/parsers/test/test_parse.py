@@ -873,6 +873,9 @@ def test_parse_ssp_section2_file(ssp_section2_file):
     """Test parsing SSP Section 2 submission."""
     parse.parse_datafile(ssp_section2_file)
 
+    SSP_M4.objects.all().order_by('id')
+    SSP_M5.objects.all().order_by('id')
+
     assert SSP_M4.objects.all().count() == 2205
     assert SSP_M5.objects.all().count() == 6736
 
