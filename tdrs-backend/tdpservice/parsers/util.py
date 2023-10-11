@@ -228,10 +228,7 @@ def get_program_model(str_prog, str_section, str_model):
 
 def get_section_reference(str_prog, str_section):
     """Return the named section reference for a given program and section."""
-    val = get_schema_options(program=str_prog, section=str_section, query='section')
-    print('----------**************')
-    print(val)
-    return val
+    return get_schema_options(program=str_prog, section=str_section, query='section')
 
 def get_text_from_df(df):
     """Return the short-hand text for program, section for a given datafile."""
