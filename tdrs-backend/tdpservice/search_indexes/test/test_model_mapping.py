@@ -599,6 +599,10 @@ def test_can_create_and_index_ssp_m4_submission():
         REC_SUB_CC=1
     )
 
+    assert models.ssp.SSP_M4.objects.count() == 1
+
+    assert submission.id is not None
+
     assert submission.id is not None
 
     search = documents.ssp.SSP_M4DataSubmissionDocument.search().query(

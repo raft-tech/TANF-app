@@ -201,7 +201,7 @@ class SSP_M3DataSubmissionDocument(DocumentBase, Document):
 
 @registry.register_document
 class SSP_M4DataSubmissionDocument(DocumentBase, Document):
-    """Elastic search model mapping for a parsed SSP M3 data file."""
+    """Elastic search model mapping for a parsed SSP M4 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
@@ -217,6 +217,7 @@ class SSP_M4DataSubmissionDocument(DocumentBase, Document):
 
         model = SSP_M4
         fields = [
+            'RecordType',
             'RPT_MONTH_YEAR',
             'CASE_NUMBER',
             'COUNTY_FIPS_CODE',
@@ -232,7 +233,7 @@ class SSP_M4DataSubmissionDocument(DocumentBase, Document):
 
 @registry.register_document
 class SSP_M5DataSubmissionDocument(DocumentBase, Document):
-    """Elastic search model mapping for a parsed SSP M3 data file."""
+    """Elastic search model mapping for a parsed SSP M5 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
