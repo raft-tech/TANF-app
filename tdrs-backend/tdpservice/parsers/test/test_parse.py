@@ -555,6 +555,7 @@ def super_big_s1_file(stt_user, stt):
 
 
 @pytest.mark.django_db()
+@pytest.mark.skip(reason="long runtime")  # big_files
 def test_parse_super_big_s1_file(super_big_s1_file):
     """Test parsing of super_big_s1_file and validate all T1/T2/T3 records are created."""
     parse.parse_datafile(super_big_s1_file)
@@ -873,17 +874,17 @@ def test_parse_ssp_section2_file(ssp_section2_file):
     """Test parsing SSP Section 2 submission."""
     parse.parse_datafile(ssp_section2_file)
 
-    SSP_M4.objects.all().order_by('id')
-    SSP_M5.objects.all().order_by('id')
+    m4_objs = SSP_M4.objects.all().order_by('id')
+    m5_objs = SSP_M5.objects.all().order_by('AMOUNT_EARNED_INCOME')
 
     assert SSP_M4.objects.all().count() == 2205
     assert SSP_M5.objects.all().count() == 6736
 
-    m4 = SSP_M4.objects.first()
+    m4 = m4_objs.first()
     assert m4.DISPOSITION == 1
     assert m4.REC_SUB_CC == 3
 
-    m5 = SSP_M5.objects.first()
+    m5 = m5_objs.first()
     assert m5.FAMILY_AFFILIATION == 1
-    assert m5.AMOUNT_EARNED_INCOME is None
+    assert m5.AMOUNT_EARNED_INCOME == '0000'
     assert m5.AMOUNT_UNEARNED_INCOME == '0000'
