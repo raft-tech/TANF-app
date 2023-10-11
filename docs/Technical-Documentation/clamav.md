@@ -10,9 +10,9 @@ To route the clamav traffic to clamav in prod, each space needs to have one inst
 In order to deploy the nginx router instance, change your directory to `tdrs-backend/clamav-router/` and run the following command while logged into the target space:
 
 
->`cf push tdp-clamav-nginx-${cf-space} -f manifest.yml --no-route`
+>`cf push tdp-clamav-nginx-${cf-shortened-space} -f manifest.yml --no-route`
 
-, where _nginx_instance_name_ can be : _tdp-clamav-nginx_. 
+, where _cf-shortened-space_ can be : _dev_, _staging_, or _prod_. 
 
 The instance name then will be set as an environment variable to redirect each instance traffic. This will deploy the nginx instance to the target environment.
  
