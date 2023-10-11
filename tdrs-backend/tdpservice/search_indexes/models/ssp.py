@@ -225,7 +225,7 @@ class SSP_M4(models.Model):
         help_text='The parent file from which this record was created.',
         null=True,
         on_delete=models.CASCADE,
-        related_name='m1_parent'
+        related_name='m4_parent'
     )
 
     error = GenericRelation(ParserError)
@@ -260,7 +260,7 @@ class SSP_M5(models.Model):
         help_text='The parent file from which this record was created.',
         null=True,
         on_delete=models.CASCADE,
-        related_name='m2_parent'
+        related_name='m5_parent'
     )
 
     error = GenericRelation(ParserError)

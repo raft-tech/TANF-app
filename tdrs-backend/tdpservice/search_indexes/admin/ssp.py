@@ -53,3 +53,33 @@ class SSP_M3Admin(admin.ModelAdmin):
         CreationDateFilter,
         'RPT_MONTH_YEAR',
     ]
+
+class SSP_M4Admin(admin.ModelAdmin):
+    """ModelAdmin class for parsed M3 data files."""
+
+    list_display = [
+        'RecordType',
+        'RPT_MONTH_YEAR',
+        'CASE_NUMBER',
+        'datafile',
+    ]
+
+    list_filter = [
+        CreationDateFilter,
+        'RPT_MONTH_YEAR',
+    ]
+
+class SSP_M5Admin(admin.ModelAdmin):
+    """ModelAdmin class for parsed M3 data files."""
+
+    list_display = [
+        'RecordType',
+        'RPT_MONTH_YEAR',
+        'CASE_NUMBER',
+        'datafile',
+    ]
+
+    list_filter = [
+        CreationDateFilter,
+        'RPT_MONTH_YEAR',
+    ]
