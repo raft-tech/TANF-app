@@ -81,7 +81,7 @@ m5 = SchemaManager(
               Field(item="5", name='CASE_NUMBER', type='string', startIndex=8, endIndex=19,
                     required=True, validators=[validators.isAlphaNumeric()]),
               Field(item="13", name='FAMILY_AFFILIATION', type='number', startIndex=19, endIndex=20,
-                    required=True, validators=[]),
+                    required=True, validators=[validators.isInLimits(1, 5)]),
               Field(item="14", name='DATE_OF_BIRTH', type='string', startIndex=20, endIndex=28,
                     required=True, validators=[validators.dateYearIsLargerThan(1998),
                                                validators.dateMonthIsValid(),]),
