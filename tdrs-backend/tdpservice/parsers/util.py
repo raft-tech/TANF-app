@@ -168,7 +168,7 @@ def get_schema_options(program, section, query=None, model=None, model_name=None
             'G': {
                 'section': DataFile.Section.SSP_AGGREGATE_DATA,
                 'models': {
-                    # 'S6': schema_defs.ssp.m6,
+                    'M6': schema_defs.ssp.m6,
                 }
             },
             'S': {
@@ -228,7 +228,12 @@ def get_program_model(str_prog, str_section, str_model):
 
 def get_section_reference(str_prog, str_section):
     """Return the named section reference for a given program and section."""
-    return get_schema_options(program=str_prog, section=str_section, query='section')
+    print('****************************========================')
+    print(str_prog)
+    print(str_section)
+    res = get_schema_options(program=str_prog, section=str_section, query='section')
+    print(res)
+    return res
 
 def get_text_from_df(df):
     """Return the short-hand text for program, section for a given datafile."""

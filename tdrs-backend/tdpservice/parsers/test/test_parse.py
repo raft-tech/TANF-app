@@ -5,7 +5,7 @@ import pytest
 from .. import parse
 from ..models import ParserError, ParserErrorCategoryChoices, DataFileSummary
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5, TANF_T6, TANF_T7
-from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3
+from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3, SSP_M6
 from .factories import DataFileSummaryFactory
 from tdpservice.data_files.models import DataFile
 from .. import schema_defs, util
@@ -861,3 +861,38 @@ def test_parse_tanf_section4_file(tanf_section4_file):
 
     assert first.FAMILIES_MONTH == 274
     assert sixth.FAMILIES_MONTH == 499
+
+
+@pytest.fixture
+def ssp_section3_file(stt_user, stt):
+    """Fixture for ADS.E2J.FTP3.TS06."""
+    return util.create_test_datafile('ADS.E2J.NDM3.MS24', stt_user, stt, "SSP Aggregate Data")
+
+
+@pytest.mark.django_db()
+def test_parse_ssp_section3_file(ssp_section3_file):
+    """Test parsing TANF Section 3 submission."""
+    parse.parse_datafile(ssp_section3_file)
+
+    assert SSP_M6.objects.all().count() == 3
+
+    parser_errors = ParserError.objects.filter(file=ssp_section3_file)
+    assert parser_errors.count() == 0
+
+    m6_objs = SSP_M6.objects.all().order_by('NUM_APPROVED')
+
+    first = m6_objs.first()
+    second = m6_objs[1]
+    third = m6_objs[2]
+
+    assert first.RPT_MONTH_YEAR == 202012
+    assert second.RPT_MONTH_YEAR == 202011
+    assert third.RPT_MONTH_YEAR == 202010
+
+    assert first.NUM_APPROVED == 3924
+    assert second.NUM_APPROVED == 3977
+    assert third.NUM_APPROVED == 4301
+
+    assert first.NUM_CLOSED_CASES == 3884
+    assert second.NUM_CLOSED_CASES == 3881
+    assert third.NUM_CLOSED_CASES == 5453

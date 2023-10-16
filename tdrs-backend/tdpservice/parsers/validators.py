@@ -351,6 +351,10 @@ def validate_header_section_matches_submission(datafile, section, generate_error
     """Validate header section matches submission section."""
     is_valid = datafile.section == section
 
+    print('**********************')
+    print(section)
+    print(datafile.section)
+
     error = None
     if not is_valid:
         error = generate_error(
