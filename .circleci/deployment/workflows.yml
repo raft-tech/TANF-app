@@ -35,6 +35,7 @@
             branches:
               only:
                 - develop
+                - debug/develop-deployment-failures
       - enable-versioning:
           requires:
             - deploy-infrastructure-develop
@@ -46,6 +47,7 @@
             branches:
               only:
                 - develop
+                - debug/develop-deployment-failures
       - deploy-develop:
           requires:
             - deploy-infrastructure-develop
@@ -53,6 +55,7 @@
             branches:
               only:
                 - develop
+                - debug/develop-deployment-failures
       - test-deployment-e2e:
           requires:
             - deploy-develop
