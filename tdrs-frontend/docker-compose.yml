@@ -3,12 +3,13 @@ services:
   zaproxy:
     image: owasp/zap2docker-stable:2.13.0
     container_name: zap-scan
-    command: sleep 3600
+    command: sleep 13600
     ports:
       - 8090:8090
     networks:
       - local
     volumes:
+      - ../scripts:/zap/scripts/:rw
       - ./reports:/zap/wrk/:rw
       - ../scripts/zap-hook.py:/zap/scripts/zap-hook.py:ro
   tdp-frontend:
