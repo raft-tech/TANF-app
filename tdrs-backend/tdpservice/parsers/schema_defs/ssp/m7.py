@@ -16,7 +16,7 @@ families_index = 10
 for i in range(1, 31):
     month_index = (i - 1) % 3
     sub_item_labels = ['A', 'B', 'C']
-    families_item_number = f"6{sub_item_labels[month_index]}"
+    families_item_number = f"5{sub_item_labels[month_index]}"
 
     schemas.append(
       RowSchema(
