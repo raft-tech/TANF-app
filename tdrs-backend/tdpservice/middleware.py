@@ -13,10 +13,7 @@ class NoCacheMiddleware(object):
 
     def __call__(self, request):
         """Add appropriate headers to the response before sending it out."""
-        logger.debug("____________________Adding no cache headers to response")
         response = self.get_response(request)
-        response["Access-Control-Allow-Credentials"] = "true"
-        response["Access-Control-Allow-Origin"] = ""
         add_never_cache_headers(response)
         return response
 
