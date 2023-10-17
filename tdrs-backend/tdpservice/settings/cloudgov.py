@@ -159,7 +159,7 @@ class Development(CloudGov):
         "GET",
         "PATCH",
         "POST",
-    )   
+    )
 
 class Staging(CloudGov):
     """Settings for applications deployed in the Cloud.gov staging space."""
