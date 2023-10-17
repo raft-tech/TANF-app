@@ -2,9 +2,7 @@
 from django.utils.cache import add_never_cache_headers
 from django.conf import settings
 from django.contrib.sessions.middleware import SessionMiddleware
-import logging
 
-logger = logging.getLogger(__name__)
 class NoCacheMiddleware(object):
     """Disable client caching with a Cache-Control header."""
 
