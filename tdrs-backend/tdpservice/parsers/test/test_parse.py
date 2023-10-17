@@ -19,7 +19,7 @@ es_logger.setLevel(logging.WARNING)
 @pytest.fixture
 def test_datafile(stt_user, stt):
     """Fixture for small_correct_file."""
-    return util.create_test_datafile('small_correct_file', stt_user, stt)
+    return util.create_test_datafile('small_correct_file.txt', stt_user, stt)
 
 @pytest.fixture
 def dfs():
@@ -43,7 +43,6 @@ def test_parse_small_correct_file(test_datafile, dfs):
                                     ]}
 
     assert dfs.get_status() == DataFileSummary.Status.ACCEPTED
-
     assert TANF_T1.objects.count() == 1
 
     # spot check
@@ -597,7 +596,7 @@ def test_parse_super_big_s1_file_with_rollback(super_big_s1_rollback_file):
 @pytest.fixture
 def bad_tanf_s1__row_missing_required_field(stt_user, stt):
     """Fixture for small_tanf_section1."""
-    return util.create_test_datafile('small_bad_tanf_s1', stt_user, stt)
+    return util.create_test_datafile('small_bad_tanf_s1.txt', stt_user, stt)
 
 
 @pytest.mark.django_db
@@ -608,7 +607,7 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
 
     parse.parse_datafile(bad_tanf_s1__row_missing_required_field)
 
-    assert dfs.get_status() == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
+    assert dfs.get_status() == DataFileSummary.Status.PARTIALLY_ACCEPTED
 
     parser_errors = ParserError.objects.filter(file=bad_tanf_s1__row_missing_required_field)
     assert parser_errors.count() == 4
@@ -644,7 +643,7 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
 @pytest.fixture
 def bad_ssp_s1__row_missing_required_field(stt_user, stt):
     """Fixture for ssp_section1_datafile."""
-    return util.create_test_datafile('small_bad_ssp_s1', stt_user, stt, 'SSP Active Case Data')
+    return util.create_test_datafile('small_bad_ssp_s1.txt', stt_user, stt, 'SSP Active Case Data')
 
 
 @pytest.mark.django_db()
