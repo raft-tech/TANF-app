@@ -210,3 +210,33 @@ class SSP_M3(models.Model):
     CITIZENSHIP_STATUS = models.IntegerField(null=True, blank=False)
     UNEARNED_SSI = models.IntegerField(null=True, blank=False)
     OTHER_UNEARNED_INCOME = models.IntegerField(null=True, blank=False)
+
+class SSP_M7(models.Model):
+    """
+    Parsed record representing an SSP M3 data submission.
+
+    Mapped to an elastic search index.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    datafile = models.ForeignKey(
+        DataFile,
+        blank=True,
+        help_text='The parent file from which this record was created.',
+        null=True,
+        on_delete=models.CASCADE,
+        related_name='m7_parent'
+    )
+
+    error = GenericRelation(ParserError)
+    RecordType = models.CharField(max_length=156, null=True, blank=False)
+    CALENDAR_QUARTER = models.IntegerField(null=True, blank=True)
+    RPT_MONTH_YEAR = models.IntegerField(null=True, blank=False)
+    TDRS_SECTION_IND = models.CharField(
+        max_length=1,
+        null=True,
+        blank=False
+    )
+    STRATUM = models.CharField(max_length=2, null=True, blank=False)
+    FAMILIES_MONTH = models.IntegerField(null=True, blank=False)
+
