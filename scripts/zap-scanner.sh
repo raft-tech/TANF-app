@@ -19,7 +19,7 @@ if [ "$ENVIRONMENT" = "nightly" ]; then
     fi
 elif [ "$ENVIRONMENT" = "circle" ] || [ "$ENVIRONMENT" = "local" ]; then
     if [ "$TARGET" = "frontend" ]; then
-        APP_URL="https://tdp-frontend-raft.app.cloud.gov/"
+        APP_URL="http://tdp-frontend/"
     elif [ "$TARGET" = "backend" ]; then
         APP_URL="http://tdp-frontend/"
     else
@@ -40,7 +40,7 @@ cd "$TARGET_DIR" || exit 2
 
 
 if [[ $(docker network inspect external-net 2>&1 | grep -c Scope) == 0 ]]; then 
-docker network create external-net
+  docker network create external-net
 fi
 
 # Ensure the APP_URL is reachable from the zaproxy container
