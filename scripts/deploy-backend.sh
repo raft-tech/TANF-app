@@ -128,7 +128,7 @@ update_backend()
 bind_backend_to_services() {
     echo "Binding services to app: $CGAPPNAME_BACKEND"
 
-    if [ "$CFAPPNAME_BACKEND" = "tdp-backend-develop" ]; then
+    if [ "$CGAPPNAME_BACKEND" = "tdp-backend-develop" ]; then
       # TODO: this is technical debt, we should either make staging mimic tanf-dev 
       #       or make unique services for all apps but we have a services limit
       #       Introducing technical debt for release 3.0.0 specifically.
