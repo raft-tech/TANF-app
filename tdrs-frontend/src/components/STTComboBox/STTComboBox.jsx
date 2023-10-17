@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { fetchSttList } from '../../actions/sttList'
 import ComboBox from '../ComboBox'
 import Button from '../Button'
+import Modal from '../Modal'
 
 /**
  * @param {function} selectStt - Function to reference and change the
@@ -15,27 +16,27 @@ import Button from '../Button'
  */
 
 function STTComboBox({ selectStt, selectedStt, handleBlur, error }) {
-  const sttReduction = useSelector((state) => state?.stts)
+  const sttListRequest = useSelector((state) => state?.stts)
   const dispatch = useDispatch()
   const [numTries, setNumTries] = useState(0)
   const [reachedMaxTries, setReachedMaxTries] = useState(false)
 
   useEffect(() => {
     if (
-      sttReduction.sttList.length === 0 &&
+      sttListRequest.sttList.length === 0 &&
       numTries <= 3 &&
-      !sttReduction.loading
+      !sttListRequest.loading
     ) {
       dispatch(fetchSttList())
       setNumTries(numTries + 1)
     } else if (
-      sttReduction.sttList.length === 0 &&
+      sttListRequest.sttList.length === 0 &&
       numTries > 3 &&
       !reachedMaxTries
     ) {
       setReachedMaxTries(true)
     }
-  }, [dispatch, sttReduction.sttList, numTries, reachedMaxTries])
+  }, [dispatch, sttListRequest.sttList, numTries, reachedMaxTries])
 
   const modalRef = useRef()
   const headerRef = useRef()
@@ -58,37 +59,26 @@ function STTComboBox({ selectStt, selectedStt, handleBlur, error }) {
         <option value="" disabled hidden>
           - Select or Search -
         </option>
-        {sttReduction.sttList.map((stt) => (
+        {sttListRequest.sttList.map((stt) => (
           <option className="sttOption" key={stt.id} value={stt.name}>
             {stt.name}
           </option>
         ))}
       </ComboBox>
-      <div
-        id="emptySttListModal"
-        className={`modal ${
-          reachedMaxTries ? 'display-block' : 'display-none'
-        }`}
-      >
-        <div className="modal-content" ref={modalRef}>
-          <h1
-            className="font-serif-xl margin-4 margin-bottom-0 text-normal"
-            tabIndex="-1"
-            ref={headerRef}
-          >
-            TDP systems are currently experiencing technical difficulties.
-          </h1>
-          <p className="margin-4 margin-top-1">
-            Please sign out and try signing in again. If the issue persists
-            contact support at tanfdata@acf.hhs.gov.
-          </p>
-          <div className="margin-x-4 margin-bottom-4">
-            <Button type="button" className="sign-out" onClick={onSignOut}>
-              Sign Out Now
-            </Button>
-          </div>
-        </div>
-      </div>
+      <Modal
+        title="TDP systems are currently experiencing technical difficulties."
+        message="Please sign out and try signing in again. If the issue persists contact support at tanfdata@acf.hhs.gov."
+        isVisible={reachedMaxTries}
+        buttons={[
+          {
+            key: '1',
+            text: 'Sign Out Now',
+            onClick: () => {
+              onSignOut()
+            },
+          },
+        ]}
+      />
     </>
   )
 }
