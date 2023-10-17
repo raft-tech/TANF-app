@@ -152,7 +152,14 @@ class Development(CloudGov):
 
     # https://docs.djangoproject.com/en/2.0/ref/settings/#allowed-hosts
     ALLOWED_HOSTS = ['.app.cloud.gov']
-
+    CORS_ORIGIN_ALLOW_ALL = False
+    CORS_ALLOWED_ORIGINS = ['https://*.app.cloud.gov']
+    CORS_ALLOW_CREDENTIALS = True
+    CORS_ALLOW_METHODS = (
+        "GET",
+        "PATCH",
+        "POST",
+    )   
 
 class Staging(CloudGov):
     """Settings for applications deployed in the Cloud.gov staging space."""
@@ -186,3 +193,4 @@ class Production(CloudGov):
 
     # CORS allowed origins
     CORS_ALLOWED_ORIGINS = ['https://tanfdata.acf.hhs.gov']
+    CORS_ORIGIN_ALLOW_ALL = False

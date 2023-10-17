@@ -54,18 +54,21 @@ set_cf_envs()
   "REDIS_URI"
   )
 
+
+
   echo "Setting environment variables for $CGAPPNAME_BACKEND"
 
   for var_name in ${var_list[@]}; do
     # Intentionally unsetting variable if empty
     if [[ -z "${!var_name}" ]]; then
         echo "WARNING: Empty value for $var_name. It will now be unset."
-        cf_cmd="cf unset-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
-        $cf_cmd
+        #cf_cmd="cf unset-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
+        
+        #$cf_cmd
         continue
     fi
 
-    cf_cmd="cf set-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
+    #cf_cmd="cf set-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
     echo "Setting var : $var_name"
     $cf_cmd
   done
@@ -86,7 +89,7 @@ update_backend()
     cd tdrs-backend || exit
     if [ "$1" = "rolling" ] ; then
         set_cf_envs
-
+        cf set-env "$CGAPPNAME_BACKEND" DJANGO_SU_NAME "ajameson@teamraft.com"
         # Do a zero downtime deploy.  This requires enough memory for
         # two apps to exist in the org/space at one time.
         cf push "$CGAPPNAME_BACKEND" --no-route -f manifest.buildpack.yml -t 180 --strategy rolling || exit 1
