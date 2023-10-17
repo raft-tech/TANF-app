@@ -239,4 +239,3 @@ class SSP_M7(models.Model):
     )
     STRATUM = models.CharField(max_length=2, null=True, blank=False)
     FAMILIES_MONTH = models.IntegerField(null=True, blank=False)
-
