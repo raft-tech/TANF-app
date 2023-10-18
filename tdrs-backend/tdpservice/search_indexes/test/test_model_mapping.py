@@ -581,11 +581,11 @@ def test_can_create_and_index_ssp_m3_submission():
 
 
 @pytest.mark.django_db
-def test_can_create_and_index_ssp_m6_submission():
+def test_can_create_and_index_ssp_m6_submission(test_datafile):
     """SSP M6 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = models.tanf.SSP_M6()
+    submission = models.ssp.SSP_M6()
     submission.datafile = test_datafile
     submission.RecordType = record_num
     submission.CALENDAR_QUARTER = 1
@@ -610,7 +610,7 @@ def test_can_create_and_index_ssp_m6_submission():
 
     assert submission.id is not None
 
-    search = documents.tanf.SSP_M6DataSubmissionDocument.search().query(
+    search = documents.ssp.SSP_M6DataSubmissionDocument.search().query(
         'match',
         RecordType=record_num
     )
