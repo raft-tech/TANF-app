@@ -24,7 +24,6 @@ class TANF_T1(models.Model):
         related_name='t1_parent'
     )
 
-    error = GenericRelation(ParserError)
     RecordType = models.CharField(max_length=156, null=True, blank=False)
     RPT_MONTH_YEAR = models.IntegerField(null=True, blank=False)
     CASE_NUMBER = models.CharField(max_length=11, null=True, blank=False)

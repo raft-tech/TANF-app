@@ -24,7 +24,6 @@ class SSP_M1(models.Model):
         related_name='m1_parent'
     )
 
-    error = GenericRelation(ParserError)
     RecordType = models.CharField(max_length=156, null=True, blank=False)
     RPT_MONTH_YEAR = models.IntegerField(null=True, blank=False)
     CASE_NUMBER = models.CharField(max_length=11, null=True, blank=False)
@@ -36,9 +35,7 @@ class SSP_M1(models.Model):
     )
     STRATUM = models.CharField(max_length=2, null=True, blank=False)
     ZIP_CODE = models.CharField(max_length=5, null=True, blank=False)
-    # FUNDING_STREAM = models.IntegerField(null=True, blank=False)
     DISPOSITION = models.IntegerField(null=True, blank=False)
-    # NEW_APPLICANT = models.IntegerField(null=True, blank=False)
     NBR_FAMILY_MEMBERS = models.IntegerField(null=True, blank=False)
     FAMILY_TYPE = models.IntegerField(null=True, blank=False)
     TANF_ASST_IN_6MONTHS = models.IntegerField(null=True, blank=False)
@@ -74,8 +71,6 @@ class SSP_M1(models.Model):
     REDUCTIONS_ON_RECEIPTS = models.IntegerField(null=True, blank=False)
     OTHER_NON_SANCTION = models.IntegerField(null=True, blank=False)
     WAIVER_EVAL_CONTROL_GRPS = models.IntegerField(null=True, blank=False)
-    # FAMILY_EXEMPT_TIME_LIMITS = models.IntegerField(null=True, blank=False)
-    # FAMILY_NEW_CHILD = models.IntegerField(null=True, blank=False)
 
 
 class SSP_M2(models.Model):
@@ -95,7 +90,6 @@ class SSP_M2(models.Model):
         related_name='m2_parent'
     )
 
-    error = GenericRelation(ParserError)
     RecordType = models.CharField(max_length=156, null=True, blank=False)
     RPT_MONTH_YEAR = models.IntegerField(null=True, blank=False)
     CASE_NUMBER = models.CharField(max_length=11, null=True, blank=False)
@@ -124,9 +118,6 @@ class SSP_M2(models.Model):
     EDUCATION_LEVEL = models.IntegerField(null=True, blank=False)
     CITIZENSHIP_STATUS = models.IntegerField(null=True, blank=False)
     COOPERATION_CHILD_SUPPORT = models.IntegerField(null=True, blank=False)
-    # months_fed_time_limit = models.FloatField(null=True, blank=False)
-    # months_state_time_limit = models.FloatField(null=True, blank=False)
-    # current_month_state_exempt = models.IntegerField(null=True, blank=False)
     EMPLOYMENT_STATUS = models.IntegerField(null=True, blank=False)
     WORK_ELIGIBLE_INDICATOR = models.IntegerField(null=True, blank=False)
     WORK_PART_STATUS = models.IntegerField(null=True, blank=False)
@@ -186,7 +177,6 @@ class SSP_M3(models.Model):
         related_name='m3_parent'
     )
 
-    error = GenericRelation(ParserError)
     RecordType = models.CharField(max_length=156, null=True, blank=False)
     RPT_MONTH_YEAR = models.IntegerField(null=True, blank=False)
     CASE_NUMBER = models.CharField(max_length=11, null=True, blank=False)
@@ -228,7 +218,6 @@ class SSP_M7(models.Model):
         related_name='m7_parent'
     )
 
-    error = GenericRelation(ParserError)
     RecordType = models.CharField(max_length=156, null=True, blank=False)
     CALENDAR_QUARTER = models.IntegerField(null=True, blank=True)
     RPT_MONTH_YEAR = models.IntegerField(null=True, blank=False)
