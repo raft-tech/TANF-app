@@ -2,9 +2,7 @@
 
 import uuid
 from django.db import models
-from django.contrib.contenttypes.fields import GenericRelation
 from tdpservice.data_files.models import DataFile
-from tdpservice.parsers.models import ParserError
 
 
 class SSP_M1(models.Model):
