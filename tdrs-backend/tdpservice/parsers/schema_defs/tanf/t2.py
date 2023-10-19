@@ -105,7 +105,7 @@ t2 = SchemaManager(schemas=[
             Field(item="31", name='NONCUSTODIAL_PARENT', type='number', startIndex=20, endIndex=21, required=True,
                   validators=[validators.oneOf([1, 2])]),
             Field(item="32", name='DATE_OF_BIRTH', type='number', startIndex=21, endIndex=29, required=True,
-                  validators=[validators.isLargerThan(0),]),
+                  validators=[validators.dateYearIsLargerThan(1900), validators.dateMonthIsValid(),]),
             TransformField(transform_func=tanf_ssn_decryption_func, item="33", name='SSN', type='string', startIndex=29,
                            endIndex=38, required=True,
                            validators=[validators.validateSSN()], is_encrypted=False),

@@ -83,7 +83,7 @@ m5 = SchemaManager(
               Field(item="13", name='FAMILY_AFFILIATION', type='number', startIndex=19, endIndex=20,
                     required=True, validators=[validators.isInLimits(1, 5)]),
               Field(item="14", name='DATE_OF_BIRTH', type='string', startIndex=20, endIndex=28,
-                    required=True, validators=[validators.dateYearIsLargerThan(1998),
+                    required=True, validators=[validators.dateYearIsLargerThan(1900),
                                                validators.dateMonthIsValid(),]),
               TransformField(transform_func=ssp_ssn_decryption_func, item="15", name='SSN', type='string',
                              startIndex=28, endIndex=37, required=True, validators=[validators.validateSSN()],
