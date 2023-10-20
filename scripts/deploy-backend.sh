@@ -51,6 +51,8 @@ set_cf_envs()
   "FRONTEND_BASE_URL"
   "LOGGING_LEVEL"
   "REDIS_URI"
+  "JWT_KEY"
+  "STAGING_JWT_KEY"
   )
 
   echo "Setting environment variables for $CGAPPNAME_BACKEND"
@@ -62,6 +64,8 @@ set_cf_envs()
         cf_cmd="cf unset-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
         $cf_cmd
         continue
+    elif [[ ("$var_name" =~ "STAGING_*") && ("$CF_SPACE" = "tanf-staging") ]]; then
+        var_name=$(echo "$var_name" | sed -e 's@STAGING_@@g')
     fi
 
     cf_cmd="cf set-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
