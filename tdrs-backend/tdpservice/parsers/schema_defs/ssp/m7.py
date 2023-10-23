@@ -13,11 +13,11 @@ validator_index = 7
 section_ind_index = 7
 stratum_index = 8
 families_index = 10
-for i in range(1, 31):
-    month_index = (i - 1) % 3
-    sub_item_labels = ['A', 'B', 'C']
-    families_item_number = f"5{sub_item_labels[month_index]}"
 
+sub_item_labels = ['5A', '5B', '5C']
+families_item_numbers = [sub_item_labels[i % 3] for i in range(30)]
+
+for i in range(1, 31):
     schemas.append(
       RowSchema(
           model=SSP_M7,
@@ -34,7 +34,7 @@ for i in range(1, 31):
                     required=True, validators=[validators.dateYearIsLargerThan(1998),
                                                validators.quarterIsValid()]),
               TransformField(
-                  transform_func=calendar_quarter_to_rpt_month_year(month_index),
+                  transform_func=calendar_quarter_to_rpt_month_year((i - 1) % 3),
                   item="2A",
                   name='RPT_MONTH_YEAR',
                   type='number',
@@ -50,7 +50,7 @@ for i in range(1, 31):
                     endIndex=section_ind_index + 1, required=True, validators=[validators.oneOf(['1', '2'])]),
               Field(item="4", name='STRATUM', type='string', startIndex=stratum_index,
                     endIndex=stratum_index + 2, required=True, validators=[validators.isInStringRange(0, 99)]),
-              Field(item=families_item_number, name='FAMILIES_MONTH', type='number', startIndex=families_index,
+              Field(item=families_item_numbers[i - 1], name='FAMILIES_MONTH', type='number', startIndex=families_index,
                     endIndex=families_index + 7, required=True, validators=[validators.isInLimits(0, 9999999)]),
           ]
       )
