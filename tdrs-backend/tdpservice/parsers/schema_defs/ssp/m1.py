@@ -31,10 +31,6 @@ m1 = SchemaManager(
                   condition_field='TRANSP_AMOUNT', condition_function=validators.isLargerThan(0),
                   result_field='TRANSP_NBR_MONTHS', result_function=validators.isLargerThan(0),
             ),
-            validators.if_then_validator(
-                  condition_field='TRANSITION_SERVICES_AMOUNT', condition_function=validators.isLargerThan(0),
-                  result_field='TRANSITION_NBR_MONTHS', result_function=validators.isLargerThan(0),
-            ),
             #   validators.if_then_validator(
             #         condition_field='OTHER_AMOUNT', condition_function=validators.isLargerThan(0),
             #         result_field='OTHER_NBR_MONTHS', result_function=validators.isLargerThan(0),
