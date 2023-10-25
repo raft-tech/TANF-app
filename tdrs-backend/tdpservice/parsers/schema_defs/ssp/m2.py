@@ -209,10 +209,9 @@ m2 = SchemaManager(
               Field(item="41", name='WORK_ELIGIBLE_INDICATOR', type='number', startIndex=60, endIndex=62,
                     required=True, validators=[
                         validators.or_validators(
-                            #   validators.isInStringRange(0, 9),
-                            validators.isInLimits(0, 9),
-                            #   validators.matches('12') # missing 11 from t2
-                            validators.matches(12)
+                            validators.isInLimits(1, 4),
+                            validators.isInLimits(6, 9),
+                            validators.isInLimits(11, 12)
                         )
                     ]),
               Field(item="42", name='WORK_PART_STATUS', type='number', startIndex=62, endIndex=64,
