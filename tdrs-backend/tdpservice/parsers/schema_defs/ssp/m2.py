@@ -69,7 +69,6 @@ m2 = SchemaManager(
                     condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
                     result_field='COOPERATION_CHILD_SUPPORT', result_function=validators.oneOf((1, 2, 9)),
                 ),
-            # validators.validate__FAM_AFF__HOH__Fed_Time(),
             validators.if_then_validator(
                     condition_field='FAMILY_AFFILIATION', condition_function=validators.isInLimits(1, 3),
                     result_field='EMPLOYMENT_STATUS', result_function=validators.isInLimits(1, 3),
