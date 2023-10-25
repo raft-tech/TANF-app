@@ -113,7 +113,7 @@ m1 = SchemaManager(
                     ]),
               Field(item="8", name='NBR_FAMILY_MEMBERS', type='number', startIndex=30, endIndex=32,
                     required=True, validators=[
-                        validators.isNumber(),
+                        validators.isInLimits(0, 99),
                     ]),
               Field(item="9", name='FAMILY_TYPE', type='number', startIndex=32, endIndex=33,
                     required=True, validators=[
