@@ -26,7 +26,7 @@ m4 = SchemaManager(
               Field(item="2", name='COUNTY_FIPS_CODE', type='string', startIndex=19, endIndex=22,
                     required=True, validators=[validators.isInStringRange(0, 999)]),
               Field(item="4", name='STRATUM', type='string', startIndex=22, endIndex=24,
-                    required=True, validators=[validators.isInStringRange(0, 99)]),
+                    required=False, validators=[validators.isInStringRange(0, 99)]),
               Field(item="6", name='ZIP_CODE', type='string', startIndex=24, endIndex=29,
                     required=True, validators=[validators.isInStringRange(0, 99999)]),
               Field(item="7", name='DISPOSITION', type='number', startIndex=29, endIndex=30,
