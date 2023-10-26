@@ -31,18 +31,10 @@ m1 = SchemaManager(
                   condition_field='TRANSP_AMOUNT', condition_function=validators.isLargerThan(0),
                   result_field='TRANSP_NBR_MONTHS', result_function=validators.isLargerThan(0),
             ),
-            #   validators.if_then_validator(
-            #         condition_field='OTHER_AMOUNT', condition_function=validators.isLargerThan(0),
-            #         result_field='OTHER_NBR_MONTHS', result_function=validators.isLargerThan(0),
-            #   ),
             validators.if_then_validator(
                   condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
                   result_field='WORK_REQ_SANCTION', result_function=validators.oneOf((1, 2)),
             ),
-            #   validators.if_then_validator(
-            #         condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
-            #         result_field='FAMILY_SANC_ADULT', result_function=validators.oneOf((1, 2)),
-            #   ),
             validators.if_then_validator(
                   condition_field='SANC_REDUCTION_AMT', condition_function=validators.isLargerThan(0),
                   result_field='SANC_TEEN_PARENT', result_function=validators.oneOf((1, 2)),
@@ -121,7 +113,7 @@ m1 = SchemaManager(
                     ]),
               Field(item="11", name='RECEIVES_SUB_HOUSING', type='number', startIndex=34, endIndex=35,
                     required=True, validators=[
-                        validators.isInLimits(1, 2),  # diff than t1 (1-3)
+                        validators.isInLimits(1, 2),
                     ]),
               Field(item="12", name='RECEIVES_MED_ASSISTANCE', type='number', startIndex=35, endIndex=36,
                     required=True, validators=[
@@ -205,7 +197,7 @@ m1 = SchemaManager(
                     ]),
               Field(item="24AIII", name='FAMILY_SANC_ADULT', type='number', startIndex=96, endIndex=97,
                     required=False, validators=[
-                        validators.isInLimits(0, 9),  # diff than t1 (0-2)
+                        validators.isInLimits(0, 9),
                     ]),
               Field(item="24AIV", name='SANC_TEEN_PARENT', type='number', startIndex=97, endIndex=98,
                     required=True, validators=[
@@ -246,7 +238,6 @@ m1 = SchemaManager(
               Field(item="25", name='WAIVER_EVAL_CONTROL_GRPS', type='number', startIndex=112, endIndex=113,
                     required=False, validators=[
                         validators.isInLimits(0, 9),
-                        # validators.isAlphaNumeric(), # diff than t1 (blank or 9, alpha)
                     ]),
               Field(item="-1", name='BLANK', type='string', startIndex=113, endIndex=150,
                     required=False, validators=[]),
