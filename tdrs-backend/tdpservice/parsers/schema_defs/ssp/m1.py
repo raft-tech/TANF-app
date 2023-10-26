@@ -96,7 +96,7 @@ m1 = SchemaManager(
                         validators.isNumber(),
                     ]),
               Field(item="4", name='STRATUM', type='string', startIndex=22, endIndex=24,
-                    required=True, validators=[
+                    required=False, validators=[
                         validators.isInStringRange(0, 99),
                     ]),
               Field(item="6", name='ZIP_CODE', type='string', startIndex=24, endIndex=29,
@@ -128,7 +128,7 @@ m1 = SchemaManager(
                         validators.isInLimits(1, 2),
                     ]),
               Field(item="13", name='RECEIVES_FOOD_STAMPS', type='number', startIndex=36, endIndex=37,
-                    required=True, validators=[
+                    required=False, validators=[
                         validators.isInLimits(0, 2),
                     ]),
               Field(item="14", name='AMT_FOOD_STAMP_ASSISTANCE', type='number', startIndex=37, endIndex=41,
@@ -136,7 +136,7 @@ m1 = SchemaManager(
                         validators.isLargerThanOrEqualTo(0),
                     ]),
               Field(item="15", name='RECEIVES_SUB_CC', type='number', startIndex=41, endIndex=42,
-                    required=True, validators=[
+                    required=False, validators=[
                         validators.isInLimits(0, 2),
                     ]),
               Field(item="16", name='AMT_SUB_CC', type='number', startIndex=42, endIndex=46,
@@ -180,19 +180,19 @@ m1 = SchemaManager(
                         validators.isLargerThanOrEqualTo(0),
                     ]),
               Field(item="22A", name='TRANSITION_SERVICES_AMOUNT', type='number', startIndex=77, endIndex=81,
-                    required=True, validators=[
+                    required=False, validators=[
                         validators.isLargerThanOrEqualTo(0),
                     ]),
               Field(item="22B", name='TRANSITION_NBR_MONTHS', type='number', startIndex=81, endIndex=84,
-                    required=True, validators=[
+                    required=False, validators=[
                         validators.isLargerThanOrEqualTo(0),
                     ]),
               Field(item="23A", name='OTHER_AMOUNT', type='number', startIndex=84, endIndex=88,
-                    required=True, validators=[
+                    required=False, validators=[
                         validators.isLargerThanOrEqualTo(0),
                     ]),
               Field(item="23B", name='OTHER_NBR_MONTHS', type='number', startIndex=88, endIndex=91,
-                    required=True, validators=[
+                    required=False, validators=[
                         validators.isLargerThanOrEqualTo(0),
                     ]),
               Field(item="24AI", name='SANC_REDUCTION_AMT', type='number', startIndex=91, endIndex=95,
@@ -204,7 +204,7 @@ m1 = SchemaManager(
                         validators.oneOf([1, 2]),
                     ]),
               Field(item="24AIII", name='FAMILY_SANC_ADULT', type='number', startIndex=96, endIndex=97,
-                    required=True, validators=[
+                    required=False, validators=[
                         validators.isInLimits(0, 9),  # diff than t1 (0-2)
                     ]),
               Field(item="24AIV", name='SANC_TEEN_PARENT', type='number', startIndex=97, endIndex=98,
@@ -244,7 +244,7 @@ m1 = SchemaManager(
                         validators.oneOf([1, 2]),
                     ]),
               Field(item="25", name='WAIVER_EVAL_CONTROL_GRPS', type='number', startIndex=112, endIndex=113,
-                    required=True, validators=[
+                    required=False, validators=[
                         validators.isInLimits(0, 9),
                         # validators.isAlphaNumeric(), # diff than t1 (blank or 9, alpha)
                     ]),
