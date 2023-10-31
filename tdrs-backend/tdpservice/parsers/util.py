@@ -103,11 +103,12 @@ class SchemaManager:
                 if type(field) == TransformField and "is_encrypted" in field.kwargs:
                     field.kwargs['is_encrypted'] = is_encrypted
 
-def contains_encrypted_indicator(line, encryption_field):
-    """Determine if line contains encryption indicator."""
-    if encryption_field is not None:
-        return encryption_field.parse_value(line) == "E"
-    return False
+def line_value_check(line, field, value, should_negate=False):
+    """Determine if the field in the line is or is not equal to an expected value."""
+    if not should_negate:
+        return field.parse_value(line) == value
+    else:
+        return field.parse_value(line) != value
 
 def get_schema_options(program, section, query=None, model=None, model_name=None):
     """Centralized function to return the appropriate schema for a given program, section, and query.
@@ -178,7 +179,16 @@ def get_schema_options(program, section, query=None, model=None, model_name=None
                 }
             }
         },
-        # TODO: tribal tanf
+        'Tribal TAN': {
+            'A': {
+                'section': DataFile.Section.TRIBAL_ACTIVE_CASE_DATA,
+                'models': {
+                    'T1': schema_defs.tribal_tanf.t_t1,
+                    'T2': schema_defs.tribal_tanf.t_t2,
+                    'T3': schema_defs.tribal_tanf.t_t3,
+                }
+            },
+        },
     }
 
     if query == "text":

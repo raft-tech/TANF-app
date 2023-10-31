@@ -28,11 +28,14 @@ def parse_datafile(datafile):
         bulk_create_errors({1: header_errors}, 1, flush=True)
         return errors
 
-    is_encrypted = util.contains_encrypted_indicator(header_line, schema_defs.header.get_field_by_name("encryption"))
+    fields = schema_defs.header.get_fields_by_names({"encryption", "tribe_code"})
+    is_encrypted = util.line_value_check(header_line, fields["encryption"], "E")
+    is_tribal = util.line_value_check(header_line, fields["tribe_code"], "   ", True)
     logger.debug(f"Datafile has encrypted fields: {is_encrypted}.")
+    logger.debug(f"Datafile is Tribal: {is_tribal}.")
 
     # ensure file section matches upload section
-    program_type = header['program_type']
+    program_type = f"Tribal {header['program_type']}" if is_tribal else header['program_type']
     section = header['type']
     logger.debug(f"Program type: {program_type}, Section: {section}.")
 
@@ -49,7 +52,7 @@ def parse_datafile(datafile):
         bulk_create_errors(unsaved_parser_errors, 1, flush=True)
         return errors
 
-    line_errors = parse_datafile_lines(datafile, program_type, section, is_encrypted)
+    line_errors = parse_datafile_lines(datafile, program_type, section, is_encrypted, is_tribal)
 
     errors = errors | line_errors
 
@@ -117,7 +120,7 @@ def rollback_parser_errors(datafile):
     num_deleted, models = ParserError.objects.filter(file=datafile).delete()
     logger.debug(f"Deleted {num_deleted} {ParserError}.")
 
-def parse_datafile_lines(datafile, program_type, section, is_encrypted):
+def parse_datafile_lines(datafile, program_type, section, is_encrypted, is_tribal):
     """Parse lines with appropriate schema and return errors."""
     rawfile = datafile.file
     errors = {}
@@ -250,50 +253,6 @@ def manager_parse_line(line, schema_manager, generate_error, is_encrypted=False)
                 field="Record_Type",
             )
         ])]
-
-
-def get_schema_manager_options(program_type):
-    """Return the allowed schema options."""
-    match program_type:
-        case 'TAN':
-            return {
-                'A': {
-                    'T1': schema_defs.tanf.t1,
-                    'T2': schema_defs.tanf.t2,
-                    'T3': schema_defs.tanf.t3,
-                },
-                'C': {
-                    'T4': schema_defs.tanf.t4,
-                    'T5': schema_defs.tanf.t5,
-                },
-                'G': {
-                    'T6': schema_defs.tanf.t6,
-                },
-                'S': {
-                    'T7': schema_defs.tanf.t7,
-                },
-            }
-        case 'SSP':
-            return {
-                'A': {
-                    'M1': schema_defs.ssp.m1,
-                    'M2': schema_defs.ssp.m2,
-                    'M3': schema_defs.ssp.m3,
-                },
-                'C': {
-                    # 'M4': schema_options.m4,
-                    # 'M5': schema_options.m5,
-                },
-                'G': {
-                    # 'M6': schema_options.m6,
-                },
-                'S': {
-                    # 'M7': schema_options.m7,
-                },
-            }
-        # case tribal?
-    return None
-
 
 def get_schema_manager(line, section, program_type):
     """Return the appropriate schema for the line."""

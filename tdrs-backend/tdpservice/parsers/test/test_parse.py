@@ -5,6 +5,7 @@ import pytest
 from .. import parse
 from ..models import ParserError, ParserErrorCategoryChoices, DataFileSummary
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5, TANF_T6, TANF_T7
+from tdpservice.search_indexes.models.tribal import Tribal_TANF_T1, Tribal_TANF_T2, Tribal_TANF_T3
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3
 from .factories import DataFileSummaryFactory
 from tdpservice.data_files.models import DataFile
@@ -861,3 +862,29 @@ def test_parse_tanf_section4_file(tanf_section4_file):
 
     assert first.FAMILIES_MONTH == 274
     assert sixth.FAMILIES_MONTH == 499
+
+@pytest.fixture
+def tribal_section_1_file(stt_user, stt):
+    """Fixture for ADS.E2J.FTP4.TS06."""
+    return util.create_test_datafile('ADS.E2J.FTP1.TS142', stt_user, stt, "Tribal Active Case Data")
+
+@pytest.mark.django_db()
+def test_parse_tribal_section_1_file(tribal_section_1_file):
+    """Test parsing Tribal TANF Section 1 submission."""
+    parse.parse_datafile(tribal_section_1_file)
+
+    assert Tribal_TANF_T1.objects.all().count() == 121
+    assert Tribal_TANF_T2.objects.all().count() == 199
+    assert Tribal_TANF_T3.objects.all().count() == 213
+
+    t_t1_objs = Tribal_TANF_T1.objects.all().order_by("CASH_AMOUNT")
+    t_t2_objs = Tribal_TANF_T2.objects.all().order_by("MONTHS_FED_TIME_LIMIT")
+    t_t3_objs = Tribal_TANF_T3.objects.all().order_by("EDUCATION_LEVEL")
+
+    t_t1 = t_t1_objs.first()
+    t_t2 = t_t2_objs.last()
+    t_t3 = t_t3_objs.last()
+
+    assert t_t1.CASH_AMOUNT == 26
+    assert t_t2.MONTHS_FED_TIME_LIMIT == '  8'
+    assert t_t3.EDUCATION_LEVEL == '98'
