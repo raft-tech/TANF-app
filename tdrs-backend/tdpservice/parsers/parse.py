@@ -28,9 +28,24 @@ def parse_datafile(datafile):
         bulk_create_errors({1: header_errors}, 1, flush=True)
         return errors
 
-    fields = schema_defs.header.get_fields_by_names({"encryption", "tribe_code"})
-    is_encrypted = util.contains_encrypted_indicator(header_line, fields["encryption"])
-    is_tribal = util.contains_tribe_code(header_line, fields["tribe_code"])
+    field_values = schema_defs.header.get_field_values_by_names(header_line,
+                                                                {"encryption", "tribe_code", "state_fips"})
+
+    # Validate submission tribe code in submission accross program type and fips code
+    tribe_is_valid, tribe_error = validators.validate_header_tribe_code(header['program_type'],
+                                                                        field_values["tribe_code"],
+                                                                        field_values["state_fips"],
+                                                                        util.make_generate_parser_error(datafile, 1))
+
+    if not tribe_is_valid:
+        logger.info("Tribe Code binconsistency with Program Type and FIPS Code.")
+        errors['header'] = [tribe_error]
+        bulk_create_errors({1: [tribe_error]}, 1, flush=True)
+        return errors
+
+    is_encrypted = util.contains_encrypted_indicator(header_line, field_values["encryption"])
+    is_tribal = util.contains_tribe_code(header_line, field_values["tribe_code"])
+
     logger.debug(f"Datafile has encrypted fields: {is_encrypted}.")
     logger.debug(f"Datafile is Tribal: {is_tribal}.")
 

@@ -362,3 +362,25 @@ def validate_header_section_matches_submission(datafile, section, generate_error
         )
 
     return is_valid, error
+
+def validate_header_tribe_code(program_type, tribe_code, state_fips_code, generate_error):
+    """Validate header tribe code, fips code, and program type all agree with eachother."""
+    is_valid = False
+
+    if program_type == 'TAN' and (state_fips_code == '00' or state_fips_code is None or state_fips_code.isspace()):
+        is_valid = tribe_code is not None and not tribe_code.isspace() and tribe_code != '000'
+    else:
+        is_valid = tribe_code is None or tribe_code.isspace() or tribe_code == '000'
+
+    error = None
+    if not is_valid:
+        error = generate_error(
+            schema=None,
+            error_category=ParserErrorCategoryChoices.PRE_CHECK,
+            error_message=f"Tribe Code ({tribe_code}) inconsistency with Program Type ({program_type}) and " +
+            f"FIPS Code ({state_fips_code}).",
+            record=None,
+            field=None
+        )
+
+    return is_valid, error

@@ -109,19 +109,19 @@ def line_value_check(line, field, value, should_negate=False):
     if not should_negate:
         return parsed_val == value
     else:
-        return parsed_val != value and parsed_val != None
+        return parsed_val != value and parsed_val is not None
 
-def contains_encrypted_indicator(line, encryption_field):
+def contains_encrypted_indicator(line, encryption_val):
     """Determine if line contains encryption indicator."""
-    if encryption_field is not None:
-        return encryption_field.parse_value(line) == "E"
+    if encryption_val is not None:
+        return encryption_val == "E"
     return False
 
-def contains_tribe_code(line, tribe_code_field):
+def contains_tribe_code(line, tribe_code_val):
     """Determine if the line has a valid tribal code."""
     options = {"   ", None, "000"}
-    if tribe_code_field is not None:
-        return tribe_code_field.parse_value(line) not in options
+    if tribe_code_val is not None:
+        return tribe_code_val not in options
     return False
 
 def get_schema_options(program, section, query=None, model=None, model_name=None):

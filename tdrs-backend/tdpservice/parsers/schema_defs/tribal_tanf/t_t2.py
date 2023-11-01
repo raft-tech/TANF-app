@@ -197,7 +197,7 @@ t_t2 = SchemaManager(schemas=[
             Field(item="65E", name='OTHER_UNEARNED_INCOME', type='string', startIndex=118, endIndex=122, required=True,
                   validators=[validators.isInStringRange(0, 9999),]),
             Field(item="-1", name='BLANK', type='string', startIndex=122, endIndex=123, required=False,
-                        validators=[]),
+                  validators=[]),
         ],
     )]
 )

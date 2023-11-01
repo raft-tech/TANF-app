@@ -94,7 +94,8 @@ class Tribal_TANF_T2DataSubmissionDocument(DocumentBase, Document):
             'CASE_NUMBER',
             'FAMILY_AFFILIATION',
             'NONCUSTODIAL_PARENT',
-            'DATE_OF_BIRTH','SSN',
+            'DATE_OF_BIRTH',
+            'SSN',
             'RACE_HISPANIC',
             'RACE_AMER_INDIAN',
             'RACE_ASIAN',
@@ -183,5 +184,3 @@ class Tribal_TANF_T3DataSubmissionDocument(DocumentBase, Document):
             'UNEARNED_SSI',
             'OTHER_UNEARNED_INCOME',
         ]
-
-

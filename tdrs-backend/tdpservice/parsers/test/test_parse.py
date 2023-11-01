@@ -888,3 +888,21 @@ def test_parse_tribal_section_1_file(tribal_section_1_file):
     assert t_t1.CASH_AMOUNT == 26
     assert t_t2.MONTHS_FED_TIME_LIMIT == '  8'
     assert t_t3.EDUCATION_LEVEL == '98'
+
+@pytest.fixture
+def tribal_section_1_inconsistency_file(stt_user, stt):
+    """Fixture for ADS.E2J.FTP4.TS06."""
+    return util.create_test_datafile('tribal_section_1_inconsistency.txt', stt_user, stt, "Tribal Active Case Data")
+
+@pytest.mark.django_db()
+def test_parse_tribal_section_1_inconsistency_file(tribal_section_1_inconsistency_file):
+    """Test parsing inconsistent Tribal TANF Section 1 submission."""
+    parse.parse_datafile(tribal_section_1_inconsistency_file)
+
+    assert Tribal_TANF_T1.objects.all().count() == 0
+
+    parser_errors = ParserError.objects.filter(file=tribal_section_1_inconsistency_file)
+    assert parser_errors.count() == 1
+
+    assert parser_errors.first().error_message == "Tribe Code (142) inconsistency with Program Type (TAN) " + \
+        "and FIPS Code (01)."
