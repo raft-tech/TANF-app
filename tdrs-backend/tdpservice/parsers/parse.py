@@ -29,8 +29,8 @@ def parse_datafile(datafile):
         return errors
 
     fields = schema_defs.header.get_fields_by_names({"encryption", "tribe_code"})
-    is_encrypted = util.line_value_check(header_line, fields["encryption"], "E")
-    is_tribal = util.line_value_check(header_line, fields["tribe_code"], "   ", True)
+    is_encrypted = util.contains_encrypted_indicator(header_line, fields["encryption"])
+    is_tribal = util.contains_tribe_code(header_line, fields["tribe_code"])
     logger.debug(f"Datafile has encrypted fields: {is_encrypted}.")
     logger.debug(f"Datafile is Tribal: {is_tribal}.")
 

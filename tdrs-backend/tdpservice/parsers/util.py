@@ -105,10 +105,24 @@ class SchemaManager:
 
 def line_value_check(line, field, value, should_negate=False):
     """Determine if the field in the line is or is not equal to an expected value."""
+    parsed_val = field.parse_value(line)
     if not should_negate:
-        return field.parse_value(line) == value
+        return parsed_val == value
     else:
-        return field.parse_value(line) != value
+        return parsed_val != value and parsed_val != None
+
+def contains_encrypted_indicator(line, encryption_field):
+    """Determine if line contains encryption indicator."""
+    if encryption_field is not None:
+        return encryption_field.parse_value(line) == "E"
+    return False
+
+def contains_tribe_code(line, tribe_code_field):
+    """Determine if the line has a valid tribal code."""
+    options = {"   ", None, "000"}
+    if tribe_code_field is not None:
+        return tribe_code_field.parse_value(line) not in options
+    return False
 
 def get_schema_options(program, section, query=None, model=None, model_name=None):
     """Centralized function to return the appropriate schema for a given program, section, and query.
