@@ -103,14 +103,6 @@ class SchemaManager:
                 if type(field) == TransformField and "is_encrypted" in field.kwargs:
                     field.kwargs['is_encrypted'] = is_encrypted
 
-def line_value_check(line, field, value, should_negate=False):
-    """Determine if the field in the line is or is not equal to an expected value."""
-    parsed_val = field.parse_value(line)
-    if not should_negate:
-        return parsed_val == value
-    else:
-        return parsed_val != value and parsed_val is not None
-
 def contains_encrypted_indicator(line, encryption_val):
     """Determine if line contains encryption indicator."""
     if encryption_val is not None:
