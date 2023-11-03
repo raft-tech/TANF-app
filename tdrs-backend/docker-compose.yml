@@ -62,11 +62,11 @@ services:
     environment:
       - CLAMAV_NEEDED
       - AV_SCAN_URL=http://clamav-rest:9000/scan
-      - DB_HOST=postgres
-      - DB_NAME=tdrs_test
-      - DB_PASSWORD=something_secure
-      - DB_PORT=5432
-      - DB_USER=tdpuser
+      - DB_HOST=host.docker.internal
+      - DB_NAME=tdp_db_dev_raft
+      - DB_PASSWORD=
+      - DB_PORT=
+      - DB_USER=
       - DJANGO_CONFIGURATION=${DJANGO_CONFIGURATION:-Local}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-tdp-dev-insecure}
       - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-tdpservice.settings.local}
@@ -93,14 +93,12 @@ services:
     image: tdp
     build: .
     command: >
-      bash -c "./wait_for_services.sh &&
-      ./manage.py makemigrations &&
-      ./manage.py migrate &&
-      ./manage.py populate_stts &&
-      ./gunicorn_start.sh && celery -A tdpservice.settings worker -l info"
+      bash -c "./gunicorn_start.sh"
     ports:
       - "5555:5555"
     tty: true
+    extra_hosts:
+       - "host.docker.internal:host-gateway"
     depends_on:
       - clamav-rest
       - localstack
