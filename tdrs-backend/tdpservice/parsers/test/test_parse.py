@@ -431,7 +431,7 @@ def test_parse_small_ssp_section1_datafile(small_ssp_section1_datafile, dfs):
                                     ]}
 
     parser_errors = ParserError.objects.filter(file=small_ssp_section1_datafile)
-    assert parser_errors.count() == 9
+    assert parser_errors.count() == 16
     assert SSP_M1.objects.count() == expected_m1_record_count
     assert SSP_M2.objects.count() == expected_m2_record_count
     assert SSP_M3.objects.count() == expected_m3_record_count
@@ -453,7 +453,7 @@ def test_parse_ssp_section1_datafile(ssp_section1_datafile):
     parse.parse_datafile(ssp_section1_datafile)
 
     parser_errors = ParserError.objects.filter(file=ssp_section1_datafile)
-    assert parser_errors.count() == 12779
+    assert parser_errors.count() == 19846
 
     assert SSP_M1.objects.count() == expected_m1_record_count
     assert SSP_M2.objects.count() == expected_m2_record_count
@@ -634,7 +634,7 @@ def test_parse_bad_ssp_s1_missing_required(bad_ssp_s1__row_missing_required_fiel
     parse.parse_datafile(bad_ssp_s1__row_missing_required_field)
 
     parser_errors = ParserError.objects.filter(file=bad_ssp_s1__row_missing_required_field)
-    assert parser_errors.count() == 7
+    assert parser_errors.count() == 9
 
     row_2_error = parser_errors.get(
         row_number=2,
