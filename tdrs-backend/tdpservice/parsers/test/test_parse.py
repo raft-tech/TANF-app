@@ -8,7 +8,7 @@ from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TAN
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3
 from .factories import DataFileSummaryFactory
 from tdpservice.data_files.models import DataFile
-from .. import schema_defs, util, row_schema
+from .. import schema_defs, util, row_schema, aggregators
 
 import logging
 
@@ -34,7 +34,7 @@ def test_parse_small_correct_file(test_datafile, dfs):
 
     parse.parse_datafile(test_datafile)
     dfs.status = dfs.get_status()
-    dfs.case_aggregates = util.case_aggregates_by_month(dfs.datafile, dfs.status)
+    dfs.case_aggregates = aggregators.case_aggregates_by_month(dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {'rejected': 0,
                                    'months': [
                                        {'accepted_without_errors': 1, 'accepted_with_errors': 0, 'month': 'Oct'},
@@ -71,7 +71,7 @@ def test_parse_section_mismatch(test_datafile, dfs):
     dfs.status = dfs.get_status()
     assert dfs.status == DataFileSummary.Status.REJECTED
     parser_errors = ParserError.objects.filter(file=test_datafile)
-    dfs.case_aggregates = util.case_aggregates_by_month(dfs.datafile, dfs.status)
+    dfs.case_aggregates = aggregators.case_aggregates_by_month(dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {'rejected': 1,
                                    'months': [
                                        {'accepted_without_errors': 'N/A',
@@ -143,7 +143,7 @@ def test_parse_big_file(test_big_file, dfs):
     parse.parse_datafile(test_big_file)
     dfs.status = dfs.get_status()
     assert dfs.status == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
-    dfs.case_aggregates = util.case_aggregates_by_month(dfs.datafile, dfs.status)
+    dfs.case_aggregates = aggregators.case_aggregates_by_month(dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {'rejected': 0,
                                    'months': [
                                        {'accepted_without_errors': 171, 'accepted_with_errors': 99, 'month': 'Oct'},
@@ -366,7 +366,7 @@ def test_parse_empty_file(empty_file, dfs):
     errors = parse.parse_datafile(empty_file)
 
     dfs.status = dfs.get_status()
-    dfs.case_aggregates = util.case_aggregates_by_month(empty_file, dfs.status)
+    dfs.case_aggregates = aggregators.case_aggregates_by_month(empty_file, dfs.status)
 
     assert dfs.status == DataFileSummary.Status.REJECTED
     assert dfs.case_aggregates == {'rejected': 2,
@@ -422,7 +422,7 @@ def test_parse_small_ssp_section1_datafile(small_ssp_section1_datafile, dfs):
 
     dfs.status = dfs.get_status()
     assert dfs.status == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
-    dfs.case_aggregates = util.case_aggregates_by_month(dfs.datafile, dfs.status)
+    dfs.case_aggregates = aggregators.case_aggregates_by_month(dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {'rejected': 1,
                                    'months': [
                                        {'accepted_without_errors': 0, 'accepted_with_errors': 5, 'month': 'Oct'},
@@ -474,7 +474,7 @@ def test_parse_tanf_section1_datafile(small_tanf_section1_datafile, dfs):
 
     dfs.status = dfs.get_status()
     assert dfs.status == DataFileSummary.Status.ACCEPTED
-    dfs.case_aggregates = util.case_aggregates_by_month(dfs.datafile, dfs.status)
+    dfs.case_aggregates = aggregators.case_aggregates_by_month(dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {'rejected': 0,
                                    'months': [
                                        {'accepted_without_errors': 5, 'accepted_with_errors': 0, 'month': 'Oct'},
@@ -685,7 +685,7 @@ def test_dfs_set_case_aggregates(test_datafile, dfs):
     dfs.file = test_datafile
     dfs.save()
     dfs.status = dfs.get_status()
-    dfs.case_aggregates = util.case_aggregates_by_month(test_datafile, dfs.status)
+    dfs.case_aggregates = aggregators.case_aggregates_by_month(test_datafile, dfs.status)
     dfs.save()
 
     for month in dfs.case_aggregates['months']:
