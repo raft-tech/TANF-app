@@ -224,6 +224,7 @@ def test_run_field_validators_returns_invalid_with_object():
 
 
 @pytest.mark.parametrize('first,second', [
+    ('', ''),
     (' ', '  '),
     ('#', '##'),
     (None, None),
