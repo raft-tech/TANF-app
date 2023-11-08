@@ -83,6 +83,7 @@ def make_generate_file_precheck_parser_error(datafile, line_number):
 def value_is_empty(value, length):
     """Handle 'empty' values as field inputs."""
     empty_values = [
+        '',
         ' '*length,  # '     '
         '#'*length,  # '#####'
         '_'*length,  # '_____'

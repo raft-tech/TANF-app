@@ -2,6 +2,7 @@
 
 from .models import ParserErrorCategoryChoices
 from datetime import date
+from .util import value_is_empty
 import logging
 
 logger = logging.getLogger(__name__)
@@ -193,15 +194,16 @@ def isStringLargerThan(val):
 
 def notEmpty(start=0, end=None):
     """Validate that string value isn't only blanks."""
+    # asdf = not str(value)[start:end if end else len(str(value))].isspace()
     return make_validator(
-        lambda value: not str(value)[start:end if end else len(str(value))].isspace(),
+        lambda value: not value_is_empty(str(value)[start:end if end else len(str(value))], len(str(value))),
         lambda value: f'{str(value)} contains blanks between positions {start} and {end if end else len(str(value))}.'
     )
 
 def isEmpty(start=0, end=None):
     """Validate that string value is only blanks."""
     return make_validator(
-        lambda value: value[start:end if end else len(value)].isspace(),
+        lambda value: value_is_empty(str(value)[start:end if end else len(str(value))], len(str(value))),
         lambda value: f'{value} is not blank between positions {start} and {end if end else len(value)}.'
     )
 
