@@ -8,7 +8,7 @@ from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TAN
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3
 from .factories import DataFileSummaryFactory
 from tdpservice.data_files.models import DataFile
-from .. import schema_defs, util
+from .. import schema_defs, util, row_schema
 
 import logging
 
@@ -711,7 +711,7 @@ def test_get_schema_options(dfs):
 
     # from text:
     schema = parse.get_schema_manager('T1xx', 'A', 'TAN')
-    assert isinstance(schema, util.SchemaManager)
+    assert isinstance(schema, row_schema.SchemaManager)
     assert schema == schema_defs.tanf.t1
 
     # get model

@@ -1,6 +1,7 @@
 """Row schema for datafile."""
 from .models import ParserErrorCategoryChoices
-from .fields import Field,  value_is_empty
+from .fields import Field, TransformField
+from .util import value_is_empty
 import logging
 
 logger = logging.getLogger(__name__)
@@ -171,3 +172,27 @@ class RowSchema:
             if field.name == name:
                 return field
         return None
+
+
+class SchemaManager:
+    """Manages one or more RowSchema's and runs all parsers and validators."""
+
+    def __init__(self, schemas):
+        self.schemas = schemas
+
+    def parse_and_validate(self, line, generate_error):
+        """Run `parse_and_validate` for each schema provided and bubble up errors."""
+        records = []
+
+        for schema in self.schemas:
+            record, is_valid, errors = schema.parse_and_validate(line, generate_error)
+            records.append((record, is_valid, errors))
+
+        return records
+
+    def update_encrypted_fields(self, is_encrypted):
+        """Update whether schema fields are encrypted or not."""
+        for schema in self.schemas:
+            for field in schema.fields:
+                if type(field) == TransformField and "is_encrypted" in field.kwargs:
+                    field.kwargs['is_encrypted'] = is_encrypted
