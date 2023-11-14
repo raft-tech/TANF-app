@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 def value_is_empty(value, length):
     """Handle 'empty' values as field inputs."""
     empty_values = [
-        # '',
+        '',
         ' '*length,  # '     '
         '#'*length,  # '#####'
         '_'*length,  # '_____'
@@ -203,17 +203,23 @@ def isStringLargerThan(val):
         lambda value: f'{value} is not larger than {val}.'
     )
 
+
+def _is_empty(value, start, end):
+    end = end if end else len(str(value))
+    return value_is_empty(str(value)[start:end], end-start)
+
+
 def notEmpty(start=0, end=None):
     """Validate that string value isn't only blanks."""
     return make_validator(
-        lambda value: not str(value)[start:end if end else len(str(value))].isspace(),
+        lambda value: not _is_empty(value, start, end),
         lambda value: f'{str(value)} contains blanks between positions {start} and {end if end else len(str(value))}.'
     )
 
 def isEmpty(start=0, end=None):
     """Validate that string value is only blanks."""
     return make_validator(
-        lambda value: value[start:end if end else len(value)].isspace(),
+        lambda value: _is_empty(value, start, end),
         lambda value: f'{value} is not blank between positions {start} and {end if end else len(value)}.'
     )
 
