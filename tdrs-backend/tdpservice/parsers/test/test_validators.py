@@ -323,6 +323,17 @@ def test_notEmpty_returns_invalid_substring():
     assert is_valid is False
     assert error == "111  333 contains blanks between positions 3 and 5."
 
+
+def test_notEmpty_returns_nonexistent_substring():
+    """Test `notEmpty` gives an invalid result for a nonexistent substring."""
+    value = '111  333'
+
+    validator = validators.notEmpty(start=10, end=12)
+    is_valid, error = validator(value)
+
+    assert is_valid is False
+    assert error == "111  333 contains blanks between positions 10 and 12."
+
 @pytest.mark.usefixtures('db')
 class TestCat3ValidatorsBase:
     """A base test class for tests that evaluate category three validators."""
