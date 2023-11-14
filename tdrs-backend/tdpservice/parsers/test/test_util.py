@@ -51,7 +51,7 @@ def test_run_preparsing_validators_returns_invalid_and_errors():
 
 
 def test_parse_line_parses_line_from_schema_to_dict():
-    """Test that parse_line parses a string into a dict given start and end indices for all """
+    """Test that parse_line parses a string into a dict given start and end indices for all fields."""
     line = '12345001'
     schema = RowSchema(
         model=dict,
@@ -74,7 +74,7 @@ def test_parse_line_parses_line_from_schema_to_dict():
 
 
 def test_parse_line_parses_line_from_schema_to_object():
-    """Test that parse_line parses a string into an object given start and end indices for all """
+    """Test that parse_line parses a string into an object given start and end indices for all fields."""
     class TestModel:
         first = None
         second = None
