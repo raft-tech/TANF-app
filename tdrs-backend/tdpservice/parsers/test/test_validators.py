@@ -5,6 +5,35 @@ from .. import validators
 from tdpservice.parsers.test.factories import TanfT1Factory, TanfT2Factory, TanfT3Factory, TanfT5Factory, TanfT6Factory
 
 
+@pytest.mark.parametrize("value,length", [
+    (None, 0),
+    (None, 10),
+    ('     ', 5),
+    ('###', 3),
+    ('', 0),
+    ('', 10),
+])
+def test_value_is_empty_returns_true(value, length):
+    """Test value_is_empty returns valid."""
+    result = validators.value_is_empty(value, length)
+    assert result is True
+
+
+@pytest.mark.parametrize("value,length", [
+    (0, 1),
+    (1, 1),
+    (10, 2),
+    ('0', 1),
+    ('0000', 4),
+    ('1    ', 5),
+    ('##3', 3),
+])
+def test_value_is_empty_returns_false(value, length):
+    """Test value_is_empty returns invalid."""
+    result = validators.value_is_empty(value, length)
+    assert result is False
+
+
 def test_or_validators():
     """Test `or_validators` gives a valid result."""
     value = "2"

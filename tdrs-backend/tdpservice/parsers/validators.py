@@ -6,6 +6,18 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def value_is_empty(value, length):
+    """Handle 'empty' values as field inputs."""
+    empty_values = [
+        # '',
+        ' '*length,  # '     '
+        '#'*length,  # '#####'
+        '_'*length,  # '_____'
+    ]
+
+    return value is None or value in empty_values
+
 # higher order validator func
 
 def make_validator(validator_func, error_func):

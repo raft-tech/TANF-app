@@ -1,7 +1,7 @@
 """Test the methods of RowSchema to ensure parsing and validation work in all individual cases."""
 
 import pytest
-from ..fields import Field, value_is_empty
+from ..fields import Field
 from ..row_schema import RowSchema
 from ..util import SchemaManager
 
@@ -51,7 +51,7 @@ def test_run_preparsing_validators_returns_invalid_and_errors():
 
 
 def test_parse_line_parses_line_from_schema_to_dict():
-    """Test that parse_line parses a string into a dict given start and end indices for all fields."""
+    """Test that parse_line parses a string into a dict given start and end indices for all """
     line = '12345001'
     schema = RowSchema(
         model=dict,
@@ -74,7 +74,7 @@ def test_parse_line_parses_line_from_schema_to_dict():
 
 
 def test_parse_line_parses_line_from_schema_to_object():
-    """Test that parse_line parses a string into an object given start and end indices for all fields."""
+    """Test that parse_line parses a string into an object given start and end indices for all """
     class TestModel:
         first = None
         second = None
@@ -224,6 +224,7 @@ def test_run_field_validators_returns_invalid_with_object():
 
 
 @pytest.mark.parametrize('first,second', [
+    ('', ''),
     (' ', '  '),
     ('#', '##'),
     (None, None),
@@ -306,33 +307,6 @@ def test_run_postparsing_validators_returns_invalid_and_errors():
     is_valid, errors = schema.run_postparsing_validators(instance, error_func)
     assert is_valid is False
     assert errors == ['Value is not valid.']
-
-
-@pytest.mark.parametrize("value,length", [
-    (None, 0),
-    (None, 10),
-    ('     ', 5),
-    ('###', 3)
-])
-def test_value_is_empty_returns_true(value, length):
-    """Test value_is_empty returns valid."""
-    result = value_is_empty(value, length)
-    assert result is True
-
-
-@pytest.mark.parametrize("value,length", [
-    (0, 1),
-    (1, 1),
-    (10, 2),
-    ('0', 1),
-    ('0000', 4),
-    ('1    ', 5),
-    ('##3', 3)
-])
-def test_value_is_empty_returns_false(value, length):
-    """Test value_is_empty returns invalid."""
-    result = value_is_empty(value, length)
-    assert result is False
 
 
 def test_multi_record_schema_parses_and_validates():
