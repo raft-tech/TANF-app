@@ -2,7 +2,6 @@
 
 import pytest
 from faker import Faker
-from django.db.utils import IntegrityError
 from tdpservice.search_indexes import models
 from tdpservice.search_indexes import documents
 from tdpservice.parsers.util import create_test_datafile
@@ -13,8 +12,8 @@ fake = Faker()
 
 @pytest.fixture
 def test_datafile(stt_user, stt):
-    """Fixture for small_correct_file."""
-    return create_test_datafile('small_correct_file', stt_user, stt)
+    """Fixture for small_correct_file.txt."""
+    return create_test_datafile('small_correct_file.txt', stt_user, stt)
 
 
 @pytest.mark.django_db
@@ -307,25 +306,24 @@ def test_can_create_and_index_tanf_t6_submission(test_datafile):
 
     submission = models.tanf.TANF_T6()
     submission.datafile = test_datafile
-    submission.record = record_num
-    submission.rpt_month_year = 1
-    submission.fips_code = '1'
-    submission.calendar_quarter = 1
-    submission.applications = 1
-    submission.approved = 1
-    submission.denied = 1
-    submission.assistance = 1
-    submission.families = 1
-    submission.num_2_parents = 1
-    submission.num_1_parents = 1
-    submission.num_no_parents = 1
-    submission.recipients = 1
-    submission.adult_recipients = 1
-    submission.child_recipients = 1
-    submission.noncustodials = 1
-    submission.births = 1
-    submission.outwedlock_births = 1
-    submission.closed_cases = 1
+    submission.RecordType = record_num
+    submission.CALENDAR_QUARTER = 1
+    submission.RPT_MONTH_YEAR = 1
+    submission.NUM_APPLICATIONS = 1
+    submission.NUM_APPROVED = 1
+    submission.NUM_DENIED = 1
+    submission.ASSISTANCE = 1
+    submission.NUM_FAMILIES = 1
+    submission.NUM_2_PARENTS = 1
+    submission.NUM_1_PARENTS = 1
+    submission.NUM_NO_PARENTS = 1
+    submission.NUM_RECIPIENTS = 1
+    submission.NUM_ADULT_RECIPIENTS = 1
+    submission.NUM_CHILD_RECIPIENTS = 1
+    submission.NUM_NONCUSTODIALS = 1
+    submission.NUM_BIRTHS = 1
+    submission.NUM_OUTWEDLOCK_BIRTHS = 1
+    submission.NUM_CLOSED_CASES = 1
 
     submission.save()
 
@@ -333,7 +331,7 @@ def test_can_create_and_index_tanf_t6_submission(test_datafile):
 
     search = documents.tanf.TANF_T6DataSubmissionDocument.search().query(
         'match',
-        record=record_num
+        RecordType=record_num
     )
     response = search.execute()
 
@@ -347,26 +345,27 @@ def test_can_create_and_index_tanf_t7_submission(test_datafile):
 
     submission = models.tanf.TANF_T7()
     submission.datafile = test_datafile
-    submission.record = record_num
-    submission.rpt_month_year = 1
-    submission.fips_code = '2'
-    submission.calendar_quarter = 1
-    submission.tdrs_section_ind = '1'
-    submission.stratum = '1'
-    submission.families = 1
+    submission.RecordType = record_num
+    submission.CALENDAR_YEAR = 2020
+    submission.CALENDAR_QUARTER = 1
+    submission.TDRS_SECTION_IND = '1'
+    submission.STRATUM = '01'
+    submission.FAMILIES_MONTH_1 = 47655
+    submission.FAMILIES_MONTH_2 = 81982
+    submission.FAMILIES_MONTH_3 = 9999999
 
     submission.save()
 
     # No checks her because t7 records can't be parsed currently.
-    # assert submission.id is not None
+    assert submission.id is not None
 
-    # search = documents.tanf.TANF_T7DataSubmissionDocument.search().query(
-    #     'match',
-    #     record=record_num
-    # )
-    # response = search.execute()
+    search = documents.tanf.TANF_T7DataSubmissionDocument.search().query(
+        'match',
+        RecordType=record_num
+    )
+    response = search.execute()
 
-    # assert response.hits.total.value == 1
+    assert response.hits.total.value == 1
 
 
 @pytest.mark.django_db
@@ -374,17 +373,9 @@ def test_does_not_create_index_if_model_creation_fails():
     """Index creation shouldn't happen if saving a model errors."""
     record_num = fake.uuid4()
 
-    with pytest.raises(IntegrityError):
-        submission = models.tanf.TANF_T7.objects.create(
-            record=record_num
-            # leave out a bunch of required fields
-        )
-
-        assert submission.id is None
-
     search = documents.tanf.TANF_T7DataSubmissionDocument.search().query(
         'match',
-        record=record_num
+        RecordType=record_num
     )
 
     response = search.execute()

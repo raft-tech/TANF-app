@@ -1,6 +1,9 @@
 """Row schema for datafile."""
 from .models import ParserErrorCategoryChoices
 from .fields import Field,  value_is_empty
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class RowSchema:
@@ -45,6 +48,7 @@ class RowSchema:
         if not preparsing_is_valid:
             if self.quiet_preparser_errors:
                 return None, True, []
+            logger.info(f"{len(preparsing_errors)} preparser error(s) encountered.")
             return None, False, preparsing_errors
 
         # parse line to model
@@ -77,7 +81,7 @@ class RowSchema:
                         error_category=ParserErrorCategoryChoices.PRE_CHECK,
                         error_message=validator_error,
                         record=None,
-                        field=None
+                        field="Record_Type"
                     )
                 )
 
@@ -110,7 +114,9 @@ class RowSchema:
             else:
                 value = getattr(instance, field.name, None)
 
-            if field.required and not value_is_empty(value, field.endIndex-field.startIndex):
+            is_empty = value_is_empty(value, field.endIndex-field.startIndex)
+            should_validate = not field.required and not is_empty
+            if (field.required and not is_empty) or should_validate:
                 for validator in field.validators:
                     validator_is_valid, validator_error = validator(value)
                     is_valid = False if not validator_is_valid else is_valid

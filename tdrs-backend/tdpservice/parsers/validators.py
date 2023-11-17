@@ -1,14 +1,24 @@
 """Generic parser validator functions for use in schema definitions."""
 
-from .util import generate_parser_error
 from .models import ParserErrorCategoryChoices
-from tdpservice.data_files.models import DataFile
+from datetime import date
+import logging
+
+logger = logging.getLogger(__name__)
 
 # higher order validator func
 
 def make_validator(validator_func, error_func):
     """Return a function accepting a value input and returning (bool, string) to represent validation state."""
-    return lambda value: (True, None) if value is not None and validator_func(value) else (False, error_func(value))
+    def validator(value):
+        try:
+            if validator_func(value):
+                return (True, None)
+            return (False, error_func(value))
+        except Exception as e:
+            logger.debug(f"Caught exception in validator. Exception: {e}")
+            return (False, error_func(value))
+    return validator
 
 
 def or_validators(*args, **kwargs):
@@ -54,12 +64,27 @@ def if_then_validator(condition_field, condition_function,
 
     return lambda value: if_then_validator_func(value)
 
+def sumIsEqual(condition_field, sum_fields=[]):
+    """Validate that the sum of the sum_fields equals the condition_field."""
+    def sumIsEqualFunc(value):
+        sum = 0
+        for field in sum_fields:
+            val = value[field] if type(value) is dict else getattr(value, field)
+            sum += 0 if val is None else val
+
+        condition_val = value[condition_field] if type(value) is dict else getattr(value, condition_field)
+        return (True, None) if sum == condition_val else (False,
+                                                          f"The sum of {sum_fields} does not equal {condition_field}.")
+
+    return lambda value: sumIsEqualFunc(value)
+
 def sumIsLarger(fields, val):
     """Validate that the sum of the fields is larger than val."""
     def sumIsLargerFunc(value):
         sum = 0
         for field in fields:
-            sum += value[field] if type(value) is dict else getattr(value, field)
+            temp_val = value[field] if type(value) is dict else getattr(value, field)
+            sum += 0 if temp_val is None else temp_val
 
         return (True, None) if sum > val else (False, f"The sum of {fields} is not larger than {val}.")
 
@@ -225,27 +250,60 @@ def isInLimits(LowerBound, UpperBound):
         lambda value: f'{value} is not larger or equal to {LowerBound} and smaller or equal to {UpperBound}.'
     )
 
-
 # custom validators
 
-def month_year_monthIsValid():
+def dateMonthIsValid():
     """Validate that in a monthyear combination, the month is a valid month."""
     return make_validator(
         lambda value: int(str(value)[4:6]) in range(1, 13),
         lambda value: f'{str(value)[4:6]} is not a valid month.'
     )
 
+def olderThan(min_age):
+    """Validate that value is larger than min_age."""
+    return make_validator(
+        lambda value: date.today().year - int(str(value)[:4]) > min_age,
+        lambda value: f'{date.today().year - int(str(value)[:4])} is not larger than {min_age}.'
+    )
 
-def month_year_yearIsLargerThan(year):
+def dateYearIsLargerThan(year):
     """Validate that in a monthyear combination, the year is larger than the given year."""
     return make_validator(
         lambda value: int(str(value)[:4]) > year,
         lambda value: f'{str(value)[:4]} year must be larger than {year}.'
     )
 
+def quarterIsValid():
+    """Validate in a year quarter combination, the quarter is valid."""
+    return make_validator(
+        lambda value: int(str(value)[-1]) > 0 and int(str(value)[-1]) < 5,
+        lambda value: f'{str(value)[-1]} is not a valid quarter.'
+    )
+
+def validateSSN():
+    """Validate that SSN value is not a repeating digit."""
+    options = [str(i)*9 for i in range(0, 10)]
+    return make_validator(
+        lambda value: value not in options,
+        lambda value: f'{value} is in {options}.'
+    )
+
+def validateRace():
+    """Validate race."""
+    return make_validator(
+        lambda value: value >= 0 and value <= 2,
+        lambda value: f'{value} is not greater than or equal to 0 or smaller than or equal to 1.'
+    )
+
+
 # outlier validators
 def validate__FAM_AFF__SSN():
-    """If item 30 ==2 and item 42 ==1 or 2, then item 33 != 000000000 -- 999999999."""
+    """
+    Validate social security number provided.
+
+    If item FAMILY_AFFILIATION ==2 and item CITIZENSHIP_STATUS ==1 or 2,
+    then item SSN != 000000000 -- 999999999.
+    """
     # value is instance
     def validate(instance):
         FAMILY_AFFILIATION = instance['FAMILY_AFFILIATION'] if type(instance) is dict else \
@@ -275,7 +333,7 @@ def validate__FAM_AFF__HOH__Fed_Time():
         MONTHS_FED_TIME_LIMIT = instance['MONTHS_FED_TIME_LIMIT'] if type(instance) is dict else \
             getattr(instance, 'MONTHS_FED_TIME_LIMIT')
         if FAMILY_AFFILIATION == 1 and (RELATIONSHIP_HOH == 1 or RELATIONSHIP_HOH == 2):
-            if int(MONTHS_FED_TIME_LIMIT) < 1:
+            if MONTHS_FED_TIME_LIMIT is None or int(MONTHS_FED_TIME_LIMIT) < 1:
                 return (False,
                         'If FAMILY_AFFILIATION == 2 and MONTHS_FED_TIME_LIMIT== 1 or 2, then MONTHS_FED_TIME_LIMIT > 1.'
                         )
@@ -285,76 +343,35 @@ def validate__FAM_AFF__HOH__Fed_Time():
             return (True, None)
     return lambda instance: validate(instance)
 
-def validate_single_header_trailer(datafile):
-    """Validate that a raw datafile has one trailer and one footer."""
-    line_number = 0
-    headers = 0
-    trailers = 0
-    is_valid = True
-    error_message = None
-
-    for rawline in datafile.file:
-        line = rawline.decode()
-        line_number += 1
-
-        if line.startswith('HEADER'):
-            headers += 1
-        elif line.startswith('TRAILER'):
-            trailers += 1
-
-        if headers > 1:
-            is_valid = False
-            error_message = 'Multiple headers found.'
-            break
-
-        if trailers > 1:
-            is_valid = False
-            error_message = 'Multiple trailers found.'
-            break
-
-    if headers == 0:
-        is_valid = False
-        error_message = 'No headers found.'
-
-    error = None
-    if not is_valid:
-        error = generate_parser_error(
-            datafile=datafile,
-            line_number=line_number,
-            schema=None,
-            error_category=ParserErrorCategoryChoices.PRE_CHECK,
-            error_message=error_message,
-            record=None,
-            field=None
-        )
-
-    return is_valid, error
+def validate__FAM_AFF__HOH__Count_Fed_Time():
+    """If FAMILY_AFFILIATION == 1 and RELATIONSHIP_HOH== 1 or 2, then COUNTABLE_MONTH_FED_TIME >= 1."""
+    # value is instance
+    def validate(instance):
+        FAMILY_AFFILIATION = instance['FAMILY_AFFILIATION'] if type(instance) is dict else \
+            getattr(instance, 'FAMILY_AFFILIATION')
+        RELATIONSHIP_HOH = instance['RELATIONSHIP_HOH'] if type(instance) is dict else \
+            getattr(instance, 'RELATIONSHIP_HOH')
+        RELATIONSHIP_HOH = int(RELATIONSHIP_HOH)
+        COUNTABLE_MONTH_FED_TIME = instance['COUNTABLE_MONTH_FED_TIME'] if type(instance) is dict else \
+            getattr(instance, 'COUNTABLE_MONTH_FED_TIME')
+        if FAMILY_AFFILIATION == 1 and (RELATIONSHIP_HOH == 1 or RELATIONSHIP_HOH == 2):
+            if int(COUNTABLE_MONTH_FED_TIME) < 1:
+                return (False, 'If FAMILY_AFFILIATION == 2 and COUNTABLE_MONTH_FED_TIME== 1 or 2, then ' +
+                        'COUNTABLE_MONTH_FED_TIME > 1.')
+            else:
+                return (True, None)
+        else:
+            return (True, None)
+    return lambda instance: validate(instance)
 
 
-def validate_header_section_matches_submission(datafile, program_type, section):
+def validate_header_section_matches_submission(datafile, section, generate_error):
     """Validate header section matches submission section."""
-    section_names = {
-        'TAN': {
-            'A': DataFile.Section.ACTIVE_CASE_DATA,
-            'C': DataFile.Section.CLOSED_CASE_DATA,
-            'G': DataFile.Section.AGGREGATE_DATA,
-            'S': DataFile.Section.STRATUM_DATA,
-        },
-        'SSP': {
-            'A': DataFile.Section.SSP_ACTIVE_CASE_DATA,
-            'C': DataFile.Section.SSP_CLOSED_CASE_DATA,
-            'G': DataFile.Section.SSP_AGGREGATE_DATA,
-            'S': DataFile.Section.SSP_STRATUM_DATA,
-        },
-    }
-
-    is_valid = datafile.section == section_names.get(program_type, {}).get(section)
+    is_valid = datafile.section == section
 
     error = None
     if not is_valid:
-        error = generate_parser_error(
-            datafile=datafile,
-            line_number=1,
+        error = generate_error(
             schema=None,
             error_category=ParserErrorCategoryChoices.PRE_CHECK,
             error_message=f"Data does not match the expected layout for {datafile.section}.",

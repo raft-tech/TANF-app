@@ -1,7 +1,64 @@
 """Factories for generating test data for parsers."""
 import factory
+from tdpservice.parsers.models import DataFileSummary, ParserErrorCategoryChoices
 from faker import Faker
 from tdpservice.data_files.test.factories import DataFileFactory
+from tdpservice.users.test.factories import UserFactory
+from tdpservice.stts.test.factories import STTFactory
+
+class ParsingFileFactory(factory.django.DjangoModelFactory):
+    """Generate test data for data files."""
+
+    class Meta:
+        """Hardcoded meta data for data files."""
+
+        model = "data_files.DataFile"
+
+    original_filename = "data_file.txt"
+    slug = "data_file-txt-slug"
+    extension = "txt"
+    section = "Active Case Data"
+    quarter = "Q1"
+    year = "2020"
+    version = 1
+    user = factory.SubFactory(UserFactory)
+    stt = factory.SubFactory(STTFactory)
+    file = factory.django.FileField(data=b'test', filename='my_data_file.txt')
+    s3_versioning_id = 0
+
+class DataFileSummaryFactory(factory.django.DjangoModelFactory):
+    """Generate test data for data files."""
+
+    class Meta:
+        """Hardcoded meta data for data files."""
+
+        model = DataFileSummary
+
+    status = DataFileSummary.Status.PENDING
+
+    case_aggregates = {
+        "rejected": 0,
+        "months": [
+            {
+                "accepted_without_errors": 100,
+                "accepted_with_errors": 10,
+                "month": "Jan",
+            },
+            {
+                "accepted_without_errors": 100,
+                "accepted_with_errors": 10,
+                "month": "Feb",
+            },
+            {
+                "accepted_without_errors": 100,
+                "accepted_with_errors": 10,
+                "month": "Mar",
+            },
+        ]
+    }
+
+    datafile = factory.SubFactory(DataFileFactory)
+
 
 fake = Faker()
 
@@ -21,7 +78,7 @@ class ParserErrorFactory(factory.django.DjangoModelFactory):
     case_number = '1'
     rpt_month_year = 202001
     error_message = "test error message"
-    error_type = "out of range"
+    error_type = ParserErrorCategoryChoices.PRE_CHECK
 
     created_at = factory.Faker("date_time")
     fields_json = {"test": "test"}
@@ -193,3 +250,102 @@ class TanfT3Factory(factory.django.DjangoModelFactory):
     CITIZENSHIP_STATUS = 1
     UNEARNED_SSI = 1
     OTHER_UNEARNED_INCOME = 1
+
+class TanfT4Factory(factory.django.DjangoModelFactory):
+    """Generate TANF T4 record for testing."""
+
+    class Meta:
+        """Hardcoded meta data for TANF_T4."""
+
+        model = "search_indexes.TANF_T4"
+
+    RPT_MONTH_YEAR = 202301
+    CASE_NUMBER = "1"
+
+    COUNTY_FIPS_CODE = 1
+    STRATUM = 1
+    ZIP_CODE = "11111"
+    DISPOSITION = 1
+    CLOSURE_REASON = '01'
+    REC_SUB_HOUSING = 1
+    REC_MED_ASSIST = 1
+    REC_FOOD_STAMPS = 1
+    REC_SUB_CC = 1
+
+
+class TanfT5Factory(factory.django.DjangoModelFactory):
+    """Generate TANF T5 record for testing."""
+
+    class Meta:
+        """Hardcoded meta data for TANF_T5."""
+
+        model = "search_indexes.TANF_T5"
+
+    RPT_MONTH_YEAR = 202301
+    CASE_NUMBER = "1"
+    FAMILY_AFFILIATION = 1
+    DATE_OF_BIRTH = "02091997"
+    SSN = "123456789"
+    RACE_HISPANIC = 1
+    RACE_AMER_INDIAN = 1
+    RACE_ASIAN = 1
+    RACE_BLACK = 1
+    RACE_HAWAIIAN = 1
+    RACE_WHITE = 1
+    GENDER = 1
+    REC_OASDI_INSURANCE = 1
+    REC_FEDERAL_DISABILITY = 1
+    REC_AID_TOTALLY_DISABLED = 1
+    REC_AID_AGED_BLIND = 1
+    REC_SSI = 1
+    MARITAL_STATUS = 1
+    RELATIONSHIP_HOH = "01"
+    PARENT_MINOR_CHILD = 1
+    NEEDS_OF_PREGNANT_WOMAN = 1
+    EDUCATION_LEVEL = "01"
+    CITIZENSHIP_STATUS = 1
+    COUNTABLE_MONTH_FED_TIME = "111"
+    COUNTABLE_MONTHS_STATE_TRIBE = "11"
+    EMPLOYMENT_STATUS = 1
+    AMOUNT_EARNED_INCOME = "1"
+    AMOUNT_UNEARNED_INCOME = "1"
+
+class TanfT6Factory(factory.django.DjangoModelFactory):
+    """Generate TANF T6 record for testing."""
+
+    class Meta:
+        """Hardcoded meta data for TANF_T6."""
+
+        model = "search_indexes.TANF_T6"
+
+    CALENDAR_QUARTER = 1
+    RPT_MONTH_YEAR = 202301
+    NUM_APPLICATIONS = 1
+    NUM_APPROVED = 1
+    NUM_DENIED = 1
+    ASSISTANCE = 1
+    NUM_FAMILIES = 1
+    NUM_2_PARENTS = 1
+    NUM_1_PARENTS = 1
+    NUM_NO_PARENTS = 1
+    NUM_RECIPIENTS = 1
+    NUM_ADULT_RECIPIENTS = 1
+    NUM_CHILD_RECIPIENTS = 1
+    NUM_NONCUSTODIALS = 1
+    NUM_BIRTHS = 1
+    NUM_OUTWEDLOCK_BIRTHS = 1
+    NUM_CLOSED_CASES = 1
+
+class TanfT7Factory(factory.django.DjangoModelFactory):
+    """Generate TANF T7 record for testing."""
+
+    class Meta:
+        """Hardcoded meta data for TANF_T7."""
+
+        model = "search_indexes.TANF_T7"
+
+    CALENDAR_QUARTER = 20204
+    RPT_MONTH_YEAR = 202011
+    TDRS_SECTION_IND = '1'
+    STRATUM = '01'
+    FAMILIES_MONTH = 1

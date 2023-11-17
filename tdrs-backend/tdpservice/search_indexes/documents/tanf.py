@@ -304,25 +304,24 @@ class TANF_T6DataSubmissionDocument(DocumentBase, Document):
 
         model = TANF_T6
         fields = [
-            'record',
-            'rpt_month_year',
-            'fips_code',
-            'calendar_quarter',
-            'applications',
-            'approved',
-            'denied',
-            'assistance',
-            'families',
-            'num_2_parents',
-            'num_1_parents',
-            'num_no_parents',
-            'recipients',
-            'adult_recipients',
-            'child_recipients',
-            'noncustodials',
-            'births',
-            'outwedlock_births',
-            'closed_cases',
+            'RecordType',
+            'CALENDAR_QUARTER',
+            'RPT_MONTH_YEAR',
+            'NUM_APPLICATIONS',
+            'NUM_APPROVED',
+            'NUM_DENIED',
+            'ASSISTANCE',
+            'NUM_FAMILIES',
+            'NUM_2_PARENTS',
+            'NUM_1_PARENTS',
+            'NUM_NO_PARENTS',
+            'NUM_RECIPIENTS',
+            'NUM_ADULT_RECIPIENTS',
+            'NUM_CHILD_RECIPIENTS',
+            'NUM_NONCUSTODIALS',
+            'NUM_BIRTHS',
+            'NUM_OUTWEDLOCK_BIRTHS',
+            'NUM_CLOSED_CASES'
         ]
 
 
@@ -344,11 +343,10 @@ class TANF_T7DataSubmissionDocument(DocumentBase, Document):
 
         model = TANF_T7
         fields = [
-            'record',
-            'rpt_month_year',
-            'fips_code',
-            'calendar_quarter',
-            'tdrs_section_ind',
-            'stratum',
-            'families',
+            "RecordType",
+            "CALENDAR_QUARTER",
+            "RPT_MONTH_YEAR",
+            "TDRS_SECTION_IND",
+            "STRATUM",
+            "FAMILIES_MONTH",
         ]
