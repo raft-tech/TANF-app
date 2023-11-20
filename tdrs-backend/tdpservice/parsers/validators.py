@@ -1,6 +1,7 @@
 """Generic parser validator functions for use in schema definitions."""
 
 from .models import ParserErrorCategoryChoices
+from .util import is_string_field_valid
 from datetime import date
 import logging
 
@@ -381,14 +382,14 @@ def validate_header_section_matches_submission(datafile, section, generate_error
 
     return is_valid, error
 
-def validate_header_tribe_code(program_type, tribe_code, state_fips_code, generate_error):
-    """Validate header tribe code, fips code, and program type all agree with eachother."""
+def validate_tribe_fips_program_agree(program_type, tribe_code, state_fips_code, generate_error):
+    """Validate tribe code, fips code, and program type all agree with eachother."""
     is_valid = False
 
-    if program_type == 'TAN' and (state_fips_code == '00' or state_fips_code is None or state_fips_code.isspace()):
-        is_valid = tribe_code is not None and not tribe_code.isspace() and tribe_code != '000'
+    if program_type == 'TAN' and (not is_string_field_valid(state_fips_code, 2)):
+        is_valid = is_string_field_valid(tribe_code, 3)
     else:
-        is_valid = tribe_code is None or tribe_code.isspace() or tribe_code == '000'
+        is_valid = not is_string_field_valid(tribe_code, 3)
 
     error = None
     if not is_valid:

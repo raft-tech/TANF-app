@@ -172,3 +172,10 @@ class RowSchema:
             if field.name in names:
                 field_values[field.name] = field.parse_value(line)
         return field_values
+
+    def get_field_by_name(self, name):
+        """Get field by it's name."""
+        for field in self.fields:
+            if field.name == name:
+                return field
+        return None

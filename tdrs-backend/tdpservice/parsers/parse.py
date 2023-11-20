@@ -32,22 +32,23 @@ def parse_datafile(datafile):
                                                                 {"encryption", "tribe_code", "state_fips"})
 
     # Validate tribe code in submission across program type and fips code
-    tribe_is_valid, tribe_error = validators.validate_header_tribe_code(header['program_type'],
+    tribe_is_valid, tribe_error = validators.validate_tribe_fips_program_agree(header['program_type'],
                                                                         field_values["tribe_code"],
                                                                         field_values["state_fips"],
                                                                         util.make_generate_parser_error(datafile, 1))
 
     if not tribe_is_valid:
-        logger.info("Tribe Code binconsistency with Program Type and FIPS Code.")
+        logger.info(f"Tribe Code ({field_values['tribe_code']}) inconsistency with Program Type " +
+                    f"({header['program_type']}) and FIPS Code ({field_values['state_fips']}).",)
         errors['header'] = [tribe_error]
         bulk_create_errors({1: [tribe_error]}, 1, flush=True)
         return errors
 
-    is_encrypted = util.contains_encrypted_indicator(header_line, field_values["encryption"])
-    is_tribal = util.contains_tribe_code(header_line, field_values["tribe_code"])
+    is_encrypted = field_values["encryption"] == "E"
+    is_tribal = util.is_string_field_valid(field_values["tribe_code"], 3)
 
     logger.debug(f"Datafile has encrypted fields: {is_encrypted}.")
-    logger.debug(f"Datafile is Tribal: {is_tribal}.")
+    logger.debug(f"Datafile: {datafile.__repr__()}, is Tribal: {is_tribal}.")
 
     # ensure file section matches upload section
     program_type = f"Tribal {header['program_type']}" if is_tribal else header['program_type']
@@ -67,7 +68,7 @@ def parse_datafile(datafile):
         bulk_create_errors(unsaved_parser_errors, 1, flush=True)
         return errors
 
-    line_errors = parse_datafile_lines(datafile, program_type, section, is_encrypted, is_tribal)
+    line_errors = parse_datafile_lines(datafile, program_type, section, is_encrypted)
 
     errors = errors | line_errors
 
@@ -135,7 +136,7 @@ def rollback_parser_errors(datafile):
     num_deleted, models = ParserError.objects.filter(file=datafile).delete()
     logger.debug(f"Deleted {num_deleted} {ParserError}.")
 
-def parse_datafile_lines(datafile, program_type, section, is_encrypted, is_tribal):
+def parse_datafile_lines(datafile, program_type, section, is_encrypted):
     """Parse lines with appropriate schema and return errors."""
     rawfile = datafile.file
     errors = {}
