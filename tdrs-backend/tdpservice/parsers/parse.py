@@ -32,10 +32,11 @@ def parse_datafile(datafile):
                                                                 {"encryption", "tribe_code", "state_fips"})
 
     # Validate tribe code in submission across program type and fips code
+    generate_error = util.make_generate_parser_error(datafile, 1)
     tribe_is_valid, tribe_error = validators.validate_tribe_fips_program_agree(header['program_type'],
-                                                                        field_values["tribe_code"],
-                                                                        field_values["state_fips"],
-                                                                        util.make_generate_parser_error(datafile, 1))
+                                                                               field_values["tribe_code"],
+                                                                               field_values["state_fips"],
+                                                                               generate_error)
 
     if not tribe_is_valid:
         logger.info(f"Tribe Code ({field_values['tribe_code']}) inconsistency with Program Type " +
