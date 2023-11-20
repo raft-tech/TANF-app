@@ -80,7 +80,7 @@ m4 = SchemaManager(
                     startIndex=29,
                     endIndex=30,
                     required=True,
-                    validators=[validators.isInLimits(1, 2)],
+                    validators=[validators.isInLimits(1)],
                 ),
                 Field(
                     item="8",
@@ -91,7 +91,7 @@ m4 = SchemaManager(
                     required=True,
                     validators=[
                         validators.or_validators(
-                            validators.isInStringRange(1, 19), validators.matches("19")
+                            validators.isInStringRange(1, 19), validators.matches("99")
                         )
                     ],
                 ),
@@ -102,7 +102,7 @@ m4 = SchemaManager(
                     startIndex=32,
                     endIndex=33,
                     required=True,
-                    validators=[validators.isInLimits(1, 3)],
+                    validators=[validators.isInLimits(1, 2)],
                 ),
                 Field(
                     item="10`",
@@ -129,7 +129,7 @@ m4 = SchemaManager(
                     startIndex=35,
                     endIndex=36,
                     required=True,
-                    validators=[validators.isInLimits(1, 3)],
+                    validators=[validators.isInLimits(1, 2)],
                 ),
                 Field(
                     item="-1",

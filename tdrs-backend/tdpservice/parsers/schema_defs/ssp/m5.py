@@ -70,7 +70,7 @@ m5 = SchemaManager(
                     condition_field="FAMILY_AFFILIATION",
                     condition_function=validators.isInLimits(1, 2),
                     result_field="PARENT_MINOR_CHILD",
-                    result_function=validators.isInLimits(1, 3),
+                    result_function=validators.isInLimits(1, 2),
                 ),
                 validators.if_then_validator(
                     condition_field="FAMILY_AFFILIATION",
@@ -349,7 +349,7 @@ m5 = SchemaManager(
                     type="string",
                     startIndex=58,
                     endIndex=62,
-                    required=True,
+                    required=False,
                     validators=[validators.isInStringRange(0, 9999)],
                 ),
                 Field(
@@ -358,7 +358,7 @@ m5 = SchemaManager(
                     type="string",
                     startIndex=62,
                     endIndex=66,
-                    required=True,
+                    required=False,
                     validators=[validators.isInStringRange(0, 9999)],
                 ),
             ],
