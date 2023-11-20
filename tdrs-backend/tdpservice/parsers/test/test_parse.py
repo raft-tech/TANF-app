@@ -899,7 +899,6 @@ def test_parse_tribal_section_1_file(tribal_section_1_file):
     assert t_t1.CASH_AMOUNT == 26
     assert t_t2.MONTHS_FED_TIME_LIMIT == '  8'
     assert t_t3.EDUCATION_LEVEL == '98'
-    assert False
 
 @pytest.fixture
 def tribal_section_1_inconsistency_file(stt_user, stt):
