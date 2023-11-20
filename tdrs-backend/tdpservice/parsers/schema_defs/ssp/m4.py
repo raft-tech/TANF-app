@@ -80,7 +80,7 @@ m4 = SchemaManager(
                     startIndex=29,
                     endIndex=30,
                     required=True,
-                    validators=[validators.isInLimits(1)],
+                    validators=[validators.matches(1)],
                 ),
                 Field(
                     item="8",
