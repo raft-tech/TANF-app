@@ -52,8 +52,8 @@ t_t4 = SchemaManager(
                     type="string",
                     startIndex=19,
                     endIndex=22,
-                    required=True,
-                    validators=[validators.isInStringRange(1, 999)],
+                    required=False,
+                    validators=[validators.matches("000")],
                 ),
                 Field(
                     item="5",
@@ -61,7 +61,7 @@ t_t4 = SchemaManager(
                     type="string",
                     startIndex=22,
                     endIndex=24,
-                    required=True,
+                    required=False,
                     validators=[validators.isInStringRange(0, 99)],
                 ),
                 Field(
@@ -71,7 +71,7 @@ t_t4 = SchemaManager(
                     startIndex=24,
                     endIndex=29,
                     required=True,
-                    validators=[],
+                    validators=[validators.isInStringRange(0, 99999)],
                 ),
                 Field(
                     item="8",
@@ -91,7 +91,7 @@ t_t4 = SchemaManager(
                     required=True,
                     validators=[
                         validators.or_validators(
-                            validators.isInStringRange(1, 19), validators.matches("99")
+                            validators.isInStringRange(1, 18), validators.matches("99")
                         )
                     ],
                 ),
