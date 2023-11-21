@@ -936,10 +936,10 @@ def test_parse_ssp_section2_file(ssp_section2_file):
     assert m5.AMOUNT_EARNED_INCOME == '0000'
     assert m5.AMOUNT_UNEARNED_INCOME == '0000'
 
+@pytest.fixture
 def ssp_section3_file(stt_user, stt):
     """Fixture for ADS.E2J.FTP3.TS06."""
     return util.create_test_datafile('ADS.E2J.NDM3.MS24', stt_user, stt, "SSP Aggregate Data")
-
 
 @pytest.mark.django_db()
 def test_parse_ssp_section3_file(ssp_section3_file):
