@@ -651,7 +651,7 @@ def test_can_create_and_index_ssp_m5_submission():
 
     assert submission.id is not None
 
-    search = documents.ssp.SSP_M6DataSubmissionDocument.search().query(
+    search = documents.ssp.SSP_M5DataSubmissionDocument.search().query(
         'match',
         RecordType=record_num
     )
