@@ -174,7 +174,7 @@ def get_schema_options(program, section, query=None, model=None, model_name=None
             'S': {
                 'section': DataFile.Section.SSP_STRATUM_DATA,
                 'models': {
-                    # 'S7': schema_defs.ssp.m7,
+                    'M7': schema_defs.ssp.m7,
                 }
             }
         },

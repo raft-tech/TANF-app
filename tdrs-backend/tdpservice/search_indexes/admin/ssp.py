@@ -100,3 +100,22 @@ class SSP_M6Admin(admin.ModelAdmin):
         CreationDateFilter,
         'RPT_MONTH_YEAR'
     ]
+
+class SSP_M7Admin(admin.ModelAdmin):
+    """ModelAdmin class for parsed M7 data files."""
+
+    list_display = [
+        'RecordType',
+        'CALENDAR_QUARTER',
+        'RPT_MONTH_YEAR',
+        'TDRS_SECTION_IND',
+        'STRATUM',
+        'FAMILIES_MONTH',
+        'datafile',
+    ]
+
+    list_filter = [
+        'CALENDAR_QUARTER',
+        CreationDateFilter,
+        'RPT_MONTH_YEAR',
+    ]
