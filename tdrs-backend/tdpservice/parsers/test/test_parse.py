@@ -6,7 +6,7 @@ from .. import parse
 from ..models import ParserError, ParserErrorCategoryChoices, DataFileSummary
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5, TANF_T6, TANF_T7
 from tdpservice.search_indexes.models.tribal import Tribal_TANF_T1, Tribal_TANF_T2, Tribal_TANF_T3
-from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3, SSP_M6
+from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3, SSP_M4, SSP_M5, SSP_M6, SSP_M7
 from .factories import DataFileSummaryFactory
 from tdpservice.data_files.models import DataFile
 from .. import schema_defs, util
@@ -911,6 +911,80 @@ def test_parse_tanf_section4_file(tanf_section4_file):
     assert first.FAMILIES_MONTH == 274
     assert sixth.FAMILIES_MONTH == 499
 
+def ssp_section4_file(stt_user, stt):
+    """Fixture for ADS.E2J.NDM4.MS24."""
+    return util.create_test_datafile('ADS.E2J.NDM4.MS24', stt_user, stt, "SSP Stratum Data")
+
+@pytest.mark.django_db()
+def test_parse_ssp_section4_file(ssp_section4_file):
+    """Test parsing SSP Section 4 submission."""
+    parse.parse_datafile(ssp_section4_file)
+
+    m7_objs = SSP_M7.objects.all().order_by('FAMILIES_MONTH')
+
+    assert m7_objs.count() == 12
+
+    first = m7_objs.first()
+    assert first.RPT_MONTH_YEAR == 201810
+    assert first.FAMILIES_MONTH == 748
+
+@pytest.fixture
+def ssp_section2_file(stt_user, stt):
+    """Fixture for ADS.E2J.FTP4.TS06."""
+    return util.create_test_datafile('ADS.E2J.NDM2.MS24', stt_user, stt, 'SSP Closed Case Data')
+
+@pytest.mark.django_db()
+def test_parse_ssp_section2_file(ssp_section2_file):
+    """Test parsing SSP Section 2 submission."""
+    parse.parse_datafile(ssp_section2_file)
+
+    m4_objs = SSP_M4.objects.all().order_by('id')
+    m5_objs = SSP_M5.objects.all().order_by('AMOUNT_EARNED_INCOME')
+
+    assert SSP_M4.objects.all().count() == 2205
+    assert SSP_M5.objects.all().count() == 6736
+
+    m4 = m4_objs.first()
+    assert m4.DISPOSITION == 1
+    assert m4.REC_SUB_CC == 3
+
+    m5 = m5_objs.first()
+    assert m5.FAMILY_AFFILIATION == 1
+    assert m5.AMOUNT_EARNED_INCOME == '0000'
+    assert m5.AMOUNT_UNEARNED_INCOME == '0000'
+
+@pytest.fixture
+def ssp_section3_file(stt_user, stt):
+    """Fixture for ADS.E2J.FTP3.TS06."""
+    return util.create_test_datafile('ADS.E2J.NDM3.MS24', stt_user, stt, "SSP Aggregate Data")
+
+@pytest.mark.django_db()
+def test_parse_ssp_section3_file(ssp_section3_file):
+    """Test parsing TANF Section 3 submission."""
+    parse.parse_datafile(ssp_section3_file)
+
+    m6_objs = SSP_M6.objects.all().order_by('RPT_MONTH_YEAR')
+    assert m6_objs.count() == 3
+
+    parser_errors = ParserError.objects.filter(file=ssp_section3_file)
+    assert parser_errors.count() == 0
+
+    first = m6_objs.first()
+    second = m6_objs[1]
+    third = m6_objs[2]
+
+    assert first.RPT_MONTH_YEAR == 201810
+    assert second.RPT_MONTH_YEAR == 201811
+    assert third.RPT_MONTH_YEAR == 201812
+
+    assert first.SSPMOE_FAMILIES == 15869
+    assert second.SSPMOE_FAMILIES == 16008
+    assert third.SSPMOE_FAMILIES == 15956
+
+    assert first.NUM_RECIPIENTS == 51355
+    assert second.NUM_RECIPIENTS == 51696
+    assert third.NUM_RECIPIENTS == 51348
+
 @pytest.fixture
 def tribal_section_1_file(stt_user, stt):
     """Fixture for ADS.E2J.FTP4.TS06."""
@@ -954,36 +1028,3 @@ def test_parse_tribal_section_1_inconsistency_file(tribal_section_1_inconsistenc
 
     assert parser_errors.first().error_message == "Tribe Code (142) inconsistency with Program Type (TAN) " + \
         "and FIPS Code (01)."
-
-@pytest.fixture
-def ssp_section3_file(stt_user, stt):
-    """Fixture for ADS.E2J.FTP3.TS06."""
-    return util.create_test_datafile('ADS.E2J.NDM3.MS24', stt_user, stt, "SSP Aggregate Data")
-
-
-@pytest.mark.django_db()
-def test_parse_ssp_section3_file(ssp_section3_file):
-    """Test parsing TANF Section 3 submission."""
-    parse.parse_datafile(ssp_section3_file)
-
-    m6_objs = SSP_M6.objects.all().order_by('RPT_MONTH_YEAR')
-    assert m6_objs.count() == 3
-
-    parser_errors = ParserError.objects.filter(file=ssp_section3_file)
-    assert parser_errors.count() == 0
-
-    first = m6_objs.first()
-    second = m6_objs[1]
-    third = m6_objs[2]
-
-    assert first.RPT_MONTH_YEAR == 201810
-    assert second.RPT_MONTH_YEAR == 201811
-    assert third.RPT_MONTH_YEAR == 201812
-
-    assert first.SSPMOE_FAMILIES == 15869
-    assert second.SSPMOE_FAMILIES == 16008
-    assert third.SSPMOE_FAMILIES == 15956
-
-    assert first.NUM_RECIPIENTS == 51355
-    assert second.NUM_RECIPIENTS == 51696
-    assert third.NUM_RECIPIENTS == 51348
