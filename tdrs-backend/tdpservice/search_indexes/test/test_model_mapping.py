@@ -803,7 +803,7 @@ def test_can_create_and_index_tribal_tanf_t4_submission(test_datafile):
     """Tribal TANF T4 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = models.tanf.TANF_T4()
+    submission = models.tribal.Tribal_TANF_T4()
     submission.datafile = test_datafile
     submission.RecordType = record_num
     submission.RPT_MONTH_YEAR = 1
@@ -836,7 +836,7 @@ def test_can_create_and_index_tribal_tanf_t5_submission(test_datafile):
     """Tribal TANF T5 submissions can be created and mapped."""
     record_num = fake.uuid4()
 
-    submission = models.tanf.TANF_T5()
+    submission = models.tribal.Tribal_TANF_T5()
     submission.datafile = test_datafile
     submission.RecordType = record_num
     submission.RPT_MONTH_YEAR = 1

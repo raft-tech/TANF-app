@@ -185,8 +185,9 @@ class Tribal_TANF_T3DataSubmissionDocument(DocumentBase, Document):
             'OTHER_UNEARNED_INCOME',
         ]
 
+@registry.register_document
 class Tribal_TANF_T4DataSubmissionDocument(DocumentBase, Document):
-    """Elastic search model mapping for a parsed TANF T4 data file."""
+    """Elastic search model mapping for a parsed Tribal TANF T4 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
@@ -206,7 +207,7 @@ class Tribal_TANF_T4DataSubmissionDocument(DocumentBase, Document):
             'RPT_MONTH_YEAR',
             'CASE_NUMBER',
             'STRATUM',
-            'ZIP_CODE'
+            'ZIP_CODE',
             'DISPOSITION',
             'CLOSURE_REASON',
             'REC_SUB_HOUSING',
