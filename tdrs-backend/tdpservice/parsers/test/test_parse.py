@@ -911,6 +911,7 @@ def test_parse_tanf_section4_file(tanf_section4_file):
     assert first.FAMILIES_MONTH == 274
     assert sixth.FAMILIES_MONTH == 499
 
+@pytest.fixture
 def ssp_section4_file(stt_user, stt):
     """Fixture for ADS.E2J.NDM4.MS24."""
     return util.create_test_datafile('ADS.E2J.NDM4.MS24', stt_user, stt, "SSP Stratum Data")
