@@ -1,4 +1,4 @@
-"""Schema for Tribal TANF T1 record types."""
+"""Schema for Tribal TANF T4 record types."""
 
 from ...util import SchemaManager
 from ...fields import Field

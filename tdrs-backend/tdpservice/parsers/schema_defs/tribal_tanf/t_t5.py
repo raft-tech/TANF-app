@@ -1,4 +1,4 @@
-"""Schema for HEADER row of all submission types."""
+"""Schema for Tribal TANF T5 row of all submission types."""
 
 
 from ...util import SchemaManager
