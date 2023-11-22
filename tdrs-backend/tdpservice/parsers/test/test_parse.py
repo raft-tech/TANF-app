@@ -1009,4 +1009,3 @@ def test_parse_tribal_section_2_file(tribal_section_2_file):
 
     assert t_t4.CLOSURE_REASON == 8
     assert t_t5.COUNTABLE_MONTH_FED_TIME == '  8'
-
