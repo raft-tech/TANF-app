@@ -16,7 +16,8 @@ echo "Starting tunnel..."
 cf ssh -N -L 5432:$connection_str $app &
 echo "Done."
 
-cp ./tdrs-backend/.env ./tdrs-backend/.env.ci
+touch ./tdrs-backend/.env.ci
+# cp ./tdrs-backend/.env ./tdrs-backend/.env.ci
 
 echo "DB_NAME=$(echo $creds | jq -r '.name')" >> ./tdrs-backend/.env.ci # usually needs to be a different value
 # echo "DB_HOST=$(echo $creds | jq -r '.host')" >> ./tdrs-backend/.env.ci
