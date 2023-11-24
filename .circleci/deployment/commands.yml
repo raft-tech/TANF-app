@@ -83,6 +83,7 @@
         default: tanf-dev
         type: string
     steps:
+      - docker-check
       - get-app-deploy-strategy:
           appname: <<parameters.backend-appname>>
       - run:

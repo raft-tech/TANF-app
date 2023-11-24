@@ -5,6 +5,12 @@
           name: Ensure docker-compose exists, otherwise install it.
           command: ./scripts/docker-compose-check.sh
 
+  docker-check:
+    steps:
+      - run:
+          name: Ensure docker exists, otherwise install it.
+          command: ./scripts/docker-check.sh
+
   docker-compose-up-backend:
     steps:
       - run:
