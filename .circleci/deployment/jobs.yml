@@ -7,6 +7,7 @@
     working_directory: ~/tdp-deploy
     steps:
       # - setup_remote_docker
+      - checkout
       - run:
           name: Apply database migrations
           command: |
