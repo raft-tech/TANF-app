@@ -16,8 +16,7 @@ echo "Starting tunnel..."
 cf ssh -N -L 5432:$connection_str $app &
 echo "Done."
 
-touch ./tdrs-backend/.env.ci
-# cp ./tdrs-backend/.env ./tdrs-backend/.env.ci
+cp ./tdrs-backend/.env.example ./tdrs-backend/.env.ci
 
 echo "DB_NAME=$(echo $creds | jq -r '.name')" >> ./tdrs-backend/.env.ci # usually needs to be a different value
 # echo "DB_HOST=$(echo $creds | jq -r '.host')" >> ./tdrs-backend/.env.ci
@@ -29,6 +28,10 @@ echo "DB_PASSWORD=$(echo $creds | jq -r '.password')" >> ./tdrs-backend/.env.ci
 echo "Starting application..."
 # docker-compose -f ./tdrs-backend/docker-compose.ci.yml --env-file ./tdrs-backend/.env.ci up -d
 # some sort of `docker run` would likely be preferable here
+# cd ./tdrs-backend
+# docker build -t web:ci .
+# docker run -itd --name web --add-host host.docker.internal:host-gateway web:ci
+# docker exec --env-file ./.env.ci web python manage.py migrate
 echo "Done."
 
 echo "Applying migrations..."
