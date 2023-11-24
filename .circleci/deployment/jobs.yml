@@ -19,7 +19,6 @@
         type: string
     working_directory: ~/tdp-deploy
     steps:
-      - run-migrations
       - deploy-cloud-dot-gov:
           backend-appname: tdp-backend-<< parameters.target_env >>
           frontend-appname: tdp-frontend-<< parameters.target_env >>
