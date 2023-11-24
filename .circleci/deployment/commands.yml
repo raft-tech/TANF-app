@@ -1,16 +1,4 @@
 # commands:
-  run-migrations:
-    executor: large-machine-executor
-    # parameters:
-    #   target_env:
-    #     type: string
-    working_directory: ~/tdp-deploy
-    steps:
-      # - setup_remote_docker
-      - run:
-          name: Apply database migrations
-          command: |
-            bash ./scripts/apply-remote-migrations.sh
 
   deploy-cloud-dot-gov:
     parameters:
@@ -46,7 +34,6 @@
           cf-org: <<parameters.cf-org>>
           cf-space: <<parameters.cf-space>>
           cf-username: <<parameters.cf-username>>
-      - run-migrations
       - deploy-backend:
           backend-appname: <<parameters.backend-appname>>
           frontend-appname: <<parameters.frontend-appname>>
