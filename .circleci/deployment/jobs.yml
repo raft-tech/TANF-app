@@ -9,6 +9,7 @@
       # - setup_remote_docker
       - checkout
       - cf-check
+      - login-cloud-dot-gov
       - run:
           name: Apply database migrations
           command: |
