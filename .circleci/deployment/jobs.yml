@@ -8,6 +8,7 @@
     steps:
       # - setup_remote_docker
       - checkout
+      - cf-check
       - run:
           name: Apply database migrations
           command: |
