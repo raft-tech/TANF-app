@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd ./tdrs-backend
+
 app=tdp-backend-raft
 guid=$(cf app --guid $app)
 
@@ -16,29 +18,32 @@ echo "Starting tunnel..."
 cf ssh -N -L 5432:$connection_str $app &
 echo "Done."
 
-cp ./tdrs-backend/.env.example ./tdrs-backend/.env.ci
+cp ./.env.example ./.env.ci
 
-echo "DB_NAME=$(echo $creds | jq -r '.name')" >> ./tdrs-backend/.env.ci # usually needs to be a different value
-# echo "DB_HOST=$(echo $creds | jq -r '.host')" >> ./tdrs-backend/.env.ci
-echo "DB_PORT=$(echo $creds | jq -r '.port')" >> ./tdrs-backend/.env.ci
-echo "DB_USER=$(echo $creds | jq -r '.username')" >> ./tdrs-backend/.env.ci
-echo "DB_PASSWORD=$(echo $creds | jq -r '.password')" >> ./tdrs-backend/.env.ci
+echo "DB_NAME=$(echo $creds | jq -r '.name')" >> ./.env.ci # usually needs to be a different value
+echo "DB_HOST=host.docker.internal" >> ./.env.ci
+echo "DB_PORT=$(echo $creds | jq -r '.port')" >> ./.env.ci
+echo "DB_USER=$(echo $creds | jq -r '.username')" >> ./.env.ci
+echo "DB_PASSWORD=$(echo $creds | jq -r '.password')" >> ./.env.ci
 
 
-echo "Starting application..."
+echo "Starting container..."
 # docker-compose -f ./tdrs-backend/docker-compose.ci.yml --env-file ./tdrs-backend/.env.ci up -d
 # some sort of `docker run` would likely be preferable here
-# cd ./tdrs-backend
-# docker build -t web:ci .
-# docker run -itd --name web --add-host host.docker.internal:host-gateway web:ci
-# docker exec --env-file ./.env.ci web python manage.py migrate
+docker build -t web:ci .
+docker run -itd --name web --add-host=host.docker.internal:host-gateway web:ci
 echo "Done."
 
 echo "Applying migrations..."
 # docker-compose -f ./tdrs-backend/docker-compose.ci.yml exec web python manage.py migrate
+docker exec --env-file ./.env.ci web python manage.py migrate
 echo "Done."
 
 echo "Cleaning up..."
 # docker-compose -f ./tdrs-backend/docker-compose.ci.yml down -v
-# kill script pid (?)
+docker stop web
+docker rm web
+kill $!
+rm ./.env.ci
+cd ..
 echo "Done."
