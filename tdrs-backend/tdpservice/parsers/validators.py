@@ -206,7 +206,9 @@ def isStringLargerThan(val):
 
 def _is_empty(value, start, end):
     end = end if end else len(str(value))
-    return value_is_empty(str(value)[start:end], end-start)
+    vlen = end - start
+    subv = str(value)[start:end]
+    return value_is_empty(subv, vlen) or len(subv) < vlen
 
 
 def notEmpty(start=0, end=None):
