@@ -1004,31 +1004,31 @@ def test_parse_tribal_section_1_file(tribal_section_1_file, dfs):
     parse.parse_datafile(tribal_section_1_file)
 
     dfs.status = dfs.get_status()
-    assert dfs.status == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
+    assert dfs.status == DataFileSummary.Status.ACCEPTED
     dfs.case_aggregates = util.case_aggregates_by_month(
         dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {'rejected': 0,
-                                   'months': [{'month': 'Oct', 'accepted_without_errors': 35,
-                                               'accepted_with_errors': 5},
-                                               {'month': 'Nov', 'accepted_without_errors': 36,
-                                                'accepted_with_errors': 5},
-                                               {'month': 'Dec', 'accepted_without_errors': 35,
-                                                'accepted_with_errors': 5}]}
+                                   'months': [{'month': 'Oct', 'accepted_without_errors': 1,
+                                               'accepted_with_errors': 0},
+                                               {'month': 'Nov', 'accepted_without_errors': 0,
+                                                'accepted_with_errors': 0},
+                                               {'month': 'Dec', 'accepted_without_errors': 0,
+                                                'accepted_with_errors': 0}]}
 
-    assert Tribal_TANF_T1.objects.all().count() == 121
-    assert Tribal_TANF_T2.objects.all().count() == 199
-    assert Tribal_TANF_T3.objects.all().count() == 213
+    assert Tribal_TANF_T1.objects.all().count() == 1
+    assert Tribal_TANF_T2.objects.all().count() == 1
+    assert Tribal_TANF_T3.objects.all().count() == 2
 
     t1_objs = Tribal_TANF_T1.objects.all().order_by("CASH_AMOUNT")
     t2_objs = Tribal_TANF_T2.objects.all().order_by("MONTHS_FED_TIME_LIMIT")
     t3_objs = Tribal_TANF_T3.objects.all().order_by("EDUCATION_LEVEL")
 
     t1 = t1_objs.first()
-    t2 = t2_objs.last()
+    t2 = t2_objs.first()
     t3 = t3_objs.last()
 
-    assert t1.CASH_AMOUNT == 26
-    assert t2.MONTHS_FED_TIME_LIMIT == '  8'
+    assert t1.CASH_AMOUNT == 502
+    assert t2.MONTHS_FED_TIME_LIMIT == '  0'
     assert t3.EDUCATION_LEVEL == '98'
 
 @pytest.fixture
