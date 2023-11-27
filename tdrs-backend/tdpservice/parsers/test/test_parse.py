@@ -1008,12 +1008,10 @@ def test_parse_tribal_section_1_file(tribal_section_1_file, dfs):
     dfs.case_aggregates = util.case_aggregates_by_month(
         dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {'rejected': 0,
-                                   'months': [{'month': 'Oct', 'accepted_without_errors': 1,
-                                               'accepted_with_errors': 0},
-                                               {'month': 'Nov', 'accepted_without_errors': 0,
-                                                'accepted_with_errors': 0},
-                                               {'month': 'Dec', 'accepted_without_errors': 0,
-                                                'accepted_with_errors': 0}]}
+                                   'months': [{'month': 'Oct', 'accepted_without_errors': 1, 'accepted_with_errors': 0},
+                                              {'month': 'Nov', 'accepted_without_errors': 0, 'accepted_with_errors': 0},
+                                              {'month': 'Dec', 'accepted_without_errors': 0, 'accepted_with_errors': 0}
+                                              ]}
 
     assert Tribal_TANF_T1.objects.all().count() == 1
     assert Tribal_TANF_T2.objects.all().count() == 1
