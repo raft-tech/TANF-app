@@ -1,0 +1,44 @@
+# Base Docker compose for all environments
+version: "3.4"
+
+services:
+  web:
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - DB_HOST
+      - DB_PORT
+      - DB_USER
+      - DB_NAME
+      - DB_PASSWORD
+      - CLAMAV_NEEDED=False
+      - AV_SCAN_URL=http://clamav-rest:9000/scan
+      - DJANGO_CONFIGURATION=${DJANGO_CONFIGURATION:-Local}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-tdp-dev-insecure}
+      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-tdpservice.settings.local}
+      - LOCALSTACK_HOST=localstack
+      - DJANGO_SU_NAME
+      - JWT_CERT_TEST
+      - JWT_KEY
+      - USE_LOCALSTACK
+      - LOGGING_LEVEL
+      - AMS_CLIENT_ID
+      - AMS_CLIENT_SECRET
+      - AMS_CONFIGURATION_ENDPOINT
+      - ACFTITAN_HOST
+      - ACFTITAN_KEY
+      - ACFTITAN_USERNAME
+      - REDIS_URI=redis://redis-server:6379
+      - REDIS_SERVER_LOCAL=TRUE
+      - ACFTITAN_SFTP_PYTEST
+      - SENDGRID_API_KEY
+    volumes:
+      - .:/tdpapp
+    image: tdp
+    build: .
+    command: bash -c "gunicorn -c gunicorn_dev_cfg.py"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "5555:5555"
