@@ -1,5 +1,4 @@
 # commands:
-
   deploy-cloud-dot-gov:
     parameters:
       environment:

@@ -14,7 +14,6 @@
                 - develop
                 - main
                 - master
-      # - run-migrations
       - deploy-dev:
           target_env: << pipeline.parameters.target_env >>
           requires:
