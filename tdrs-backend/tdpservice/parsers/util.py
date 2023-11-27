@@ -180,9 +180,9 @@ def get_schema_options(program, section, query=None, model=None, model_name=None
             'A': {
                 'section': DataFile.Section.TRIBAL_ACTIVE_CASE_DATA,
                 'models': {
-                    'T1': schema_defs.tribal_tanf.t_t1,
-                    'T2': schema_defs.tribal_tanf.t_t2,
-                    'T3': schema_defs.tribal_tanf.t_t3,
+                    'T1': schema_defs.tribal_tanf.t1,
+                    'T2': schema_defs.tribal_tanf.t2,
+                    'T3': schema_defs.tribal_tanf.t3,
                 }
             },
         },
@@ -247,7 +247,7 @@ def get_prog_from_section(str_section):
     if str_section.startswith('SSP'):
         return 'SSP'
     elif str_section.startswith('Tribal'):
-        return 'TAN'  # problematic, do we need to infer tribal entirely from tribe/fips code?
+        return 'Tribal TAN'
     else:
         return 'TAN'
 

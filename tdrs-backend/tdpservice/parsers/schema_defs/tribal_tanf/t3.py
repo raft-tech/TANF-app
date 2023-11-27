@@ -573,4 +573,4 @@ child_two = RowSchema(
     ],
 )
 
-t_t3 = SchemaManager(schemas=[child_one, child_two])
+t3 = SchemaManager(schemas=[child_one, child_two])
