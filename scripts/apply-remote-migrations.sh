@@ -29,23 +29,21 @@ echo "DB_PASSWORD=$(echo $creds | jq -r '.password')" >> ./.env.ci
 
 
 echo "Starting container..."
-# docker-compose -f ./tdrs-backend/docker-compose.ci.yml --env-file ./tdrs-backend/.env.ci up -d
-docker-compose -f docker-compose.ci.yml --env-file .env.ci up -d
+# docker-compose -f docker-compose.ci.yml --env-file .env.ci up -d
 # some sort of `docker run` would likely be preferable here
-# docker build -t web:ci .
-# docker run -itd --name web --add-host=host.docker.internal:host-gateway web:ci
+docker build -t web:ci .
+docker run -itd --name web --add-host=host.docker.internal:host-gateway web:ci
 echo "Done."
 
 echo "Applying migrations..."
-# docker-compose -f ./tdrs-backend/docker-compose.ci.yml exec web python manage.py migrate
-docker-compose -f docker-compose.ci.yml exec web python manage.py migrate
-# docker exec --env-file ./.env.ci web python manage.py migrate
+# docker-compose -f docker-compose.ci.yml exec web python manage.py migrate
+docker exec --env-file ./.env.ci web python manage.py migrate
 echo "Done."
 
 echo "Cleaning up..."
-docker-compose -f docker-compose.ci.yml down -v
-# docker stop web
-# docker rm web
+# docker-compose -f docker-compose.ci.yml down -v
+docker stop web
+docker rm web
 kill $!
 # rm ./.env.ci
 cd ..
