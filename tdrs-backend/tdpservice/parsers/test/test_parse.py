@@ -993,25 +993,42 @@ def tribal_section_1_file(stt_user, stt):
     return util.create_test_datafile('ADS.E2J.FTP1.TS142', stt_user, stt, "Tribal Active Case Data")
 
 @pytest.mark.django_db()
-def test_parse_tribal_section_1_file(tribal_section_1_file):
+def test_parse_tribal_section_1_file(tribal_section_1_file, dfs):
     """Test parsing Tribal TANF Section 1 submission."""
+    tribal_section_1_file.year = 2022
+    tribal_section_1_file.quarter = 'Q1'
+    tribal_section_1_file.save()
+
+    dfs.datafile = tribal_section_1_file
+    dfs.save()
+
     parse.parse_datafile(tribal_section_1_file)
 
-    assert Tribal_TANF_T1.objects.all().count() == 121
-    assert Tribal_TANF_T2.objects.all().count() == 199
-    assert Tribal_TANF_T3.objects.all().count() == 213
+    dfs.status = dfs.get_status()
+    assert dfs.status == DataFileSummary.Status.ACCEPTED
+    dfs.case_aggregates = util.case_aggregates_by_month(
+        dfs.datafile, dfs.status)
+    assert dfs.case_aggregates == {'rejected': 0,
+                                   'months': [{'month': 'Oct', 'accepted_without_errors': 1, 'accepted_with_errors': 0},
+                                              {'month': 'Nov', 'accepted_without_errors': 0, 'accepted_with_errors': 0},
+                                              {'month': 'Dec', 'accepted_without_errors': 0, 'accepted_with_errors': 0}
+                                              ]}
 
-    t_t1_objs = Tribal_TANF_T1.objects.all().order_by("CASH_AMOUNT")
-    t_t2_objs = Tribal_TANF_T2.objects.all().order_by("MONTHS_FED_TIME_LIMIT")
-    t_t3_objs = Tribal_TANF_T3.objects.all().order_by("EDUCATION_LEVEL")
+    assert Tribal_TANF_T1.objects.all().count() == 1
+    assert Tribal_TANF_T2.objects.all().count() == 1
+    assert Tribal_TANF_T3.objects.all().count() == 2
 
-    t_t1 = t_t1_objs.first()
-    t_t2 = t_t2_objs.last()
-    t_t3 = t_t3_objs.last()
+    t1_objs = Tribal_TANF_T1.objects.all().order_by("CASH_AMOUNT")
+    t2_objs = Tribal_TANF_T2.objects.all().order_by("MONTHS_FED_TIME_LIMIT")
+    t3_objs = Tribal_TANF_T3.objects.all().order_by("EDUCATION_LEVEL")
 
-    assert t_t1.CASH_AMOUNT == 26
-    assert t_t2.MONTHS_FED_TIME_LIMIT == '  8'
-    assert t_t3.EDUCATION_LEVEL == '98'
+    t1 = t1_objs.first()
+    t2 = t2_objs.first()
+    t3 = t3_objs.last()
+
+    assert t1.CASH_AMOUNT == 502
+    assert t2.MONTHS_FED_TIME_LIMIT == '  0'
+    assert t3.EDUCATION_LEVEL == '98'
 
 @pytest.fixture
 def tribal_section_1_inconsistency_file(stt_user, stt):
@@ -1044,11 +1061,11 @@ def test_parse_tribal_section_2_file(tribal_section_2_file):
     assert Tribal_TANF_T4.objects.all().count() == 6
     assert Tribal_TANF_T5.objects.all().count() == 13
 
-    t_t4_objs = Tribal_TANF_T4.objects.all().order_by("CLOSURE_REASON")
-    t_t5_objs = Tribal_TANF_T5.objects.all().order_by("COUNTABLE_MONTH_FED_TIME")
+    t4_objs = Tribal_TANF_T4.objects.all().order_by("CLOSURE_REASON")
+    t5_objs = Tribal_TANF_T5.objects.all().order_by("COUNTABLE_MONTH_FED_TIME")
 
-    t_t4 = t_t4_objs.first()
-    t_t5 = t_t5_objs.last()
+    t4 = t4_objs.first()
+    t5 = t5_objs.last()
 
-    assert t_t4.CLOSURE_REASON == 8
-    assert t_t5.COUNTABLE_MONTH_FED_TIME == '  8'
+    assert t4.CLOSURE_REASON == 8
+    assert t5.COUNTABLE_MONTH_FED_TIME == '  8'

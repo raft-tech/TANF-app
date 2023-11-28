@@ -1,11 +1,11 @@
-from .t_t1 import t_t1
-from .t_t2 import t_t2
-from .t_t3 import t_t3
-from .t_t4 import t_t4
-from .t_t5 import t_t5
+from .t1 import t1
+from .t2 import t2
+from .t3 import t3
+from .t4 import t4
+from .t5 import t5
 
-t_t1 = t_t1
-t_t2 = t_t2
-t_t3 = t_t3
-t_t4 = t_t4
-t_t5 = t_t5
+t1 = t1
+t2 = t2
+t3 = t3
+t4 = t4
+t5 = t5

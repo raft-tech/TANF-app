@@ -9,7 +9,7 @@ from ... import validators
 from tdpservice.search_indexes.models.tribal import Tribal_TANF_T5
 
 
-t_t5 = SchemaManager(
+t5 = SchemaManager(
     schemas=[
         RowSchema(
             model=Tribal_TANF_T5,
