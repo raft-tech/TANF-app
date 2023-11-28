@@ -2,17 +2,16 @@
 
 cd ./tdrs-backend
 
-app=tdp-backend-raft
+app=${1}
 guid=$(cf app --guid $app)
 
-echo $guid
+# echo $guid
 
 # requires `jq` - https://jqlang.github.io/jq/download/
-creds=$(cf curl /v2/apps/$guid/env | jq -r '.system_env_json.VCAP_SERVICES."aws-rds"[0].credentials')
-connection_str=$(echo $creds | jq -r '[.host, .port]' | jq -r 'join(":")')
+app_vars=$(cf curl /v2/apps/$guid/env)
 
-echo $connection_str
-# echo $creds
+db_creds=$(cf curl $app_vars | jq -r '.system_env_json.VCAP_SERVICES."aws-rds"[0].credentials')
+connection_str=$(echo $creds | jq -r '[.host, .port]' | jq -r 'join(":")')
 
 echo "Starting tunnel..."
 cf ssh -N -L 5432:$connection_str $app &
@@ -21,30 +20,27 @@ echo "Done."
 
 cp ./.env.example ./.env.ci
 
-echo "DB_NAME=$(echo $creds | jq -r '.name')" >> ./.env.ci # usually needs to be a different valuec
-echo "DB_HOST=host.docker.internal" >> ./.env.ci
-echo "DB_PORT=$(echo $creds | jq -r '.port')" >> ./.env.ci
-echo "DB_USER=$(echo $creds | jq -r '.username')" >> ./.env.ci
-echo "DB_PASSWORD=$(echo $creds | jq -r '.password')" >> ./.env.ci
+vcap_services=$(echo $app_vars | jq -r '.system_env_json.VCAP_SERVICES')
+vcap_application=$(echo $app_vars | jq -rc '.application_env_json.VCAP_APPLICATION')
+
+# replace host env var
+fixed_vcap_services=$(echo $vcap_services | jq -rc '."aws-rds"[0].credentials.host="host.docker.internal"')
+
+echo "VCAP_SERVICES=$fixed_vcap_services" >> .env.ci
+echo "VCAP_APPLICATION=$vcap_application" >> .env.ci
 
 
 echo "Starting container..."
 docker-compose -f docker-compose.ci.yml --env-file .env.ci up -d
-# some sort of `docker run` would likely be preferable here
-# docker build -t web:ci .
-# docker run -itd --name web --add-host=host.docker.internal:host-gateway web:ci
 echo "Done."
 
 echo "Applying migrations..."
 docker-compose -f docker-compose.ci.yml exec web python manage.py migrate
-# docker exec --env-file ./.env.ci web python manage.py migrate
 echo "Done."
 
 echo "Cleaning up..."
 docker-compose -f docker-compose.ci.yml down -v
-# docker stop web
-# docker rm web
 kill $!
-# rm ./.env.ci
+rm ./.env.ci
 cd ..
 echo "Done."

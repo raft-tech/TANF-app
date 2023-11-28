@@ -5,16 +5,18 @@ services:
   web:
     restart: always
     environment:
+      - VCAP_APPLICATION
+      - VCAP_SERVICES
       - DB_HOST
       - DB_PORT
       - DB_USER
       - DB_NAME
       - DB_PASSWORD
+      - DJANGO_CONFIGURATION=Development
+      - DJANGO_SETTINGS_MODULE=tdpservice.settings.cloudgov
       - CLAMAV_NEEDED=False
       - AV_SCAN_URL=http://clamav-rest:9000/scan
-      - DJANGO_CONFIGURATION=${DJANGO_CONFIGURATION:-Local}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-tdp-dev-insecure}
-      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-tdpservice.settings.local}
       - LOCALSTACK_HOST=localstack
       - DJANGO_SU_NAME
       - JWT_CERT_TEST
@@ -35,7 +37,7 @@ services:
       - .:/tdpapp
     image: tdp
     build: .
-    command: bash -c "gunicorn -c gunicorn_dev_cfg.py"
+    command: bash -c "gunicorn -c gunicorn_prod_cfg.py"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
