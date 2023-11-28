@@ -89,7 +89,7 @@
       - run:
           name: Apply database migrations
           command: |
-            bash ./scripts/apply-remote-migrations.sh
+            bash ./scripts/apply-remote-migrations.sh <<parameters.backend-appname>>
       - run:
           name: Deploy backend application
           command: |
