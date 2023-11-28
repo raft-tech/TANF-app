@@ -29,14 +29,14 @@ m4 = SchemaManager(
                 Field(
                     item="3",
                     name="RPT_MONTH_YEAR",
-                    friendly_name="report month year",
+                    friendly_name="report month and year",
                     type="number",
                     startIndex=2,
                     endIndex=8,
                     required=True,
                     validators=[
                         validators.dateYearIsLargerThan(1998),
-                        validators.dateMonthIsValid(),
+                        validators.dateMonthIsValid()
                     ],
                 ),
                 Field(
@@ -47,7 +47,9 @@ m4 = SchemaManager(
                     startIndex=8,
                     endIndex=19,
                     required=True,
-                    validators=[validators.isAlphaNumeric()],
+                    validators=[
+                        validators.isAlphaNumeric()
+                    ],
                 ),
                 Field(
                     item="2",
@@ -57,7 +59,9 @@ m4 = SchemaManager(
                     startIndex=19,
                     endIndex=22,
                     required=True,
-                    validators=[validators.isInStringRange(0, 999)],
+                    validators=[
+                        validators.isInStringRange(0, 999)
+                    ],
                 ),
                 Field(
                     item="4",
@@ -67,7 +71,9 @@ m4 = SchemaManager(
                     startIndex=22,
                     endIndex=24,
                     required=False,
-                    validators=[validators.isInStringRange(0, 99)],
+                    validators=[
+                        validators.isInStringRange(0, 99)
+                    ],
                 ),
                 Field(
                     item="6",
@@ -77,7 +83,9 @@ m4 = SchemaManager(
                     startIndex=24,
                     endIndex=29,
                     required=True,
-                    validators=[validators.isInStringRange(0, 99999)],
+                    validators=[
+                        validators.isInStringRange(0, 99999)
+                    ],
                 ),
                 Field(
                     item="7",
@@ -87,7 +95,9 @@ m4 = SchemaManager(
                     startIndex=29,
                     endIndex=30,
                     required=True,
-                    validators=[validators.matches(1)],
+                    validators=[
+                        validators.matches(1)
+                    ],
                 ),
                 Field(
                     item="8",
@@ -99,7 +109,8 @@ m4 = SchemaManager(
                     required=True,
                     validators=[
                         validators.or_validators(
-                            validators.isInStringRange(1, 19), validators.matches("99")
+                            validators.isInStringRange(1, 19),
+                            validators.matches("99")
                         )
                     ],
                 ),
@@ -111,7 +122,9 @@ m4 = SchemaManager(
                     startIndex=32,
                     endIndex=33,
                     required=True,
-                    validators=[validators.isInLimits(1, 2)],
+                    validators=[
+                        validators.isInLimits(1, 2)
+                    ],
                 ),
                 Field(
                     item="10`",
@@ -121,7 +134,9 @@ m4 = SchemaManager(
                     startIndex=33,
                     endIndex=34,
                     required=True,
-                    validators=[validators.isInLimits(1, 2)],
+                    validators=[
+                        validators.isInLimits(1, 2)
+                    ],
                 ),
                 Field(
                     item="11",
@@ -131,7 +146,9 @@ m4 = SchemaManager(
                     startIndex=34,
                     endIndex=35,
                     required=True,
-                    validators=[validators.isInLimits(1, 2)],
+                    validators=[
+                        validators.isInLimits(1, 2)
+                    ],
                 ),
                 Field(
                     item="12",
@@ -141,7 +158,9 @@ m4 = SchemaManager(
                     startIndex=35,
                     endIndex=36,
                     required=True,
-                    validators=[validators.isInLimits(1, 2)],
+                    validators=[
+                        validators.isInLimits(1, 2)
+                    ],
                 ),
                 Field(
                     item="-1",

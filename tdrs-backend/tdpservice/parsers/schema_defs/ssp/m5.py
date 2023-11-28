@@ -114,7 +114,7 @@ m5 = SchemaManager(
                 Field(
                     item="3",
                     name="RPT_MONTH_YEAR",
-                    friendly_name="report month year",
+                    friendly_name="report month and year",
                     type="number",
                     startIndex=2,
                     endIndex=8,
@@ -132,7 +132,9 @@ m5 = SchemaManager(
                     startIndex=8,
                     endIndex=19,
                     required=True,
-                    validators=[validators.isAlphaNumeric()],
+                    validators=[
+                        validators.isAlphaNumeric()
+                    ],
                 ),
                 Field(
                     item="13",
@@ -142,7 +144,9 @@ m5 = SchemaManager(
                     startIndex=19,
                     endIndex=20,
                     required=True,
-                    validators=[validators.isInLimits(1, 5)],
+                    validators=[
+                        validators.isInLimits(1, 5)
+                    ],
                 ),
                 Field(
                     item="14",
@@ -166,7 +170,9 @@ m5 = SchemaManager(
                     startIndex=28,
                     endIndex=37,
                     required=True,
-                    validators=[validators.validateSSN()],
+                    validators=[
+                        validators.validateSSN()
+                    ],
                     is_encrypted=False,
                 ),
                 Field(
@@ -177,17 +183,21 @@ m5 = SchemaManager(
                     startIndex=37,
                     endIndex=38,
                     required=False,
-                    validators=[validators.validateRace()],
+                    validators=[
+                        validators.validateRace()
+                    ],
                 ),
                 Field(
                     item="16B",
                     name="RACE_AMER_INDIAN",
-                    friendly_name="race american indian",
+                    friendly_name="race american-indian",
                     type="number",
                     startIndex=38,
                     endIndex=39,
                     required=False,
-                    validators=[validators.validateRace()],
+                    validators=[
+                        validators.validateRace()
+                    ],
                 ),
                 Field(
                     item="16C",
@@ -197,7 +207,9 @@ m5 = SchemaManager(
                     startIndex=39,
                     endIndex=40,
                     required=False,
-                    validators=[validators.validateRace()],
+                    validators=[
+                        validators.validateRace()
+                    ],
                 ),
                 Field(
                     item="16D",
@@ -207,7 +219,9 @@ m5 = SchemaManager(
                     startIndex=40,
                     endIndex=41,
                     required=False,
-                    validators=[validators.validateRace()],
+                    validators=[
+                        validators.validateRace()
+                    ],
                 ),
                 Field(
                     item="16E",
@@ -217,7 +231,9 @@ m5 = SchemaManager(
                     startIndex=41,
                     endIndex=42,
                     required=False,
-                    validators=[validators.validateRace()],
+                    validators=[
+                        validators.validateRace()
+                    ],
                 ),
                 Field(
                     item="16F",
@@ -227,7 +243,9 @@ m5 = SchemaManager(
                     startIndex=42,
                     endIndex=43,
                     required=False,
-                    validators=[validators.validateRace()],
+                    validators=[
+                        validators.validateRace()
+                    ],
                 ),
                 Field(
                     item="17",
@@ -237,7 +255,9 @@ m5 = SchemaManager(
                     startIndex=43,
                     endIndex=44,
                     required=True,
-                    validators=[validators.isInLimits(0, 9)],
+                    validators=[
+                        validators.isInLimits(0, 9)
+                    ],
                 ),
                 Field(
                     item="18A",
@@ -247,7 +267,9 @@ m5 = SchemaManager(
                     startIndex=44,
                     endIndex=45,
                     required=True,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="18B",
@@ -257,7 +279,9 @@ m5 = SchemaManager(
                     startIndex=45,
                     endIndex=46,
                     required=False,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="18C",
@@ -267,27 +291,33 @@ m5 = SchemaManager(
                     startIndex=46,
                     endIndex=47,
                     required=False,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="18D",
                     name="REC_AID_AGED_BLIND",
-                    friendly_name="receives aid for aged blind",
+                    friendly_name="receives aid from the aid to the aged, blind, and disabled program",
                     type="number",
                     startIndex=47,
                     endIndex=48,
                     required=False,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="18E",
                     name="REC_SSI",
-                    friendly_name="receives social security insurance",
+                    friendly_name="receives social security income",
                     type="number",
                     startIndex=48,
                     endIndex=49,
                     required=True,
-                    validators=[validators.isInLimits(1, 2)],
+                    validators=[
+                        validators.isInLimits(1, 2)
+                    ],
                 ),
                 Field(
                     item="19",
@@ -297,7 +327,9 @@ m5 = SchemaManager(
                     startIndex=49,
                     endIndex=50,
                     required=False,
-                    validators=[validators.isInLimits(0, 5)],
+                    validators=[
+                        validators.isInLimits(0, 5)
+                    ],
                 ),
                 Field(
                     item="20",
@@ -307,7 +339,9 @@ m5 = SchemaManager(
                     startIndex=50,
                     endIndex=52,
                     required=True,
-                    validators=[validators.isInStringRange(1, 10)],
+                    validators=[
+                        validators.isInStringRange(1, 10)
+                    ],
                 ),
                 Field(
                     item="21",
@@ -317,7 +351,9 @@ m5 = SchemaManager(
                     startIndex=52,
                     endIndex=53,
                     required=False,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="22",
@@ -327,7 +363,9 @@ m5 = SchemaManager(
                     startIndex=53,
                     endIndex=54,
                     required=False,
-                    validators=[validators.isInLimits(0, 9)],
+                    validators=[
+                        validators.isInLimits(0, 9)
+                    ],
                 ),
                 Field(
                     item="23",
@@ -354,7 +392,8 @@ m5 = SchemaManager(
                     required=False,
                     validators=[
                         validators.or_validators(
-                            validators.isInLimits(0, 3), validators.matches(9)
+                            validators.isInLimits(0, 3),
+                            validators.matches(9)
                         )
                     ],
                 ),
@@ -366,7 +405,9 @@ m5 = SchemaManager(
                     startIndex=57,
                     endIndex=58,
                     required=False,
-                    validators=[validators.isInLimits(0, 3)],
+                    validators=[
+                        validators.isInLimits(0, 3)
+                    ],
                 ),
                 Field(
                     item="26",
@@ -376,7 +417,9 @@ m5 = SchemaManager(
                     startIndex=58,
                     endIndex=62,
                     required=False,
-                    validators=[validators.isInStringRange(0, 9999)],
+                    validators=[
+                        validators.isInStringRange(0, 9999)
+                    ],
                 ),
                 Field(
                     item="27",
@@ -386,7 +429,9 @@ m5 = SchemaManager(
                     startIndex=62,
                     endIndex=66,
                     required=False,
-                    validators=[validators.isInStringRange(0, 9999)],
+                    validators=[
+                        validators.isInStringRange(0, 9999)
+                    ],
                 ),
             ],
         )

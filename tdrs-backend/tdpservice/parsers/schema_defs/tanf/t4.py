@@ -30,7 +30,7 @@ t4 = SchemaManager(
                 Field(
                     item="4",
                     name="RPT_MONTH_YEAR",
-                    friendly_name="report month year",
+                    friendly_name="report month and year",
                     type="number",
                     startIndex=2,
                     endIndex=8,
@@ -48,7 +48,9 @@ t4 = SchemaManager(
                     startIndex=8,
                     endIndex=19,
                     required=True,
-                    validators=[validators.isAlphaNumeric()],
+                    validators=[
+                        validators.isAlphaNumeric()
+                    ],
                 ),
                 Field(
                     item="2",
@@ -58,7 +60,9 @@ t4 = SchemaManager(
                     startIndex=19,
                     endIndex=22,
                     required=True,
-                    validators=[validators.isInStringRange(1, 999)],
+                    validators=[
+                        validators.isInStringRange(1, 999)
+                    ],
                 ),
                 Field(
                     item="5",
@@ -68,7 +72,9 @@ t4 = SchemaManager(
                     startIndex=22,
                     endIndex=24,
                     required=True,
-                    validators=[validators.isInStringRange(0, 99)],
+                    validators=[
+                        validators.isInStringRange(0, 99)
+                    ],
                 ),
                 Field(
                     item="7",
@@ -88,7 +94,9 @@ t4 = SchemaManager(
                     startIndex=29,
                     endIndex=30,
                     required=True,
-                    validators=[validators.oneOf([1, 2])],
+                    validators=[
+                        validators.oneOf([1, 2])
+                    ],
                 ),
                 Field(
                     item="9",
@@ -100,7 +108,8 @@ t4 = SchemaManager(
                     required=True,
                     validators=[
                         validators.or_validators(
-                            validators.isInStringRange(1, 19), validators.matches("99")
+                            validators.isInStringRange(1, 19),
+                            validators.matches("99")
                         )
                     ],
                 ),
@@ -112,7 +121,9 @@ t4 = SchemaManager(
                     startIndex=32,
                     endIndex=33,
                     required=True,
-                    validators=[validators.isInLimits(1, 3)],
+                    validators=[
+                        validators.isInLimits(1, 3)
+                    ],
                 ),
                 Field(
                     item="11",
@@ -122,7 +133,9 @@ t4 = SchemaManager(
                     startIndex=33,
                     endIndex=34,
                     required=True,
-                    validators=[validators.isInLimits(1, 2)],
+                    validators=[
+                        validators.isInLimits(1, 2)
+                    ],
                 ),
                 Field(
                     item="12",
@@ -132,7 +145,9 @@ t4 = SchemaManager(
                     startIndex=34,
                     endIndex=35,
                     required=True,
-                    validators=[validators.isInLimits(1, 2)],
+                    validators=[
+                        validators.isInLimits(1, 2)
+                    ],
                 ),
                 Field(
                     item="13",
@@ -142,7 +157,9 @@ t4 = SchemaManager(
                     startIndex=35,
                     endIndex=36,
                     required=True,
-                    validators=[validators.isInLimits(1, 3)],
+                    validators=[
+                        validators.isInLimits(1, 3)
+                    ],
                 ),
                 Field(
                     item="14",

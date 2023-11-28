@@ -15,12 +15,24 @@ s1 = RowSchema(
         validators.hasLength(379),
     ],
     postparsing_validators=[
-        validators.sumIsEqual("NUM_APPLICATIONS", ["NUM_APPROVED", "NUM_DENIED"]),
         validators.sumIsEqual(
-            "NUM_FAMILIES", ["NUM_2_PARENTS", "NUM_1_PARENTS", "NUM_NO_PARENTS"]
+            "NUM_APPLICATIONS", [
+                "NUM_APPROVED",
+                "NUM_DENIED"
+            ]
         ),
         validators.sumIsEqual(
-            "NUM_RECIPIENTS", ["NUM_ADULT_RECIPIENTS", "NUM_CHILD_RECIPIENTS"]
+            "NUM_FAMILIES", [
+                "NUM_2_PARENTS",
+                "NUM_1_PARENTS",
+                "NUM_NO_PARENTS"
+            ]
+        ),
+        validators.sumIsEqual(
+            "NUM_RECIPIENTS", [
+                "NUM_ADULT_RECIPIENTS",
+                "NUM_CHILD_RECIPIENTS"
+            ]
         ),
     ],
     fields=[
@@ -51,7 +63,7 @@ s1 = RowSchema(
             calendar_quarter_to_rpt_month_year(0),
             item="4",
             name="RPT_MONTH_YEAR",
-            friendly_name="report month year",
+            friendly_name="report month and year",
             type="number",
             startIndex=2,
             endIndex=7,
@@ -69,7 +81,9 @@ s1 = RowSchema(
             startIndex=7,
             endIndex=15,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="5A",
@@ -79,7 +93,9 @@ s1 = RowSchema(
             startIndex=31,
             endIndex=39,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="6A",
@@ -89,7 +105,9 @@ s1 = RowSchema(
             startIndex=55,
             endIndex=63,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="7A",
@@ -99,17 +117,21 @@ s1 = RowSchema(
             startIndex=79,
             endIndex=91,
             required=True,
-            validators=[validators.isInLimits(0, 999999999999)],
+            validators=[
+                validators.isInLimits(0, 999999999999)
+            ],
         ),
         Field(
             item="8A",
             name="NUM_FAMILIES",
-            friendly_name="number of families",
+            friendly_name="total number of families",
             type="number",
             startIndex=115,
             endIndex=123,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="9A",
@@ -119,7 +141,9 @@ s1 = RowSchema(
             startIndex=139,
             endIndex=147,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="10A",
@@ -129,17 +153,21 @@ s1 = RowSchema(
             startIndex=163,
             endIndex=171,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="11A",
             name="NUM_NO_PARENTS",
-            friendly_name="total number of no parent families",
+            friendly_name="total number of no-parent families",
             type="number",
             startIndex=187,
             endIndex=195,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="12A",
@@ -149,7 +177,9 @@ s1 = RowSchema(
             startIndex=211,
             endIndex=219,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="13A",
@@ -159,7 +189,9 @@ s1 = RowSchema(
             startIndex=235,
             endIndex=243,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="14A",
@@ -169,7 +201,9 @@ s1 = RowSchema(
             startIndex=259,
             endIndex=267,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="15A",
@@ -179,7 +213,9 @@ s1 = RowSchema(
             startIndex=283,
             endIndex=291,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="16A",
@@ -189,7 +225,9 @@ s1 = RowSchema(
             startIndex=307,
             endIndex=315,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="17A",
@@ -199,7 +237,9 @@ s1 = RowSchema(
             startIndex=331,
             endIndex=339,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="18A",
@@ -209,7 +249,9 @@ s1 = RowSchema(
             startIndex=355,
             endIndex=363,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
     ],
 )
@@ -220,12 +262,24 @@ s2 = RowSchema(
         validators.hasLength(379),
     ],
     postparsing_validators=[
-        validators.sumIsEqual("NUM_APPLICATIONS", ["NUM_APPROVED", "NUM_DENIED"]),
         validators.sumIsEqual(
-            "NUM_FAMILIES", ["NUM_2_PARENTS", "NUM_1_PARENTS", "NUM_NO_PARENTS"]
+            "NUM_APPLICATIONS", [
+                "NUM_APPROVED",
+                "NUM_DENIED"
+            ]
         ),
         validators.sumIsEqual(
-            "NUM_RECIPIENTS", ["NUM_ADULT_RECIPIENTS", "NUM_CHILD_RECIPIENTS"]
+            "NUM_FAMILIES", [
+                "NUM_2_PARENTS",
+                "NUM_1_PARENTS",
+                "NUM_NO_PARENTS"
+            ]
+        ),
+        validators.sumIsEqual(
+            "NUM_RECIPIENTS", [
+                "NUM_ADULT_RECIPIENTS",
+                "NUM_CHILD_RECIPIENTS"
+            ]
         ),
     ],
     fields=[
@@ -253,7 +307,7 @@ s2 = RowSchema(
             calendar_quarter_to_rpt_month_year(1),
             item="4",
             name="RPT_MONTH_YEAR",
-            friendly_name="report month year",
+            friendly_name="report month and year",
             type="number",
             startIndex=2,
             endIndex=7,
@@ -268,7 +322,9 @@ s2 = RowSchema(
             startIndex=15,
             endIndex=23,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="5B",
@@ -278,7 +334,9 @@ s2 = RowSchema(
             startIndex=39,
             endIndex=47,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="6B",
@@ -288,7 +346,9 @@ s2 = RowSchema(
             startIndex=63,
             endIndex=71,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="7B",
@@ -298,17 +358,21 @@ s2 = RowSchema(
             startIndex=91,
             endIndex=103,
             required=True,
-            validators=[validators.isInLimits(0, 999999999999)],
+            validators=[
+                validators.isInLimits(0, 999999999999)
+            ],
         ),
         Field(
             item="8B",
             name="NUM_FAMILIES",
-            friendly_name="total of number of families",
+            friendly_name="total number of families",
             type="number",
             startIndex=123,
             endIndex=131,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="9B",
@@ -318,7 +382,9 @@ s2 = RowSchema(
             startIndex=147,
             endIndex=155,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="10B",
@@ -328,17 +394,21 @@ s2 = RowSchema(
             startIndex=171,
             endIndex=179,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="11B",
             name="NUM_NO_PARENTS",
-            friendly_name="total number of no-parent family",
+            friendly_name="total number of no-parent families",
             type="number",
             startIndex=195,
             endIndex=203,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="12B",
@@ -348,7 +418,9 @@ s2 = RowSchema(
             startIndex=219,
             endIndex=227,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="13B",
@@ -358,7 +430,9 @@ s2 = RowSchema(
             startIndex=243,
             endIndex=251,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="14B",
@@ -368,17 +442,21 @@ s2 = RowSchema(
             startIndex=267,
             endIndex=275,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="15B",
             name="NUM_NONCUSTODIALS",
-            friendly_name="total number of noncustodial parents",
+            friendly_name="total number of noncustodial parents participating in work activities",
             type="number",
             startIndex=291,
             endIndex=299,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="16B",
@@ -388,17 +466,21 @@ s2 = RowSchema(
             startIndex=315,
             endIndex=323,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="17B",
             name="NUM_OUTWEDLOCK_BIRTHS",
-            friendly_name="total number of out wedlock births",
+            friendly_name="total number of out-of-wedlock births",
             type="number",
             startIndex=339,
             endIndex=347,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="18B",
@@ -408,7 +490,9 @@ s2 = RowSchema(
             startIndex=363,
             endIndex=371,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
     ],
 )
@@ -419,12 +503,24 @@ s3 = RowSchema(
         validators.hasLength(379),
     ],
     postparsing_validators=[
-        validators.sumIsEqual("NUM_APPLICATIONS", ["NUM_APPROVED", "NUM_DENIED"]),
         validators.sumIsEqual(
-            "NUM_FAMILIES", ["NUM_2_PARENTS", "NUM_1_PARENTS", "NUM_NO_PARENTS"]
+            "NUM_APPLICATIONS", [
+                "NUM_APPROVED",
+                "NUM_DENIED"
+            ]
         ),
         validators.sumIsEqual(
-            "NUM_RECIPIENTS", ["NUM_ADULT_RECIPIENTS", "NUM_CHILD_RECIPIENTS"]
+            "NUM_FAMILIES", [
+                "NUM_2_PARENTS",
+                "NUM_1_PARENTS",
+                "NUM_NO_PARENTS"
+            ]
+        ),
+        validators.sumIsEqual(
+            "NUM_RECIPIENTS", [
+                "NUM_ADULT_RECIPIENTS",
+                "NUM_CHILD_RECIPIENTS"
+            ]
         ),
     ],
     fields=[
@@ -452,7 +548,7 @@ s3 = RowSchema(
             calendar_quarter_to_rpt_month_year(2),
             item="4",
             name="RPT_MONTH_YEAR",
-            friendly_name="report month year",
+            friendly_name="report month and year",
             type="number",
             startIndex=2,
             endIndex=7,
@@ -467,7 +563,9 @@ s3 = RowSchema(
             startIndex=23,
             endIndex=31,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="5C",
@@ -477,7 +575,9 @@ s3 = RowSchema(
             startIndex=47,
             endIndex=55,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="6C",
@@ -487,7 +587,9 @@ s3 = RowSchema(
             startIndex=71,
             endIndex=79,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="7C",
@@ -497,7 +599,9 @@ s3 = RowSchema(
             startIndex=103,
             endIndex=115,
             required=True,
-            validators=[validators.isInLimits(0, 999999999999)],
+            validators=[
+                validators.isInLimits(0, 999999999999)
+            ],
         ),
         Field(
             item="8C",
@@ -507,37 +611,45 @@ s3 = RowSchema(
             startIndex=131,
             endIndex=139,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="9C",
             name="NUM_2_PARENTS",
-            friendly_name="total number of two parents families",
+            friendly_name="total number of two-parent families",
             type="number",
             startIndex=155,
             endIndex=163,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="10C",
             name="NUM_1_PARENTS",
-            friendly_name="total number of one parent families",
+            friendly_name="total number of one-parent families",
             type="number",
             startIndex=179,
             endIndex=187,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="11C",
             name="NUM_NO_PARENTS",
-            friendly_name="total number of no parent families",
+            friendly_name="total number of no-parent families",
             type="number",
             startIndex=203,
             endIndex=211,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="12C",
@@ -547,7 +659,9 @@ s3 = RowSchema(
             startIndex=227,
             endIndex=235,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="13C",
@@ -557,7 +671,9 @@ s3 = RowSchema(
             startIndex=251,
             endIndex=259,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="14C",
@@ -567,17 +683,21 @@ s3 = RowSchema(
             startIndex=275,
             endIndex=283,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="15C",
             name="NUM_NONCUSTODIALS",
-            friendly_name="total number of noncustodial parents",
+            friendly_name="total number of noncustodial parents participating in work activities",
             type="number",
             startIndex=299,
             endIndex=307,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="16C",
@@ -587,17 +707,21 @@ s3 = RowSchema(
             startIndex=323,
             endIndex=331,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="17C",
             name="NUM_OUTWEDLOCK_BIRTHS",
-            friendly_name="total number of out wedlock births",
+            friendly_name="total number of out-of-wedlock births",
             type="number",
             startIndex=347,
             endIndex=355,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
         Field(
             item="18C",
@@ -607,7 +731,9 @@ s3 = RowSchema(
             startIndex=371,
             endIndex=379,
             required=True,
-            validators=[validators.isInLimits(0, 99999999)],
+            validators=[
+                validators.isInLimits(0, 99999999)
+            ],
         ),
     ],
 )

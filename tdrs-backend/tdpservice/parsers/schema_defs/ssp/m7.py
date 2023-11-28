@@ -56,7 +56,7 @@ for i in range(1, 31):
                     transform_func=calendar_quarter_to_rpt_month_year((i - 1) % 3),
                     item="2A",
                     name="RPT_MONTH_YEAR",
-                    friendly_name="reporting month year",
+                    friendly_name="report month and year",
                     type="number",
                     startIndex=2,
                     endIndex=7,
@@ -74,7 +74,9 @@ for i in range(1, 31):
                     startIndex=section_ind_index,
                     endIndex=section_ind_index + 1,
                     required=True,
-                    validators=[validators.oneOf(["1", "2"])],
+                    validators=[
+                        validators.oneOf(["1", "2"])
+                    ],
                 ),
                 Field(
                     item="4",
@@ -84,17 +86,21 @@ for i in range(1, 31):
                     startIndex=stratum_index,
                     endIndex=stratum_index + 2,
                     required=True,
-                    validators=[validators.isInStringRange(0, 99)],
+                    validators=[
+                        validators.isInStringRange(0, 99)
+                    ],
                 ),
                 Field(
                     item=families_item_numbers[i - 1],
                     name="FAMILIES_MONTH",
-                    friendly_name="families month",
+                    friendly_name="total number of families for each month",
                     type="number",
                     startIndex=families_index,
                     endIndex=families_index + 7,
                     required=True,
-                    validators=[validators.isInLimits(0, 9999999)],
+                    validators=[
+                        validators.isInLimits(0, 9999999)
+                    ],
                 ),
             ],
         )

@@ -133,7 +133,9 @@ t5 = SchemaManager(
                     startIndex=8,
                     endIndex=19,
                     required=True,
-                    validators=[validators.isAlphaNumeric()],
+                    validators=[
+                        validators.isAlphaNumeric()
+                    ],
                 ),
                 Field(
                     item="14",
@@ -143,7 +145,9 @@ t5 = SchemaManager(
                     startIndex=19,
                     endIndex=20,
                     required=True,
-                    validators=[validators.isInLimits(1, 5)],
+                    validators=[
+                        validators.isInLimits(1, 5)
+                    ],
                 ),
                 Field(
                     item="15",
@@ -167,7 +171,9 @@ t5 = SchemaManager(
                     startIndex=28,
                     endIndex=37,
                     required=True,
-                    validators=[validators.isNumber()],
+                    validators=[
+                        validators.isNumber()
+                    ],
                     is_encrypted=False,
                 ),
                 Field(
@@ -178,17 +184,21 @@ t5 = SchemaManager(
                     startIndex=37,
                     endIndex=38,
                     required=True,
-                    validators=[validators.validateRace()],
+                    validators=[
+                        validators.validateRace()
+                    ],
                 ),
                 Field(
                     item="17B",
                     name="RACE_AMER_INDIAN",
-                    friendly_name="race american indian",
+                    friendly_name="race american-indian",
                     type="number",
                     startIndex=38,
                     endIndex=39,
                     required=True,
-                    validators=[validators.validateRace()],
+                    validators=[
+                        validators.validateRace()
+                    ],
                 ),
                 Field(
                     item="17C",
@@ -198,7 +208,9 @@ t5 = SchemaManager(
                     startIndex=39,
                     endIndex=40,
                     required=True,
-                    validators=[validators.validateRace()],
+                    validators=[
+                        validators.validateRace()
+                    ],
                 ),
                 Field(
                     item="17D",
@@ -208,7 +220,9 @@ t5 = SchemaManager(
                     startIndex=40,
                     endIndex=41,
                     required=True,
-                    validators=[validators.validateRace()],
+                    validators=[
+                        validators.validateRace()
+                    ],
                 ),
                 Field(
                     item="17E",
@@ -218,7 +232,9 @@ t5 = SchemaManager(
                     startIndex=41,
                     endIndex=42,
                     required=True,
-                    validators=[validators.validateRace()],
+                    validators=[
+                        validators.validateRace()
+                    ],
                 ),
                 Field(
                     item="17F",
@@ -228,7 +244,9 @@ t5 = SchemaManager(
                     startIndex=42,
                     endIndex=43,
                     required=True,
-                    validators=[validators.validateRace()],
+                    validators=[
+                        validators.validateRace()
+                    ],
                 ),
                 Field(
                     item="18",
@@ -238,7 +256,9 @@ t5 = SchemaManager(
                     startIndex=43,
                     endIndex=44,
                     required=True,
-                    validators=[validators.isInLimits(0, 9)],
+                    validators=[
+                        validators.isInLimits(0, 9)
+                    ],
                 ),
                 Field(
                     item="19A",
@@ -248,7 +268,9 @@ t5 = SchemaManager(
                     startIndex=44,
                     endIndex=45,
                     required=True,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="19B",
@@ -258,7 +280,9 @@ t5 = SchemaManager(
                     startIndex=45,
                     endIndex=46,
                     required=True,
-                    validators=[validators.isInLimits(1, 2)],
+                    validators=[
+                        validators.isInLimits(1, 2)
+                    ],
                 ),
                 Field(
                     item="19C",
@@ -268,17 +292,21 @@ t5 = SchemaManager(
                     startIndex=46,
                     endIndex=47,
                     required=True,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="19D",
                     name="REC_AID_AGED_BLIND",
-                    friendly_name="receives aid aged blind",
+                    friendly_name="receives aid from the aid to the aged, blind, and disabled program",
                     type="number",
                     startIndex=47,
                     endIndex=48,
                     required=True,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="19E",
@@ -288,7 +316,9 @@ t5 = SchemaManager(
                     startIndex=48,
                     endIndex=49,
                     required=True,
-                    validators=[validators.isInLimits(1, 2)],
+                    validators=[
+                        validators.isInLimits(1, 2)
+                    ],
                 ),
                 Field(
                     item="20",
@@ -298,7 +328,9 @@ t5 = SchemaManager(
                     startIndex=49,
                     endIndex=50,
                     required=True,
-                    validators=[validators.isInLimits(0, 5)],
+                    validators=[
+                        validators.isInLimits(0, 5)
+                    ],
                 ),
                 Field(
                     item="21",
@@ -308,7 +340,9 @@ t5 = SchemaManager(
                     startIndex=50,
                     endIndex=52,
                     required=True,
-                    validators=[validators.isInStringRange(1, 10)],
+                    validators=[
+                        validators.isInStringRange(1, 10)
+                    ],
                 ),
                 Field(
                     item="22",
@@ -318,7 +352,9 @@ t5 = SchemaManager(
                     startIndex=52,
                     endIndex=53,
                     required=True,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="23",
@@ -328,7 +364,9 @@ t5 = SchemaManager(
                     startIndex=53,
                     endIndex=54,
                     required=True,
-                    validators=[validators.isInLimits(0, 9)],
+                    validators=[
+                        validators.isInLimits(0, 9)
+                    ],
                 ),
                 Field(
                     item="24",
@@ -341,7 +379,7 @@ t5 = SchemaManager(
                     validators=[
                         validators.or_validators(
                             validators.isInStringRange(0, 16),
-                            validators.isInStringRange(98, 99),
+                            validators.isInStringRange(98, 99)
                         )
                     ],
                 ),
@@ -355,7 +393,8 @@ t5 = SchemaManager(
                     required=True,
                     validators=[
                         validators.or_validators(
-                            validators.isInLimits(0, 2), validators.matches(9)
+                            validators.isInLimits(0, 2),
+                            validators.matches(9)
                         )
                     ],
                 ),
@@ -367,7 +406,9 @@ t5 = SchemaManager(
                     startIndex=57,
                     endIndex=60,
                     required=True,
-                    validators=[validators.isInStringRange(0, 999)],
+                    validators=[
+                        validators.isInStringRange(0, 999)
+                    ],
                 ),
                 Field(
                     item="27",
@@ -377,7 +418,9 @@ t5 = SchemaManager(
                     startIndex=60,
                     endIndex=62,
                     required=True,
-                    validators=[validators.isInStringRange(0, 99)],
+                    validators=[
+                        validators.isInStringRange(0, 99)
+                    ],
                 ),
                 Field(
                     item="28",
@@ -387,17 +430,21 @@ t5 = SchemaManager(
                     startIndex=62,
                     endIndex=63,
                     required=True,
-                    validators=[validators.isInLimits(0, 3)],
+                    validators=[
+                        validators.isInLimits(0, 3)
+                    ],
                 ),
                 Field(
                     item="29",
                     name="AMOUNT_EARNED_INCOME",
-                    friendly_name="amount earned income",
+                    friendly_name="amount of earned income",
                     type="string",
                     startIndex=63,
                     endIndex=67,
                     required=True,
-                    validators=[validators.isInStringRange(0, 9999)],
+                    validators=[
+                        validators.isInStringRange(0, 9999)
+                    ],
                 ),
                 Field(
                     item="30",
@@ -407,7 +454,9 @@ t5 = SchemaManager(
                     startIndex=67,
                     endIndex=71,
                     required=True,
-                    validators=[validators.isInStringRange(0, 9999)],
+                    validators=[
+                        validators.isInStringRange(0, 9999)
+                    ],
                 ),
             ],
         )

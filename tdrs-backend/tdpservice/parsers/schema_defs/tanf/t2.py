@@ -137,7 +137,7 @@ t2 = SchemaManager(
                 Field(
                     item="4",
                     name="RPT_MONTH_YEAR",
-                    friendly_name="report month year",
+                    friendly_name="report month and year",
                     type="number",
                     startIndex=2,
                     endIndex=8,
@@ -155,7 +155,9 @@ t2 = SchemaManager(
                     startIndex=8,
                     endIndex=19,
                     required=True,
-                    validators=[validators.isAlphaNumeric()],
+                    validators=[
+                        validators.isAlphaNumeric()
+                    ],
                 ),
                 Field(
                     item="30",
@@ -165,7 +167,9 @@ t2 = SchemaManager(
                     startIndex=19,
                     endIndex=20,
                     required=True,
-                    validators=[validators.oneOf([1, 2, 3, 5])],
+                    validators=[
+                        validators.oneOf([1, 2, 3, 5])
+                    ],
                 ),
                 Field(
                     item="31",
@@ -175,7 +179,9 @@ t2 = SchemaManager(
                     startIndex=20,
                     endIndex=21,
                     required=True,
-                    validators=[validators.oneOf([1, 2])],
+                    validators=[
+                        validators.oneOf([1, 2])
+                    ],
                 ),
                 Field(
                     item="32",
@@ -194,12 +200,14 @@ t2 = SchemaManager(
                     transform_func=tanf_ssn_decryption_func,
                     item="33",
                     name="SSN",
-                    friendly_name="social security number (ssn)",
+                    friendly_name="social security number",
                     type="string",
                     startIndex=29,
                     endIndex=38,
                     required=True,
-                    validators=[validators.validateSSN()],
+                    validators=[
+                        validators.validateSSN()
+                    ],
                     is_encrypted=False,
                 ),
                 Field(
@@ -210,7 +218,9 @@ t2 = SchemaManager(
                     startIndex=38,
                     endIndex=39,
                     required=False,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="34B",
@@ -220,7 +230,9 @@ t2 = SchemaManager(
                     startIndex=39,
                     endIndex=40,
                     required=False,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="34C",
@@ -230,7 +242,9 @@ t2 = SchemaManager(
                     startIndex=40,
                     endIndex=41,
                     required=False,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="34D",
@@ -240,7 +254,9 @@ t2 = SchemaManager(
                     startIndex=41,
                     endIndex=42,
                     required=False,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="34E",
@@ -250,7 +266,9 @@ t2 = SchemaManager(
                     startIndex=42,
                     endIndex=43,
                     required=False,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="34F",
@@ -260,7 +278,9 @@ t2 = SchemaManager(
                     startIndex=43,
                     endIndex=44,
                     required=False,
-                    validators=[validators.isInLimits(0, 2)],
+                    validators=[
+                        validators.isInLimits(0, 2)
+                    ],
                 ),
                 Field(
                     item="35",
@@ -282,7 +302,9 @@ t2 = SchemaManager(
                     startIndex=45,
                     endIndex=46,
                     required=True,
-                    validators=[validators.oneOf([1, 2])],
+                    validators=[
+                        validators.oneOf([1, 2])
+                    ],
                 ),
                 Field(
                     item="36B",
@@ -292,7 +314,9 @@ t2 = SchemaManager(
                     startIndex=46,
                     endIndex=47,
                     required=True,
-                    validators=[validators.oneOf([1, 2])],
+                    validators=[
+                        validators.oneOf([1, 2])
+                    ],
                 ),
                 Field(
                     item="36C",
@@ -304,7 +328,8 @@ t2 = SchemaManager(
                     required=True,
                     validators=[
                         validators.or_validators(
-                            validators.oneOf(["1", "2"]), validators.isBlank()
+                            validators.oneOf(["1", "2"]),
+                            validators.isBlank()
                         )
                     ],
                 ),
@@ -545,7 +570,7 @@ t2 = SchemaManager(
                 Field(
                     item="53A",
                     name="WORK_EXPERIENCE_HOP",
-                    friendly_name="work experience hours of participation",
+                    friendly_name="work experience - hours of participation",
                     type="string",
                     startIndex=76,
                     endIndex=78,
@@ -557,7 +582,7 @@ t2 = SchemaManager(
                 Field(
                     item="53B",
                     name="WORK_EXPERIENCE_EA",
-                    friendly_name="work experience excused absence",
+                    friendly_name="work experience - excused absence",
                     type="string",
                     startIndex=78,
                     endIndex=80,
@@ -569,7 +594,7 @@ t2 = SchemaManager(
                 Field(
                     item="53C",
                     name="WORK_EXPERIENCE_HOL",
-                    friendly_name="work experience hours of leave",
+                    friendly_name="work experience - hours of leave",
                     type="string",
                     startIndex=80,
                     endIndex=82,
@@ -593,7 +618,7 @@ t2 = SchemaManager(
                 Field(
                     item="55A",
                     name="JOB_SEARCH_HOP",
-                    friendly_name="job search hours of participation",
+                    friendly_name="job search - hours of participation",
                     type="string",
                     startIndex=84,
                     endIndex=86,
@@ -605,7 +630,7 @@ t2 = SchemaManager(
                 Field(
                     item="55B",
                     name="JOB_SEARCH_EA",
-                    friendly_name="job search excused absence",
+                    friendly_name="job search - excused absence",
                     type="string",
                     startIndex=86,
                     endIndex=88,
@@ -617,7 +642,7 @@ t2 = SchemaManager(
                 Field(
                     item="55C",
                     name="JOB_SEARCH_HOL",
-                    friendly_name="job search hours of leave",
+                    friendly_name="job search - hours of leave",
                     type="string",
                     startIndex=88,
                     endIndex=90,
@@ -629,7 +654,7 @@ t2 = SchemaManager(
                 Field(
                     item="56A",
                     name="COMM_SERVICES_HOP",
-                    friendly_name="community service hours of participation",
+                    friendly_name="community service - hours of participation",
                     type="string",
                     startIndex=90,
                     endIndex=92,
@@ -641,7 +666,7 @@ t2 = SchemaManager(
                 Field(
                     item="56B",
                     name="COMM_SERVICES_EA",
-                    friendly_name="community service excused absence",
+                    friendly_name="community service - excused absence",
                     type="string",
                     startIndex=92,
                     endIndex=94,
@@ -653,7 +678,7 @@ t2 = SchemaManager(
                 Field(
                     item="56C",
                     name="COMM_SERVICES_HOL",
-                    friendly_name="community service hours of leave",
+                    friendly_name="community service - hours of leave",
                     type="string",
                     startIndex=94,
                     endIndex=96,
@@ -665,7 +690,7 @@ t2 = SchemaManager(
                 Field(
                     item="57A",
                     name="VOCATIONAL_ED_TRAINING_HOP",
-                    friendly_name="vocational education training hours of participation",
+                    friendly_name="vocational education training - hours of participation",
                     type="string",
                     startIndex=96,
                     endIndex=98,
@@ -677,7 +702,7 @@ t2 = SchemaManager(
                 Field(
                     item="57B",
                     name="VOCATIONAL_ED_TRAINING_EA",
-                    friendly_name="vocational education training excused absence",
+                    friendly_name="vocational education training - excused absence",
                     type="string",
                     startIndex=98,
                     endIndex=100,
@@ -689,7 +714,7 @@ t2 = SchemaManager(
                 Field(
                     item="57C",
                     name="VOCATIONAL_ED_TRAINING_HOL",
-                    friendly_name="vocational education training hours of leave",
+                    friendly_name="vocational education training - hours of leave",
                     type="string",
                     startIndex=100,
                     endIndex=102,
@@ -701,7 +726,7 @@ t2 = SchemaManager(
                 Field(
                     item="58A",
                     name="JOB_SKILLS_TRAINING_HOP",
-                    friendly_name="job skills training hours of participation",
+                    friendly_name="job skills training - hours of participation",
                     type="string",
                     startIndex=102,
                     endIndex=104,
@@ -713,7 +738,7 @@ t2 = SchemaManager(
                 Field(
                     item="58B",
                     name="JOB_SKILLS_TRAINING_EA",
-                    friendly_name="job skills training excused absence",
+                    friendly_name="job skills training - excused absence",
                     type="string",
                     startIndex=104,
                     endIndex=106,
@@ -725,7 +750,7 @@ t2 = SchemaManager(
                 Field(
                     item="58C",
                     name="JOB_SKILLS_TRAINING_HOL",
-                    friendly_name="job skills training hours of leave",
+                    friendly_name="job skills training - hours of leave",
                     type="string",
                     startIndex=106,
                     endIndex=108,
@@ -737,7 +762,7 @@ t2 = SchemaManager(
                 Field(
                     item="59A",
                     name="ED_NO_HIGH_SCHOOL_DIPL_HOP",
-                    friendly_name="education no high school diploma hours of participation",
+                    friendly_name="education no high school diploma - hours of participation",
                     type="string",
                     startIndex=108,
                     endIndex=110,
@@ -749,7 +774,7 @@ t2 = SchemaManager(
                 Field(
                     item="59B",
                     name="ED_NO_HIGH_SCHOOL_DIPL_EA",
-                    friendly_name="education no high school diploma excused absence",
+                    friendly_name="education no high school diploma - excused absence",
                     type="string",
                     startIndex=110,
                     endIndex=112,
@@ -761,7 +786,7 @@ t2 = SchemaManager(
                 Field(
                     item="59C",
                     name="ED_NO_HIGH_SCHOOL_DIPL_HOL",
-                    friendly_name="education no high school diploma hours of leave",
+                    friendly_name="education no high school diploma - hours of leave",
                     type="string",
                     startIndex=112,
                     endIndex=114,
@@ -773,7 +798,7 @@ t2 = SchemaManager(
                 Field(
                     item="60A",
                     name="SCHOOL_ATTENDENCE_HOP",
-                    friendly_name="school attendence hours of participation",
+                    friendly_name="school attendence - hours of participation",
                     type="string",
                     startIndex=114,
                     endIndex=116,
@@ -785,7 +810,7 @@ t2 = SchemaManager(
                 Field(
                     item="60B",
                     name="SCHOOL_ATTENDENCE_EA",
-                    friendly_name="school attendence excused absence",
+                    friendly_name="school attendence - excused absence",
                     type="string",
                     startIndex=116,
                     endIndex=118,
@@ -797,7 +822,7 @@ t2 = SchemaManager(
                 Field(
                     item="60C",
                     name="SCHOOL_ATTENDENCE_HOL",
-                    friendly_name="school attendance hours of leave",
+                    friendly_name="school attendance - hours of leave",
                     type="string",
                     startIndex=118,
                     endIndex=120,
@@ -809,7 +834,7 @@ t2 = SchemaManager(
                 Field(
                     item="61A",
                     name="PROVIDE_CC_HOP",
-                    friendly_name="provide child care hours of participation",
+                    friendly_name="provide child care - hours of participation",
                     type="string",
                     startIndex=120,
                     endIndex=122,
@@ -821,7 +846,7 @@ t2 = SchemaManager(
                 Field(
                     item="61B",
                     name="PROVIDE_CC_EA",
-                    friendly_name="provide child care excused absence",
+                    friendly_name="provide child care - excused absence",
                     type="string",
                     startIndex=122,
                     endIndex=124,
@@ -833,7 +858,7 @@ t2 = SchemaManager(
                 Field(
                     item="61C",
                     name="PROVIDE_CC_HOL",
-                    friendly_name="provide child care hours of leave",
+                    friendly_name="provide child care - hours of leave",
                     type="string",
                     startIndex=124,
                     endIndex=126,
@@ -917,7 +942,7 @@ t2 = SchemaManager(
                 Field(
                     item="66C",
                     name="UNEARNED_SSI",
-                    friendly_name="unearned supplemental security income",
+                    friendly_name="unearned social security income",
                     type="string",
                     startIndex=144,
                     endIndex=148,
