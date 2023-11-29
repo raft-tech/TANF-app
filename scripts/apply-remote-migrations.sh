@@ -35,7 +35,7 @@ docker-compose -f docker-compose.ci.yml --env-file .env.ci up -d
 echo "Done."
 
 echo "Applying migrations..."
-docker-compose -f docker-compose.ci.yml exec web python manage.py migrate
+docker-compose -f docker-compose.ci.yml exec web python ./manage.py migrate
 echo "Done."
 
 echo "Cleaning up..."
