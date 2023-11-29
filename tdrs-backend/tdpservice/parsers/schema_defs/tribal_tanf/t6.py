@@ -1,4 +1,4 @@
-"""Schema for HEADER row of all submission types."""
+"""Schema for Tribal T6 record."""
 
 
 from tdpservice.parsers.util import SchemaManager
