@@ -1,4 +1,4 @@
-"""Schema for TANF T7 Row."""
+"""Schema for Tribal TANF T7 Row."""
 
 from tdpservice.parsers.util import SchemaManager
 from tdpservice.parsers.fields import Field, TransformField
