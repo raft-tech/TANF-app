@@ -329,4 +329,3 @@ class Tribal_TANF_T7DataSubmissionDocument(DocumentBase, Document):
             "STRATUM",
             "FAMILIES_MONTH",
         ]
-
