@@ -99,4 +99,3 @@ class Tribal_TANF_T6Admin(admin.ModelAdmin):
         CreationDateFilter,
         'RPT_MONTH_YEAR'
     ]
-
