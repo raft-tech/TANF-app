@@ -36,12 +36,13 @@ echo "Done."
 
 echo "Applying migrations..."
 # stop script and report errors??
+docker-compose cp . web:/tdpapp
 docker-compose -f docker-compose.ci.yml exec web python /tdpapp/manage.py migrate
 echo "Done."
 
 echo "Cleaning up..."
 docker-compose -f docker-compose.ci.yml down -v
 kill $!
-rm ./.env.ci
+# rm ./.env.ci
 cd ..
 echo "Done."
