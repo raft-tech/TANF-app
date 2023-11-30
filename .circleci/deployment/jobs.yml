@@ -2,7 +2,7 @@
   run-migrations:
     executor: large-machine-executor
     parameters:
-      backend-appname:
+      target_env:
         type: string
     working_directory: ~/tdp-deploy
     steps:
@@ -10,7 +10,7 @@
       - run:
           name: Apply database migrations
           command: |
-            bash ./scripts/apply-remote-migrations.sh <<backend-appname>>
+            bash ./scripts/apply-remote-migrations.sh tdp-backend-<< parameters.target_env >>
   
   deploy-dev:
     executor: docker-executor

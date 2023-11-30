@@ -33,8 +33,6 @@
           cf-org: <<parameters.cf-org>>
           cf-space: <<parameters.cf-space>>
           cf-username: <<parameters.cf-username>>
-      - run-migrations:
-          backend-appname: <<parameters.backend-appname>>
       - deploy-backend:
           backend-appname: <<parameters.backend-appname>>
           frontend-appname: <<parameters.frontend-appname>>
