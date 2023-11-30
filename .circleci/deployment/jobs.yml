@@ -1,4 +1,17 @@
 # jobs:
+  run-migrations:
+    executor: large-machine-executor
+    parameters:
+      backend-appname:
+        type: string
+    working_directory: ~/tdp-deploy
+    steps:
+      # - setup_remote_docker
+      - run:
+          name: Apply database migrations
+          command: |
+            bash ./scripts/apply-remote-migrations.sh <<backend-appname>>
+  
   deploy-dev:
     executor: docker-executor
     parameters:
