@@ -1,19 +1,19 @@
 # jobs:
-  run-migrations:
-    executor: large-machine-executor
-    parameters:
-      target_env:
-        type: string
-    working_directory: ~/tdp-deploy
-    steps:
-      # - setup_remote_docker
-      - checkout
-      - cf-check
-      - login-cloud-dot-gov
-      - run:
-          name: Apply database migrations
-          command: |
-            bash ./scripts/apply-remote-migrations.sh tdp-backend-<< parameters.target_env >>
+  # run-migrations:
+  #   executor: large-machine-executor
+  #   parameters:
+  #     target_env:
+  #       type: string
+  #   working_directory: ~/tdp-deploy
+  #   steps:
+  #     # - setup_remote_docker
+  #     - checkout
+  #     - cf-check
+  #     - login-cloud-dot-gov
+  #     - run:
+  #         name: Apply database migrations
+  #         command: |
+  #           bash ./scripts/apply-remote-migrations.sh tdp-backend-<< parameters.target_env >>
   
   deploy-dev:
     executor: docker-executor

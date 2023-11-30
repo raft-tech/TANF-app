@@ -83,13 +83,13 @@
         default: tanf-dev
         type: string
     steps:
-      # - setup_remote_docker
+      - setup_remote_docker
       - get-app-deploy-strategy:
           appname: <<parameters.backend-appname>>
-      # - run:
-      #     name: Apply database migrations
-      #     command: |
-      #       bash ./scripts/apply-remote-migrations.sh <<parameters.backend-appname>>
+      - run:
+          name: Apply database migrations
+          command: |
+            bash ./scripts/apply-remote-migrations.sh <<parameters.backend-appname>>
       - run:
           name: Deploy backend application
           command: |
