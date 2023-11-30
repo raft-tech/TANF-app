@@ -2,17 +2,6 @@
 # Apply database migrations
 set -e
 
-echo "REDIS_SERVER"
-echo "redis local: $REDIS_SERVER_LOCAL"
-if [[ "$REDIS_SERVER_LOCAL" = "TRUE" || "$CIRCLE_JOB" = "backend-owasp-scan" ]]; then
-    echo "Run redis server on docker"
-else
-    echo "Run redis server locally"
-    export LD_LIBRARY_PATH=/home/vcap/deps/0/lib/:/home/vcap/deps/1/lib:$LD_LIBRARY_PATH
-    ( cd  /home/vcap/deps/0/bin/; ./redis-server /home/vcap/app/redis.conf &)
-fi
-
-#
 echo "Applying database migrations"
 python manage.py migrate
 #python manage.py populate_stts
