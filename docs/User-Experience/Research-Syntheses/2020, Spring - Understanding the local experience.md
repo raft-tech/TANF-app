@@ -21,13 +21,13 @@ We wanted to talk to those who rely most on sunsetting TDRS tools so that we cou
 
 We interviewed 7 people, with two pairs working in the same office and owning different parts of the data submission process.
 
-By their role and location
+By their role and location:
 
 - 1 OFA regional program specialist
 - 1 grantee from tribal government
 - 5 grantees from 3 state governments
 
-By the tools they use
+By the tools they use:
 
 - 4 folks currently using fTANF
 - 4 folks familiar with the TDRS extranet
