@@ -161,20 +161,20 @@ def get_schema_options(program, section, query=None, model=None, model_name=None
             'C': {
                 'section': DataFile.Section.SSP_CLOSED_CASE_DATA,
                 'models': {
-                    # 'S4': schema_defs.ssp.m4,
-                    # 'S5': schema_defs.ssp.m5,
+                    'M4': schema_defs.ssp.m4,
+                    'M5': schema_defs.ssp.m5,
                 }
             },
             'G': {
                 'section': DataFile.Section.SSP_AGGREGATE_DATA,
                 'models': {
-                    # 'S6': schema_defs.ssp.m6,
+                    'M6': schema_defs.ssp.m6,
                 }
             },
             'S': {
                 'section': DataFile.Section.SSP_STRATUM_DATA,
                 'models': {
-                    # 'S7': schema_defs.ssp.m7,
+                    'M7': schema_defs.ssp.m7,
                 }
             }
         },
@@ -320,7 +320,8 @@ def case_aggregates_by_month(df, dfs_status):
             case_numbers = case_numbers.union(curr_case_numbers)
 
         total += len(case_numbers)
-        cases_with_errors += ParserError.objects.filter(case_number__in=case_numbers).distinct('case_number').count()
+        cases_with_errors += ParserError.objects.filter(file=df).filter(
+            case_number__in=case_numbers).distinct('case_number').count()
         accepted = total - cases_with_errors
 
         aggregate_data['months'].append({"month": month,
