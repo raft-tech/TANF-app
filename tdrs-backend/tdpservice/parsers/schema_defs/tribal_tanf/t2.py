@@ -116,7 +116,7 @@ t2 = SchemaManager(
                 Field(
                     item="0",
                     name="RecordType",
-                    friendly_name="record tsype",
+                    friendly_name="record type",
                     type="string",
                     startIndex=0,
                     endIndex=2,
