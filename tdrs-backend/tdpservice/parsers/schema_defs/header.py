@@ -20,6 +20,7 @@ header = RowSchema(
         Field(
             item="2",
             name="title",
+            friendly_name="title",
             type="string",
             startIndex=0,
             endIndex=6,
@@ -31,6 +32,7 @@ header = RowSchema(
         Field(
             item="4",
             name="year",
+            friendly_name="year",
             type="number",
             startIndex=6,
             endIndex=10,
@@ -40,6 +42,7 @@ header = RowSchema(
         Field(
             item="5",
             name="quarter",
+            friendly_name="quarter",
             type="string",
             startIndex=10,
             endIndex=11,
@@ -49,6 +52,7 @@ header = RowSchema(
         Field(
             item="6",
             name="type",
+            friendly_name="type",
             type="string",
             startIndex=11,
             endIndex=12,
@@ -58,6 +62,7 @@ header = RowSchema(
         Field(
             item="1",
             name="state_fips",
+            friendly_name="state fips",
             type="string",
             startIndex=12,
             endIndex=14,
@@ -77,6 +82,7 @@ header = RowSchema(
         Field(
             item="3",
             name="tribe_code",
+            friendly_name="tribe code",
             type="string",
             startIndex=14,
             endIndex=17,
@@ -86,6 +92,7 @@ header = RowSchema(
         Field(
             item="7",
             name="program_type",
+            friendly_name="program type",
             type="string",
             startIndex=17,
             endIndex=20,
@@ -95,6 +102,7 @@ header = RowSchema(
         Field(
             item="8",
             name="edit",
+            friendly_name="edit",
             type="string",
             startIndex=20,
             endIndex=21,
@@ -104,6 +112,7 @@ header = RowSchema(
         Field(
             item="9",
             name="encryption",
+            friendly_name="encryption",
             type="string",
             startIndex=21,
             endIndex=22,
@@ -113,6 +122,7 @@ header = RowSchema(
         Field(
             item="10",
             name="update",
+            friendly_name="update",
             type="string",
             startIndex=22,
             endIndex=23,
