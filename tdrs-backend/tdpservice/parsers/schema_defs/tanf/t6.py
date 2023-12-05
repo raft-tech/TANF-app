@@ -233,7 +233,7 @@ s2 = RowSchema(
     ],
     postparsing_validators=[
         validators.sumIsEqual(
-            "NUM_APPLICATIONS",[
+            "NUM_APPLICATIONS", [
                 "NUM_APPROVED",
                 "NUM_DENIED"
             ]

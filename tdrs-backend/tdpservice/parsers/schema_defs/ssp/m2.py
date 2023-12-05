@@ -76,7 +76,9 @@ m2 = SchemaManager(
                     condition_field='FAMILY_AFFILIATION',
                     condition_function=validators.isInLimits(1, 3),
                     result_field='EDUCATION_LEVEL',
-                    result_function=validators.or_validators(validators.isInStringRange(1, 16),validators.isInStringRange(98, 99)
+                    result_function=validators.or_validators(
+                        validators.isInStringRange(1, 16),
+                        validators.isInStringRange(98, 99)
                     ),
                 ),
                 validators.if_then_validator(
@@ -101,14 +103,16 @@ m2 = SchemaManager(
                     condition_field='FAMILY_AFFILIATION',
                     condition_function=validators.oneOf((1, 2)),
                     result_field='WORK_ELIGIBLE_INDICATOR',
-                    result_function=validators.or_validators(validators.isInLimits(1, 9),validators.oneOf((11, 12))
+                    result_function=validators.or_validators(
+                        validators.isInLimits(1, 9),
+                        validators.oneOf((11, 12))
                     ),
                 ),
                 validators.if_then_validator(
                     condition_field='FAMILY_AFFILIATION',
                     condition_function=validators.oneOf((1, 2)),
                     result_field='WORK_PART_STATUS',
-                    result_function=validators.oneOf([1, 2, 5, 7, 9,15, 16, 17, 18, 99]),
+                    result_function=validators.oneOf([1, 2, 5, 7, 9, 15, 16, 17, 18, 99]),
                 ),
                 validators.if_then_validator(
                     condition_field='WORK_ELIGIBLE_INDICATOR',
@@ -182,11 +186,11 @@ m2 = SchemaManager(
                     validators=[validators.isLargerThan(0)]
                 ),
                 TransformField(
-                    transform_func=ssp_ssn_decryption_func, 
+                    transform_func=ssp_ssn_decryption_func,
                     item="29",
                     name='SSN',
                     friendly_name="social security number",
-                    type='string',                            
+                    type='string',
                     startIndex=29,
                     endIndex=38,
                     required=True,
@@ -271,7 +275,6 @@ m2 = SchemaManager(
                     startIndex=45,
                     endIndex=46,
                     required=True,
-                    
                     validators=[validators.oneOf([1, 2])]
                 ),
                 Field(
@@ -287,7 +290,8 @@ m2 = SchemaManager(
                 Field(
                     item="32C",
                     name='DISABLED_TITLE_XIVAPDT',
-                    friendly_name="receives aid to the permanently and totally disabled" +" under title xiv-apdt of the social security act",
+                    friendly_name="receives aid to the permanently and totally disabled" +
+                    " under title xiv-apdt of the social security act",
                     type='number',
                     startIndex=47,
                     endIndex=48,
@@ -622,7 +626,6 @@ m2 = SchemaManager(
                     type='number',
                     startIndex=102,
                     endIndex=104,
-                    
                     required=False,
                     validators=[validators.isInLimits(0, 99)]
                 ),

@@ -47,9 +47,11 @@ s1 = RowSchema(
             startIndex=2,
             endIndex=7,
             required=True,
-            validators=[validators.dateYearIsLargerThan(1998
+            validators=[
+                validators.dateYearIsLargerThan(1998),
+                validators.quarterIsValid()
+            ]
         ),
-                                                                           validators.quarterIsValid()]),
         TransformField(
             calendar_quarter_to_rpt_month_year(0),
             item="2B",
@@ -381,9 +383,11 @@ s3 = RowSchema(
             startIndex=2,
             endIndex=7,
             required=True,
-            validators=[validators.dateYearIsLargerThan(1998
+            validators=[
+                validators.dateYearIsLargerThan(1998),
+                validators.dateMonthIsValid()
+            ]
         ),
-                                                                            validators.dateMonthIsValid()]),
         Field(
             item="3C",
             name='SSPMOE_FAMILIES',
