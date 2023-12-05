@@ -37,6 +37,7 @@ echo "Done."
 echo "Applying migrations..."
 # stop script and report errors??
 docker-compose cp . web:/tdpapp
+sleep 5
 docker-compose -f docker-compose.ci.yml exec web python /tdpapp/manage.py migrate
 echo "Done."
 
