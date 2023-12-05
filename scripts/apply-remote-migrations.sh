@@ -31,7 +31,7 @@ echo "VCAP_APPLICATION=$vcap_application" >> .env.ci
 
 
 echo "Starting container..."
-docker-compose -f docker-compose.ci.yml --env-file .env.ci up -d
+docker-compose -f docker-compose.ci.yml -d
 echo "Done."
 
 echo "Applying migrations..."
