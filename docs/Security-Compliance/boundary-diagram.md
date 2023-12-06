@@ -14,7 +14,7 @@ Users with `OFA Admin` and (STT) `Data Analyst` roles can upload data on upload 
 
 ### User access
 
-All web users will log into the system through their web browsers. 
+All web users will log into the system through their web browsers. An [Nginx server](../../tdrs-frontend/nginx/README.md) sits in front of each frontend application to serve as a reverse proxy to block traffic to TDP from outside the US/US territories. For traffic *within* the US/US territories:
 - all non-acf users will leverage Login.gov and two factor authentication.
 - all ACF users will leverage ACF AMS and authenticate using PIV/CAC.  Developers will also have access to the `dev` and `staging` spaces using SSH.
 
@@ -22,9 +22,9 @@ All users will be required to be approved within the application by an administr
 
 ### Access points
 
-Beyond web-based authentication through ACF AMS or Login.gov, and developer SSH access to the dev Space, CircleCI will also have access to the various environments to support deployments.
+Beyond web-based authentication through ACF AMS or Login.gov, and developer SSH access to the dev Space, CircleCI will also have access to the various environments to support deployments. TDP system administrators will trigger CircleCI-based deployments via GitHub. 
 
-TDP system administrators will trigger CircleCI-based deployments via GitHub. 
+Additionally, the [SendGrid E-mail API](../Technical-Documentation/Architecture-Decision-Record/021-sendgrid.md) receives requests from the backend applications in each environment to trigger email notifications for key user activities in TDP: requests for access, admin changes to user accounts (approval, denial, deactivation), and data submissions. SendGrid only has access to TDP user email addresses. 
 
 ### Configuration
 
