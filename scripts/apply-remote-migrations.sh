@@ -42,8 +42,8 @@ docker-compose -f docker-compose.ci.yml exec web python /tdpapp/manage.py migrat
 echo "Done."
 
 echo "Cleaning up..."
-docker-compose -f docker-compose.ci.yml down -v
-kill $!
+# docker-compose -f docker-compose.ci.yml down -v
+# kill $!
 # rm ./.env.ci
 cd ..
 echo "Done."
