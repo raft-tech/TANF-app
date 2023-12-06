@@ -65,7 +65,9 @@ def bulk_create_records(unsaved_records, line_number, header_count, batch_size=1
             num_expected = 0
             for model, records in unsaved_records.items():
                 num_expected += len(records)
-                num_created += len(model.objects.bulk_create(records))
+                objs_created = model.objects.bulk_create(records)
+                for obj in objs_created: obj.save()
+                num_created += len(objs_created)
             if num_created != num_expected:
                 logger.error(f"Bulk create only created {num_created}/{num_expected}!")
             else:
