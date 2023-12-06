@@ -18,7 +18,7 @@ Developers will deploy new code through GitHub, initiating the continuous integr
 
 ### User access
 
-All web users will log into the system through their web browsers. An [Nginx server](../../tdrs-frontend/nginx/README.md) sits in front of each frontend application to serve as a reverse proxy to block traffic to TDP from outside the US/US territories. For traffic *within* the US/US territories:
+All web users will log into the system through their web browsers. An [Nginx server](../../tdrs-frontend/nginx/README.md) sits in front of each frontend application to serve the frontend application as well as act as a reverse proxy which blocks traffic to TDP from outside the US/US territories. For traffic *within* the US/US territories:
 - all non-acf users will leverage Login.gov and two factor authentication.
 - all ACF users will leverage ACF AMS and authenticate using PIV/CAC.  Developers will also have access to the `dev` and `staging` spaces using SSH.
 
