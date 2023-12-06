@@ -10,7 +10,7 @@ Velocity (Dev): 5
         * Implement all Tribal Sec (02, 03 and review 01)
     * Finalize review on #2683 - ZAP CORS Misconfiguration
     * #2599 - Error Report "Friendly Names"
-    * Coordinate w/ OFA and draft dev contingency plan for future gov shutdown
+    * Coordinate w/ OFA and draft dev contingency plan in event of lapse in government funding
         - Document any further planning (if any beyond Andrew's use of ACF laptop)
 * DevOps:
     * 2429 - Singular Clam AV
