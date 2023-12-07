@@ -55,7 +55,6 @@ def parse_datafile(datafile):
 
     return errors
 
-
 def bulk_create_records(unsaved_records, line_number, header_count, batch_size=10000, flush=False):
     """Bulk create passed in records."""
     if (line_number % batch_size == 0 and header_count > 0) or flush:
@@ -63,16 +62,21 @@ def bulk_create_records(unsaved_records, line_number, header_count, batch_size=1
         try:
             num_created = 0
             num_expected = 0
-            for model, records in unsaved_records.items():
+            num_indices_created = 0
+            for model, doc_records_tuple in unsaved_records.items():
+                document = doc_records_tuple[0]
+                records = doc_records_tuple[1]
                 num_expected += len(records)
-                objs_created = model.objects.bulk_create(records)
-                for obj in objs_created: obj.save()
-                num_created += len(objs_created)
+                created_objs = model.objects.bulk_create(records)
+                num_indices_created += document().update(created_objs)[0]
+                num_created += len(created_objs)
             if num_created != num_expected:
                 logger.error(f"Bulk create only created {num_created}/{num_expected}!")
+            elif num_indices_created != num_expected:
+                logger.error(f"Bulk Elastic Index create only created {num_indices_created}/{num_expected}!")
             else:
                 logger.info(f"Created {num_created}/{num_expected} records.")
-            return num_created == num_expected, {}
+            return num_created == num_expected and num_indices_created == num_expected, {}
         except DatabaseError as e:
             logger.error(f"Encountered error while creating datafile records: {e}")
             return False, unsaved_records
@@ -200,7 +204,7 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
             if record:
                 s = schema_manager.schemas[i]
                 record.datafile = datafile
-                unsaved_records.setdefault(s.model, []).append(record)
+                unsaved_records.setdefault(s.model, (s.document, []))[1].append(record)
 
         all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count,)
         unsaved_parser_errors, num_errors = bulk_create_errors(unsaved_parser_errors, num_errors)
@@ -242,7 +246,7 @@ def manager_parse_line(line, schema_manager, generate_error, is_encrypted=False)
         records = schema_manager.parse_and_validate(line, generate_error)
         return records
     except AttributeError as e:
-        logging.error(e)
+        logger.error(e)
         return [(None, False, [
             generate_error(
                 schema=None,
@@ -252,50 +256,6 @@ def manager_parse_line(line, schema_manager, generate_error, is_encrypted=False)
                 field="Record_Type",
             )
         ])]
-
-
-def get_schema_manager_options(program_type):
-    """Return the allowed schema options."""
-    match program_type:
-        case 'TAN':
-            return {
-                'A': {
-                    'T1': schema_defs.tanf.t1,
-                    'T2': schema_defs.tanf.t2,
-                    'T3': schema_defs.tanf.t3,
-                },
-                'C': {
-                    'T4': schema_defs.tanf.t4,
-                    'T5': schema_defs.tanf.t5,
-                },
-                'G': {
-                    'T6': schema_defs.tanf.t6,
-                },
-                'S': {
-                    'T7': schema_defs.tanf.t7,
-                },
-            }
-        case 'SSP':
-            return {
-                'A': {
-                    'M1': schema_defs.ssp.m1,
-                    'M2': schema_defs.ssp.m2,
-                    'M3': schema_defs.ssp.m3,
-                },
-                'C': {
-                    # 'M4': schema_options.m4,
-                    # 'M5': schema_options.m5,
-                },
-                'G': {
-                    # 'M6': schema_options.m6,
-                },
-                'S': {
-                    # 'M7': schema_options.m7,
-                },
-            }
-        # case tribal?
-    return None
-
 
 def get_schema_manager(line, section, program_type):
     """Return the appropriate schema for the line."""

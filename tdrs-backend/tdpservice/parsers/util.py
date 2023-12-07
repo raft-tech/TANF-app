@@ -30,6 +30,13 @@ def create_test_datafile(filename, stt_user, stt, section='Active Case Data'):
 
 def generate_parser_error(datafile, line_number, schema, error_category, error_message, record=None, field=None):
     """Create and return a ParserError using args."""
+    fields = [*field] if type(field) is list else [field]
+    fields_json = {
+        "friendly_name": {
+            getattr(f, 'name', ''): getattr(f, 'friendly_name', '') for f in fields
+        }
+    }
+
     return ParserError(
         file=datafile,
         row_number=line_number,
@@ -44,7 +51,7 @@ def generate_parser_error(datafile, line_number, schema, error_category, error_m
             model=schema.model if schema else None
         ) if record and not isinstance(record, dict) else None,
         object_id=getattr(record, 'id', None) if record and not isinstance(record, dict) else None,
-        fields_json=None
+        fields_json=fields_json
     )
 
 
@@ -58,7 +65,7 @@ def make_generate_parser_error(datafile, line_number):
             error_category=error_category,
             error_message=error_message,
             record=record,
-            field=field
+            field=field,
         )
 
     return generate
@@ -161,8 +168,8 @@ def get_schema_options(program, section, query=None, model=None, model_name=None
             'C': {
                 'section': DataFile.Section.SSP_CLOSED_CASE_DATA,
                 'models': {
-                    # 'S4': schema_defs.ssp.m4,
-                    # 'S5': schema_defs.ssp.m5,
+                    'M4': schema_defs.ssp.m4,
+                    'M5': schema_defs.ssp.m5,
                 }
             },
             'G': {
@@ -174,7 +181,7 @@ def get_schema_options(program, section, query=None, model=None, model_name=None
             'S': {
                 'section': DataFile.Section.SSP_STRATUM_DATA,
                 'models': {
-                    # 'S7': schema_defs.ssp.m7,
+                    'M7': schema_defs.ssp.m7,
                 }
             }
         },
