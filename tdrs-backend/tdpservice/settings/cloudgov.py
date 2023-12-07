@@ -25,7 +25,6 @@ def get_cloudgov_service_creds_by_instance_name(services, instance_name):
         {}
     )
 
-
 class CloudGov(Common):
     """Base settings class for applications deployed in Cloud.gov."""
 
@@ -44,6 +43,7 @@ class CloudGov(Common):
     cloudgov_space = cloudgov_app.get('space_name', 'tanf-dev')
     cloudgov_space_suffix = cloudgov_space.strip('tanf-')
     cloudgov_name = cloudgov_app.get('name').split("-")[-1]  # converting "tdp-backend-name" to just "name"
+    
     services_basename = cloudgov_name if (
         cloudgov_name == "develop" and cloudgov_space_suffix == "staging"
     ) else cloudgov_space_suffix
@@ -138,6 +138,7 @@ class CloudGov(Common):
         'us-gov-west-1',
         'es'
     )
+
 
     # Elastic
     ELASTICSEARCH_DSL = {

@@ -7,32 +7,31 @@
 # The deployment strategy you wish to employ ( rolling update or setting up a new environment)
 DEPLOY_STRATEGY=${1}
 
-#The application name  defined via the manifest yml for the frontend
-CGAPPNAME_FRONTEND=${2}
-CGAPPNAME_BACKEND=${3}
-CF_SPACE=${4}
+ENV=${2}
+CF_SPACE=${3}
+CGAPPNAME_FRONTEND="tdp-frontend-${ENV}"
+CGAPPNAME_BACKEND="tdp-backend-${ENV}"
+CGAPPNAME_CELERY="tdp-celery-${ENV}"
 
 strip() {
     # Usage: strip "string" "pattern"
     printf '%s\n' "${1##$2}"
 }
-# The cloud.gov space defined via environment variable (e.g., "tanf-dev", "tanf-staging")
-env=$(strip $CF_SPACE "tanf-")
-backend_app_name=$(echo $CGAPPNAME_BACKEND | cut -d"-" -f3)
+# The cloud.gov space defined via CF_SPACE environment variable (e.g., "tanf-dev", "tanf-staging")
+space=$(strip $CF_SPACE "tanf-")
 
 echo DEPLOY_STRATEGY: "$DEPLOY_STRATEGY"
 echo BACKEND_HOST: "$CGAPPNAME_BACKEND"
 echo CF_SPACE: "$CF_SPACE"
-echo env: "$env"
-echo backend_app_name: "$backend_app_name"
+echo space: "$space"
+echo environment: "$ENV"
 
 
 ##############################
 # Function Decls
 ##############################
 
-set_cf_envs()
-{
+set_cf_envs() {
   var_list=(
   "ACFTITAN_HOST"
   "ACFTITAN_KEY"
@@ -78,16 +77,14 @@ set_cf_envs()
 }
 
 # Helper method to generate JWT cert and keys for new environment
-generate_jwt_cert() 
-{
+generate_jwt_cert() {
     echo "regenerating JWT cert/key"
     yes 'XX' | openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -sha256
     cf set-env "$CGAPPNAME_BACKEND" JWT_CERT "$(cat cert.pem)"
     cf set-env "$CGAPPNAME_BACKEND" JWT_KEY "$(cat key.pem)"
 }
 
-update_backend()
-{
+update_backend() {
     cd tdrs-backend || exit
     cf unset-env "$CGAPPNAME_BACKEND" "AV_SCAN_URL"
     
@@ -95,7 +92,7 @@ update_backend()
       cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tanf-prod-clamav-rest.apps.internal:9000/scan"
     else
       # Add environment varilables for clamav
-      cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tdp-clamav-nginx-$env.apps.internal:9000/scan"
+      cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tdp-clamav-nginx-$space.apps.internal:9000/scan"
     fi
 
     if [ "$1" = "rolling" ] ; then
@@ -104,8 +101,10 @@ update_backend()
         # Do a zero downtime deploy.  This requires enough memory for
         # two apps to exist in the org/space at one time.
         cf push "$CGAPPNAME_BACKEND" --no-route -f manifest.buildpack.yml -t 180 --strategy rolling || exit 1
+        cf push "$CGAPPNAME_CELERY" --no-route -f manifest.celery.yml -t 180 --strategy rolling || exit 1
     else
         cf push "$CGAPPNAME_BACKEND" --no-route -f manifest.buildpack.yml -t 180
+        cf push "$CGAPPNAME_CELERY" --no-route -f manifest.celery.yml -t 180
         # set up JWT key if needed
         if cf e "$CGAPPNAME_BACKEND" | grep -q JWT_KEY ; then
             echo jwt cert already created
@@ -125,7 +124,7 @@ update_backend()
       # Add network policy to allow backend to access tanf-prod services
       cf add-network-policy "$CGAPPNAME_BACKEND" clamav-rest --protocol tcp --port 9000
     else
-      cf add-network-policy "$CGAPPNAME_BACKEND" tdp-clamav-nginx-$env --protocol tcp --port 9000
+      cf add-network-policy "$CGAPPNAME_BACKEND" tdp-clamav-nginx-$space --protocol tcp --port 9000
     fi
 
     cd ..
@@ -138,21 +137,29 @@ bind_backend_to_services() {
       # TODO: this is technical debt, we should either make staging mimic tanf-dev 
       #       or make unique services for all apps but we have a services limit
       #       Introducing technical debt for release 3.0.0 specifically.
-      env="develop"
+      space="develop"
     fi
 
-    cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-${env}"
-    cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${env}"
-    cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${env}"
-    
-    # The below command is different because they cannot be shared like the 3 above services
-    cf bind-service "$CGAPPNAME_BACKEND" "es-${backend_app_name}"
+    cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-${space}"
+    cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${space}"
+    cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${space}"
+
+    f bind-service "$CGAPPNAME_CELERY" "tdp-staticfiles-${space}"
+    cf bind-service "$CGAPPNAME_CELERY" "tdp-datafiles-${space}"
+    cf bind-service "$CGAPPNAME_CELERY" "tdp-db-${space}"
+  
+    # bind to redis
+    cf bind-service "$CGAPPNAME_BACKEND" "tdp-redis-${ENV}"
+    cf bind-service "$CGAPPNAME_CELERY" "tdp-redis-${ENV}"  
+    # bind to elastic-search
+    cf bind-service "$CGAPPNAME_BACKEND" "es-${ENV}"
+    cf bind-service "$CGAPPNAME_CELERY" "es-${ENV}"
     
     set_cf_envs
 
-    echo "Restarting app: $CGAPPNAME_BACKEND"
+    echo "Restarting apps: $CGAPPNAME_BACKEND and $CGAPPNAME_CELERY"
     cf restage "$CGAPPNAME_BACKEND"
-
+    cf restage "$CGAPPNAME_CELERY"
 }
 
 ##############################

@@ -87,7 +87,7 @@ data "cloudfoundry_service" "redis" {
 
 resource "cloudfoundry_service_instance" "redis" {
   for_each     = toset(var.dev_app_names)
-  name         = "${each.value}-redis"
+  name         = "tdp-redis-${each.value}"
   space        = data.cloudfoundry_space.space.id
   service_plan = data.cloudfoundry_service.redis.service_plans["redis-dev"]
 }
