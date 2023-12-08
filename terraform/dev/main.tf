@@ -82,7 +82,7 @@ resource "cloudfoundry_service_instance" "datafiles" {
 ###
 
 data "cloudfoundry_service" "redis" {
-  name = "aws-elasticache-redis"    
+  name = "aws-elasticache-redis"
 }
 
 resource "cloudfoundry_service_instance" "redis" {
