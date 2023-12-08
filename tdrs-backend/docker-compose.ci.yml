@@ -6,6 +6,35 @@ services:
     restart: always
     env_file:
       - .env.ci
+    environment:
+      - VCAP_APPLICATION
+      - VCAP_SERVICES
+      - DB_HOST
+      - DB_PORT
+      - DB_USER
+      - DB_NAME
+      - DB_PASSWORD
+      - DJANGO_CONFIGURATION=Development
+      - DJANGO_SETTINGS_MODULE=tdpservice.settings.cloudgov
+      - CLAMAV_NEEDED=False
+      - AV_SCAN_URL=http://clamav-rest:9000/scan
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-tdp-dev-insecure}
+      - LOCALSTACK_HOST=localstack
+      - DJANGO_SU_NAME
+      - JWT_CERT_TEST
+      - JWT_KEY
+      - USE_LOCALSTACK
+      - LOGGING_LEVEL
+      - AMS_CLIENT_ID
+      - AMS_CLIENT_SECRET
+      - AMS_CONFIGURATION_ENDPOINT
+      - ACFTITAN_HOST
+      - ACFTITAN_KEY
+      - ACFTITAN_USERNAME
+      - REDIS_URI=redis://redis-server:6379
+      - REDIS_SERVER_LOCAL=TRUE
+      - ACFTITAN_SFTP_PYTEST
+      - SENDGRID_API_KEY
     volumes:
       - .:/tdpapp
     image: tdp
