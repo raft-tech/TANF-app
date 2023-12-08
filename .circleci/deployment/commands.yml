@@ -2,12 +2,7 @@
   deploy-cloud-dot-gov:
     parameters:
       environment:
-        description: The environment to deploy to.
-        type: enum
-        enum: [ "development", "production" ]
-        default: development
-      backend-appname:
-        default: tdp-backend
+        default: raft
         type: string
       cf-password:
         default: CF_PASSWORD_DEV
@@ -21,9 +16,6 @@
       cf-username:
         default: CF_USERNAME_DEV
         type: env_var_name
-      frontend-appname:
-        default: tdp-frontend
-        type: string
     steps:
       - checkout
       - sudo-check
@@ -34,14 +26,11 @@
           cf-space: <<parameters.cf-space>>
           cf-username: <<parameters.cf-username>>
       - deploy-backend:
-          backend-appname: <<parameters.backend-appname>>
-          frontend-appname: <<parameters.frontend-appname>>
           cf-space: <<parameters.cf-space>>
-      - deploy-frontend:
           environment: <<parameters.environment>>
-          backend-appname: <<parameters.backend-appname>>
-          frontend-appname: <<parameters.frontend-appname>>
+      - deploy-frontend:
           cf-space: <<parameters.cf-space>>
+          environment: <<parameters.environment>>
 
   clamav-cloud-dot-gov:
     parameters:
@@ -73,14 +62,11 @@
 
   deploy-backend:
     parameters:
-      backend-appname:
-        default: tdp-backend
-        type: string
-      frontend-appname:
-        default: tdp-frontend
-        type: string
       cf-space:
         default: tanf-dev
+        type: string
+      environment:
+        default: raft
         type: string
     steps:
       - get-app-deploy-strategy:
@@ -89,10 +75,8 @@
           name: Deploy backend application
           command: |
             bash ./scripts/deploy-backend.sh \
-              $DEPLOY_STRATEGY \
-              <<parameters.frontend-appname>> \
-              <<parameters.backend-appname>> \
-              <<parameters.cf-space>>
+              <<parameters.cf-space>> \
+              <<parameters.environment>>
 
   deploy-clamav:
     steps:
@@ -104,57 +88,24 @@
 
   deploy-frontend:
     parameters:
-      environment:
-        description: The environment to deploy to.
-        type: enum
-        enum: [ "development", "production" ]
-        default: development
-      backend-appname:
-        default: tdp-backend
-        type: string
-      frontend-appname:
-        default: tdp-frontend
-        type: string
-# So the frontend knows what space its in for the banner.
-# I am unclear if the domain is a reliable metric to make this function
-# It seems like it might not be working
       cf-space:
-        default: dev
         type: string
+        default: dev
+      environment:
+        type: string
+        default: raft
     steps:
       - install-nodejs:
           node-version: "16.13"
       - disable-npm-audit
       - install-nodejs-packages:
           app-dir: tdrs-frontend
-      - get-app-deploy-strategy:
-          appname: <<parameters.frontend-appname>>
       - run:
           name: Deploy frontend application
           command: |
             bash ./scripts/deploy-frontend.sh \
-              $DEPLOY_STRATEGY \
-              <<parameters.frontend-appname>> \
-              <<parameters.backend-appname>> \
               <<parameters.cf-space>> \
               <<parameters.environment>>
-
-  get-app-deploy-strategy:
-    parameters:
-      appname:
-        type: string
-    steps:
-      - run:
-          name: Determine deploy strategy
-          command: |
-            # NOTE: The || true is a no-op included to suppress exit codes which
-            #       would cause the step to exit early due to use of pipefail
-            APP_GUID=$(cf app <<parameters.appname>> --guid || true)
-            if [ "$APP_GUID" == "FAILED" ]; then
-              echo "export DEPLOY_STRATEGY=initial" >> $BASH_ENV
-            else
-              echo "export DEPLOY_STRATEGY=rolling" >> $BASH_ENV
-            fi
 
   deploy-infrastructure:
     parameters:

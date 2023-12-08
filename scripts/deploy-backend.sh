@@ -4,11 +4,11 @@
 # Global Variable Decls 
 ##############################
 
-# The deployment strategy you wish to employ ( rolling update or setting up a new environment)
-DEPLOY_STRATEGY=${1}
-
+CF_SPACE=${1}
 ENV=${2}
-CF_SPACE=${3}
+
+DEPLOY_STRATEGY=${3-tbd}
+
 CGAPPNAME_FRONTEND="tdp-frontend-${ENV}"
 CGAPPNAME_BACKEND="tdp-backend-${ENV}"
 CGAPPNAME_CELERY="tdp-celery-${ENV}"
@@ -211,6 +211,24 @@ else
   CYPRESS_TOKEN=$CYPRESS_TOKEN
 fi
 
+APP_GUID=$(cf app $CGHOSTNAME_BACKEND --guid || true)
+CELERY_GUID=$(cf app $CGHOSTNAME_CELERY --guid || true)
+
+# if celery or backend missing, remove other and perform initial deploy
+if [ "$DEPLOY_STRATEGY" = "tbd" ] ; then
+  if [ $APP_GUID == 'FAILED' ] && [ $CELERY_GUID == 'FAILED' ]; then
+    DEPLOY_STRATEGY='initial'
+  elif [ $APP_GUID == 'FAILED' ]; then
+    cf delete "$CGAPPNAME_CELERY" -r -f
+    DEPLOY_STRATEGY='initial'
+  elif [ $CELERY_GUID == 'FAILED' ]; then
+    cf delete "$CGAPPNAME_BACKEND" -r -f
+    DEPLOY_STRATEGY='initial'
+  else
+    DEPLOY_STRATEGY='rolling'
+  fi
+fi
+
 if [ "$DEPLOY_STRATEGY" = "rolling" ] ; then
     # Perform a rolling update for the backend and frontend deployments if
     # specified, otherwise perform a normal deployment
@@ -218,7 +236,7 @@ if [ "$DEPLOY_STRATEGY" = "rolling" ] ; then
 elif [ "$DEPLOY_STRATEGY" = "bind" ] ; then
     # Bind the services the application depends on and restage the app.
     bind_backend_to_services
-elif [ "$DEPLOY_STRATEGY" = "initial" ]; then
+elif [ "$DEPLOY_STRATEGY" = "initial" ] || ; then
     # There is no app with this name, and the services need to be bound to it
     # for it to work. the app will fail to start once, have the services bind,
     # and then get restaged.
@@ -229,6 +247,7 @@ elif [ "$DEPLOY_STRATEGY" = "rebuild" ]; then
     # Delete the existing app (with out deleting the services)
     # and perform the initial deployment strategy.
     cf delete "$CGAPPNAME_BACKEND" -r -f
+    cf delete "$CGAPPNAME_CELERY" -r -f
     update_backend
     bind_backend_to_services
 else
