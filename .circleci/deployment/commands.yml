@@ -69,8 +69,6 @@
         default: raft
         type: string
     steps:
-      - get-app-deploy-strategy:
-          appname: <<parameters.backend-appname>>
       - run:
           name: Deploy backend application
           command: |
