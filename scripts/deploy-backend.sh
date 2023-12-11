@@ -22,6 +22,7 @@ space=$(strip $CF_SPACE "tanf-")
 
 echo DEPLOY_STRATEGY: "$DEPLOY_STRATEGY"
 echo BACKEND_HOST: "$CGAPPNAME_BACKEND"
+echo CELERY_HOST: "$CGAPPNAME_CELERY"
 echo CF_SPACE: "$CF_SPACE"
 echo space: "$space"
 echo environment: "$ENV"
@@ -215,7 +216,7 @@ APP_GUID=$(cf app $CGHOSTNAME_BACKEND --guid || true)
 CELERY_GUID=$(cf app $CGHOSTNAME_CELERY --guid || true)
 
 # if celery or backend missing, remove other and perform initial deploy
-if [ "$DEPLOY_STRATEGY" = "tbd" ] ; then
+if [ "$DEPLOY_STRATEGY" = "tbd" ]; then
   if [ $APP_GUID == 'FAILED' ] && [ $CELERY_GUID == 'FAILED' ]; then
     DEPLOY_STRATEGY='initial'
   elif [ $APP_GUID == 'FAILED' ]; then
@@ -227,16 +228,18 @@ if [ "$DEPLOY_STRATEGY" = "tbd" ] ; then
   else
     DEPLOY_STRATEGY='rolling'
   fi
+else
+  echo "Using given deployment strategy: ${DEPLOY_STRATEGY}"
 fi
 
-if [ "$DEPLOY_STRATEGY" = "rolling" ] ; then
+if [ "$DEPLOY_STRATEGY" = "rolling" ]; then
     # Perform a rolling update for the backend and frontend deployments if
     # specified, otherwise perform a normal deployment
     update_backend 'rolling'
-elif [ "$DEPLOY_STRATEGY" = "bind" ] ; then
+elif [ "$DEPLOY_STRATEGY" = "bind" ]; then
     # Bind the services the application depends on and restage the app.
     bind_backend_to_services
-elif [ "$DEPLOY_STRATEGY" = "initial" ] || ; then
+elif [ "$DEPLOY_STRATEGY" = "initial" ]; then
     # There is no app with this name, and the services need to be bound to it
     # for it to work. the app will fail to start once, have the services bind,
     # and then get restaged.
