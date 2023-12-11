@@ -46,7 +46,7 @@ def parse_datafile(datafile):
         return errors
 
     is_encrypted = field_values["encryption"] == "E"
-    is_tribal = util.is_string_field_valid(field_values["tribe_code"], 3)
+    is_tribal = not validators.value_is_empty(field_values["tribe_code"], 3, extra_vals={'0'*3})
 
     logger.debug(f"Datafile has encrypted fields: {is_encrypted}.")
     logger.debug(f"Datafile: {datafile.__repr__()}, is Tribal: {is_tribal}.")
