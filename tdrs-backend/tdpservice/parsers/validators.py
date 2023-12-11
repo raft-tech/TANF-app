@@ -1,21 +1,22 @@
 """Generic parser validator functions for use in schema definitions."""
 
 from .models import ParserErrorCategoryChoices
-from .util import is_string_field_valid
 from datetime import date
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def value_is_empty(value, length):
+def value_is_empty(value, length, extra_vals={}):
     """Handle 'empty' values as field inputs."""
-    empty_values = [
+    empty_values = {
         '',
         ' '*length,  # '     '
         '#'*length,  # '#####'
         '_'*length,  # '_____'
-    ]
+    }
+
+    empty_values = empty_values.union(extra_vals)
 
     return value is None or value in empty_values
 
@@ -554,10 +555,10 @@ def validate_tribe_fips_program_agree(program_type, tribe_code, state_fips_code,
     """Validate tribe code, fips code, and program type all agree with eachother."""
     is_valid = False
 
-    if program_type == 'TAN' and (not is_string_field_valid(state_fips_code, 2)):
-        is_valid = is_string_field_valid(tribe_code, 3)
+    if program_type == 'TAN' and value_is_empty(state_fips_code, 2, extra_vals={'0'*2}):
+        is_valid = not value_is_empty(tribe_code, 3, extra_vals={'0'*3})
     else:
-        is_valid = not is_string_field_valid(tribe_code, 3)
+        is_valid = value_is_empty(tribe_code, 3, extra_vals={'0'*3})
 
     error = None
     if not is_valid:
