@@ -161,7 +161,7 @@ m5 = SchemaManager(
                     transform_func=ssp_ssn_decryption_func,
                     item="15",
                     name="SSN",
-                    friendly_name="social security number - ssn",
+                    friendly_name="social security number",
                     type="string",
                     startIndex=28,
                     endIndex=37,
@@ -182,7 +182,7 @@ m5 = SchemaManager(
                 Field(
                     item="16B",
                     name="RACE_AMER_INDIAN",
-                    friendly_name="race american indian",
+                    friendly_name="race american-indian",
                     type="number",
                     startIndex=38,
                     endIndex=39,
@@ -354,7 +354,8 @@ m5 = SchemaManager(
                     required=False,
                     validators=[
                         validators.or_validators(
-                            validators.isInLimits(0, 3), validators.matches(9)
+                            validators.isInLimits(0, 3),
+                            validators.matches(9)
                         )
                     ],
                 ),
