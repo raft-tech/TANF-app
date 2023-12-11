@@ -110,10 +110,6 @@ class SchemaManager:
                 if type(field) == TransformField and "is_encrypted" in field.kwargs:
                     field.kwargs['is_encrypted'] = is_encrypted
 
-def is_string_field_valid(val, field_length):
-    """Determine if the field's value is valid."""
-    return val not in {" "*field_length, None, "0"*field_length}
-
 def get_schema_options(program, section, query=None, model=None, model_name=None):
     """Centralized function to return the appropriate schema for a given program, section, and query.
 

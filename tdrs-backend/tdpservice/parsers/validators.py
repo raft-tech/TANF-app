@@ -1,11 +1,24 @@
 """Generic parser validator functions for use in schema definitions."""
 
 from .models import ParserErrorCategoryChoices
-from .util import is_string_field_valid
 from datetime import date
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def value_is_empty(value, length, extra_vals={}):
+    """Handle 'empty' values as field inputs."""
+    empty_values = {
+        '',
+        ' '*length,  # '     '
+        '#'*length,  # '#####'
+        '_'*length,  # '_____'
+    }
+
+    empty_values = empty_values.union(extra_vals)
+
+    return value is None or value in empty_values
 
 # higher order validator func
 
@@ -268,19 +281,26 @@ def isStringLargerThan(val):
     )
 
 
+def _is_empty(value, start, end):
+    end = end if end else len(str(value))
+    vlen = end - start
+    subv = str(value)[start:end]
+    return value_is_empty(subv, vlen) or len(subv) < vlen
+
+
 def notEmpty(start=0, end=None):
     """Validate that string value isn't only blanks."""
     return make_validator(
-        lambda value: not str(value)[start: end if end else len(str(value))].isspace(),
-        lambda value: f"{str(value)} contains blanks between positions {start} and {end if end else len(str(value))}.",
+        lambda value: not _is_empty(value, start, end),
+        lambda value: f'{str(value)} contains blanks between positions {start} and {end if end else len(str(value))}.'
     )
 
 
 def isEmpty(start=0, end=None):
     """Validate that string value is only blanks."""
     return make_validator(
-        lambda value: value[start: end if end else len(value)].isspace(),
-        lambda value: f"{value} is not blank between positions {start} and {end if end else len(value)}.",
+        lambda value: _is_empty(value, start, end),
+        lambda value: f'{value} is not blank between positions {start} and {end if end else len(value)}.'
     )
 
 
@@ -535,10 +555,10 @@ def validate_tribe_fips_program_agree(program_type, tribe_code, state_fips_code,
     """Validate tribe code, fips code, and program type all agree with eachother."""
     is_valid = False
 
-    if program_type == 'TAN' and (not is_string_field_valid(state_fips_code, 2)):
-        is_valid = is_string_field_valid(tribe_code, 3)
+    if program_type == 'TAN' and value_is_empty(state_fips_code, 2, extra_vals={'0'*2}):
+        is_valid = not value_is_empty(tribe_code, 3, extra_vals={'0'*3})
     else:
-        is_valid = not is_string_field_valid(tribe_code, 3)
+        is_valid = value_is_empty(tribe_code, 3, extra_vals={'0'*3})
 
     error = None
     if not is_valid:
