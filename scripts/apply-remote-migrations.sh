@@ -34,11 +34,12 @@ echo "Starting container..."
 docker-compose -f docker-compose.ci.yml --env-file .env.ci up -d
 # pip install wait-for-it
 # wait-for-it --service http://web:8080 --timeout 60 -- echo "Docker is ready."
+docker-compose -f docker-compose.ci.yml cp . web:/tdpapp
+docker-compose -f docker-compose.ci.yml restart web
 echo "Done."
 
 echo "Applying migrations..."
 # stop script and report errors??
-# docker-compose cp . web:/tdpapp
 docker-compose -f docker-compose.ci.yml exec web python /tdpapp/manage.py migrate
 echo "Done."
 
