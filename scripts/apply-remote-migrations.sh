@@ -14,7 +14,7 @@ db_creds=$(echo $app_vars | jq -r '.system_env_json.VCAP_SERVICES."aws-rds"[0].c
 connection_str=$(echo $db_creds | jq -r '[.host, .port]' | jq -r 'join(":")')
 
 echo "Starting tunnel..."
-cf ssh -N -L 0.0.0.0:5432:$connection_str $app &
+cf ssh -N -L 5432:$connection_str $app &
 sleep 5
 echo "Done."
 
