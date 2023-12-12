@@ -31,13 +31,14 @@ echo "VCAP_APPLICATION=$vcap_application" >> .env.ci
 
 
 echo "Starting container..."
-docker-compose -f docker-compose.ci.yml up -d
+docker-compose -f docker-compose.ci.yml --env-file .env.ci up -d
+# pip install wait-for-it
+# wait-for-it --service http://web:8080 --timeout 60 -- echo "Docker is ready."
 echo "Done."
 
 echo "Applying migrations..."
 # stop script and report errors??
-docker-compose cp . web:/tdpapp
-sleep 5
+# docker-compose cp . web:/tdpapp
 docker-compose -f docker-compose.ci.yml exec web python /tdpapp/manage.py migrate
 echo "Done."
 

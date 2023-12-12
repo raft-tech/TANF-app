@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 
 def get_json_env_var(variable_name):
     """Retrieve and serialize a JSON environment variable."""
+    logger.warn('************ JSON ************')
+    logger.warn(os.getenv(variable_name, 'None'))
+
     return json.loads(
         os.getenv(variable_name, '{}')
     )
@@ -40,6 +43,12 @@ class CloudGov(Common):
     APP_NAME = cloudgov_app.get('application_name')
 
     cloudgov_services = get_json_env_var('VCAP_SERVICES')
+
+    logger.warn('********** VCAP_APPLICATION ***********')
+    logger.warn(cloudgov_app)
+
+    logger.warn('********** VCAP_SERVICES ***********')
+    logger.warn(cloudgov_services)
 
     cloudgov_space = cloudgov_app.get('space_name', 'tanf-dev')
     cloudgov_space_suffix = cloudgov_space.strip('tanf-')
