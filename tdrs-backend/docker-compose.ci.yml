@@ -39,5 +39,3 @@ services:
     command: bash -c "gunicorn -c gunicorn_prod_cfg.py"
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    ports:
-      - "5555:5555"
