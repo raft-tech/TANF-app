@@ -155,7 +155,7 @@ Raw notes from interviews were synthesized in Mural with the OFA data division. 
 
 [Synthesis Workshop  Mural](https://app.mural.co/t/officeoffamilyassistance2744/m/officeoffamilyassistance2744/1605279076254/8ba4f36f5bc1b2d724fd8c61daf6dc18da096e97) 🔒
 
-
+PDF [Prototype 1](https://github.com/HHS/TANF-app/blob/main/docs/User-Experience/Research-Syntheses/TANF%20Uploading%20Tool_Mockup%20%231.pdf) and [Prototype 2](https://github.com/HHS/TANF-app/blob/main/docs/User-Experience/Research-Syntheses/TANF%20Uploading%20Tool_Mockup%20%232.pdf)
 
 
 
