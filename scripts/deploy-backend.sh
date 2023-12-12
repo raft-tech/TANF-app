@@ -8,6 +8,7 @@ CF_SPACE=${1}
 ENV=${2}
 
 DEPLOY_STRATEGY=${3-tbd}
+CELERY_DEPLOY_STRATEGY=${4-tbd}
 
 CGAPPNAME_FRONTEND="tdp-frontend-${ENV}"
 CGAPPNAME_BACKEND="tdp-backend-${ENV}"
@@ -34,25 +35,25 @@ echo environment: "$ENV"
 
 set_cf_envs() {
   var_list=(
-  "ACFTITAN_HOST"
-  "ACFTITAN_KEY"
-  "ACFTITAN_USERNAME"
-  "AMS_CLIENT_ID"
-  "AMS_CLIENT_SECRET"
-  "AMS_CONFIGURATION_ENDPOINT"
-  "BASE_URL"
-  "CLAMAV_NEEDED"
-  "CYPRESS_TOKEN"
-  "DJANGO_CONFIGURATION"
-  "DJANGO_DEBUG"
-  "DJANGO_SECRET_KEY"
-  "DJANGO_SETTINGS_MODULE"
-  "DJANGO_SU_NAME"
-  "FRONTEND_BASE_URL"
-  "LOGGING_LEVEL"
-  "REDIS_URI"
-  "JWT_KEY"
-  "STAGING_JWT_KEY"
+    "ACFTITAN_HOST"
+    "ACFTITAN_KEY"
+    "ACFTITAN_USERNAME"
+    "AMS_CLIENT_ID"
+    "AMS_CLIENT_SECRET"
+    "AMS_CONFIGURATION_ENDPOINT"
+    "BASE_URL"
+    "CLAMAV_NEEDED"
+    "CYPRESS_TOKEN"
+    "DJANGO_CONFIGURATION"
+    "DJANGO_DEBUG"
+    "DJANGO_SECRET_KEY"
+    "DJANGO_SETTINGS_MODULE"
+    "DJANGO_SU_NAME"
+    "FRONTEND_BASE_URL"
+    "LOGGING_LEVEL"
+    "REDIS_URI"
+    "JWT_KEY"
+    "STAGING_JWT_KEY"
   )
 
   echo "Setting environment variables for $CGAPPNAME_BACKEND"
@@ -60,13 +61,13 @@ set_cf_envs() {
   for var_name in ${var_list[@]}; do
     # Intentionally unsetting variable if empty
     if [[ -z "${!var_name}" ]]; then
-        echo "WARNING: Empty value for $var_name. It will now be unset."
-        cf_cmd="cf unset-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
-        $cf_cmd
-        continue
+      echo "WARNING: Empty value for $var_name. It will now be unset."
+      cf_cmd="cf unset-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
+      $cf_cmd
+      continue
     elif [[ ("$var_name" =~ "STAGING_") && ("$CF_SPACE" = "tanf-staging") ]]; then
-        sed_var_name=$(echo "$var_name" | sed -e 's@STAGING_@@g')
-        cf_cmd="cf set-env $CGAPPNAME_BACKEND $sed_var_name ${!var_name}"
+      sed_var_name=$(echo "$var_name" | sed -e 's@STAGING_@@g')
+      cf_cmd="cf set-env $CGAPPNAME_BACKEND $sed_var_name ${!var_name}"
     else
       cf_cmd="cf set-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
     fi
@@ -79,55 +80,61 @@ set_cf_envs() {
 
 # Helper method to generate JWT cert and keys for new environment
 generate_jwt_cert() {
-    echo "regenerating JWT cert/key"
-    yes 'XX' | openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -sha256
-    cf set-env "$CGAPPNAME_BACKEND" JWT_CERT "$(cat cert.pem)"
-    cf set-env "$CGAPPNAME_BACKEND" JWT_KEY "$(cat key.pem)"
+  echo "regenerating JWT cert/key"
+  yes 'XX' | openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -sha256
+  cf set-env "$CGAPPNAME_BACKEND" JWT_CERT "$(cat cert.pem)"
+  cf set-env "$CGAPPNAME_BACKEND" JWT_KEY "$(cat key.pem)"
 }
 
 update_backend() {
-    cd tdrs-backend || exit
-    cf unset-env "$CGAPPNAME_BACKEND" "AV_SCAN_URL"
-    
-    if [ "$CF_SPACE" = "tanf-prod" ]; then
-      cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tanf-prod-clamav-rest.apps.internal:9000/scan"
-    else
-      # Add environment varilables for clamav
-      cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tdp-clamav-nginx-$space.apps.internal:9000/scan"
-    fi
+  cd tdrs-backend || exit
+  cf unset-env "$CGAPPNAME_BACKEND" "AV_SCAN_URL"
+  
+  if [ $CF_SPACE == 'tanf-prod' ]; then
+    cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tanf-prod-clamav-rest.apps.internal:9000/scan"
+  else
+    # Add environment varilables for clamav
+    cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tdp-clamav-nginx-$space.apps.internal:9000/scan"
+  fi
 
-    if [ "$1" = "rolling" ] ; then
-        set_cf_envs
-        # Do a zero downtime deploy.  This requires enough memory for
-        # two apps to exist in the org/space at one time.
-        cf push "$CGAPPNAME_BACKEND" --no-route -f manifest.buildpack.yml -t 180 --strategy rolling || exit 1
-        cf push "$CGAPPNAME_CELERY" --no-route -f manifest.celery.yml -t 180 --strategy rolling || exit 1
-    else
-        cf push "$CGAPPNAME_BACKEND" --no-route -f manifest.buildpack.yml -t 180
-        cf push "$CGAPPNAME_CELERY" --no-route -f manifest.celery.yml -t 180
-        # set up JWT key if needed
-        if cf e "$CGAPPNAME_BACKEND" | grep -q JWT_KEY ; then
-            echo jwt cert already created
-        else
-            generate_jwt_cert
-        fi
-    fi
-
+  if [ $1 == 'rolling' ] ; then
     set_cf_envs
-    
-    cf map-route "$CGAPPNAME_BACKEND" apps.internal --hostname "$CGAPPNAME_BACKEND"
-
-    # Add network policy to allow frontend to access backend
-    cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_BACKEND" --protocol tcp --port 8080
-    
-    if [ "$CF_SPACE" = "tanf-prod" ]; then
-      # Add network policy to allow backend to access tanf-prod services
-      cf add-network-policy "$CGAPPNAME_BACKEND" clamav-rest --protocol tcp --port 9000
+    # Do a zero downtime deploy.  This requires enough memory for
+    # two apps to exist in the org/space at one time.
+    cf push "$CGAPPNAME_BACKEND" --no-route -f manifest.buildpack.yml -t 180 --strategy rolling || exit 1
+  else
+    cf push "$CGAPPNAME_BACKEND" --no-route -f manifest.buildpack.yml -t 180
+    # set up JWT key if needed
+    if cf e "$CGAPPNAME_BACKEND" | grep -q JWT_KEY ; then
+      echo jwt cert already created
     else
-      cf add-network-policy "$CGAPPNAME_BACKEND" tdp-clamav-nginx-$space --protocol tcp --port 9000
+      generate_jwt_cert
     fi
+  fi
 
-    cd ..
+  if [ $2 == 'rolling' ] ; then
+    set_cf_envs
+    # Do a zero downtime deploy.  This requires enough memory for
+    # two apps to exist in the org/space at one time.
+    cf push "$CGAPPNAME_CELERY" --no-route -f manifest.celery.yml -t 180 --strategy rolling || exit 1
+  else
+    cf push "$CGAPPNAME_CELERY" --no-route -f manifest.celery.yml -t 180
+  fi
+
+  set_cf_envs
+  
+  cf map-route "$CGAPPNAME_BACKEND" apps.internal --hostname "$CGAPPNAME_BACKEND"
+
+  # Add network policy to allow frontend to access backend
+  cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_BACKEND" --protocol tcp --port 8080
+  
+  if [ $CF_SPACE == 'tanf-prod' ]; then
+    # Add network policy to allow backend to access tanf-prod services
+    cf add-network-policy "$CGAPPNAME_BACKEND" clamav-rest --protocol tcp --port 9000
+  else
+    cf add-network-policy "$CGAPPNAME_BACKEND" tdp-clamav-nginx-$space --protocol tcp --port 9000
+  fi
+
 }
 
 bind_backend_to_services() {
@@ -212,48 +219,54 @@ else
   CYPRESS_TOKEN=$CYPRESS_TOKEN
 fi
 
-APP_GUID=$(cf app $CGHOSTNAME_BACKEND --guid || true)
-CELERY_GUID=$(cf app $CGHOSTNAME_CELERY --guid || true)
+APP_GUID=$(cf app $CGAPPNAME_BACKEND --guid || true)
+CELERY_GUID=$(cf app $CGAPPNAME_CELERY --guid || true)
 
-# if celery or backend missing, remove other and perform initial deploy
-if [ "$DEPLOY_STRATEGY" = "tbd" ]; then
-  if [ $APP_GUID == 'FAILED' ] && [ $CELERY_GUID == 'FAILED' ]; then
-    DEPLOY_STRATEGY='initial'
-  elif [ $APP_GUID == 'FAILED' ]; then
-    cf delete "$CGAPPNAME_CELERY" -r -f
-    DEPLOY_STRATEGY='initial'
-  elif [ $CELERY_GUID == 'FAILED' ]; then
-    cf delete "$CGAPPNAME_BACKEND" -r -f
+if [ $DEPLOY_STRATEGY == 'tbd' ]; then
+  if [ $APP_GUID == 'FAILED' ]; then
     DEPLOY_STRATEGY='initial'
   else
     DEPLOY_STRATEGY='rolling'
   fi
+  echo "Setting backend deployment strategy: ${DEPLOY_STRATEGY}"
 else
-  echo "Using given deployment strategy: ${DEPLOY_STRATEGY}"
+  echo "Using given backend deployment strategy: ${DEPLOY_STRATEGY}"
 fi
 
-if [ "$DEPLOY_STRATEGY" = "rolling" ]; then
-    # Perform a rolling update for the backend and frontend deployments if
-    # specified, otherwise perform a normal deployment
-    update_backend 'rolling'
-elif [ "$DEPLOY_STRATEGY" = "bind" ]; then
-    # Bind the services the application depends on and restage the app.
-    bind_backend_to_services
-elif [ "$DEPLOY_STRATEGY" = "initial" ]; then
-    # There is no app with this name, and the services need to be bound to it
-    # for it to work. the app will fail to start once, have the services bind,
-    # and then get restaged.
-    update_backend
-    bind_backend_to_services
-elif [ "$DEPLOY_STRATEGY" = "rebuild" ]; then
-    # You want to redeploy the instance under the same name
-    # Delete the existing app (with out deleting the services)
-    # and perform the initial deployment strategy.
-    cf delete "$CGAPPNAME_BACKEND" -r -f
-    cf delete "$CGAPPNAME_CELERY" -r -f
-    update_backend
-    bind_backend_to_services
+if [ $CELERY_DEPLOY_STRATEGY == 'tbd' ]; then
+  if [ $CELERY_GUID == 'FAILED' ]; then
+    CELERY_DEPLOY_STRATEGY='initial'
+  else
+    CELERY_DEPLOY_STRATEGY='rolling'
+  fi
+  echo "Setting celery deployment strategy: ${CELERY_DEPLOY_STRATEGY}"
 else
-    # No changes to deployment config, just deploy the changes and restart
-    update_backend
+  echo "Using given celery deployment strategy: ${CELERY_DEPLOY_STRATEGY}"
+fi
+
+if [ $DEPLOY_STRATEGY == 'rebuild' ]; then
+  # You want to redeploy the instance under the same name
+  # Delete the existing app (with out deleting the services)
+  # and perform the initial deployment strategy.
+  cf delete "$CGAPPNAME_BACKEND" -r -f
+  cf delete "$CGAPPNAME_CELERY" -r -f
+fi
+
+if [ $DEPLOY_STRATEGY == 'bind' ]; then
+  # Bind the services the application depends on and restage the app.
+  bind_backend_to_services
+else
+  update_backend $DEPLOY_STRATEGY $CELERY_DEPLOY_STRATEGY
+fi
+
+if [ $DEPLOY_STRATEGY == 'initial' ]; then
+  bind_backend_to_services
+elif [ $DEPLOY_STRATEGY == 'rebuild' ]; then
+  bind_backend_to_services
+elif [ $CELERY_DEPLOY_STRATEGY == 'initial' ]; then
+  bind_backend_to_services
+elif [ $CELERY_DEPLOY_STRATEGY == 'rebuild' ]; then
+  bind_backend_to_services
+else
+  echo "no need to rebind to services"
 fi
