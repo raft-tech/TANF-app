@@ -1,33 +1,32 @@
 #!/bin/bash
 
+app=${1}
+
 cd ./tdrs-backend
 
-app=${1}
-guid=$(cf app --guid $app)
-
-# install cf cli - should be done by ci job
-# log into cloud.gov - should be done by ci job
-# pip install deps
-sudo apt install -y update
-sudo apt install -y upgrade
+echo "Install dependencies..."
 sudo apt install -y gcc
 sudo apt install -y graphviz
 sudo apt install -y graphviz-dev
 sudo apt install -y libpq-dev python3-dev
 pip install --upgrade pip pipenv
 pipenv install --dev --system --deploy
+echo "Done."
 
-# requires `jq` - https://jqlang.github.io/jq/download/
+echo "Getting credentials..."
+guid=$(cf app --guid $app)
 app_vars=$(cf curl /v2/apps/$guid/env)
 
 db_creds=$(echo $app_vars | jq -r '.system_env_json.VCAP_SERVICES."aws-rds"[0].credentials')
 connection_str=$(echo $db_creds | jq -r '[.host, .port]' | jq -r 'join(":")')
+echo "Done."
 
 echo "Starting tunnel..."
 cf ssh -N -L 5432:$connection_str $app &
 sleep 5
 echo "Done."
 
+echo "Setting up environment..."
 cp ./.env.example ./.env.ci
 
 vcap_services=$(echo $app_vars | jq -r '.system_env_json.VCAP_SERVICES')
@@ -39,6 +38,10 @@ fixed_vcap_services=$(echo $vcap_services | jq -rc '."aws-rds"[0].credentials.ho
 echo "VCAP_SERVICES=$fixed_vcap_services" >> .env.ci
 echo "VCAP_APPLICATION=$vcap_application" >> .env.ci
 
+set -a
+source .env.ci
+set +a
+echo "Done."
 
 # echo "Starting container..."
 # docker-compose -f docker-compose.ci.yml --env-file .env.ci up -d
