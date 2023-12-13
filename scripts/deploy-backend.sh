@@ -15,8 +15,8 @@ CGAPPNAME_BACKEND="tdp-backend-${ENV}"
 CGAPPNAME_CELERY="tdp-celery-${ENV}"
 
 strip() {
-    # Usage: strip "string" "pattern"
-    printf '%s\n' "${1##$2}"
+  # Usage: strip "string" "pattern"
+  printf '%s\n' "${1##$2}"
 }
 # The cloud.gov space defined via CF_SPACE environment variable (e.g., "tanf-dev", "tanf-staging")
 space=$(strip $CF_SPACE "tanf-")
@@ -65,7 +65,7 @@ set_cf_envs() {
       cf_cmd="cf unset-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
       $cf_cmd
       continue
-    elif [[ ("$var_name" =~ "STAGING_") && ("$CF_SPACE" = "tanf-staging") ]]; then
+    elif [[ ($var_name =~ 'STAGING_') && ($CF_SPACE = 'tanf-staging') ]]; then
       sed_var_name=$(echo "$var_name" | sed -e 's@STAGING_@@g')
       cf_cmd="cf set-env $CGAPPNAME_BACKEND $sed_var_name ${!var_name}"
     else
@@ -90,14 +90,14 @@ update_backend() {
   cd tdrs-backend || exit
   cf unset-env "$CGAPPNAME_BACKEND" "AV_SCAN_URL"
   
-  if [ $CF_SPACE == 'tanf-prod' ]; then
+  if [[ $CF_SPACE == 'tanf-prod' ]]; then
     cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tanf-prod-clamav-rest.apps.internal:9000/scan"
   else
     # Add environment varilables for clamav
     cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tdp-clamav-nginx-$space.apps.internal:9000/scan"
   fi
 
-  if [ $1 == 'rolling' ] ; then
+  if [[ $1 == 'rolling' ]] ; then
     set_cf_envs
     # Do a zero downtime deploy.  This requires enough memory for
     # two apps to exist in the org/space at one time.
@@ -112,7 +112,7 @@ update_backend() {
     fi
   fi
 
-  if [ $2 == 'rolling' ] ; then
+  if [[ $2 == 'rolling' ]] ; then
     set_cf_envs
     # Do a zero downtime deploy.  This requires enough memory for
     # two apps to exist in the org/space at one time.
@@ -128,7 +128,7 @@ update_backend() {
   # Add network policy to allow frontend to access backend
   cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_BACKEND" --protocol tcp --port 8080
   
-  if [ $CF_SPACE == 'tanf-prod' ]; then
+  if [[ $CF_SPACE == 'tanf-prod' ]]; then
     # Add network policy to allow backend to access tanf-prod services
     cf add-network-policy "$CGAPPNAME_BACKEND" clamav-rest --protocol tcp --port 9000
   else
@@ -138,35 +138,35 @@ update_backend() {
 }
 
 bind_backend_to_services() {
-    echo "Binding services to app: $CGAPPNAME_BACKEND"
+  echo "Binding services to app: $CGAPPNAME_BACKEND"
 
-    if [ "$CGAPPNAME_BACKEND" = "tdp-backend-develop" ]; then
-      # TODO: this is technical debt, we should either make staging mimic tanf-dev 
-      #       or make unique services for all apps but we have a services limit
-      #       Introducing technical debt for release 3.0.0 specifically.
-      space="develop"
-    fi
+  if [[ $CGAPPNAME_BACKEND = 'tdp-backend-develop' ]]; then
+    # TODO: this is technical debt, we should either make staging mimic tanf-dev 
+    #       or make unique services for all apps but we have a services limit
+    #       Introducing technical debt for release 3.0.0 specifically.
+    space="develop"
+  fi
 
-    cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-${space}"
-    cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${space}"
-    cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${space}"
+  cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-${space}"
+  cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${space}"
+  cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${space}"
 
-    f bind-service "$CGAPPNAME_CELERY" "tdp-staticfiles-${space}"
-    cf bind-service "$CGAPPNAME_CELERY" "tdp-datafiles-${space}"
-    cf bind-service "$CGAPPNAME_CELERY" "tdp-db-${space}"
+  f bind-service "$CGAPPNAME_CELERY" "tdp-staticfiles-${space}"
+  cf bind-service "$CGAPPNAME_CELERY" "tdp-datafiles-${space}"
+  cf bind-service "$CGAPPNAME_CELERY" "tdp-db-${space}"
+
+  # bind to redis
+  cf bind-service "$CGAPPNAME_BACKEND" "tdp-redis-${ENV}"
+  cf bind-service "$CGAPPNAME_CELERY" "tdp-redis-${ENV}"  
+  # bind to elastic-search
+  cf bind-service "$CGAPPNAME_BACKEND" "es-${ENV}"
+  cf bind-service "$CGAPPNAME_CELERY" "es-${ENV}"
   
-    # bind to redis
-    cf bind-service "$CGAPPNAME_BACKEND" "tdp-redis-${ENV}"
-    cf bind-service "$CGAPPNAME_CELERY" "tdp-redis-${ENV}"  
-    # bind to elastic-search
-    cf bind-service "$CGAPPNAME_BACKEND" "es-${ENV}"
-    cf bind-service "$CGAPPNAME_CELERY" "es-${ENV}"
-    
-    set_cf_envs
+  set_cf_envs
 
-    echo "Restarting apps: $CGAPPNAME_BACKEND and $CGAPPNAME_CELERY"
-    cf restage "$CGAPPNAME_BACKEND"
-    cf restage "$CGAPPNAME_CELERY"
+  echo "Restarting apps: $CGAPPNAME_BACKEND and $CGAPPNAME_CELERY"
+  cf restage "$CGAPPNAME_BACKEND"
+  cf restage "$CGAPPNAME_CELERY"
 }
 
 ##############################
@@ -176,13 +176,13 @@ bind_backend_to_services() {
 # Determine the appropriate BASE_URL for the deployed instance based on the
 # provided Cloud.gov App Name
 DEFAULT_ROUTE="https://$CGAPPNAME_FRONTEND.app.cloud.gov"
-if [ -n "$BASE_URL" ]; then
+if [[ -n $BASE_URL ]]; then
   # Use Shell Parameter Expansion to replace localhost in the URL
   BASE_URL="${BASE_URL//http:\/\/localhost:8080/$DEFAULT_ROUTE}"
-elif [ "$CF_SPACE" = "tanf-prod" ]; then
+elif [[ $CF_SPACE == 'tanf-prod' ]]; then
   # Keep the base url set explicitly for production.
   BASE_URL="https://tanfdata.acf.hhs.gov/v1"
-elif [ "$CF_SPACE" = "tanf-staging" ]; then
+elif [[ $CF_SPACE == 'tanf-staging' ]]; then
   # use .acf.hss.gov domain for develop and staging.
   BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov/v1"
 else
@@ -191,12 +191,12 @@ else
 fi
 
 DEFAULT_FRONTEND_ROUTE="${DEFAULT_ROUTE//backend/frontend}"
-if [ -n "$FRONTEND_BASE_URL" ]; then
+if [[ -n $FRONTEND_BASE_URL ]]; then
   FRONTEND_BASE_URL="${FRONTEND_BASE_URL//http:\/\/localhost:3000/$DEFAULT_FRONTEND_ROUTE}"
-elif [ "$CF_SPACE" = "tanf-prod" ]; then
+elif [[ $CF_SPACE == 'tanf-prod' ]]; then
   # Keep the base url set explicitly for production.
-  FRONTEND_BASE_URL="https://tanfdata.acf.hhs.gov"
-elif [ "$CF_SPACE" = "tanf-staging" ]; then
+  FRONTEND_BASE_URL='https://tanfdata.acf.hhs.gov'
+elif [[ $CF_SPACE == 'tanf-staging' ]]; then
    # use .acf.hss.gov domain for develop and staging.
   FRONTEND_BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov"
 else
@@ -209,9 +209,9 @@ DJANGO_SECRET_KEY=$(python3 -c "from secrets import token_urlsafe; print(token_u
 
 # Dynamically set DJANGO_CONFIGURATION based on Cloud.gov Space
 DJANGO_SETTINGS_MODULE="tdpservice.settings.cloudgov"
-if [ "$CF_SPACE" = "tanf-prod" ]; then
+if [[ $CF_SPACE == 'tanf-prod' ]]; then
   DJANGO_CONFIGURATION="Production"
-elif [ "$CF_SPACE" = "tanf-staging" ]; then
+elif [[ $CF_SPACE == 'tanf-staging' ]]; then
   DJANGO_CONFIGURATION="Staging"
 else
   DJANGO_CONFIGURATION="Development"
@@ -222,8 +222,8 @@ fi
 APP_GUID=$(cf app $CGAPPNAME_BACKEND --guid || true)
 CELERY_GUID=$(cf app $CGAPPNAME_CELERY --guid || true)
 
-if [ $DEPLOY_STRATEGY == 'tbd' ]; then
-  if [ $APP_GUID == 'FAILED' ]; then
+if [[ $DEPLOY_STRATEGY == 'tbd' ]]; then
+  if [[ $APP_GUID == 'FAILED' ]]; then
     DEPLOY_STRATEGY='initial'
   else
     DEPLOY_STRATEGY='rolling'
@@ -233,8 +233,8 @@ else
   echo "Using given backend deployment strategy: ${DEPLOY_STRATEGY}"
 fi
 
-if [ $CELERY_DEPLOY_STRATEGY == 'tbd' ]; then
-  if [ $CELERY_GUID == 'FAILED' ]; then
+if [[ $CELERY_DEPLOY_STRATEGY == 'tbd' ]]; then
+  if [[ $CELERY_GUID == 'FAILED' ]]; then
     CELERY_DEPLOY_STRATEGY='initial'
   else
     CELERY_DEPLOY_STRATEGY='rolling'
@@ -244,7 +244,7 @@ else
   echo "Using given celery deployment strategy: ${CELERY_DEPLOY_STRATEGY}"
 fi
 
-if [ $DEPLOY_STRATEGY == 'rebuild' ]; then
+if [[ $DEPLOY_STRATEGY == 'rebuild' ]]; then
   # You want to redeploy the instance under the same name
   # Delete the existing app (with out deleting the services)
   # and perform the initial deployment strategy.
@@ -252,20 +252,20 @@ if [ $DEPLOY_STRATEGY == 'rebuild' ]; then
   cf delete "$CGAPPNAME_CELERY" -r -f
 fi
 
-if [ $DEPLOY_STRATEGY == 'bind' ]; then
+if [[ $DEPLOY_STRATEGY == 'bind' ]]; then
   # Bind the services the application depends on and restage the app.
   bind_backend_to_services
 else
   update_backend $DEPLOY_STRATEGY $CELERY_DEPLOY_STRATEGY
 fi
 
-if [ $DEPLOY_STRATEGY == 'initial' ]; then
+if [[ $DEPLOY_STRATEGY == 'initial' ]]; then
   bind_backend_to_services
-elif [ $DEPLOY_STRATEGY == 'rebuild' ]; then
+elif [[ $DEPLOY_STRATEGY == 'rebuild' ]]; then
   bind_backend_to_services
-elif [ $CELERY_DEPLOY_STRATEGY == 'initial' ]; then
+elif [[ $CELERY_DEPLOY_STRATEGY == 'initial' ]]; then
   bind_backend_to_services
-elif [ $CELERY_DEPLOY_STRATEGY == 'rebuild' ]; then
+elif [[ $CELERY_DEPLOY_STRATEGY == 'rebuild' ]]; then
   bind_backend_to_services
 else
   echo "no need to rebind to services"
