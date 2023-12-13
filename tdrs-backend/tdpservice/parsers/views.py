@@ -47,6 +47,11 @@ class ParsingErrorViewSet(ModelViewSet):
                 error_msg = error_msg.replace(key, value) if value else error_msg
             return error_msg
 
+        # make sure data['fields_json'] is not None
+        data[0]['fields_json'] = data[0]['fields_json'] if data[0].get('fields_json', None) else {
+            'friendly_name': {},
+        }
+
         row, col = 0, 0
         output = BytesIO()
         workbook = xlsxwriter.Workbook(output)
