@@ -35,8 +35,8 @@ vcap_application=$(echo $app_vars | jq -rc '.application_env_json.VCAP_APPLICATI
 # replace host env var
 fixed_vcap_services=$(echo $vcap_services | jq -rc '."aws-rds"[0].credentials.host="host.docker.internal"')
 
-echo "VCAP_SERVICES=$fixed_vcap_services" >> .env.ci
-echo "VCAP_APPLICATION=$vcap_application" >> .env.ci
+echo "VCAP_SERVICES='$fixed_vcap_services'" >> .env.ci
+echo "VCAP_APPLICATION='$vcap_application'" >> .env.ci
 
 set -a
 source .env.ci
