@@ -47,6 +47,14 @@ class ParsingErrorViewSet(ModelViewSet):
                     x['field_name']: x['field_name']
                 },
             }
+            x['fields_json']['friendly_name'] = x['fields_json']['friendly_name'] if x['fields_json'].get(
+                'friendly_name', None) else {
+                x['field_name']: x['field_name']
+            }
+            if None in x['fields_json']['friendly_name'].keys():
+                x['fields_json']['friendly_name'].pop(None)
+            if None in x['fields_json']['friendly_name'].values():
+                x['fields_json']['friendly_name'].pop()
             return x
 
         def format_error_msg(x):
