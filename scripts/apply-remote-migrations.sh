@@ -5,7 +5,17 @@ cd ./tdrs-backend
 app=${1}
 guid=$(cf app --guid $app)
 
-# echo $guid
+# install cf cli - should be done by ci job
+# log into cloud.gov - should be done by ci job
+# pip install deps
+sudo apt install -y update
+sudo apt install -y upgrade
+sudo apt install -y gcc
+sudo apt install -y graphviz
+sudo apt install -y graphviz-dev
+sudo apt install -y libpq-dev python3-dev
+pip install --upgrade pip pipenv
+pipenv install --dev --system --deploy
 
 # requires `jq` - https://jqlang.github.io/jq/download/
 app_vars=$(cf curl /v2/apps/$guid/env)
@@ -30,17 +40,18 @@ echo "VCAP_SERVICES=$fixed_vcap_services" >> .env.ci
 echo "VCAP_APPLICATION=$vcap_application" >> .env.ci
 
 
-echo "Starting container..."
-docker-compose -f docker-compose.ci.yml --env-file .env.ci up -d
+# echo "Starting container..."
+# docker-compose -f docker-compose.ci.yml --env-file .env.ci up -d
 # pip install wait-for-it
 # wait-for-it --service http://web:8080 --timeout 60 -- echo "Docker is ready."
-docker-compose -f docker-compose.ci.yml cp . web:/tdpapp
-docker-compose -f docker-compose.ci.yml restart web
-echo "Done."
+# docker-compose -f docker-compose.ci.yml cp . web:/tdpapp
+# docker-compose -f docker-compose.ci.yml restart web
+# echo "Done."
 
 echo "Applying migrations..."
 # stop script and report errors??
-docker-compose -f docker-compose.ci.yml exec web python /tdpapp/manage.py migrate
+python manage.py migrate
+# docker-compose -f docker-compose.ci.yml exec web python /tdpapp/manage.py migrate
 echo "Done."
 
 echo "Cleaning up..."
