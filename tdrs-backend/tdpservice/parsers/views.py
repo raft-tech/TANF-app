@@ -45,7 +45,9 @@ class ParsingErrorViewSet(ModelViewSet):
             error_msg = x['error_message']
             # make sure x['friendly_name'] is not None
             x['fields_json'] = x['fields_json'] if x.get('fields_json', None) else {
-                'friendly_name': {},
+                'friendly_name': {
+                    x['field_name']: x['field_name']
+                },
             }
             for key, value in x['fields_json']['friendly_name'].items():
                 error_msg = error_msg.replace(key, value) if value else error_msg
