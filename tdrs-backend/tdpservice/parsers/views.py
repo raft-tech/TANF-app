@@ -43,14 +43,18 @@ class ParsingErrorViewSet(ModelViewSet):
         def format_error_msg(x):
             """Format error message."""
             error_msg = x['error_message']
+            # make sure x['friendly_name'] is not None
+            x['fields_json'] = x['fields_json'] if x.get('fields_json', None) else {
+                'friendly_name': {},
+            }
             for key, value in x['fields_json']['friendly_name'].items():
                 error_msg = error_msg.replace(key, value) if value else error_msg
             return error_msg
 
         # make sure data['fields_json'] is not None
-        data[0]['fields_json'] = data[0]['fields_json'] if data[0].get('fields_json', None) else {
-            'friendly_name': {},
-        }
+        #data[0]['fields_json'] = data[0]['fields_json'] if data[0].get('fields_json', None) else {
+        #    'friendly_name': {},
+        #}
 
         row, col = 0, 0
         output = BytesIO()
