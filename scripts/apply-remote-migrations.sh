@@ -40,6 +40,8 @@ echo "VCAP_APPLICATION=$vcap_application" >> .env.ci
 
 set -a
 source .env.ci
+export DJANGO_CONFIGURATION=Development
+export DJANGO_SETTINGS_MODULE=tdpservice.settings.cloudgov
 set +a
 echo "Done."
 
