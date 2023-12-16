@@ -297,8 +297,7 @@ t2 = SchemaManager(
                 Field(
                     item="36C",
                     name="DISABLED_TITLE_XIVAPDT",
-                    friendly_name="receives aid to the permanently and totally disabled" +
-                    " under title xiv-apdt of the social security act",
+                    friendly_name="received aid under Title XIV-APDT",
                     type="string",
                     startIndex=47,
                     endIndex=48,
