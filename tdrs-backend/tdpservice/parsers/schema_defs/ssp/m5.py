@@ -272,7 +272,7 @@ m5 = SchemaManager(
                 Field(
                     item="18D",
                     name="REC_AID_AGED_BLIND",
-                    friendly_name="receives from the aid to the aged, blind, and disabled program",
+                    friendly_name="receives from aid to the aged, blind, and disabled program",
                     type="number",
                     startIndex=47,
                     endIndex=48,
