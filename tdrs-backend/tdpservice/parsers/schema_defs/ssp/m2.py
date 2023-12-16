@@ -301,7 +301,7 @@ m2 = SchemaManager(
                 Field(
                     item="32D",
                     name='AID_AGED_BLIND',
-                    friendly_name="receives from the aid to the aged, blind, and disabled program",
+                    friendly_name="receives from aid to the aged, blind, and disabled program",
                     type='number',
                     startIndex=48,
                     endIndex=49,
