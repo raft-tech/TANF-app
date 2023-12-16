@@ -311,7 +311,7 @@ m2 = SchemaManager(
                 Field(
                     item="32E",
                     name='RECEIVE_SSI',
-                    friendly_name="receives social security income",
+                    friendly_name="receives SSI",
                     type='number',
                     startIndex=49,
                     endIndex=50,
@@ -772,7 +772,7 @@ m2 = SchemaManager(
                 Field(
                     item="59C",
                     name='UNEARNED_SSI',
-                    friendly_name="unearned ssi benefit",
+                    friendly_name="unearned SSI benefit",
                     type='number',
                     startIndex=138,
                     endIndex=142,
