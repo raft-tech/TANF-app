@@ -282,7 +282,7 @@ m5 = SchemaManager(
                 Field(
                     item="18E",
                     name="REC_SSI",
-                    friendly_name="receives social security income",
+                    friendly_name="receives SSI",
                     type="number",
                     startIndex=48,
                     endIndex=49,
