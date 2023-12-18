@@ -290,8 +290,7 @@ m2 = SchemaManager(
                 Field(
                     item="32C",
                     name='DISABLED_TITLE_XIVAPDT',
-                    friendly_name="receives aid to the permanently and totally disabled" +
-                    " under title xiv-apdt of the social security act",
+                    friendly_name="received aid under Title XIV-APDT",
                     type='number',
                     startIndex=47,
                     endIndex=48,
@@ -301,7 +300,7 @@ m2 = SchemaManager(
                 Field(
                     item="32D",
                     name='AID_AGED_BLIND',
-                    friendly_name="receives from the aid to the aged, blind, and disabled program",
+                    friendly_name="receives from aid to the aged, blind, and disabled program",
                     type='number',
                     startIndex=48,
                     endIndex=49,
@@ -311,7 +310,7 @@ m2 = SchemaManager(
                 Field(
                     item="32E",
                     name='RECEIVE_SSI',
-                    friendly_name="receives social security income",
+                    friendly_name="receives SSI",
                     type='number',
                     startIndex=49,
                     endIndex=50,
@@ -772,7 +771,7 @@ m2 = SchemaManager(
                 Field(
                     item="59C",
                     name='UNEARNED_SSI',
-                    friendly_name="unearned ssi benefit",
+                    friendly_name="unearned SSI benefit",
                     type='number',
                     startIndex=138,
                     endIndex=142,
