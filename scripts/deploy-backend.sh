@@ -56,20 +56,20 @@ set_cf_envs() {
     "STAGING_JWT_KEY"
   )
 
-  echo "Setting environment variables for $CGAPPNAME_BACKEND"
+  echo "Setting environment variables for $1"
 
   for var_name in ${var_list[@]}; do
     # Intentionally unsetting variable if empty
     if [[ -z "${!var_name}" ]]; then
       echo "WARNING: Empty value for $var_name. It will now be unset."
-      cf_cmd="cf unset-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
+      cf_cmd="cf unset-env $1 $var_name ${!var_name}"
       $cf_cmd
       continue
     elif [[ ($var_name =~ 'STAGING_') && ($CF_SPACE = 'tanf-staging') ]]; then
       sed_var_name=$(echo "$var_name" | sed -e 's@STAGING_@@g')
-      cf_cmd="cf set-env $CGAPPNAME_BACKEND $sed_var_name ${!var_name}"
+      cf_cmd="cf set-env $1 $sed_var_name ${!var_name}"
     else
-      cf_cmd="cf set-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
+      cf_cmd="cf set-env $1 $var_name ${!var_name}"
     fi
     
     echo "Setting var : $var_name"
@@ -98,7 +98,7 @@ update_backend() {
   fi
 
   if [[ $1 == 'rolling' ]] ; then
-    set_cf_envs
+    set_cf_envs $CGAPPNAME_BACKEND
     # Do a zero downtime deploy.  This requires enough memory for
     # two apps to exist in the org/space at one time.
     cf push "$CGAPPNAME_BACKEND" --no-route -f manifest.buildpack.yml -t 180 --strategy rolling || exit 1
@@ -113,7 +113,7 @@ update_backend() {
   fi
 
   if [[ $2 == 'rolling' ]] ; then
-    set_cf_envs
+    set_cf_envs $CGAPPNAME_CELERY
     # Do a zero downtime deploy.  This requires enough memory for
     # two apps to exist in the org/space at one time.
     cf push "$CGAPPNAME_CELERY" --no-route -f manifest.celery.yml -t 180 --strategy rolling || exit 1
@@ -121,7 +121,8 @@ update_backend() {
     cf push "$CGAPPNAME_CELERY" --no-route -f manifest.celery.yml -t 180
   fi
 
-  set_cf_envs
+  set_cf_envs $CGAPPNAME_BACKEND
+  set_cf_envs $CGAPPNAME_CELERY
   
   cf map-route "$CGAPPNAME_BACKEND" apps.internal --hostname "$CGAPPNAME_BACKEND"
 
@@ -162,7 +163,8 @@ bind_backend_to_services() {
   cf bind-service "$CGAPPNAME_BACKEND" "es-${ENV}"
   cf bind-service "$CGAPPNAME_CELERY" "es-${ENV}"
   
-  set_cf_envs
+  set_cf_envs $CGAPPNAME_BACKEND
+  set_cf_envs $CGAPPNAME_CELERY
 
   echo "Restarting apps: $CGAPPNAME_BACKEND and $CGAPPNAME_CELERY"
   cf restage "$CGAPPNAME_BACKEND"
