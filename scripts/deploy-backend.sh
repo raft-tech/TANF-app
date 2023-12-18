@@ -152,7 +152,7 @@ bind_backend_to_services() {
   cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${space}"
   cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${space}"
 
-  f bind-service "$CGAPPNAME_CELERY" "tdp-staticfiles-${space}"
+  cf bind-service "$CGAPPNAME_CELERY" "tdp-staticfiles-${space}"
   cf bind-service "$CGAPPNAME_CELERY" "tdp-datafiles-${space}"
   cf bind-service "$CGAPPNAME_CELERY" "tdp-db-${space}"
 
