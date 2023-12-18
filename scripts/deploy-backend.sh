@@ -51,7 +51,6 @@ set_cf_envs() {
     "DJANGO_SU_NAME"
     "FRONTEND_BASE_URL"
     "LOGGING_LEVEL"
-    "REDIS_URI"
     "JWT_KEY"
     "STAGING_JWT_KEY"
   )
