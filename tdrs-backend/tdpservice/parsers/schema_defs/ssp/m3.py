@@ -229,7 +229,7 @@ first_part_schema = RowSchema(
         Field(
             item="65A",
             name='RECEIVE_NONSSI_BENEFITS',
-            friendly_name="receive non-ssi benefits",
+            friendly_name="receive non-SSI benefits",
             type='number',
             startIndex=44,
             endIndex=45,
@@ -239,7 +239,7 @@ first_part_schema = RowSchema(
         Field(
             item="65B",
             name='RECEIVE_SSI',
-            friendly_name="receives ssi",
+            friendly_name="receives SSI",
             type='number',
             startIndex=45,
             endIndex=46,
@@ -294,7 +294,7 @@ first_part_schema = RowSchema(
         Field(
             item="70A",
             name='UNEARNED_SSI',
-            friendly_name="unearned ssi benefit",
+            friendly_name="unearned SSI benefit",
             type='number',
             startIndex=52,
             endIndex=56,
@@ -536,7 +536,7 @@ second_part_schema = RowSchema(
         Field(
             item="65A",
             name='RECEIVE_NONSSI_BENEFITS',
-            friendly_name="receives non-ssi benefit",
+            friendly_name="receives non-SSI benefit",
             type='number',
             startIndex=85,
             endIndex=86,
@@ -601,7 +601,7 @@ second_part_schema = RowSchema(
         Field(
             item="70A",
             name='UNEARNED_SSI',
-            friendly_name="unearned ssi benefit",
+            friendly_name="unearned SSI benefit",
             type='number',
             startIndex=93,
             endIndex=97,
