@@ -6,7 +6,6 @@
             - equal: [ master, << pipeline.git.branch >> ]
             - equal: [ main, << pipeline.git.branch >> ]
             - equal: [ develop, << pipeline.git.branch >> ]
-            # - equal: [ '2722/circleci', << pipeline.git.branch >> ] #DELETE BEFORE MERGE
             - << pipeline.parameters.run_dev_deployment >>
         - not: << pipeline.parameters.run_nightly_owasp_scan >>
 
@@ -21,7 +20,6 @@
           filters:
             branches:
               ignore:
-                # - '2722/circleci' #DELETE BEFORE MERGE
                 - develop
                 - main
                 - master
@@ -29,7 +27,6 @@
           filters:
             branches:
               only:
-                # - '2722/circleci' #DELETE BEFORE MERGE
                 - develop
                 - main
       - deploy-infrastructure-production:
@@ -56,7 +53,6 @@
           filters:
             branches:
               only:
-                # - '2722/circleci' #DELETE BEFORE MERGE
                 - develop
       - enable-versioning:
           requires:
@@ -94,7 +90,6 @@
           filters:
             branches:
               ignore:
-                # - '2722/circleci' #DELETE BEFORE MERGE
                 - develop
                 - main
                 - master
@@ -104,7 +99,6 @@
           filters:
             branches:
               only:
-                # - '2722/circleci' #DELETE BEFORE MERGE
                 - develop
       - deploy-staging:
           requires:
@@ -126,7 +120,6 @@
           filters:
             branches:
               only:
-                - '2722/circleci' #DELETE BEFORE MERGE
                 - develop
       - make_erd: # from ../util folder
           filters:
