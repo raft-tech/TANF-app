@@ -120,7 +120,7 @@ child_one = RowSchema(
             validators=[validators.isAlphaNumeric()],
         ),
         Field(
-            item="67",
+            item="66",
             name="FAMILY_AFFILIATION",
             friendly_name="family affiliation",
             type="number",
@@ -130,7 +130,7 @@ child_one = RowSchema(
             validators=[validators.oneOf([1, 2, 4])],
         ),
         Field(
-            item="68",
+            item="67",
             name="DATE_OF_BIRTH",
             friendly_name="date of birth",
             type="number",
@@ -144,7 +144,7 @@ child_one = RowSchema(
         ),
         TransformField(
             transform_func=tanf_ssn_decryption_func,
-            item="69",
+            item="68",
             name="SSN",
             friendly_name="social security number - ssn",
             type="string",
@@ -155,7 +155,7 @@ child_one = RowSchema(
             is_encrypted=False,
         ),
         Field(
-            item="70A",
+            item="69A",
             name="RACE_HISPANIC",
             friendly_name="race hispanic",
             type="number",
@@ -165,7 +165,7 @@ child_one = RowSchema(
             validators=[validators.validateRace()],
         ),
         Field(
-            item="70B",
+            item="69B",
             name="RACE_AMER_INDIAN",
             friendly_name="race american indian",
             type="number",
@@ -175,7 +175,7 @@ child_one = RowSchema(
             validators=[validators.validateRace()],
         ),
         Field(
-            item="70C",
+            item="69C",
             name="RACE_ASIAN",
             friendly_name="race asian",
             type="number",
@@ -185,7 +185,7 @@ child_one = RowSchema(
             validators=[validators.validateRace()],
         ),
         Field(
-            item="70D",
+            item="69D",
             name="RACE_BLACK",
             friendly_name="race black",
             type="number",
@@ -195,7 +195,7 @@ child_one = RowSchema(
             validators=[validators.validateRace()],
         ),
         Field(
-            item="70E",
+            item="69E",
             name="RACE_HAWAIIAN",
             friendly_name="race hawaiian",
             type="number",
@@ -205,7 +205,7 @@ child_one = RowSchema(
             validators=[validators.validateRace()],
         ),
         Field(
-            item="70F",
+            item="69F",
             name="RACE_WHITE",
             friendly_name="race white",
             type="number",
@@ -215,7 +215,7 @@ child_one = RowSchema(
             validators=[validators.validateRace()],
         ),
         Field(
-            item="71",
+            item="70",
             name="GENDER",
             friendly_name="gender",
             type="number",
@@ -225,7 +225,7 @@ child_one = RowSchema(
             validators=[validators.isInLimits(0, 9)],
         ),
         Field(
-            item="72A",
+            item="71A",
             name="RECEIVE_NONSSA_BENEFITS",
             friendly_name="receives non-social security act benefits",
             type="number",
@@ -235,7 +235,7 @@ child_one = RowSchema(
             validators=[validators.oneOf([1, 2])],
         ),
         Field(
-            item="72B",
+            item="71B",
             name="RECEIVE_SSI",
             friendly_name="receives social security income",
             type="number",
@@ -245,7 +245,7 @@ child_one = RowSchema(
             validators=[validators.oneOf([1, 2])],
         ),
         Field(
-            item="73",
+            item="72",
             name="RELATIONSHIP_HOH",
             friendly_name="relationship to head of household",
             type="string",
@@ -255,7 +255,7 @@ child_one = RowSchema(
             validators=[validators.isInStringRange(0, 10)],
         ),
         Field(
-            item="74",
+            item="73",
             name="PARENT_MINOR_CHILD",
             friendly_name="parent of minor child",
             type="number",
@@ -265,7 +265,7 @@ child_one = RowSchema(
             validators=[validators.oneOf([0, 2, 3])],
         ),
         Field(
-            item="75",
+            item="74",
             name="EDUCATION_LEVEL",
             friendly_name="education level",
             type="string",
@@ -280,7 +280,7 @@ child_one = RowSchema(
             ],
         ),
         Field(
-            item="76",
+            item="75",
             name="CITIZENSHIP_STATUS",
             friendly_name="citizenship status",
             type="number",
@@ -290,7 +290,7 @@ child_one = RowSchema(
             validators=[validators.oneOf([0, 1, 2, 9])],
         ),
         Field(
-            item="77A",
+            item="76A",
             name="UNEARNED_SSI",
             friendly_name="unearned ssi benefit",
             type="string",
@@ -300,7 +300,7 @@ child_one = RowSchema(
             validators=[validators.isInStringRange(0, 9999)],
         ),
         Field(
-            item="77B",
+            item="76B",
             name="OTHER_UNEARNED_INCOME",
             friendly_name="other unearned income",
             type="string",
@@ -424,7 +424,7 @@ child_two = RowSchema(
             validators=[validators.isAlphaNumeric()],
         ),
         Field(
-            item="67",
+            item="66",
             name="FAMILY_AFFILIATION",
             friendly_name="family affiliation",
             type="number",
@@ -434,7 +434,7 @@ child_two = RowSchema(
             validators=[validators.oneOf([1, 2, 4])],
         ),
         Field(
-            item="68",
+            item="67",
             name="DATE_OF_BIRTH",
             friendly_name="date of birth",
             type="number",
@@ -448,7 +448,7 @@ child_two = RowSchema(
         ),
         TransformField(
             transform_func=tanf_ssn_decryption_func,
-            item="69",
+            item="68",
             name="SSN",
             friendly_name="social security number - ssn",
             type="string",
@@ -459,7 +459,7 @@ child_two = RowSchema(
             is_encrypted=False,
         ),
         Field(
-            item="70A",
+            item="69A",
             name="RACE_HISPANIC",
             friendly_name="race hispanic",
             type="number",
@@ -469,7 +469,7 @@ child_two = RowSchema(
             validators=[validators.validateRace()],
         ),
         Field(
-            item="70B",
+            item="69B",
             name="RACE_AMER_INDIAN",
             friendly_name="race american indian",
             type="number",
@@ -479,7 +479,7 @@ child_two = RowSchema(
             validators=[validators.validateRace()],
         ),
         Field(
-            item="70C",
+            item="69C",
             name="RACE_ASIAN",
             friendly_name="race asian",
             type="number",
@@ -489,7 +489,7 @@ child_two = RowSchema(
             validators=[validators.validateRace()],
         ),
         Field(
-            item="70D",
+            item="69D",
             name="RACE_BLACK",
             friendly_name="race black",
             type="number",
@@ -499,7 +499,7 @@ child_two = RowSchema(
             validators=[validators.validateRace()],
         ),
         Field(
-            item="70E",
+            item="69E",
             name="RACE_HAWAIIAN",
             friendly_name="race hawaiian",
             type="number",
@@ -509,7 +509,7 @@ child_two = RowSchema(
             validators=[validators.validateRace()],
         ),
         Field(
-            item="70F",
+            item="69F",
             name="RACE_WHITE",
             friendly_name="race white",
             type="number",
@@ -519,7 +519,7 @@ child_two = RowSchema(
             validators=[validators.validateRace()],
         ),
         Field(
-            item="71",
+            item="70",
             name="GENDER",
             friendly_name="gender",
             type="number",
@@ -529,7 +529,7 @@ child_two = RowSchema(
             validators=[validators.isInLimits(0, 9)],
         ),
         Field(
-            item="72A",
+            item="71A",
             name="RECEIVE_NONSSA_BENEFITS",
             friendly_name="receives non-ssa benefits",
             type="number",
@@ -539,7 +539,7 @@ child_two = RowSchema(
             validators=[validators.oneOf([1, 2])],
         ),
         Field(
-            item="72B",
+            item="71B",
             name="RECEIVE_SSI",
             friendly_name="receives social security income",
             type="number",
@@ -549,7 +549,7 @@ child_two = RowSchema(
             validators=[validators.oneOf([1, 2])],
         ),
         Field(
-            item="73",
+            item="72",
             name="RELATIONSHIP_HOH",
             friendly_name="relationship to head of household",
             type="string",
@@ -559,7 +559,7 @@ child_two = RowSchema(
             validators=[validators.isInStringRange(0, 10)],
         ),
         Field(
-            item="74",
+            item="73",
             name="PARENT_MINOR_CHILD",
             friendly_name="parent of minor child",
             type="number",
@@ -569,7 +569,7 @@ child_two = RowSchema(
             validators=[validators.oneOf([0, 2, 3])],
         ),
         Field(
-            item="75",
+            item="74",
             name="EDUCATION_LEVEL",
             friendly_name="education level",
             type="string",
@@ -583,7 +583,7 @@ child_two = RowSchema(
             ],
         ),
         Field(
-            item="76",
+            item="75",
             name="CITIZENSHIP_STATUS",
             friendly_name="citizenship status",
             type="number",
@@ -593,7 +593,7 @@ child_two = RowSchema(
             validators=[validators.oneOf([0, 1, 2, 9])],
         ),
         Field(
-            item="77A",
+            item="76A",
             name="UNEARNED_SSI",
             friendly_name="unearned ssi benefit",
             type="string",
@@ -603,7 +603,7 @@ child_two = RowSchema(
             validators=[validators.isInStringRange(0, 9999)],
         ),
         Field(
-            item="77B",
+            item="76B",
             name="OTHER_UNEARNED_INCOME",
             friendly_name="other unearned income",
             type="string",

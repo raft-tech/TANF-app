@@ -307,7 +307,7 @@ t2 = SchemaManager(
                     endIndex=49,
                     required=False,
                     validators=[
-                        validators.isLargerThanOrEqualTo(0),
+                        validators.isInLimits(0, 2),
                     ],
                 ),
                 Field(
@@ -367,7 +367,7 @@ t2 = SchemaManager(
                     endIndex=55,
                     required=False,
                     validators=[
-                        validators.isInLimits(0, 9),
+                        validators.isInLimits(0, 2),
                     ],
                 ),
                 Field(
@@ -440,7 +440,7 @@ t2 = SchemaManager(
                     endIndex=65,
                     required=False,
                     validators=[
-                        validators.isInLimits(0, 9),
+                        validators.isInLimits(0, 2),
                     ],
                 ),
                 Field(
