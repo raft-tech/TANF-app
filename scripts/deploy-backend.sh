@@ -122,9 +122,6 @@ update_backend() {
 
   set_cf_envs $CGAPPNAME_BACKEND
   set_cf_envs $CGAPPNAME_CELERY
-
-  cf unset-env "$CGAPPNAME_BACKEND" "REDIS_URI"
-  cf unset-env "$CGAPPNAME_CELERY" "REDIS_URI"
   
   cf map-route "$CGAPPNAME_BACKEND" apps.internal --hostname "$CGAPPNAME_BACKEND"
 

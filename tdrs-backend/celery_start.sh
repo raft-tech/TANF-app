@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export REDIS_URI=rediss://xtJnXoZpeLNID24pQhpPb9HSr@master.prd-3fa9afec-b332-43c8-9a46-0aaa72c49d53.pw1qnn.usgw1.cache.amazonaws.com:6379
+# export REDIS_URI=rediss://xtJnXoZpeLNID24pQhpPb9HSr@master.prd-3fa9afec-b332-43c8-9a46-0aaa72c49d53.pw1qnn.usgw1.cache.amazonaws.com:6379
 echo starting celery
 celery -A tdpservice.settings worker -c 1 &
 sleep 5
