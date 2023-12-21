@@ -13,6 +13,7 @@ child_one = RowSchema(
     model=Tribal_TANF_T3,
     preparsing_validators=[
         validators.notEmpty(start=19, end=60),
+        validators.hasLength(122),
     ],
     postparsing_validators=[
         validators.if_then_validator(
@@ -317,6 +318,7 @@ child_two = RowSchema(
     quiet_preparser_errors=True,
     preparsing_validators=[
         validators.notEmpty(start=60, end=101),
+        validators.hasLength(122),
     ],
     postparsing_validators=[
         validators.if_then_validator(

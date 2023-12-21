@@ -12,7 +12,7 @@ t1 = SchemaManager(
         RowSchema(
             model=Tribal_TANF_T1,
             preparsing_validators=[
-                validators.hasLength(123),
+                validators.hasLength(122),
             ],
             postparsing_validators=[
                 validators.if_then_validator(
