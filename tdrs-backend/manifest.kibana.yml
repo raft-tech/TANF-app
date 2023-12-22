@@ -1,0 +1,17 @@
+version: 1
+applications:
+  - name: mykibana
+    memory: 2G
+    disk_quota: 2G
+    instances: 1
+    routes:
+      - route: mykibana.scapp.io
+    services:
+        - my-elasticsearch
+    docker:
+      image: docker.elastic.co/kibana/kibana:7.16.1
+    command: |
+      export ELASTICSEARCH_HOSTS=$(echo $VCAP_SERVICES | grep -Po '"host":\s"\K(.*?)(?=")') &&
+      export ELASTICSEARCH_USERNAME=$(echo $VCAP_SERVICES | grep -Po '"kibana_system_username":\s"\K(.*?)(?=")') &&
+      export ELASTICSEARCH_PASSWORD=$(echo $VCAP_SERVICES | grep -Po '"kibana_system_password":\s"\K(.*?)(?=")') &&
+      /bin/tini -- /usr/local/bin/kibana-docker
