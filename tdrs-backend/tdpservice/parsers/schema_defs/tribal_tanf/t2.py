@@ -343,7 +343,7 @@ t2 = SchemaManager(
                     endIndex=53,
                     required=False,
                     validators=[
-                        validators.isInStringRange(1, 10),
+                        validators.isInStringRange(0, 10),
                     ],
                 ),
                 Field(
