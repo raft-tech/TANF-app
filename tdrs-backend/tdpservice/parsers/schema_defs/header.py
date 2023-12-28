@@ -66,7 +66,7 @@ header = RowSchema(
             type="string",
             startIndex=12,
             endIndex=14,
-            required=True,
+            required=False,
             validators=[
                 validators.or_validators(
                     validators.isInStringRange(0, 2),

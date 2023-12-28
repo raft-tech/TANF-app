@@ -139,7 +139,7 @@ child_one = RowSchema(
             endIndex=28,
             required=True,
             validators=[
-                validators.dateYearIsLargerThan(1950),
+                validators.dateYearIsLargerThan(1900),
                 validators.dateMonthIsValid(),
             ],
         ),
@@ -444,7 +444,7 @@ child_two = RowSchema(
             endIndex=69,
             required=True,
             validators=[
-                validators.dateYearIsLargerThan(1950),
+                validators.dateYearIsLargerThan(1900),
                 validators.dateMonthIsValid(),
             ],
         ),

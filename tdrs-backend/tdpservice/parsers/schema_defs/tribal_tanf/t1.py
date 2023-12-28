@@ -138,7 +138,7 @@ t1 = SchemaManager(
                     endIndex=8,
                     required=True,
                     validators=[
-                        validators.dateYearIsLargerThan(1998),
+                        validators.dateYearIsLargerThan(1900),
                         validators.dateMonthIsValid(),
                     ],
                 ),
