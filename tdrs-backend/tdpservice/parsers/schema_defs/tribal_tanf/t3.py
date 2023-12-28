@@ -543,7 +543,7 @@ child_two = RowSchema(
         Field(
             item="71B",
             name="RECEIVE_SSI",
-            friendly_name="receives social security income",
+            friendly_name="receives SSI",
             type="number",
             startIndex=86,
             endIndex=87,
