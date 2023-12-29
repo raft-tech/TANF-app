@@ -112,7 +112,7 @@ def test_can_create_and_index_tanf_t2_submission(test_datafile):
     submission.RECEIVE_SSI = 1
     submission.MARITAL_STATUS = 1
     submission.RELATIONSHIP_HOH = "01"
-    submission.PARENT_MINOR_CHILD = 1
+    submission.PARENT_WITH_MINOR_CHILD = 1
     submission.NEEDS_PREGNANT_WOMAN = 1
     submission.EDUCATION_LEVEL = 1
     submission.CITIZENSHIP_STATUS = 1
@@ -273,11 +273,11 @@ def test_can_create_and_index_tanf_t5_submission(test_datafile):
     submission.REC_FEDERAL_DISABILITY = 1
     submission.REC_AID_TOTALLY_DISABLED = 1
     submission.REC_AID_AGED_BLIND = 1
-    submission.REC_SSI = 1
+    submission.RECEIVE_SSI = 1
     submission.MARITAL_STATUS = 1
     submission.RELATIONSHIP_HOH = "01"
-    submission.PARENT_MINOR_CHILD = 1
-    submission.NEEDS_OF_PREGNANT_WOMAN = 1
+    submission.PARENT_WITH_MINOR_CHILD = 1
+    submission.NEEDS_PREGNANT_WOMAN = 1
     submission.EDUCATION_LEVEL = "1"
     submission.CITIZENSHIP_STATUS = 1
     submission.COUNTABLE_MONTH_FED_TIME = "1"
