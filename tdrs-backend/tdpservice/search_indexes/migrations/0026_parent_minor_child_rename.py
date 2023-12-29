@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('search_indexes', '0022_tribal_tanf_t1_tribal_tanf_t2_tribal_tanf_t3'),
+        ('search_indexes', '0025_tribal_tanf_t7'),
     ]
 
     operations = [
