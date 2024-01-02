@@ -7,8 +7,8 @@ ENV=${2}
 
 DEPLOY_STRATEGY=${3-'tbd'}
 
-CGAPPNAME_FRONTEND="tdp-frontend-${ENV}"
-CGAPPNAME_BACKEND="tdp-backend-${ENV}"
+CGHOSTNAME_FRONTEND="tdp-frontend-${ENV}"
+CGHOSTNAME_BACKEND="tdp-backend-${ENV}"
 
 [[ $ENV = "prod" ]] && BUILD_ENV="production" || BUILD_ENV="development"
 
