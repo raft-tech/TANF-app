@@ -88,6 +88,11 @@ generate_jwt_cert() {
 update_backend() {
   cd tdrs-backend || exit
   cf unset-env "$CGAPPNAME_BACKEND" "AV_SCAN_URL"
+  cf unset-env "$CGAPPNAME_BACKEND" "CGAPPNAME_BACKEND"
+  cf unset-env "$CGAPPNAME_CELERY" "CGAPPNAME_BACKEND"
+  # Let Celery know backend app name for s3 file searching 
+  cf set-env "$CGAPPNAME_BACKEND" CGAPPNAME_BACKEND "$CGAPPNAME_BACKEND"
+  cf set-env "$CGAPPNAME_CELERY" CGAPPNAME_BACKEND "$CGAPPNAME_BACKEND"
   
   if [[ $CF_SPACE == 'tanf-prod' ]]; then
     cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tanf-prod-clamav-rest.apps.internal:9000/scan"
