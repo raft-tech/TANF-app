@@ -36,7 +36,7 @@ class CloudGov(Common):
     # Cloud.gov exposes variables for the application and bound services via
     # VCAP_APPLICATION and VCAP_SERVICES environment variables, respectively.
     cloudgov_app = get_json_env_var('VCAP_APPLICATION')
-    APP_NAME = get_json_env_var('CGAPPNAME_BACKEND')
+    APP_NAME = os.getenv('CGAPPNAME_BACKEND', '{}')
 
     cloudgov_services = get_json_env_var('VCAP_SERVICES')
 
