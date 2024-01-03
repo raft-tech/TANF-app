@@ -122,6 +122,9 @@ update_backend() {
 
   set_cf_envs $CGAPPNAME_BACKEND
   set_cf_envs $CGAPPNAME_CELERY
+  # Let Celery know backend app name for s3 file searching 
+  cf set-env "$CGAPPNAME_BACKEND" CGAPPNAME_BACKEND $CGAPPNAME_BACKEND
+  cf set-env "$CGAPPNAME_CELERY" CGAPPNAME_BACKEND $CGAPPNAME_BACKEND
   
   cf map-route "$CGAPPNAME_BACKEND" apps.internal --hostname "$CGAPPNAME_BACKEND"
 
