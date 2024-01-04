@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import os
 import ssl
 import configurations
+import settings
 from celery import Celery
 
 
