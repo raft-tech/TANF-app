@@ -20,7 +20,7 @@ app = Celery('settings')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
 # disable ssl verification
-if not settings.USE_LOCALSTACK
+if not settings.USE_LOCALSTACK:
     app.conf.update(
         broker_use_ssl={
             'ssl_cert_reqs': ssl.CERT_NONE,
