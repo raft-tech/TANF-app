@@ -96,7 +96,7 @@ services:
       ./manage.py makemigrations &&
       ./manage.py migrate &&
       ./manage.py populate_stts &&
-      ./gunicorn_start.sh"
+      ./gunicorn_start.shg"
     ports:
       - "5555:5555"
     tty: true
@@ -118,8 +118,6 @@ services:
 
   celery:
     restart: always
-    env_file:
-      - .env
     environment:
       - CLAMAV_NEEDED
       - AV_SCAN_URL=http://clamav-rest:9000/scan
