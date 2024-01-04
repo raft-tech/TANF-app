@@ -257,7 +257,7 @@ t5 = SchemaManager(
                     type="number",
                     startIndex=45,
                     endIndex=46,
-                    required=True,
+                    required=False,
                     validators=[validators.isInLimits(1, 2)],
                 ),
                 Field(
