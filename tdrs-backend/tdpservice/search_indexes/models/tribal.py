@@ -28,7 +28,6 @@ class Tribal_TANF_T1(models.Model):
     RecordType = models.CharField(max_length=156, null=True, blank=False)
     RPT_MONTH_YEAR = models.IntegerField(null=True, blank=False)
     CASE_NUMBER = models.CharField(max_length=11, null=True, blank=False)
-    FIPS_CODE = models.CharField(max_length=2, null=True, blank=False)
     COUNTY_FIPS_CODE = models.CharField(
         max_length=3,
         null=True,
