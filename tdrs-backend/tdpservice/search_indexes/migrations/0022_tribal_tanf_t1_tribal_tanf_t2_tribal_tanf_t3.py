@@ -107,7 +107,6 @@ class Migration(migrations.Migration):
                 ('RecordType', models.CharField(max_length=156, null=True)),
                 ('RPT_MONTH_YEAR', models.IntegerField(null=True)),
                 ('CASE_NUMBER', models.CharField(max_length=11, null=True)),
-                ('FIPS_CODE', models.CharField(max_length=2, null=True)),
                 ('COUNTY_FIPS_CODE', models.CharField(max_length=3, null=True)),
                 ('STRATUM', models.CharField(max_length=2, null=True)),
                 ('ZIP_CODE', models.CharField(max_length=5, null=True)),

@@ -14,7 +14,7 @@ t2 = SchemaManager(
         RowSchema(
             model=Tribal_TANF_T2,
             preparsing_validators=[
-                validators.hasLength(123),
+                validators.hasLength(122),
             ],
             postparsing_validators=[
                 validators.validate__FAM_AFF__SSN(),
@@ -132,7 +132,7 @@ t2 = SchemaManager(
                     endIndex=8,
                     required=True,
                     validators=[
-                        validators.dateYearIsLargerThan(1998),
+                        validators.dateYearIsLargerThan(1900),
                         validators.dateMonthIsValid(),
                     ],
                 ),
@@ -258,7 +258,7 @@ t2 = SchemaManager(
                     type="number",
                     startIndex=44,
                     endIndex=45,
-                    required=True,
+                    required=False,
                     validators=[
                         validators.isLargerThanOrEqualTo(0),
                     ],
@@ -307,7 +307,7 @@ t2 = SchemaManager(
                     endIndex=49,
                     required=False,
                     validators=[
-                        validators.isLargerThanOrEqualTo(0),
+                        validators.isInLimits(0, 2),
                     ],
                 ),
                 Field(
@@ -341,9 +341,9 @@ t2 = SchemaManager(
                     type="string",
                     startIndex=51,
                     endIndex=53,
-                    required=True,
+                    required=False,
                     validators=[
-                        validators.isInStringRange(1, 10),
+                        validators.isInStringRange(0, 10),
                     ],
                 ),
                 Field(
@@ -367,7 +367,7 @@ t2 = SchemaManager(
                     endIndex=55,
                     required=False,
                     validators=[
-                        validators.isInLimits(0, 9),
+                        validators.isInLimits(0, 2),
                     ],
                 ),
                 Field(
@@ -440,7 +440,7 @@ t2 = SchemaManager(
                     endIndex=65,
                     required=False,
                     validators=[
-                        validators.isInLimits(0, 9),
+                        validators.isInLimits(0, 2),
                     ],
                 ),
                 Field(
@@ -625,7 +625,7 @@ t2 = SchemaManager(
                     endIndex=94,
                     required=False,
                     validators=[
-                        validators.isInStringRange(0, 99),
+                        validators.matches("00"),
                     ],
                 ),
                 Field(
