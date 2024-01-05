@@ -522,7 +522,7 @@ s3 = RowSchema(
         Field(
             item="10C",
             name="NUM_1_PARENTS",
-            friendly_name="total number of one parent families",
+            friendly_name="total number of one-parent families",
             type="number",
             startIndex=179,
             endIndex=187,
