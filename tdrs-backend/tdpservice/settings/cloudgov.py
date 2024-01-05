@@ -4,7 +4,6 @@ import json
 import os
 from requests_aws4auth import AWS4Auth
 from elasticsearch import RequestsHttpConnection
-
 from tdpservice.settings.common import Common
 import logging
 
@@ -15,7 +14,6 @@ def get_json_env_var(variable_name):
     return json.loads(
         os.getenv(variable_name, '{}')
     )
-
 
 def get_cloudgov_service_creds_by_instance_name(services, instance_name):
     """Retrieve credentials for a bound Cloud.gov service by instance name."""
@@ -43,7 +41,7 @@ class CloudGov(Common):
     cloudgov_space = cloudgov_app.get('space_name', 'tanf-dev')
     cloudgov_space_suffix = cloudgov_space.strip('tanf-')
     cloudgov_name = cloudgov_app.get('name').split("-")[-1]  # converting "tdp-backend-name" to just "name"
-    
+
     services_basename = cloudgov_name if (
         cloudgov_name == "develop" and cloudgov_space_suffix == "staging"
     ) else cloudgov_space_suffix
@@ -139,7 +137,6 @@ class CloudGov(Common):
         'es'
     )
 
-
     # Elastic
     ELASTICSEARCH_DSL = {
         'default': {
@@ -157,7 +154,6 @@ class CloudGov(Common):
 
     CELERY_BROKER_URL = REDIS_URI + '/0'
     CELERY_RESULT_BACKEND = REDIS_URI + '/1'
-
 
 class Development(CloudGov):
     """Settings for applications deployed in the Cloud.gov dev space."""
