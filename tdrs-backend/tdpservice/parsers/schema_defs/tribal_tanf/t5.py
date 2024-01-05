@@ -89,12 +89,6 @@ t5 = SchemaManager(
                 ),
                 validators.validate__FAM_AFF__HOH__Count_Fed_Time(),
                 validators.if_then_validator(
-                    condition_field="DATE_OF_BIRTH",
-                    condition_function=validators.olderThan(18),
-                    result_field="REC_OASDI_INSURANCE",
-                    result_function=validators.isInLimits(1, 2),
-                ),
-                validators.if_then_validator(
                     condition_field="FAMILY_AFFILIATION",
                     condition_function=validators.matches(1),
                     result_field="REC_FEDERAL_DISABILITY",
@@ -197,7 +191,7 @@ t5 = SchemaManager(
                     type="number",
                     startIndex=39,
                     endIndex=40,
-                    required=True,
+                    required=False,
                     validators=[validators.validateRace()],
                 ),
                 Field(
@@ -257,8 +251,8 @@ t5 = SchemaManager(
                     type="number",
                     startIndex=45,
                     endIndex=46,
-                    required=True,
-                    validators=[validators.isInLimits(1, 2)],
+                    required=False,
+                    validators=[validators.isInLimits(0, 2)],
                 ),
                 Field(
                     item="19C",
@@ -287,8 +281,8 @@ t5 = SchemaManager(
                     type="number",
                     startIndex=48,
                     endIndex=49,
-                    required=True,
-                    validators=[validators.isInLimits(1, 2)],
+                    required=False,
+                    validators=[validators.isInLimits(0, 2)],
                 ),
                 Field(
                     item="20",
