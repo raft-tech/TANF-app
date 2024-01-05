@@ -303,7 +303,7 @@ s2 = RowSchema(
         Field(
             item="8B",
             name="NUM_FAMILIES",
-            friendly_name="total of number of families",
+            friendly_name="total number of families",
             type="number",
             startIndex=123,
             endIndex=131,
