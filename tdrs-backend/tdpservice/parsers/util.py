@@ -42,7 +42,8 @@ def generate_parser_error(datafile, line_number, schema, error_category, error_m
         row_number=line_number,
         column_number=getattr(field, 'item', None),
         item_number=getattr(field, 'item', None),
-        field_name=getattr(field, 'name', None) if hasattr(field, 'name') else field,
+        field_name=getattr(field, 'name', None) if hasattr(
+            field, 'name') else field,
         rpt_month_year=getattr(record, 'RPT_MONTH_YEAR', None),
         case_number=getattr(record, 'CASE_NUMBER', None),
         error_message=error_message,
@@ -50,7 +51,8 @@ def generate_parser_error(datafile, line_number, schema, error_category, error_m
         content_type=ContentType.objects.get_for_model(
             model=schema.model if schema else None
         ) if record and not isinstance(record, dict) else None,
-        object_id=getattr(record, 'id', None) if record and not isinstance(record, dict) else None,
+        object_id=getattr(record, 'id', None) if record and not isinstance(
+            record, dict) else None,
         fields_json=fields_json
     )
 
@@ -98,7 +100,8 @@ class SchemaManager:
         records = []
 
         for schema in self.schemas:
-            record, is_valid, errors = schema.parse_and_validate(line, generate_error)
+            record, is_valid, errors = schema.parse_and_validate(
+                line, generate_error)
             records.append((record, is_valid, errors))
 
         return records
@@ -110,11 +113,13 @@ class SchemaManager:
                 if type(field) == TransformField and "is_encrypted" in field.kwargs:
                     field.kwargs['is_encrypted'] = is_encrypted
 
+
 def contains_encrypted_indicator(line, encryption_field):
     """Determine if line contains encryption indicator."""
     if encryption_field is not None:
         return encryption_field.parse_value(line) == "E"
     return False
+
 
 def get_schema_options(program, section, query=None, model=None, model_name=None):
     """Centralized function to return the appropriate schema for a given program, section, and query.
@@ -225,21 +230,26 @@ section -> text
 text**: input string from the header/file
 '''
 
+
 def get_program_models(str_prog, str_section):
     """Return the models dict for a given program and section."""
     return get_schema_options(program=str_prog, section=str_section, query='models')
+
 
 def get_program_model(str_prog, str_section, str_model):
     """Return singular model for a given program, section, and name."""
     return get_schema_options(program=str_prog, section=str_section, query='models', model_name=str_model)
 
+
 def get_section_reference(str_prog, str_section):
     """Return the named section reference for a given program and section."""
     return get_schema_options(program=str_prog, section=str_section, query='section')
 
+
 def get_text_from_df(df):
     """Return the short-hand text for program, section for a given datafile."""
     return get_schema_options("", section=df.section, query='text')
+
 
 def get_prog_from_section(str_section):
     """Return the program type for a given section."""
@@ -254,10 +264,12 @@ def get_prog_from_section(str_section):
     # TODO: if given a datafile (section), we can reverse back to the program b/c the
     # section string has "tribal/ssp" in it, then process of elimination we have tanf
 
+
 def get_schema(line, section, program_type):
     """Return the appropriate schema for the line."""
     line_type = line[0:2]
     return get_schema_options(program_type, section, query='models', model_name=line_type)
+
 
 def fiscal_to_calendar(year, fiscal_quarter):
     """Decrement the input quarter text by one."""
@@ -266,8 +278,11 @@ def fiscal_to_calendar(year, fiscal_quarter):
     if int_qtr == 1:
         year = year - 1
 
-    ind_qtr = array.index(int_qtr)  # get the index so we can easily wrap-around end of array
-    return year, "Q{}".format(array[ind_qtr - 1])  # return the previous quarter
+    # get the index so we can easily wrap-around end of array
+    ind_qtr = array.index(int_qtr)
+    # return the previous quarter
+    return year, "Q{}".format(array[ind_qtr - 1])
+
 
 def transform_to_months(quarter):
     """Return a list of months in a quarter."""
@@ -283,6 +298,7 @@ def transform_to_months(quarter):
         case _:
             raise ValueError("Invalid quarter value.")
 
+
 def month_to_int(month):
     """Return the integer value of a month."""
     return datetime.strptime(month, '%b').strftime('%m')
@@ -291,7 +307,8 @@ def month_to_int(month):
 def case_aggregates_by_month(df, dfs_status):
     """Return case aggregates by month."""
     section = str(df.section)  # section -> text
-    program_type = get_prog_from_section(section)  # section -> program_type -> text
+    program_type = get_prog_from_section(
+        section)  # section -> program_type -> text
 
     # from datafile year/quarter, generate short month names for each month in quarter ala 'Jan', 'Feb', 'Mar'
     calendar_year, calendar_qtr = fiscal_to_calendar(df.year, df.quarter)
@@ -335,6 +352,45 @@ def case_aggregates_by_month(df, dfs_status):
                                          "accepted_without_errors": accepted,
                                          "accepted_with_errors": cases_with_errors})
 
-    aggregate_data['rejected'] = ParserError.objects.filter(file=df).filter(case_number=None).count()
+    aggregate_data['rejected'] = ParserError.objects.filter(
+        file=df).filter(case_number=None).count()
 
     return aggregate_data
+
+
+def total_errors_by_month(df, dfs_status):
+    """Return total errors for each month in the reporting period."""
+    section = str(df.section)  # section -> text
+    program_type = get_prog_from_section(
+        section)  # section -> program_type -> text
+
+    # from datafile year/quarter, generate short month names for each month in quarter ala 'Jan', 'Feb', 'Mar'
+    calendar_year, calendar_qtr = fiscal_to_calendar(df.year, df.quarter)
+    month_list = transform_to_months(calendar_qtr)
+
+    short_section = get_text_from_df(df)['section']
+    schema_models_dict = get_program_models(program_type, short_section)
+    schema_models = [model for model in schema_models_dict.values()]
+
+    total_errors_data = {"months": []}
+
+    for month in month_list:
+        if dfs_status == "Rejected":
+            total_errors_data["months"].append(
+                {"month": month, "total_errors": "N/A"})
+            continue
+
+        month_int = month_to_int(month)
+        rpt_month_year = int(f"{calendar_year}{month_int}")
+
+        for schema_model in schema_models:
+            if isinstance(schema_model, SchemaManager):
+                schema_model = schema_model.schemas[0]
+
+            # records = schema_model.model.objects.filter(datafile=df).filter(RPT_MONTH_YEAR=rpt_month_year)
+            error_count = ParserError.objects.filter(
+                file=df, rpt_month_year=rpt_month_year).count()
+            total_errors_data["months"].append(
+                {"month": month, "total_errors": error_count})
+
+    return total_errors_data
