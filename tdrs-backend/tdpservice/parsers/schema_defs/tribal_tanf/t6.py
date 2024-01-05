@@ -283,7 +283,7 @@ s2 = RowSchema(
         Field(
             item="6B",
             name="NUM_DENIED",
-            friendly_name="total number of denied",
+            friendly_name="total number of denied applications",
             type="number",
             startIndex=63,
             endIndex=71,
