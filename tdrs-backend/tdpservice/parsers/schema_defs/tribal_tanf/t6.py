@@ -104,7 +104,7 @@ s1 = RowSchema(
         Field(
             item="8A",
             name="NUM_FAMILIES",
-            friendly_name="number of families",
+            friendly_name="total number of families",
             type="number",
             startIndex=115,
             endIndex=123,
@@ -273,7 +273,7 @@ s2 = RowSchema(
         Field(
             item="5B",
             name="NUM_APPROVED",
-            friendly_name="total number of approved cases",
+            friendly_name="total number of approved applications",
             type="number",
             startIndex=39,
             endIndex=47,
@@ -283,7 +283,7 @@ s2 = RowSchema(
         Field(
             item="6B",
             name="NUM_DENIED",
-            friendly_name="total number of denied",
+            friendly_name="total number of denied applications",
             type="number",
             startIndex=63,
             endIndex=71,
@@ -303,7 +303,7 @@ s2 = RowSchema(
         Field(
             item="8B",
             name="NUM_FAMILIES",
-            friendly_name="total of number of families",
+            friendly_name="total number of families",
             type="number",
             startIndex=123,
             endIndex=131,
@@ -333,7 +333,7 @@ s2 = RowSchema(
         Field(
             item="11B",
             name="NUM_NO_PARENTS",
-            friendly_name="total number of no-parent family",
+            friendly_name="total number of no parent families",
             type="number",
             startIndex=195,
             endIndex=203,
@@ -512,7 +512,7 @@ s3 = RowSchema(
         Field(
             item="9C",
             name="NUM_2_PARENTS",
-            friendly_name="total number of two parents families",
+            friendly_name="total number of two-parent families",
             type="number",
             startIndex=155,
             endIndex=163,
@@ -522,7 +522,7 @@ s3 = RowSchema(
         Field(
             item="10C",
             name="NUM_1_PARENTS",
-            friendly_name="total number of one parent families",
+            friendly_name="total number of one-parent families",
             type="number",
             startIndex=179,
             endIndex=187,
