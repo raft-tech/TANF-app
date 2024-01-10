@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo starting celery
-celery -A tdpservice.settings worker -c 1 &
+celery -A tdpservice.settings worker -c 3 &
 sleep 5
 echo "REDIS_URI: $REDIS_URI"
 celery -A tdpservice.settings --broker=$REDIS_URI flower &
