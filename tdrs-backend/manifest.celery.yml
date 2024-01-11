@@ -4,8 +4,6 @@ applications:
   memory: 2G
   instances: 1
   disk_quota: 2G
-  no-route: true
-  health-check-type: process
   buildpacks:
   - https://github.com/cloudfoundry/apt-buildpack
   - https://github.com/cloudfoundry/python-buildpack.git#v1.8.3
