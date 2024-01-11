@@ -125,8 +125,10 @@ update_backend() {
     cf push "$CGAPPNAME_CELERY" --no-route -f manifest.celery.yml -t 180
   fi
 
-  #allow deve envs to monitor celery through flower/prometheus
-  cf map-route "$CGAPPNAME_CELERY" app.cloud.gov --hostname "${CGAPPNAME_CELERY}"
+  if [[ ! "$CF_SPACE" == "tanf-prod" ]]; then
+    #allow dev envs to monitor celery through flower/prometheus
+    cf map-route "$CGAPPNAME_CELERY" app.cloud.gov --hostname "${CGAPPNAME_CELERY}"
+  fi
 
   set_cf_envs $CGAPPNAME_BACKEND
   set_cf_envs $CGAPPNAME_CELERY
