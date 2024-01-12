@@ -39,6 +39,6 @@ variable "cf_user" {
 
 variable "dev_app_names" {
   type        = list(string)
-  description = "list of app names deployed in the dev environment"
+  description = "list of app names deployed in the dev cf space"
   default     = ["a11y", "qasp", "raft", "sandbox"]
 }
