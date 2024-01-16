@@ -58,7 +58,7 @@ services:
       - SERVER_BASEPATH=/kibana
       - SERVER_SECURITYRESPONSEHEADERS_REFERRERPOLICY=no-referrer
       - CSP_WARNLEGACYBROWSERS=false
-      - CSP_SCRIPT_SRC_UNAFEINLINE=true
+      - CSP_SCRIPT_SRC_UNSAFEINLINE=true
     volumes:
       - ./kibana.yml:/usr/share/kibana/config/kibana.yml
     depends_on:

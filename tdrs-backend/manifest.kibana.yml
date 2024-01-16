@@ -10,7 +10,7 @@ applications:
       SERVER_BASEPATH: /kibana
       SERVER_SECURITYRESPONSEHEADERS_REFERRERPOLICY: no-referrer
       CSP_WARNLEGACYBROWSERS: false
-      CSP_SCRIPT_SRC_UNAFEINLINE: true
+      CSP_SCRIPT_SRC_UNSAFEINLINE: true
     docker:
       image: docker.elastic.co/kibana/kibana-oss:7.4.2
     command: |
