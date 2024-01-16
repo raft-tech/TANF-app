@@ -12,7 +12,7 @@ CGAPPNAME_KIBANA=${4}
 CF_SPACE=${5}
 ENVIRONMENT=${6}
 
-backend_app_name=$(echo $CGAPPNAME_BACKEND | cut -d"-" -f3)
+backend_app_name=$(echo $CGHOSTNAME_BACKEND | cut -d"-" -f3)
 
 # Update the Kibana name to include the environment
 KIBANA_BASE_URL="${CGAPPNAME_KIBANA}-${backend_app_name}.apps.internal"
@@ -22,6 +22,7 @@ update_frontend()
     echo DEPLOY_STRATEGY: "$DEPLOY_STRATEGY"
     echo FRONTEND_HOST: "$CGHOSTNAME_FRONTEND"
     echo BACKEND_HOST: "$CGHOSTNAME_BACKEND"
+    echo KIBANA_BASE_URL: "$KIBANA_BASE_URL"
     cd tdrs-frontend || exit
 
     if [ "$CF_SPACE" = "tanf-prod" ]; then
