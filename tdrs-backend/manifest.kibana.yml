@@ -6,6 +6,11 @@ applications:
     instances: 1
     env:
       CGAPPNAME_PROXY: {{ proxy_hostname }}
+      SERVER_HOST: {{ kibana_hostname }}
+      SERVER_BASEPATH: /kibana
+      SERVER_SECURITYRESPONSEHEADERS_REFERRERPOLICY: no-referrer
+      CSP_WARNLEGACYBROWSERS: false
+      CSP_SCRIPT_SRC_UNAFEINLINE: true
     docker:
       image: docker.elastic.co/kibana/kibana-oss:7.4.2
     command: |
