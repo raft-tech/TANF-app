@@ -119,6 +119,7 @@ update_kibana()
     # Add network policy allowing Kibana to talk to the proxy and to allow the backend to talk to Kibana
     cf add-network-policy "$CGAPPNAME_KIBANA" "$CGAPPNAME_PROXY" --protocol tcp --port 8080
     cf add-network-policy "$CGAPPNAME_BACKEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
+    cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
 
     cd ..
 }

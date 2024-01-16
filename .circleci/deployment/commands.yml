@@ -129,6 +129,9 @@
       frontend-appname:
         default: tdp-frontend
         type: string
+      kibana-appname:
+        default: tdp-kibana
+        type: string
 # So the frontend knows what space its in for the banner.
 # I am unclear if the domain is a reliable metric to make this function
 # It seems like it might not be working
@@ -150,6 +153,7 @@
               $DEPLOY_STRATEGY \
               <<parameters.frontend-appname>> \
               <<parameters.backend-appname>> \
+              <<parameters.kibana-appname>> \
               <<parameters.cf-space>> \
               <<parameters.environment>>
 
