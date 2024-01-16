@@ -14,9 +14,9 @@ class DocumentBase(Document):
                       'quarter': fields.TextField(),
                       'year': fields.IntegerField(),
                       'stt': fields.ObjectField(properties={
-                          'name': fields.TextField(max_length=1000),
-                          'type': fields.TextField(max_length=200),
-                          'stt_code': fields.TextField(max_length=3)
+                          'name': fields.TextField(),
+                          'type': fields.TextField(),
+                          'stt_code': fields.TextField()
                       })
                   })
 

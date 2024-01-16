@@ -102,7 +102,7 @@ update_kibana()
   # Run template evaluation on manifest
   yq eval -i ".applications[0].services[0] = \"es-${backend_app_name}\""  manifest.proxy.yml
   yq eval -i ".applications[0].env.CGAPPNAME_PROXY = \"${CGAPPNAME_PROXY}\""  manifest.kibana.yml
-  yq eval -i ".applications[0].env.SERVER_HOST = \"${CGAPPNAME_KIBANA}\""  manifest.kibana.yml
+  # yq eval -i ".applications[0].env.SERVER_HOST = \"${CGAPPNAME_KIBANA}\""  manifest.kibana.yml
 
   if [ "$1" = "rolling" ] ; then
         # Do a zero downtime deploy.  This requires enough memory for
