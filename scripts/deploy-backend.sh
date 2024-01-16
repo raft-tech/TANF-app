@@ -120,6 +120,7 @@ update_kibana()
     cf add-network-policy "$CGAPPNAME_KIBANA" "$CGAPPNAME_PROXY" --protocol tcp --port 8080
     cf add-network-policy "$CGAPPNAME_BACKEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
     cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
+    cf add-network-policy "$CGAPPNAME_KIBANA" "$CGAPPNAME_FRONTEND" --protocol tcp --port 80
 
     cd ..
 }
