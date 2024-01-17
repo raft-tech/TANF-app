@@ -6,12 +6,9 @@ applications:
     instances: 1
     env:
       CGAPPNAME_PROXY: {{ proxy_hostname }}
-      server.basepath: /kibana
-      server.securityResponseHeaders.referrerPolicy: no-referrer
-      csp.warnLegacyBrowsers: false
-      csp.script_src:
-        - 'unsafe-inline'
-        - 'unsafe-eval'
+      SERVER_BASEPATH: /kibana
+      SERVER_SECURITYRESPONSEHEADERS_REFERRERPOLICY: no-referrer
+      CSP_WARNLEGACYBROWSERS: false
     docker:
       image: docker.elastic.co/kibana/kibana-oss:7.4.2
     command: |
