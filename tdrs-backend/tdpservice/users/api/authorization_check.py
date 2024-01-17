@@ -23,6 +23,8 @@ class AuthorizationCheck(APIView):
 
     def get(self, request, *args, **kwargs):
         """Handle get request and verify user is authorized."""
+        logger.debug(f"{self.__class__.__name__}: {request} {request.user} {args} {kwargs}")
+
         user = request.user
         serializer = UserProfileSerializer(user)
 
@@ -61,7 +63,7 @@ class KibanaAuthorizationCheck(APIView):
         """Handle get request and verify user is authorized to access kibana."""
         user = request.user
 
-        user_in_valid_group = user.is_ofa_sys_admin or user.is_ofa_admin
+        user_in_valid_group = user.is_ofa_sys_admin
 
         if (user.hhs_id is not None and user_in_valid_group) or settings.BYPASS_KIBANA_AUTH:
             logger.debug(f"User: {user} has correct authentication credentials. Allowing access to Kibana.")
