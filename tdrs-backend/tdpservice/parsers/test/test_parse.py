@@ -835,9 +835,19 @@ def tanf_section3_file(stt_user, stt):
 
 
 @pytest.mark.django_db()
-def test_parse_tanf_section3_file(tanf_section3_file):
+def test_parse_tanf_section3_file(tanf_section3_file, dfs):
     """Test parsing TANF Section 3 submission."""
+    dfs.datafile = tanf_section3_file
+    dfs.save()
+
     parse.parse_datafile(tanf_section3_file)
+
+    dfs.status = dfs.get_status()
+    dfs.case_aggregates = util.total_errors_by_month(
+        dfs.datafile, dfs.status)
+    assert dfs.case_aggregates == {"months": [{"month": "Oct", "total_errors": 0}, {"month": "Nov", "total_errors": 0}, {"month": "Dec", "total_errors": 0}]}
+
+    assert dfs.get_status() == DataFileSummary.Status.ACCEPTED
 
     assert TANF_T6.objects.all().count() == 3
 
@@ -895,9 +905,19 @@ def tanf_section4_file(stt_user, stt):
 
 
 @pytest.mark.django_db()
-def test_parse_tanf_section4_file(tanf_section4_file):
+def test_parse_tanf_section4_file(tanf_section4_file, dfs):
     """Test parsing TANF Section 4 submission."""
+    dfs.datafile = tanf_section4_file
+    dfs.save()
+
     parse.parse_datafile(tanf_section4_file)
+
+    dfs.status = dfs.get_status()
+    dfs.case_aggregates = util.total_errors_by_month(
+        dfs.datafile, dfs.status)
+    assert dfs.case_aggregates == {"months": [{"month": "Oct", "total_errors": 0}, {"month": "Nov", "total_errors": 0}, {"month": "Dec", "total_errors": 0}]}
+
+    assert dfs.get_status() == DataFileSummary.Status.ACCEPTED
 
     assert TANF_T7.objects.all().count() == 18
 
@@ -924,11 +944,19 @@ def ssp_section4_file(stt_user, stt):
     return util.create_test_datafile('ADS.E2J.NDM4.MS24', stt_user, stt, "SSP Stratum Data")
 
 @pytest.mark.django_db()
-def test_parse_ssp_section4_file(ssp_section4_file):
+def test_parse_ssp_section4_file(ssp_section4_file, dfs):
     """Test parsing SSP Section 4 submission."""
+
+    dfs.datafile = ssp_section4_file
+    dfs.save()
     parse.parse_datafile(ssp_section4_file)
 
     m7_objs = SSP_M7.objects.all().order_by('FAMILIES_MONTH')
+
+    dfs.status = dfs.get_status()
+    dfs.case_aggregates = util.total_errors_by_month(
+        dfs.datafile, dfs.status)
+    assert dfs.case_aggregates == {"months": [{"month": "Oct", "total_errors": 0}, {"month": "Nov", "total_errors": 0}, {"month": "Dec", "total_errors": 0}]}
 
     assert m7_objs.count() == 12
 
@@ -942,9 +970,27 @@ def ssp_section2_file(stt_user, stt):
     return util.create_test_datafile('ADS.E2J.NDM2.MS24', stt_user, stt, 'SSP Closed Case Data')
 
 @pytest.mark.django_db()
-def test_parse_ssp_section2_file(ssp_section2_file):
+def test_parse_ssp_section2_file(ssp_section2_file, dfs):
     """Test parsing SSP Section 2 submission."""
+    dfs.datafile = ssp_section2_file
+    dfs.save()
+
     parse.parse_datafile(ssp_section2_file)
+
+    dfs.status = dfs.get_status()
+    dfs.case_aggregates = util.case_aggregates_by_month(
+        dfs.datafile, dfs.status)
+    assert dfs.case_aggregates == {'rejected': 0,
+                                   'months': [
+                                       {'accepted_without_errors': 0,
+                                           'accepted_with_errors': 58, 'month': 'Oct'},
+                                       {'accepted_without_errors': 0,
+                                           'accepted_with_errors': 52, 'month': 'Nov'},
+                                       {'accepted_without_errors': 0,
+                                           'accepted_with_errors': 40, 'month': 'Dec'}
+                                   ]}
+
+    assert dfs.get_status() == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
 
     m4_objs = SSP_M4.objects.all().order_by('id')
     m5_objs = SSP_M5.objects.all().order_by('AMOUNT_EARNED_INCOME')
@@ -967,9 +1013,19 @@ def ssp_section3_file(stt_user, stt):
     return util.create_test_datafile('ADS.E2J.NDM3.MS24', stt_user, stt, "SSP Aggregate Data")
 
 @pytest.mark.django_db()
-def test_parse_ssp_section3_file(ssp_section3_file):
+def test_parse_ssp_section3_file(ssp_section3_file, dfs):
     """Test parsing TANF Section 3 submission."""
+    dfs.datafile = ssp_section3_file
+    dfs.save()
+
     parse.parse_datafile(ssp_section3_file)
+
+    dfs.status = dfs.get_status()
+    dfs.case_aggregates = util.total_errors_by_month(
+        dfs.datafile, dfs.status)
+    assert dfs.case_aggregates == {"months": [{"month": "Oct", "total_errors": 0}, {"month": "Nov", "total_errors": 0}, {"month": "Dec", "total_errors": 0}]}
+
+    assert dfs.get_status() == DataFileSummary.Status.ACCEPTED
 
     m6_objs = SSP_M6.objects.all().order_by('RPT_MONTH_YEAR')
     assert m6_objs.count() == 3
