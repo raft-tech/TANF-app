@@ -1,18 +1,18 @@
-"""Schema for SSP M1 record type."""
+"""Schema for Tribal TANF T4 record types."""
+
+from ...util import SchemaManager
+from ...fields import Field
+from ...row_schema import RowSchema
+from ... import validators
+from tdpservice.search_indexes.documents.tribal import Tribal_TANF_T4DataSubmissionDocument
 
 
-from tdpservice.parsers.util import SchemaManager
-from tdpservice.parsers.fields import Field
-from tdpservice.parsers.row_schema import RowSchema
-from tdpservice.parsers import validators
-from tdpservice.search_indexes.documents.ssp import SSP_M4DataSubmissionDocument
-
-m4 = SchemaManager(
+t4 = SchemaManager(
     schemas=[
         RowSchema(
-            document=SSP_M4DataSubmissionDocument(),
+            document=Tribal_TANF_T4DataSubmissionDocument(),
             preparsing_validators=[
-                validators.hasLength(66),
+                validators.hasLength(71),
             ],
             postparsing_validators=[],
             fields=[
@@ -27,7 +27,7 @@ m4 = SchemaManager(
                     validators=[],
                 ),
                 Field(
-                    item="3",
+                    item="4",
                     name="RPT_MONTH_YEAR",
                     friendly_name="reporting month and year",
                     type="number",
@@ -40,7 +40,7 @@ m4 = SchemaManager(
                     ],
                 ),
                 Field(
-                    item="5",
+                    item="6",
                     name="CASE_NUMBER",
                     friendly_name="case number",
                     type="string",
@@ -56,11 +56,11 @@ m4 = SchemaManager(
                     type="string",
                     startIndex=19,
                     endIndex=22,
-                    required=True,
-                    validators=[validators.isInStringRange(0, 999)],
+                    required=False,
+                    validators=[validators.matches("000")],
                 ),
                 Field(
-                    item="4",
+                    item="5",
                     name="STRATUM",
                     friendly_name="stratum",
                     type="string",
@@ -70,7 +70,7 @@ m4 = SchemaManager(
                     validators=[validators.isInStringRange(0, 99)],
                 ),
                 Field(
-                    item="6",
+                    item="7",
                     name="ZIP_CODE",
                     friendly_name="zip code",
                     type="string",
@@ -80,17 +80,17 @@ m4 = SchemaManager(
                     validators=[validators.isInStringRange(0, 99999)],
                 ),
                 Field(
-                    item="7",
+                    item="8",
                     name="DISPOSITION",
                     friendly_name="disposition",
                     type="number",
                     startIndex=29,
                     endIndex=30,
                     required=True,
-                    validators=[validators.matches(1)],
+                    validators=[validators.oneOf([1, 2])],
                 ),
                 Field(
-                    item="8",
+                    item="9",
                     name="CLOSURE_REASON",
                     friendly_name="closure reason",
                     type="string",
@@ -99,23 +99,22 @@ m4 = SchemaManager(
                     required=True,
                     validators=[
                         validators.or_validators(
-                            validators.isInStringRange(1, 19),
-                            validators.matches("99")
+                            validators.isInStringRange(1, 18), validators.matches("99")
                         )
                     ],
                 ),
                 Field(
-                    item="9",
+                    item="10",
                     name="REC_SUB_HOUSING",
                     friendly_name="receives subsidized housing",
                     type="number",
                     startIndex=32,
                     endIndex=33,
                     required=True,
-                    validators=[validators.isInLimits(1, 2)],
+                    validators=[validators.isInLimits(1, 3)],
                 ),
                 Field(
-                    item="10`",
+                    item="11",
                     name="REC_MED_ASSIST",
                     friendly_name="receives medical assistance",
                     type="number",
@@ -125,7 +124,7 @@ m4 = SchemaManager(
                     validators=[validators.isInLimits(1, 2)],
                 ),
                 Field(
-                    item="11",
+                    item="12",
                     name="REC_FOOD_STAMPS",
                     friendly_name="receives food stamps",
                     type="number",
@@ -135,22 +134,22 @@ m4 = SchemaManager(
                     validators=[validators.isInLimits(1, 2)],
                 ),
                 Field(
-                    item="12",
+                    item="13",
                     name="REC_SUB_CC",
                     friendly_name="receives subsidized child care",
                     type="number",
                     startIndex=35,
                     endIndex=36,
                     required=True,
-                    validators=[validators.isInLimits(1, 2)],
+                    validators=[validators.isInLimits(1, 3)],
                 ),
                 Field(
-                    item="-1",
+                    item="14",
                     name="BLANK",
                     friendly_name="blank",
                     type="string",
                     startIndex=36,
-                    endIndex=66,
+                    endIndex=71,
                     required=False,
                     validators=[],
                 ),

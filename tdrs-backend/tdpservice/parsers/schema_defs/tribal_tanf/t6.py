@@ -1,4 +1,4 @@
-"""Schema for HEADER row of all submission types."""
+"""Schema for Tribal T6 record."""
 
 
 from tdpservice.parsers.util import SchemaManager
@@ -6,33 +6,21 @@ from tdpservice.parsers.transforms import calendar_quarter_to_rpt_month_year
 from tdpservice.parsers.fields import Field, TransformField
 from tdpservice.parsers.row_schema import RowSchema
 from tdpservice.parsers import validators
-from tdpservice.search_indexes.documents.tanf import TANF_T6DataSubmissionDocument
+from tdpservice.search_indexes.documents.tribal import Tribal_TANF_T6DataSubmissionDocument
 
 
 s1 = RowSchema(
-    document=TANF_T6DataSubmissionDocument(),
+    document=Tribal_TANF_T6DataSubmissionDocument(),
     preparsing_validators=[
         validators.hasLength(379),
     ],
     postparsing_validators=[
+        validators.sumIsEqual("NUM_APPLICATIONS", ["NUM_APPROVED", "NUM_DENIED"]),
         validators.sumIsEqual(
-            "NUM_APPLICATIONS", [
-                "NUM_APPROVED",
-                "NUM_DENIED"
-            ]
+            "NUM_FAMILIES", ["NUM_2_PARENTS", "NUM_1_PARENTS", "NUM_NO_PARENTS"]
         ),
         validators.sumIsEqual(
-            "NUM_FAMILIES", [
-                "NUM_2_PARENTS",
-                "NUM_1_PARENTS",
-                "NUM_NO_PARENTS"
-            ]
-        ),
-        validators.sumIsEqual(
-            "NUM_RECIPIENTS", [
-                "NUM_ADULT_RECIPIENTS",
-                "NUM_CHILD_RECIPIENTS"
-            ]
+            "NUM_RECIPIENTS", ["NUM_ADULT_RECIPIENTS", "NUM_CHILD_RECIPIENTS"]
         ),
     ],
     fields=[
@@ -116,7 +104,7 @@ s1 = RowSchema(
         Field(
             item="8A",
             name="NUM_FAMILIES",
-            friendly_name="number of families",
+            friendly_name="total number of families",
             type="number",
             startIndex=115,
             endIndex=123,
@@ -126,7 +114,7 @@ s1 = RowSchema(
         Field(
             item="9A",
             name="NUM_2_PARENTS",
-            friendly_name="number of two-parent families",
+            friendly_name="total number of two-parent families",
             type="number",
             startIndex=139,
             endIndex=147,
@@ -146,7 +134,7 @@ s1 = RowSchema(
         Field(
             item="11A",
             name="NUM_NO_PARENTS",
-            friendly_name="total number of no-parent families",
+            friendly_name="total number of no parent families",
             type="number",
             startIndex=187,
             endIndex=195,
@@ -227,29 +215,17 @@ s1 = RowSchema(
 )
 
 s2 = RowSchema(
-    document=TANF_T6DataSubmissionDocument(),
+    document=Tribal_TANF_T6DataSubmissionDocument(),
     preparsing_validators=[
         validators.hasLength(379),
     ],
     postparsing_validators=[
+        validators.sumIsEqual("NUM_APPLICATIONS", ["NUM_APPROVED", "NUM_DENIED"]),
         validators.sumIsEqual(
-            "NUM_APPLICATIONS", [
-                "NUM_APPROVED",
-                "NUM_DENIED"
-            ]
+            "NUM_FAMILIES", ["NUM_2_PARENTS", "NUM_1_PARENTS", "NUM_NO_PARENTS"]
         ),
         validators.sumIsEqual(
-            "NUM_FAMILIES", [
-                "NUM_2_PARENTS",
-                "NUM_1_PARENTS",
-                "NUM_NO_PARENTS"
-            ]
-        ),
-        validators.sumIsEqual(
-            "NUM_RECIPIENTS", [
-                "NUM_ADULT_RECIPIENTS",
-                "NUM_CHILD_RECIPIENTS"
-            ]
+            "NUM_RECIPIENTS", ["NUM_ADULT_RECIPIENTS", "NUM_CHILD_RECIPIENTS"]
         ),
     ],
     fields=[
@@ -297,7 +273,7 @@ s2 = RowSchema(
         Field(
             item="5B",
             name="NUM_APPROVED",
-            friendly_name="total number of approved cases",
+            friendly_name="total number of approved applications",
             type="number",
             startIndex=39,
             endIndex=47,
@@ -307,7 +283,7 @@ s2 = RowSchema(
         Field(
             item="6B",
             name="NUM_DENIED",
-            friendly_name="total number of denied",
+            friendly_name="total number of denied applications",
             type="number",
             startIndex=63,
             endIndex=71,
@@ -327,7 +303,7 @@ s2 = RowSchema(
         Field(
             item="8B",
             name="NUM_FAMILIES",
-            friendly_name="total of number of families",
+            friendly_name="total number of families",
             type="number",
             startIndex=123,
             endIndex=131,
@@ -337,7 +313,7 @@ s2 = RowSchema(
         Field(
             item="9B",
             name="NUM_2_PARENTS",
-            friendly_name="number of two-parent families",
+            friendly_name="total number of two-parent families",
             type="number",
             startIndex=147,
             endIndex=155,
@@ -357,7 +333,7 @@ s2 = RowSchema(
         Field(
             item="11B",
             name="NUM_NO_PARENTS",
-            friendly_name="total number of no-parent families",
+            friendly_name="total number of no parent families",
             type="number",
             startIndex=195,
             endIndex=203,
@@ -417,7 +393,7 @@ s2 = RowSchema(
         Field(
             item="17B",
             name="NUM_OUTWEDLOCK_BIRTHS",
-            friendly_name="total number of out-of-wedlock births",
+            friendly_name="total number of out wedlock births",
             type="number",
             startIndex=339,
             endIndex=347,
@@ -438,29 +414,17 @@ s2 = RowSchema(
 )
 
 s3 = RowSchema(
-    document=TANF_T6DataSubmissionDocument(),
+    document=Tribal_TANF_T6DataSubmissionDocument(),
     preparsing_validators=[
         validators.hasLength(379),
     ],
     postparsing_validators=[
+        validators.sumIsEqual("NUM_APPLICATIONS", ["NUM_APPROVED", "NUM_DENIED"]),
         validators.sumIsEqual(
-            "NUM_APPLICATIONS", [
-                "NUM_APPROVED",
-                "NUM_DENIED"
-            ]
+            "NUM_FAMILIES", ["NUM_2_PARENTS", "NUM_1_PARENTS", "NUM_NO_PARENTS"]
         ),
         validators.sumIsEqual(
-            "NUM_FAMILIES", [
-                "NUM_2_PARENTS",
-                "NUM_1_PARENTS",
-                "NUM_NO_PARENTS"
-            ]
-        ),
-        validators.sumIsEqual(
-            "NUM_RECIPIENTS", [
-                "NUM_ADULT_RECIPIENTS",
-                "NUM_CHILD_RECIPIENTS"
-            ]
+            "NUM_RECIPIENTS", ["NUM_ADULT_RECIPIENTS", "NUM_CHILD_RECIPIENTS"]
         ),
     ],
     fields=[
@@ -548,7 +512,7 @@ s3 = RowSchema(
         Field(
             item="9C",
             name="NUM_2_PARENTS",
-            friendly_name="number of two-parent families",
+            friendly_name="total number of two-parent families",
             type="number",
             startIndex=155,
             endIndex=163,
@@ -568,7 +532,7 @@ s3 = RowSchema(
         Field(
             item="11C",
             name="NUM_NO_PARENTS",
-            friendly_name="total number of no-parent families",
+            friendly_name="total number of no parent families",
             type="number",
             startIndex=203,
             endIndex=211,
@@ -628,7 +592,7 @@ s3 = RowSchema(
         Field(
             item="17C",
             name="NUM_OUTWEDLOCK_BIRTHS",
-            friendly_name="total number of out-of-wedlock births",
+            friendly_name="total number of out wedlock births",
             type="number",
             startIndex=347,
             endIndex=355,

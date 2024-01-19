@@ -49,7 +49,7 @@ def generate_parser_error(datafile, line_number, schema, error_category, error_m
         error_message=error_message,
         error_type=error_category,
         content_type=ContentType.objects.get_for_model(
-            model=schema.model if schema else None
+            model=schema.document.Django.model if schema else None
         ) if record and not isinstance(record, dict) else None,
         object_id=getattr(record, 'id', None) if record and not isinstance(
             record, dict) else None,
@@ -189,6 +189,25 @@ def get_schema_options(program, section, query=None, model=None, model_name=None
                     'T1': schema_defs.tribal_tanf.t1,
                     'T2': schema_defs.tribal_tanf.t2,
                     'T3': schema_defs.tribal_tanf.t3,
+                }
+            },
+            'C': {
+                'section': DataFile.Section.TRIBAL_CLOSED_CASE_DATA,
+                'models': {
+                    'T4': schema_defs.tribal_tanf.t4,
+                    'T5': schema_defs.tribal_tanf.t5,
+                }
+            },
+            'G': {
+                'section': DataFile.Section.TRIBAL_AGGREGATE_DATA,
+                'models': {
+                    'T6': schema_defs.tribal_tanf.t6,
+                }
+            },
+            'S': {
+                'section': DataFile.Section.TRIBAL_STRATUM_DATA,
+                'models': {
+                    'T7': schema_defs.tribal_tanf.t7,
                 }
             },
         },
@@ -340,7 +359,8 @@ def case_aggregates_by_month(df, dfs_status):
             if isinstance(schema_model, SchemaManager):
                 schema_model = schema_model.schemas[0]
 
-            curr_case_numbers = set(schema_model.model.objects.filter(datafile=df).filter(RPT_MONTH_YEAR=rpt_month_year)
+            curr_case_numbers = set(schema_model.document.Django.model.objects.filter(datafile=df)
+                                    .filter(RPT_MONTH_YEAR=rpt_month_year)
                                     .distinct("CASE_NUMBER").values_list("CASE_NUMBER", flat=True))
             case_numbers = case_numbers.union(curr_case_numbers)
 

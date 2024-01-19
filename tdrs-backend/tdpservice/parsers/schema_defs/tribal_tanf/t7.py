@@ -1,11 +1,11 @@
-"""Schema for TANF T7 Row."""
+"""Schema for Tribal TANF T7 Row."""
 
 from tdpservice.parsers.util import SchemaManager
 from tdpservice.parsers.fields import Field, TransformField
 from tdpservice.parsers.row_schema import RowSchema
 from tdpservice.parsers.transforms import calendar_quarter_to_rpt_month_year
 from tdpservice.parsers import validators
-from tdpservice.search_indexes.documents.tanf import TANF_T7DataSubmissionDocument
+from tdpservice.search_indexes.documents.tribal import Tribal_TANF_T7DataSubmissionDocument
 
 schemas = []
 
@@ -20,7 +20,7 @@ for i in range(1, 31):
 
     schemas.append(
         RowSchema(
-            document=TANF_T7DataSubmissionDocument(),
+            document=Tribal_TANF_T7DataSubmissionDocument(),
             quiet_preparser_errors=i > 1,
             preparsing_validators=[
                 validators.hasLength(247),
@@ -56,7 +56,7 @@ for i in range(1, 31):
                     transform_func=calendar_quarter_to_rpt_month_year(month_index),
                     item="3A",
                     name="RPT_MONTH_YEAR",
-                    friendly_name="reporting month and year",
+                    friendly_name="reporting month year",
                     type="number",
                     startIndex=2,
                     endIndex=7,
@@ -84,7 +84,7 @@ for i in range(1, 31):
                     startIndex=stratum_index,
                     endIndex=stratum_index + 2,
                     required=True,
-                    validators=[validators.isInStringRange(1, 99)],
+                    validators=[validators.isInStringRange(0, 99)],
                 ),
                 Field(
                     item=families_value_item_number,
