@@ -48,7 +48,7 @@ const TotalAggregatesRow = ({ file }) => {
           </button>
         </th>
 
-        <MonthSubRow data={file.summary?.case_aggregates?.months[0]} />
+        <MonthSubRow data={file?.summary?.case_aggregates?.months?.[0]} />
 
         <th scope="rowgroup" rowSpan={3}>
           <span>
@@ -81,10 +81,10 @@ const TotalAggregatesRow = ({ file }) => {
         </th>
       </tr>
       <tr>
-        <MonthSubRow data={file.summary?.case_aggregates?.months[1]} />
+        <MonthSubRow data={file?.summary?.case_aggregates?.months?.[1]} />
       </tr>
       <tr>
-        <MonthSubRow data={file.summary?.case_aggregates?.months[2]} />
+        <MonthSubRow data={file?.summary?.case_aggregates?.months?.[2]} />
       </tr>
     </>
   )
