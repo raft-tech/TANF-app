@@ -897,7 +897,11 @@ def test_parse_tanf_section3_file(tanf_section3_file, dfs):
     dfs.status = dfs.get_status()
     dfs.case_aggregates = util.total_errors_by_month(
         dfs.datafile, dfs.status)
-    assert dfs.case_aggregates == {"months": [{"month": "Oct", "total_errors": 0}, {"month": "Nov", "total_errors": 0}, {"month": "Dec", "total_errors": 0}]}
+    assert dfs.case_aggregates == {"months": [
+        {"month": "Oct", "total_errors": 0},
+        {"month": "Nov", "total_errors": 0},
+        {"month": "Dec", "total_errors": 0}
+    ]}
 
     assert dfs.get_status() == DataFileSummary.Status.ACCEPTED
 
@@ -967,7 +971,11 @@ def test_parse_tanf_section4_file(tanf_section4_file, dfs):
     dfs.status = dfs.get_status()
     dfs.case_aggregates = util.total_errors_by_month(
         dfs.datafile, dfs.status)
-    assert dfs.case_aggregates == {"months": [{"month": "Oct", "total_errors": 0}, {"month": "Nov", "total_errors": 0}, {"month": "Dec", "total_errors": 0}]}
+    assert dfs.case_aggregates == {"months": [
+        {"month": "Oct", "total_errors": 0},
+        {"month": "Nov", "total_errors": 0},
+        {"month": "Dec", "total_errors": 0}
+    ]}
 
     assert dfs.get_status() == DataFileSummary.Status.ACCEPTED
 
@@ -998,7 +1006,6 @@ def ssp_section4_file(stt_user, stt):
 @pytest.mark.django_db()
 def test_parse_ssp_section4_file(ssp_section4_file, dfs):
     """Test parsing SSP Section 4 submission."""
-
     dfs.datafile = ssp_section4_file
     dfs.save()
     parse.parse_datafile(ssp_section4_file)
@@ -1008,7 +1015,11 @@ def test_parse_ssp_section4_file(ssp_section4_file, dfs):
     dfs.status = dfs.get_status()
     dfs.case_aggregates = util.total_errors_by_month(
         dfs.datafile, dfs.status)
-    assert dfs.case_aggregates == {"months": [{"month": "Oct", "total_errors": 0}, {"month": "Nov", "total_errors": 0}, {"month": "Dec", "total_errors": 0}]}
+    assert dfs.case_aggregates == {"months": [
+        {"month": "Oct", "total_errors": 0},
+        {"month": "Nov", "total_errors": 0},
+        {"month": "Dec", "total_errors": 0}
+    ]}
 
     assert m7_objs.count() == 12
 
@@ -1092,7 +1103,11 @@ def test_parse_ssp_section3_file(ssp_section3_file, dfs):
     dfs.status = dfs.get_status()
     dfs.case_aggregates = util.total_errors_by_month(
         dfs.datafile, dfs.status)
-    assert dfs.case_aggregates == {"months": [{"month": "Oct", "total_errors": 0}, {"month": "Nov", "total_errors": 0}, {"month": "Dec", "total_errors": 0}]}
+    assert dfs.case_aggregates == {"months": [
+        {"month": "Oct", "total_errors": 0},
+        {"month": "Nov", "total_errors": 0},
+        {"month": "Dec", "total_errors": 0}
+    ]}
 
     assert dfs.get_status() == DataFileSummary.Status.ACCEPTED
 
