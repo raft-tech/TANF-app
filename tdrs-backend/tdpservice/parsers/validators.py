@@ -600,7 +600,7 @@ def validate_header_rpt_month_year(datafile, header, generate_error):
     return is_valid, error
 
 def validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE():
-    """If WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19, then RELATIONSHIP_HOH != 1"""
+    """If WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19, then RELATIONSHIP_HOH != 1."""
     # value is instance
     def validate(instance):
         WORK_ELIGIBLE_INDICATOR = (
@@ -625,7 +625,6 @@ def validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE():
         DOB_datetime = datetime.datetime.strptime(DOB, '%Y%m%d')
         today = datetime.date.today()
         AGE = today.year - DOB_datetime.year - ((today.month, today.day) < (DOB_datetime.month, DOB_datetime.day))
-
 
         if WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19:
             if RELATIONSHIP_HOH != 1:
