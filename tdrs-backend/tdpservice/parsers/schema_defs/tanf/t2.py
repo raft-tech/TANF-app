@@ -112,7 +112,7 @@ t2 = SchemaManager(
                     condition_function=validators.oneOf((1, 2)),
                     result_field="WORK_PART_STATUS",
                     result_function=validators.oneOf(
-                        ["01", "02", "05", "07", "09", "15", "17", "18", "19", "99"]
+                        ["01", "02", "05", "07", "09", "15", "17", "18", "19", "  "]
                     ),
                 ),
                 validators.if_then_validator(
@@ -121,6 +121,7 @@ t2 = SchemaManager(
                     result_field="WORK_PART_STATUS",
                     result_function=validators.notMatches("99"),
                 ),
+                validators.validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE(),
             ],
             fields=[
                 Field(
@@ -268,7 +269,7 @@ t2 = SchemaManager(
                     type="number",
                     startIndex=44,
                     endIndex=45,
-                    required=True,
+                    required=False,
                     validators=[
                         validators.isLargerThanOrEqualTo(0),
                     ],
@@ -501,7 +502,6 @@ t2 = SchemaManager(
                                 "17",
                                 "18",
                                 "19",
-                                "99",
                             ]
                         )
                     ],

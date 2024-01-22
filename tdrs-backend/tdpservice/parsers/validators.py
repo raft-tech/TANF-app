@@ -2,7 +2,7 @@
 
 from .models import ParserErrorCategoryChoices
 from .util import fiscal_to_calendar
-from datetime import date
+import datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -366,8 +366,8 @@ def dateMonthIsValid():
 def olderThan(min_age):
     """Validate that value is larger than min_age."""
     return make_validator(
-        lambda value: date.today().year - int(str(value)[:4]) > min_age,
-        lambda value: f"{date.today().year - int(str(value)[:4])} is not larger than {min_age}.",
+        lambda value: datetime.date.today().year - int(str(value)[:4]) > min_age,
+        lambda value: f"{datetime.date.today().year - int(str(value)[:4])} is not larger than {min_age}.",
     )
 
 
@@ -598,3 +598,52 @@ def validate_header_rpt_month_year(datafile, header, generate_error):
             field=None,
         )
     return is_valid, error
+
+def validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE():
+    """If WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19, then RELATIONSHIP_HOH != 1"""
+    # value is instance
+    def validate(instance):
+        WORK_ELIGIBLE_INDICATOR = (
+            instance["WORK_ELIGIBLE_INDICATOR"]
+            if type(instance) is dict
+            else getattr(instance, "WORK_ELIGIBLE_INDICATOR")
+        )
+        RELATIONSHIP_HOH = (
+            instance["RELATIONSHIP_HOH"]
+            if type(instance) is dict
+            else getattr(instance, "RELATIONSHIP_HOH")
+        )
+        RELATIONSHIP_HOH = int(RELATIONSHIP_HOH)
+
+        DOB = (
+            instance["DATE_OF_BIRTH"]
+            if type(instance) is dict
+            else getattr(instance, "DATE_OF_BIRTH")
+        )
+        DOB = str(DOB)
+        # 1974 01 14
+        DOB_datetime = datetime.datetime.strptime(DOB, '%Y%m%d')
+        today = datetime.date.today()
+        AGE = today.year - DOB_datetime.year - ((today.month, today.day) < (DOB_datetime.month, DOB_datetime.day))
+
+
+        if WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19:
+            if RELATIONSHIP_HOH != 1:
+                return (False,
+                        "If WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19, then RELATIONSHIP_HOH != 1",
+                        ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH']
+                        )
+            else:
+                return (
+                    True,
+                    None,
+                    ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH'],
+                )
+        else:
+            return (
+                True,
+                None,
+                ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH'],
+            )
+
+    return lambda instance: validate(instance)
