@@ -381,17 +381,8 @@ def case_aggregates_by_month(df, dfs_status):
 
 def total_errors_by_month(df, dfs_status):
     """Return total errors for each month in the reporting period."""
-    section = str(df.section)  # section -> text
-    program_type = get_prog_from_section(
-        section)  # section -> program_type -> text
-
-    # from datafile year/quarter, generate short month names for each month in quarter ala 'Jan', 'Feb', 'Mar'
     calendar_year, calendar_qtr = fiscal_to_calendar(df.year, df.quarter)
     month_list = transform_to_months(calendar_qtr)
-
-    short_section = get_text_from_df(df)['section']
-    schema_models_dict = get_program_models(program_type, short_section)
-    schema_models = [model for model in schema_models_dict.values()]
 
     total_errors_data = {"months": []}
 
@@ -404,14 +395,9 @@ def total_errors_by_month(df, dfs_status):
         month_int = month_to_int(month)
         rpt_month_year = int(f"{calendar_year}{month_int}")
 
-        for schema_model in schema_models:
-            if isinstance(schema_model, SchemaManager):
-                schema_model = schema_model.schemas[0]
-
-            # records = schema_model.model.objects.filter(datafile=df).filter(RPT_MONTH_YEAR=rpt_month_year)
-            error_count = ParserError.objects.filter(
-                file=df, rpt_month_year=rpt_month_year).count()
-            total_errors_data["months"].append(
-                {"month": month, "total_errors": error_count})
+        error_count = ParserError.objects.filter(
+            file=df, rpt_month_year=rpt_month_year).count()
+        total_errors_data["months"].append(
+            {"month": month, "total_errors": error_count})
 
     return total_errors_data
