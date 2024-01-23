@@ -41,8 +41,7 @@ def generate_parser_error(datafile, line_number, schema, error_category, error_m
         row_number=line_number,
         column_number=getattr(field, 'item', None),
         item_number=getattr(field, 'item', None),
-        field_name=getattr(field, 'name', None) if hasattr(
-            field, 'name') else field,
+        field_name=getattr(field, 'name', None) if hasattr(field, 'name') else field,
         rpt_month_year=getattr(record, 'RPT_MONTH_YEAR', None),
         case_number=getattr(record, 'CASE_NUMBER', None),
         error_message=error_message,
@@ -50,8 +49,7 @@ def generate_parser_error(datafile, line_number, schema, error_category, error_m
         content_type=ContentType.objects.get_for_model(
             model=schema.document.Django.model if schema else None
         ) if record and not isinstance(record, dict) else None,
-        object_id=getattr(record, 'id', None) if record and not isinstance(
-            record, dict) else None,
+        object_id=getattr(record, 'id', None) if record and not isinstance(record, dict) else None,
         fields_json=fields_json
     )
 
@@ -232,26 +230,21 @@ section -> text
 text**: input string from the header/file
 '''
 
-
 def get_program_models(str_prog, str_section):
     """Return the models dict for a given program and section."""
     return get_schema_options(program=str_prog, section=str_section, query='models')
-
 
 def get_program_model(str_prog, str_section, str_model):
     """Return singular model for a given program, section, and name."""
     return get_schema_options(program=str_prog, section=str_section, query='models', model_name=str_model)
 
-
 def get_section_reference(str_prog, str_section):
     """Return the named section reference for a given program and section."""
     return get_schema_options(program=str_prog, section=str_section, query='section')
 
-
 def get_text_from_df(df):
     """Return the short-hand text for program, section for a given datafile."""
     return get_schema_options("", section=df.section, query='text')
-
 
 def get_prog_from_section(str_section):
     """Return the program type for a given section."""
@@ -266,12 +259,10 @@ def get_prog_from_section(str_section):
     # TODO: if given a datafile (section), we can reverse back to the program b/c the
     # section string has "tribal/ssp" in it, then process of elimination we have tanf
 
-
 def get_schema(line, section, program_type):
     """Return the appropriate schema for the line."""
     line_type = line[0:2]
     return get_schema_options(program_type, section, query='models', model_name=line_type)
-
 
 def fiscal_to_calendar(year, fiscal_quarter):
     """Decrement the input quarter text by one."""
@@ -280,10 +271,8 @@ def fiscal_to_calendar(year, fiscal_quarter):
     if int_qtr == 1:
         year = year - 1
 
-    # get the index so we can easily wrap-around end of array
-    ind_qtr = array.index(int_qtr)
-    # return the previous quarter
-    return year, "Q{}".format(array[ind_qtr - 1])
+    ind_qtr = array.index(int_qtr)  # get the index so we can easily wrap-around end of array
+    return year, "Q{}".format(array[ind_qtr - 1])  # return the previous quarter
 
 
 def transform_to_months(quarter):
@@ -299,7 +288,6 @@ def transform_to_months(quarter):
             return ["Oct", "Nov", "Dec"]
         case _:
             raise ValueError("Invalid quarter value.")
-
 
 def month_to_int(month):
     """Return the integer value of a month."""
