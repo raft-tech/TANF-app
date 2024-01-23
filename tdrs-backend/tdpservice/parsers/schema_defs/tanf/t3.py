@@ -1,16 +1,15 @@
 """Schema for HEADER row of all submission types."""
 
 
-from tdpservice.parsers.util import SchemaManager
 from tdpservice.parsers.transforms import tanf_ssn_decryption_func
 from tdpservice.parsers.fields import TransformField, Field
-from tdpservice.parsers.row_schema import RowSchema
+from tdpservice.parsers.row_schema import RowSchema, SchemaManager
 from tdpservice.parsers import validators
-from tdpservice.search_indexes.models.tanf import TANF_T3
+from tdpservice.search_indexes.documents.tanf import TANF_T3DataSubmissionDocument
 
 
 child_one = RowSchema(
-    model=TANF_T3,
+    document=TANF_T3DataSubmissionDocument(),
     preparsing_validators=[
         validators.notEmpty(start=19, end=60),
     ],
@@ -92,6 +91,7 @@ child_one = RowSchema(
         Field(
             item="0",
             name="RecordType",
+            friendly_name="record type",
             type="string",
             startIndex=0,
             endIndex=2,
@@ -101,6 +101,7 @@ child_one = RowSchema(
         Field(
             item="4",
             name="RPT_MONTH_YEAR",
+            friendly_name="reporting month and year",
             type="number",
             startIndex=2,
             endIndex=8,
@@ -110,6 +111,7 @@ child_one = RowSchema(
         Field(
             item="6",
             name="CASE_NUMBER",
+            friendly_name="case number",
             type="string",
             startIndex=8,
             endIndex=19,
@@ -119,6 +121,7 @@ child_one = RowSchema(
         Field(
             item="67",
             name="FAMILY_AFFILIATION",
+            friendly_name="family affiliation",
             type="number",
             startIndex=19,
             endIndex=20,
@@ -128,6 +131,7 @@ child_one = RowSchema(
         Field(
             item="68",
             name="DATE_OF_BIRTH",
+            friendly_name="date of birth",
             type="number",
             startIndex=20,
             endIndex=28,
@@ -141,6 +145,7 @@ child_one = RowSchema(
             transform_func=tanf_ssn_decryption_func,
             item="69",
             name="SSN",
+            friendly_name="social security number",
             type="string",
             startIndex=28,
             endIndex=37,
@@ -151,6 +156,7 @@ child_one = RowSchema(
         Field(
             item="70A",
             name="RACE_HISPANIC",
+            friendly_name="race hispanic",
             type="number",
             startIndex=37,
             endIndex=38,
@@ -160,6 +166,7 @@ child_one = RowSchema(
         Field(
             item="70B",
             name="RACE_AMER_INDIAN",
+            friendly_name="race american-indian",
             type="number",
             startIndex=38,
             endIndex=39,
@@ -169,6 +176,7 @@ child_one = RowSchema(
         Field(
             item="70C",
             name="RACE_ASIAN",
+            friendly_name="race asian",
             type="number",
             startIndex=39,
             endIndex=40,
@@ -178,6 +186,7 @@ child_one = RowSchema(
         Field(
             item="70D",
             name="RACE_BLACK",
+            friendly_name="race black",
             type="number",
             startIndex=40,
             endIndex=41,
@@ -187,6 +196,7 @@ child_one = RowSchema(
         Field(
             item="70E",
             name="RACE_HAWAIIAN",
+            friendly_name="race hawaiian",
             type="number",
             startIndex=41,
             endIndex=42,
@@ -196,6 +206,7 @@ child_one = RowSchema(
         Field(
             item="70F",
             name="RACE_WHITE",
+            friendly_name="race white",
             type="number",
             startIndex=42,
             endIndex=43,
@@ -205,6 +216,7 @@ child_one = RowSchema(
         Field(
             item="71",
             name="GENDER",
+            friendly_name="gender",
             type="number",
             startIndex=43,
             endIndex=44,
@@ -214,6 +226,7 @@ child_one = RowSchema(
         Field(
             item="72A",
             name="RECEIVE_NONSSA_BENEFITS",
+            friendly_name="receives non-social security act benefits",
             type="number",
             startIndex=44,
             endIndex=45,
@@ -223,6 +236,7 @@ child_one = RowSchema(
         Field(
             item="72B",
             name="RECEIVE_SSI",
+            friendly_name="receives SSI",
             type="number",
             startIndex=45,
             endIndex=46,
@@ -232,6 +246,7 @@ child_one = RowSchema(
         Field(
             item="73",
             name="RELATIONSHIP_HOH",
+            friendly_name="relationship to head of household",
             type="string",
             startIndex=46,
             endIndex=48,
@@ -241,6 +256,7 @@ child_one = RowSchema(
         Field(
             item="74",
             name="PARENT_MINOR_CHILD",
+            friendly_name="parent of minor child",
             type="number",
             startIndex=48,
             endIndex=49,
@@ -250,6 +266,7 @@ child_one = RowSchema(
         Field(
             item="75",
             name="EDUCATION_LEVEL",
+            friendly_name="education level",
             type="string",
             startIndex=49,
             endIndex=51,
@@ -264,6 +281,7 @@ child_one = RowSchema(
         Field(
             item="76",
             name="CITIZENSHIP_STATUS",
+            friendly_name="citizenship status",
             type="number",
             startIndex=51,
             endIndex=52,
@@ -273,6 +291,7 @@ child_one = RowSchema(
         Field(
             item="77A",
             name="UNEARNED_SSI",
+            friendly_name="unearned SSI benefit",
             type="string",
             startIndex=52,
             endIndex=56,
@@ -282,6 +301,7 @@ child_one = RowSchema(
         Field(
             item="77B",
             name="OTHER_UNEARNED_INCOME",
+            friendly_name="other unearned income",
             type="string",
             startIndex=56,
             endIndex=60,
@@ -292,7 +312,7 @@ child_one = RowSchema(
 )
 
 child_two = RowSchema(
-    model=TANF_T3,
+    document=TANF_T3DataSubmissionDocument(),
     quiet_preparser_errors=True,
     preparsing_validators=[
         validators.notEmpty(start=60, end=101),
@@ -375,6 +395,7 @@ child_two = RowSchema(
         Field(
             item="0",
             name="RecordType",
+            friendly_name="record type",
             type="string",
             startIndex=0,
             endIndex=2,
@@ -384,6 +405,7 @@ child_two = RowSchema(
         Field(
             item="4",
             name="RPT_MONTH_YEAR",
+            friendly_name="reporting month and year",
             type="number",
             startIndex=2,
             endIndex=8,
@@ -393,6 +415,7 @@ child_two = RowSchema(
         Field(
             item="6",
             name="CASE_NUMBER",
+            friendly_name="case number",
             type="string",
             startIndex=8,
             endIndex=19,
@@ -402,6 +425,7 @@ child_two = RowSchema(
         Field(
             item="67",
             name="FAMILY_AFFILIATION",
+            friendly_name="family affiliation",
             type="number",
             startIndex=60,
             endIndex=61,
@@ -411,6 +435,7 @@ child_two = RowSchema(
         Field(
             item="68",
             name="DATE_OF_BIRTH",
+            friendly_name="date of birth",
             type="number",
             startIndex=61,
             endIndex=69,
@@ -424,6 +449,7 @@ child_two = RowSchema(
             transform_func=tanf_ssn_decryption_func,
             item="69",
             name="SSN",
+            friendly_name="social security number",
             type="string",
             startIndex=69,
             endIndex=78,
@@ -434,6 +460,7 @@ child_two = RowSchema(
         Field(
             item="70A",
             name="RACE_HISPANIC",
+            friendly_name="race hispanic",
             type="number",
             startIndex=78,
             endIndex=79,
@@ -443,6 +470,7 @@ child_two = RowSchema(
         Field(
             item="70B",
             name="RACE_AMER_INDIAN",
+            friendly_name="race american-indian",
             type="number",
             startIndex=79,
             endIndex=80,
@@ -452,6 +480,7 @@ child_two = RowSchema(
         Field(
             item="70C",
             name="RACE_ASIAN",
+            friendly_name="race asian",
             type="number",
             startIndex=80,
             endIndex=81,
@@ -461,6 +490,7 @@ child_two = RowSchema(
         Field(
             item="70D",
             name="RACE_BLACK",
+            friendly_name="race black",
             type="number",
             startIndex=81,
             endIndex=82,
@@ -470,6 +500,7 @@ child_two = RowSchema(
         Field(
             item="70E",
             name="RACE_HAWAIIAN",
+            friendly_name="race hawaiian",
             type="number",
             startIndex=82,
             endIndex=83,
@@ -479,6 +510,7 @@ child_two = RowSchema(
         Field(
             item="70F",
             name="RACE_WHITE",
+            friendly_name="race white",
             type="number",
             startIndex=83,
             endIndex=84,
@@ -488,6 +520,7 @@ child_two = RowSchema(
         Field(
             item="71",
             name="GENDER",
+            friendly_name="gender",
             type="number",
             startIndex=84,
             endIndex=85,
@@ -497,6 +530,7 @@ child_two = RowSchema(
         Field(
             item="72A",
             name="RECEIVE_NONSSA_BENEFITS",
+            friendly_name="receives non-ssa benefits",
             type="number",
             startIndex=85,
             endIndex=86,
@@ -506,6 +540,7 @@ child_two = RowSchema(
         Field(
             item="72B",
             name="RECEIVE_SSI",
+            friendly_name="receives SSI",
             type="number",
             startIndex=86,
             endIndex=87,
@@ -515,6 +550,7 @@ child_two = RowSchema(
         Field(
             item="73",
             name="RELATIONSHIP_HOH",
+            friendly_name="relationship to head of household",
             type="string",
             startIndex=87,
             endIndex=89,
@@ -524,6 +560,7 @@ child_two = RowSchema(
         Field(
             item="74",
             name="PARENT_MINOR_CHILD",
+            friendly_name="parent of minor child",
             type="number",
             startIndex=89,
             endIndex=90,
@@ -533,19 +570,22 @@ child_two = RowSchema(
         Field(
             item="75",
             name="EDUCATION_LEVEL",
+            friendly_name="education level",
             type="string",
             startIndex=90,
             endIndex=92,
             required=True,
             validators=[
                 validators.or_validators(
-                    validators.isInStringRange(0, 16), validators.oneOf(["98", "99"])
+                    validators.isInStringRange(0, 16),
+                    validators.oneOf(["98", "99"])
                 )
             ],
         ),
         Field(
             item="76",
             name="CITIZENSHIP_STATUS",
+            friendly_name="citizenship status",
             type="number",
             startIndex=92,
             endIndex=93,
@@ -555,6 +595,7 @@ child_two = RowSchema(
         Field(
             item="77A",
             name="UNEARNED_SSI",
+            friendly_name="unearned SSI benefit",
             type="string",
             startIndex=93,
             endIndex=97,
@@ -564,6 +605,7 @@ child_two = RowSchema(
         Field(
             item="77B",
             name="OTHER_UNEARNED_INCOME",
+            friendly_name="other unearned income",
             type="string",
             startIndex=97,
             endIndex=101,
