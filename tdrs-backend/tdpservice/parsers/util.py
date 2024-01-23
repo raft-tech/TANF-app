@@ -274,7 +274,6 @@ def fiscal_to_calendar(year, fiscal_quarter):
     ind_qtr = array.index(int_qtr)  # get the index so we can easily wrap-around end of array
     return year, "Q{}".format(array[ind_qtr - 1])  # return the previous quarter
 
-
 def transform_to_months(quarter):
     """Return a list of months in a quarter."""
     match quarter:
