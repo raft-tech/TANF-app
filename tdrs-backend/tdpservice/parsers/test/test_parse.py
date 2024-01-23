@@ -1200,9 +1200,27 @@ def tribal_section_2_file(stt_user, stt):
     return util.create_test_datafile('ADS.E2J.FTP2.TS142.txt', stt_user, stt, "Tribal Closed Case Data")
 
 @pytest.mark.django_db()
-def test_parse_tribal_section_2_file(tribal_section_2_file):
+def test_parse_tribal_section_2_file(tribal_section_2_file, dfs):
     """Test parsing Tribal TANF Section 2 submission."""
+    dfs.datafile = tribal_section_2_file
+    dfs.save()
+
     parse.parse_datafile(tribal_section_2_file)
+
+    dfs.status = dfs.get_status()
+    dfs.case_aggregates = util.case_aggregates_by_month(
+        dfs.datafile, dfs.status)
+    assert dfs.case_aggregates == {'rejected': 0,
+                                   'months': [
+                                       {'accepted_without_errors': 0,
+                                           'accepted_with_errors': 0, 'month': 'Oct'},
+                                       {'accepted_without_errors': 0,
+                                           'accepted_with_errors': 0, 'month': 'Nov'},
+                                       {'accepted_without_errors': 0,
+                                           'accepted_with_errors': 0, 'month': 'Dec'}
+                                   ]}
+
+    assert dfs.get_status() == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
 
     assert Tribal_TANF_T4.objects.all().count() == 6
     assert Tribal_TANF_T5.objects.all().count() == 13
@@ -1222,9 +1240,23 @@ def tribal_section_3_file(stt_user, stt):
     return util.create_test_datafile('ADS.E2J.FTP3.TS142', stt_user, stt, "Tribal Aggregate Data")
 
 @pytest.mark.django_db()
-def test_parse_tribal_section_3_file(tribal_section_3_file):
+def test_parse_tribal_section_3_file(tribal_section_3_file, dfs):
     """Test parsing Tribal TANF Section 3 submission."""
+    dfs.datafile = tribal_section_3_file
+    dfs.save()
+
     parse.parse_datafile(tribal_section_3_file)
+
+    dfs.status = dfs.get_status()
+    dfs.case_aggregates = util.total_errors_by_month(
+        dfs.datafile, dfs.status)
+    assert dfs.case_aggregates == {"months": [
+        {"month": "Oct", "total_errors": 0},
+        {"month": "Nov", "total_errors": 0},
+        {"month": "Dec", "total_errors": 0}
+    ]}
+
+    assert dfs.get_status() == DataFileSummary.Status.ACCEPTED
 
     assert Tribal_TANF_T6.objects.all().count() == 3
 
@@ -1242,9 +1274,21 @@ def tribal_section_4_file(stt_user, stt):
     return util.create_test_datafile('tribal_section_4_fake.txt', stt_user, stt, "Tribal Stratum Data")
 
 @pytest.mark.django_db()
-def test_parse_tribal_section_4_file(tribal_section_4_file):
+def test_parse_tribal_section_4_file(tribal_section_4_file, dfs):
     """Test parsing Tribal TANF Section 4 submission."""
+    dfs.datafile = tribal_section_4_file
+    dfs.save()
+
     parse.parse_datafile(tribal_section_4_file)
+
+    dfs.status = dfs.get_status()
+    dfs.case_aggregates = util.total_errors_by_month(
+        dfs.datafile, dfs.status)
+    assert dfs.case_aggregates == {"months": [
+        {"month": "Oct", "total_errors": 0},
+        {"month": "Nov", "total_errors": 0},
+        {"month": "Dec", "total_errors": 0}
+    ]}
 
     assert Tribal_TANF_T7.objects.all().count() == 18
 
@@ -1261,3 +1305,47 @@ def test_parse_tribal_section_4_file(tribal_section_4_file):
 
     assert first.FAMILIES_MONTH == 274
     assert sixth.FAMILIES_MONTH == 499
+
+
+@pytest.fixture
+def tanf_section_4_file_with_errors(stt_user, stt):
+    """Fixture for tanf_section4_with_errors."""
+    return util.create_test_datafile('tanf_section4_with_errors.txt', stt_user, stt, "Stratum Data")
+
+@pytest.mark.django_db()
+def test_parse_tanf_section4_file_with_errors(tanf_section_4_file_with_errors, dfs):
+    """Test parsing TANF Section 4 submission."""
+    dfs.datafile = tanf_section_4_file_with_errors
+    dfs.save()
+
+    parse.parse_datafile(tanf_section_4_file_with_errors)
+
+    dfs.status = dfs.get_status()
+    dfs.case_aggregates = util.total_errors_by_month(
+        dfs.datafile, dfs.status)
+    assert dfs.case_aggregates == {"months": [
+        {"month": "Oct", "total_errors": 2},
+        {"month": "Nov", "total_errors": 2},
+        {"month": "Dec", "total_errors": 2}
+    ]}
+
+    assert dfs.get_status() == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
+
+    assert TANF_T7.objects.all().count() == 18
+
+    parser_errors = ParserError.objects.filter(file=tanf_section_4_file_with_errors)
+    assert parser_errors.count() == 6
+
+    t7_objs = TANF_T7.objects.all().order_by('FAMILIES_MONTH')
+
+    first = t7_objs.first()
+    sixth = t7_objs[5]
+
+    assert first.RPT_MONTH_YEAR == 202011
+    assert sixth.RPT_MONTH_YEAR == 202010
+
+    assert first.TDRS_SECTION_IND == '1'
+    assert sixth.TDRS_SECTION_IND == '1'
+
+    assert first.FAMILIES_MONTH == 0
+    assert sixth.FAMILIES_MONTH == 446
