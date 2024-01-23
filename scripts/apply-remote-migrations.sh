@@ -6,8 +6,6 @@ cd ./tdrs-backend
 
 echo "Install dependencies..."
 sudo apt install -y gcc
-sudo apt install -y graphviz
-sudo apt install -y graphviz-dev
 sudo apt install -y libpq-dev python3-dev
 
 python -m venv ./env
