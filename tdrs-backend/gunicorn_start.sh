@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Apply database migrations
 set -e
 
 echo "REDIS_SERVER"
@@ -11,12 +10,6 @@ else
     export LD_LIBRARY_PATH=/home/vcap/deps/0/lib/:/home/vcap/deps/1/lib:$LD_LIBRARY_PATH
     ( cd  /home/vcap/deps/0/bin/; ./redis-server /home/vcap/app/redis.conf &)
 fi
-
-#
-#echo "Applying database migrations"
-#python manage.py migrate
-#python manage.py populate_stts
-#python manage.py collectstatic --noinput
 
 celery -A tdpservice.settings worker -c 1 &
 sleep 5
