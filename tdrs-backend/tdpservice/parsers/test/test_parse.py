@@ -35,7 +35,6 @@ def dfs():
 def test_parse_small_correct_file(test_datafile, dfs):
     """Test parsing of small_correct_file."""
     dfs.datafile = test_datafile
-    dfs.save()
 
     parse.parse_datafile(test_datafile)
     dfs.status = dfs.get_status()
@@ -75,7 +74,6 @@ def test_parse_section_mismatch(test_datafile, dfs):
     test_datafile.save()
 
     dfs.datafile = test_datafile
-    dfs.save()
 
     errors = parse.parse_datafile(test_datafile)
     dfs.status = dfs.get_status()
@@ -116,7 +114,6 @@ def test_parse_wrong_program_type(test_datafile, dfs):
     test_datafile.save()
 
     dfs.datafile = test_datafile
-    dfs.save()
     errors = parse.parse_datafile(test_datafile)
     assert dfs.get_status() == DataFileSummary.Status.REJECTED
 
@@ -149,7 +146,6 @@ def test_parse_big_file(test_big_file, dfs):
     expected_t3_record_count = 1376
 
     dfs.datafile = test_big_file
-    dfs.save()
 
     parse.parse_datafile(test_big_file)
     dfs.status = dfs.get_status()
@@ -226,7 +222,6 @@ def test_parse_bad_file_missing_header(bad_file_missing_header, dfs):
     """Test parsing of bad_missing_header."""
     errors = parse.parse_datafile(bad_file_missing_header)
     dfs.datafile = bad_file_missing_header
-    dfs.save()
     assert dfs.get_status() == DataFileSummary.Status.REJECTED
 
     parser_errors = ParserError.objects.filter(file=bad_file_missing_header).order_by('created_at')
@@ -256,7 +251,6 @@ def test_parse_bad_file_multiple_headers(bad_file_multiple_headers, dfs):
     """Test parsing of bad_two_headers."""
     errors = parse.parse_datafile(bad_file_multiple_headers)
     dfs.datafile = bad_file_multiple_headers
-    dfs.save()
     assert dfs.get_status() == DataFileSummary.Status.REJECTED
 
     parser_errors = ParserError.objects.filter(file=bad_file_multiple_headers)
@@ -305,7 +299,6 @@ def bad_trailer_file(stt_user, stt):
 def test_parse_bad_trailer_file(bad_trailer_file, dfs):
     """Test parsing bad_trailer_1."""
     dfs.datafile = bad_trailer_file
-    dfs.save()
 
     errors = parse.parse_datafile(bad_trailer_file)
 
@@ -387,7 +380,6 @@ def empty_file(stt_user, stt):
 def test_parse_empty_file(empty_file, dfs):
     """Test parsing of empty_file."""
     dfs.datafile = empty_file
-    dfs.save()
     errors = parse.parse_datafile(empty_file)
 
     dfs.status = dfs.get_status()
@@ -441,7 +433,6 @@ def test_parse_small_ssp_section1_datafile(small_ssp_section1_datafile, dfs):
     small_ssp_section1_datafile.save()
 
     dfs.datafile = small_ssp_section1_datafile
-    dfs.save()
 
     parse.parse_datafile(small_ssp_section1_datafile)
 
@@ -504,7 +495,6 @@ def small_tanf_section1_datafile(stt_user, stt):
 def test_parse_tanf_section1_datafile(small_tanf_section1_datafile, dfs):
     """Test parsing of small_tanf_section1_datafile and validate T2 model data."""
     dfs.datafile = small_tanf_section1_datafile
-    dfs.save()
 
     parse.parse_datafile(small_tanf_section1_datafile)
 
@@ -673,7 +663,6 @@ def bad_tanf_s1__row_missing_required_field(stt_user, stt):
 def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field, dfs):
     """Test parsing a bad TANF Section 1 submission where a row is missing required data."""
     dfs.datafile = bad_tanf_s1__row_missing_required_field
-    dfs.save()
 
     parse.parse_datafile(bad_tanf_s1__row_missing_required_field)
 
@@ -772,11 +761,9 @@ def test_dfs_set_case_aggregates(test_datafile, dfs):
     # this still needs to execute to create db objects to be queried
     parse.parse_datafile(test_datafile)
     dfs.file = test_datafile
-    dfs.save()
     dfs.status = dfs.get_status()
     dfs.case_aggregates = util.case_aggregates_by_month(
         test_datafile, dfs.status)
-    dfs.save()
 
     for month in dfs.case_aggregates['months']:
         if month['month'] == 'Oct':
@@ -890,7 +877,6 @@ def tanf_section3_file(stt_user, stt):
 def test_parse_tanf_section3_file(tanf_section3_file, dfs):
     """Test parsing TANF Section 3 submission."""
     dfs.datafile = tanf_section3_file
-    dfs.save()
 
     parse.parse_datafile(tanf_section3_file)
 
@@ -964,7 +950,6 @@ def tanf_section4_file(stt_user, stt):
 def test_parse_tanf_section4_file(tanf_section4_file, dfs):
     """Test parsing TANF Section 4 submission."""
     dfs.datafile = tanf_section4_file
-    dfs.save()
 
     parse.parse_datafile(tanf_section4_file)
 
@@ -1007,7 +992,6 @@ def ssp_section4_file(stt_user, stt):
 def test_parse_ssp_section4_file(ssp_section4_file, dfs):
     """Test parsing SSP Section 4 submission."""
     dfs.datafile = ssp_section4_file
-    dfs.save()
     parse.parse_datafile(ssp_section4_file)
 
     m7_objs = SSP_M7.objects.all().order_by('FAMILIES_MONTH')
@@ -1036,7 +1020,6 @@ def ssp_section2_file(stt_user, stt):
 def test_parse_ssp_section2_file(ssp_section2_file, dfs):
     """Test parsing SSP Section 2 submission."""
     dfs.datafile = ssp_section2_file
-    dfs.save()
 
     parse.parse_datafile(ssp_section2_file)
 
@@ -1096,7 +1079,6 @@ def ssp_section3_file(stt_user, stt):
 def test_parse_ssp_section3_file(ssp_section3_file, dfs):
     """Test parsing TANF Section 3 submission."""
     dfs.datafile = ssp_section3_file
-    dfs.save()
 
     parse.parse_datafile(ssp_section3_file)
 
@@ -1146,7 +1128,6 @@ def test_parse_tribal_section_1_file(tribal_section_1_file, dfs):
     tribal_section_1_file.save()
 
     dfs.datafile = tribal_section_1_file
-    dfs.save()
 
     parse.parse_datafile(tribal_section_1_file)
 
@@ -1203,7 +1184,6 @@ def tribal_section_2_file(stt_user, stt):
 def test_parse_tribal_section_2_file(tribal_section_2_file, dfs):
     """Test parsing Tribal TANF Section 2 submission."""
     dfs.datafile = tribal_section_2_file
-    dfs.save()
 
     parse.parse_datafile(tribal_section_2_file)
 
@@ -1243,7 +1223,6 @@ def tribal_section_3_file(stt_user, stt):
 def test_parse_tribal_section_3_file(tribal_section_3_file, dfs):
     """Test parsing Tribal TANF Section 3 submission."""
     dfs.datafile = tribal_section_3_file
-    dfs.save()
 
     parse.parse_datafile(tribal_section_3_file)
 
@@ -1277,7 +1256,6 @@ def tribal_section_4_file(stt_user, stt):
 def test_parse_tribal_section_4_file(tribal_section_4_file, dfs):
     """Test parsing Tribal TANF Section 4 submission."""
     dfs.datafile = tribal_section_4_file
-    dfs.save()
 
     parse.parse_datafile(tribal_section_4_file)
 
@@ -1316,7 +1294,6 @@ def tanf_section_4_file_with_errors(stt_user, stt):
 def test_parse_tanf_section4_file_with_errors(tanf_section_4_file_with_errors, dfs):
     """Test parsing TANF Section 4 submission."""
     dfs.datafile = tanf_section_4_file_with_errors
-    dfs.save()
 
     parse.parse_datafile(tanf_section_4_file_with_errors)
 
