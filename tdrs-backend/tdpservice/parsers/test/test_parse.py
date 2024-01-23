@@ -931,7 +931,7 @@ def test_parse_tanf_section3_file(tanf_section3_file, dfs):
     parse.parse_datafile(tanf_section3_file)
 
     dfs.status = dfs.get_status()
-    dfs.case_aggregates = util.total_errors_by_month(
+    dfs.case_aggregates = aggregates.total_errors_by_month(
         dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {"months": [
         {"month": "Oct", "total_errors": 0},
@@ -1010,7 +1010,7 @@ def test_parse_tanf_section4_file(tanf_section4_file, dfs):
     parse.parse_datafile(tanf_section4_file)
 
     dfs.status = dfs.get_status()
-    dfs.case_aggregates = util.total_errors_by_month(
+    dfs.case_aggregates = aggregates.total_errors_by_month(
         dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {"months": [
         {"month": "Oct", "total_errors": 0},
@@ -1056,7 +1056,7 @@ def test_parse_ssp_section4_file(ssp_section4_file, dfs):
     m7_objs = SSP_M7.objects.all().order_by('FAMILIES_MONTH')
 
     dfs.status = dfs.get_status()
-    dfs.case_aggregates = util.total_errors_by_month(
+    dfs.case_aggregates = aggregates.total_errors_by_month(
         dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {"months": [
         {"month": "Oct", "total_errors": 0},
@@ -1086,16 +1086,16 @@ def test_parse_ssp_section2_file(ssp_section2_file, dfs):
     parse.parse_datafile(ssp_section2_file)
 
     dfs.status = dfs.get_status()
-    dfs.case_aggregates = util.case_aggregates_by_month(
+    dfs.case_aggregates = aggregates.case_aggregates_by_month(
         dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {'rejected': 0,
                                    'months': [
                                        {'accepted_without_errors': 0,
-                                           'accepted_with_errors': 58, 'month': 'Oct'},
+                                           'accepted_with_errors': 78, 'month': 'Oct'},
                                        {'accepted_without_errors': 0,
-                                           'accepted_with_errors': 52, 'month': 'Nov'},
+                                           'accepted_with_errors': 78, 'month': 'Nov'},
                                        {'accepted_without_errors': 0,
-                                           'accepted_with_errors': 40, 'month': 'Dec'}
+                                           'accepted_with_errors': 75, 'month': 'Dec'}
                                    ]}
 
     assert dfs.get_status() == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
@@ -1147,7 +1147,7 @@ def test_parse_ssp_section3_file(ssp_section3_file, dfs):
     parse.parse_datafile(ssp_section3_file)
 
     dfs.status = dfs.get_status()
-    dfs.case_aggregates = util.total_errors_by_month(
+    dfs.case_aggregates = aggregates.total_errors_by_month(
         dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {"months": [
         {"month": "Oct", "total_errors": 0},
@@ -1284,14 +1284,14 @@ def test_parse_tribal_section_2_file(tribal_section_2_file, dfs):
     parse.parse_datafile(tribal_section_2_file)
 
     dfs.status = dfs.get_status()
-    dfs.case_aggregates = util.case_aggregates_by_month(
+    dfs.case_aggregates = aggregates.case_aggregates_by_month(
         dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {'rejected': 0,
                                    'months': [
                                        {'accepted_without_errors': 0,
-                                           'accepted_with_errors': 0, 'month': 'Oct'},
+                                           'accepted_with_errors': 3, 'month': 'Oct'},
                                        {'accepted_without_errors': 0,
-                                           'accepted_with_errors': 0, 'month': 'Nov'},
+                                           'accepted_with_errors': 3, 'month': 'Nov'},
                                        {'accepted_without_errors': 0,
                                            'accepted_with_errors': 0, 'month': 'Dec'}
                                    ]}
@@ -1326,7 +1326,7 @@ def test_parse_tribal_section_3_file(tribal_section_3_file, dfs):
     parse.parse_datafile(tribal_section_3_file)
 
     dfs.status = dfs.get_status()
-    dfs.case_aggregates = util.total_errors_by_month(
+    dfs.case_aggregates = aggregates.total_errors_by_month(
         dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {"months": [
         {"month": "Oct", "total_errors": 0},
@@ -1361,7 +1361,7 @@ def test_parse_tribal_section_4_file(tribal_section_4_file, dfs):
     parse.parse_datafile(tribal_section_4_file)
 
     dfs.status = dfs.get_status()
-    dfs.case_aggregates = util.total_errors_by_month(
+    dfs.case_aggregates = aggregates.total_errors_by_month(
         dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {"months": [
         {"month": "Oct", "total_errors": 0},
@@ -1399,7 +1399,7 @@ def test_parse_tanf_section4_file_with_errors(tanf_section_4_file_with_errors, d
     parse.parse_datafile(tanf_section_4_file_with_errors)
 
     dfs.status = dfs.get_status()
-    dfs.case_aggregates = util.total_errors_by_month(
+    dfs.case_aggregates = aggregates.total_errors_by_month(
         dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {"months": [
         {"month": "Oct", "total_errors": 2},
