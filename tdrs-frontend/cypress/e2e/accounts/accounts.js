@@ -8,7 +8,9 @@ Then('{string} sees a Request Access form', (username) => {
 
 Then('{string} can see the hompage', (username) => {
   cy.visit('/home')
-  cy.contains('You have been approved for access to TDP.').should('exist')
+  cy.wait(2000).then(() => {
+    cy.contains('You have been approved for access to TDP.').should('exist')
+  })
 })
 
 When('{string} is in begin state', (username) => {
@@ -26,7 +28,29 @@ When('{string} is in begin state', (username) => {
       _save: 'Save',
     }
 
+    cy.adminApiRequest(
+      'POST',
+      `/users/user/${cypressUser.selector.id}/change/`,
+      body
+    )
+  })
+})
 
+When('{string} is in approved state', (username) => {
+  cy.get('@cypressUser').then((cypressUser) => {
+    let body = {
+      username: username,
+      first_name: '',
+      last_name: '',
+      email: username,
+      stt: '6',
+      region: '',
+      groups: '2',
+      account_approval_status: 'Approved',
+      access_requested_date_0: '0001-01-01',
+      access_requested_date_1: '00:00:00',
+      _save: 'Save',
+    }
     cy.adminApiRequest(
       'POST',
       `/users/user/${cypressUser.selector.id}/change/`,
@@ -38,7 +62,11 @@ When('{string} is in begin state', (username) => {
 When('{string} requests access', (username) => {
   cy.get('#firstName').type('cypress')
   cy.get('#lastName').type('cypress')
-  cy.get('#stt').type('Colorado{enter}')
+
+  cy.wait('@getSttSearchList').then(() => {
+    cy.get('#stt').type('Colorado{enter}')
+  })
+
   cy.get('button').contains('Request Access').should('exist').click()
   cy.wait(2000).then(() => {
     cy.contains('Request Submitted').should('exist')

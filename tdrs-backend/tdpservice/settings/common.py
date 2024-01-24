@@ -92,9 +92,10 @@ class Common(Configuration):
     FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'http://localhost:3000')
 
     # Email Server
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = "smtp.ees.hhs.gov"
+    EMAIL_BACKEND = "tdpservice.email.backend.SendgridEmailBackend"
     EMAIL_HOST_USER = "no-reply@tanfdata.acf.hhs.gov"
+    SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', None)
+    SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 
     # Whether to use localstack in place of a live AWS S3 environment
     USE_LOCALSTACK = bool(strtobool(os.getenv("USE_LOCALSTACK", "no")))
@@ -204,10 +205,12 @@ class Common(Configuration):
             },
             "verbose": {
                 "format": (
-                    "[%(asctime)s %(levelname)s %(filename)s::%(funcName)s:L%(lineno)d :  %(message)s"
+                    "%(asctime)s %(levelname)s %(filename)s::%(funcName)s:L%(lineno)d :  %(message)s"
                 )
             },
             "simple": {"format": "%(levelname)s %(message)s"},
+            "color": {"()": "tdpservice.core.logger.ColorFormatter",
+                      "format": "%(asctime)s %(levelname)s %(filename)s::%(funcName)s:L%(lineno)d :  %(message)s"}
         },
         "filters": {"require_debug_true": {"()": "django.utils.log.RequireDebugTrue"}},
         "handlers": {
@@ -223,13 +226,18 @@ class Common(Configuration):
             },
             "application": {
                 "class": "logging.StreamHandler",
-                "formatter": "verbose",
+                "formatter": "color",
             },
         },
         "loggers": {
             "tdpservice": {
                "handlers": ["application"],
                "propagate": True,
+               "level": LOGGING_LEVEL
+            },
+            "tdpservice.parsers": {
+               "handlers": ["application"],
+               "propagate": False,
                "level": LOGGING_LEVEL
             },
             "django": {"handlers": ["console"], "propagate": True},
@@ -318,7 +326,7 @@ class Common(Configuration):
     logger.debug("RAW_CLAMAV: " + str(RAW_CLAMAV))
     CLAMAV_NEEDED = bool(strtobool(RAW_CLAMAV))
 
-    # The URL endpoint to send AV scan requests to (clamav-rest)
+    # The URL endpoint to send AV scan requests to (clamav-rest/clamav-nginx-proxy)
     AV_SCAN_URL = os.getenv('AV_SCAN_URL')
 
     # The factor used to determine how long to wait before retrying failed scans
@@ -460,7 +468,7 @@ class Common(Configuration):
     # Elastic
     ELASTICSEARCH_DSL = {
         'default': {
-            'hosts': os.getenv('ELASTIC_HOST', 'elastic:9200')
+            'hosts': os.getenv('ELASTIC_HOST', 'elastic:9200'),
         },
     }
 

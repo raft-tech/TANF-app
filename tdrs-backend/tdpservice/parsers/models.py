@@ -57,7 +57,8 @@ class ParserError(models.Model):
 
     def __repr__(self):
         """Return a string representation of the model."""
-        return f"ParserError {self.id} for file {self.file} and object key {self.object_id}"
+        return f"{{id: {self.id}, file: {self.file.id}, row: {self.row_number}, column: {self.column_number}, " + \
+               f"error message: {self.error_message}}}"
 
     def __str__(self):
         """Return a string representation of the model."""
@@ -76,6 +77,9 @@ class DataFileSummary(models.Model):
         PENDING = "Pending"  # file has been uploaded, but not validated
         ACCEPTED = "Accepted"
         ACCEPTED_WITH_ERRORS = "Accepted with Errors"
+
+        PARTIALLY_ACCEPTED = "Partially Accepted with Errors"
+
         REJECTED = "Rejected"
 
     status = models.CharField(
@@ -84,7 +88,7 @@ class DataFileSummary(models.Model):
         default=Status.PENDING,
     )
 
-    datafile = models.ForeignKey(DataFile, on_delete=models.CASCADE)
+    datafile = models.OneToOneField(DataFile, on_delete=models.CASCADE, related_name="summary")
 
     case_aggregates = models.JSONField(null=True, blank=False)
 
@@ -98,11 +102,17 @@ class DataFileSummary(models.Model):
                                 .exclude(error_message__icontains="trailer")\
                                 .exclude(error_message__icontains="Unknown Record_Type was found.")
 
+        row_precheck_errors = errors.filter(error_type=ParserErrorCategoryChoices.PRE_CHECK)\
+                                    .filter(field_name="Record_Type")\
+                                    .exclude(error_message__icontains="trailer")
+
         if errors is None:
             return DataFileSummary.Status.PENDING
         elif errors.count() == 0:
             return DataFileSummary.Status.ACCEPTED
         elif precheck_errors.count() > 0:
             return DataFileSummary.Status.REJECTED
+        elif row_precheck_errors.count() > 0:
+            return DataFileSummary.Status.PARTIALLY_ACCEPTED
         else:
             return DataFileSummary.Status.ACCEPTED_WITH_ERRORS

@@ -1,12 +1,11 @@
 """Elasticsearch document mappings for TANF submission models."""
 
-from django_elasticsearch_dsl import Document
 from django_elasticsearch_dsl.registries import registry
 from ..models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5, TANF_T6, TANF_T7
 from .document_base import DocumentBase
 
 @registry.register_document
-class TANF_T1DataSubmissionDocument(DocumentBase, Document):
+class TANF_T1DataSubmissionDocument(DocumentBase):
     """Elastic search model mapping for a parsed TANF T1 data file."""
 
     class Index:
@@ -72,7 +71,7 @@ class TANF_T1DataSubmissionDocument(DocumentBase, Document):
 
 
 @registry.register_document
-class TANF_T2DataSubmissionDocument(DocumentBase, Document):
+class TANF_T2DataSubmissionDocument(DocumentBase):
     """Elastic search model mapping for a parsed TANF T2 data file."""
 
     class Index:
@@ -110,7 +109,7 @@ class TANF_T2DataSubmissionDocument(DocumentBase, Document):
             'RECEIVE_SSI',
             'MARITAL_STATUS',
             'RELATIONSHIP_HOH',
-            'PARENT_WITH_MINOR_CHILD',
+            'PARENT_MINOR_CHILD',
             'NEEDS_PREGNANT_WOMAN',
             'EDUCATION_LEVEL',
             'CITIZENSHIP_STATUS',
@@ -162,7 +161,7 @@ class TANF_T2DataSubmissionDocument(DocumentBase, Document):
 
 
 @registry.register_document
-class TANF_T3DataSubmissionDocument(DocumentBase, Document):
+class TANF_T3DataSubmissionDocument(DocumentBase):
     """Elastic search model mapping for a parsed TANF T3 data file."""
 
     class Index:
@@ -204,7 +203,7 @@ class TANF_T3DataSubmissionDocument(DocumentBase, Document):
 
 
 @registry.register_document
-class TANF_T4DataSubmissionDocument(DocumentBase, Document):
+class TANF_T4DataSubmissionDocument(DocumentBase):
     """Elastic search model mapping for a parsed TANF T4 data file."""
 
     class Index:
@@ -237,7 +236,7 @@ class TANF_T4DataSubmissionDocument(DocumentBase, Document):
 
 
 @registry.register_document
-class TANF_T5DataSubmissionDocument(DocumentBase, Document):
+class TANF_T5DataSubmissionDocument(DocumentBase):
     """Elastic search model mapping for a parsed TANF T5 data file."""
 
     class Index:
@@ -287,7 +286,7 @@ class TANF_T5DataSubmissionDocument(DocumentBase, Document):
 
 
 @registry.register_document
-class TANF_T6DataSubmissionDocument(DocumentBase, Document):
+class TANF_T6DataSubmissionDocument(DocumentBase):
     """Elastic search model mapping for a parsed TANF T6 data file."""
 
     class Index:
@@ -304,30 +303,29 @@ class TANF_T6DataSubmissionDocument(DocumentBase, Document):
 
         model = TANF_T6
         fields = [
-            'record',
-            'rpt_month_year',
-            'fips_code',
-            'calendar_quarter',
-            'applications',
-            'approved',
-            'denied',
-            'assistance',
-            'families',
-            'num_2_parents',
-            'num_1_parents',
-            'num_no_parents',
-            'recipients',
-            'adult_recipients',
-            'child_recipients',
-            'noncustodials',
-            'births',
-            'outwedlock_births',
-            'closed_cases',
+            'RecordType',
+            'CALENDAR_QUARTER',
+            'RPT_MONTH_YEAR',
+            'NUM_APPLICATIONS',
+            'NUM_APPROVED',
+            'NUM_DENIED',
+            'ASSISTANCE',
+            'NUM_FAMILIES',
+            'NUM_2_PARENTS',
+            'NUM_1_PARENTS',
+            'NUM_NO_PARENTS',
+            'NUM_RECIPIENTS',
+            'NUM_ADULT_RECIPIENTS',
+            'NUM_CHILD_RECIPIENTS',
+            'NUM_NONCUSTODIALS',
+            'NUM_BIRTHS',
+            'NUM_OUTWEDLOCK_BIRTHS',
+            'NUM_CLOSED_CASES'
         ]
 
 
 @registry.register_document
-class TANF_T7DataSubmissionDocument(DocumentBase, Document):
+class TANF_T7DataSubmissionDocument(DocumentBase):
     """Elastic search model mapping for a parsed TANF T7 data file."""
 
     class Index:
@@ -344,11 +342,10 @@ class TANF_T7DataSubmissionDocument(DocumentBase, Document):
 
         model = TANF_T7
         fields = [
-            'record',
-            'rpt_month_year',
-            'fips_code',
-            'calendar_quarter',
-            'tdrs_section_ind',
-            'stratum',
-            'families',
+            "RecordType",
+            "CALENDAR_QUARTER",
+            "RPT_MONTH_YEAR",
+            "TDRS_SECTION_IND",
+            "STRATUM",
+            "FAMILIES_MONTH",
         ]

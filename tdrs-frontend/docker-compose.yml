@@ -1,13 +1,13 @@
 version: "3.4"
 services:
   zaproxy:
-    image: owasp/zap2docker-stable:2.11.0
+    image: owasp/zap2docker-stable:2.13.0
     container_name: zap-scan
     command: sleep 3600
     ports:
       - 8090:8090
     networks:
-      - local
+      - default
     volumes:
       - ./reports:/zap/wrk/:rw
       - ../scripts/zap-hook.py:/zap/scripts/zap-hook.py:ro
@@ -21,7 +21,6 @@ services:
       - 3000:80
       - 8080:8080
     networks:
-      - local
       - default
     volumes:
       - ./:/home/node/app
@@ -29,6 +28,7 @@ services:
       - NGINX_FRONTEND=tdp-frontend
       - BACK_END=web
       - LOCAL_DEV=true
+      - REACT_APP_DEVAUTH=${REACT_APP_DEVAUTH}
     command: >
       /bin/sh -c
       "echo 'starting nginx' &&
@@ -42,9 +42,6 @@ services:
       && nginx -g 'daemon off;'"
 
 networks:
-  local:
-    driver: bridge
-
   default:
     external:
       name: external-net

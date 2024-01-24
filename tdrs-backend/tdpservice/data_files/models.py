@@ -153,6 +153,20 @@ class DataFile(FileRecord):
                                         )
 
     @property
+    def prog_type(self):
+        """Return the program type for a given section."""
+        # e.g., 'SSP Closed Case Data'
+        if self.section.startswith('SSP'):
+            return 'SSP'
+        elif self.section.startswith('Tribal'):
+            return 'TAN'  # problematic, do we need to infer tribal entirely from tribe/fips code?
+        else:
+            return 'TAN'
+
+        # TODO: if given a datafile (section), we can reverse back to the program b/c the
+        # section string has "tribal/ssp" in it, then process of elimination we have tanf
+
+    @property
     def filename(self):
         """Return the correct filename for this data file."""
         return self.stt.filenames.get(self.section, None)
@@ -220,6 +234,15 @@ class DataFile(FileRecord):
         return self.objects.filter(
             version=version, year=year, quarter=quarter, section=section, stt=stt,
         ).first()
+
+    def __repr__(self):
+        """Return a string representation of the model."""
+        return f"{{id: {self.id}, filename: {self.original_filename}, STT: {self.stt}, S3 location: " + \
+               f"{self.s3_location}}}"
+
+    def __str__(self):
+        """Return a string representation of the model."""
+        return f"filename: {self.original_filename}"
 
 class LegacyFileTransferManager(models.Manager):
     """Extends object manager functionality for LegacyFileTransfer model."""

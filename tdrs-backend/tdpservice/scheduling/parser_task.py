@@ -5,8 +5,7 @@ import logging
 from tdpservice.data_files.models import DataFile
 from tdpservice.parsers.parse import parse_datafile
 from tdpservice.parsers.models import DataFileSummary
-from tdpservice.parsers.util import case_aggregates_by_month, get_text_from_df, get_program_models
-# from tdpservice.stts.models import STT
+from tdpservice.parsers.aggregates import case_aggregates_by_month
 
 logger = logging.getLogger(__name__)
 
@@ -113,3 +112,11 @@ def submission_validation(data_file_id):
             # iterate over filenames to get relevant sections
             # instantiate a new class for each section
 '''
+
+    if "Case Data" in data_file.section:
+        dfs.case_aggregates = case_aggregates_by_month(data_file, dfs.status)
+
+    dfs.save()
+
+    logger.info(f"Parsing finished for file -> {repr(data_file)} with status {dfs.status} and {len(errors)} errors.")
+
