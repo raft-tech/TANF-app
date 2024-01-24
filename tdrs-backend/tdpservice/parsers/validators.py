@@ -449,11 +449,11 @@ def validate__FAM_AFF__HOH__Fed_Time():
                       "If FAMILY_AFFILIATION == 2 and COUNTABLE_MONTH_FED_TIME== 1 or 2, then "
                       + "COUNTABLE_MONTH_FED_TIME > 1.",
                       ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "COUNTABLE_MONTH_FED_TIME",],
-                     )
+                      )
         true_case = (True,
                      None,
                      ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "COUNTABLE_MONTH_FED_TIME",],
-                    )
+                     )
         try:
             FAMILY_AFFILIATION = (
                 instance["FAMILY_AFFILIATION"]
@@ -492,11 +492,11 @@ def validate__FAM_AFF__HOH__Count_Fed_Time():
                       "If FAMILY_AFFILIATION == 2 and COUNTABLE_MONTH_FED_TIME== 1 or 2, then "
                       + "COUNTABLE_MONTH_FED_TIME > 1.",
                       ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "COUNTABLE_MONTH_FED_TIME",],
-                     )
+                      )
         true_case = (True,
                      None,
                      ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "COUNTABLE_MONTH_FED_TIME",],
-                    )
+                     )
         try:
             FAMILY_AFFILIATION = (
                 instance["FAMILY_AFFILIATION"]
@@ -597,11 +597,11 @@ def validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE():
         false_case = (False,
                       "If WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19, then RELATIONSHIP_HOH != 1",
                       ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH']
-                     )
+                      )
         true_case = (True,
                      None,
                      ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH'],
-                    )
+                     )
         try:
             WORK_ELIGIBLE_INDICATOR = (
                 instance["WORK_ELIGIBLE_INDICATOR"]
@@ -620,7 +620,7 @@ def validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE():
                 if type(instance) is dict
                 else getattr(instance, "DATE_OF_BIRTH")
             )
-            
+
             DOB = str(DOB)
             DOB_datetime = datetime.datetime.strptime(DOB, '%Y%m%d')
             today = datetime.date.today()
