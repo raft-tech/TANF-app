@@ -1,18 +1,17 @@
 """Schema for HEADER row of all submission types."""
 
 
-from tdpservice.parsers.util import SchemaManager
 from tdpservice.parsers.transforms import tanf_ssn_decryption_func
 from tdpservice.parsers.fields import TransformField, Field
-from tdpservice.parsers.row_schema import RowSchema
+from tdpservice.parsers.row_schema import RowSchema, SchemaManager
 from tdpservice.parsers import validators
-from tdpservice.search_indexes.models.tanf import TANF_T2
+from tdpservice.search_indexes.documents.tanf import TANF_T2DataSubmissionDocument
 
 
 t2 = SchemaManager(
     schemas=[
         RowSchema(
-            model=TANF_T2,
+            document=TANF_T2DataSubmissionDocument(),
             preparsing_validators=[
                 validators.hasLength(156),
             ],
@@ -69,7 +68,7 @@ t2 = SchemaManager(
                 validators.if_then_validator(
                     condition_field="FAMILY_AFFILIATION",
                     condition_function=validators.isInLimits(1, 2),
-                    result_field="PARENT_WITH_MINOR_CHILD",
+                    result_field="PARENT_MINOR_CHILD",
                     result_function=validators.isInLimits(1, 3),
                 ),
                 validators.if_then_validator(
@@ -359,8 +358,8 @@ t2 = SchemaManager(
                 ),
                 Field(
                     item="39",
-                    name="PARENT_WITH_MINOR_CHILD",
-                    friendly_name="parent with minor child",
+                    name="PARENT_MINOR_CHILD",
+                    friendly_name="parent of minor child",
                     type="number",
                     startIndex=53,
                     endIndex=54,

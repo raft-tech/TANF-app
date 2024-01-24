@@ -1,10 +1,10 @@
-"""Schema for TANF T7 Row."""
+"""Schema for Tribal TANF T7 Row."""
 
-from ...fields import Field, TransformField
-from ...row_schema import RowSchema, SchemaManager
-from ...transforms import calendar_quarter_to_rpt_month_year
-from ... import validators
-from tdpservice.search_indexes.documents.ssp import SSP_M7DataSubmissionDocument
+from tdpservice.parsers.fields import Field, TransformField
+from tdpservice.parsers.row_schema import RowSchema, SchemaManager
+from tdpservice.parsers.transforms import calendar_quarter_to_rpt_month_year
+from tdpservice.parsers import validators
+from tdpservice.search_indexes.documents.tribal import Tribal_TANF_T7DataSubmissionDocument
 
 schemas = []
 
@@ -12,14 +12,14 @@ validator_index = 7
 section_ind_index = 7
 stratum_index = 8
 families_index = 10
-
-sub_item_labels = ["5A", "5B", "5C"]
-families_item_numbers = [sub_item_labels[i % 3] for i in range(30)]
-
 for i in range(1, 31):
+    month_index = (i - 1) % 3
+    sub_item_labels = ["A", "B", "C"]
+    families_value_item_number = f"6{sub_item_labels[month_index]}"
+
     schemas.append(
         RowSchema(
-            document=SSP_M7DataSubmissionDocument(),
+            document=Tribal_TANF_T7DataSubmissionDocument(),
             quiet_preparser_errors=i > 1,
             preparsing_validators=[
                 validators.hasLength(247),
@@ -39,7 +39,7 @@ for i in range(1, 31):
                     validators=[],
                 ),
                 Field(
-                    item="2",
+                    item="3",
                     name="CALENDAR_QUARTER",
                     friendly_name="calendar quarter",
                     type="number",
@@ -52,10 +52,10 @@ for i in range(1, 31):
                     ],
                 ),
                 TransformField(
-                    transform_func=calendar_quarter_to_rpt_month_year((i - 1) % 3),
-                    item="2A",
+                    transform_func=calendar_quarter_to_rpt_month_year(month_index),
+                    item="3A",
                     name="RPT_MONTH_YEAR",
-                    friendly_name="reporting month and year",
+                    friendly_name="reporting month year",
                     type="number",
                     startIndex=2,
                     endIndex=7,
@@ -66,7 +66,7 @@ for i in range(1, 31):
                     ],
                 ),
                 Field(
-                    item="3",
+                    item="4",
                     name="TDRS_SECTION_IND",
                     friendly_name="tdrs section indicator",
                     type="string",
@@ -76,7 +76,7 @@ for i in range(1, 31):
                     validators=[validators.oneOf(["1", "2"])],
                 ),
                 Field(
-                    item="4",
+                    item="5",
                     name="STRATUM",
                     friendly_name="stratum",
                     type="string",
@@ -86,7 +86,7 @@ for i in range(1, 31):
                     validators=[validators.isInStringRange(0, 99)],
                 ),
                 Field(
-                    item=families_item_numbers[i - 1],
+                    item=families_value_item_number,
                     name="FAMILIES_MONTH",
                     friendly_name="families month",
                     type="number",
@@ -105,4 +105,4 @@ for i in range(1, 31):
     stratum_index += index_offset
     families_index += 7 if i % 3 != 0 else 10
 
-m7 = SchemaManager(schemas=schemas)
+t7 = SchemaManager(schemas=schemas)

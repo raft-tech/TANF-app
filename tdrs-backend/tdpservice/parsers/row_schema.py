@@ -1,24 +1,23 @@
 """Row schema for datafile."""
 from .models import ParserErrorCategoryChoices
-from .fields import Field
+from .fields import Field, TransformField
 from .validators import value_is_empty
 import logging
 
 logger = logging.getLogger(__name__)
-
 
 class RowSchema:
     """Maps the schema for data lines."""
 
     def __init__(
             self,
-            model=dict,
+            document,
             preparsing_validators=[],
             postparsing_validators=[],
             fields=[],
-            quiet_preparser_errors=False
+            quiet_preparser_errors=False,
             ):
-        self.model = model
+        self.document = document
         self.preparsing_validators = preparsing_validators
         self.postparsing_validators = postparsing_validators
         self.fields = fields
@@ -90,7 +89,7 @@ class RowSchema:
 
     def parse_line(self, line):
         """Create a model for the line based on the schema."""
-        record = self.model()
+        record = self.document.Django.model() if self.document is not None else dict()
 
         for field in self.fields:
             value = field.parse_value(line)
@@ -182,3 +181,27 @@ class RowSchema:
             if field.name == name:
                 return field
         return None
+
+
+class SchemaManager:
+    """Manages one or more RowSchema's and runs all parsers and validators."""
+
+    def __init__(self, schemas):
+        self.schemas = schemas
+
+    def parse_and_validate(self, line, generate_error):
+        """Run `parse_and_validate` for each schema provided and bubble up errors."""
+        records = []
+
+        for schema in self.schemas:
+            record, is_valid, errors = schema.parse_and_validate(line, generate_error)
+            records.append((record, is_valid, errors))
+
+        return records
+
+    def update_encrypted_fields(self, is_encrypted):
+        """Update whether schema fields are encrypted or not."""
+        for schema in self.schemas:
+            for field in schema.fields:
+                if type(field) == TransformField and "is_encrypted" in field.kwargs:
+                    field.kwargs['is_encrypted'] = is_encrypted

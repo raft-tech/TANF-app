@@ -1,18 +1,17 @@
 """Schema for SSP M1 record type."""
 
 
-from tdpservice.parsers.util import SchemaManager
 from tdpservice.parsers.transforms import ssp_ssn_decryption_func
 from tdpservice.parsers.fields import TransformField, Field
-from tdpservice.parsers.row_schema import RowSchema
+from tdpservice.parsers.row_schema import RowSchema, SchemaManager
 from tdpservice.parsers import validators
-from tdpservice.search_indexes.models.ssp import SSP_M2
+from tdpservice.search_indexes.documents.ssp import SSP_M2DataSubmissionDocument
 
 
 m2 = SchemaManager(
     schemas=[
         RowSchema(
-            model=SSP_M2,
+            document=SSP_M2DataSubmissionDocument(),
             preparsing_validators=[
                 validators.hasLength(150),
             ],
@@ -78,7 +77,7 @@ m2 = SchemaManager(
                     result_field='EDUCATION_LEVEL',
                     result_function=validators.or_validators(
                         validators.isInStringRange(1, 16),
-                        validators.isInStringRange(98, 99)
+                        validators.isInStringRange(98, 99),
                     ),
                 ),
                 validators.if_then_validator(
@@ -367,8 +366,7 @@ m2 = SchemaManager(
                     required=False,
                     validators=[
                         validators.or_validators(
-                            validators.isInLimits(0, 16),
-                            validators.isInLimits(98, 99)
+                            validators.isInLimits(0, 16), validators.isInLimits(98, 99)
                         )
                     ]
                 ),
@@ -414,7 +412,7 @@ m2 = SchemaManager(
                         validators.or_validators(
                             validators.isInLimits(1, 4),
                             validators.isInLimits(6, 9),
-                            validators.isInLimits(11, 12)
+                            validators.isInLimits(11, 12),
                         )
                     ]
                 ),
