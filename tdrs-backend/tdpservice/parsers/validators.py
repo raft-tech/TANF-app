@@ -442,44 +442,44 @@ def validate__FAM_AFF__SSN():
 
 
 def validate__FAM_AFF__HOH__Fed_Time():
-    """If FAMILY_AFFILIATION == 1 and RELATIONSHIP_HOH== 1 or 2, then MONTHS_FED_TIME_LIMIT >= 1."""
+    """If FAMILY_AFFILIATION == 1 and RELATIONSHIP_HOH == 1 or 2, then MONTHS_FED_TIME_LIMIT >= 1."""
     # value is instance
     def validate(instance):
-        FAMILY_AFFILIATION = (
-            instance["FAMILY_AFFILIATION"]
-            if type(instance) is dict
-            else getattr(instance, "FAMILY_AFFILIATION")
-        )
-        RELATIONSHIP_HOH = (
-            instance["RELATIONSHIP_HOH"]
-            if type(instance) is dict
-            else getattr(instance, "RELATIONSHIP_HOH")
-        )
-        RELATIONSHIP_HOH = int(RELATIONSHIP_HOH)
-        MONTHS_FED_TIME_LIMIT = (
-            instance["MONTHS_FED_TIME_LIMIT"]
-            if type(instance) is dict
-            else getattr(instance, "MONTHS_FED_TIME_LIMIT")
-        )
-        if FAMILY_AFFILIATION == 1 and (RELATIONSHIP_HOH == 1 or RELATIONSHIP_HOH == 2):
-            if MONTHS_FED_TIME_LIMIT is None or int(MONTHS_FED_TIME_LIMIT) < 1:
-                return (False,
-                        "If FAMILY_AFFILIATION == 2 and MONTHS_FED_TIME_LIMIT== 1 or 2,"
-                        + " then MONTHS_FED_TIME_LIMIT > 1.",
-                        ['FAMILY_AFFILIATION', 'MONTHS_FED_TIME_LIMIT']
-                        )
-            else:
-                return (
-                    True,
-                    None,
-                    ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "MONTHS_FED_TIME_LIMIT"],
-                )
-        else:
-            return (
-                True,
-                None,
-                ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "MONTHS_FED_TIME_LIMIT"],
+        false_case = (False,
+                      "If FAMILY_AFFILIATION == 2 and COUNTABLE_MONTH_FED_TIME== 1 or 2, then "
+                      + "COUNTABLE_MONTH_FED_TIME > 1.",
+                      ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "COUNTABLE_MONTH_FED_TIME",],
+                     )
+        true_case = (True,
+                     None,
+                     ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "COUNTABLE_MONTH_FED_TIME",],
+                    )
+        try:
+            FAMILY_AFFILIATION = (
+                instance["FAMILY_AFFILIATION"]
+                if type(instance) is dict
+                else getattr(instance, "FAMILY_AFFILIATION")
             )
+            RELATIONSHIP_HOH = (
+                instance["RELATIONSHIP_HOH"]
+                if type(instance) is dict
+                else getattr(instance, "RELATIONSHIP_HOH")
+            )
+            RELATIONSHIP_HOH = int(RELATIONSHIP_HOH)
+            MONTHS_FED_TIME_LIMIT = (
+                instance["MONTHS_FED_TIME_LIMIT"]
+                if type(instance) is dict
+                else getattr(instance, "MONTHS_FED_TIME_LIMIT")
+            )
+            if FAMILY_AFFILIATION == 1 and (RELATIONSHIP_HOH == 1 or RELATIONSHIP_HOH == 2):
+                if MONTHS_FED_TIME_LIMIT is None or int(MONTHS_FED_TIME_LIMIT) < 1:
+                    return false_case
+                else:
+                    return true_case
+            else:
+                return true_case
+        except Exception:
+            return false_case
 
     return lambda instance: validate(instance)
 
@@ -488,50 +488,41 @@ def validate__FAM_AFF__HOH__Count_Fed_Time():
     """If FAMILY_AFFILIATION == 1 and RELATIONSHIP_HOH== 1 or 2, then COUNTABLE_MONTH_FED_TIME >= 1."""
     # value is instance
     def validate(instance):
-        FAMILY_AFFILIATION = (
-            instance["FAMILY_AFFILIATION"]
-            if type(instance) is dict
-            else getattr(instance, "FAMILY_AFFILIATION")
-        )
-        RELATIONSHIP_HOH = (
-            instance["RELATIONSHIP_HOH"]
-            if type(instance) is dict
-            else getattr(instance, "RELATIONSHIP_HOH")
-        )
-        RELATIONSHIP_HOH = int(RELATIONSHIP_HOH)
-        COUNTABLE_MONTH_FED_TIME = (
-            instance["COUNTABLE_MONTH_FED_TIME"]
-            if type(instance) is dict
-            else getattr(instance, "COUNTABLE_MONTH_FED_TIME")
-        )
-        if FAMILY_AFFILIATION == 1 and (RELATIONSHIP_HOH == 1 or RELATIONSHIP_HOH == 2):
-            if int(COUNTABLE_MONTH_FED_TIME) < 1:
-                return (
-                    False,
-                    "If FAMILY_AFFILIATION == 2 and COUNTABLE_MONTH_FED_TIME== 1 or 2, then "
-                    + "COUNTABLE_MONTH_FED_TIME > 1.",
-                    [
-                        "FAMILY_AFFILIATION",
-                        "RELATIONSHIP_HOH",
-                        "COUNTABLE_MONTH_FED_TIME",
-                    ],
-                )
-            else:
-                return (
-                    True,
-                    None,
-                    [
-                        "FAMILY_AFFILIATION",
-                        "RELATIONSHIP_HOH",
-                        "COUNTABLE_MONTH_FED_TIME",
-                    ],
-                )
-        else:
-            return (
-                True,
-                None,
-                ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "COUNTABLE_MONTH_FED_TIME"],
+        false_case = (False,
+                      "If FAMILY_AFFILIATION == 2 and COUNTABLE_MONTH_FED_TIME== 1 or 2, then "
+                      + "COUNTABLE_MONTH_FED_TIME > 1.",
+                      ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "COUNTABLE_MONTH_FED_TIME",],
+                     )
+        true_case = (True,
+                     None,
+                     ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "COUNTABLE_MONTH_FED_TIME",],
+                    )
+        try:
+            FAMILY_AFFILIATION = (
+                instance["FAMILY_AFFILIATION"]
+                if type(instance) is dict
+                else getattr(instance, "FAMILY_AFFILIATION")
             )
+            RELATIONSHIP_HOH = (
+                instance["RELATIONSHIP_HOH"]
+                if type(instance) is dict
+                else getattr(instance, "RELATIONSHIP_HOH")
+            )
+            RELATIONSHIP_HOH = int(RELATIONSHIP_HOH)
+            COUNTABLE_MONTH_FED_TIME = (
+                instance["COUNTABLE_MONTH_FED_TIME"]
+                if type(instance) is dict
+                else getattr(instance, "COUNTABLE_MONTH_FED_TIME")
+            )
+            if FAMILY_AFFILIATION == 1 and (RELATIONSHIP_HOH == 1 or RELATIONSHIP_HOH == 2):
+                if int(COUNTABLE_MONTH_FED_TIME) < 1:
+                    return false_case
+                else:
+                    return true_case
+            else:
+                return true_case
+        except Exception:
+            return false_case
 
     return lambda instance: validate(instance)
 
@@ -603,46 +594,46 @@ def validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE():
     """If WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19, then RELATIONSHIP_HOH != 1."""
     # value is instance
     def validate(instance):
-        WORK_ELIGIBLE_INDICATOR = (
-            instance["WORK_ELIGIBLE_INDICATOR"]
-            if type(instance) is dict
-            else getattr(instance, "WORK_ELIGIBLE_INDICATOR")
-        )
-        RELATIONSHIP_HOH = (
-            instance["RELATIONSHIP_HOH"]
-            if type(instance) is dict
-            else getattr(instance, "RELATIONSHIP_HOH")
-        )
-        RELATIONSHIP_HOH = int(RELATIONSHIP_HOH)
-
-        DOB = (
-            instance["DATE_OF_BIRTH"]
-            if type(instance) is dict
-            else getattr(instance, "DATE_OF_BIRTH")
-        )
-        DOB = str(DOB)
-        # 1974 01 14
-        DOB_datetime = datetime.datetime.strptime(DOB, '%Y%m%d')
-        today = datetime.date.today()
-        AGE = today.year - DOB_datetime.year - ((today.month, today.day) < (DOB_datetime.month, DOB_datetime.day))
-
-        if WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19:
-            if RELATIONSHIP_HOH != 1:
-                return (False,
-                        "If WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19, then RELATIONSHIP_HOH != 1",
-                        ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH']
-                        )
-            else:
-                return (
-                    True,
-                    None,
-                    ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH'],
-                )
-        else:
-            return (
-                True,
-                None,
-                ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH'],
+        false_case = (False,
+                      "If WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19, then RELATIONSHIP_HOH != 1",
+                      ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH']
+                     )
+        true_case = (True,
+                     None,
+                     ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH'],
+                    )
+        try:
+            WORK_ELIGIBLE_INDICATOR = (
+                instance["WORK_ELIGIBLE_INDICATOR"]
+                if type(instance) is dict
+                else getattr(instance, "WORK_ELIGIBLE_INDICATOR")
             )
+            RELATIONSHIP_HOH = (
+                instance["RELATIONSHIP_HOH"]
+                if type(instance) is dict
+                else getattr(instance, "RELATIONSHIP_HOH")
+            )
+            RELATIONSHIP_HOH = int(RELATIONSHIP_HOH)
+
+            DOB = (
+                instance["DATE_OF_BIRTH"]
+                if type(instance) is dict
+                else getattr(instance, "DATE_OF_BIRTH")
+            )
+            
+            DOB = str(DOB)
+            DOB_datetime = datetime.datetime.strptime(DOB, '%Y%m%d')
+            today = datetime.date.today()
+            AGE = today.year - DOB_datetime.year - ((today.month, today.day) < (DOB_datetime.month, DOB_datetime.day))
+
+            if WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19:
+                if RELATIONSHIP_HOH != 1:
+                    return false_case
+                else:
+                    return true_case
+            else:
+                return true_case
+        except Exception:
+            return false_case
 
     return lambda instance: validate(instance)
