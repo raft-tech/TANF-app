@@ -446,13 +446,13 @@ def validate__FAM_AFF__HOH__Fed_Time():
     # value is instance
     def validate(instance):
         false_case = (False,
-                      "If FAMILY_AFFILIATION == 2 and COUNTABLE_MONTH_FED_TIME== 1 or 2, then "
-                      + "COUNTABLE_MONTH_FED_TIME > 1.",
-                      ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "COUNTABLE_MONTH_FED_TIME",],
+                      "If FAMILY_AFFILIATION == 1 and RELATIONSHIP_HOH == 1 or 2, then "
+                      + "MONTHS_FED_TIME_LIMIT >= 1.",
+                      ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "MONTHS_FED_TIME_LIMIT",],
                       )
         true_case = (True,
                      None,
-                     ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "COUNTABLE_MONTH_FED_TIME",],
+                     ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "MONTHS_FED_TIME_LIMIT",],
                      )
         try:
             FAMILY_AFFILIATION = (
@@ -479,18 +479,23 @@ def validate__FAM_AFF__HOH__Fed_Time():
             else:
                 return true_case
         except Exception:
+            vals = {"FAMILY_AFFILIATION": FAMILY_AFFILIATION,
+                    "RELATIONSHIP_HOH": RELATIONSHIP_HOH,
+                    "MONTHS_FED_TIME_LIMIT": MONTHS_FED_TIME_LIMIT}
+            logger.debug("Caught exception in validator: validate__FAM_AFF__HOH__Fed_Time. With field values: " +
+                         f"{vals}.")
             return false_case
 
     return lambda instance: validate(instance)
 
 
 def validate__FAM_AFF__HOH__Count_Fed_Time():
-    """If FAMILY_AFFILIATION == 1 and RELATIONSHIP_HOH== 1 or 2, then COUNTABLE_MONTH_FED_TIME >= 1."""
+    """If FAMILY_AFFILIATION == 1 and RELATIONSHIP_HOH == 1 or 2, then COUNTABLE_MONTH_FED_TIME >= 1."""
     # value is instance
     def validate(instance):
         false_case = (False,
-                      "If FAMILY_AFFILIATION == 2 and COUNTABLE_MONTH_FED_TIME== 1 or 2, then "
-                      + "COUNTABLE_MONTH_FED_TIME > 1.",
+                      "If FAMILY_AFFILIATION == 1 and RELATIONSHIP_HOH == 1 or 2, then "
+                      + "COUNTABLE_MONTH_FED_TIME >= 1.",
                       ["FAMILY_AFFILIATION", "RELATIONSHIP_HOH", "COUNTABLE_MONTH_FED_TIME",],
                       )
         true_case = (True,
@@ -522,6 +527,12 @@ def validate__FAM_AFF__HOH__Count_Fed_Time():
             else:
                 return true_case
         except Exception:
+            vals = {"FAMILY_AFFILIATION": FAMILY_AFFILIATION,
+                    "RELATIONSHIP_HOH": RELATIONSHIP_HOH,
+                    "COUNTABLE_MONTH_FED_TIME": COUNTABLE_MONTH_FED_TIME
+                    }
+            logger.debug("Caught exception in validator: validate__FAM_AFF__HOH__Count_Fed_Time. With field values: " +
+                         f"{vals}.")
             return false_case
 
     return lambda instance: validate(instance)
@@ -634,6 +645,12 @@ def validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE():
             else:
                 return true_case
         except Exception:
+            vals = {"WORK_ELIGIBLE_INDICATOR": WORK_ELIGIBLE_INDICATOR,
+                    "RELATIONSHIP_HOH": RELATIONSHIP_HOH,
+                    "DOB": DOB
+                    }
+            logger.debug("Caught exception in validator: validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE. " +
+                         f"With field values: {vals}.")
             return false_case
 
     return lambda instance: validate(instance)
