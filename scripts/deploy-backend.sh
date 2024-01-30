@@ -169,8 +169,8 @@ bind_backend_to_services() {
   cf bind-service "$CGAPPNAME_CELERY" "tdp-db-${space}"
 
   # bind to redis
-  cf bind-service "$CGAPPNAME_BACKEND" "tdp-redis-${ENV}"
-  cf bind-service "$CGAPPNAME_CELERY" "tdp-redis-${ENV}"  
+  cf bind-service "$CGAPPNAME_BACKEND" "tdp-redis-${space}"
+  cf bind-service "$CGAPPNAME_CELERY" "tdp-redis-${space}"
   # bind to elastic-search
   cf bind-service "$CGAPPNAME_BACKEND" "es-${ENV}"
   cf bind-service "$CGAPPNAME_CELERY" "es-${ENV}"
