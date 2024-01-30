@@ -354,7 +354,7 @@ def isInLimits(LowerBound, UpperBound):
 def intHasLength(num_digits):
     """Validate the number of digits in an integer."""
     return make_validator(
-        lambda value: str(value) == num_digits,
+        lambda value: len(str(value)) == num_digits,
         lambda value: f"{value} does not have exactly {num_digits} digits.",
     )
 
