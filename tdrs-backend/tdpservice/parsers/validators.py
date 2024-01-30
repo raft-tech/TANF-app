@@ -351,15 +351,29 @@ def isInLimits(LowerBound, UpperBound):
         lambda value: f"{value} is not larger or equal to {LowerBound} and smaller or equal to {UpperBound}.",
     )
 
+def intHasLength(num_digits):
+    """Validate the number of digits in an integer."""
+    return make_validator(
+        lambda value: str(value) == num_digits,
+        lambda value: f"{value} does not have exactly {num_digits} digits.",
+    )
+
 
 # custom validators
 
-
+# 1973 01 13
 def dateMonthIsValid():
     """Validate that in a monthyear combination, the month is a valid month."""
     return make_validator(
         lambda value: int(str(value)[4:6]) in range(1, 13),
         lambda value: f"{str(value)[4:6]} is not a valid month.",
+    )
+
+def dateDayIsValid():
+    """Validate that in a monthyearday combination, the day is a valid day."""
+    return make_validator(
+        lambda value: int(str(value)[6:]) in range(1, 31),
+        lambda value: f"{str(value)[6:]} is not a valid value for a day.",
     )
 
 
