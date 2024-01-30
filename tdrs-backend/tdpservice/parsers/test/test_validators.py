@@ -105,7 +105,7 @@ def test_dateYearIsLargerThan():
     value = "199806"
     validator = validators.dateYearIsLargerThan(1999)
     result = validator(value)
-    assert result == (False, '1998 year must be larger than 1999.')
+    assert result == (False, '1998 must be larger than year 1999.')
 
 
 def test_matches_returns_valid():
