@@ -373,7 +373,7 @@ def dateDayIsValid():
     """Validate that in a monthyearday combination, the day is a valid day."""
     return make_validator(
         lambda value: int(str(value)[6:]) in range(1, 31),
-        lambda value: f"{str(value)[6:]} is not a valid value for a day.",
+        lambda value: f"{str(value)[6:]} is not a valid day.",
     )
 
 
@@ -389,7 +389,7 @@ def dateYearIsLargerThan(year):
     """Validate that in a monthyear combination, the year is larger than the given year."""
     return make_validator(
         lambda value: int(str(value)[:4]) > year,
-        lambda value: f"{str(value)[:4]} year must be larger than {year}.",
+        lambda value: f"{str(value)[:4]} must be larger than year {year}.",
     )
 
 
