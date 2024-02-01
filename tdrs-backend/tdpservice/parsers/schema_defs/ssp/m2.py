@@ -193,8 +193,7 @@ m2 = SchemaManager(
                     startIndex=29,
                     endIndex=38,
                     required=True,
-                    validators=[validators.hasLength(9),
-                                validators.isNumber()],
+                    validators=[validators.isNumber()],
                     is_encrypted=False
                 ),
                 Field(

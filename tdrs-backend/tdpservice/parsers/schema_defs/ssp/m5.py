@@ -165,8 +165,7 @@ m5 = SchemaManager(
                     startIndex=28,
                     endIndex=37,
                     required=True,
-                    validators=[validators.hasLength(9),
-                                validators.isNumber()],
+                    validators=[validators.isNumber()],
                     is_encrypted=False,
                 ),
                 Field(
