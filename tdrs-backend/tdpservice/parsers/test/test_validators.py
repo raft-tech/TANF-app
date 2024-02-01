@@ -205,6 +205,24 @@ def test_date_month_is_valid_returns_invalid():
     assert error == '13 is not a valid month.'
 
 
+def test_date_day_is_valid_returns_valid():
+    """Test `dateDayIsValid` gives a valid result."""
+    value = '20191027'
+    validator = validators.dateDayIsValid()
+    is_valid, error = validator(value)
+    assert is_valid is True
+    assert error is None
+
+
+def test_date_day_is_valid_returns_invalid():
+    """Test `dateDayIsValid` gives an invalid result."""
+    value = '20191132'
+    validator = validators.dateDayIsValid()
+    is_valid, error = validator(value)
+    assert is_valid is False
+    assert error == '32 is not a valid day.'
+
+
 def test_between_returns_invalid_for_string_value():
     """Test `between` gives an invalid result for strings."""
     value = '047'
@@ -236,6 +254,28 @@ def test_hasLength_returns_invalid():
 
     assert is_valid is False
     assert error == 'Value length 7 does not match 22.'
+
+
+def test_intHasLength_returns_valid():
+    """Test `intHasLength` gives a valid result."""
+    value = '123'
+
+    validator = validators.intHasLength(3)
+    is_valid, error = validator(value)
+
+    assert is_valid is True
+    assert error is None
+
+
+def test_intHasLength_returns_invalid():
+    """Test `intHasLength` gives an invalid result."""
+    value = '123'
+
+    validator = validators.intHasLength(22)
+    is_valid, error = validator(value)
+
+    assert is_valid is False
+    assert error == '123 does not have exactly 22 digits.'
 
 
 def test_contains_returns_valid():
