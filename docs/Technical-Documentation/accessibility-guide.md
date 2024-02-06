@@ -138,20 +138,20 @@ While there are a ton of keyboard shortcuts for screen readers, your core naviga
 
 
 ### Setting up Voiceover on MacOS
-https://dequeuniversity.com/mac/keyboard-access-mac — If you're on MacOS you'll need to tweak some settings that Apple (for reasons passing understanding) disables by default. Once you've done that you'll get the correct accessibility behavior when manual testing with VoiceOver in Safari. 
+If you're on MacOS you'll need to [tweak some settings](https://dequeuniversity.com/mac/keyboard-access-mac) that Apple disables by default. Once you've done that you'll get the correct accessibility behavior when manual testing with VoiceOver in Safari. 
 
-See also https://media.dequeuniversity.com/courses/generic/testing-screen-readers/2.0/en/docs/voiceover-macos-guide.pdf for VoiceOver keyboard shortcuts.
+See also: [Deque University — VoiceOver Keyboard Shortcuts](https://media.dequeuniversity.com/courses/generic/testing-screen-readers/2.0/en/docs/voiceover-macos-guide.pdf).
 
 ### Setting up NVDA on Windows
 *Note: While current TDP functionality should behave similarly across browsers, NVDA is most directly developed for stability on Firefox.* 
-https://www.nvaccess.org/download/
+[NVDA Download](https://www.nvaccess.org/download/)
 
-See Also https://dequeuniversity.com/screenreaders/nvda-keyboard-shortcuts for NVDA keyboard shortcuts.
+See also: [Deque University — NVDA Keyboard Shortcuts](https://dequeuniversity.com/screenreaders/nvda-keyboard-shortcuts).
 
 
 ### Narrator Scan Mode on Windows
 
-https://www.tenforums.com/tutorials/134464-turn-off-use-narrator-scan-mode-windows-10-a.html — If you're on Windows the built in screenreader (Narrator) has something called Scan Mode that tries to auto read through pages instead of relying entirely on the user to tab and arrow through. It breaks a lot of stuff, including the combobox (not just ours, but a lot of other components out there), so knowing how to turn that off for testing is useful!
+If you're on Windows the built in screenreader (Narrator) has something called Scan Mode that tries to auto read through pages instead of relying entirely on the user to tab and arrow through. It breaks a lot of stuff, including the combobox (not just ours, but a lot of other components out there), so [knowing how to turn that off](https://www.tenforums.com/tutorials/134464-turn-off-use-narrator-scan-mode-windows-10-a.html) for testing is useful!
 
 ### Mobile screen readers
 iOS/iPadOS both use VoiceOver and you'll get a similar experience to that of VoiceOver on MacOS. Android's built in reader is called Talkback. While they support physical keyboards and normal focus when devices have them, mobile screenreaders also use interesting pseudo-states aimed at enabling touch-screen-only use. Due to those pseudo states, normal touches/swipes/drags will tend to focus & read screen elements and double-taps will activate them.
@@ -211,9 +211,9 @@ iOS/iPadOS both use VoiceOver and you'll get a similar experience to that of Voi
 ## References
 
 ### Miscellaneous Resources
-- [Intro to ARIA](https://www.lullabot.com/articles/what-heck-aria-beginners-guide-aria-accessibility)
+- [Introduction to ARIA](https://www.lullabot.com/articles/what-heck-aria-beginners-guide-aria-accessibility)
 - [Broad a11y introduction](https://www.deque.com/web-accessibility-101/)
-- [https://www.cdc.gov/ncbddd/disabilityandhealth/infographic-disability-impacts-all.html](Disability stats)
+- [Disability Statistics](https://www.cdc.gov/ncbddd/disabilityandhealth/infographic-disability-impacts-all.html)
 - [Current standards for compliance](https://www.w3.org/TR/WCAG21/)
 - [Beyond Compliance: Improving USWDS Accessibility](https://goraft.tech/2021/07/07/Beyond-Compliance-Improving-USWDS-Accessibility.html)
 - [Designing for inclusion](https://inclusivedesignprinciples.org/)  
@@ -222,17 +222,15 @@ iOS/iPadOS both use VoiceOver and you'll get a similar experience to that of Voi
 
 
 ### A11y & React
-[https://timwright.org/blog/2019/03/23/accessible-routing-in-react/](https://timwright.org/blog/2019/03/23/accessible-routing-in-react/)
+- [Accessible Routing in React](https://timwright.org/blog/2019/03/23/accessible-routing-in-react/)
 
-[https://reactjs.org/docs/accessibility.html#focus-control](https://reactjs.org/docs/accessibility.html#focus-control)
+- [ReactJS Focus Control](https://reactjs.org/docs/accessibility.html#focus-control)
 
-[https://simplyaccessible.com/article/react-a11y/](https://simplyaccessible.com/article/react-a11y/)
+- [Simply Accessible — React Accessibility](https://simplyaccessible.com/article/react-a11y/)
 
 
 ### HTML component a11y reference
 
 There are a surprising number of components or component elements that aren't very accessible even when you're dealing with pure HTML. This site breaks down how well a number of HTML elements do across a variety of devices and software. It can be particularly useful for identifying areas where some custom work will be needed to make something accessible. e.g. the USWDS file picker is a styled HTML file input meaning that it won't convey information on the selected file in most browsers/screen readers.
 
-[https://a11ysupport.io/](https://a11ysupport.io/)
-
-See also: [https://www.html5accessibility.com](https://www.html5accessibility.com) for higher level breakdowns of browser support for various HTML 5 elements
+See also: [A11y Support](https://a11ysupport.io/) and [HTML5 Accessibility](https://www.html5accessibility.com) for higher level breakdowns of browser support for various HTML 5 elements
