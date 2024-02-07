@@ -10,7 +10,6 @@ from tdpservice.search_indexes.models.tribal import Tribal_TANF_T1, Tribal_TANF_
 from tdpservice.search_indexes.models.tribal import Tribal_TANF_T5, Tribal_TANF_T6, Tribal_TANF_T7
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3, SSP_M4, SSP_M5, SSP_M6, SSP_M7
 from tdpservice.search_indexes import documents
-from tdpservice.search_indexes.documents.tanf import TANF_T1DataSubmissionDocument as T1Doc
 from .factories import DataFileSummaryFactory
 from tdpservice.data_files.models import DataFile
 from .. import schema_defs, aggregates, util
@@ -1295,11 +1294,9 @@ def test_parse_tribal_section_4_file(tribal_section_4_file):
     assert sixth.FAMILIES_MONTH == 499
 
 
-
 @pytest.mark.django_db
 def test_bulk_create_returns_rollback_response_on_bulk_index_exception(test_datafile, mocker):
     """Test bulk_create_records returns (False, [unsaved_records]) on BulkIndexException."""
-
     mocker.patch(
         'tdpservice.search_indexes.documents.tanf.TANF_T1DataSubmissionDocument.update',
         side_effect=BulkIndexError('indexing exception')
