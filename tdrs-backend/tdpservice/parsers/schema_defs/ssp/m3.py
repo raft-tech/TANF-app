@@ -118,7 +118,7 @@ first_part_schema = RowSchema(
             startIndex=8,
             endIndex=19,
             required=True,
-            validators=[validators.isAlphaNumeric()]
+            validators=[validators.notEmpty()]
         ),
         Field(
             item="60",
@@ -425,7 +425,7 @@ second_part_schema = RowSchema(
             startIndex=8,
             endIndex=19,
             required=True,
-            validators=[validators.isAlphaNumeric()]
+            validators=[validators.notEmpty()]
         ),
         Field(
             item="60",

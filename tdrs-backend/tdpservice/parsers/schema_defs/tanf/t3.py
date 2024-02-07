@@ -116,7 +116,7 @@ child_one = RowSchema(
             startIndex=8,
             endIndex=19,
             required=True,
-            validators=[validators.isAlphaNumeric()],
+            validators=[validators.notEmpty()],
         ),
         Field(
             item="67",
@@ -420,7 +420,7 @@ child_two = RowSchema(
             startIndex=8,
             endIndex=19,
             required=True,
-            validators=[validators.isAlphaNumeric()],
+            validators=[validators.notEmpty()],
         ),
         Field(
             item="67",
