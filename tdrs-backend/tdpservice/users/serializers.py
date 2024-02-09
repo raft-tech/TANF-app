@@ -66,7 +66,13 @@ class UserSerializer(serializers.ModelSerializer):
             'date_joined',
             'access_requested_date',
         )
-        read_only_fields = ("username", 'access_requested_date', "account_approval_status",)
+        read_only_fields = (
+            "username",
+            "access_requested_date",
+            "account_approval_status",
+            "is_staff",
+            "is_superuser"
+        )
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
