@@ -75,3 +75,15 @@ resource "cloudfoundry_service_instance" "datafiles" {
   service_plan     = data.cloudfoundry_service.s3.service_plans["basic"]
   recursive_delete = true
 }
+
+data "cloudfoundry_service" "redis" {
+  name = "aws-elasticache-redis"
+}
+
+resource "cloudfoundry_service_instance" "redis" {
+  name         = "tdp-redis-prod"
+  space        = data.cloudfoundry_space.space.id
+  service_plan = data.cloudfoundry_service.redis.service_plans["PLACEHOLDER"]
+  # before prod deploy choose one of the following redis type:
+  # [redis-dev, redis-3node, redis-5node, redis-3node-large, redis-5node-large]
+}

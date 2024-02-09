@@ -4,7 +4,6 @@ import json
 import os
 from requests_aws4auth import AWS4Auth
 from elasticsearch import RequestsHttpConnection
-
 from tdpservice.settings.common import Common
 import logging
 
@@ -16,7 +15,6 @@ def get_json_env_var(variable_name):
         os.getenv(variable_name, '{}')
     )
 
-
 def get_cloudgov_service_creds_by_instance_name(services, instance_name):
     """Retrieve credentials for a bound Cloud.gov service by instance name."""
     return next(
@@ -24,7 +22,6 @@ def get_cloudgov_service_creds_by_instance_name(services, instance_name):
          if service.get('instance_name') == instance_name),
         {}
     )
-
 
 class CloudGov(Common):
     """Base settings class for applications deployed in Cloud.gov."""
@@ -37,13 +34,14 @@ class CloudGov(Common):
     # Cloud.gov exposes variables for the application and bound services via
     # VCAP_APPLICATION and VCAP_SERVICES environment variables, respectively.
     cloudgov_app = get_json_env_var('VCAP_APPLICATION')
-    APP_NAME = cloudgov_app.get('application_name')
+    APP_NAME = os.getenv('CGAPPNAME_BACKEND', '{}')
 
     cloudgov_services = get_json_env_var('VCAP_SERVICES')
 
     cloudgov_space = cloudgov_app.get('space_name', 'tanf-dev')
     cloudgov_space_suffix = cloudgov_space.strip('tanf-')
     cloudgov_name = cloudgov_app.get('name').split("-")[-1]  # converting "tdp-backend-name" to just "name"
+
     services_basename = cloudgov_name if (
         cloudgov_name == "develop" and cloudgov_space_suffix == "staging"
     ) else cloudgov_space_suffix
@@ -149,6 +147,13 @@ class CloudGov(Common):
         },
     }
 
+    # Redis
+    redis_settings = cloudgov_services['aws-elasticache-redis'][0]['credentials']
+    REDIS_URI = f"rediss://:{redis_settings['password']}@{redis_settings['host']}:{redis_settings['port']}"
+    logger.debug("REDIS_URI: " + REDIS_URI)
+
+    CELERY_BROKER_URL = REDIS_URI + '/0'
+    CELERY_RESULT_BACKEND = REDIS_URI + '/1'
 
 class Development(CloudGov):
     """Settings for applications deployed in the Cloud.gov dev space."""

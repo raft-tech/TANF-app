@@ -36,3 +36,9 @@ variable "cf_app_name" {
   type        = string
   description = "name of app"
 }
+
+variable "staging_app_names" {
+  type        = list(string)
+  description = "list of app names deployed in the staging cf space"
+  default     = ["develop", "staging"]
+}

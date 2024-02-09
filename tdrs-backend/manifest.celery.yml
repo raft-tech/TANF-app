@@ -1,10 +1,12 @@
 version: 1
 applications:
-- name: tdp-backend
+- name: tdp-celery
   memory: 2G
   instances: 1
   disk_quota: 2G
   buildpacks:
   - https://github.com/cloudfoundry/apt-buildpack
   - https://github.com/cloudfoundry/python-buildpack.git#v1.8.3
-  command: "./gunicorn_start.sh"
+  command: "./celery_start.sh"
+
+

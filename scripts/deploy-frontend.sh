@@ -2,20 +2,24 @@
 
 # source deploy-util.sh
 
-# The deployment strategy you wish to employ ( rolling update or setting up a new environment)
-DEPLOY_STRATEGY=${1}
+CF_SPACE=${1}
+ENV=${2}
 
-#The application name  defined via the manifest yml for the frontend
-CGHOSTNAME_FRONTEND=${2}
-CGHOSTNAME_BACKEND=${3}
-CF_SPACE=${4}
-ENVIRONMENT=${5}
+DEPLOY_STRATEGY=${3-'tbd'}
 
-update_frontend()
-{
+CGHOSTNAME_FRONTEND="tdp-frontend-${ENV}"
+CGHOSTNAME_BACKEND="tdp-backend-${ENV}"
+
+[[ $ENV = "prod" ]] && BUILD_ENV="production" || BUILD_ENV="development"
+
+update_frontend() {
     echo DEPLOY_STRATEGY: "$DEPLOY_STRATEGY"
     echo FRONTEND_HOST: "$CGHOSTNAME_FRONTEND"
     echo BACKEND_HOST: "$CGHOSTNAME_BACKEND"
+    echo CF_SPACE: "$CF_SPACE"
+    echo ENVIRONMENT: "$ENV"
+    echo BUILD_ENV: "$BUILD_ENV"
+
     cd tdrs-frontend || exit
 
     if [ "$CF_SPACE" = "tanf-prod" ]; then
@@ -45,7 +49,7 @@ update_frontend()
 
     cf set-env "$CGHOSTNAME_FRONTEND" BACKEND_HOST "$CGHOSTNAME_BACKEND"
     
-    npm run build:$ENVIRONMENT
+    npm run build:$BUILD_ENV
     unlink .env.production
     mkdir deployment
 
@@ -81,11 +85,15 @@ update_frontend()
     cd ../..
     rm -r tdrs-frontend/deployment
 }
+# NOTE: The || true is a no-op included to suppress exit codes which
+#       would cause the step to exit early due to use of pipefail
 
-# perform a rolling update for the backend and frontend deployments if
-# specified, otherwise perform a normal deployment
-if [ "$DEPLOY_STRATEGY" = "rolling" ] ; then
-    update_frontend 'rolling'
-else
+APP_GUID=$(cf app $CGHOSTNAME_FRONTEND --guid || true)
+
+if [ $APP_GUID == 'FAILED' ] || [ $DEPLOY_STRATEGY == 'initial' ]; then
+    DEPLOY_STRATEGY='initial'
     update_frontend
+else
+    DEPLOY_STRATEGY='rolling'
+    update_frontend 'rolling'
 fi
