@@ -71,7 +71,7 @@ class UserSerializer(serializers.ModelSerializer):
             "access_requested_date",
             "account_approval_status",
             "is_staff",
-            "is_superuser"
+            "is_superuser",
         )
 
 
@@ -110,7 +110,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'access_requested_date',
             'account_approval_status'
         ]
-        read_only_fields = ('access_requested_date', "account_approval_status",)
+        read_only_fields = (
+            "access_requested_date",
+            "account_approval_status",
+            "is_staff",
+            "is_superuser",
+        )
 
         """Enforce first and last name to be in API call and not empty"""
         extra_kwargs = {
