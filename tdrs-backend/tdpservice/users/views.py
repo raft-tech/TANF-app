@@ -71,7 +71,7 @@ class UserViewSet(
         return Response(serializer.data)
 
     @action(methods=["GET", "PATCH"], detail=False)
-    def set_profile(self, request, pk=None):
+    def set_profile(self, request):
         """Set a user's profile data."""
         if request.method == "GET":
             return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -84,7 +84,7 @@ class UserViewSet(
         return Response(serializer.data)
 
     @action(methods=["GET", "PATCH"], detail=False)
-    def request_access(self, request, pk=None):
+    def request_access(self, request):
         """Update request.user with provided data, set `account_approval_status` to 'Access Request'."""
         if request.method == "GET":
             return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
