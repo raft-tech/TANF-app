@@ -4,7 +4,7 @@ import pytest
 import base64
 import openpyxl
 from .. import parse
-from tdpservice.parsers.views import ParsingErrorViewSet
+from tdpservice.data_files.views import DataFileViewSet
 from .. import util
 
 @pytest.fixture
@@ -22,14 +22,14 @@ def test_parsing_error_viewset_list(client, mocker, test_datafile):
     parse.parse_datafile(test_datafile)
 
     id = test_datafile.id
-    view = ParsingErrorViewSet()
+    view = DataFileViewSet()
     view.format_kwarg = None
     request = mocker.Mock()
 
     request.query_params = {'file': id}
     view.request = request
 
-    ser = view.list(request).data['xls_report']
+    ser = view.download_error_report(request).data['xls_report']
 
     decoded_ser = base64.b64decode(ser)
     # write the excel file to disk
@@ -63,14 +63,14 @@ def test_parsing_error_viewset_list_no_fields_json(mocker, test_datafile):
         error.save()
 
     id = test_datafile.id
-    view = ParsingErrorViewSet()
+    view = DataFileViewSet()
     view.format_kwarg = None
     request = mocker.Mock()
 
     request.query_params = {'file': id}
     view.request = request
 
-    ser = view.list(request).data['xls_report']
+    ser = view.download_error_report(request).data['xls_report']
 
     decoded_ser = base64.b64decode(ser)
     # write the excel file to disk
