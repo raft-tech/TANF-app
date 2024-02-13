@@ -34,7 +34,7 @@ The [errors audit](https://hackmd.io/79rAOVzISbOvaTNv8nSpeA) tracks all outstand
 ## What to keep in mind when testing
 The full picture of what makes for *complete* accessibility testing involves every check in Accessibility Insight's Full Assessment tool, thoughtfulness around what makes for a good experience through the lens of various assistive technologies, and real-world usability testing with people experiencing disabilities. This guide isn't going to be able to deliver all that—but it will seek to lay out some illustrative examples and frequently useful questions to pose of an experience when you're testing it for conformance. 
 
-The following checks are organized via WCAG 2.x's categories. While only a few of these checks explicitly mention screen-readers or other assistive technologies nearly all of them should be checked affirmatively regardless of how you're interacting with the site (Sight & mouse, keyboard only, screenreader, etc...). 
+The following checklist is organized via WCAG 2.x's categories. While a few items explicitly involve screen-readers or other assistive technologies, most items should be able to be checked "yes" regardless of your mode of interaction with the webpage (vision & mouse, keyboard only, screenreader, etc...). 
 
 
 ### Is it Perceivable? 
