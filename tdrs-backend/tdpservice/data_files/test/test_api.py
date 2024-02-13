@@ -68,6 +68,7 @@ class DataFileAPITestBase:
 
     @staticmethod
     def assert_error_report_file_content_matches_with_friendly_names(response):
+        """Assert the error report file contents match expected with friendly names."""
         decoded_response = base64.b64decode(response.data['xls_report'])
 
         # write the excel file to disk
@@ -87,6 +88,7 @@ class DataFileAPITestBase:
 
     @staticmethod
     def assert_error_report_file_content_matches_without_friendly_names(response):
+        """Assert the error report file contents match expected without friendly names."""
         decoded_response = base64.b64decode(response.data['xls_report'])
 
         # write the excel file to disk
@@ -137,7 +139,7 @@ class DataFileAPITestBase:
     def download_file(self, api_client, data_file_id):
         """Stream a file for download."""
         return api_client.get(f"{self.root_url}{data_file_id}/download/")
-    
+
     def download_error_report_file(self, api_client, data_file_id):
         """Download the ParserError xlsx report."""
         return api_client.get(f"{self.root_url}{data_file_id}/download_error_report/")
@@ -251,7 +253,7 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
     def test_download_error_report_file_for_own_stt_no_fields_json(
         self, api_client, test_datafile
     ):
-        """Test that the error report file is downloaded as expected when no fields_json is added to ParserErrors"""
+        """Test that the error report file is downloaded as expected when no fields_json is added to ParserErrors."""
         parse.parse_datafile(test_datafile)
 
         # remove the fields' friendly names for all parser errors

@@ -178,6 +178,7 @@ class DataFileViewSet(ModelViewSet):
 
     @action(methods=["get"], detail=True)
     def download_error_report(self, request, pk=None):
+        """Generate and return the parsing error report xlsx."""
         datafile = self.get_object()
         parser_errors = ParserError.objects.all().filter(file=datafile)
         serializer = ParsingErrorSerializer(parser_errors, many=True, context=self.get_serializer_context())
