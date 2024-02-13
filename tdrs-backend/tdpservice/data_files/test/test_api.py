@@ -67,8 +67,7 @@ class DataFileAPITestBase:
         assert b''.join(response.streaming_content) == data_file_file.file.read()
 
     @staticmethod
-    def assert_error_report_file_content_matches_with_friendly_names(response, data_file_id):
-        # datafile = DataFile.objects.get(id=data_file_id)
+    def assert_error_report_file_content_matches_with_friendly_names(response):
         decoded_response = base64.b64decode(response.data['xls_report'])
 
         # write the excel file to disk
@@ -87,8 +86,7 @@ class DataFileAPITestBase:
             + " then number of months 0 is not larger than 0."
 
     @staticmethod
-    def assert_error_report_file_content_matches_without_friendly_names(response, data_file_id):
-        # datafile = DataFile.objects.get(id=data_file_id)
+    def assert_error_report_file_content_matches_without_friendly_names(response):
         decoded_response = base64.b64decode(response.data['xls_report'])
 
         # write the excel file to disk
