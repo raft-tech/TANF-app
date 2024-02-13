@@ -87,5 +87,3 @@ class DataFileSerializer(serializers.ModelSerializer):
         validate_file_extension(file.name)
         validate_file_infection(file, file.name, user)
         return file
-
-
