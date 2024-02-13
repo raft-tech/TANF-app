@@ -64,6 +64,8 @@ def total_errors_by_month(df, dfs_status):
 
     total_errors_data = {"months": []}
 
+    errors = ParserError.objects.all().filter(file=df)
+
     for month in month_list:
         if dfs_status == "Rejected":
             total_errors_data["months"].append(
@@ -73,8 +75,7 @@ def total_errors_by_month(df, dfs_status):
         month_int = month_to_int(month)
         rpt_month_year = int(f"{calendar_year}{month_int}")
 
-        error_count = ParserError.objects.filter(
-            file=df, rpt_month_year=rpt_month_year).count()
+        error_count = errors.filter(rpt_month_year=rpt_month_year).count()
         total_errors_data["months"].append(
             {"month": month, "total_errors": error_count})
 
