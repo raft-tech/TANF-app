@@ -16,7 +16,8 @@ from wsgiref.util import FileWrapper
 from rest_framework import status
 
 from tdpservice.users.models import AccountApprovalStatusChoices, User
-from tdpservice.data_files.serializers import DataFileSerializer, get_xls_serialized_file
+from tdpservice.data_files.serializers import DataFileSerializer
+from tdpservice.data_files.util import get_xls_serialized_file
 from tdpservice.data_files.models import DataFile, get_s3_upload_path
 from tdpservice.users.permissions import DataFilePermissions, IsApprovedPermission
 from tdpservice.scheduling import sftp_task, parser_task
@@ -177,11 +178,10 @@ class DataFileViewSet(ModelViewSet):
 
     @action(methods=["get"], detail=True)
     def download_error_report(self, request, pk=None):
+        self.action = 'download'
         datafile = self.get_object()
         parser_errors = ParserError.objects.all().filter(file=datafile)
         serializer = ParsingErrorSerializer(parser_errors, many=True, context=self.get_serializer_context())
-        print('data')
-        print(serializer.data)
         return Response(get_xls_serialized_file(serializer.data))
 
 
