@@ -1,3 +1,4 @@
+"""Utility functions for DataFile views."""
 import base64
 from io import BytesIO
 import xlsxwriter
