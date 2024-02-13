@@ -246,7 +246,7 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         response = self.download_error_report_file(api_client, test_datafile.id)
 
         assert response.status_code == status.HTTP_200_OK
-        self.assert_error_report_file_content_matches_with_friendly_names(response, test_datafile.id)
+        self.assert_error_report_file_content_matches_with_friendly_names(response)
 
     def test_download_error_report_file_for_own_stt_no_fields_json(
         self, api_client, test_datafile
@@ -262,7 +262,7 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         response = self.download_error_report_file(api_client, test_datafile.id)
 
         assert response.status_code == status.HTTP_200_OK
-        self.assert_error_report_file_content_matches_without_friendly_names(response, test_datafile.id)
+        self.assert_error_report_file_content_matches_without_friendly_names(response)
 
     def test_download_data_file_file_rejected_for_other_stt(
         self,
