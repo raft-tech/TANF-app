@@ -334,7 +334,7 @@ def test_parse_bad_trailer_file(bad_trailer_file, dfs):
     assert trailer_error.object_id is None
 
     row_errors = list(parser_errors.filter(row_number=2).order_by("id"))
-    length_error= row_errors[0]
+    length_error = row_errors[0]
     assert length_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
     assert length_error.error_message == 'Value length 7 does not match 156.'
     assert length_error.content_type is None
