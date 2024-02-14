@@ -344,7 +344,6 @@ class Common(Configuration):
     ELASTICSEARCH_DSL = {
         'default': {
             'hosts': os.getenv('ELASTIC_HOST', 'elastic:9200'),
-            'http_auth': ('elastic', os.getenv('ELASTIC_PASSWORD', 'changeme'))
         },
     }
     KIBANA_BASE_URL = os.getenv('KIBANA_BASE_URL', 'http://kibana:5601')
