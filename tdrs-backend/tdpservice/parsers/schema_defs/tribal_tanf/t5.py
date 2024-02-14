@@ -14,6 +14,7 @@ t5 = SchemaManager(
             document=Tribal_TANF_T5DataSubmissionDocument(),
             preparsing_validators=[
                 validators.hasLength(71),
+                validators.notEmpty(8, 19)
             ],
             postparsing_validators=[
                 validators.if_then_validator(
