@@ -120,7 +120,7 @@ def test_quarterIsValid():
     assert result == (False, "5 is not a valid quarter.")
 
 def test_validateSSN():
-    "Test `validateSSN`."
+    """Test `validateSSN`."""
     value = "123456789"
     val = validators.validateSSN()
     result = val(value)
