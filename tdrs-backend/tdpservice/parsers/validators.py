@@ -402,6 +402,30 @@ def validateRace():
         lambda value: f"{value} is not greater than or equal to 0 or smaller than or equal to 1.",
     )
 
+def validateRptMonthYear():
+    """Validate RPT_MONTH_YEAR."""
+    def validate(line):
+        value = line[2:8]
+        year = str(value)[:4]
+        month = str(value)[4:]
+
+        false_case = (False, f"The value: {value}, does not follow the YYYYMM format for reporting month and year.")
+
+        true_case = (True, None)
+
+        no_spaces = " " not in year and " " not in month
+        if no_spaces:
+            try:
+                year = int(year)
+                month = int(month)
+                return true_case
+            except ValueError:
+                return false_case
+        else:
+            return false_case
+
+    return lambda line: validate(line)
+
 
 # outlier validators
 def validate__FAM_AFF__SSN():

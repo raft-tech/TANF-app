@@ -14,6 +14,7 @@ t2 = SchemaManager(
             document=TANF_T2DataSubmissionDocument(),
             preparsing_validators=[
                 validators.hasLength(156),
+                validators.validateRptMonthYear()
             ],
             postparsing_validators=[
                 validators.validate__FAM_AFF__SSN(),

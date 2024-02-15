@@ -12,6 +12,7 @@ t1 = SchemaManager(
             document=Tribal_TANF_T1DataSubmissionDocument(),
             preparsing_validators=[
                 validators.hasLength(122),
+                validators.validateRptMonthYear()
             ],
             postparsing_validators=[
                 validators.if_then_validator(

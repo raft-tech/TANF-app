@@ -325,7 +325,7 @@ def test_parse_bad_trailer_file(bad_trailer_file, dfs):
     errors = parse.parse_datafile(bad_trailer_file)
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file)
-    assert parser_errors.count() == 2
+    assert parser_errors.count() == 3
 
     trailer_error = parser_errors.get(row_number=3)
     assert trailer_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
@@ -333,7 +333,8 @@ def test_parse_bad_trailer_file(bad_trailer_file, dfs):
     assert trailer_error.content_type is None
     assert trailer_error.object_id is None
 
-    row_error = parser_errors.get(row_number=2)
+    row_errors = list(parser_errors.filter(row_number=2).order_by('id'))
+    row_error = row_errors[0]
     assert row_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
     assert row_error.error_message == 'Value length 7 does not match 156.'
     assert row_error.content_type is None
@@ -341,7 +342,7 @@ def test_parse_bad_trailer_file(bad_trailer_file, dfs):
 
     assert errors == {
         'trailer': [trailer_error],
-        "2_0": [row_error]
+        "2_0": row_errors
     }
 
 
@@ -359,11 +360,11 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
     errors = parse.parse_datafile(bad_trailer_file_2)
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file_2)
-    assert parser_errors.count() == 4
+    assert parser_errors.count() == 5
 
-    trailer_errors = parser_errors.filter(row_number=3).order_by('id')
+    trailer_errors = list(parser_errors.filter(row_number=3).order_by('id'))
 
-    trailer_error_1 = trailer_errors.first()
+    trailer_error_1 = trailer_errors[0]
     assert trailer_error_1.error_type == ParserErrorCategoryChoices.PRE_CHECK
     assert trailer_error_1.error_message == 'Trailer length is 7 but must be 23 characters.'
     assert trailer_error_1.content_type is None
@@ -387,9 +388,16 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
     assert row_3_error.content_type is None
     assert row_3_error.object_id is None
 
+    trailer_error_3 = trailer_errors[3]
+    assert trailer_error_3.error_type == ParserErrorCategoryChoices.PRE_CHECK
+    assert trailer_error_3.error_message == ('The value: trash, does not follow the YYYYMM format for reporting '
+                                             'month and year.')
+    assert trailer_error_3.content_type is None
+    assert trailer_error_3.object_id is None
+
     assert errors == {
         "2_0": [row_2_error],
-        "3_0": [row_3_error],
+        "3_0": [row_3_error, trailer_error_3],
         "trailer": [trailer_error_1, trailer_error_2],
     }
 
@@ -719,24 +727,18 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
         file=bad_tanf_s1__row_missing_required_field)
     assert parser_errors.count() == 4
 
-    error_message = 'RPT_MONTH_YEAR is required but a value was not provided.'
+    error_message = 'The value:       , does not follow the YYYYMM format for reporting month and year.'
     row_2_error = parser_errors.get(row_number=2, error_message=error_message)
-    assert row_2_error.error_type == ParserErrorCategoryChoices.FIELD_VALUE
+    assert row_2_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
     assert row_2_error.error_message == error_message
-    assert row_2_error.content_type.model == 'tanf_t1'
-    assert row_2_error.object_id is not None
 
     row_3_error = parser_errors.get(row_number=3, error_message=error_message)
-    assert row_3_error.error_type == ParserErrorCategoryChoices.FIELD_VALUE
+    assert row_3_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
     assert row_3_error.error_message == error_message
-    assert row_3_error.content_type.model == 'tanf_t2'
-    assert row_3_error.object_id is not None
 
     row_4_error = parser_errors.get(row_number=4, error_message=error_message)
-    assert row_4_error.error_type == ParserErrorCategoryChoices.FIELD_VALUE
+    assert row_4_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
     assert row_4_error.error_message == error_message
-    assert row_4_error.content_type.model == 'tanf_t3'
-    assert row_4_error.object_id is not None
 
     error_message = 'Unknown Record_Type was found.'
     row_5_error = parser_errors.get(row_number=5, error_message=error_message)
@@ -761,31 +763,15 @@ def test_parse_bad_ssp_s1_missing_required(bad_ssp_s1__row_missing_required_fiel
     parse.parse_datafile(bad_ssp_s1__row_missing_required_field)
 
     parser_errors = ParserError.objects.filter(file=bad_ssp_s1__row_missing_required_field)
-    assert parser_errors.count() == 9
+    assert parser_errors.count() == 5
 
-    row_2_error = parser_errors.get(
-        row_number=2,
-        error_message='RPT_MONTH_YEAR is required but a value was not provided.'
-    )
-    assert row_2_error.error_type == ParserErrorCategoryChoices.FIELD_VALUE
-    assert row_2_error.content_type.model == 'ssp_m1'
-    assert row_2_error.object_id is not None
-
-    row_3_error = parser_errors.get(
-        row_number=3,
-        error_message='RPT_MONTH_YEAR is required but a value was not provided.'
-    )
-    assert row_3_error.error_type == ParserErrorCategoryChoices.FIELD_VALUE
-    assert row_3_error.content_type.model == 'ssp_m2'
-    assert row_3_error.object_id is not None
-
-    row_4_error = parser_errors.get(
-        row_number=4,
-        error_message='RPT_MONTH_YEAR is required but a value was not provided.'
-    )
-    assert row_4_error.error_type == ParserErrorCategoryChoices.FIELD_VALUE
-    assert row_4_error.content_type.model == 'ssp_m3'
-    assert row_4_error.object_id is not None
+    error_message = 'The value:       , does not follow the YYYYMM format for reporting month and year.'
+    rpt_month_errors = parser_errors.filter(error_message=error_message)
+    assert len(rpt_month_errors) == 3
+    for e in rpt_month_errors:
+        assert e.error_type == ParserErrorCategoryChoices.PRE_CHECK
+        assert e.error_message == error_message
+        assert e.object_id is None
 
     row_5_error = parser_errors.get(
         row_number=5,
