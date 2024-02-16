@@ -9,7 +9,6 @@ import json
 import os
 import sys
 from django.conf import settings
-from django.contrib.admin.models import LogEntry, ADDITION
 import boto3
 import logging
 
@@ -240,14 +239,6 @@ def run_backup(arg):
             main([arg], sys_values=get_system_values())
         except Exception as e:
             logger.error(f"Caught Exception in run_backup. Exception: {e}.")
-            LogEntry.objects.log_action(
-                user_id=None,
-                content_type_id=None,
-                object_id=None,
-                object_repr=None,
-                action_flag=ADDITION,
-                change_message=f"Database task with arg: {arg} failed with Exception: {e}.",
-            )
             return False
     return True
 
