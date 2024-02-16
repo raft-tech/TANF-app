@@ -7,7 +7,6 @@
 import getopt
 import json
 import os
-import subprocess
 import sys
 from django.conf import settings
 from django.contrib.admin.models import LogEntry, ADDITION
