@@ -325,7 +325,7 @@ def test_parse_bad_trailer_file(bad_trailer_file, dfs):
     errors = parse.parse_datafile(bad_trailer_file)
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file)
-    assert parser_errors.count() == 3
+    assert parser_errors.count() == 4
 
     trailer_error = parser_errors.get(row_number=3)
     assert trailer_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
@@ -360,7 +360,7 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
     errors = parse.parse_datafile(bad_trailer_file_2)
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file_2)
-    assert parser_errors.count() == 5
+    assert parser_errors.count() == 6
 
     trailer_errors = list(parser_errors.filter(row_number=3).order_by('id'))
 
@@ -396,9 +396,15 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
     assert trailer_error_3.content_type is None
     assert trailer_error_3.object_id is None
 
+    trailer_error_4 = trailer_errors[4]
+    assert trailer_error_4.error_type == ParserErrorCategoryChoices.PRE_CHECK
+    assert trailer_error_4.error_message == 'T1trash contains blanks between positions 8 and 19.'
+    assert trailer_error_4.content_type is None
+    assert trailer_error_4.object_id is None
+
     assert errors == {
         "2_0": [row_2_error],
-        "3_0": [length_error, trailer_error_3],
+        "3_0": [length_error, trailer_error_3, trailer_error_4],
         "trailer": [trailer_error_1, trailer_error_2],
     }
 
