@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 from tdpservice.users.models import User, AccountApprovalStatusChoices
+from django.contrib.admin.models import LogEntry, ADDITION
 from django.contrib.auth.models import Group
 from django.conf import settings
 from django.urls import reverse
@@ -20,7 +21,26 @@ def postgres_backup(*args):
     """Run nightly postgres backup."""
     arg = ''.join(args)
     logger.debug("postgres_backup::run_backup() run with arg: " + arg)
-    run_backup(arg)
+    logger.info("Begining database backup.")
+    LogEntry.objects.log_action(
+                user_id=None,
+                content_type_id=None,
+                object_id=None,
+                object_repr=None,
+                action_flag=ADDITION,
+                change_message="Begining database backup.",
+            )
+    result = run_backup(arg)
+    if result:
+        logger.info("Finished database backup.")
+        LogEntry.objects.log_action(
+                    user_id=None,
+                    content_type_id=None,
+                    object_id=None,
+                    object_repr=None,
+                    action_flag=ADDITION,
+                    change_message="Finished database backup.",
+                )
     return True
 
 @shared_task

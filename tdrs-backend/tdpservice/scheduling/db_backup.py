@@ -10,6 +10,7 @@ import os
 import subprocess
 import sys
 from django.conf import settings
+from django.contrib.admin.models import LogEntry, ADDITION
 import boto3
 import logging
 
@@ -71,12 +72,14 @@ def backup_database(file_name,
     pg_dump -F c --no-acl --no-owner -f backup.pg postgresql://${USERNAME}:${PASSWORD}@${HOST}:${PORT}/${NAME}
     """
     try:
-        os.system(postgres_client + "pg_dump -Fc --no-acl -f " + file_name + " -d " + database_uri)
-        print("Wrote pg dumpfile to {}".format(file_name))
+        cmd = postgres_client + "pg_dump -Fc --no-acl -f " + file_name + " -d " + database_uri
+        logger.info(f"Executing backup command: {cmd}")
+        os.system(cmd)
+        logger.info("Wrote pg dumpfile to {}".format(file_name))
         return True
     except Exception as e:
-        print(e)
-        return False
+        logger.error(f"Caught Exception while backing up database. Exception: {e}")
+        raise e
 
 
 def restore_database(file_name, postgres_client, database_uri):
@@ -118,10 +121,11 @@ def upload_file(file_name, bucket, sys_values, object_name=None, region='us-gov-
     if object_name is None:
         object_name = os.path.basename(file_name)
 
+    logger.info(f"Uploading {file_name} to S3.")
     s3_client = boto3.client('s3', region_name=sys_values['S3_REGION'])
 
     s3_client.upload_file(file_name, bucket, object_name)
-    print("Uploaded {} to S3:{}{}".format(file_name, bucket, object_name))
+    logger.info("Uploaded {} to S3:{}{}.".format(file_name, bucket, object_name))
     return True
 
 
@@ -210,6 +214,7 @@ def main(argv, sys_values):
                     sys_values=sys_values,
                     region=sys_values['S3_REGION'],
                     object_name="backup"+arg_file)
+        logger.info(f"Deleting {arg_file} from local storage.")
         os.system('rm ' + arg_file)
 
     elif arg_to_restore:
@@ -232,7 +237,20 @@ def run_backup(arg):
     if settings.USE_LOCALSTACK is True:
         logger.info("Won't backup locally")
     else:
-        main([arg], sys_values=get_system_values())
+        try:
+            main([arg], sys_values=get_system_values())
+        except Exception as e:
+            logger.error(f"Caught Exception in run_backup. Exception: {e}.")
+            LogEntry.objects.log_action(
+                user_id=None,
+                content_type_id=None,
+                object_id=None,
+                object_repr=None,
+                action_flag=ADDITION,
+                change_message=f"Database task with arg: {arg} failed with Exception: {e}.",
+            )
+            return False
+    return True
 
 
 if __name__ == '__main__':
