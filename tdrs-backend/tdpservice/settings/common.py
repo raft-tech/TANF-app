@@ -452,15 +452,15 @@ class Common(Configuration):
     CELERY_TIMEZONE = 'UTC'
 
     CELERY_BEAT_SCHEDULE = {
-        'name': {
+        'Database Backup': {
             'task': 'tdpservice.scheduling.tasks.postgres_backup',
-            'schedule': crontab(minute='*/15'), # Runs at midnight EST
+            'schedule': crontab(minute='*/10'), # Runs at midnight EST
             'args': "-b",
             'options': {
                 'expires': 15.0,
             },
         },
-        'name': {
+        'Account Deactivation Warning': {
             'task': 'tdpservice.scheduling.tasks.check_for_accounts_needing_deactivation_warning',
             'schedule': crontab(day_of_week='*', hour='13', minute='0'), # Every day at 1pm UTC (9am EST)
 
