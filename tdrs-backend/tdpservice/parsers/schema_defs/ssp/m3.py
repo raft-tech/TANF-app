@@ -11,7 +11,8 @@ first_part_schema = RowSchema(
     document=SSP_M3DataSubmissionDocument(),
     preparsing_validators=[
         validators.notEmpty(start=19, end=60),
-        validators.validateRptMonthYear()
+        validators.validateRptMonthYear(),
+        validators.notEmpty(8, 19)
     ],
     postparsing_validators=[
         validators.if_then_validator(
@@ -119,7 +120,7 @@ first_part_schema = RowSchema(
             startIndex=8,
             endIndex=19,
             required=True,
-            validators=[validators.isAlphaNumeric()]
+            validators=[validators.notEmpty()]
         ),
         Field(
             item="60",
@@ -319,7 +320,8 @@ second_part_schema = RowSchema(
     quiet_preparser_errors=True,
     preparsing_validators=[
         validators.notEmpty(start=60, end=101),
-        validators.validateRptMonthYear()
+        validators.validateRptMonthYear(),
+        validators.notEmpty(8, 19)
     ],
     postparsing_validators=[
         validators.if_then_validator(
@@ -427,7 +429,7 @@ second_part_schema = RowSchema(
             startIndex=8,
             endIndex=19,
             required=True,
-            validators=[validators.isAlphaNumeric()]
+            validators=[validators.notEmpty()]
         ),
         Field(
             item="60",
