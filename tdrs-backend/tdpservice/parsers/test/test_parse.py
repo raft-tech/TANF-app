@@ -391,8 +391,8 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
 
     trailer_error_3 = trailer_errors[3]
     assert trailer_error_3.error_type == ParserErrorCategoryChoices.PRE_CHECK
-    assert trailer_error_3.error_message == ('The value: trash, does not follow the YYYYMM format for reporting '
-                                             'month and year.')
+    assert trailer_error_3.error_message == ('The value: trash, does not follow the YYYYMM format for '
+                                             'Reporting Year and Month.')
     assert trailer_error_3.content_type is None
     assert trailer_error_3.object_id is None
 
@@ -734,7 +734,7 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
         file=bad_tanf_s1__row_missing_required_field)
     assert parser_errors.count() == 4
 
-    error_message = 'The value:       , does not follow the YYYYMM format for reporting month and year.'
+    error_message = 'The value:       , does not follow the YYYYMM format for Reporting Year and Month.'
     row_2_error = parser_errors.get(row_number=2, error_message=error_message)
     assert row_2_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
     assert row_2_error.error_message == error_message
@@ -772,7 +772,7 @@ def test_parse_bad_ssp_s1_missing_required(bad_ssp_s1__row_missing_required_fiel
     parser_errors = ParserError.objects.filter(file=bad_ssp_s1__row_missing_required_field)
     assert parser_errors.count() == 5
 
-    error_message = 'The value:       , does not follow the YYYYMM format for reporting month and year.'
+    error_message = 'The value:       , does not follow the YYYYMM format for Reporting Year and Month.'
     rpt_month_errors = parser_errors.filter(error_message=error_message)
     assert len(rpt_month_errors) == 3
     for e in rpt_month_errors:
