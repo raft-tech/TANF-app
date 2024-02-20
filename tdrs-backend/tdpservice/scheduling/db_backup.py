@@ -33,6 +33,8 @@ def get_system_values():
     pg_dump_paths = pg_dump_paths.decode("utf-8").split('\n')
     if pg_dump_paths[0] == '':
         raise Exception("Postgres client is not found")
+    
+    logger.info(f"\n\nPG_DUMP PATHS: {pg_dump_paths}\n\n")
 
     for _ in pg_dump_paths:
         if 'pg_dump' in str(_) and 'postgresql' in str(_):
