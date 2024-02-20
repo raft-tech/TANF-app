@@ -74,7 +74,7 @@ class CloudGov(Common):
     if (cloudgov_space_suffix in ["prod", "staging"]):
         db_name = database_creds['db_name']
     else:
-        db_name = 'cgawsbrokerprod2ej0zsae8fxqb7r'
+        db_name = env_based_db_name
 
     DATABASES = {
         'default': {
