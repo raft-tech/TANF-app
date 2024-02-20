@@ -4,6 +4,5 @@ keys:
 repos:
   - deb http://apt.postgresql.org/pub/repos/apt/ bookworm-pgdg main
 packages:
-  - postgresql-client-14
   - libjemalloc-dev
   - redis
