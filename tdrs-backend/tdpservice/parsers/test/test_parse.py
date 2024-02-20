@@ -732,6 +732,7 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
 
     parser_errors = ParserError.objects.filter(
         file=bad_tanf_s1__row_missing_required_field)
+
     assert parser_errors.count() == 4
 
     error_message = 'The value:       , does not follow the YYYYMM format for Reporting Year and Month.'

@@ -153,7 +153,7 @@ child_one = RowSchema(
             startIndex=28,
             endIndex=37,
             required=True,
-            validators=[validators.validateSSN()],
+            validators=[validators.isNumber()],
             is_encrypted=False,
         ),
         Field(
@@ -460,7 +460,7 @@ child_two = RowSchema(
             startIndex=69,
             endIndex=78,
             required=True,
-            validators=[validators.validateSSN()],
+            validators=[validators.isNumber()],
             is_encrypted=False,
         ),
         Field(

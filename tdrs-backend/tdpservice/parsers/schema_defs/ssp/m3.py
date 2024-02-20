@@ -155,7 +155,7 @@ first_part_schema = RowSchema(
             endIndex=37,
             required=True,
             is_encrypted=False,
-            validators=[validators.validateSSN()]
+            validators=[validators.isNumber()]
         ),
         Field(
             item="63A",
@@ -464,7 +464,7 @@ second_part_schema = RowSchema(
             endIndex=78,
             required=True,
             is_encrypted=False,
-            validators=[validators.validateSSN()]
+            validators=[validators.isNumber()]
         ),
         Field(
             item="63A",
