@@ -88,29 +88,16 @@ First we need to get list of revisions and select a stable revision id.
 Then use the last successful guid, we can populate this reversion command:
 ```
 cf curl v3/deployments \        
-
 -X POST \
-
 -d '{
-
   "revision": {
-
     "guid": "{last stable guid from list above}"
-
   },
-
   "relationships": {
-
     "app": {
-
       "data": {
-
         "guid": "{current app guid}"
-
       }
-
     }
-
   }
-
 }'```
