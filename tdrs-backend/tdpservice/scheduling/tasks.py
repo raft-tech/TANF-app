@@ -26,7 +26,7 @@ def postgres_backup(*args):
         logger.info("Finished database backup.")
     else:
         logger.error("Failed to complete database backup.")
-    return True
+    return result
 
 @shared_task
 def check_for_accounts_needing_deactivation_warning():

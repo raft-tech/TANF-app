@@ -26,21 +26,7 @@ def get_system_values():
     sys_values['SPACE'] = json.loads(OS_ENV['VCAP_APPLICATION'])['space_name']
 
     # Postgres client pg_dump directory
-    pgdump_search = subprocess.Popen(["find", "/", "-iname", "pg_dump"],
-                                     stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
-    pgdump_search.wait()
-    pg_dump_paths, pgdump_search_error = pgdump_search.communicate()
-    pg_dump_paths = pg_dump_paths.decode("utf-8").split('\n')
-    if pg_dump_paths[0] == '':
-        raise Exception("Postgres client is not found")
-
-    logger.info(f"\n\nPG_DUMP PATHS: {pg_dump_paths}\n\n")
-
-    for _ in pg_dump_paths:
-        if 'pg_dump' in str(_) and 'postgresql' in str(_):
-            sys_values['POSTGRES_CLIENT_DIR'] = _[:_.find('pg_dump')]
-            logger.info("Found PG client here: {}".format(_))
-    # sys_values['POSTGRES_CLIENT_DIR'] = "/home/vcap/deps/0/bin/"
+    sys_values['POSTGRES_CLIENT_DIR'] = "/home/vcap/deps/0/apt/usr/lib/postgresql/12/bin/"
 
     sys_values['S3_ENV_VARS'] = json.loads(OS_ENV['VCAP_SERVICES'])['s3']
     sys_values['S3_CREDENTIALS'] = sys_values['S3_ENV_VARS'][0]['credentials']
