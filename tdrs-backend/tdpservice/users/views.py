@@ -39,7 +39,6 @@ class UserViewSet(
     def get_serializer_class(self):
         """Return the serializer class."""
         return {
-            "set_profile": UserProfileSerializer,
             "request_access": UserProfileSerializer,
         }.get(self.action, UserSerializer)
 
@@ -57,7 +56,7 @@ class UserViewSet(
 
     def get_permissions(self):
         """Determine the permissions to apply based on action."""
-        if self.action in ['list', 'retrieve', 'set_profile']:
+        if self.action in ['list', 'retrieve']:
             permission_classes = [IsAuthenticated, IsApprovedPermission, UserPermissions]
         else:
             permission_classes = [IsAuthenticated, UserPermissions]
@@ -68,19 +67,6 @@ class UserViewSet(
         item = get_object_or_404(self.queryset, pk=pk)
         self.check_object_permissions(request, item)
         serializer = self.get_serializer_class()(item)
-        return Response(serializer.data)
-
-    @action(methods=["GET", "PATCH"], detail=False)
-    def set_profile(self, request):
-        """Set a user's profile data."""
-        if request.method == "GET":
-            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        serializer = self.get_serializer(self.request.user, request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        logger.info(
-            "Profile update for user: %s on %s", self.request.user, timezone.now()
-        )
         return Response(serializer.data)
 
     @action(methods=["GET", "PATCH"], detail=False)
