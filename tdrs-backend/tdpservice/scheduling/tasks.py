@@ -24,6 +24,8 @@ def postgres_backup(*args):
     result = run_backup(arg)
     if result:
         logger.info("Finished database backup.")
+    else:
+        logger.error("Failed to complete database backup.")
     return True
 
 @shared_task

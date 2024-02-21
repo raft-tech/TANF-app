@@ -89,6 +89,8 @@ def backup_database(file_name,
         logger.info(f"Executing backup command: {cmd}")
         os.system(cmd)
         logger.info("Wrote pg dumpfile to {}".format(file_name))
+        file_size = os.path.getsize(file_name)
+        logger.info(f"Pg dumpfile size in bytes: {file_size}.")
         return True
     except Exception as e:
         logger.error(f"Caught Exception while backing up database. Exception: {e}")
@@ -105,10 +107,12 @@ def restore_database(file_name, postgres_client, database_uri):
      DATABASE_DB_NAME] = get_database_credentials(database_uri)
     os.environ['PGPASSWORD'] = DATABASE_PASSWORD
     try:
+        logger.info("Begining database creation.")
         os.system(postgres_client + "createdb " + "-U " + DATABASE_USERNAME + " -h " + DATABASE_HOST + " -T template0 "
                   + DATABASE_DB_NAME)
+        logger.info("Completed database creation.")
     except Exception as e:
-        print(e)
+        logger.error(f"Caught exception while creating the database. Exception: {e}.")
         return False
 
     # write .pgpass
@@ -117,8 +121,10 @@ def restore_database(file_name, postgres_client, database_uri):
     os.environ['PGPASSFILE'] = '/home/vcap/.pgpass'
     os.system('chmod 0600 /home/vcap/.pgpass')
 
+    logger.info("Begining database restoration.")
     os.system(postgres_client + "pg_restore" + " -p " + DATABASE_PORT + " -h " +
               DATABASE_HOST + " -U " + DATABASE_USERNAME + " -d " + DATABASE_DB_NAME + " " + file_name)
+    logger.info("Completed database restoration.")
     return True
 
 
@@ -157,9 +163,11 @@ def download_file(bucket,
     """
     if object_name is None:
         object_name = os.path.basename(file_name)
+    logger.info("Begining download for backup file.")
     s3 = boto3.client('s3', region_name=region)
-    s3.download_file(bucket, object_name, file_name)
-    print("Downloaded s3 file {}{} to {}.".format(bucket, object_name, file_name))
+    response = s3.download_file(bucket, object_name, file_name)
+    logger.info(f"Response from s3 download: {response}.")
+    logger.info("Downloaded s3 file {}/{} to {}.".format(bucket, object_name, file_name))
 
 
 def list_s3_files(sys_values):
@@ -243,6 +251,7 @@ def main(argv, sys_values):
                          postgres_client=sys_values['POSTGRES_CLIENT_DIR'],
                          database_uri=arg_database)
 
+        logger.info(f"Deleting {arg_file} from local storage.")
         os.system('rm ' + arg_file)
 
 
