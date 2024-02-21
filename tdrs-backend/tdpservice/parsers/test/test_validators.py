@@ -1,6 +1,7 @@
 """Tests for generic validator functions."""
 
 import pytest
+from datetime import date
 from .. import validators
 from tdpservice.parsers.test.factories import TanfT1Factory, TanfT2Factory, TanfT3Factory, TanfT5Factory, TanfT6Factory
 from tdpservice.parsers.test.factories import SSPM5Factory
@@ -223,6 +224,29 @@ def test_date_day_is_valid_returns_invalid():
     assert error == '32 is not a valid day.'
 
 
+def test_olderThan():
+    """Test `olderThan`"""
+    min_age = 18
+    value = 19830223
+    validator = validators.olderThan(min_age)
+    assert validator(value) == (True, None)
+
+    value = 20240101
+    assert validator(value) == (False, (f"{str(value)[:4]} must be less than or equal to {date.today().year - min_age} "
+                                        "to meet the minimum age requirement."))
+
+
+def test_dateYearIsLargerThan():
+    """Test `dateYearIsLargerThan`."""
+    year = 1900
+    value = 19830223
+    validator = validators.dateYearIsLargerThan(year)
+    assert validator(value) == (True, None)
+
+    value = 18990101
+    assert validator(value) == (False, f"{str(value)[:4]} must be larger than year {year}.")
+
+
 def test_between_returns_invalid_for_string_value():
     """Test `between` gives an invalid result for strings."""
     value = '047'
@@ -269,13 +293,13 @@ def test_intHasLength_returns_valid():
 
 def test_intHasLength_returns_invalid():
     """Test `intHasLength` gives an invalid result."""
-    value = '123'
+    value = '1a3'
 
     validator = validators.intHasLength(22)
     is_valid, error = validator(value)
 
     assert is_valid is False
-    assert error == '123 does not have exactly 22 digits.'
+    assert error == '1a3 does not have exactly 22 digits.'
 
 
 def test_contains_returns_valid():

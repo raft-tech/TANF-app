@@ -232,7 +232,7 @@ def hasLength(length, error_func=None):
 def intHasLength(num_digits):
     """Validate the number of digits in an integer."""
     return make_validator(
-        lambda value: len(str(value)) == num_digits,
+        lambda value: sum(c.isdigit() for c in value) == num_digits,
         lambda value: f"{value} does not have exactly {num_digits} digits.",
     )
 
@@ -362,7 +362,6 @@ def isInLimits(LowerBound, UpperBound):
 
 # custom validators
 
-# 1973 01 13
 def dateMonthIsValid():
     """Validate that in a monthyear combination, the month is a valid month."""
     return make_validator(
@@ -382,7 +381,8 @@ def olderThan(min_age):
     """Validate that value is larger than min_age."""
     return make_validator(
         lambda value: date.today().year - int(str(value)[:4]) > min_age,
-        lambda value: f"{date.today().year - int(str(value)[:4])} is not larger than {min_age}.",
+        lambda value: (f"{str(value)[:4]} must be less than or equal to {date.today().year - min_age} "
+                       "to meet the minimum age requirement."),
     )
 
 
