@@ -8,7 +8,6 @@ import getopt
 import json
 import os
 import sys
-import subprocess
 from django.conf import settings
 import boto3
 import logging
