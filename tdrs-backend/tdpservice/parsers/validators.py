@@ -232,7 +232,7 @@ def hasLength(length, error_func=None):
 def intHasLength(num_digits):
     """Validate the number of digits in an integer."""
     return make_validator(
-        lambda value: sum(c.isdigit() for c in value) == num_digits,
+        lambda value: sum(c.isdigit() for c in str(value)) == num_digits,
         lambda value: f"{value} does not have exactly {num_digits} digits.",
     )
 
