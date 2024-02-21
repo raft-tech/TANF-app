@@ -137,8 +137,9 @@ def upload_file(file_name, bucket, sys_values, object_name=None, region='us-gov-
     logger.info(f"Uploading {file_name} to S3.")
     s3_client = boto3.client('s3', region_name=sys_values['S3_REGION'])
 
-    s3_client.upload_file(file_name, bucket, object_name)
-    logger.info("Uploaded {} to S3:{}{}.".format(file_name, bucket, object_name))
+    response = s3_client.upload_file(file_name, bucket, object_name)
+    logger.info(f"S3 upload response: {response}")
+    logger.info("Uploaded {} to s3://{}/{}.".format(file_name, bucket, object_name))
     return True
 
 
