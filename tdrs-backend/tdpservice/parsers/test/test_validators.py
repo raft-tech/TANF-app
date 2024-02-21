@@ -101,13 +101,6 @@ def test_validate__FAM_AFF__SSN():
     result = validators.validate__FAM_AFF__SSN()(instance)
     assert result == (True, None, ['FAMILY_AFFILIATION', 'CITIZENSHIP_STATUS', 'SSN'])
 
-def test_dateYearIsLargerThan():
-    """Test `dateYearIsLargerThan` gives a valid result."""
-    value = "199806"
-    validator = validators.dateYearIsLargerThan(1999)
-    result = validator(value)
-    assert result == (False, '1998 must be larger than year 1999.')
-
 
 def test_matches_returns_valid():
     """Test `matches` gives a valid result."""
@@ -225,7 +218,7 @@ def test_date_day_is_valid_returns_invalid():
 
 
 def test_olderThan():
-    """Test `olderThan`"""
+    """Test `olderThan`."""
     min_age = 18
     value = 19830223
     validator = validators.olderThan(min_age)
