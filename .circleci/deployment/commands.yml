@@ -79,12 +79,24 @@
       frontend-appname:
         default: tdp-frontend
         type: string
+      kibana-appname:
+        default: tdp-kibana
+        type: string
+      proxy-appname:
+        default: tdp-elastic-proxy
+        type: string
       cf-space:
         default: tanf-dev
         type: string
     steps:
       - get-app-deploy-strategy:
           appname: <<parameters.backend-appname>>
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt update
+            sudo add-apt-repository ppa:rmescandon/yq
+            sudo apt-get install yq
       - run:
           name: Apply database migrations
           command: |
@@ -96,6 +108,8 @@
               $DEPLOY_STRATEGY \
               <<parameters.frontend-appname>> \
               <<parameters.backend-appname>> \
+              <<parameters.kibana-appname>> \
+              <<parameters.proxy-appname>> \
               <<parameters.cf-space>>
 
   deploy-clamav:
@@ -119,6 +133,9 @@
       frontend-appname:
         default: tdp-frontend
         type: string
+      kibana-appname:
+        default: tdp-kibana
+        type: string
 # So the frontend knows what space its in for the banner.
 # I am unclear if the domain is a reliable metric to make this function
 # It seems like it might not be working
@@ -140,6 +157,7 @@
               $DEPLOY_STRATEGY \
               <<parameters.frontend-appname>> \
               <<parameters.backend-appname>> \
+              <<parameters.kibana-appname>> \
               <<parameters.cf-space>> \
               <<parameters.environment>>
 
