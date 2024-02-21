@@ -225,7 +225,8 @@ class TestUserAPIAdminUser(UserAPITestsBase):
         profile_data['stt'] = stt.id
         response = self.request_access(api_client, profile_data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data[0] == 'Users other than Regional Staff, Developers, Data Analysts do not get assigned a location'
+        assert response.data[0] == ('Users other than Regional Staff, Developers, '
+                                    'Data Analysts do not get assigned a location')
 
     def test_get_roles(self, api_client):
         """Get roles, expect 200."""
