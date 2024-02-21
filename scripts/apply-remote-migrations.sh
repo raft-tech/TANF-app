@@ -47,8 +47,8 @@ set +a
 echo "Done."
 
 echo "Applying migrations..."
-# stop script and report errors??
 python manage.py migrate
+status=$?
 echo "Done."
 
 echo "Cleaning up..."
@@ -57,3 +57,12 @@ kill $!
 rm ./.env.ci
 cd ..
 echo "Done."
+
+if [ $status -eq 0 ]
+then
+    echo "Migrations applied successfully."
+    exit 0
+else
+    echo "Migrations failed."
+    exit $status
+fi
