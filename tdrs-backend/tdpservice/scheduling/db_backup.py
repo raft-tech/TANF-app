@@ -7,6 +7,7 @@
 import getopt
 import json
 import os
+import subprocess
 import sys
 from django.conf import settings
 import boto3
@@ -26,6 +27,25 @@ def get_system_values():
 
     # Postgres client pg_dump directory
     sys_values['POSTGRES_CLIENT_DIR'] = "/home/vcap/deps/0/apt/usr/lib/postgresql/12/bin/"
+
+    # If the client directory and binaries don't exist, we need to find them.
+    if not (os.path.exists(sys_values['POSTGRES_CLIENT_DIR']) and
+            os.path.isfile(f"{sys_values['POSTGRES_CLIENT_DIR']}/pg_dump")):
+        logger.warning(f"Couldn't find postgres client binaries at the hardcoded path: 
+                       {sys_values['POSTGRES_CLIENT_DIR']}. Searching OS for client directory.")
+        pgdump_search = subprocess.Popen(["find", "/", "-iname", "pg_dump"],
+                                        stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
+        pgdump_search.wait()
+        pg_dump_paths, pgdump_search_error = pgdump_search.communicate()
+        pg_dump_paths = pg_dump_paths.decode("utf-8").split('\n')
+        if pg_dump_paths[0] == '':
+            raise Exception("Postgres client is not found")
+
+        for _ in pg_dump_paths:
+            if 'pg_dump' in str(_) and 'postgresql' in str(_):
+                sys_values['POSTGRES_CLIENT'] = _[:_.find('pg_dump')]
+    
+    logger.info(f"Using postgres client at: {sys_values['POSTGRES_CLIENT_DIR']}")
 
     sys_values['S3_ENV_VARS'] = json.loads(OS_ENV['VCAP_SERVICES'])['s3']
     sys_values['S3_CREDENTIALS'] = sys_values['S3_ENV_VARS'][0]['credentials']
