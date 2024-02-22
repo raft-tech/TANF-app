@@ -30,7 +30,7 @@ def get_system_values():
 
     # If the client directory and binaries don't exist, we need to find them.
     if not (os.path.exists(sys_values['POSTGRES_CLIENT_DIR']) and
-            os.path.isfile(f"{sys_values['POSTGRES_CLIENT_DIR']}/pg_dump")):
+            os.path.isfile(f"{sys_values['POSTGRES_CLIENT_DIR']}pg_dump")):
         logger.warning("Couldn't find postgres client binaries at the hardcoded path: "
                        f"{sys_values['POSTGRES_CLIENT_DIR']}. Searching OS for client directory.")
         pgdump_search = subprocess.Popen(["find", "/", "-iname", "pg_dump"],
