@@ -170,3 +170,15 @@ def test_data_analyst_permissions(data_analyst):
     }
     group_permissions = data_analyst.get_group_permissions()
     assert group_permissions == expected_permissions
+
+@pytest.mark.django_db
+def test_digit_team_permissions(digit_team):
+    """Test that a DIGIT Team user inherits the correct permissions."""
+    expected_permissions = {
+        'data_files.view_datafile',
+        'parsers.view_datafilesummary',
+        'parsers.view_parsererror',
+    }
+    group_permissions = digit_team.get_group_permissions()
+    print(group_permissions)
+    assert group_permissions == expected_permissions
