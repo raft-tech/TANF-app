@@ -3,7 +3,6 @@
 from django.db import models
 from django.db.models import constraints
 
-
 class Region(models.Model):
     """A model representing a US region."""
 
@@ -38,6 +37,7 @@ class STT(models.Model):
     state = models.ForeignKey("self", on_delete=models.CASCADE, blank=True, null=True)
     ssp = models.BooleanField(default=False, null=True)
     sample = models.BooleanField(default=False, null=True)
+    fake_field = models.ForeignKey(Region, on_delete=models.CASCADE, blank=True, null=True)
 
     class Meta:
         """Metadata."""
