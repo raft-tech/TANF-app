@@ -31,10 +31,10 @@ def get_system_values():
     # If the client directory and binaries don't exist, we need to find them.
     if not (os.path.exists(sys_values['POSTGRES_CLIENT_DIR']) and
             os.path.isfile(f"{sys_values['POSTGRES_CLIENT_DIR']}/pg_dump")):
-        logger.warning(f"Couldn't find postgres client binaries at the hardcoded path: "
-                       "{sys_values['POSTGRES_CLIENT_DIR']}. Searching OS for client directory.")
+        logger.warning("Couldn't find postgres client binaries at the hardcoded path: "
+                       f"{sys_values['POSTGRES_CLIENT_DIR']}. Searching OS for client directory.")
         pgdump_search = subprocess.Popen(["find", "/", "-iname", "pg_dump"],
-                                        stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
+                                         stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
         pgdump_search.wait()
         pg_dump_paths, pgdump_search_error = pgdump_search.communicate()
         pg_dump_paths = pg_dump_paths.decode("utf-8").split('\n')
@@ -44,7 +44,7 @@ def get_system_values():
         for _ in pg_dump_paths:
             if 'pg_dump' in str(_) and 'postgresql' in str(_):
                 sys_values['POSTGRES_CLIENT'] = _[:_.find('pg_dump')]
-    
+
     logger.info(f"Using postgres client at: {sys_values['POSTGRES_CLIENT_DIR']}")
 
     sys_values['S3_ENV_VARS'] = json.loads(OS_ENV['VCAP_SERVICES'])['s3']
