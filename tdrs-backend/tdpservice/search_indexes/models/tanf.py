@@ -258,7 +258,7 @@ class TANF_T5(models.Model):
     CASE_NUMBER = models.CharField(max_length=11, null=True, blank=False)
 
     FAMILY_AFFILIATION = models.IntegerField(null=True, blank=False)
-    DATE_OF_BIRTH = models.CharField(max_length=8, null=True, blank=False)
+    DATE_OF_BIRTH = models.IntegerField(null=True, blank=False)
     SSN = models.CharField(max_length=9, null=True, blank=False)
     RACE_HISPANIC = models.IntegerField(null=True, blank=False)
     RACE_AMER_INDIAN = models.IntegerField(null=True, blank=False)
