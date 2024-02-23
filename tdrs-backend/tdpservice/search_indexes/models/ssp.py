@@ -95,7 +95,7 @@ class SSP_M2(models.Model):
 
     FAMILY_AFFILIATION = models.IntegerField(null=True, blank=False)
     NONCUSTODIAL_PARENT = models.IntegerField(null=True, blank=False)
-    DATE_OF_BIRTH = models.IntegerField(null=True, blank=False)
+    DATE_OF_BIRTH = models.CharField(max_length=8, null=True, blank=False)
     SSN = models.CharField(max_length=9, null=True, blank=False)
     RACE_HISPANIC = models.IntegerField(null=True, blank=False)
     RACE_AMER_INDIAN = models.IntegerField(null=True, blank=False)
@@ -181,7 +181,7 @@ class SSP_M3(models.Model):
     FIPS_CODE = models.CharField(max_length=2, null=True, blank=False)
 
     FAMILY_AFFILIATION = models.IntegerField(null=True, blank=False)
-    DATE_OF_BIRTH = models.IntegerField(null=True, blank=False)
+    DATE_OF_BIRTH = models.CharField(max_length=8, null=True, blank=False)
     SSN = models.CharField(max_length=100, null=True, blank=False)
     RACE_HISPANIC = models.IntegerField(null=True, blank=False)
     RACE_AMER_INDIAN = models.IntegerField(null=True, blank=False)
@@ -255,7 +255,7 @@ class SSP_M5(models.Model):
     CASE_NUMBER = models.CharField(max_length=11, null=True, blank=False)
 
     FAMILY_AFFILIATION = models.IntegerField(null=True, blank=False)
-    DATE_OF_BIRTH = models.IntegerField(null=True, blank=False)
+    DATE_OF_BIRTH = models.CharField(max_length=8, null=True, blank=False)
     SSN = models.CharField(max_length=9, null=True, blank=False)
     RACE_HISPANIC = models.IntegerField(null=True, blank=False)
     RACE_AMER_INDIAN = models.IntegerField(null=True, blank=False)
