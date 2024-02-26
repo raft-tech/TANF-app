@@ -15,7 +15,7 @@ export const downloadFile = (dispatch, file) => dispatch(download(file))
 export const downloadErrorReport = async (file, reportName) => {
   try {
     const promise = axios.get(
-      `${process.env.REACT_APP_BACKEND_URL}/parsing/parsing_errors/?file=${file.id}`,
+      `${process.env.REACT_APP_BACKEND_URL}/data_files/${file.id}/download_error_report/`,
       {
         responseType: 'json',
       }
