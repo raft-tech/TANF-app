@@ -127,7 +127,7 @@ def restore_database(file_name, postgres_client, database_uri, system_user):
     try:
         logger.info("Begining database creation.")
         cmd = (postgres_client + "createdb " + "-U " + DATABASE_USERNAME + " -h " + DATABASE_HOST + " -T template0 "
-        + DATABASE_DB_NAME)
+               + DATABASE_DB_NAME)
         logger.info(f"Executing create command: {cmd}")
         os.system(cmd)
         msg = "Completed database creation."
