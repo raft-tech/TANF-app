@@ -11,6 +11,15 @@ else
     ( cd  /home/vcap/deps/0/bin/; ./redis-server /home/vcap/app/redis.conf &)
 fi
 
+# Collect static files. This is needed for swagger to work in local environment
+if [[ $DISABLE_COLLECTSTATIC ]]; then 
+    echo "DISABLE_COLLECTSTATIC is set to true, skipping collectstatic"
+else
+    echo "Collecting static files"
+    python manage.py collectstatic --noinput
+fi
+
+
 celery -A tdpservice.settings worker -c 1 &
 sleep 5
 # TODO: Uncomment the following line to add flower service when memory limitation is resolved
