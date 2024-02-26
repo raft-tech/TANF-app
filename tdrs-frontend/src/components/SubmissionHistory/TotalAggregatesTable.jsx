@@ -7,10 +7,6 @@ import {
   downloadErrorReport,
 } from './helpers'
 
-// const section_index = (element) => file.section.includes(element)
-
-// const section = fileUploadSections.findIndex(section_index) + 1
-
 const MonthSubRow = ({ data }) =>
   data ? (
     <>
