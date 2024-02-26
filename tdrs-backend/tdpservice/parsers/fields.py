@@ -1,5 +1,6 @@
 """Datafile field representations."""
 
+from datetime import datetime
 import logging
 from .validators import value_is_empty
 
@@ -55,6 +56,13 @@ class Field:
                     return None
             case "string":
                 return value
+            case "date":
+                try:
+                    value = datetime.strptime(value, "%Y%m%d").date()
+                    return value
+                except ValueError:
+                    logger.error(f"Error parsing field value: {value} to date.")
+                    return None
             case _:
                 logger.warn(f"Unknown field type: {self.type}.")
                 return None

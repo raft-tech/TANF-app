@@ -232,7 +232,7 @@ def hasLength(length, error_func=None):
 def intHasLength(num_digits):
     """Validate the number of digits in an integer."""
     return make_validator(
-        lambda value: sum(c.isdigit() for c in str(value)) == num_digits,
+        lambda value: sum(c.isdigit() for c in str(value).replace('-', '')) == num_digits,
         lambda value: f"{value} does not have exactly {num_digits} digits.",
     )
 
@@ -365,15 +365,15 @@ def isInLimits(LowerBound, UpperBound):
 def dateMonthIsValid():
     """Validate that in a monthyear combination, the month is a valid month."""
     return make_validator(
-        lambda value: int(str(value)[4:6]) in range(1, 13),
-        lambda value: f"{str(value)[4:6]} is not a valid month.",
+        lambda value: int(str(value).replace('-', '')[4:6]) in range(1, 13),
+        lambda value: f"{str(value).replace('-', '')[4:6]} is not a valid month.",
     )
 
 def dateDayIsValid():
     """Validate that in a monthyearday combination, the day is a valid day."""
     return make_validator(
-        lambda value: int(str(value)[6:]) in range(1, 32),
-        lambda value: f"{str(value)[6:]} is not a valid day.",
+        lambda value: int(str(value).replace('-', '')[6:]) in range(1, 32),
+        lambda value: f"{str(value).replace('-', '')[6:]} is not a valid day.",
     )
 
 
@@ -389,8 +389,8 @@ def olderThan(min_age):
 def dateYearIsLargerThan(year):
     """Validate that in a monthyear combination, the year is larger than the given year."""
     return make_validator(
-        lambda value: int(str(value)[:4]) > year,
-        lambda value: f"{str(value)[:4]} must be larger than year {year}.",
+        lambda value: int(str(value).replace('-', '')[:4]) > year,
+        lambda value: f"{str(value).replace('-', '')[:4]} must be larger than year {year}.",
     )
 
 
