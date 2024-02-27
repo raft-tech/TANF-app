@@ -95,7 +95,7 @@ class Common(Configuration):
     EMAIL_BACKEND = "tdpservice.email.backend.SendgridEmailBackend"
     EMAIL_HOST_USER = "no-reply@tanfdata.acf.hhs.gov"
     SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', None)
-    SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+    SENDGRID_SANDBOX_MODE_IN_DEBUG = True #False
 
     # Whether to use localstack in place of a live AWS S3 environment
     USE_LOCALSTACK = bool(strtobool(os.getenv("USE_LOCALSTACK", "no")))

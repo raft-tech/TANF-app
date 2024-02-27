@@ -23,3 +23,25 @@ def send_data_submitted_email(recipients, data_file, context, subject):
         email_context=context,
         text_message=text_message
     )
+
+def send_data_processed_email(recipients, data_file, context, subject):
+    """Send an email to a user when their data has been processed."""
+    template_path = EmailType.DATA_PROCESSED.value
+    text_message = 'Your data has been processed.'
+
+    # we need dfs.status, 
+    logger_context = {
+        'user_id': data_file.user.id,
+        'object_id': data_file.id,
+        'object_repr': f"Uploaded data file for quarter: {data_file.fiscal_year}"
+    }
+
+    log(f'Data file processed; emailing Data Analysts {recipients}', logger_context=logger_context)
+
+    automated_email(
+        email_path=template_path,
+        recipient_email=recipients,
+        subject=subject,
+        email_context=context,
+        text_message=text_message
+    )
