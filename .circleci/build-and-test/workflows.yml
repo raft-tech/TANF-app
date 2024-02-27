@@ -3,6 +3,8 @@
     when: << pipeline.parameters.build_and_test_all >>
     jobs:
       - secrets-check
+      - nightly-owasp-scan:
+          target_env: develop
       - test-backend:
           requires:
             - secrets-check      
@@ -54,8 +56,6 @@
     when: << pipeline.parameters.build_and_test_backend >>
     jobs:
       - secrets-check
-      - nightly-owasp-scan:
-          target_env: develop
       - test-backend:
           requires:
             - secrets-check
