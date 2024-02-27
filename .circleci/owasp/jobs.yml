@@ -110,3 +110,5 @@
             cf run-task tdp-backend-<< parameters.target_env >> \
               --command "$CMD" \
               --name nightly-owasp-scan
+
+            echo "What's next"
