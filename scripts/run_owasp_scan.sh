@@ -1,3 +1,5 @@
+app=${1}
+
 sleep 10
 # Construct the project slug from the current branch name and user
 PROJECT_SLUG=$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
@@ -23,5 +25,5 @@ CMD="python manage.py process_owasp_scan ${CMD_ARGS[@]} && echo 'goodbye'"
 echo $CMD
 
 # Submit a CF Task for execution that will run the necessary command
-cf run-task tdp-backend-<< parameters.target_env >> --command "$CMD" --name nightly-owasp-scan
+cf run-task $app --command "$CMD" --name nightly-owasp-scan
 # echo "hello"
