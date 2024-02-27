@@ -29,7 +29,7 @@ def send_data_processed_email(recipients, data_file, context, subject):
     template_path = EmailType.DATA_PROCESSED.value
     text_message = 'Your data has been processed.'
 
-    # we need dfs.status, 
+    # we need dfs.status,
     logger_context = {
         'user_id': data_file.user.id,
         'object_id': data_file.id,
