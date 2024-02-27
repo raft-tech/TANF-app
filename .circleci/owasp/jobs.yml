@@ -114,12 +114,12 @@
             echo $CMD
 
             echo "Starting ssh"
-            cf ssh tdp-backend-<< parameters.target_env >> --force-pseudo-tty
-            echo "Creating shell"
-            /tmp/lifecycle/shell
-            echo "Running process_wasp_scan"
-            python manage.py process_owasp_scan ${CMD_ARGS[@]}
-            echo "Done"
+            cf ssh tdp-backend-<< parameters.target_env >> -c "$CMD"
+            # echo "Creating shell"
+            # /tmp/lifecycle/shell
+            # echo "Running process_wasp_scan"
+            # python manage.py process_owasp_scan ${CMD_ARGS[@]}
+            # echo "Done"
 
             # Submit a CF Task for execution that will run the necessary command
             # cf run-task tdp-backend-<< parameters.target_env >> --command "$CMD" --name nightly-owasp-scan &
