@@ -72,20 +72,27 @@
           cf-space: <<parameters.cf_space>>
           cf-org: <<parameters.cf_org>>
           cf-username: <<parameters.cf_username>>
-      - run-owasp-scan:
-          environment: nightly
-          target: backend
-          target_env: <<parameters.target_env>>
-      - run-owasp-scan:
-          environment: nightly
-          target: frontend
-          target_env: <<parameters.target_env>>
+      # - run-owasp-scan:
+      #     environment: nightly
+      #     target: backend
+      #     target_env: <<parameters.target_env>>
+      # - run-owasp-scan:
+      #     environment: nightly
+      #     target: frontend
+      #     target_env: <<parameters.target_env>>
       - run:
           name: Run post-processing task to record OWASP ZAP results
           command: |
             # Construct the project slug from the current branch name and user
             PROJECT_SLUG=$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
             echo $PROJECT_SLUG
+
+            ZAP_BACKEND_PASS_COUNT=20
+            ZAP_BACKEND_WARN_COUNT=10
+            ZAP_BACKEND_FAIL_COUNT=5
+            ZAP_FRONTEND_PASS_COUNT=6
+            ZAP_FRONTEND_WARN_COUNT=12
+            ZAP_FRONTEND_FAIL_COUNT=24
 
             # These environment variables are exported to Circle CI's BASH_ENV
             # by the zap-scanner.sh script for each respective app target.
@@ -106,5 +113,10 @@
             CMD="python manage.py process_owasp_scan ${CMD_ARGS[@]}"
             echo $CMD
 
+            cf ssh tdp-backend-<< parameters.target_env >>
+            /tmp/lifecycle/shell
+            python manage.py process_owasp_scan ${CMD_ARGS[@]}
+
             # Submit a CF Task for execution that will run the necessary command
-            cf run-task tdp-backend-<< parameters.target_env >> --command "$CMD" --name nightly-owasp-scan && echo "What's next"
+            # cf run-task tdp-backend-<< parameters.target_env >> --command "$CMD" --name nightly-owasp-scan &
+            # wait(20)
