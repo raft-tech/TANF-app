@@ -114,7 +114,7 @@
             echo $CMD
 
             echo "Starting ssh"
-            cf ssh tdp-backend-<< parameters.target_env >> -c "$CMD"
+            cf ssh tdp-backend-<< parameters.target_env >> -c "/tmp/lifecycle/shell && $CMD"
             # echo "Creating shell"
             # /tmp/lifecycle/shell
             # echo "Running process_wasp_scan"
