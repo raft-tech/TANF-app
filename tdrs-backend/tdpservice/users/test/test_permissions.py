@@ -180,5 +180,4 @@ def test_digit_team_permissions(digit_team):
         'parsers.view_parsererror',
     }
     group_permissions = digit_team.get_group_permissions()
-    print(group_permissions)
     assert group_permissions == expected_permissions
