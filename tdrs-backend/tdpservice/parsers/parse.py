@@ -104,6 +104,7 @@ def bulk_create_records(unsaved_records, line_number, header_count, datafile, ba
                 created_objs = document.Django.model.objects.bulk_create(records)
                 num_elastic_records_created += document.update(created_objs)[0]
                 num_db_records_created += len(created_objs)
+            datafile.total_number_of_records_created += num_db_records_created
             if num_db_records_created != num_expected_db_records:
                 logger.error(f"Bulk Django record creation only created {num_db_records_created}/" +
                              f"{num_expected_db_records}!")
@@ -237,9 +238,11 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
         schema_manager = get_schema_manager(line, section, program_type)
 
         records = manager_parse_line(line, schema_manager, generate_error, is_encrypted)
+        num_records = len(records)
+        datafile.total_number_of_records += num_records
 
         record_number = 0
-        for i in range(len(records)):
+        for i in range(num_records):
             r = records[i]
             record_number += 1
             record, record_is_valid, record_errors = r
@@ -284,6 +287,8 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
         return errors
 
     bulk_create_errors(unsaved_parser_errors, num_errors, flush=True)
+
+    datafile.save()
 
     return errors
 
