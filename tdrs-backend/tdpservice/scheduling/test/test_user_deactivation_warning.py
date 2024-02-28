@@ -4,7 +4,7 @@ from django.utils import timezone
 import pytest
 import tdpservice
 from datetime import datetime, timedelta
-from tdpservice.scheduling.tasks import check_for_accounts_needing_deactivation_warning
+from tdpservice.email.tasks import check_for_accounts_needing_deactivation_warning
 from tdpservice.users.models import AccountApprovalStatusChoices
 
 import logging
