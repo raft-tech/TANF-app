@@ -151,7 +151,7 @@ class DataFile(FileRecord):
                                         blank=False,
                                         null=True
                                         )
-    
+
     total_number_of_records_in_file = models.IntegerField(null=True, blank=False, default=0)
     total_number_of_records_created = models.IntegerField(null=True, blank=False, default=0)
 
