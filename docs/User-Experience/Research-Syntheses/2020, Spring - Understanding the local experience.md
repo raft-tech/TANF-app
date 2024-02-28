@@ -82,7 +82,7 @@ Raw notes from interviews were synthesized in Mural with the OFA data division. 
 
 - We updated [our stakeholder map](https://github.com/HHS/TANF-app/blob/main/docs/Product-Strategy/Vision-and-Stakeholders.md ) and [user personas](https://github.com/HHS/TANF-app/blob/main/docs/User-Experience/Research-Syntheses/2020%2C%20Summer%20-%20Understanding%20Stakeholders%20and%20creating%20personas.md ).
 - We [created an updated process map](https://app.mural.co/t/hhsacf3483/m/officeoffamilyassistance2744/1608314993566/5724cd3c3e5e964ab9c85743e5b8e1d89c767788?sender=mreiter1745) to show how STTs submit data to OFA.
-- Research findings contributed to [our roadmap and initial backlog](https://github.com/HHS/TANF-app/wiki/Roadmap-and-backlog).
+- Research findings contributed to [our roadmap and initial backlog](https://github.com/HHS/TANF-app/blob/main/docs/Product-Strategy/README.md).
 
 ## About the data submission process
 
