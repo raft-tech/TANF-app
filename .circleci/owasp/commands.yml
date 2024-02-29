@@ -24,7 +24,7 @@
       - store_artifacts:
           path: tdrs-<<parameters.target>>/reports/owasp_report.html
 
-  run-owasp-scan:
+  backend-scan:
     description: Runs OWASP ZAP scanner and stores resulting artifacts.
     parameters:
       environment:
@@ -65,6 +65,7 @@
           command: ./scripts/zap-scanner.sh frontend <<parameters.environment>> <<parameters.target_env>>
       - store_artifacts:
           path: tdrs-<<parameters.target>>/reports/owasp_report.html
+
   docker-compose-up-frontend:
     steps:
       - run:
