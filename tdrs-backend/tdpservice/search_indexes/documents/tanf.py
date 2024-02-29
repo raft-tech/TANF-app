@@ -3,6 +3,7 @@
 from django_elasticsearch_dsl.registries import registry
 from ..models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5, TANF_T6, TANF_T7
 from .document_base import DocumentBase
+from django.conf import settings
 
 @registry.register_document
 class TANF_T1DataSubmissionDocument(DocumentBase):
@@ -11,7 +12,7 @@ class TANF_T1DataSubmissionDocument(DocumentBase):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = 'tanf_t1_submissions'
+        name = f"{settings.APP_NAME}_tanf_t1_submissions"
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
