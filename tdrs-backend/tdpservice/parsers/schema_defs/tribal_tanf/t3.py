@@ -12,7 +12,6 @@ child_one = RowSchema(
     document=Tribal_TANF_T3DataSubmissionDocument(),
     preparsing_validators=[
         validators.notEmpty(start=19, end=60),   
-        validators.isLargerThan(0), isLessThan(61),
     ],
     postparsing_validators=[
         validators.if_then_validator(
@@ -317,10 +316,6 @@ child_two = RowSchema(
     quiet_preparser_errors=True,
     preparsing_validators=[
         validators.notEmpty(start=60, end=101),
-        # check for zero filled fields
-        # problem is sometimes after the first child, the fields are zero filled
-        # second idea: sum(000001000000) <= 1 
-        # isLargerThanandEqual(101) and isLessThan(156),
     ],
     postparsing_validators=[
         validators.if_then_validator(
