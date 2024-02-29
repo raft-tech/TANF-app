@@ -1368,7 +1368,7 @@ def test_parse_tribal_section_4_file(tribal_section_4_file, dfs):
     tribal_section_4_file.quarter = 'Q1'
 
     dfs.datafile = tribal_section_4_file
-    
+
     parse.parse_datafile(tribal_section_4_file, dfs)
 
     dfs.status = dfs.get_status()
