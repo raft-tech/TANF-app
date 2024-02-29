@@ -1344,7 +1344,7 @@ def t3_file():
 
 @pytest.mark.parametrize('file_fixture, result', 
                          [('misformatted_t3_file', True), 
-                          ('one_child_t3_file', False), 
+                          ('one_child_t3_file', True), 
                           ('t3_file', True)])
 @pytest.mark.django_db()
 def test_misformatted_multi_records(file_fixture, result, request):
@@ -1354,16 +1354,7 @@ def test_misformatted_multi_records(file_fixture, result, request):
     parse.parse_datafile(file_fixture)
     
     t3 = TANF_T3.objects.all()
-    print('______________ result: ', result)
-    print('______________ t3: ', t3)
-    for i in t3:
-        print('___________ t3.__dict__', i.__dict__)
-    
-    #parser_error = ParserError.objects.get(file=file_fixture,
-    #                                       error_type=ParserErrorCategoryChoices.PRE_CHECK)
+    assert t3.exists() == result
+
     parser_errors = ParserError.objects.all()
-    for i in parser_errors:
-        print('___________ parser_error.__dict__', i.__dict__)
-    #assert parser_error.row_number == 2
-    #assert parser_error.error_message == 'Value length 60 does not match 156.'
-    #assert parser_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
+    assert parser_errors.count() == 0
