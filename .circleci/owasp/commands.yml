@@ -43,7 +43,7 @@
           no_output_timeout: 60m
           command: ./scripts/zap-scanner.sh backend <<parameters.environment>> <<parameters.target_env>>
       - store_artifacts:
-          path: tdrs-<<parameters.target>>/reports/owasp_report.html
+          path: tdrs-backend/reports/owasp_report.html
 
   frontend-scan:
     description: Runs OWASP ZAP scanner and stores resulting artifacts.
@@ -64,7 +64,7 @@
           no_output_timeout: 60m
           command: ./scripts/zap-scanner.sh frontend <<parameters.environment>> <<parameters.target_env>>
       - store_artifacts:
-          path: tdrs-<<parameters.target>>/reports/owasp_report.html
+          path: tdrs-frontend/reports/owasp_report.html
 
   docker-compose-up-frontend:
     steps:
