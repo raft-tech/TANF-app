@@ -1443,7 +1443,7 @@ def test_parse_tanf_section4_file_with_errors(tanf_section_4_file_with_errors, d
     """Test parsing TANF Section 4 submission."""
     dfs.datafile = tanf_section_4_file_with_errors
 
-    parse.parse_datafile(tanf_section_4_file_with_errors)
+    parse.parse_datafile(tanf_section_4_file_with_errors, dfs)
 
     dfs.status = dfs.get_status()
     dfs.case_aggregates = aggregates.total_errors_by_month(
