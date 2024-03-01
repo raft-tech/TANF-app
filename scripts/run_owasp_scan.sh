@@ -25,5 +25,5 @@ CMD="python manage.py process_owasp_scan ${CMD_ARGS[@]} && echo 'goodbye'"
 echo $CMD
 
 # Submit a CF Task for execution that will run the necessary command
-cf run-task $app --command "$CMD" --name nightly-owasp-scan
+cf run-task $app --command "$CMD" --name nightly-owasp-scan --wait
 # echo "hello"
