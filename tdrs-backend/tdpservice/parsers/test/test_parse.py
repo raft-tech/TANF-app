@@ -1046,6 +1046,44 @@ def test_parse_tanf_section4_file(tanf_section4_file, dfs):
     assert first.FAMILIES_MONTH == 274
     assert sixth.FAMILIES_MONTH == 499
 
+
+@pytest.fixture
+def bad_tanf_section4_file(stt_user, stt):
+    """Fixture for ADS.E2J.FTP4.TS06."""
+    return util.create_test_datafile('bad_tanf_section_4.txt', stt_user, stt, "Stratum Data")
+
+
+@pytest.mark.django_db()
+def test_parse_bad_tanf_section4_file(bad_tanf_section4_file, dfs):
+    """Test parsing TANF Section 4 submission when no records are created."""
+    bad_tanf_section4_file.year = 2021
+    bad_tanf_section4_file.quarter = 'Q1'
+
+    dfs.datafile = bad_tanf_section4_file
+
+    parse.parse_datafile(bad_tanf_section4_file, dfs)
+
+    dfs.status = dfs.get_status()
+    dfs.case_aggregates = aggregates.total_errors_by_month(dfs.datafile, dfs.status)
+
+    assert dfs.case_aggregates == {'months': [
+        {'month': 'Oct', 'total_errors': 'N/A'}, 
+        {'month': 'Nov', 'total_errors': 'N/A'}, 
+        {'month': 'Dec', 'total_errors': 'N/A'}
+    ]}
+
+    assert dfs.get_status() == DataFileSummary.Status.REJECTED
+
+    assert TANF_T7.objects.all().count() == 0
+
+    parser_errors = ParserError.objects.filter(file=bad_tanf_section4_file)
+    assert parser_errors.count() == 1
+
+    error = parser_errors.first()
+    error.error_message == "Value length 151 does not match 247."
+    error.error_type == ParserErrorCategoryChoices.PRE_CHECK
+
+
 @pytest.fixture
 def ssp_section4_file(stt_user, stt):
     """Fixture for ADS.E2J.NDM4.MS24."""
