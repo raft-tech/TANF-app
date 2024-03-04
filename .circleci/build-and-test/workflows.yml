@@ -22,15 +22,15 @@
                 - main
                 - master
                 - /^release.*/
-      # - test-backend:
-      #     filters:
-      #       branches:
-      #         only:
-      #           - main
-      #           - master
-      #           - /^release.*/
-      #     requires:
-      #       - secrets-check      
+      - test-backend:
+          filters:
+            branches:
+              only:
+                - main
+                - master
+                - /^release.*/
+          requires:
+            - secrets-check      
       - test-frontend:
           filters:
             branches:
@@ -40,15 +40,15 @@
                 - /^release.*/
           requires:
             - secrets-check
-      # - test-e2e:
-      #     filters:
-      #       branches:
-      #         only:
-      #           - main
-      #           - master
-      #           - /^release.*/
-      #     requires:
-      #       - secrets-check
+      - test-e2e:
+          filters:
+            branches:
+              only:
+                - main
+                - master
+                - /^release.*/
+          requires:
+            - secrets-check
 
   build-and-test-backend:
     when: << pipeline.parameters.build_and_test_backend >>
