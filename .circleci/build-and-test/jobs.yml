@@ -31,15 +31,23 @@
           command: cd tdrs-frontend; npm run lint
       - run:
           name: Run Pa11y Accessibility Tests
-          command: cd tdrs-frontend; mkdir pa11y-screenshots/; npm run test:accessibility
+          command: cd tdrs-frontend; mkdir pa11y-screenshots/; echo $NODE_OPTIONS; npm run test:accessibility
+          environment:
+            NODE_OPTIONS: --openssl-legacy-provider
       - run:
           name: Run Jest Unit Tests
           command: cd tdrs-frontend; npm run test:ci
+          environment:
+            NODE_OPTIONS: --openssl-legacy-provider
       - upload-codecov:
           component: frontend
           coverage-report: ./tdrs-frontend/coverage/lcov.info
+          environment:
+            NODE_OPTIONS: --openssl-legacy-provider
       - store_artifacts:
           path: tdrs-frontend/pa11y-screenshots/
+          environment:
+            NODE_OPTIONS: --openssl-legacy-provider
 
   test-e2e:
     executor: large-machine-executor
