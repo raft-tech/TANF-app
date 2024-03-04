@@ -15,6 +15,7 @@ m5 = SchemaManager(
             preparsing_validators=[
                 validators.hasLength(66),
                 validators.field_year_month_with_header_year_quarter(),
+                validators.notEmpty(8, 19)
             ],
             postparsing_validators=[
                 validators.if_then_validator(
@@ -132,7 +133,7 @@ m5 = SchemaManager(
                     startIndex=8,
                     endIndex=19,
                     required=True,
-                    validators=[validators.isAlphaNumeric()],
+                    validators=[validators.notEmpty()],
                 ),
                 Field(
                     item="13",
@@ -166,7 +167,7 @@ m5 = SchemaManager(
                     startIndex=28,
                     endIndex=37,
                     required=True,
-                    validators=[validators.validateSSN()],
+                    validators=[validators.isNumber()],
                     is_encrypted=False,
                 ),
                 Field(
