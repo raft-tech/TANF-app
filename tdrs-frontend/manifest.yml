@@ -6,6 +6,8 @@ applications:
   instances: 1
   disk_quota: 256M
   timeout: 180
+  env:
+    NODE_OPTIONS: --openssl-legacy-provider
   docker:
     image: ((docker-frontend))
 
