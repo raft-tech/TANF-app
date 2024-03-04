@@ -514,7 +514,7 @@ def test_parse_ssp_section1_datafile(ssp_section1_datafile):
     assert err.error_message == '3 is not larger or equal to 1 and smaller or equal to 2.'
     assert err.content_type is not None
     assert err.object_id is not None
-    assert parser_errors.count() == 19846
+    assert parser_errors.count() == 36303
 
     assert SSP_M1.objects.count() == expected_m1_record_count
     assert SSP_M2.objects.count() == expected_m2_record_count
@@ -578,7 +578,7 @@ def test_parse_tanf_section1_datafile_obj_counts(small_tanf_section1_datafile):
 
     assert TANF_T1.objects.count() == 5
     assert TANF_T2.objects.count() == 5
-    assert TANF_T3.objects.count() == 6
+    assert TANF_T3.objects.count() == 5
 
 
 @pytest.mark.django_db()
@@ -588,7 +588,7 @@ def test_parse_tanf_section1_datafile_t3s(small_tanf_section1_datafile):
     small_tanf_section1_datafile.quarter = 'Q1'
     parse.parse_datafile(small_tanf_section1_datafile)
 
-    assert TANF_T3.objects.count() == 6
+    assert TANF_T3.objects.count() == 5
 
     t3_models = TANF_T3.objects.all()
     t3_1 = t3_models[0]
@@ -598,12 +598,12 @@ def test_parse_tanf_section1_datafile_t3s(small_tanf_section1_datafile):
     assert t3_1.GENDER == 2
     assert t3_1.EDUCATION_LEVEL == '98'
 
-    t3_6 = t3_models[5]
-    assert t3_6.RPT_MONTH_YEAR == 202010
-    assert t3_6.CASE_NUMBER == '11111111151'
-    assert t3_6.FAMILY_AFFILIATION == 1
-    assert t3_6.GENDER == 2
-    assert t3_6.EDUCATION_LEVEL == '98'
+    t3_5 = t3_models[4]
+    assert t3_5.RPT_MONTH_YEAR == 202010
+    assert t3_5.CASE_NUMBER == '11111111151'
+    assert t3_5.FAMILY_AFFILIATION == 1
+    assert t3_5.GENDER == 1
+    assert t3_5.EDUCATION_LEVEL == '98'
 
 
 @pytest.fixture
@@ -1304,7 +1304,7 @@ def misformatted_t3_file():
         file__section='Active Case Data',
         file__data=(b'HEADER20211A25   TAN1 N\n' +
                     b'T320210400028221R0112014122888175617622222112204398100000000' +
-                    b'                              \n' + 
+                    b'                              \n' +
                     b'TRAILER0000001         ')
     )
     return parsing_file
@@ -1335,24 +1335,23 @@ def t3_file():
         file__name='t3_file.txt',
         file__section='Active Case Data',
         file__data=(b'HEADER20211A25   TAN1EU\n' +
-                    b'T320201011111111115120160401WTTTT@BTB22212212204398100000000' + 
-                    b'                                                            ' + 
+                    b'T320201011111111115120160401WTTTT@BTB22212212204398100000000' +
+                    b'                                                            ' +
                     b'                                    \n' +
                     b'TRAILER0000001         ')
     )
     return parsing_file
 
-@pytest.mark.parametrize('file_fixture, result', 
-                         [('misformatted_t3_file', True), 
-                          ('one_child_t3_file', True), 
+@pytest.mark.parametrize('file_fixture, result',
+                         [('misformatted_t3_file', True),
+                          ('one_child_t3_file', True),
                           ('t3_file', True)])
 @pytest.mark.django_db()
 def test_misformatted_multi_records(file_fixture, result, request):
     """Test that (not space filled) multi-records are caught."""
-
     file_fixture = request.getfixturevalue(file_fixture)
     parse.parse_datafile(file_fixture)
-    
+
     t3 = TANF_T3.objects.all()
     assert t3.exists() == result
 

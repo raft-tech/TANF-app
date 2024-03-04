@@ -11,7 +11,7 @@ from tdpservice.search_indexes.documents.tribal import Tribal_TANF_T3DataSubmiss
 child_one = RowSchema(
     document=Tribal_TANF_T3DataSubmissionDocument(),
     preparsing_validators=[
-        validators.notEmpty(start=19, end=60),   
+        validators.notEmpty(start=19, end=60),
     ],
     postparsing_validators=[
         validators.if_then_validator(
