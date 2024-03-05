@@ -46,8 +46,18 @@ def set_digit_team_permissions(apps, schema_editor):
     # Clear existing permissions that may be set so we can ensure pristine state
     digit.permissions.clear()
 
-    # Assign correct permissions
+    # Assign model permissions
     digit.permissions.add(*datafile_permissions, *datafile_summary_permissions, *parser_error_permissions)
+
+    model_sub_names = ["tanf_t", "tribal_tanf_t", "ssp_m"]
+    models = [name + str(i) for name in model_sub_names for i in range(1, 8)]
+    for model_name in models:
+        model_permissions = get_permission_ids_for_model(
+            'search_indexes',
+            model_name,
+            filters=[view_permissions_q]
+        )
+        digit.permissions.add(*model_permissions)
 
 
 def unset_digit_team_permissions(apps, schema_editor):
