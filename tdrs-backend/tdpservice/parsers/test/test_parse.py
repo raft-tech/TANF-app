@@ -1067,8 +1067,8 @@ def test_parse_bad_tanf_section4_file(bad_tanf_section4_file, dfs):
     dfs.case_aggregates = aggregates.total_errors_by_month(dfs.datafile, dfs.status)
 
     assert dfs.case_aggregates == {'months': [
-        {'month': 'Oct', 'total_errors': 'N/A'}, 
-        {'month': 'Nov', 'total_errors': 'N/A'}, 
+        {'month': 'Oct', 'total_errors': 'N/A'},
+        {'month': 'Nov', 'total_errors': 'N/A'},
         {'month': 'Dec', 'total_errors': 'N/A'}
     ]}
 
