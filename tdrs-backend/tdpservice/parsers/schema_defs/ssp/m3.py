@@ -320,6 +320,7 @@ second_part_schema = RowSchema(
     quiet_preparser_errors=True,
     preparsing_validators=[
         validators.notEmpty(start=60, end=101),
+        validators.field_year_month_with_header_year_quarter(),
         validators.notEmpty(8, 19)
     ],
     postparsing_validators=[
