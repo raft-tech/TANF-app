@@ -406,7 +406,9 @@ def validateRace():
 def validateRptMonthYear():
     """Validate RPT_MONTH_YEAR."""
     return make_validator(
-        lambda value: value[2:8].isdigit(),
+        lambda value: value[2:8].isdigit() and int(value[2:6]) > 1900 and value[6:8] in {"01", "02", "03", "04", "05",
+                                                                                         "06", "07", "08", "09", "10",
+                                                                                         "11", "12"},
         lambda value: f"The value: {value[2:8]}, does not follow the YYYYMM format for Reporting Year and Month.",
     )
 

@@ -153,6 +153,16 @@ def test_validateRptMonthYear():
     result = val(value)
     assert result == (False, f"The value: {value[2:8]}, does not follow the YYYYMM format for Reporting Year and "
                       "Month.")
+    
+    value = "T1189912"
+    result = val(value)
+    assert result == (False, f"The value: {value[2:8]}, does not follow the YYYYMM format for Reporting Year and "
+                      "Month.")
+    
+    value = "T1202013"
+    result = val(value)
+    assert result == (False, f"The value: {value[2:8]}, does not follow the YYYYMM format for Reporting Year and "
+                      "Month.")
 
 def test_matches_returns_valid():
     """Test `matches` gives a valid result."""
