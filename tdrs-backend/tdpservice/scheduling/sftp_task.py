@@ -50,61 +50,70 @@ def upload(data_file_pk,
         except IOError:
             sftp_server.mkdir(directory_name)  # Create remote_path
             sftp_server.chdir(directory_name)
+    for attempt in range (3):
+        logger.info('Attempt {} to upload file {}'.format(attempt, data_file.filename))
+        try:
+            # Create directory names for ACF titan
+            destination = str(data_file.filename)
+            today_date = datetime.datetime.today()
+            upper_directory_name = today_date.strftime('%Y%m%d')
+            lower_directory_name = today_date.strftime(str(data_file.year) + '-' + str(data_file.quarter))
 
-    try:
-        # Create directory names for ACF titan
-        destination = str(data_file.filename)
-        today_date = datetime.datetime.today()
-        upper_directory_name = today_date.strftime('%Y%m%d')
-        lower_directory_name = today_date.strftime(str(data_file.year) + '-' + str(data_file.quarter))
+            # Paramiko need local file
+            paramiko_local_file = data_file.file.read()
+            with open(destination, 'wb') as f1:
+                f1.write(paramiko_local_file)
+                file_transfer_record.file_size = f1.tell()
+                file_transfer_record.file_shasum = hashlib.sha256(paramiko_local_file).hexdigest()
+                f1.close()
 
-        # Paramiko need local file
-        paramiko_local_file = data_file.file.read()
-        with open(destination, 'wb') as f1:
-            f1.write(paramiko_local_file)
-            file_transfer_record.file_size = f1.tell()
-            file_transfer_record.file_shasum = hashlib.sha256(paramiko_local_file).hexdigest()
-            f1.close()
+            # Paramiko SSH connection requires private key as file
+            temp_key_file = write_key_to_file(local_key)
+            os.chmod(temp_key_file, 0o600)
 
-        # Paramiko SSH connection requires private key as file
-        temp_key_file = write_key_to_file(local_key)
-        os.chmod(temp_key_file, 0o600)
+            # Create SFTP/SSH connection
+            transport = paramiko.SSHClient()
+            transport.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            pkey = paramiko.RSAKey.from_private_key_file(temp_key_file)
+            transport.connect(server_address,
+                            pkey=pkey,
+                            username=username,
+                            port=port,
+                            look_for_keys=False,
+                            banner_timeout=30,
+                            disabled_algorithms={'pubkeys': ['rsa-sha2-512', 'rsa-sha2-256']})
+            # remove temp key file
+            os.remove(temp_key_file)
+            sftp = transport.open_sftp()
 
-        # Create SFTP/SSH connection
-        transport = paramiko.SSHClient()
-        transport.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        pkey = paramiko.RSAKey.from_private_key_file(temp_key_file)
-        transport.connect(server_address,
-                          pkey=pkey,
-                          username=username,
-                          port=port,
-                          look_for_keys=False,
-                          banner_timeout=30,
-                          disabled_algorithms={'pubkeys': ['rsa-sha2-512', 'rsa-sha2-256']})
-        # remove temp key file
-        os.remove(temp_key_file)
-        sftp = transport.open_sftp()
+            # Create remote directory
+            create_dir(settings.ACFTITAN_DIRECTORY, sftp_server=sftp)
+            create_dir(upper_directory_name, sftp_server=sftp)
+            create_dir(lower_directory_name, sftp_server=sftp)
 
-        # Create remote directory
-        create_dir(settings.ACFTITAN_DIRECTORY, sftp_server=sftp)
-        create_dir(upper_directory_name, sftp_server=sftp)
-        create_dir(lower_directory_name, sftp_server=sftp)
+            # Put the file in SFTP server
+            sftp.put(destination, destination)
 
-        # Put the file in SFTP server
-        sftp.put(destination, destination)
+            # Delete temp file
+            os.remove(destination)
+            logger.info('File {} has been successfully uploaded to {}'.format(destination, server_address))
 
-        # Delete temp file
-        os.remove(destination)
-        logger.info('File {} has been successfully uploaded to {}'.format(destination, server_address))
+            # Add the log LegacyFileTransfer
+            file_transfer_record.result = LegacyFileTransfer.Result.COMPLETED
+            file_transfer_record.save()
+            transport.close()
+            return True
 
-        # Add the log LegacyFileTransfer
-        file_transfer_record.result = LegacyFileTransfer.Result.COMPLETED
-        file_transfer_record.save()
-        transport.close()
-        return True
-
-    except Exception as e:
-        logger.error('Failed to upload {} with error:{}'.format(destination, e))
+        except Exception as e:
+            logger.error('Attempt {} failed to upload {} with error:{}'.format(attempt, destination, e))
+            transport.close()
+            return False
+        else:
+            # Attempt was successful
+            break
+    else:
+        # All attempts failed
+        logger.error('Failed to upload {} after 3 attempts'.format(destination))
         file_transfer_record.file_size = 0
         file_transfer_record.result = LegacyFileTransfer.Result.ERROR
         file_transfer_record.save()
