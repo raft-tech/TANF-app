@@ -1,5 +1,7 @@
 """schedule tasks."""
+
 from __future__ import absolute_import
+
 # The tasks
 
 import hashlib
@@ -16,12 +18,13 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(acks_late=True, worker_prefetch_multiplier=1)
-def upload(data_file_pk,
-           server_address=settings.ACFTITAN_SERVER_ADDRESS,
-           local_key=settings.ACFTITAN_LOCAL_KEY,
-           username=settings.ACFTITAN_USERNAME,
-           port=22
-           ):
+def upload(
+    data_file_pk,
+    server_address=settings.ACFTITAN_SERVER_ADDRESS,
+    local_key=settings.ACFTITAN_LOCAL_KEY,
+    username=settings.ACFTITAN_USERNAME,
+    port=22,
+):
     """
     Upload to SFTP server.
 
@@ -33,15 +36,15 @@ def upload(data_file_pk,
     file_transfer_record = LegacyFileTransfer(
         data_file=data_file,
         uploaded_by=data_file.user,
-        file_name=data_file.filename if data_file.filename is not None else 'None',
+        file_name=data_file.filename if data_file.filename is not None else "None",
     )
 
     def write_key_to_file(private_key):
         """Paramiko require the key in file object format."""
-        with open('temp_key_file', 'w') as f:
+        with open("temp_key_file", "w") as f:
             f.write(private_key)
             f.close()
-        return 'temp_key_file'
+        return "temp_key_file"
 
     def create_dir(directory_name, sftp_server):
         """Code snippet to create directory in SFTP server."""
@@ -50,21 +53,26 @@ def upload(data_file_pk,
         except IOError:
             sftp_server.mkdir(directory_name)  # Create remote_path
             sftp_server.chdir(directory_name)
-    for attempt in range (3):
-        logger.info('Attempt {} to upload file {}'.format(attempt, data_file.filename))
+
+    for attempt in range(3):
+        logger.info("Attempt {} to upload file {}".format(attempt, data_file.filename))
         try:
             # Create directory names for ACF titan
             destination = str(data_file.filename)
             today_date = datetime.datetime.today()
-            upper_directory_name = today_date.strftime('%Y%m%d')
-            lower_directory_name = today_date.strftime(str(data_file.year) + '-' + str(data_file.quarter))
+            upper_directory_name = today_date.strftime("%Y%m%d")
+            lower_directory_name = today_date.strftime(
+                str(data_file.year) + "-" + str(data_file.quarter)
+            )
 
             # Paramiko need local file
             paramiko_local_file = data_file.file.read()
-            with open(destination, 'wb') as f1:
+            with open(destination, "wb") as f1:
                 f1.write(paramiko_local_file)
                 file_transfer_record.file_size = f1.tell()
-                file_transfer_record.file_shasum = hashlib.sha256(paramiko_local_file).hexdigest()
+                file_transfer_record.file_shasum = hashlib.sha256(
+                    paramiko_local_file
+                ).hexdigest()
                 f1.close()
 
             # Paramiko SSH connection requires private key as file
@@ -75,13 +83,15 @@ def upload(data_file_pk,
             transport = paramiko.SSHClient()
             transport.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             pkey = paramiko.RSAKey.from_private_key_file(temp_key_file)
-            transport.connect(server_address,
-                            pkey=pkey,
-                            username=username,
-                            port=port,
-                            look_for_keys=False,
-                            banner_timeout=30,
-                            disabled_algorithms={'pubkeys': ['rsa-sha2-512', 'rsa-sha2-256']})
+            transport.connect(
+                server_address,
+                pkey=pkey,
+                username=username,
+                port=port,
+                look_for_keys=False,
+                banner_timeout=30,
+                disabled_algorithms={"pubkeys": ["rsa-sha2-512", "rsa-sha2-256"]},
+            )
             # remove temp key file
             os.remove(temp_key_file)
             sftp = transport.open_sftp()
@@ -96,7 +106,11 @@ def upload(data_file_pk,
 
             # Delete temp file
             os.remove(destination)
-            logger.info('File {} has been successfully uploaded to {}'.format(destination, server_address))
+            logger.info(
+                "File {} has been successfully uploaded to {}".format(
+                    destination, server_address
+                )
+            )
 
             # Add the log LegacyFileTransfer
             file_transfer_record.result = LegacyFileTransfer.Result.COMPLETED
@@ -105,7 +119,11 @@ def upload(data_file_pk,
             return True
 
         except Exception as e:
-            logger.error('Attempt {} failed to upload {} with error:{}'.format(attempt, destination, e))
+            logger.error(
+                "Attempt {} failed to upload {} with error:{}".format(
+                    attempt, destination, e
+                )
+            )
             transport.close()
             return False
         else:
@@ -113,7 +131,7 @@ def upload(data_file_pk,
             break
     else:
         # All attempts failed
-        logger.error('Failed to upload {} after 3 attempts'.format(destination))
+        logger.error("Failed to upload {} after 3 attempts".format(destination))
         file_transfer_record.file_size = 0
         file_transfer_record.result = LegacyFileTransfer.Result.ERROR
         file_transfer_record.save()
