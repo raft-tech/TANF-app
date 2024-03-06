@@ -100,7 +100,7 @@ update_kibana()
   cd tdrs-backend || exit
 
   # Run template evaluation on manifest
-  yq eval -i ".applications[0].services[0] = \"es-${backend_app_name}\""  manifest.proxy.yml
+  yq eval -i ".applications[0].services[0] = \"es-${env}\""  manifest.proxy.yml
   yq eval -i ".applications[0].env.CGAPPNAME_PROXY = \"${CGAPPNAME_PROXY}\""  manifest.kibana.yml
 
   if [ "$1" = "rolling" ] ; then
