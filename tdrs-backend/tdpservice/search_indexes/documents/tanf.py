@@ -12,7 +12,7 @@ class TANF_T1DataSubmissionDocument(DocumentBase):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f"{settings.APP_NAME}_tanf_t1_submissions"
+        name = f'{settings.ELASTIC_INDEX_PREFIX}tanf_t1_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
@@ -78,7 +78,7 @@ class TANF_T2DataSubmissionDocument(DocumentBase):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = 'tanf_t2_submissions'
+        name = f'{settings.ELASTIC_INDEX_PREFIX}tanf_t2_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
@@ -168,7 +168,7 @@ class TANF_T3DataSubmissionDocument(DocumentBase):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = 'tanf_t3_submissions'
+        name = f'{settings.ELASTIC_INDEX_PREFIX}tanf_t3_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
@@ -210,7 +210,7 @@ class TANF_T4DataSubmissionDocument(DocumentBase):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = 'tanf_t4_submissions'
+        name = f'{settings.ELASTIC_INDEX_PREFIX}tanf_t4_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
@@ -243,7 +243,7 @@ class TANF_T5DataSubmissionDocument(DocumentBase):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = 'tanf_t5_submissions'
+        name = f'{settings.ELASTIC_INDEX_PREFIX}tanf_t5_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
@@ -293,7 +293,7 @@ class TANF_T6DataSubmissionDocument(DocumentBase):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = 'tanf_t6_submissions'
+        name = f'{settings.ELASTIC_INDEX_PREFIX}tanf_t6_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
@@ -332,7 +332,7 @@ class TANF_T7DataSubmissionDocument(DocumentBase):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = 'tanf_t7_submissions'
+        name = f'{settings.ELASTIC_INDEX_PREFIX}tanf_t7_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,

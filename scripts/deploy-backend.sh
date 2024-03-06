@@ -104,25 +104,25 @@ update_kibana()
   yq eval -i ".applications[0].env.CGAPPNAME_PROXY = \"${CGAPPNAME_PROXY}\""  manifest.kibana.yml
 
   if [ "$1" = "rolling" ] ; then
-        # Do a zero downtime deploy.  This requires enough memory for
-        # two apps to exist in the org/space at one time.
-        cf push "$CGAPPNAME_PROXY" --no-route -f manifest.proxy.yml -t 180 --strategy rolling || exit 1
-        cf push "$CGAPPNAME_KIBANA" --no-route -f manifest.kibana.yml -t 180 --strategy rolling || exit 1
-    else
-        cf push "$CGAPPNAME_PROXY" --no-route -f manifest.proxy.yml -t 180
-        cf push "$CGAPPNAME_KIBANA" --no-route -f manifest.kibana.yml -t 180
-    fi
-    
-    cf map-route "$CGAPPNAME_PROXY" apps.internal --hostname "$CGAPPNAME_PROXY"
-    cf map-route "$CGAPPNAME_KIBANA" apps.internal --hostname "$CGAPPNAME_KIBANA"
+      # Do a zero downtime deploy.  This requires enough memory for
+      # two apps to exist in the org/space at one time.
+      cf push "$CGAPPNAME_PROXY" --no-route -f manifest.proxy.yml -t 180 --strategy rolling || exit 1
+      cf push "$CGAPPNAME_KIBANA" --no-route -f manifest.kibana.yml -t 180 --strategy rolling || exit 1
+  else
+      cf push "$CGAPPNAME_PROXY" --no-route -f manifest.proxy.yml -t 180
+      cf push "$CGAPPNAME_KIBANA" --no-route -f manifest.kibana.yml -t 180
+  fi
+  
+  cf map-route "$CGAPPNAME_PROXY" apps.internal --hostname "$CGAPPNAME_PROXY"
+  cf map-route "$CGAPPNAME_KIBANA" apps.internal --hostname "$CGAPPNAME_KIBANA"
 
-    # Add network policy allowing Kibana to talk to the proxy and to allow the backend to talk to Kibana
-    cf add-network-policy "$CGAPPNAME_KIBANA" "$CGAPPNAME_PROXY" --protocol tcp --port 8080
-    cf add-network-policy "$CGAPPNAME_BACKEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
-    cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
-    cf add-network-policy "$CGAPPNAME_KIBANA" "$CGAPPNAME_FRONTEND" --protocol tcp --port 80
+  # Add network policy allowing Kibana to talk to the proxy and to allow the backend to talk to Kibana
+  cf add-network-policy "$CGAPPNAME_KIBANA" "$CGAPPNAME_PROXY" --protocol tcp --port 8080
+  cf add-network-policy "$CGAPPNAME_BACKEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
+  cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
+  cf add-network-policy "$CGAPPNAME_KIBANA" "$CGAPPNAME_FRONTEND" --protocol tcp --port 80
 
-    cd ..
+  cd ..
 }
 
 update_backend()
@@ -183,8 +183,8 @@ bind_backend_to_services() {
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${env}"
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${env}"
     
-    # The below command is different because they cannot be shared like the 3 above services
-    cf bind-service "$CGAPPNAME_BACKEND" "es-${backend_app_name}"
+    # Setting up the ElasticSearch service
+    cf bind-service "$CGAPPNAME_BACKEND" "es-${env}"
     
     set_cf_envs
 
