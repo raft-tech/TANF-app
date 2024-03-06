@@ -57,7 +57,7 @@ class KibanaAuthorizationCheck(APIView):
 
     query_string = False
     pattern_name = "kibana-authorization-check"
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         """Handle get request and verify user is authorized to access kibana."""
