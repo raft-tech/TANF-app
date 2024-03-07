@@ -10,8 +10,8 @@ DEPLOY_STRATEGY=${1}
 #The application name  defined via the manifest yml for the frontend
 CGAPPNAME_FRONTEND=${2}
 CGAPPNAME_BACKEND=${3}
-CGAPPNAME_KIBANA=${4}
-CGAPPNAME_PROXY=${5}
+CGAPPNAME_KIBANA=${4} # tdp-kibana
+CGAPPNAME_PROXY=${5} # tdp-elastic-proxy
 CF_SPACE=${6}
 
 strip() {
@@ -23,8 +23,8 @@ env=$(strip $CF_SPACE "tanf-")
 backend_app_name=$(echo $CGAPPNAME_BACKEND | cut -d"-" -f3)
 
 # Update the Kibana and Elastic proxy names to include the environment
-CGAPPNAME_KIBANA="${CGAPPNAME_KIBANA}-${backend_app_name}"
-CGAPPNAME_PROXY="${CGAPPNAME_PROXY}-${backend_app_name}"
+CGAPPNAME_KIBANA="${CGAPPNAME_KIBANA}-${env}"
+CGAPPNAME_PROXY="${CGAPPNAME_PROXY}-${env}"
 
 echo DEPLOY_STRATEGY: "$DEPLOY_STRATEGY"
 echo BACKEND_HOST: "$CGAPPNAME_BACKEND"
@@ -100,6 +100,7 @@ update_kibana()
   cd tdrs-backend || exit
 
   # Run template evaluation on manifest
+  # 2814: need to update this and set it to env instaead of app name
   yq eval -i ".applications[0].services[0] = \"es-${env}\""  manifest.proxy.yml
   yq eval -i ".applications[0].env.CGAPPNAME_PROXY = \"${CGAPPNAME_PROXY}\""  manifest.kibana.yml
 
