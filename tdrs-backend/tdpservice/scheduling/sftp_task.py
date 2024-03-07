@@ -125,10 +125,6 @@ def upload(
                 )
             )
             transport.close()
-            return False
-        else:
-            # Attempt was successful
-            break
     else:
         # All attempts failed
         logger.error("Failed to upload {} after 3 attempts".format(destination))
