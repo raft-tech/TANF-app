@@ -270,7 +270,7 @@ t2 = SchemaManager(
                     type="number",
                     startIndex=44,
                     endIndex=45,
-                    required=False,
+                    required=True,
                     validators=[
                         validators.isLargerThanOrEqualTo(0),
                     ],
