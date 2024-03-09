@@ -221,7 +221,7 @@ child_one = RowSchema(
             type="number",
             startIndex=43,
             endIndex=44,
-            required=False,
+            required=True,
             validators=[validators.isInLimits(0, 9)],
         ),
         Field(
@@ -526,7 +526,7 @@ child_two = RowSchema(
             type="number",
             startIndex=84,
             endIndex=85,
-            required=False,
+            required=True,
             validators=[validators.isInLimits(0, 9)],
         ),
         Field(

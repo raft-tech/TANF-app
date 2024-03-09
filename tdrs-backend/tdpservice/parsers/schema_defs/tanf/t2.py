@@ -113,7 +113,7 @@ t2 = SchemaManager(
                     condition_function=validators.oneOf((1, 2)),
                     result_field="WORK_PART_STATUS",
                     result_function=validators.oneOf(
-                        ["01", "02", "05", "07", "09", "15", "17", "18", "19", "  "]
+                        ["01", "02", "05", "07", "09", "15", "17", "18", "19", "99"]
                     ),
                 ),
                 validators.if_then_validator(
