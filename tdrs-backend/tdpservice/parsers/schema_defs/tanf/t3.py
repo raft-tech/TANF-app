@@ -221,7 +221,7 @@ child_one = RowSchema(
             type="number",
             startIndex=43,
             endIndex=44,
-            required=False,
+            required=True,
             validators=[validators.isInLimits(0, 9)],
         ),
         Field(
