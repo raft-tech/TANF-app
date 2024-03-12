@@ -1234,3 +1234,8 @@ def test_is_quiet_preparser_errors():
     """Test is_quiet_preparser_errors."""
     assert validators.is_quiet_preparser_errors(2, 4, 6)("#######") is False
     assert validators.is_quiet_preparser_errors(2, 4, 6)("####1##") is True
+
+def test_t3_child_validator():
+    """Test t3_child_validator."""
+    assert validators.t3_child_validator(1)('4'*61) == (True, None)
+    assert validators.t3_child_validator(1)('12') == (False, '1st child record truncated.')

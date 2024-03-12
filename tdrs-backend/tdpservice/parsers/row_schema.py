@@ -44,9 +44,12 @@ class RowSchema:
 
         # run preparsing validators
         preparsing_is_valid, preparsing_errors = self.run_preparsing_validators(line, generate_error)
-
+        print('_____________type(self.quiet_preparser_errors',type(self.quiet_preparser_errors))
         if not preparsing_is_valid:
-            if self.quiet_preparser_errors:
+            is_quite_prepares_errors = self.quiet_preparser_errors if type(self.quiet_preparser_errors) == bool else self.quiet_preparser_errors(line)
+            print('_____________is_quite_prepares_errors:', is_quite_prepares_errors)
+
+            if is_quite_prepares_errors: # we have to check if this is a function or simply a boolean
                 return None, True, []
             logger.info(f"{len(preparsing_errors)} preparser error(s) encountered.")
             return None, False, preparsing_errors
