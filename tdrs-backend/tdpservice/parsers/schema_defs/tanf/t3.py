@@ -317,9 +317,7 @@ child_two = RowSchema(
     document=TANF_T3DataSubmissionDocument(),
     quiet_preparser_errors=validators.is_quiet_preparser_errors(101),
     preparsing_validators=[
-        validators.notEmpty(start=60, end=101),
-        validators.notEmpty(8, 19),
-        validators.hasLengthGreaterThan(101),
+        validators.t3_child_validator(101),
     ],
     # all conditions from first child should be met, otherwise we don't parse second child
     postparsing_validators=[
