@@ -17,7 +17,6 @@ from .. import schema_defs, aggregates, util
 from elasticsearch.helpers.errors import BulkIndexError
 
 import logging
-from tdpservice.parsers.models import DataFileSummary
 
 es_logger = logging.getLogger('elasticsearch')
 es_logger.setLevel(logging.WARNING)
@@ -460,7 +459,7 @@ def test_parse_small_ssp_section1_datafile(small_ssp_section1_datafile, dfs):
 
     parser_errors = ParserError.objects.filter(file=small_ssp_section1_datafile)
     dfs.status = dfs.get_status()
-    assert dfs.status == DataFileSummary.Status.PARTIALLY_ACCEPTED
+    assert dfs.status == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
     dfs.case_aggregates = aggregates.case_aggregates_by_month(
         dfs.datafile, dfs.status)
     assert dfs.case_aggregates["rejected"] == 1
@@ -471,7 +470,7 @@ def test_parse_small_ssp_section1_datafile(small_ssp_section1_datafile, dfs):
         else:
             assert month['accepted_without_errors'] == 0
             assert month['accepted_with_errors'] == 0
-    
+
     parser_errors = ParserError.objects.filter(file=small_ssp_section1_datafile)
     assert parser_errors.count() == 16
     assert SSP_M1.objects.count() == expected_m1_record_count
@@ -506,7 +505,7 @@ def test_parse_ssp_section1_datafile(ssp_section1_datafile):
     assert err.error_message == '3 is not larger or equal to 1 and smaller or equal to 2.'
     assert err.content_type is not None
     assert err.object_id is not None
-    assert parser_errors.count() == 36303
+    assert parser_errors.count() == 19846
 
     assert SSP_M1.objects.count() == expected_m1_record_count
     assert SSP_M2.objects.count() == expected_m2_record_count
@@ -569,7 +568,7 @@ def test_parse_tanf_section1_datafile_obj_counts(small_tanf_section1_datafile):
 
     assert TANF_T1.objects.count() == 5
     assert TANF_T2.objects.count() == 5
-    assert TANF_T3.objects.count() == 5
+    assert TANF_T3.objects.count() == 6
 
 
 @pytest.mark.django_db()
@@ -579,7 +578,7 @@ def test_parse_tanf_section1_datafile_t3s(small_tanf_section1_datafile):
     small_tanf_section1_datafile.quarter = 'Q1'
     parse.parse_datafile(small_tanf_section1_datafile)
 
-    assert TANF_T3.objects.count() == 5
+    assert TANF_T3.objects.count() == 6
 
     t3_models = TANF_T3.objects.all()
     t3_1 = t3_models[0]

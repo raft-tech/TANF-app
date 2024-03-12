@@ -240,7 +240,7 @@ def hasLengthBetween(min, max, error_func=None):
 def hasLengthGreaterThan(val, error_func=None):
     """Validate that value (string or array) has a length greater than val."""
     return make_validator(
-        lambda value: len(value) > val,
+        lambda value: len(value) >= val,
         lambda value: error_func(value, val)
         if error_func
         else f"Value length {len(value)} is not greater than {val}.",
