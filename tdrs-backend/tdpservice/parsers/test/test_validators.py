@@ -1229,3 +1229,8 @@ class TestM5Cat3Validators(TestCat3ValidatorsBase):
         assert result == (False, 'if FAMILY_AFFILIATION :1 validator1 passed then REC_FEDERAL_DISABILITY 0 is not ' +
                           'larger or equal to 1 and smaller or equal to 2.',
                           ['FAMILY_AFFILIATION', 'REC_FEDERAL_DISABILITY'])
+
+def test_is_quiet_preparser_errors():
+    """Test is_quiet_preparser_errors."""
+    assert validators.is_quiet_preparser_errors(2, 4, 6)("#######") is False
+    assert validators.is_quiet_preparser_errors(2, 4, 6)("####1##") is True

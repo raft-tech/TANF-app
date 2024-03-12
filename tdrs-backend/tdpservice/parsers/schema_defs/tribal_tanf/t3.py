@@ -313,10 +313,14 @@ child_one = RowSchema(
     ],
 )
 
+
+
 child_two = RowSchema(
     document=Tribal_TANF_T3DataSubmissionDocument(),
-    quiet_preparser_errors=True,
+    quiet_preparser_errors=True, 
+    # condition is length >= 101 (in fact need to write a custom validator for this condition to cover the custom error message)
     preparsing_validators=[
+        # need to combine all these pre-validators into one custom validator 
         validators.notEmpty(start=60, end=101),
         validators.hasLength(122),
         validators.notEmpty(8, 19)

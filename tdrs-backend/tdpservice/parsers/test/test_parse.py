@@ -17,6 +17,7 @@ from .. import schema_defs, aggregates, util
 from elasticsearch.helpers.errors import BulkIndexError
 
 import logging
+from tdpservice.parsers.models import DataFileSummary
 
 es_logger = logging.getLogger('elasticsearch')
 es_logger.setLevel(logging.WARNING)
@@ -459,9 +460,10 @@ def test_parse_small_ssp_section1_datafile(small_ssp_section1_datafile, dfs):
 
     parser_errors = ParserError.objects.filter(file=small_ssp_section1_datafile)
     dfs.status = dfs.get_status()
-    assert dfs.status == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
+    assert dfs.status == DataFileSummary.Status.PARTIALLY_ACCEPTED
     dfs.case_aggregates = aggregates.case_aggregates_by_month(
         dfs.datafile, dfs.status)
+    assert dfs.case_aggregates["rejected"] == 1
     for month in dfs.case_aggregates['months']:
         if month['month'] == 'Oct':
             assert month['accepted_without_errors'] == 0
@@ -469,13 +471,7 @@ def test_parse_small_ssp_section1_datafile(small_ssp_section1_datafile, dfs):
         else:
             assert month['accepted_without_errors'] == 0
             assert month['accepted_with_errors'] == 0
-    assert dfs.case_aggregates == {'rejected': 1,
-                                   'months': [
-                                       {'accepted_without_errors': 0, 'accepted_with_errors': 5, 'month': 'Oct'},
-                                       {'accepted_without_errors': 0, 'accepted_with_errors': 0, 'month': 'Nov'},
-                                       {'accepted_without_errors': 0, 'accepted_with_errors': 0, 'month': 'Dec'}
-                                    ]}
-
+    
     parser_errors = ParserError.objects.filter(file=small_ssp_section1_datafile)
     assert parser_errors.count() == 16
     assert SSP_M1.objects.count() == expected_m1_record_count

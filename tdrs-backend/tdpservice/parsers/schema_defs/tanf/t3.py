@@ -11,9 +11,8 @@ from tdpservice.search_indexes.documents.tanf import TANF_T3DataSubmissionDocume
 child_one = RowSchema(
     document=TANF_T3DataSubmissionDocument(),
     preparsing_validators=[
-        validators.notEmpty(start=19, end=60),
-        validators.hasLengthBetween(60, 156),
-        validators.notEmpty(8, 19)
+        validators.notEmpty(start=8, end=60),
+        validators.hasLengthGreaterThan(60),
     ],
     postparsing_validators=[
         validators.if_then_validator(
@@ -313,14 +312,16 @@ child_one = RowSchema(
     ],
 )
 
+
 child_two = RowSchema(
     document=TANF_T3DataSubmissionDocument(),
-    quiet_preparser_errors=True,
+    quiet_preparser_errors=validators.is_quiet_preparser_errors(101),
     preparsing_validators=[
         validators.notEmpty(start=60, end=101),
-        validators.hasLengthBetween(120, 156),
-        validators.notEmpty(8, 19)
+        validators.notEmpty(8, 19),
+        validators.hasLengthGreaterThan(101),
     ],
+    # all conditions from first child should be met, otherwise we don't parse second child
     postparsing_validators=[
         validators.if_then_validator(
             condition_field="FAMILY_AFFILIATION",
