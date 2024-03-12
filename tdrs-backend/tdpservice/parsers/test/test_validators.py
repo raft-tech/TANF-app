@@ -237,6 +237,26 @@ def test_hasLength_returns_invalid():
     assert is_valid is False
     assert error == 'Value length 7 does not match 22.'
 
+def test_hasLengthGreaterThan_returns_valid():
+    """Test `hasLengthGreaterThan` gives a valid result."""
+    value = 'abcd123'
+
+    validator = validators.hasLengthGreaterThan(6)
+    is_valid, error = validator(value)
+
+    assert is_valid is True
+    assert error is None
+
+def test_hasLengthGreaterThan_returns_invalid():
+    """Test `hasLengthGreaterThan` gives an invalid result."""
+    value = 'abcd123'
+
+    validator = validators.hasLengthGreaterThan(8)
+    is_valid, error = validator(value)
+
+    assert is_valid is False
+    assert error == 'Value length 7 is not greater than 8.'
+
 
 def test_contains_returns_valid():
     """Test `contains` gives a valid result."""

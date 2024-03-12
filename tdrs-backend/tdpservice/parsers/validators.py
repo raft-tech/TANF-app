@@ -228,14 +228,6 @@ def hasLength(length, error_func=None):
         else f"Value length {len(value)} does not match {length}.",
     )
 
-def hasLengthBetween(min, max, error_func=None):
-    """Validate that value (string or array) has a length between min and max."""
-    return make_validator(
-        lambda value: len(value) >= min and len(value) <= max,
-        lambda value: error_func(value, min, max)
-        if error_func
-        else f"Value length {len(value)} is not between {min} and {max}.",
-    )
 
 def hasLengthGreaterThan(val, error_func=None):
     """Validate that value (string or array) has a length greater than val."""
