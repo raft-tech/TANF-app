@@ -1,4 +1,4 @@
-#2023, Winter - TDP 3.0 Pilot Program
+# 2023, Winter - TDP 3.0 Pilot Program
 ===
 
 Following the [January 2023 research session](https://github.com/HHS/TANF-app/blob/main/docs/User-Experience/Research-Syntheses/2022%2C%20Winter%20-%20Understanding%20How%20STTs%20Would%20Use%20the%20Transmission%20Report%20copy.md) on error message handling and resolution, the team transitioned into supporting the February 2023 pilot expansion cohort. We learned the following key insights from participating states, tribes, and territories (STT) and TDP system admin:
