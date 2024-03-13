@@ -49,7 +49,7 @@ def t2_invalid_dob_file():
         file__name='t2_invalid_dob_file.txt',
         file__section='Active Case Data',
         file__data=(b'HEADER20211A25   TAN1EU\n'
-                    b'T22020101111111111212Q897$9 3WTTTTTY@W222122222222101221211001472201140000000000000000000000000'
+                    b'T22021031111111111212Q897$9 3WTTTTTY@W222122222222101221211001472201140000000000000000000000000'
                     b'0000000000000000000000000000000000000000000000000000000000291\n'
                     b'TRAILER0000001         ')
     )
@@ -337,7 +337,7 @@ def test_parse_bad_trailer_file(bad_trailer_file, dfs):
     errors = parse.parse_datafile(bad_trailer_file)
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file)
-    assert parser_errors.count() == 4
+    assert parser_errors.count() == 5
 
     trailer_error = parser_errors.get(row_number=3)
     assert trailer_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
@@ -389,7 +389,7 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
     errors = parse.parse_datafile(bad_trailer_file_2)
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file_2)
-    assert parser_errors.count() == 6
+    assert parser_errors.count() == 7
 
     trailer_errors = list(parser_errors.filter(row_number=3).order_by('id'))
 
@@ -422,7 +422,8 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
             'Reporting month year None does not match file reporting year:2021, quarter:Q1.',
             'T1trash does not start with TRAILER.',
             'Trailer length is 7 but must be 23 characters.',
-            'T1trash contains blanks between positions 8 and 19.']
+            'T1trash contains blanks between positions 8 and 19.',
+            'The value: trash, does not follow the YYYYMM format for Reporting Year and Month.']
         assert row_3_error.content_type is None
         assert row_3_error.object_id is None
 
@@ -453,22 +454,17 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2):
     assert error_trailer == [trailer_error_1, trailer_error_2]
     trailer_error_3 = trailer_errors[3]
     assert trailer_error_3.error_type == ParserErrorCategoryChoices.PRE_CHECK
-    assert trailer_error_3.error_message == ('The value: trash, does not follow the YYYYMM format for '
-                                             'Reporting Year and Month.')
+    assert trailer_error_3.error_message == 'Reporting month year None does not ' + \
+                                            'match file reporting year:2021, quarter:Q1.'
     assert trailer_error_3.content_type is None
     assert trailer_error_3.object_id is None
 
     trailer_error_4 = trailer_errors[4]
     assert trailer_error_4.error_type == ParserErrorCategoryChoices.PRE_CHECK
-    assert trailer_error_4.error_message == 'T1trash contains blanks between positions 8 and 19.'
+    assert trailer_error_4.error_message == 'The value: trash, does not follow the ' + \
+                                            'YYYYMM format for Reporting Year and Month.'
     assert trailer_error_4.content_type is None
     assert trailer_error_4.object_id is None
-
-    assert errors == {
-        "2_0": [row_2_error],
-        "3_0": [length_error, trailer_error_3, trailer_error_4],
-        "trailer": [trailer_error_1, trailer_error_2],
-    }
 
 @pytest.fixture
 def empty_file(stt_user, stt):
@@ -791,7 +787,7 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
     parser_errors = ParserError.objects.filter(
         file=bad_tanf_s1__row_missing_required_field)
 
-    assert parser_errors.count() == 4
+    assert parser_errors.count() == 7
 
     error_message = 'The value:       , does not follow the YYYYMM format for Reporting Year and Month.'
     row_2_error = parser_errors.get(row_number=2, error_message=error_message)
@@ -830,7 +826,7 @@ def test_parse_bad_ssp_s1_missing_required(bad_ssp_s1__row_missing_required_fiel
     parse.parse_datafile(bad_ssp_s1__row_missing_required_field)
 
     parser_errors = ParserError.objects.filter(file=bad_ssp_s1__row_missing_required_field)
-    assert parser_errors.count() == 5
+    assert parser_errors.count() == 8
 
     row_2_error = parser_errors.get(
         row_number=2,
