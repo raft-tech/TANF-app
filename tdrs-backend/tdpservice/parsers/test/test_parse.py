@@ -1387,14 +1387,14 @@ def test_parse_tribal_section_4_file(tribal_section_4_file, dfs):
     assert sixth.FAMILIES_MONTH == 499
 
 @pytest.fixture
-def misformatted_t3_file():
+def second_child_only_space_t3_file():
     """Fixture for misformatted_t3_file."""
     # T3 record: second child is not space filled correctly
     parsing_file = ParsingFileFactory(
         year=2021,
         quarter='Q2',
-        original_filename='misformatted_t3_file.txt',
-        file__name='misformatted_t3_file.txt',
+        original_filename='second_child_only_space_t3_file.txt',
+        file__name='second_child_only_space_t3_file.txt',
         file__section='Active Case Data',
         file__data=(b'HEADER20211A25   TAN1 N\n' +
                     b'T320210400028221R0112014122888175617622222112204398100000000' +
@@ -1436,12 +1436,31 @@ def t3_file():
     )
     return parsing_file
 
-@pytest.mark.parametrize('file_fixture, result',
-                         [('misformatted_t3_file', True),
-                          ('one_child_t3_file', True),
-                          ('t3_file', True)])
+@pytest.fixture
+def two_child_second_truncated():
+    """Fixture for T3 file."""
+    # T3 record is space filled correctly
+    parsing_file = ParsingFileFactory(
+        year=2021,
+        quarter='Q2',
+        original_filename='two_child_second_truncated.txt',
+        file__name='two_child_second_truncated.txt',
+        file__section='Active Case Data',
+        file__data=(b'HEADER20211A25   TAN1EU\n' +
+                    b'T320201011111111115120160401WTTTT@BTB22212212204398100000000' +
+                    b'56                                                          ' +
+                    b'                                    \n' +
+                    b'TRAILER0000001         ')
+    )
+    return parsing_file
+
+@pytest.mark.parametrize('file_fixture, result, number_of_errors',
+                         [('second_child_only_space_t3_file', True, 0),
+                          ('one_child_t3_file', True, 0),
+                          ('t3_file', True, 0),
+                          ('two_child_second_truncated', False, 1)])
 @pytest.mark.django_db()
-def test_misformatted_multi_records(file_fixture, result, request):
+def test_misformatted_multi_records(file_fixture, result, number_of_errors, request):
     """Test that (not space filled) multi-records are caught."""
     file_fixture = request.getfixturevalue(file_fixture)
     parse.parse_datafile(file_fixture)
@@ -1450,7 +1469,7 @@ def test_misformatted_multi_records(file_fixture, result, request):
     assert t3.exists() == result
 
     parser_errors = ParserError.objects.all()
-    assert parser_errors.count() == 0
+    assert parser_errors.count() == number_of_errors
 
 @pytest.mark.django_db
 def test_bulk_create_returns_rollback_response_on_bulk_index_exception(test_datafile, mocker):
