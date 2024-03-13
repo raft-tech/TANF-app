@@ -15,6 +15,7 @@ m5 = SchemaManager(
             preparsing_validators=[
                 validators.hasLength(66),
                 validators.field_year_month_with_header_year_quarter(),
+                validators.validateRptMonthYear(),
                 validators.notEmpty(8, 19)
             ],
             postparsing_validators=[
@@ -153,10 +154,11 @@ m5 = SchemaManager(
                     startIndex=20,
                     endIndex=28,
                     required=True,
-                    validators=[
-                        validators.dateYearIsLargerThan(1900),
-                        validators.dateMonthIsValid(),
-                    ],
+                    validators=[validators.intHasLength(8),
+                                validators.dateYearIsLargerThan(1900),
+                                validators.dateMonthIsValid(),
+                                validators.dateDayIsValid()
+                                ],
                 ),
                 TransformField(
                     transform_func=ssp_ssn_decryption_func,

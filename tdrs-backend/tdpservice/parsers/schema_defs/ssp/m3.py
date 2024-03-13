@@ -12,6 +12,7 @@ first_part_schema = RowSchema(
     preparsing_validators=[
         validators.notEmpty(start=19, end=60),
         validators.field_year_month_with_header_year_quarter(),
+        validators.validateRptMonthYear(),
         validators.notEmpty(8, 19)
     ],
     postparsing_validators=[
@@ -140,10 +141,11 @@ first_part_schema = RowSchema(
             startIndex=20,
             endIndex=28,
             required=True,
-            validators=[
-                validators.dateYearIsLargerThan(1998),
-                validators.dateMonthIsValid(),
-            ]
+            validators=[validators.intHasLength(8),
+                        validators.dateYearIsLargerThan(1900),
+                        validators.dateMonthIsValid(),
+                        validators.dateDayIsValid()
+                        ]
         ),
         TransformField(
             transform_func=ssp_ssn_decryption_func,
@@ -321,6 +323,7 @@ second_part_schema = RowSchema(
     preparsing_validators=[
         validators.notEmpty(start=60, end=101),
         validators.field_year_month_with_header_year_quarter(),
+        validators.validateRptMonthYear(),
         validators.notEmpty(8, 19)
     ],
     postparsing_validators=[
@@ -449,10 +452,11 @@ second_part_schema = RowSchema(
             startIndex=61,
             endIndex=69,
             required=True,
-            validators=[
-                validators.dateYearIsLargerThan(1998),
-                validators.dateMonthIsValid(),
-            ]
+            validators=[validators.intHasLength(8),
+                        validators.dateYearIsLargerThan(1900),
+                        validators.dateMonthIsValid(),
+                        validators.dateDayIsValid()
+                        ]
         ),
         TransformField(
             transform_func=ssp_ssn_decryption_func,
