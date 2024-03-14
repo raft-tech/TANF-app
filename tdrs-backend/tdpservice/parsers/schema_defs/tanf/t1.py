@@ -256,7 +256,7 @@ t1 = SchemaManager(
                     endIndex=36,
                     required=True,
                     validators=[
-                        validators.isInLimits(1, 3),
+                        validators.isInLimits(1, 2),
                     ],
                 ),
                 Field(
