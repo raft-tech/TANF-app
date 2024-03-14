@@ -321,7 +321,8 @@ def test_parse_bad_trailer_file(bad_trailer_file, dfs):
     errors = parse.parse_datafile(bad_trailer_file, dfs)
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file)
-    assert parser_errors.count() == 3
+
+    assert parser_errors.count() == 4
 
     trailer_error = parser_errors.get(row_number=3)
     assert trailer_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
@@ -356,7 +357,8 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2, dfs):
     errors = parse.parse_datafile(bad_trailer_file_2, dfs)
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file_2)
-    assert parser_errors.count() == 5
+
+    assert parser_errors.count() == 6
 
     trailer_errors = parser_errors.filter(row_number=3).order_by('id')
 
@@ -1076,11 +1078,15 @@ def test_parse_bad_tanf_section4_file(bad_tanf_section4_file, dfs):
 
     assert TANF_T7.objects.all().count() == 0
 
-    parser_errors = ParserError.objects.filter(file=bad_tanf_section4_file)
-    assert parser_errors.count() == 1
+    parser_errors = ParserError.objects.filter(file=bad_tanf_section4_file).order_by('id')
+    assert parser_errors.count() == 2
 
     error = parser_errors.first()
     error.error_message == "Value length 151 does not match 247."
+    error.error_type == ParserErrorCategoryChoices.PRE_CHECK
+
+    error = parser_errors[1]
+    error.error_message == "No records created."
     error.error_type == ParserErrorCategoryChoices.PRE_CHECK
 
 
@@ -1512,3 +1518,29 @@ def test_parse_tanf_section4_file_with_errors(tanf_section_4_file_with_errors, d
 
     assert first.FAMILIES_MONTH == 0
     assert sixth.FAMILIES_MONTH == 446
+
+
+@pytest.fixture
+def no_records_file(stt_user, stt):
+    """Fixture for tanf_section4_with_errors."""
+    return util.create_test_datafile('no_records.txt', stt_user, stt)
+
+@pytest.mark.django_db()
+def test_parse_no_records_file(no_records_file, dfs):
+    """Test parsing TANF Section 4 submission."""
+    dfs.datafile = no_records_file
+
+    parse.parse_datafile(no_records_file, dfs)
+
+    dfs.status = dfs.get_status()
+    assert dfs.status == DataFileSummary.Status.REJECTED
+
+    errors = ParserError.objects.filter(file=no_records_file)
+
+    assert errors.count() == 1
+
+    error = errors.first()
+    assert error.error_message == "No records created."
+    assert error.error_type == ParserErrorCategoryChoices.PRE_CHECK
+    assert error.content_type is None
+    assert error.object_id is None

@@ -173,6 +173,21 @@ def rollback_parser_errors(datafile):
     num_deleted, models = ParserError.objects.filter(file=datafile).delete()
     logger.debug(f"Deleted {num_deleted} {ParserError}.")
 
+def create_no_records_created_pre_check_error(datafile, dfs):
+    """Generate a precheck error if no records were created."""
+    errors = {}
+    if dfs.total_number_of_records_created == 0:
+        generate_error = util.make_generate_parser_error(datafile, 0)
+        err_obj = generate_error(
+                schema=None,
+                error_category=ParserErrorCategoryChoices.PRE_CHECK,
+                error_message="No records created.",
+                record=None,
+                field=None
+            )
+        errors["no_records_created"] = [err_obj]
+    return errors
+
 def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted):
     """Parse lines with appropriate schema and return errors."""
     rawfile = datafile.file
@@ -281,6 +296,10 @@ def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted):
     # successfully create the records.
     all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count, datafile, dfs,
                                                        flush=True)
+    
+    no_records_created_error = create_no_records_created_pre_check_error(datafile, dfs)
+    unsaved_parser_errors.update(no_records_created_error)
+
     if not all_created:
         logger.error(f"Not all parsed records created for file: {datafile.id}!")
         rollback_records(unsaved_records, datafile)
