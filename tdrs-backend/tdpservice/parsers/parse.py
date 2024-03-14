@@ -296,7 +296,7 @@ def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted):
     # successfully create the records.
     all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count, datafile, dfs,
                                                        flush=True)
-    
+
     no_records_created_error = create_no_records_created_pre_check_error(datafile, dfs)
     unsaved_parser_errors.update(no_records_created_error)
 
