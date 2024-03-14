@@ -380,8 +380,8 @@ def dateDayIsValid():
 def olderThan(min_age):
     """Validate that value is larger than min_age."""
     return make_validator(
-        lambda value: date.today().year - int(str(value)[:4]) > min_age,
-        lambda value: (f"{str(value)[:4]} must be less than or equal to {date.today().year - min_age} "
+        lambda value: datetime.date.today().year - int(str(value)[:4]) > min_age,
+        lambda value: (f"{str(value)[:4]} must be less than or equal to {datetime.date.today().year - min_age} "
                        "to meet the minimum age requirement."),
     )
 

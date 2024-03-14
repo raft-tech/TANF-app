@@ -179,9 +179,9 @@ def test_parse_big_file(test_big_file, dfs):
     dfs.case_aggregates = aggregates.case_aggregates_by_month(
         dfs.datafile, dfs.status)
     assert dfs.case_aggregates == {'months': [
-        {'month': 'Oct', 'accepted_without_errors': 103, 'accepted_with_errors': 167},
-        {'month': 'Nov', 'accepted_without_errors': 112, 'accepted_with_errors': 161},
-        {'month': 'Dec', 'accepted_without_errors': 97, 'accepted_with_errors': 175}],
+        {'month': 'Oct', 'accepted_without_errors': 23, 'accepted_with_errors': 247},
+        {'month': 'Nov', 'accepted_without_errors': 17, 'accepted_with_errors': 256},
+        {'month': 'Dec', 'accepted_without_errors': 25, 'accepted_with_errors': 247}],
         'rejected': 0}
 
     assert TANF_T1.objects.count() == expected_t1_record_count
