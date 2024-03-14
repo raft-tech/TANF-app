@@ -36,7 +36,7 @@ def test_header_datafile(stt_user, stt):
 @pytest.fixture
 def dfs():
     """Fixture for DataFileSummary."""
-    return DataFileSummaryFactory.create()
+    return DataFileSummaryFactory.build()
 
 
 @pytest.fixture
@@ -367,6 +367,9 @@ def bad_trailer_file_2(stt_user, stt):
 @pytest.mark.django_db()
 def test_parse_bad_trailer_file2(bad_trailer_file_2, dfs):
     """Test parsing bad_trailer_2."""
+    dfs.datafile = bad_trailer_file_2
+    dfs.save()
+
     bad_trailer_file_2.year = 2021
     bad_trailer_file_2.quarter = 'Q1'
     errors = parse.parse_datafile(bad_trailer_file_2, dfs)
@@ -529,6 +532,9 @@ def test_parse_ssp_section1_datafile(ssp_section1_datafile, dfs):
     expected_m2_record_count = 9373
     expected_m3_record_count = 16764
 
+    dfs.datafile = ssp_section1_datafile
+    dfs.save()
+
     parse.parse_datafile(ssp_section1_datafile, dfs)
 
     parser_errors = ParserError.objects.filter(file=ssp_section1_datafile)
@@ -599,6 +605,9 @@ def test_parse_tanf_section1_datafile_obj_counts(small_tanf_section1_datafile, d
     small_tanf_section1_datafile.year = 2021
     small_tanf_section1_datafile.quarter = 'Q1'
 
+    dfs.datafile = small_tanf_section1_datafile
+    dfs.save()
+
     parse.parse_datafile(small_tanf_section1_datafile, dfs)
 
     assert TANF_T1.objects.count() == 5
@@ -611,6 +620,10 @@ def test_parse_tanf_section1_datafile_t3s(small_tanf_section1_datafile, dfs):
     """Test parsing of small_tanf_section1_datafile and validate T3 model data."""
     small_tanf_section1_datafile.year = 2021
     small_tanf_section1_datafile.quarter = 'Q1'
+
+    dfs.datafile = small_tanf_section1_datafile
+    dfs.save()
+
     parse.parse_datafile(small_tanf_section1_datafile, dfs)
 
     assert TANF_T3.objects.count() == 6
@@ -735,6 +748,7 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
     bad_tanf_s1__row_missing_required_field.quarter = 'Q1'
 
     dfs.datafile = bad_tanf_s1__row_missing_required_field
+    dfs.save()
 
     parse.parse_datafile(bad_tanf_s1__row_missing_required_field, dfs)
 
@@ -777,6 +791,9 @@ def test_parse_bad_ssp_s1_missing_required(bad_ssp_s1__row_missing_required_fiel
     """Test parsing a bad TANF Section 1 submission where a row is missing required data."""
     bad_ssp_s1__row_missing_required_field.year = 2019
     bad_ssp_s1__row_missing_required_field.quarter = 'Q1'
+
+    dfs.datafile = bad_ssp_s1__row_missing_required_field
+    dfs.save()
 
     parse.parse_datafile(bad_ssp_s1__row_missing_required_field, dfs)
 
@@ -884,6 +901,9 @@ def test_parse_small_tanf_section2_file(small_tanf_section2_file, dfs):
     small_tanf_section2_file.year = 2021
     small_tanf_section2_file.quarter = 'Q1'
 
+    dfs.datafile = small_tanf_section2_file
+    dfs.save()
+
     parse.parse_datafile(small_tanf_section2_file, dfs)
 
     assert TANF_T4.objects.all().count() == 1
@@ -914,6 +934,10 @@ def test_parse_tanf_section2_file(tanf_section2_file, dfs):
     """Test parsing TANF Section 2 submission."""
     tanf_section2_file.year = 2021
     tanf_section2_file.quarter = 'Q1'
+
+    dfs.datafile = tanf_section2_file
+    dfs.save()
+
     parse.parse_datafile(tanf_section2_file, dfs)
 
     assert TANF_T4.objects.all().count() == 223
@@ -988,6 +1012,9 @@ def test_parse_tanf_section1_blanks_file(tanf_section1_file_with_blanks, dfs):
     """Test section 1 fields that are allowed to have blanks."""
     tanf_section1_file_with_blanks.year = 2021
     tanf_section1_file_with_blanks.quarter = 'Q1'
+
+    dfs.datafile = tanf_section1_file_with_blanks
+    dfs.save()
 
     parse.parse_datafile(tanf_section1_file_with_blanks, dfs)
 
@@ -1249,6 +1276,9 @@ def test_rpt_month_year_mismatch(test_header_datafile, dfs):
     datafile.quarter = 'Q1'
     datafile.save()
 
+    dfs.datafile = test_header_datafile
+    dfs.save()
+
     parse.parse_datafile(datafile, dfs)
 
     parser_errors = ParserError.objects.filter(file=datafile)
@@ -1448,6 +1478,9 @@ def test_parse_tribal_section_4_file(tribal_section_4_file, dfs):
 @pytest.mark.django_db()
 def test_parse_t2_invalid_dob(t2_invalid_dob_file, dfs):
     """Test parsing a TANF T2 record with an invalid DOB."""
+    dfs.datafile = t2_invalid_dob_file
+    dfs.save()
+
     parse.parse_datafile(t2_invalid_dob_file, dfs)
 
     parser_errors = ParserError.objects.filter(file=t2_invalid_dob_file).order_by("pk")
