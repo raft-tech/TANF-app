@@ -337,7 +337,7 @@ def test_parse_bad_trailer_file(bad_trailer_file, dfs):
     errors = parse.parse_datafile(bad_trailer_file, dfs)
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file)
-    assert parser_errors.count() == 4
+    assert parser_errors.count() == 5
 
     trailer_error = parser_errors.get(row_number=3)
     assert trailer_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
@@ -372,7 +372,7 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2, dfs):
     errors = parse.parse_datafile(bad_trailer_file_2, dfs)
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file_2)
-    assert parser_errors.count() == 6
+    assert parser_errors.count() == 7
 
     trailer_errors = list(parser_errors.filter(row_number=3).order_by('id'))
 
@@ -738,12 +738,12 @@ def test_parse_bad_tfs1_missing_required(bad_tanf_s1__row_missing_required_field
 
     parse.parse_datafile(bad_tanf_s1__row_missing_required_field, dfs)
 
-    assert dfs.get_status() == DataFileSummary.Status.PARTIALLY_ACCEPTED
+    assert dfs.get_status() == DataFileSummary.Status.REJECTED
 
     parser_errors = ParserError.objects.filter(
         file=bad_tanf_s1__row_missing_required_field)
 
-    assert parser_errors.count() == 4
+    assert parser_errors.count() == 5
 
     error_message = 'The value:       , does not follow the YYYYMM format for Reporting Year and Month.'
     row_2_error = parser_errors.get(row_number=2, error_message=error_message)
@@ -781,7 +781,7 @@ def test_parse_bad_ssp_s1_missing_required(bad_ssp_s1__row_missing_required_fiel
     parse.parse_datafile(bad_ssp_s1__row_missing_required_field, dfs)
 
     parser_errors = ParserError.objects.filter(file=bad_ssp_s1__row_missing_required_field)
-    assert parser_errors.count() == 5
+    assert parser_errors.count() == 6
 
     error_message = 'The value:       , does not follow the YYYYMM format for Reporting Year and Month.'
     rpt_month_errors = parser_errors.filter(error_message=error_message)
@@ -1446,9 +1446,9 @@ def test_parse_tribal_section_4_file(tribal_section_4_file, dfs):
     assert sixth.FAMILIES_MONTH == 499
 
 @pytest.mark.django_db()
-def test_parse_t2_invalid_dob(t2_invalid_dob_file):
+def test_parse_t2_invalid_dob(t2_invalid_dob_file, dfs):
     """Test parsing a TANF T2 record with an invalid DOB."""
-    parse.parse_datafile(t2_invalid_dob_file)
+    parse.parse_datafile(t2_invalid_dob_file, dfs)
 
     parser_errors = ParserError.objects.filter(file=t2_invalid_dob_file).order_by("pk")
 
