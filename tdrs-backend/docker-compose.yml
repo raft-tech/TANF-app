@@ -45,12 +45,25 @@ services:
       # Copy in the Localstack setup script to configure any buckets needed
       - ../scripts/localstack-setup.sh:/docker-entrypoint-initaws.d/localstack-setup.sh
 
+  kibana:
+    image: docker.elastic.co/kibana/kibana-oss:7.4.2
+    ports:
+      - 5601:5601
+    environment:
+      - ELASTICSEARCH_HOSTS="http://elastic:9200"
+      - SERVER_HOST=kibana
+      - SERVER_BASEPATH=/kibana
+      - SERVER_SECURITYRESPONSEHEADERS_REFERRERPOLICY=no-referrer
+      - CSP_WARNLEGACYBROWSERS=false
+    depends_on:
+      - elastic
+
   elastic:
     image: elasticsearch:7.17.6
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false
       - logger.discovery.level=debug
+      - xpack.security.enabled=false
     ports:
       - 9200:9200
       - 9300:9300
@@ -88,6 +101,7 @@ services:
       - CYPRESS_TOKEN
       - DJANGO_DEBUG
       - SENDGRID_API_KEY
+      - BYPASS_KIBANA_AUTH
     volumes:
       - .:/tdpapp
     image: tdp

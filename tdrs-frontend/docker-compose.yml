@@ -7,7 +7,7 @@ services:
     ports:
       - 8090:8090
     networks:
-      - local
+      - default
     volumes:
       - ./reports:/zap/wrk/:rw
       - ../scripts/zap-hook.py:/zap/scripts/zap-hook.py:ro
@@ -21,7 +21,6 @@ services:
       - 3000:80
       - 8080:8080
     networks:
-      - local
       - default
     volumes:
       - ./:/home/node/app
@@ -29,22 +28,21 @@ services:
       - NGINX_FRONTEND=tdp-frontend
       - BACK_END=web
       - LOCAL_DEV=true
+      - KIBANA=kibana
+      - REACT_APP_DEVAUTH=${REACT_APP_DEVAUTH}
     command: >
       /bin/sh -c
       "echo 'starting nginx' &&
-        envsubst '$${BACK_END}' < /etc/nginx/locations.conf > /etc/nginx/locations_.conf &&
+        envsubst '$${BACK_END} $${KIBANA}' < /etc/nginx/locations.conf > /etc/nginx/locations_.conf &&
         rm /etc/nginx/locations.conf &&
         cp /etc/nginx/locations_.conf /etc/nginx/locations.conf &&
        envsubst '
-      $${BACK_END} $${NGINX_FRONTEND} $${LOCAL_DEV}
+      $${KIBANA} $${BACK_END} $${NGINX_FRONTEND} $${LOCAL_DEV}
       '< /etc/nginx/default.conf.template
-      > /etc/nginx/nginx.conf
-      && nginx -g 'daemon off;'"
+      > /etc/nginx/nginx.conf && 
+      nginx -g 'daemon off;'"
 
 networks:
-  local:
-    driver: bridge
-
   default:
     external:
       name: external-net

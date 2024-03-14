@@ -340,10 +340,19 @@ class Common(Configuration):
     # The number of seconds to wait for socket response from clamav-rest
     AV_SCAN_TIMEOUT = int(os.getenv('AV_SCAN_TIMEOUT', 30))
 
+    # Elastic/Kibana
+    ELASTICSEARCH_DSL = {
+        'default': {
+            'hosts': os.getenv('ELASTIC_HOST', 'elastic:9200'),
+        },
+    }
+    KIBANA_BASE_URL = os.getenv('KIBANA_BASE_URL', 'http://kibana:5601')
+    BYPASS_KIBANA_AUTH = os.getenv("BYPASS_KIBANA_AUTH", False)
+
     s3_src = "s3-us-gov-west-1.amazonaws.com"
 
     CSP_DEFAULT_SRC = ("'none'")
-    CSP_SCRIPT_SRC = ("'self'", s3_src)
+    CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", s3_src, KIBANA_BASE_URL)
     CSP_IMG_SRC = ("'self'", "data:", s3_src)
     CSP_FONT_SRC = ("'self'", s3_src)
     CSP_CONNECT_SRC = ("'self'", "*.cloud.gov")
@@ -351,7 +360,7 @@ class Common(Configuration):
     CSP_OBJECT_SRC = ("'none'")
     CSP_FRAME_ANCESTORS = ("'none'")
     CSP_FORM_ACTION = ("'self'")
-    CSP_STYLE_SRC = ("'self'", s3_src, "'unsafe-inline'")
+    CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", s3_src, KIBANA_BASE_URL)
 
 
     ####################################
@@ -443,7 +452,7 @@ class Common(Configuration):
     CELERY_TIMEZONE = 'UTC'
 
     CELERY_BEAT_SCHEDULE = {
-        'name': {
+        'Database Backup': {
             'task': 'tdpservice.scheduling.tasks.postgres_backup',
             'schedule': crontab(minute='0', hour='4'), # Runs at midnight EST
             'args': "-b",
@@ -451,8 +460,8 @@ class Common(Configuration):
                 'expires': 15.0,
             },
         },
-        'name': {
-            'task': 'tdpservice.scheduling.tasks.check_for_accounts_needing_deactivation_warning',
+        'Account Deactivation Warning': {
+            'task': 'tdpservice.email.tasks.check_for_accounts_needing_deactivation_warning',
             'schedule': crontab(day_of_week='*', hour='13', minute='0'), # Every day at 1pm UTC (9am EST)
 
             'options': {
@@ -460,16 +469,9 @@ class Common(Configuration):
             },
         },
         'Email Admin Number of Access Requests' : {
-            'task': 'tdpservice.scheduling.tasks.email_admin_num_access_requests',
+            'task': 'tdpservice.email.tasks.email_admin_num_access_requests',
             'schedule': crontab(minute='0', hour='1', day_of_week='*', day_of_month='*', month_of_year='*'), # Every day at 1am UTC (9pm EST)
         }
-    }
-
-    # Elastic
-    ELASTICSEARCH_DSL = {
-        'default': {
-            'hosts': os.getenv('ELASTIC_HOST', 'elastic:9200')
-        },
     }
 
     CYPRESS_TOKEN = os.getenv('CYPRESS_TOKEN', None)
