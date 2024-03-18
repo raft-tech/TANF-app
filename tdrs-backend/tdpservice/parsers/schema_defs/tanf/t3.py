@@ -7,11 +7,13 @@ from tdpservice.parsers.row_schema import RowSchema, SchemaManager
 from tdpservice.parsers import validators
 from tdpservice.search_indexes.documents.tanf import TANF_T3DataSubmissionDocument
 
+FIRST_CHILD = 1
+SECOND_CHILD = 2
 
 child_one = RowSchema(
     document=TANF_T3DataSubmissionDocument(),
     preparsing_validators=[
-        validators.t3_child_validator(1)
+        validators.t3_child_validator(FIRST_CHILD)
     ],
     postparsing_validators=[
         validators.if_then_validator(
@@ -314,9 +316,9 @@ child_one = RowSchema(
 
 child_two = RowSchema(
     document=TANF_T3DataSubmissionDocument(),
-    quiet_preparser_errors=validators.is_quiet_preparser_errors(101),
+    quiet_preparser_errors=validators.is_quiet_preparser_errors(min_length=101),
     preparsing_validators=[
-        validators.t3_child_validator(2),
+        validators.t3_child_validator(SECOND_CHILD),
     ],
     # all conditions from first child should be met, otherwise we don't parse second child
     postparsing_validators=[
