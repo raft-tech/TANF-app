@@ -54,7 +54,7 @@ def upload(
             sftp_server.mkdir(directory_name)  # Create remote_path
             sftp_server.chdir(directory_name)
 
-    for attempt in range(3):
+    for attempt in range(1, 4):
         logger.info("Attempt {} to upload file {}".format(attempt, data_file.filename))
         try:
             # Create directory names for ACF titan
