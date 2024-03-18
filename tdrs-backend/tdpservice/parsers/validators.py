@@ -236,6 +236,13 @@ def hasLengthGreaterThan(val, error_func=None):
         lambda value: error_func(value, val)
         if error_func
         else f"Value length {len(value)} is not greater than {val}.",
+
+
+def intHasLength(num_digits):
+    """Validate the number of digits in an integer."""
+    return make_validator(
+        lambda value: sum(c.isdigit() for c in str(value)) == num_digits,
+        lambda value: f"{value} does not have exactly {num_digits} digits.",
     )
 
 
@@ -364,7 +371,6 @@ def isInLimits(LowerBound, UpperBound):
 
 # custom validators
 
-
 def dateMonthIsValid():
     """Validate that in a monthyear combination, the month is a valid month."""
     return make_validator(
@@ -372,12 +378,20 @@ def dateMonthIsValid():
         lambda value: f"{str(value)[4:6]} is not a valid month.",
     )
 
+def dateDayIsValid():
+    """Validate that in a monthyearday combination, the day is a valid day."""
+    return make_validator(
+        lambda value: int(str(value)[6:]) in range(1, 32),
+        lambda value: f"{str(value)[6:]} is not a valid day.",
+    )
+
 
 def olderThan(min_age):
     """Validate that value is larger than min_age."""
     return make_validator(
         lambda value: date.today().year - int(str(value)[:4]) > min_age,
-        lambda value: f"{date.today().year - int(str(value)[:4])} is not larger than {min_age}.",
+        lambda value: (f"{str(value)[:4]} must be less than or equal to {date.today().year - min_age} "
+                       "to meet the minimum age requirement."),
     )
 
 
@@ -385,7 +399,7 @@ def dateYearIsLargerThan(year):
     """Validate that in a monthyear combination, the year is larger than the given year."""
     return make_validator(
         lambda value: int(str(value)[:4]) > year,
-        lambda value: f"{str(value)[:4]} year must be larger than {year}.",
+        lambda value: f"{str(value)[:4]} must be larger than year {year}.",
     )
 
 
@@ -409,7 +423,17 @@ def validateRace():
     """Validate race."""
     return make_validator(
         lambda value: value >= 0 and value <= 2,
-        lambda value: f"{value} is not greater than or equal to 0 or smaller than or equal to 1.",
+        lambda value: f"{value} is not greater than or equal to 0 or smaller than or equal to 2.",
+    )
+
+
+def validateRptMonthYear():
+    """Validate RPT_MONTH_YEAR."""
+    return make_validator(
+        lambda value: value[2:8].isdigit() and int(value[2:6]) > 1900 and value[6:8] in {"01", "02", "03", "04", "05",
+                                                                                         "06", "07", "08", "09", "10",
+                                                                                         "11", "12"},
+        lambda value: f"The value: {value[2:8]}, does not follow the YYYYMM format for Reporting Year and Month.",
     )
 
 
