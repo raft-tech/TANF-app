@@ -2,7 +2,6 @@
 
 
 import pytest
-from .factories import ParsingFileFactory
 from django.contrib.admin.models import LogEntry
 from .. import parse
 from ..models import ParserError, ParserErrorCategoryChoices, DataFileSummary

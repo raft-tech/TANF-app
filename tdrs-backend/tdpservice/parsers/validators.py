@@ -236,6 +236,7 @@ def hasLengthGreaterThan(val, error_func=None):
         lambda value: error_func(value, val)
         if error_func
         else f"Value length {len(value)} is not greater than {val}.",
+    )
 
 
 def intHasLength(num_digits):
