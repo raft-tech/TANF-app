@@ -47,12 +47,12 @@ class RowSchema:
             line, generate_error
         )
         if not preparsing_is_valid:
-            is_quite_preparser_errors = (
+            is_quiet_preparser_errors = (
                 self.quiet_preparser_errors
                 if type(self.quiet_preparser_errors) == bool
                 else self.quiet_preparser_errors(line)
             )
-            if is_quite_preparser_errors:
+            if is_quiet_preparser_errors:
                 return None, True, []
             logger.info(f"{len(preparsing_errors)} preparser error(s) encountered.")
             return None, False, preparsing_errors
