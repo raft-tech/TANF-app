@@ -651,16 +651,23 @@ def validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE():
             )
             RELATIONSHIP_HOH = int(RELATIONSHIP_HOH)
 
-            DOB = (
+            DOB = str(
                 instance["DATE_OF_BIRTH"]
                 if type(instance) is dict
                 else getattr(instance, "DATE_OF_BIRTH")
             )
 
-            DOB = str(DOB)
+            RPT_MONTH_YEAR = str(
+                instance["RPT_MONTH_YEAR"]
+                if type(instance) is dict
+                else getattr(instance, "RPT_MONTH_YEAR")
+            )
+
+            RPT_MONTH_YEAR += "01"
+
             DOB_datetime = datetime.datetime.strptime(DOB, '%Y%m%d')
-            today = datetime.date.today()
-            AGE = today.year - DOB_datetime.year - ((today.month, today.day) < (DOB_datetime.month, DOB_datetime.day))
+            RPT_MONTH_YEAR_datetime = datetime.datetime.strptime(DOB, '%Y%m%d')
+            AGE = (RPT_MONTH_YEAR_datetime - DOB_datetime).days / 365.25
 
             if WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19:
                 if RELATIONSHIP_HOH != 1:
