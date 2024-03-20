@@ -63,6 +63,7 @@ def and_validators(validator1, validator2):
 
 def or_priority_validators(validators=[]):
     """Return a validator that is true based on a priority of validators.
+
     validators: ordered list of validators to be checked
     """
     def or_priority_validators_func(value, rows_schema_instance):
@@ -72,7 +73,6 @@ def or_priority_validators(validators=[]):
         return (True, None)
 
     return lambda value, rows_schema_instance: or_priority_validators_func(value, rows_schema_instance)
-
 
 
 def extended_and_validators(*args, **kwargs):
