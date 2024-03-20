@@ -45,10 +45,10 @@ def t2_invalid_dob_file():
     """Fixture for T2 file with an invalid DOB."""
     parsing_file = ParsingFileFactory(
         year=2021,
-        quarter='Q2',
+        quarter='Q1',
         file__name='t2_invalid_dob_file.txt',
         file__section='Active Case Data',
-        file__data=(b'HEADER20211A25   TAN1ED\n'
+        file__data=(b'HEADER20204A25   TAN1ED\n'
                     b'T22020101111111111212Q897$9 3WTTTTTY@W222122222222101221211001472201140000000000000000000000000'
                     b'0000000000000000000000000000000000000000000000000000000000291\n'
                     b'TRAILER0000001         ')
@@ -1458,6 +1458,8 @@ def test_parse_tribal_section_4_file(tribal_section_4_file, dfs):
 @pytest.mark.django_db()
 def test_parse_t2_invalid_dob(t2_invalid_dob_file):
     """Test parsing a TANF T2 record with an invalid DOB."""
+    t2_invalid_dob_file.year = 2021
+    t2_invalid_dob_file.quarter = 'Q1'
     parse.parse_datafile(t2_invalid_dob_file)
 
     parser_errors = ParserError.objects.filter(file=t2_invalid_dob_file).order_by("pk")
