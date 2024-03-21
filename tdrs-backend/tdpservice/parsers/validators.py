@@ -639,6 +639,7 @@ def validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE():
                      ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH'],
                      )
         try:
+            print("INSIDE: validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE")
             WORK_ELIGIBLE_INDICATOR = (
                 instance["WORK_ELIGIBLE_INDICATOR"]
                 if type(instance) is dict
@@ -666,10 +667,10 @@ def validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE():
             RPT_MONTH_YEAR += "01"
 
             DOB_datetime = datetime.datetime.strptime(DOB, '%Y%m%d')
-            RPT_MONTH_YEAR_datetime = datetime.datetime.strptime(DOB, '%Y%m%d')
+            RPT_MONTH_YEAR_datetime = datetime.datetime.strptime(RPT_MONTH_YEAR, '%Y%m%d')
             AGE = (RPT_MONTH_YEAR_datetime - DOB_datetime).days / 365.25
 
-            if WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19:
+            if WORK_ELIGIBLE_INDICATOR == "11" and AGE < 19:
                 if RELATIONSHIP_HOH != 1:
                     return false_case
                 else:
