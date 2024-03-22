@@ -48,7 +48,7 @@ def t2_invalid_dob_file():
         quarter='Q1',
         file__name='t2_invalid_dob_file.txt',
         file__section='Active Case Data',
-        file__data=(b'HEADER20211A25   TAN1EU\n'
+        file__data=(b'HEADER20204A25   TAN1EU\n'
                     b'T22020101111111111212Q897$9 3WTTTTTY@W222122222222101221211001472201140000000000000000000000000'
                     b'0000000000000000000000000000000000000000000000000000000000291\n'
                     b'TRAILER0000001         ')
