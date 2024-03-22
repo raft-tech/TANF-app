@@ -671,7 +671,7 @@ def validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE():
             AGE = (RPT_MONTH_YEAR_datetime - DOB_datetime).days / 365.25
 
             if WORK_ELIGIBLE_INDICATOR == "11" and AGE < 19:
-                if RELATIONSHIP_HOH != 1:
+                if RELATIONSHIP_HOH == 1:
                     return false_case
                 else:
                     return true_case
