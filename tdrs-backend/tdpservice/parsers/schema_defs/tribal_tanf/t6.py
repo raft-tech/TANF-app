@@ -215,6 +215,7 @@ s1 = RowSchema(
 
 s2 = RowSchema(
     document=Tribal_TANF_T6DataSubmissionDocument(),
+    quiet_preparser_errors=True,
     preparsing_validators=[
         validators.hasLength(379),
     ],
@@ -414,6 +415,7 @@ s2 = RowSchema(
 
 s3 = RowSchema(
     document=Tribal_TANF_T6DataSubmissionDocument(),
+    quiet_preparser_errors=True,
     preparsing_validators=[
         validators.hasLength(379),
     ],
