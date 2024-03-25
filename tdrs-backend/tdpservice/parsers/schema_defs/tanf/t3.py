@@ -14,7 +14,12 @@ child_one = RowSchema(
     document=TANF_T3DataSubmissionDocument(),
     preparsing_validators=[
         validators.t3_child_validator(FIRST_CHILD),
-        validators.validateRptMonthYear(),
+        validators.notEmpty(start=19, end=60),
+        validators.or_priority_validators([
+                    validators.field_year_month_with_header_year_quarter(),
+                    validators.validateRptMonthYear(),
+        ]),
+        validators.notEmpty(8, 19)
     ],
     postparsing_validators=[
         validators.if_then_validator(
@@ -321,7 +326,12 @@ child_two = RowSchema(
     quiet_preparser_errors=validators.is_quiet_preparser_errors(min_length=101),
     preparsing_validators=[
         validators.t3_child_validator(SECOND_CHILD),
-        validators.validateRptMonthYear(),
+        validators.notEmpty(start=60, end=101),
+        validators.or_priority_validators([
+                    validators.field_year_month_with_header_year_quarter(),
+                    validators.validateRptMonthYear(),
+        ]),
+        validators.notEmpty(8, 19)
     ],
     # all conditions from first child should be met, otherwise we don't parse second child
     postparsing_validators=[
