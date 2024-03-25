@@ -1541,7 +1541,7 @@ def test_parse_t2_invalid_dob(t2_invalid_dob_file, dfs):
     t2_invalid_dob_file.quarter = 'Q1'
     dfs.save()
 
-    parse.parse_datafile(t2_invalid_dob_file)
+    parse.parse_datafile(t2_invalid_dob_file, dfs)
 
     parser_errors = ParserError.objects.filter(file=t2_invalid_dob_file).order_by("pk")
 
