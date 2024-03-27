@@ -39,7 +39,7 @@ s1 = RowSchema(
         Field(
             item="0",
             name="RecordType",
-            friendly_name="record type",
+            friendly_name="Record Type",
             type="string",
             startIndex=0,
             endIndex=2,
@@ -49,7 +49,7 @@ s1 = RowSchema(
         Field(
             item="3",
             name="CALENDAR_QUARTER",
-            friendly_name="calendar quarter",
+            friendly_name="Calendar Quarter",
             type="number",
             startIndex=2,
             endIndex=7,
@@ -63,7 +63,7 @@ s1 = RowSchema(
             calendar_quarter_to_rpt_month_year(0),
             item="4",
             name="RPT_MONTH_YEAR",
-            friendly_name="reporting month and year",
+            friendly_name="Reporting Year and Month",
             type="number",
             startIndex=2,
             endIndex=7,
@@ -76,7 +76,7 @@ s1 = RowSchema(
         Field(
             item="4A",
             name="NUM_APPLICATIONS",
-            friendly_name="total number of applications",
+            friendly_name="Total Number of Applications: First Month",
             type="number",
             startIndex=7,
             endIndex=15,
@@ -86,7 +86,7 @@ s1 = RowSchema(
         Field(
             item="5A",
             name="NUM_APPROVED",
-            friendly_name="total number of approved applications",
+            friendly_name="Total Number of Approved Applications: First Month",
             type="number",
             startIndex=31,
             endIndex=39,
@@ -96,7 +96,7 @@ s1 = RowSchema(
         Field(
             item="6A",
             name="NUM_DENIED",
-            friendly_name="total number of denied applications",
+            friendly_name="Total Number of Denied Applications: First Month",
             type="number",
             startIndex=55,
             endIndex=63,
@@ -106,7 +106,7 @@ s1 = RowSchema(
         Field(
             item="7A",
             name="ASSISTANCE",
-            friendly_name="total amount of assistance",
+            friendly_name="Total Number of Cash Assistance: First Month",
             type="number",
             startIndex=79,
             endIndex=91,
@@ -116,7 +116,7 @@ s1 = RowSchema(
         Field(
             item="8A",
             name="NUM_FAMILIES",
-            friendly_name="number of families",
+            friendly_name="Total Number of Families: First Month",
             type="number",
             startIndex=115,
             endIndex=123,
@@ -126,7 +126,7 @@ s1 = RowSchema(
         Field(
             item="9A",
             name="NUM_2_PARENTS",
-            friendly_name="number of two-parent families",
+            friendly_name="Total Number of Two-parent Families: First Month",
             type="number",
             startIndex=139,
             endIndex=147,
@@ -136,7 +136,7 @@ s1 = RowSchema(
         Field(
             item="10A",
             name="NUM_1_PARENTS",
-            friendly_name="total number of one-parent families",
+            friendly_name="Total Number of One-Parent Families: First Month",
             type="number",
             startIndex=163,
             endIndex=171,
@@ -146,7 +146,7 @@ s1 = RowSchema(
         Field(
             item="11A",
             name="NUM_NO_PARENTS",
-            friendly_name="total number of no-parent families",
+            friendly_name="Total Number of No-Parent Families: First Month",
             type="number",
             startIndex=187,
             endIndex=195,
@@ -156,7 +156,7 @@ s1 = RowSchema(
         Field(
             item="12A",
             name="NUM_RECIPIENTS",
-            friendly_name="total number of recipients",
+            friendly_name="Total Number of Recipients: First Month",
             type="number",
             startIndex=211,
             endIndex=219,
@@ -166,7 +166,7 @@ s1 = RowSchema(
         Field(
             item="13A",
             name="NUM_ADULT_RECIPIENTS",
-            friendly_name="total number of adult recipients",
+            friendly_name="Total Number of Adult Recipients: First Month",
             type="number",
             startIndex=235,
             endIndex=243,
@@ -176,7 +176,7 @@ s1 = RowSchema(
         Field(
             item="14A",
             name="NUM_CHILD_RECIPIENTS",
-            friendly_name="total number of child recipients",
+            friendly_name="Total Number of Child Recipients: First Month",
             type="number",
             startIndex=259,
             endIndex=267,
@@ -186,7 +186,7 @@ s1 = RowSchema(
         Field(
             item="15A",
             name="NUM_NONCUSTODIALS",
-            friendly_name="total number of noncustodial parents participating in work activities",
+            friendly_name="Total Number of Noncustodial Parents Participating in Work Activities: First Month",
             type="number",
             startIndex=283,
             endIndex=291,
@@ -196,7 +196,7 @@ s1 = RowSchema(
         Field(
             item="16A",
             name="NUM_BIRTHS",
-            friendly_name="total number of births",
+            friendly_name="Total Number of Births: First Month",
             type="number",
             startIndex=307,
             endIndex=315,
@@ -206,7 +206,7 @@ s1 = RowSchema(
         Field(
             item="17A",
             name="NUM_OUTWEDLOCK_BIRTHS",
-            friendly_name="total number of out-of-wedlock births",
+            friendly_name="Total Number of Non-Marital Births: First Month",
             type="number",
             startIndex=331,
             endIndex=339,
@@ -216,7 +216,7 @@ s1 = RowSchema(
         Field(
             item="18A",
             name="NUM_CLOSED_CASES",
-            friendly_name="total number of closed cases",
+            friendly_name="Total Number of Closed Cases: First Month",
             type="number",
             startIndex=355,
             endIndex=363,
@@ -258,7 +258,7 @@ s2 = RowSchema(
         Field(
             item="0",
             name="RecordType",
-            friendly_name="record type",
+            friendly_name="Record Type",
             type="string",
             startIndex=0,
             endIndex=2,
@@ -268,7 +268,7 @@ s2 = RowSchema(
         Field(
             item="3",
             name="CALENDAR_QUARTER",
-            friendly_name="calendar quarter",
+            friendly_name="Calendar Quarter",
             type="number",
             startIndex=2,
             endIndex=7,
@@ -279,7 +279,7 @@ s2 = RowSchema(
             calendar_quarter_to_rpt_month_year(1),
             item="4",
             name="RPT_MONTH_YEAR",
-            friendly_name="reporting month and year",
+            friendly_name="Reporting Year and Month",
             type="number",
             startIndex=2,
             endIndex=7,
@@ -289,7 +289,7 @@ s2 = RowSchema(
         Field(
             item="4B",
             name="NUM_APPLICATIONS",
-            friendly_name="total number of applications",
+            friendly_name="Total Number of Applications: Second Month",
             type="number",
             startIndex=15,
             endIndex=23,
@@ -299,7 +299,7 @@ s2 = RowSchema(
         Field(
             item="5B",
             name="NUM_APPROVED",
-            friendly_name="total number of approved cases",
+            friendly_name="Total Number of Approved Applications: Second Month",
             type="number",
             startIndex=39,
             endIndex=47,
@@ -309,7 +309,7 @@ s2 = RowSchema(
         Field(
             item="6B",
             name="NUM_DENIED",
-            friendly_name="total number of denied",
+            friendly_name="Total Number of Denied Applications: Second Month",
             type="number",
             startIndex=63,
             endIndex=71,
@@ -319,7 +319,7 @@ s2 = RowSchema(
         Field(
             item="7B",
             name="ASSISTANCE",
-            friendly_name="assistance",
+            friendly_name="Total Amount of Cash Assistance: Second Month",
             type="number",
             startIndex=91,
             endIndex=103,
@@ -329,7 +329,7 @@ s2 = RowSchema(
         Field(
             item="8B",
             name="NUM_FAMILIES",
-            friendly_name="total of number of families",
+            friendly_name="Total Number of Families: Second Month",
             type="number",
             startIndex=123,
             endIndex=131,
@@ -339,7 +339,7 @@ s2 = RowSchema(
         Field(
             item="9B",
             name="NUM_2_PARENTS",
-            friendly_name="number of two-parent families",
+            friendly_name="Total Number of Two-parent Families: Second Month",
             type="number",
             startIndex=147,
             endIndex=155,
@@ -349,7 +349,7 @@ s2 = RowSchema(
         Field(
             item="10B",
             name="NUM_1_PARENTS",
-            friendly_name="total number of one-parent families",
+            friendly_name="Total Number of One-Parent Families: Second Month",
             type="number",
             startIndex=171,
             endIndex=179,
@@ -359,7 +359,7 @@ s2 = RowSchema(
         Field(
             item="11B",
             name="NUM_NO_PARENTS",
-            friendly_name="total number of no-parent families",
+            friendly_name="Total Number of No-Parent Families: Second Month",
             type="number",
             startIndex=195,
             endIndex=203,
@@ -369,7 +369,7 @@ s2 = RowSchema(
         Field(
             item="12B",
             name="NUM_RECIPIENTS",
-            friendly_name="total number of recipients",
+            friendly_name="Total Number of Recipients: Second Month",
             type="number",
             startIndex=219,
             endIndex=227,
@@ -379,7 +379,7 @@ s2 = RowSchema(
         Field(
             item="13B",
             name="NUM_ADULT_RECIPIENTS",
-            friendly_name="total number of adult recipients",
+            friendly_name="Total Number of Adult Recipients: Second Month",
             type="number",
             startIndex=243,
             endIndex=251,
@@ -389,7 +389,7 @@ s2 = RowSchema(
         Field(
             item="14B",
             name="NUM_CHILD_RECIPIENTS",
-            friendly_name="total number of child recipients",
+            friendly_name="Total Number of Child Recipients: Second Month",
             type="number",
             startIndex=267,
             endIndex=275,
@@ -399,7 +399,7 @@ s2 = RowSchema(
         Field(
             item="15B",
             name="NUM_NONCUSTODIALS",
-            friendly_name="total number of noncustodial parents",
+            friendly_name="Total Number of Noncustodial Parents Participating in Work Activities: Second Month",
             type="number",
             startIndex=291,
             endIndex=299,
@@ -409,7 +409,7 @@ s2 = RowSchema(
         Field(
             item="16B",
             name="NUM_BIRTHS",
-            friendly_name="total number of births",
+            friendly_name="Total Number of Births: Second Month",
             type="number",
             startIndex=315,
             endIndex=323,
@@ -419,7 +419,7 @@ s2 = RowSchema(
         Field(
             item="17B",
             name="NUM_OUTWEDLOCK_BIRTHS",
-            friendly_name="total number of out-of-wedlock births",
+            friendly_name="Total Number of Non-Marital Births: Second Month",
             type="number",
             startIndex=339,
             endIndex=347,
@@ -429,7 +429,7 @@ s2 = RowSchema(
         Field(
             item="18B",
             name="NUM_CLOSED_CASES",
-            friendly_name="total number of closed assets",
+            friendly_name="Total Number of Closed Cases: Second Month",
             type="number",
             startIndex=363,
             endIndex=371,
@@ -471,7 +471,7 @@ s3 = RowSchema(
         Field(
             item="0",
             name="RecordType",
-            friendly_name="record type",
+            friendly_name="Record Type",
             type="string",
             startIndex=0,
             endIndex=2,
@@ -481,7 +481,7 @@ s3 = RowSchema(
         Field(
             item="3",
             name="CALENDAR_QUARTER",
-            friendly_name="calendar quarter",
+            friendly_name="Calendar Quarter",
             type="number",
             startIndex=2,
             endIndex=7,
@@ -492,7 +492,7 @@ s3 = RowSchema(
             calendar_quarter_to_rpt_month_year(2),
             item="4",
             name="RPT_MONTH_YEAR",
-            friendly_name="reporting month and year",
+            friendly_name="Reporting Year and Month",
             type="number",
             startIndex=2,
             endIndex=7,
@@ -502,7 +502,7 @@ s3 = RowSchema(
         Field(
             item="4C",
             name="NUM_APPLICATIONS",
-            friendly_name="total number of applications",
+            friendly_name="Total Number of Applications: Third Month",
             type="number",
             startIndex=23,
             endIndex=31,
@@ -512,7 +512,7 @@ s3 = RowSchema(
         Field(
             item="5C",
             name="NUM_APPROVED",
-            friendly_name="total number of approved applications",
+            friendly_name="Total Number of Applications: Third Month",
             type="number",
             startIndex=47,
             endIndex=55,
@@ -522,7 +522,7 @@ s3 = RowSchema(
         Field(
             item="6C",
             name="NUM_DENIED",
-            friendly_name="total number of denied applications",
+            friendly_name="Total Number of Denied Applications: Third Month",
             type="number",
             startIndex=71,
             endIndex=79,
@@ -532,7 +532,7 @@ s3 = RowSchema(
         Field(
             item="7C",
             name="ASSISTANCE",
-            friendly_name="total amount of assistance",
+            friendly_name="Total Number of Cash Assistance: Third Month",
             type="number",
             startIndex=103,
             endIndex=115,
@@ -542,7 +542,7 @@ s3 = RowSchema(
         Field(
             item="8C",
             name="NUM_FAMILIES",
-            friendly_name="total number of families",
+            friendly_name="Total Number of Families: Third Month",
             type="number",
             startIndex=131,
             endIndex=139,
@@ -552,7 +552,7 @@ s3 = RowSchema(
         Field(
             item="9C",
             name="NUM_2_PARENTS",
-            friendly_name="number of two-parent families",
+            friendly_name="Total Number of Two-parent Families: Third Month",
             type="number",
             startIndex=155,
             endIndex=163,
@@ -562,7 +562,7 @@ s3 = RowSchema(
         Field(
             item="10C",
             name="NUM_1_PARENTS",
-            friendly_name="total number of one-parent families",
+            friendly_name="Total Number of One-Parent Families: Third Month",
             type="number",
             startIndex=179,
             endIndex=187,
@@ -572,7 +572,7 @@ s3 = RowSchema(
         Field(
             item="11C",
             name="NUM_NO_PARENTS",
-            friendly_name="total number of no-parent families",
+            friendly_name="Total Number of No-Parent Families: Third Month",
             type="number",
             startIndex=203,
             endIndex=211,
@@ -582,7 +582,7 @@ s3 = RowSchema(
         Field(
             item="12C",
             name="NUM_RECIPIENTS",
-            friendly_name="total number of recipients",
+            friendly_name="Total Number of Recipients: Third Month",
             type="number",
             startIndex=227,
             endIndex=235,
@@ -592,7 +592,7 @@ s3 = RowSchema(
         Field(
             item="13C",
             name="NUM_ADULT_RECIPIENTS",
-            friendly_name="total number of adult recipients",
+            friendly_name="Total Number of Adult Recipients: Third Month",
             type="number",
             startIndex=251,
             endIndex=259,
@@ -602,7 +602,7 @@ s3 = RowSchema(
         Field(
             item="14C",
             name="NUM_CHILD_RECIPIENTS",
-            friendly_name="total number of child recipients",
+            friendly_name="Total Number of Child Recipients: Third Month",
             type="number",
             startIndex=275,
             endIndex=283,
@@ -612,7 +612,7 @@ s3 = RowSchema(
         Field(
             item="15C",
             name="NUM_NONCUSTODIALS",
-            friendly_name="total number of noncustodial parents",
+            friendly_name="Total Number of Noncustodial Parents Participating in Work Activities: Third Month",
             type="number",
             startIndex=299,
             endIndex=307,
@@ -622,7 +622,7 @@ s3 = RowSchema(
         Field(
             item="16C",
             name="NUM_BIRTHS",
-            friendly_name="total number of births",
+            friendly_name="Total Number of Births: Third Month",
             type="number",
             startIndex=323,
             endIndex=331,
@@ -632,7 +632,7 @@ s3 = RowSchema(
         Field(
             item="17C",
             name="NUM_OUTWEDLOCK_BIRTHS",
-            friendly_name="total number of out-of-wedlock births",
+            friendly_name="Total Number of Non-Marital Births: Third Month",
             type="number",
             startIndex=347,
             endIndex=355,
@@ -642,7 +642,7 @@ s3 = RowSchema(
         Field(
             item="18C",
             name="NUM_CLOSED_CASES",
-            friendly_name="total number of closed cases",
+            friendly_name="Total Number of Closed Cases: Third Month",
             type="number",
             startIndex=371,
             endIndex=379,
