@@ -1373,5 +1373,5 @@ def test_is_quiet_preparser_errors():
 
 def test_t3_child_validator():
     """Test t3_child_validator."""
-    assert validators.t3_child_validator(1)('4'*61) == (True, None)
-    assert validators.t3_child_validator(1)('12') == (False, '1st child record truncated.')
+    assert validators.t3_child_validator(1)('4'*61, None) == (True, None)
+    assert validators.t3_child_validator(1)('12', None) == (False, '1st child record truncated.')

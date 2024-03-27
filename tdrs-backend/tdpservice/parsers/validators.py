@@ -671,13 +671,13 @@ def validate_header_rpt_month_year(datafile, header, generate_error):
 
 def t3_child_validator(which_child):
     """T3 child validator."""
-    def t3_first_child_validator_func(value):
+    def t3_first_child_validator_func(value, self):
         if not _is_empty(value, 1, 60) and len(value) >= 60:
             return (True, None)
         else:
             return (False, "1st child record truncated.")
 
-    def t3_second_child_validator_func(value):
+    def t3_second_child_validator_func(value, temp):
         if not _is_empty(value, 60, 101) and len(value) >= 101 and not _is_empty(value, 8, 19):
             return (True, None)
         else:

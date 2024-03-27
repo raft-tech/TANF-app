@@ -1529,11 +1529,11 @@ def second_child_only_space_t3_file():
     # T3 record: second child is not space filled correctly
     parsing_file = ParsingFileFactory(
         year=2021,
-        quarter='Q2',
+        quarter='Q3',
         original_filename='second_child_only_space_t3_file.txt',
         file__name='second_child_only_space_t3_file.txt',
         file__section='Active Case Data',
-        file__data=(b'HEADER20211A25   TAN1 N\n' +
+        file__data=(b'HEADER20212A25   TAN1 N\n' +
                     b'T320210400028221R0112014122888175617622222112204398100000000' +
                     b'                              \n' +
                     b'TRAILER0000001         ')
@@ -1545,11 +1545,11 @@ def one_child_t3_file():
     """Fixture for one child_t3_file."""
     parsing_file = ParsingFileFactory(
         year=2021,
-        quarter='Q2',
+        quarter='Q3',
         original_filename='one_child_t3_file.txt',
         file__name='one_child_t3_file.txt',
         file__section='Active Case Data',
-        file__data=(b'HEADER20211A25   TAN1 N\n' +
+        file__data=(b'HEADER20212A25   TAN1 N\n' +
                     b'T320210400028221R0112014122888175617622222112204398100000000\n' +
                     b'TRAILER0000001         ')
     )
@@ -1561,12 +1561,12 @@ def t3_file():
     # T3 record is space filled correctly
     parsing_file = ParsingFileFactory(
         year=2021,
-        quarter='Q2',
+        quarter='Q3',
         original_filename='t3_file.txt',
         file__name='t3_file.txt',
         file__section='Active Case Data',
-        file__data=(b'HEADER20211A25   TAN1EU\n' +
-                    b'T320201011111111115120160401WTTTT@BTB22212212204398100000000' +
+        file__data=(b'HEADER20212A25   TAN1EU\n' +
+                    b'T320210441111111115120160401WTTTT@BTB22212212204398100000000' +
                     b'                                                            ' +
                     b'                                    \n' +
                     b'TRAILER0000001         ')
@@ -1595,13 +1595,13 @@ def two_child_second_truncated():
                          [('second_child_only_space_t3_file', True, 0),
                           ('one_child_t3_file', True, 0),
                           ('t3_file', True, 0),
-                          ('two_child_second_truncated', False, 1)])
+                          ('two_child_second_truncated', False, 2)])
 @pytest.mark.django_db()
-def test_misformatted_multi_records(file_fixture, result, number_of_errors, request):
+def test_misformatted_multi_records(file_fixture, result, number_of_errors, request, dfs):
     """Test that (not space filled) multi-records are caught."""
     file_fixture = request.getfixturevalue(file_fixture)
-    parse.parse_datafile(file_fixture)
-
+    dfs.datafile = file_fixture
+    parse.parse_datafile(file_fixture, dfs)
     t3 = TANF_T3.objects.all()
     assert t3.exists() == result
 
@@ -1716,7 +1716,6 @@ def no_records_file(stt_user, stt):
 def test_parse_no_records_file(no_records_file, dfs):
     """Test parsing TANF Section 4 submission."""
     dfs.datafile = no_records_file
-
     parse.parse_datafile(no_records_file, dfs)
 
     dfs.status = dfs.get_status()
