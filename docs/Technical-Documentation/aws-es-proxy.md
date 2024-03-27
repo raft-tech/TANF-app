@@ -9,4 +9,4 @@ TDP leverages Elastic Search as a service through Cloud.gov/AWS. However, AWS ha
 The AWS ES Proxy sits between TDP's Cloud.gov/AWS ES service instance and any other service that would like to communicate with the ES service. The proxy obtains all the required information to sign each request coming to it via environment variables in the deployed environment. The proxy is extremely lightweight, can handle many concurrent requests, and per our configuration, only performs signing the incoming request and returning the response to the original requester.
 
 
-
+Since the image does not hold any credentials and only imports them as environment variables, the docker image itself is considered to be secured and can be housed in external hub.
