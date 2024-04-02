@@ -14,18 +14,3 @@
             branches:
               only:
                 - develop
-      - nightly-owasp-scan:
-          target_env: staging
-          filters:
-            branches:
-              only:
-                - main
-      - nightly-owasp-scan:
-          target_env: prod
-          cf_password: CF_PASSWORD_PROD
-          cf_username: CF_USERNAME_PROD
-          cf_space: tanf-prod
-          filters:
-            branches:
-              only:
-                - master
