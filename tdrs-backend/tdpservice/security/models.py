@@ -152,7 +152,6 @@ class OwaspZapScanManager(models.Manager):
             logger.debug('Created reserved system user')
 
         # Create the OwaspZapScan instance.
-        logger.warn("Creating Scan Model")
         zap_scan = self.model.objects.create(
             app_target=app_target,
             html_report=html_report,
@@ -161,14 +160,12 @@ class OwaspZapScanManager(models.Manager):
             pass_count=pass_count,
             warn_count=warn_count
         )
-        logger.warn("Created Scan Model")
 
         # Format a message using the supplied metrics
         msg = (
             f'OWASP ZAP scan completed with result: {zap_scan.result}. '
             f'FAIL: {fail_count}, WARN: {warn_count}, PASS: {pass_count}'
         )
-        logger.warn(f"MSG for LogEntry: {msg}")
 
         # Create a new LogEntry that is tied to this model instance.
         content_type = ContentType.objects.get_for_model(OwaspZapScan)

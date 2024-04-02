@@ -114,6 +114,4 @@ class Command(BaseCommand):
                     pass_count,
                     warn_count
                 )
-                logger.warn("Scan object recorded")
-        logger.warn(f"Response.text: {response.text}")
         return response.text
