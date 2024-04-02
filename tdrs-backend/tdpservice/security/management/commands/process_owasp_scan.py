@@ -106,6 +106,7 @@ class Command(BaseCommand):
                 html_report = File(temp_file)
 
                 # Record the completed scan along with any associated logging
+                logger.warn("Recording scan object")
                 OwaspZapScan.objects.record_scan(
                     app_target,
                     html_report,
@@ -113,4 +114,6 @@ class Command(BaseCommand):
                     pass_count,
                     warn_count
                 )
+                logger.warn("Scan object recorded")
+        logger.warn(f"Response.text: {response.text}")
         return response.text
