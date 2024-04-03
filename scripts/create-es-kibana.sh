@@ -6,13 +6,13 @@
 
 # The deployment strategy you wish to employ ( rolling update or setting up a new environment)
 DEPLOY_STRATEGY=${1}
+CF_SPACE=${2}             # dev, staging, prod
+
 
 #The application name  defined via the manifest yml for the frontend
-CGAPPNAME_FRONTEND=${2}
-CGAPPNAME_BACKEND=${3}
-CGAPPNAME_KIBANA=${4}     # tdp-kibana
-CGAPPNAME_PROXY=${5}      # tdp-elastic-proxy
-CF_SPACE=${6}             # dev, staging, prod
+CGAPPNAME_KIBANA="tdp-kibana"
+CGAPPNAME_PROXY="tdp-elastic-proxy"
+
 
 strip() {
     # Usage: strip "string" "pattern"
@@ -26,7 +26,6 @@ CGAPPNAME_KIBANA="${CGAPPNAME_KIBANA}-${env}" # tdp-kibana-staging, tdp-kibana-p
 CGAPPNAME_PROXY="${CGAPPNAME_PROXY}-${env}"   # tdp-elastic-proxy-staging, tdp-elastic-proxy-prod, tdp-elastic-proxy-dev
 
 echo DEPLOY_STRATEGY: "$DEPLOY_STRATEGY"
-echo BACKEND_HOST: "$CGAPPNAME_BACKEND"
 echo KIBANA_HOST: "$CGAPPNAME_KIBANA"
 echo ELASTIC_PROXY_HOST: "$CGAPPNAME_PROXY"
 echo CF_SPACE: "$CF_SPACE"
@@ -35,7 +34,7 @@ echo env: "$env"
 
 update_kibana()
 {
-  cd tdrs-backend || exit
+  cd ../tdrs-backend || exit
 
   # Run template evaluation on manifest
   # 2814: need to update this and set it to env instaead of app name
@@ -64,12 +63,16 @@ update_kibana()
 # Main script body
 ##############################
 
+echo "Deploying Kibana and Elastic Proxy to $CF_SPACE"
+echo "Deploy strategy: $DEPLOY_STRATEGY"
+
 if [ "$DEPLOY_STRATEGY" = "rolling" ] ; then
     # Perform a rolling update for the backend and frontend deployments if
     # specified, otherwise perform a normal deployment
     update_kibana 'rolling'
 elif [ "$DEPLOY_STRATEGY" = "bind" ] ; then
     # Bind the services the application depends on and restage the app.
+    echo "Deploying Kibana and Elastic Proxy to $CF_SPACE"
 elif [ "$DEPLOY_STRATEGY" = "initial" ]; then
     # There is no app with this name, and the services need to be bound to it
     # for it to work. the app will fail to start once, have the services bind,
