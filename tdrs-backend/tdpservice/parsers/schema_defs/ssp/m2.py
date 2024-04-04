@@ -307,7 +307,7 @@ m2 = SchemaManager(
                 Field(
                     item="32D",
                     name='AID_AGED_BLIND',
-                    friendly_name="Receives Disability Benefits: Aged, Blind, and Disabled Under Title XVI-AABD",
+                    friendly_name="Receives Disability Benefits: Code no longer in use.",
                     type='number',
                     startIndex=48,
                     endIndex=49,

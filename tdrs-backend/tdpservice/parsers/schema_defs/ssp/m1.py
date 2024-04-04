@@ -415,7 +415,7 @@ m1 = SchemaManager(
                 Field(
                     item="24AIII",
                     name='FAMILY_SANC_ADULT',
-                    friendly_name="Family Sanction for Adult",
+                    friendly_name="Sanctions: Code no longer in use",
                     type='number',
                     startIndex=96,
                     endIndex=97,

@@ -899,7 +899,7 @@ t2 = SchemaManager(
                 Field(
                     item="66A",
                     name="UNEARNED_INCOME_TAX_CREDIT",
-                    friendly_name="Amount of Unearned Income",
+                    friendly_name="Amount of Unearned Income: Earned Income Tax Credit (EITC)",
                     type="string",
                     startIndex=136,
                     endIndex=140,

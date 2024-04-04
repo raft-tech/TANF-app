@@ -557,7 +557,7 @@ second_part_schema = RowSchema(
         Field(
             item="65B",
             name='RECEIVE_SSI',
-            friendly_name="Receives Disability Benefits: Supplemental Security Income Under Title XVI-SSI or Aged, Blind, and Disabled Under Title XVI-AABD ",
+            friendly_name="Receives Disability Benefits: Supplemental Security Income Under Title XVI-SSI or Aged, Blind, and Disabled Under Title XVI-AABD",
             type='number',
             startIndex=86,
             endIndex=87,
