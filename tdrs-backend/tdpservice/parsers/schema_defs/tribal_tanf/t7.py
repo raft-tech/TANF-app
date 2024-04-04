@@ -32,7 +32,7 @@ for i in range(1, 31):
                 Field(
                     item="0",
                     name="RecordType",
-                    friendly_name="record type",
+                    friendly_name="Record Type",
                     type="string",
                     startIndex=0,
                     endIndex=2,
@@ -42,7 +42,7 @@ for i in range(1, 31):
                 Field(
                     item="3",
                     name="CALENDAR_QUARTER",
-                    friendly_name="calendar quarter",
+                    friendly_name="Calendar Quarter",
                     type="number",
                     startIndex=2,
                     endIndex=7,
@@ -56,7 +56,7 @@ for i in range(1, 31):
                     transform_func=calendar_quarter_to_rpt_month_year(month_index),
                     item="3A",
                     name="RPT_MONTH_YEAR",
-                    friendly_name="reporting month year",
+                    friendly_name="Reporting Year and Month",
                     type="number",
                     startIndex=2,
                     endIndex=7,
@@ -69,7 +69,7 @@ for i in range(1, 31):
                 Field(
                     item="4",
                     name="TDRS_SECTION_IND",
-                    friendly_name="tdrs section indicator",
+                    friendly_name="TDRS Section Indicator",
                     type="string",
                     startIndex=section_ind_index,
                     endIndex=section_ind_index + 1,
@@ -79,7 +79,7 @@ for i in range(1, 31):
                 Field(
                     item="5",
                     name="STRATUM",
-                    friendly_name="stratum",
+                    friendly_name="Stratum",
                     type="string",
                     startIndex=stratum_index,
                     endIndex=stratum_index + 2,
@@ -89,7 +89,7 @@ for i in range(1, 31):
                 Field(
                     item=families_value_item_number,
                     name="FAMILIES_MONTH",
-                    friendly_name="families month",
+                    friendly_name="Families Month",
                     type="number",
                     startIndex=families_index,
                     endIndex=families_index + 7,
