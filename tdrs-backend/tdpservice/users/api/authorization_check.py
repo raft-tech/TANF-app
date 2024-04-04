@@ -62,7 +62,7 @@ class KibanaAuthorizationCheck(APIView):
     def get(self, request, *args, **kwargs):
         """Handle get request and verify user is authorized to access kibana."""
         user = request.user
-        
+
         return HttpResponse(status=200)
         user_in_valid_group = user.is_ofa_sys_admin or user.is_digit_team
 
