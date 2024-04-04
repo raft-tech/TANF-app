@@ -505,7 +505,7 @@ t1 = SchemaManager(
                 Field(
                     item="26AIII",
                     name="FAMILY_SANC_ADULT",
-                    friendly_name="family sanction adult",
+                    friendly_name="Sanctions: Code no longer in use",
                     type="number",
                     startIndex=97,
                     endIndex=98,
@@ -565,7 +565,7 @@ t1 = SchemaManager(
                 Field(
                     item="26B",
                     name="RECOUPMENT_PRIOR_OVRPMT",
-                    friendly_name="Reason for and Amount of Reductions in Assistance: Recoupment of Prior Overpayment",
+                    friendly_name="Recoupment of Prior Overpayment",
                     type="number",
                     startIndex=102,
                     endIndex=106,
@@ -613,7 +613,7 @@ t1 = SchemaManager(
                 Field(
                     item="26CIV",
                     name="OTHER_NON_SANCTION",
-                    friendly_name="Other Non-Saction, Non-Recoupment",
+                    friendly_name="Other: Non-Sanction, Non-Recoupment",
                     type="number",
                     startIndex=112,
                     endIndex=113,
