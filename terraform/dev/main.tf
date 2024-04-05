@@ -10,8 +10,13 @@ terraform {
     }
   }
 
-  backend "local" {}
+  backend "s3" {
 
+    key     = "terraform.tfstate.dev"
+    prefix  = var.cf_app_name
+    encrypt = true
+    region  = "us-gov-west-1"
+  }
 }
 
 provider "cloudfoundry" {
