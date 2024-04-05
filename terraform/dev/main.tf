@@ -101,15 +101,6 @@ data "cloudfoundry_service" "elasticsearch" {
   name = "aws-elasticsearch"
 }
 
-output "elasticsearch_service_plans" {
-  value = data.cloudfoundry_service.elasticsearch
-}
-
-output "coudfoundry_space" {
-  value = data.cloudfoundry_space.space
-}
-
-
 resource "cloudfoundry_service_instance" "elasticsearch" {
   name             = "es-dev"
   space            = data.cloudfoundry_space.space.id
