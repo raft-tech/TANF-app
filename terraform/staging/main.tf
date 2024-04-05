@@ -77,6 +77,10 @@ resource "cloudfoundry_service_instance" "datafiles" {
   recursive_delete = true
 }
 
+data "cloudfoundry_service" "elasticsearch" {
+  name = "aws-elasticsearch"
+}
+
 resource "cloudfoundry_service_instance" "elasticsearch" {
   name             = "es-staging"
   space            = data.cloudfoundry_space.space.id
