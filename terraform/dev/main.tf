@@ -10,13 +10,8 @@ terraform {
     }
   }
 
-  backend "s3" {
+  backend "local" {}
 
-    key     = "terraform.tfstate.dev"
-    prefix  = var.cf_app_name
-    encrypt = true
-    region  = "us-gov-west-1"
-  }
 }
 
 provider "cloudfoundry" {
@@ -91,4 +86,27 @@ resource "cloudfoundry_service_instance" "redis" {
   name         = "tdp-redis-${each.value}"
   space        = data.cloudfoundry_space.space.id
   service_plan = data.cloudfoundry_service.redis.service_plans["redis-dev"]
+}
+
+###
+# Provision elasticsearch
+###
+
+data "cloudfoundry_service" "elasticsearch" {
+  name = "aws-elasticsearch"
+}
+
+output "elasticsearch_service_plans" {
+  value = data.cloudfoundry_service.elasticsearch
+}
+
+output "coudfoundry_space" {
+  value = data.cloudfoundry_space.space
+}
+
+
+resource "cloudfoundry_service_instance" "elasticsearch" {
+  name             = "es-dev"
+  space            = data.cloudfoundry_space.space.id
+  service_plan     = data.cloudfoundry_service.elasticsearch.service_plans["es-dev"]
 }
