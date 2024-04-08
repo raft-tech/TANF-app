@@ -1,20 +1,22 @@
 """Convert raw uploaded Datafile into a parsed model, and accumulate/return any errors."""
 
 
+from django.conf import settings
 from django.db import DatabaseError
 from django.contrib.admin.models import LogEntry, ADDITION
 from django.contrib.contenttypes.models import ContentType
 import itertools
 import logging
 from .models import ParserErrorCategoryChoices, ParserError
-from . import schema_defs, validators, util
+from . import schema_defs, validators, util, row_schema
+from .schema_defs.util import get_section_reference, get_program_model
 from elasticsearch.helpers.errors import BulkIndexError
 from tdpservice.data_files.models import DataFile
 
 logger = logging.getLogger(__name__)
 
 
-def parse_datafile(datafile):
+def parse_datafile(datafile, dfs):
     """Parse and validate Datafile header/trailer, then select appropriate schema and parse/validate all lines."""
     rawfile = datafile.file
     errors = {}
@@ -62,7 +64,7 @@ def parse_datafile(datafile):
 
     section_is_valid, section_error = validators.validate_header_section_matches_submission(
         datafile,
-        util.get_section_reference(program_type, section),
+        get_section_reference(program_type, section),
         util.make_generate_parser_error(datafile, 1)
     )
 
@@ -85,13 +87,13 @@ def parse_datafile(datafile):
         bulk_create_errors(unsaved_parser_errors, 1, flush=True)
         return errors
 
-    line_errors = parse_datafile_lines(datafile, program_type, section, is_encrypted)
+    line_errors = parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted)
 
     errors = errors | line_errors
 
     return errors
 
-def bulk_create_records(unsaved_records, line_number, header_count, datafile, batch_size=10000, flush=False):
+def bulk_create_records(unsaved_records, line_number, header_count, datafile, dfs, batch_size=10000, flush=False):
     """Bulk create passed in records."""
     if (line_number % batch_size == 0 and header_count > 0) or flush:
         logger.debug("Bulk creating records.")
@@ -104,6 +106,7 @@ def bulk_create_records(unsaved_records, line_number, header_count, datafile, ba
                 created_objs = document.Django.model.objects.bulk_create(records)
                 num_elastic_records_created += document.update(created_objs)[0]
                 num_db_records_created += len(created_objs)
+            dfs.total_number_of_records_created += num_db_records_created
             if num_db_records_created != num_expected_db_records:
                 logger.error(f"Bulk Django record creation only created {num_db_records_created}/" +
                              f"{num_expected_db_records}!")
@@ -172,7 +175,30 @@ def rollback_parser_errors(datafile):
     num_deleted, models = ParserError.objects.filter(file=datafile).delete()
     logger.debug(f"Deleted {num_deleted} {ParserError}.")
 
-def parse_datafile_lines(datafile, program_type, section, is_encrypted):
+def generate_trailer_errors(trailer_errors, errors, unsaved_parser_errors, num_errors):
+    """Generate trailer errors if we care to see them."""
+    if settings.GENERATE_TRAILER_ERRORS:
+        errors['trailer'] = trailer_errors
+        unsaved_parser_errors.update({"trailer": trailer_errors})
+        num_errors += len(trailer_errors)
+    return errors, unsaved_parser_errors, num_errors
+
+def create_no_records_created_pre_check_error(datafile, dfs):
+    """Generate a precheck error if no records were created."""
+    errors = {}
+    if dfs.total_number_of_records_created == 0:
+        generate_error = util.make_generate_parser_error(datafile, 0)
+        err_obj = generate_error(
+                schema=None,
+                error_category=ParserErrorCategoryChoices.PRE_CHECK,
+                error_message="No records created.",
+                record=None,
+                field=None
+            )
+        errors["no_records_created"] = [err_obj]
+    return errors
+
+def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted):
     """Parse lines with appropriate schema and return errors."""
     rawfile = datafile.file
     errors = {}
@@ -207,9 +233,10 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
         if trailer_errors is not None:
             logger.debug(f"{len(trailer_errors)} trailer error(s) detected for file " +
                          f"'{datafile.original_filename}' on line {line_number}.")
-            errors['trailer'] = trailer_errors
-            unsaved_parser_errors.update({"trailer": trailer_errors})
-            num_errors += len(trailer_errors)
+            errors, unsaved_parser_errors, num_errors = generate_trailer_errors(trailer_errors,
+                                                                                errors,
+                                                                                unsaved_parser_errors,
+                                                                                num_errors)
 
         generate_error = util.make_generate_parser_error(datafile, line_number)
 
@@ -236,10 +263,12 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
 
         schema_manager = get_schema_manager(line, section, program_type)
 
-        records = manager_parse_line(line, schema_manager, generate_error, is_encrypted)
+        records = manager_parse_line(line, schema_manager, generate_error, datafile, is_encrypted)
+        num_records = len(records)
+        dfs.total_number_of_records_in_file += num_records
 
         record_number = 0
-        for i in range(len(records)):
+        for i in range(num_records):
             r = records[i]
             record_number += 1
             record, record_is_valid, record_errors = r
@@ -255,7 +284,7 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
                 record.datafile = datafile
                 unsaved_records.setdefault(s.document, []).append(record)
 
-        all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count, datafile)
+        all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count, datafile, dfs)
         unsaved_parser_errors, num_errors = bulk_create_errors(unsaved_parser_errors, num_errors)
 
     if header_count == 0:
@@ -276,7 +305,12 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
 
     # Only checking "all_created" here because records remained cached if bulk create fails. This is the last chance to
     # successfully create the records.
-    all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count, datafile, flush=True)
+    all_created, unsaved_records = bulk_create_records(unsaved_records, line_number, header_count, datafile, dfs,
+                                                       flush=True)
+
+    no_records_created_error = create_no_records_created_pre_check_error(datafile, dfs)
+    unsaved_parser_errors.update(no_records_created_error)
+
     if not all_created:
         logger.error(f"Not all parsed records created for file: {datafile.id}!")
         rollback_records(unsaved_records, datafile)
@@ -285,11 +319,15 @@ def parse_datafile_lines(datafile, program_type, section, is_encrypted):
 
     bulk_create_errors(unsaved_parser_errors, num_errors, flush=True)
 
+    dfs.save()
+
     return errors
 
 
-def manager_parse_line(line, schema_manager, generate_error, is_encrypted=False):
+def manager_parse_line(line, schema_manager, generate_error, datafile, is_encrypted=False):
     """Parse and validate a datafile line using SchemaManager."""
+    if type(schema_manager) is row_schema.SchemaManager:
+        schema_manager.datafile = datafile
     try:
         schema_manager.update_encrypted_fields(is_encrypted)
         records = schema_manager.parse_and_validate(line, generate_error)
@@ -309,4 +347,4 @@ def manager_parse_line(line, schema_manager, generate_error, is_encrypted=False)
 def get_schema_manager(line, section, program_type):
     """Return the appropriate schema for the line."""
     line_type = line[0:2]
-    return util.get_program_model(program_type, section, line_type)
+    return get_program_model(program_type, section, line_type)
