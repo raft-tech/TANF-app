@@ -17,6 +17,9 @@
         enum: ["staging", "develop", "prod"]
     steps:
       - run:
+          name: Cat Zap Script
+          command: cat ./scripts/zap-scanner.sh
+      - run:
           name: Execute OWASP ZAP vulnerability scan
           #wait up to 60min for scan
           no_output_timeout: 60m
