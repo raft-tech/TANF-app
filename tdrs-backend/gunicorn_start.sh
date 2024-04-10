@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Apply database migrations
 set -e
 
 echo "REDIS_SERVER"
@@ -12,11 +11,14 @@ else
     ( cd  /home/vcap/deps/0/bin/; ./redis-server /home/vcap/app/redis.conf &)
 fi
 
-#
-echo "Applying database migrations"
-python manage.py migrate
-#python manage.py populate_stts
-#python manage.py collectstatic --noinput
+# Collect static files. This is needed for swagger to work in local environment
+if [[ $DISABLE_COLLECTSTATIC ]]; then 
+    echo "DISABLE_COLLECTSTATIC is set to true, skipping collectstatic"
+else
+    echo "Collecting static files"
+    python manage.py collectstatic --noinput
+fi
+
 
 celery -A tdpservice.settings worker -c 1 &
 sleep 5
