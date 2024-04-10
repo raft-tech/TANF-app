@@ -1,9 +1,14 @@
 """Tests for DataFiles Application."""
 from rest_framework import status
 import pytest
+import base64
+import openpyxl
 from django.core import mail
 from tdpservice.data_files.models import DataFile
 from tdpservice.users.models import AccountApprovalStatusChoices
+from tdpservice.parsers import parse, util
+from tdpservice.parsers.models import ParserError
+from tdpservice.parsers.test.factories import DataFileSummaryFactory
 
 
 @pytest.mark.usefixtures('db')
@@ -23,6 +28,23 @@ class DataFileAPITestBase:
         This fixture must be overridden in each child test class.
         """
         raise NotImplementedError()
+
+    @pytest.fixture
+    def test_datafile(self, stt_user, stt):
+        """Fixture for small_incorrect_file_cross_validator."""
+        test_datafile = util.create_test_datafile('small_incorrect_file_cross_validator.txt', stt_user, stt)
+        test_datafile.year = 2021
+        test_datafile.quarter = 'Q1'
+        test_datafile.save()
+        return test_datafile
+
+    @pytest.fixture
+    def test_ssp_datafile(self, stt_user, stt):
+        """Fixture for small_ssp_section1."""
+        df = util.create_test_datafile('small_ssp_section1.txt', stt_user, stt, 'SSP Active Case Data')
+        df.year = 2024
+        df.quarter = 'Q1'
+        return df
 
     @pytest.fixture
     def api_client(self, api_client, user):
@@ -58,6 +80,64 @@ class DataFileAPITestBase:
         assert b''.join(response.streaming_content) == data_file_file.file.read()
 
     @staticmethod
+    def get_spreadsheet(response):
+        """Return error report."""
+        decoded_response = base64.b64decode(response.data['xls_report'])
+
+        # write the excel file to disk
+        with open('mycls.xlsx', 'wb') as f:
+            f.write(decoded_response)
+
+        # read the excel file from disk
+        wb = openpyxl.load_workbook('mycls.xlsx')
+        ws = wb.get_sheet_by_name('Sheet1')
+        return ws
+
+    @staticmethod
+    def assert_error_report_tanf_file_content_matches_with_friendly_names(response):
+        """Assert the error report file contents match expected with friendly names."""
+        ws = DataFileAPITestBase.get_spreadsheet(response)
+
+        COL_ERROR_MESSAGE = 5
+
+        assert ws.cell(row=1, column=1).value == "Error reporting in TDP is still in development.We'll" \
+            + " be in touch when it's ready to use!For now please refer to the reports you receive via email"
+        assert ws.cell(row=4, column=COL_ERROR_MESSAGE).value == "if cash amount :873 validator1 passed" \
+            + " then number of months T1: 0 is not larger than 0."
+
+    @staticmethod
+    def assert_error_report_ssp_file_content_matches_with_friendly_names(response):
+        """Assert the error report file contents match expected with friendly names."""
+        ws = DataFileAPITestBase.get_spreadsheet(response)
+
+        COL_ERROR_MESSAGE = 5
+
+        assert ws.cell(row=1, column=1).value == "Error reporting in TDP is still in development.We'll" \
+            + " be in touch when it's ready to use!For now please refer to the reports you receive via email"
+        assert ws.cell(row=4, column=COL_ERROR_MESSAGE).value == "TRAILER record length is 15 characters " + \
+            "but must be 23."
+
+    @staticmethod
+    def assert_error_report_file_content_matches_without_friendly_names(response):
+        """Assert the error report file contents match expected without friendly names."""
+        decoded_response = base64.b64decode(response.data['xls_report'])
+
+        # write the excel file to disk
+        with open('mycls.xlsx', 'wb') as f:
+            f.write(decoded_response)
+
+        # read the excel file from disk
+        wb = openpyxl.load_workbook('mycls.xlsx')
+        ws = wb.get_sheet_by_name('Sheet1')
+
+        COL_ERROR_MESSAGE = 5
+
+        assert ws.cell(row=1, column=1).value == "Error reporting in TDP is still in development.We'll" \
+            + " be in touch when it's ready to use!For now please refer to the reports you receive via email"
+        assert ws.cell(row=4, column=COL_ERROR_MESSAGE).value == ("if CASH_AMOUNT :873 validator1 passed then "
+                                                                  "NBR_MONTHS T1: 0 is not larger than 0.")
+
+    @staticmethod
     def assert_data_file_exists(data_file_data, version, user):
         """Confirm that a data file matching the provided data exists in the DB."""
         assert DataFile.objects.filter(
@@ -90,6 +170,10 @@ class DataFileAPITestBase:
     def download_file(self, api_client, data_file_id):
         """Stream a file for download."""
         return api_client.get(f"{self.root_url}{data_file_id}/download/")
+
+    def download_error_report_file(self, api_client, data_file_id):
+        """Download the ParserError xlsx report."""
+        return api_client.get(f"{self.root_url}{data_file_id}/download_error_report/")
 
 
 class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
@@ -161,6 +245,11 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         """Override the default user with data_analyst for our tests."""
         return data_analyst
 
+    @pytest.fixture
+    def dfs(self):
+        """Fixture for DataFileSummary."""
+        return DataFileSummaryFactory.create()
+
     def test_data_files_data_analyst_permission(self, api_client, data_file_data, user):
         """Test that a Data Analyst is allowed to add data_files to their own STT."""
         response = self.post_data_file_file(api_client, data_file_data)
@@ -187,6 +276,40 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         assert response.status_code == status.HTTP_200_OK
         self.assert_data_file_content_matches(response, data_file_id)
 
+    def test_download_error_report_file_for_own_stt(
+        self, api_client, test_datafile, dfs
+    ):
+        """Test that the error report file is downloaded as expected for a Data Analyst's set STT."""
+        parse.parse_datafile(test_datafile, dfs)
+        response = self.download_error_report_file(api_client, test_datafile.id)
+
+        assert response.status_code == status.HTTP_200_OK
+        self.assert_error_report_tanf_file_content_matches_with_friendly_names(response)
+
+    def test_download_error_report_ssp_file_for_own_stt(self, api_client, test_ssp_datafile, dfs):
+        """Test that the error report file for an SSP file is downloaded as expected for a Data Analyst's set STT."""
+        parse.parse_datafile(test_ssp_datafile, dfs)
+        response = self.download_error_report_file(api_client, test_ssp_datafile.id)
+
+        assert response.status_code == status.HTTP_200_OK
+        self.assert_error_report_ssp_file_content_matches_with_friendly_names(response)
+
+    def test_download_error_report_file_for_own_stt_no_fields_json(
+        self, api_client, test_datafile, dfs
+    ):
+        """Test that the error report file is downloaded as expected when no fields_json is added to ParserErrors."""
+        parse.parse_datafile(test_datafile, dfs)
+
+        # remove the fields' friendly names for all parser errors
+        for error in ParserError.objects.all():
+            error.fields_json = None
+            error.save()
+
+        response = self.download_error_report_file(api_client, test_datafile.id)
+
+        assert response.status_code == status.HTTP_200_OK
+        self.assert_error_report_file_content_matches_without_friendly_names(response)
+
     def test_download_data_file_file_rejected_for_other_stt(
         self,
         api_client,
@@ -204,6 +327,26 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         data_file_file.save()
 
         response = self.download_file(api_client, data_file_id)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_download_error_report_rejected_for_other_stt(
+        self,
+        api_client,
+        data_file_data,
+        other_stt,
+        user
+    ):
+        """Test that the error report download is rejected when user's STT doesn't match."""
+        response = self.post_data_file_file(api_client, data_file_data)
+        data_file_id = response.data['id']
+
+        # Update the STT to something other than the user's
+        data_file_file = DataFile.objects.get(id=data_file_id)
+        data_file_file.stt = other_stt
+        data_file_file.save()
+
+        response = self.download_error_report_file(api_client, data_file_id)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 

@@ -8,81 +8,87 @@ from tdpservice.parsers import validators
 from tdpservice.search_indexes.documents.ssp import SSP_M3DataSubmissionDocument
 
 first_part_schema = RowSchema(
+    record_type="M3",
     document=SSP_M3DataSubmissionDocument(),
     preparsing_validators=[
         validators.notEmpty(start=19, end=60),
+        validators.caseNumberNotEmpty(8, 19),
+        validators.or_priority_validators([
+                    validators.field_year_month_with_header_year_quarter(),
+                    validators.validateRptMonthYear(),
+                ]),
     ],
     postparsing_validators=[
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.matches(1),
-            result_field='SSN',
+            result_field_name='SSN',
             result_function=validators.validateSSN(),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='RACE_HISPANIC',
+            result_field_name='RACE_HISPANIC',
             result_function=validators.isInLimits(1, 2),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='RACE_AMER_INDIAN',
+            result_field_name='RACE_AMER_INDIAN',
             result_function=validators.isInLimits(1, 2),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='RACE_ASIAN',
+            result_field_name='RACE_ASIAN',
             result_function=validators.isInLimits(1, 2),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='RACE_BLACK',
+            result_field_name='RACE_BLACK',
             result_function=validators.isInLimits(1, 2),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='RACE_HAWAIIAN',
+            result_field_name='RACE_HAWAIIAN',
             result_function=validators.isInLimits(1, 2),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='RACE_WHITE',
+            result_field_name='RACE_WHITE',
             result_function=validators.isInLimits(1, 2),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='RELATIONSHIP_HOH',
+            result_field_name='RELATIONSHIP_HOH',
             result_function=validators.isInLimits(4, 9),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='PARENT_MINOR_CHILD',
+            result_field_name='PARENT_MINOR_CHILD',
             result_function=validators.oneOf((1, 2, 3)),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.matches(1),
-            result_field='EDUCATION_LEVEL',
+            result_field_name='EDUCATION_LEVEL',
             result_function=validators.notMatches(99),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.matches(1),
-            result_field='CITIZENSHIP_STATUS',
+            result_field_name='CITIZENSHIP_STATUS',
             result_function=validators.oneOf((1, 2)),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.matches(2),
-            result_field='CITIZENSHIP_STATUS',
+            result_field_name='CITIZENSHIP_STATUS',
             result_function=validators.oneOf((1, 2, 3, 9)),
             ),
     ],
@@ -118,7 +124,7 @@ first_part_schema = RowSchema(
             startIndex=8,
             endIndex=19,
             required=True,
-            validators=[validators.isAlphaNumeric()]
+            validators=[validators.notEmpty()]
         ),
         Field(
             item="60",
@@ -138,10 +144,11 @@ first_part_schema = RowSchema(
             startIndex=20,
             endIndex=28,
             required=True,
-            validators=[
-                validators.dateYearIsLargerThan(1998),
-                validators.dateMonthIsValid(),
-            ]
+            validators=[validators.intHasLength(8),
+                        validators.dateYearIsLargerThan(1900),
+                        validators.dateMonthIsValid(),
+                        validators.dateDayIsValid()
+                        ]
         ),
         TransformField(
             transform_func=ssp_ssn_decryption_func,
@@ -153,7 +160,7 @@ first_part_schema = RowSchema(
             endIndex=37,
             required=True,
             is_encrypted=False,
-            validators=[validators.validateSSN()]
+            validators=[validators.isNumber()]
         ),
         Field(
             item="63A",
@@ -314,82 +321,88 @@ first_part_schema = RowSchema(
 )
 
 second_part_schema = RowSchema(
+    record_type="M3",
     document=SSP_M3DataSubmissionDocument(),
     quiet_preparser_errors=True,
     preparsing_validators=[
         validators.notEmpty(start=60, end=101),
+        validators.caseNumberNotEmpty(8, 19),
+        validators.or_priority_validators([
+                    validators.field_year_month_with_header_year_quarter(),
+                    validators.validateRptMonthYear(),
+                ]),
     ],
     postparsing_validators=[
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.matches(1),
-            result_field='SSN',
+            result_field_name='SSN',
             result_function=validators.validateSSN(),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='RACE_HISPANIC',
+            result_field_name='RACE_HISPANIC',
             result_function=validators.isInLimits(1, 2),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='RACE_AMER_INDIAN',
+            result_field_name='RACE_AMER_INDIAN',
             result_function=validators.isInLimits(1, 2),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='RACE_ASIAN',
+            result_field_name='RACE_ASIAN',
             result_function=validators.isInLimits(1, 2),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='RACE_BLACK',
+            result_field_name='RACE_BLACK',
             result_function=validators.isInLimits(1, 2),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='RACE_HAWAIIAN',
+            result_field_name='RACE_HAWAIIAN',
             result_function=validators.isInLimits(1, 2),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='RACE_WHITE',
+            result_field_name='RACE_WHITE',
             result_function=validators.isInLimits(1, 2),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='RELATIONSHIP_HOH',
+            result_field_name='RELATIONSHIP_HOH',
             result_function=validators.isInStringRange(4, 9),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.oneOf((1, 2)),
-            result_field='PARENT_MINOR_CHILD',
+            result_field_name='PARENT_MINOR_CHILD',
             result_function=validators.oneOf((1, 2, 3)),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.matches(1),
-            result_field='EDUCATION_LEVEL',
+            result_field_name='EDUCATION_LEVEL',
             result_function=validators.notMatches(99),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.matches(1),
-            result_field='CITIZENSHIP_STATUS',
+            result_field_name='CITIZENSHIP_STATUS',
             result_function=validators.oneOf((1, 2)),
             ),
         validators.if_then_validator(
-            condition_field='FAMILY_AFFILIATION',
+            condition_field_name='FAMILY_AFFILIATION',
             condition_function=validators.matches(2),
-            result_field='CITIZENSHIP_STATUS',
+            result_field_name='CITIZENSHIP_STATUS',
             result_function=validators.oneOf((1, 2, 3, 9)),
             ),
     ],
@@ -425,7 +438,7 @@ second_part_schema = RowSchema(
             startIndex=8,
             endIndex=19,
             required=True,
-            validators=[validators.isAlphaNumeric()]
+            validators=[validators.notEmpty()]
         ),
         Field(
             item="60",
@@ -445,10 +458,11 @@ second_part_schema = RowSchema(
             startIndex=61,
             endIndex=69,
             required=True,
-            validators=[
-                validators.dateYearIsLargerThan(1998),
-                validators.dateMonthIsValid(),
-            ]
+            validators=[validators.intHasLength(8),
+                        validators.dateYearIsLargerThan(1900),
+                        validators.dateMonthIsValid(),
+                        validators.dateDayIsValid()
+                        ]
         ),
         TransformField(
             transform_func=ssp_ssn_decryption_func,
@@ -460,7 +474,7 @@ second_part_schema = RowSchema(
             endIndex=78,
             required=True,
             is_encrypted=False,
-            validators=[validators.validateSSN()]
+            validators=[validators.isNumber()]
         ),
         Field(
             item="63A",

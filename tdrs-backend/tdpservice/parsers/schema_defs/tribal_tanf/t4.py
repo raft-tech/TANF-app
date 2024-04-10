@@ -9,9 +9,15 @@ from tdpservice.search_indexes.documents.tribal import Tribal_TANF_T4DataSubmiss
 t4 = SchemaManager(
     schemas=[
         RowSchema(
+            record_type="T4",
             document=Tribal_TANF_T4DataSubmissionDocument(),
             preparsing_validators=[
-                validators.hasLength(71),
+                validators.recordHasLength(71),
+                validators.caseNumberNotEmpty(8, 19),
+                validators.or_priority_validators([
+                    validators.field_year_month_with_header_year_quarter(),
+                    validators.validateRptMonthYear(),
+                ]),
             ],
             postparsing_validators=[],
             fields=[
@@ -46,7 +52,7 @@ t4 = SchemaManager(
                     startIndex=8,
                     endIndex=19,
                     required=True,
-                    validators=[validators.isAlphaNumeric()],
+                    validators=[validators.notEmpty()],
                 ),
                 Field(
                     item="2",
