@@ -88,8 +88,9 @@
 
             # These environment variables are exported to Circle CI's BASH_ENV
             # by the zap-scanner.sh script for each respective app target.
+            CIRCLE_BUILD_NUM=66662
             CMD_ARGS=(
-              66662
+              $CIRCLE_BUILD_NUM
               --backend-pass-count ${ZAP_BACKEND_PASS_COUNT:-0}
               --backend-warn-count ${ZAP_BACKEND_WARN_COUNT:-0}
               --backend-fail-count ${ZAP_BACKEND_FAIL_COUNT:-0}
