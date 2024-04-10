@@ -72,14 +72,14 @@
           cf-space: <<parameters.cf_space>>
           cf-org: <<parameters.cf_org>>
           cf-username: <<parameters.cf_username>>
-      - run-owasp-scan:
-          environment: nightly
-          target: backend
-          target_env: <<parameters.target_env>>
       # - run-owasp-scan:
       #     environment: nightly
-      #     target: frontend
+      #     target: backend
       #     target_env: <<parameters.target_env>>
+      - run-owasp-scan:
+          environment: nightly
+          target: frontend
+          target_env: <<parameters.target_env>>
       - run:
           name: Run post-processing task to record OWASP ZAP results
           command: |
