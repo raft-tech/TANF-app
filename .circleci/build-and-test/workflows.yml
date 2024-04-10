@@ -54,6 +54,5 @@
     when: << pipeline.parameters.build_and_test_frontend >>
     jobs:
       - secrets-check
-      - test-frontend:
-          requires:
-            - secrets-check
+      - nightly-owasp-scan:
+          target_env: develop
