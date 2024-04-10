@@ -342,7 +342,7 @@ def test_hasLengthGreaterThan_returns_valid():
     value = 'abcd123'
 
     validator = validators.hasLengthGreaterThan(6)
-    is_valid, error = validator(value)
+    is_valid, error = validator(value, None, "friendly_name", "item_no")
 
     assert is_valid is True
     assert error is None
@@ -1309,5 +1309,10 @@ def test_is_quiet_preparser_errors():
 
 def test_t3_child_validator():
     """Test t3_child_validator."""
-    assert validators.t3_child_validator(1)('4'*61, None) == (True, None)
-    assert validators.t3_child_validator(1)('12', None) == (False, '1st child record truncated.')
+    assert validators.t3_child_validator(1)(
+        "4" * 61, None, "fake_friendly_name", 0
+    ) == (True, None)
+    assert validators.t3_child_validator(1)("12", None, "fake_friendly_name", 0) == (
+        False,
+        "1st child record truncated.",
+    )

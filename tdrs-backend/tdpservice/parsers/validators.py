@@ -278,9 +278,10 @@ def hasLengthGreaterThan(val, error_func=None):
     """Validate that value (string or array) has a length greater than val."""
     return make_validator(
         lambda value: len(value) >= val,
-        lambda value: error_func(value, val)
-        if error_func
-        else f"Value length {len(value)} is not greater than {val}.",
+        lambda value,
+        row_schema,
+        friendly_name,
+        item_num: f"Value length {len(value)} is not greater than {val}.",
     )
 
 
@@ -723,13 +724,13 @@ def validate_header_rpt_month_year(datafile, header, generate_error):
 
 def t3_child_validator(which_child):
     """T3 child validator."""
-    def t3_first_child_validator_func(value, self):
+    def t3_first_child_validator_func(value, temp, friendly_name, item_num):
         if not _is_empty(value, 1, 60) and len(value) >= 60:
             return (True, None)
         else:
             return (False, "1st child record truncated.")
 
-    def t3_second_child_validator_func(value, temp):
+    def t3_second_child_validator_func(value, temp, friendly_name, item_num):
         if not _is_empty(value, 60, 101) and len(value) >= 101 and not _is_empty(value, 8, 19):
             return (True, None)
         else:
