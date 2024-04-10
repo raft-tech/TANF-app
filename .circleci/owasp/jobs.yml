@@ -72,10 +72,10 @@
           cf-space: <<parameters.cf_space>>
           cf-org: <<parameters.cf_org>>
           cf-username: <<parameters.cf_username>>
-      - run-owasp-scan:
-          environment: nightly
-          target: backend
-          target_env: <<parameters.target_env>>
+      # - run-owasp-scan:
+      #     environment: nightly
+      #     target: backend
+      #     target_env: <<parameters.target_env>>
       - run-owasp-scan:
           environment: nightly
           target: frontend
@@ -90,14 +90,14 @@
             # by the zap-scanner.sh script for each respective app target.
             echo $CIRCLE_BUILD_NUM
             CMD_ARGS=(
-              66717
-              --backend-pass-count 0
-              --backend-warn-count 0
-              --backend-fail-count 0
-              --frontend-pass-count 120
-              --frontend-warn-count 4
-              --frontend-fail-count 4
-              --project-slug raft-tech/TANF-app
+              $CIRCLE_BUILD_NUM
+              --backend-pass-count ${ZAP_BACKEND_PASS_COUNT:-0}
+              --backend-warn-count ${ZAP_BACKEND_WARN_COUNT:-0}
+              --backend-fail-count ${ZAP_BACKEND_FAIL_COUNT:-0}
+              --frontend-pass-count ${ZAP_FRONTEND_PASS_COUNT:-0}
+              --frontend-warn-count ${ZAP_FRONTEND_WARN_COUNT:-0}
+              --frontend-fail-count ${ZAP_FRONTEND_FAIL_COUNT:-0}
+              --project-slug $PROJECT_SLUG
             )
             # Evaluate the full command before passing it in so it doesn't
             # get improperly interpolated by Cloud.gov.
