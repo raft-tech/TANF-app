@@ -66,8 +66,6 @@ class Command(BaseCommand):
         )
         response = requests.get(circle_api_url)
 
-        print("Text to get job to run.")
-
         if response.status_code == 500:
             raise Exception("CircleCI API returned 500 error. The 'circle_build_num' number may be incorrect.")
         elif response.status_code == 404:
