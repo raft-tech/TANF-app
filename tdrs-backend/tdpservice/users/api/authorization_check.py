@@ -63,7 +63,6 @@ class KibanaAuthorizationCheck(APIView):
         """Handle get request and verify user is authorized to access kibana."""
         user = request.user
 
-        return HttpResponse(status=200)
         user_in_valid_group = user.is_ofa_sys_admin or user.is_digit_team
 
         if (user.hhs_id is not None and user_in_valid_group) or settings.BYPASS_KIBANA_AUTH:
