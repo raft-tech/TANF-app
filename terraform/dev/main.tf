@@ -11,7 +11,6 @@ terraform {
   }
 
   backend "s3" {
-
     key     = "terraform.tfstate.dev"
     prefix  = var.cf_app_name
     encrypt = true
