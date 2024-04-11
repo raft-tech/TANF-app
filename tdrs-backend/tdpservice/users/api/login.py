@@ -103,8 +103,17 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
                 options=options,
             )
             return decoded_payload
+
+        # catch multiple exceptions for invalid primary 3 fields
+        # https://pyjwt.readthedocs.io/en/stable/usage.html#audience-claim-aud
+        # There's no exploit here, just more graceful exception handling
+
         except jwt.ExpiredSignatureError:
             return {"error": "The token is expired."}
+        except jwt.InvalidAudienceError:
+            return {"error": "The token's audience is invalid."}
+        except jwt.InvalidIssuerError:
+            return {"error": "The token's issuer is invalid."}
 
     @abstractmethod
     def get_auth_options(self, access_token: Optional[str], sub: Optional[str]) -> Dict[str, str]:
