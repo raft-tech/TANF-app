@@ -1557,7 +1557,7 @@ def second_child_only_space_t3_file():
         original_filename='second_child_only_space_t3_file.txt',
         file__name='second_child_only_space_t3_file.txt',
         file__section='Active Case Data',
-        file__data=(b'HEADER20212A25   TAN1 N\n' +
+        file__data=(b'HEADER20212A25   TAN1 D\n' +
                     b'T320210400028221R0112014122888175617622222112204398100000000' +
                     b'                              \n' +
                     b'TRAILER0000001         ')
@@ -1573,7 +1573,7 @@ def one_child_t3_file():
         original_filename='one_child_t3_file.txt',
         file__name='one_child_t3_file.txt',
         file__section='Active Case Data',
-        file__data=(b'HEADER20212A25   TAN1 N\n' +
+        file__data=(b'HEADER20212A25   TAN1 D\n' +
                     b'T320210400028221R0112014122888175617622222112204398100000000\n' +
                     b'TRAILER0000001         ')
     )
@@ -1589,7 +1589,7 @@ def t3_file():
         original_filename='t3_file.txt',
         file__name='t3_file.txt',
         file__section='Active Case Data',
-        file__data=(b'HEADER20212A25   TAN1EU\n' +
+        file__data=(b'HEADER20212A25   TAN1ED\n' +
                     b'T320210441111111115120160401WTTTT@BTB22212212204398100000000' +
                     b'                                                            ' +
                     b'                                    \n' +
@@ -1607,7 +1607,7 @@ def two_child_second_truncated():
         original_filename='two_child_second_truncated.txt',
         file__name='two_child_second_truncated.txt',
         file__section='Active Case Data',
-        file__data=(b'HEADER20211A25   TAN1EU\n' +
+        file__data=(b'HEADER20211A25   TAN1ED\n' +
                     b'T320201011111111115120160401WTTTT@BTB22212212204398100000000' +
                     b'56                                                          ' +
                     b'                                    \n' +
