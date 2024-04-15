@@ -261,6 +261,16 @@ def hasLength(length, error_func=None):
     )
 
 
+def hasLengthGreaterThan(val, error_func=None):
+    """Validate that value (string or array) has a length greater than val."""
+    return make_validator(
+        lambda value: len(value) >= val,
+        lambda value: error_func(value, val)
+        if error_func
+        else f"Value length {len(value)} is not greater than {val}.",
+    )
+
+
 def intHasLength(num_digits):
     """Validate the number of digits in an integer."""
     return make_validator(
@@ -657,6 +667,36 @@ def validate_header_rpt_month_year(datafile, header, generate_error):
             field=None,
         )
     return is_valid, error
+
+
+def t3_child_validator(which_child):
+    """T3 child validator."""
+    def t3_first_child_validator_func(value, self):
+        if not _is_empty(value, 1, 60) and len(value) >= 60:
+            return (True, None)
+        else:
+            return (False, "1st child record truncated.")
+
+    def t3_second_child_validator_func(value, temp):
+        if not _is_empty(value, 60, 101) and len(value) >= 101 and not _is_empty(value, 8, 19):
+            return (True, None)
+        else:
+            return (False, "2nd child record truncated.")
+
+    return t3_first_child_validator_func if which_child == 1 else t3_second_child_validator_func
+
+
+def is_quiet_preparser_errors(min_length, empty_from=61, empty_to=101):
+    """Return a function that checks if the length is valid and if the value is empty."""
+    def return_value(value):
+        is_length_valid = len(value) >= min_length
+        is_empty = value_is_empty(
+            value[empty_from:empty_to],
+            len(value[empty_from:empty_to])
+            )
+        return is_length_valid and not is_empty
+    return return_value
+
 
 def validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE():
     """If WORK_ELIGIBLE_INDICATOR == 11 and AGE < 19, then RELATIONSHIP_HOH != 1."""

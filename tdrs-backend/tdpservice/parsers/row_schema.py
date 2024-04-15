@@ -44,10 +44,16 @@ class RowSchema:
         errors = []
 
         # run preparsing validators
-        preparsing_is_valid, preparsing_errors = self.run_preparsing_validators(line, generate_error)
-
+        preparsing_is_valid, preparsing_errors = self.run_preparsing_validators(
+            line, generate_error
+        )
         if not preparsing_is_valid:
-            if self.quiet_preparser_errors:
+            is_quiet_preparser_errors = (
+                self.quiet_preparser_errors
+                if type(self.quiet_preparser_errors) == bool
+                else self.quiet_preparser_errors(line)
+            )
+            if is_quiet_preparser_errors:
                 return None, True, []
             logger.info(f"{len(preparsing_errors)} preparser error(s) encountered.")
             return None, False, preparsing_errors

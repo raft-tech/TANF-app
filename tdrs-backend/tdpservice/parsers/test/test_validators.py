@@ -328,6 +328,26 @@ def test_hasLength_returns_invalid():
     assert is_valid is False
     assert error == 'Value length 7 does not match 22.'
 
+def test_hasLengthGreaterThan_returns_valid():
+    """Test `hasLengthGreaterThan` gives a valid result."""
+    value = 'abcd123'
+
+    validator = validators.hasLengthGreaterThan(6)
+    is_valid, error = validator(value)
+
+    assert is_valid is True
+    assert error is None
+
+def test_hasLengthGreaterThan_returns_invalid():
+    """Test `hasLengthGreaterThan` gives an invalid result."""
+    value = 'abcd123'
+
+    validator = validators.hasLengthGreaterThan(8)
+    is_valid, error = validator(value)
+
+    assert is_valid is False
+    assert error == 'Value length 7 is not greater than 8.'
+
 
 def test_intHasLength_returns_valid():
     """Test `intHasLength` gives a valid result."""
@@ -1345,3 +1365,13 @@ class TestM5Cat3Validators(TestCat3ValidatorsBase):
         assert result == (False, 'if FAMILY_AFFILIATION :1 validator1 passed then REC_FEDERAL_DISABILITY 0 is not ' +
                           'larger or equal to 1 and smaller or equal to 2.',
                           ['FAMILY_AFFILIATION', 'REC_FEDERAL_DISABILITY'])
+
+def test_is_quiet_preparser_errors():
+    """Test is_quiet_preparser_errors."""
+    assert validators.is_quiet_preparser_errors(2, 4, 6)("#######") is False
+    assert validators.is_quiet_preparser_errors(2, 4, 6)("####1##") is True
+
+def test_t3_child_validator():
+    """Test t3_child_validator."""
+    assert validators.t3_child_validator(1)('4'*61, None) == (True, None)
+    assert validators.t3_child_validator(1)('12', None) == (False, '1st child record truncated.')
