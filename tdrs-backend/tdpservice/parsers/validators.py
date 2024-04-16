@@ -739,6 +739,39 @@ def t3_child_validator(which_child):
     return t3_first_child_validator_func if which_child == 1 else t3_second_child_validator_func
 
 
+def m3_child_validator(which_child):
+    """M3 child validator."""
+    def m3_first_child_validator_func(value, temp, friendly_name, item_num):
+        if not _is_empty(value, 1, 60) and len(value) >= 60:
+            return (True, None)
+        else:
+            return (False, "1st child record truncated.")
+
+    def m3_second_child_validator_func(value, temp, friendly_name, item_num):
+        if not _is_empty(value, 60, 101) and len(value) >= 101 and not _is_empty(value, 8, 19):
+            return (True, None)
+        else:
+            return (False, "2nd child record truncated.")
+
+    return m3_first_child_validator_func if which_child == 1 else m3_second_child_validator_func
+
+def tribal_t3_child_validator(which_child):
+    """Tribal T3 child validator."""
+    def tribal_t3_first_child_validator_func(value, temp, friendly_name, item_num):
+        if not _is_empty(value, 1, 60) and len(value) >= 60:
+            return (True, None)
+        else:
+            return (False, "1st child record truncated.")
+
+    def tribal_t3_second_child_validator_func(value, temp, friendly_name, item_num):
+        if not _is_empty(value, 60, 101) and len(value) >= 101 and not _is_empty(value, 8, 19):
+            return (True, None)
+        else:
+            return (False, "2nd child record truncated.")
+
+    return tribal_t3_first_child_validator_func if which_child == 1 else tribal_t3_second_child_validator_func
+
+
 def is_quiet_preparser_errors(min_length, empty_from=61, empty_to=101):
     """Return a function that checks if the length is valid and if the value is empty."""
     def return_value(value):
