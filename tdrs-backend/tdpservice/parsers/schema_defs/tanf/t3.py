@@ -14,7 +14,7 @@ child_one = RowSchema(
     record_type="T3",
     document=TANF_T3DataSubmissionDocument(),
     preparsing_validators=[
-        validators.t3_child_validator(FIRST_CHILD),
+        validators.t3_m3_child_validator(FIRST_CHILD),
         validators.caseNumberNotEmpty(8, 19),
         validators.or_priority_validators([
                     validators.field_year_month_with_header_year_quarter(),
@@ -326,7 +326,7 @@ child_two = RowSchema(
     document=TANF_T3DataSubmissionDocument(),
     quiet_preparser_errors=validators.is_quiet_preparser_errors(min_length=101),
     preparsing_validators=[
-        validators.t3_child_validator(SECOND_CHILD),
+        validators.t3_m3_child_validator(SECOND_CHILD),
         validators.caseNumberNotEmpty(8, 19),
         validators.or_priority_validators([
                     validators.field_year_month_with_header_year_quarter(),

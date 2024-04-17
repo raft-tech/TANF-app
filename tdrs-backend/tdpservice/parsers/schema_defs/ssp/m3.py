@@ -14,7 +14,7 @@ first_part_schema = RowSchema(
     record_type="M3",
     document=SSP_M3DataSubmissionDocument(),
     preparsing_validators=[
-        validators.m3_child_validator(FIRST_CHILD),
+        validators.t3_m3_child_validator(FIRST_CHILD),
         validators.caseNumberNotEmpty(8, 19),
         validators.or_priority_validators([
                     validators.field_year_month_with_header_year_quarter(),
@@ -328,7 +328,7 @@ second_part_schema = RowSchema(
     document=SSP_M3DataSubmissionDocument(),
     quiet_preparser_errors=validators.is_quiet_preparser_errors(min_length=101),
     preparsing_validators=[
-        validators.t3_child_validator(SECOND_CHILD),
+        validators.t3_m3_child_validator(SECOND_CHILD),
         validators.caseNumberNotEmpty(8, 19),
         validators.or_priority_validators([
                     validators.field_year_month_with_header_year_quarter(),
