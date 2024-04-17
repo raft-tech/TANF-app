@@ -722,7 +722,7 @@ def validate_header_rpt_month_year(datafile, header, generate_error):
     return is_valid, error
 
 
-def t3_child_validator(which_child):
+def t3_m3_child_validator(which_child):
     """T3 child validator."""
     def t3_first_child_validator_func(value, temp, friendly_name, item_num):
         if not _is_empty(value, 1, 60) and len(value) >= 60:
