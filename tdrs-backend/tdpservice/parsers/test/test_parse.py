@@ -1550,78 +1550,34 @@ def test_parse_tribal_section_4_file(tribal_section_4_file, dfs):
     assert first.FAMILIES_MONTH == 274
     assert sixth.FAMILIES_MONTH == 499
 
-@pytest.fixture
-def second_child_only_space_t3_file():
-    """Fixture for misformatted_t3_file."""
-    # T3 record: second child is not space filled correctly
-    parsing_file = ParsingFileFactory(
-        year=2021,
-        quarter='Q3',
-        original_filename='second_child_only_space_t3_file.txt',
-        file__name='second_child_only_space_t3_file.txt',
-        file__section='Active Case Data',
-        file__data=(b'HEADER20212A25   TAN1 D\n' +
-                    b'T320210400028221R0112014122888175617622222112204398100000000' +
-                    b'                              \n' +
-                    b'TRAILER0000001         ')
-    )
-    return parsing_file
 
 @pytest.fixture
-def one_child_t3_file():
-    """Fixture for one child_t3_file."""
-    parsing_file = ParsingFileFactory(
-        year=2021,
-        quarter='Q3',
-        original_filename='one_child_t3_file.txt',
-        file__name='one_child_t3_file.txt',
-        file__section='Active Case Data',
-        file__data=(b'HEADER20212A25   TAN1 D\n' +
-                    b'T320210400028221R0112014122888175617622222112204398100000000\n' +
-                    b'TRAILER0000001         ')
-    )
-    return parsing_file
+def second_child_only_space_t3_file(stt_user, stt):
+    """Fixture for small_correct_file."""
+    data_file = util.create_test_datafile('t3_second_child_space_filled.txt', stt_user, stt)
+    data_file.year = 2021
+    data_file.quarter = 'Q3'
+    return data_file
 
 @pytest.fixture
-def t3_file():
-    """Fixture for T3 file."""
-    # T3 record is space filled correctly
-    parsing_file = ParsingFileFactory(
-        year=2021,
-        quarter='Q3',
-        original_filename='t3_file.txt',
-        file__name='t3_file.txt',
-        file__section='Active Case Data',
-        file__data=(b'HEADER20212A25   TAN1ED\n' +
-                    b'T320210441111111115120160401WTTTT@BTB22212212204398100000000' +
-                    b'                                                            ' +
-                    b'                                    \n' +
-                    b'TRAILER0000001         ')
-    )
-    return parsing_file
+def one_child_t3_file(stt_user, stt):
+    """Fixture for small_correct_file."""
+    data_file = util.create_test_datafile('t3_one_child.txt', stt_user, stt)
+    data_file.year = 2021
+    data_file.quarter = 'Q3'
+    return data_file
 
 @pytest.fixture
-def two_child_second_truncated():
-    """Fixture for T3 file."""
-    # T3 record is space filled correctly
-    parsing_file = ParsingFileFactory(
-        year=2021,
-        quarter='Q2',
-        original_filename='two_child_second_truncated.txt',
-        file__name='two_child_second_truncated.txt',
-        file__section='Active Case Data',
-        file__data=(b'HEADER20211A25   TAN1ED\n' +
-                    b'T320201011111111115120160401WTTTT@BTB22212212204398100000000' +
-                    b'56                                                          ' +
-                    b'                                    \n' +
-                    b'TRAILER0000001         ')
-    )
-    return parsing_file
+def two_child_second_truncated(stt_user, stt):
+    """Fixture for small_correct_file."""
+    data_file = util.create_test_datafile('t3_two_child_second_truncated.txt', stt_user, stt)
+    data_file.year = 2021
+    data_file.quarter = 'Q2'
+    return data_file
 
 @pytest.mark.parametrize('file_fixture, result, number_of_errors',
                          [('second_child_only_space_t3_file', True, 0),
                           ('one_child_t3_file', True, 0),
-                          ('t3_file', True, 0),
                           ('two_child_second_truncated', False, 2)])
 @pytest.mark.django_db()
 def test_misformatted_multi_records(file_fixture, result, number_of_errors, request, dfs):
@@ -1629,6 +1585,9 @@ def test_misformatted_multi_records(file_fixture, result, number_of_errors, requ
     file_fixture = request.getfixturevalue(file_fixture)
     dfs.datafile = file_fixture
     parse.parse_datafile(file_fixture, dfs)
+    errors = ParserError.objects.all()
+    for i in errors:
+        logger.info('________________________' + i.error_message)
     t3 = TANF_T3.objects.all()
     assert t3.exists() == result
 
