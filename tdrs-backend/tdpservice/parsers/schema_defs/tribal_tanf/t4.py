@@ -150,8 +150,8 @@ t4 = SchemaManager(
                 ),
                 Field(
                     item="14",
-                    name="BLANK",
-                    friendly_name="blank",
+                    name="FAMILY_AFFILIATION",
+                    friendly_name="Family Affiliation",
                     type="string",
                     startIndex=36,
                     endIndex=71,
