@@ -1371,7 +1371,7 @@ def test_t3_m3_child_validator():
     ) == (True, None)
     assert validators.t3_m3_child_validator(1)("12", None, "fake_friendly_name", 0) == (
         False,
-        "1st child record truncated.",
+        "The first child record is too short at 2 characters and must be at least 60 characters.",
     )
 
 class TestCaseConsistencyValidator:

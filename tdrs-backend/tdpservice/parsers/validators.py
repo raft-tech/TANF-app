@@ -740,14 +740,20 @@ def t3_m3_child_validator(which_child):
     def t3_first_child_validator_func(value, temp, friendly_name, item_num):
         if not _is_empty(value, 1, 60) and len(value) >= 60:
             return (True, None)
+        elif not len(value) >= 60:
+            return (False, f"The first child record is too short at {len(value)} "
+                    "characters and must be at least 60 characters.")
         else:
-            return (False, "1st child record truncated.")
+            return (False, "The first child record is empty.")
 
     def t3_second_child_validator_func(value, temp, friendly_name, item_num):
         if not _is_empty(value, 60, 101) and len(value) >= 101 and not _is_empty(value, 8, 19):
             return (True, None)
+        elif not len(value) >= 101:
+            return (False, f"The second child record is too short at {len(value)} "
+                    "characters and must be at least 101 characters.")
         else:
-            return (False, "2nd child record truncated.")
+            return (False, "The second child record is empty.")
 
     return t3_first_child_validator_func if which_child == 1 else t3_second_child_validator_func
 
