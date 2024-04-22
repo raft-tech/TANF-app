@@ -23,6 +23,7 @@ Velocity (Dev): 19
 
 
 ## Tickets
+
 ### Completed/Merged
 * [#2746 As an STT, I need to know if there are issues with the DOBs reported in my data files](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2746)
 * [#2729 As a developer, I want to move migration commands in the pipeline to CircleCI](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2729)
@@ -31,7 +32,8 @@ Velocity (Dev): 19
 * [#2793 update dateYearIsLargerThan() validator logic for rpt_month_year](https://github.com/raft-tech/TANF-app/issues/2793)
 * [#2754 As tech lead I need sections 3,4 rejected if T6, T7, M7 records can't be parsed](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2754)
 * [V3.3.2 yq hotfix](https://github.com/raft-tech/TANF-app/pull/2895)
-
+* [#2861 DIGIT Team Group + Kibana + Queries](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2861)
+  
 ### Ready to Merge
 * [Move ES AWS routing image](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2877)
 
