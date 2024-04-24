@@ -326,7 +326,7 @@ first_part_schema = RowSchema(
 second_part_schema = RowSchema(
     record_type="M3",
     document=SSP_M3DataSubmissionDocument(),
-    quiet_preparser_errors=validators.is_quiet_preparser_errors(min_length=101),
+    quiet_preparser_errors=validators.is_quiet_preparser_errors(min_length=61),
     preparsing_validators=[
         validators.t3_m3_child_validator(SECOND_CHILD),
         validators.caseNumberNotEmpty(8, 19),
