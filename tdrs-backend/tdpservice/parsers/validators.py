@@ -766,7 +766,7 @@ def is_quiet_preparser_errors(min_length, empty_from=61, empty_to=101):
             value[empty_from:empty_to],
             len(value[empty_from:empty_to])
             )
-        return is_length_valid and not is_empty
+        return not (is_length_valid and not is_empty)
     return return_value
 
 

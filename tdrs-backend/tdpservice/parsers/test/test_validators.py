@@ -1361,8 +1361,9 @@ class TestM5Cat3Validators(TestCat3ValidatorsBase):
 
 def test_is_quiet_preparser_errors():
     """Test is_quiet_preparser_errors."""
-    assert validators.is_quiet_preparser_errors(2, 4, 6)("#######") is False
-    assert validators.is_quiet_preparser_errors(2, 4, 6)("####1##") is True
+    assert validators.is_quiet_preparser_errors(2, 4, 6)("#######") is True
+    assert validators.is_quiet_preparser_errors(2, 4, 6)("####1##") is False
+    assert validators.is_quiet_preparser_errors(4, 4, 6)("##1") is True
 
 def test_t3_m3_child_validator():
     """Test t3_m3_child_validator."""

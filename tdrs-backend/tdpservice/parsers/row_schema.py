@@ -49,12 +49,12 @@ class RowSchema:
         preparsing_is_valid, preparsing_errors = self.run_preparsing_validators(
             line, generate_error
         )
-        if not preparsing_is_valid:
-            is_quiet_preparser_errors = (
+        is_quiet_preparser_errors = (
                 self.quiet_preparser_errors
                 if type(self.quiet_preparser_errors) == bool
                 else self.quiet_preparser_errors(line)
             )
+        if not preparsing_is_valid:
             if is_quiet_preparser_errors:
                 return None, True, []
             logger.info(f"{len(preparsing_errors)} preparser error(s) encountered.")
@@ -83,7 +83,12 @@ class RowSchema:
             validator_is_valid, validator_error = validator(line, self, "record type", "0")
             is_valid = False if not validator_is_valid else is_valid
 
-            if validator_error and not self.quiet_preparser_errors:
+            is_quiet_preparser_errors = (
+                self.quiet_preparser_errors
+                if type(self.quiet_preparser_errors) == bool
+                else self.quiet_preparser_errors(line)
+            )
+            if validator_error and not is_quiet_preparser_errors:
                 errors.append(
                     generate_error(
                         schema=self,
