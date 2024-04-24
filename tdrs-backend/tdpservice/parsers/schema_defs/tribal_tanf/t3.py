@@ -15,6 +15,7 @@ child_one = RowSchema(
     document=Tribal_TANF_T3DataSubmissionDocument(),
     preparsing_validators=[
         validators.t3_m3_child_validator(FIRST_CHILD),
+        validators.caseNumberNotEmpty(8, 19),
         validators.or_priority_validators([
                     validators.field_year_month_with_header_year_quarter(),
                     validators.validateRptMonthYear(),
