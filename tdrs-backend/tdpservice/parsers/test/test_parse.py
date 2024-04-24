@@ -1656,15 +1656,15 @@ def two_child_second_filled():
     return parsing_file
 
 
-@pytest.mark.parametrize('file_fixture, result, number_of_errors',
-                         [('second_child_only_space_t3_file', True, 0),
-                          ('one_child_t3_file', True, 0),
-                          ('t3_file', True, 0),
-                          ('t3_file_two_child', True, 1),
-                          ('t3_file_two_child_with_space_filled', True, 0),
-                          ('two_child_second_filled', True, 9)])
+@pytest.mark.parametrize('file_fixture, result, number_of_errors, error_message',
+                         [('second_child_only_space_t3_file', True, 0, ''),
+                          ('one_child_t3_file', True, 0, ''),
+                          ('t3_file', True, 0, ''),
+                          ('t3_file_two_child', True, 1, 'The second child record is too short at 97 characters and must be at least 101 characters.'),
+                          ('t3_file_two_child_with_space_filled', True, 0, ''),
+                          ('two_child_second_filled', True, 9, 'T3: Year 6    must be larger than 1900.')])
 @pytest.mark.django_db()
-def test_misformatted_multi_records(file_fixture, result, number_of_errors, request, dfs):
+def test_misformatted_multi_records(file_fixture, result, number_of_errors, error_message, request, dfs):
     """Test that (not space filled) multi-records are caught."""
     file_fixture = request.getfixturevalue(file_fixture)
     dfs.datafile = file_fixture
@@ -1675,6 +1675,9 @@ def test_misformatted_multi_records(file_fixture, result, number_of_errors, requ
 
     parser_errors = ParserError.objects.all()
     assert parser_errors.count() == number_of_errors
+    if number_of_errors > 0:
+        error_messages = [parser_error.error_message for parser_error in parser_errors]
+        assert error_message in error_messages
 
 @pytest.mark.django_db()
 def test_parse_t2_invalid_dob(t2_invalid_dob_file, dfs):
