@@ -1559,7 +1559,7 @@ def second_child_only_space_t3_file():
         quarter='Q3',
         original_filename='second_child_only_space_t3_file.txt',
         file__name='second_child_only_space_t3_file.txt',
-        file__section='Active Case Data',
+        file__section=DataFile.Section.ACTIVE_CASE_DATA,
         file__data=(b'HEADER20212A25   TAN1 D\n' +
                     b'T320210400028221R0112014122888175617622222112204398100000000' +
                     b'                              \n' +
@@ -1575,7 +1575,7 @@ def one_child_t3_file():
         quarter='Q3',
         original_filename='one_child_t3_file.txt',
         file__name='one_child_t3_file.txt',
-        file__section='Active Case Data',
+        file__section=DataFile.Section.ACTIVE_CASE_DATA,
         file__data=(b'HEADER20212A25   TAN1 D\n' +
                     b'T320210400028221R0112014122888175617622222112204398100000000\n' +
                     b'TRAILER0000001         ')
@@ -1591,7 +1591,7 @@ def t3_file():
         quarter='Q3',
         original_filename='t3_file.txt',
         file__name='t3_file.txt',
-        file__section='Active Case Data',
+        file__section=DataFile.Section.ACTIVE_CASE_DATA,
         file__data=(b'HEADER20212A25   TAN1ED\n' +
                     b'T320210441111111115120160401WTTTT@BTB22212212204398100000000' +
                     b'                                                            ' +
@@ -1600,19 +1600,55 @@ def t3_file():
     )
     return parsing_file
 
+
 @pytest.fixture
-def two_child_second_truncated():
+def t3_file_two_child():
     """Fixture for T3 file."""
     # T3 record is space filled correctly
     parsing_file = ParsingFileFactory(
         year=2021,
         quarter='Q2',
-        original_filename='two_child_second_truncated.txt',
-        file__name='two_child_second_truncated.txt',
-        file__section='Active Case Data',
+        original_filename='t3_file.txt',
+        file__name='t3_file.txt',
+        file__section=DataFile.Section.ACTIVE_CASE_DATA,
         file__data=(b'HEADER20211A25   TAN1ED\n' +
-                    b'T320201011111111115120160401WTTTT@BTB22212212204398100000000' +
-                    b'56                                                          ' +
+                    b'T320210211111111157120190527WTTTTT9WT12212122204398100000000' +
+                    b'420100125WTTTT9@TB1221222220430490000\n' +
+                    b'TRAILER0000001         ')
+    )
+    return parsing_file
+
+@pytest.fixture
+def t3_file_two_child_with_space_filled():
+    """Fixture for T3 file."""
+    # T3 record is space filled correctly
+    parsing_file = ParsingFileFactory(
+        year=2021,
+        quarter='Q2',
+        original_filename='t3_file.txt',
+        file__name='t3_file.txt',
+        file__section=DataFile.Section.ACTIVE_CASE_DATA,
+        file__data=(b'HEADER20211A25   TAN1ED\n' +
+                    b'T320210211111111157120190527WTTTTT9WT12212122204398100000000' +
+                    b'420100125WTTTT9@TB1221222220430490000                       \n' +
+                    b'TRAILER0000001         ')
+    )
+    return parsing_file
+
+
+@pytest.fixture
+def two_child_second_filled():
+    """Fixture for T3 file."""
+    # T3 record is space filled correctly
+    parsing_file = ParsingFileFactory(
+        year=2021,
+        quarter='Q2',
+        original_filename='two_child_second_filled.txt',
+        file__name='two_child_second_filled.txt',
+        file__section=DataFile.Section.ACTIVE_CASE_DATA,
+        file__data=(b'HEADER20211A25   TAN1ED\n' +
+                    b'T320210211111111115120160401WTTTT@BTB22212212204398100000000' +
+                    b'56      111111111                                           ' +
                     b'                                    \n' +
                     b'TRAILER0000001         ')
     )
@@ -1622,13 +1658,16 @@ def two_child_second_truncated():
                          [('second_child_only_space_t3_file', True, 0),
                           ('one_child_t3_file', True, 0),
                           ('t3_file', True, 0),
-                          ('two_child_second_truncated', False, 2)])
+                          ('t3_file_two_child', True, 1),
+                          ('t3_file_two_child_with_space_filled', True, 0),
+                          ('two_child_second_filled', True, 9)])
 @pytest.mark.django_db()
 def test_misformatted_multi_records(file_fixture, result, number_of_errors, request, dfs):
     """Test that (not space filled) multi-records are caught."""
     file_fixture = request.getfixturevalue(file_fixture)
     dfs.datafile = file_fixture
     parse.parse_datafile(file_fixture, dfs)
+    parser_errors = ParserError.objects.filter(file=file_fixture)
     t3 = TANF_T3.objects.all()
     assert t3.exists() == result
 
