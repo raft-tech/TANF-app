@@ -381,6 +381,19 @@ def caseNumberNotEmpty(start=0, end=None):
     )
 
 
+def calendarQuarterIsValid(start=0, end=None):
+    """Validate that the calendar quarter value is valid."""
+    return make_validator(
+        lambda value: value[start:end].isnumeric() and int(value[start:end - 1]) >= 2020
+        and int(value[end - 1:end]) > 0 and int(value[end - 1:end]) < 5,
+        lambda value,
+        row_schema,
+        friendly_name,
+        item_num: f"{row_schema.record_type}: {value[start:end]} is invalid. Calendar Quarter must be a numeric "
+        "representing the Calendar Year and Quarter formatted as YYYYQ",
+    )
+
+
 def isEmpty(start=0, end=None):
     """Validate that string value is only blanks."""
     return make_validator(
@@ -727,14 +740,20 @@ def t3_m3_child_validator(which_child):
     def t3_first_child_validator_func(value, temp, friendly_name, item_num):
         if not _is_empty(value, 1, 60) and len(value) >= 60:
             return (True, None)
+        elif not len(value) >= 60:
+            return (False, f"The first child record is too short at {len(value)} "
+                    "characters and must be at least 60 characters.")
         else:
-            return (False, "1st child record truncated.")
+            return (False, "The first child record is empty.")
 
     def t3_second_child_validator_func(value, temp, friendly_name, item_num):
         if not _is_empty(value, 60, 101) and len(value) >= 101 and not _is_empty(value, 8, 19):
             return (True, None)
+        elif not len(value) >= 101:
+            return (False, f"The second child record is too short at {len(value)} "
+                    "characters and must be at least 101 characters.")
         else:
-            return (False, "2nd child record truncated.")
+            return (False, "The second child record is empty.")
 
     return t3_first_child_validator_func if which_child == 1 else t3_second_child_validator_func
 
@@ -747,7 +766,7 @@ def is_quiet_preparser_errors(min_length, empty_from=61, empty_to=101):
             value[empty_from:empty_to],
             len(value[empty_from:empty_to])
             )
-        return is_length_valid and not is_empty
+        return not (is_length_valid and not is_empty)
     return return_value
 
 

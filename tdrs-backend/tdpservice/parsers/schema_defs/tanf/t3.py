@@ -324,7 +324,7 @@ child_one = RowSchema(
 child_two = RowSchema(
     record_type="T3",
     document=TANF_T3DataSubmissionDocument(),
-    quiet_preparser_errors=validators.is_quiet_preparser_errors(min_length=101),
+    quiet_preparser_errors=validators.is_quiet_preparser_errors(min_length=61),
     preparsing_validators=[
         validators.t3_m3_child_validator(SECOND_CHILD),
         validators.caseNumberNotEmpty(8, 19),
