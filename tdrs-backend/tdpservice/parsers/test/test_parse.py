@@ -1660,7 +1660,9 @@ def two_child_second_filled():
                          [('second_child_only_space_t3_file', True, 0, ''),
                           ('one_child_t3_file', True, 0, ''),
                           ('t3_file', True, 0, ''),
-                          ('t3_file_two_child', True, 1, 'The second child record is too short at 97 characters and must be at least 101 characters.'),
+                          ('t3_file_two_child', True, 1,
+                           'The second child record is too short at 97 characters' +
+                           ' and must be at least 101 characters.'),
                           ('t3_file_two_child_with_space_filled', True, 0, ''),
                           ('two_child_second_filled', True, 9, 'T3: Year 6    must be larger than 1900.')])
 @pytest.mark.django_db()
