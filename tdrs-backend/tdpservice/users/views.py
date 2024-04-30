@@ -56,6 +56,7 @@ class UserViewSet(
 
     def get_permissions(self):
         """Determine the permissions to apply based on action."""
+        logger.info("+++++++++ User %s requested action %s", self.request.user, self.action)
         if self.action in ['list', 'retrieve']:
             permission_classes = [IsAuthenticated, IsApprovedPermission, UserPermissions]
         else:
@@ -64,6 +65,7 @@ class UserViewSet(
 
     def retrieve(self, request, pk=None):
         """Return a specific user."""
+        logger.info("------------- User %s requested user %s", request.user, pk)
         item = get_object_or_404(self.queryset, pk=pk)
         self.check_object_permissions(request, item)
         serializer = self.get_serializer_class()(item)
