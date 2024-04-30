@@ -104,6 +104,10 @@ class STTFilter(MultipleChoiceListFilter):
     def lookups(self, request, model_admin):
         """Available options in dropdown."""
         options = []
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("__________ model_admin:" + str(model_admin.model.__dict__))
+        
         for obj in STT.objects.all():
             options.append((obj.stt_code, _(obj.name)))
         return options
