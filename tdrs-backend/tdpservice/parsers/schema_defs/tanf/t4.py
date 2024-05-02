@@ -72,8 +72,8 @@ t4 = SchemaManager(
                     type="string",
                     startIndex=22,
                     endIndex=24,
-                    required=True,
-                    validators=[validators.oneOf(['0-99', '  '])],
+                    required=False,
+                    validators=[validators.isInStringRange(0, 99)],
                 ),
                 Field(
                     item="7",
