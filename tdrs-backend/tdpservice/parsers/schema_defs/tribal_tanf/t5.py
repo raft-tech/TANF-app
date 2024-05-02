@@ -396,7 +396,7 @@ t5 = SchemaManager(
                     type="string",
                     startIndex=63,
                     endIndex=67,
-                    required=True,
+                    required=False,
                     validators=[validators.isInStringRange(0, 9999)],
                 ),
                 Field(
@@ -406,7 +406,7 @@ t5 = SchemaManager(
                     type="string",
                     startIndex=67,
                     endIndex=71,
-                    required=True,
+                    required=False,
                     validators=[validators.isInStringRange(0, 9999)],
                 ),
             ],

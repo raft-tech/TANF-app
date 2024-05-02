@@ -82,7 +82,7 @@ header = RowSchema(
             startIndex=14,
             endIndex=17,
             required=False,
-            validators=[validators.oneOf(['0-999'])],
+            validators=[validators.isInStringRange(0, 999)],
         ),
         Field(
             item="7",

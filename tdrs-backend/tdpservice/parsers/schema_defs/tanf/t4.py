@@ -118,7 +118,7 @@ t4 = SchemaManager(
                     startIndex=32,
                     endIndex=33,
                     required=True,
-                    validators=[validators.isInLimits(1, 3)],
+                    validators=[validators.isInLimits(1, 2)],
                 ),
                 Field(
                     item="11",
