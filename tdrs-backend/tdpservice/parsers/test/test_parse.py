@@ -1654,13 +1654,32 @@ def two_child_second_filled():
     )
     return parsing_file
 
+@pytest.fixture
+def t3_file_zero_filled_second():
+    """Fixture for T3 file."""
+    # T3 record is space filled correctly
+    parsing_file = ParsingFileFactory(
+        year=2021,
+        quarter='Q3',
+        original_filename='t3_file_zero_filled_second.txt',
+        file__name='t3_file_zero_filled_second.txt',
+        file__section=DataFile.Section.ACTIVE_CASE_DATA,
+        file__data=(b'HEADER20212A25   TAN1ED\n' +
+                    b'T320210441111111115120160401WTTTT@BTB22212212204398100000000' +
+                    b'000000000000000000000000000000000000000000000000000000000000' +
+                    b'000000000000000000000000000000000000\n' +
+                    b'TRAILER0000001         ')
+    )
+    return parsing_file
+
 @pytest.mark.parametrize('file_fixture, result, number_of_errors',
                          [('second_child_only_space_t3_file', True, 0),
                           ('one_child_t3_file', True, 0),
                           ('t3_file', True, 0),
                           ('t3_file_two_child', True, 1),
                           ('t3_file_two_child_with_space_filled', True, 0),
-                          ('two_child_second_filled', True, 9)])
+                          ('two_child_second_filled', True, 9),
+                          ('t3_file_zero_filled_second', True, 0)])
 @pytest.mark.django_db()
 def test_misformatted_multi_records(file_fixture, result, number_of_errors, request, dfs):
     """Test that (not space filled) multi-records are caught."""
