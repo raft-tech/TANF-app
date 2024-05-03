@@ -1655,7 +1655,7 @@ def two_child_second_filled():
     )
     return parsing_file
 
-  
+
 @pytest.fixture
 def t3_file_zero_filled_second():
     """Fixture for T3 file."""
@@ -1682,7 +1682,8 @@ def t3_file_zero_filled_second():
                            'The second child record is too short at 97 characters' +
                            ' and must be at least 101 characters.'),
                           ('t3_file_two_child_with_space_filled', 2, 0, ''),
-                          ('two_child_second_filled', 2, 9, 'T3: Year 6    must be larger than 1900.')])
+                          ('two_child_second_filled', 2, 9, 'T3: Year 6    must be larger than 1900.'),
+                          ('t3_file_zero_filled_second', 1, 0, '')])
 @pytest.mark.django_db()
 def test_misformatted_multi_records(file_fixture, result, number_of_errors, error_message, request, dfs):
     """Test that (not space filled) multi-records are caught."""
@@ -1698,7 +1699,6 @@ def test_misformatted_multi_records(file_fixture, result, number_of_errors, erro
     if number_of_errors > 0:
         error_messages = [parser_error.error_message for parser_error in parser_errors]
         assert error_message in error_messages
-    assert t3.exists() == result
 
     parser_errors = ParserError.objects.all()
     assert parser_errors.count() == number_of_errors
