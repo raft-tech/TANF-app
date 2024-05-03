@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 def value_is_empty(value, length, extra_vals={}):
     """Handle 'empty' values as field inputs."""
+    # TODO: have to build mixed type handling for value
     empty_values = {
         '',
         ' '*length,  # '     '
@@ -735,6 +736,11 @@ def validate_header_rpt_month_year(datafile, header, generate_error):
     return is_valid, error
 
 
+def _is_all_zeros(value, start, end):
+    """Check if a value is all zeros."""
+    return value[start:end] == "0" * (end - start)
+
+
 def t3_m3_child_validator(which_child):
     """T3 child validator."""
     def t3_first_child_validator_func(value, temp, friendly_name, item_num):
@@ -747,7 +753,9 @@ def t3_m3_child_validator(which_child):
             return (False, "The first child record is empty.")
 
     def t3_second_child_validator_func(value, temp, friendly_name, item_num):
-        if not _is_empty(value, 60, 101) and len(value) >= 101 and not _is_empty(value, 8, 19):
+        if not _is_empty(value, 60, 101) and len(value) >= 101 and \
+                not _is_empty(value, 8, 19) and \
+                not _is_all_zeros(value, 60, 101):
             return (True, None)
         elif not len(value) >= 101:
             return (False, f"The second child record is too short at {len(value)} "
@@ -766,7 +774,7 @@ def is_quiet_preparser_errors(min_length, empty_from=61, empty_to=101):
             value[empty_from:empty_to],
             len(value[empty_from:empty_to])
             )
-        return not (is_length_valid and not is_empty)
+        return not (is_length_valid and not is_empty and not _is_all_zeros(value, empty_from, empty_to))
     return return_value
 
 

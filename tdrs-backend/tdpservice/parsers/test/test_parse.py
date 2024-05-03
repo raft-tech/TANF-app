@@ -1655,6 +1655,24 @@ def two_child_second_filled():
     )
     return parsing_file
 
+  
+@pytest.fixture
+def t3_file_zero_filled_second():
+    """Fixture for T3 file."""
+    # T3 record is space filled correctly
+    parsing_file = ParsingFileFactory(
+        year=2021,
+        quarter='Q3',
+        original_filename='t3_file_zero_filled_second.txt',
+        file__name='t3_file_zero_filled_second.txt',
+        file__section=DataFile.Section.ACTIVE_CASE_DATA,
+        file__data=(b'HEADER20212A25   TAN1ED\n' +
+                    b'T320210441111111115120160401WTTTT@BTB22212212204398100000000' +
+                    b'000000000000000000000000000000000000000000000000000000000000' +
+                    b'000000000000000000000000000000000000\n' +
+                    b'TRAILER0000001         ')
+    )
+    return parsing_file
 
 @pytest.mark.parametrize('file_fixture, result, number_of_errors, error_message',
                          [('second_child_only_space_t3_file', 1, 0, ''),
@@ -1680,6 +1698,10 @@ def test_misformatted_multi_records(file_fixture, result, number_of_errors, erro
     if number_of_errors > 0:
         error_messages = [parser_error.error_message for parser_error in parser_errors]
         assert error_message in error_messages
+    assert t3.exists() == result
+
+    parser_errors = ParserError.objects.all()
+    assert parser_errors.count() == number_of_errors
 
 @pytest.mark.django_db()
 def test_parse_t2_invalid_dob(t2_invalid_dob_file, dfs):
