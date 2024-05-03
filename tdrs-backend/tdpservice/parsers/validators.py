@@ -252,7 +252,6 @@ def oneOf(options=[]):
                 start, end = option.split("-")
                 options.extend([str(i) for i in range(int(start), int(end) + 1)])
                 options.remove(option)
-        
         return value in options
 
     return make_validator(
