@@ -9,6 +9,4 @@ urlpatterns = [
         views.generate_new_token,
         name="get-new-token",
     ),
-    path('api/user_auth/', authviews.obtain_auth_token),
-
 ]
