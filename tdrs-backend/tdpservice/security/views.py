@@ -1,3 +1,5 @@
+""""""
+
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -7,6 +9,9 @@ from rest_framework.authtoken.models import Token
 from rest_framework import HTTP_HEADER_ENCODING, exceptions
 from django.utils.translation import gettext_lazy as _
 from rest_framework.authentication import TokenAuthentication
+import datetime
+import pytz
+from datetime import timedelta
 
 
 def can_get_new_token(user):
@@ -15,6 +20,11 @@ def can_get_new_token(user):
 def token_is_valid(token):
     token = Token.objects.get(key=token)
     # TODO: add token expiration check
+    utc_now = datetime.utcnow()
+    utc_now = utc_now.replace(tzinfo=pytz.utc)
+
+    if token.created < utc_now - timedelta(hours=24):
+        raise exceptions.AuthenticationFailed('Token has expired')
     return token is not None
 
 @user_passes_test(can_get_new_token, login_url='/login/')
