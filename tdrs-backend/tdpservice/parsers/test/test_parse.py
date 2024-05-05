@@ -1693,6 +1693,40 @@ def test_misformatted_multi_records(file_fixture, result, number_of_errors, requ
     parser_errors = ParserError.objects.all()
     assert parser_errors.count() == number_of_errors
 
+
+@pytest.fixture
+def t4_t5_empty_values():
+    """Fixture for T3 file."""
+    # T3 record is space filled correctly
+    parsing_file = ParsingFileFactory(
+        year=2021,
+        quarter='Q3',
+        original_filename='t4_t5_empty_values.txt',
+        section=DataFile.Section.CLOSED_CASE_DATA,
+        file__filename='t4_t5_empty_values.txt',
+        file__data=(b'HEADER20212C06   TAN1ED\n' +
+                    b'T420210411111111158253  400141123113                                   \n' +
+                    b'T520210411111111158119970123WTTTTTP@Y2222212222221011212100946200000000\n' +
+                    b'TRAILER0000001         ')
+    )
+    return parsing_file
+
+
+@pytest.mark.django_db()
+def test_empty_t3_t5_values(t4_t5_empty_values, dfs):
+    """Test that empty field values for un-required fields parse."""
+    dfs.datafile = t4_t5_empty_values
+    parse.parse_datafile(t4_t5_empty_values, dfs)
+    parser_errors = ParserError.objects.filter(file=t4_t5_empty_values)
+    t4 = TANF_T4.objects.all()
+    t5 = TANF_T5.objects.all()
+    assert t4.count() == 1
+    assert t4[0].STRATUM is None
+    logger.info(t4[0].__dict__)
+    assert t5.count() == 1
+    assert parser_errors[0].error_message == "T4: 3 is not larger or equal to 1 and smaller or equal to 2."
+
+
 @pytest.mark.django_db()
 def test_parse_t2_invalid_dob(t2_invalid_dob_file, dfs):
     """Test parsing a TANF T2 record with an invalid DOB."""
