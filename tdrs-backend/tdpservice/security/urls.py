@@ -1,7 +1,7 @@
+"""URL patterns for the security app."""
 
 from . import views
 from django.urls import path
-from rest_framework.authtoken import views as authviews
 
 urlpatterns = [
     path(
