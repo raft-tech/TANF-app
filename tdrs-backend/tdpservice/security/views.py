@@ -11,6 +11,7 @@ from rest_framework.authentication import TokenAuthentication
 from datetime import datetime
 import pytz
 from datetime import timedelta
+from django.conf import settings
 
 import logging
 
@@ -27,7 +28,7 @@ def token_is_valid(token):
     # TODO: add token expiration check
     utc_now = datetime.now()
     utc_now = utc_now.replace(tzinfo=pytz.utc)
-    if token.created < (utc_now - timedelta(hours=24)):
+    if token.created < (utc_now - timedelta(hours=settings.TOKEN_EXPIRATION_HOURS)):
         raise exceptions.AuthenticationFailed("Token has expired")
     return token is not None
 
