@@ -1713,7 +1713,7 @@ def t4_t5_empty_values():
 
 
 @pytest.mark.django_db()
-def test_empty_t3_t5_values(t4_t5_empty_values, dfs):
+def test_empty_t4_t5_values(t4_t5_empty_values, dfs):
     """Test that empty field values for un-required fields parse."""
     dfs.datafile = t4_t5_empty_values
     parse.parse_datafile(t4_t5_empty_values, dfs)
