@@ -32,7 +32,7 @@
   * [#2847 [Design Deliverable] Error Report Knowledge Center Explainer](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2847)
   * [#2884 Generate preparser errors when multi-record rows are the wrong length or are missing space-filled second records - M3 and Tribal T3](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2884)
   * [#2897 As a data analyst I want finalized language and guidance resources in Submission History & Error Reports](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2897)
-  * [#2838 Blank filled SSN not parsing and throws Nonetype error](https://github.com/raft-tech/TANF-app/issues/2938)
+  * [#2938 Blank filled SSN not parsing and throws Nonetype error](https://github.com/raft-tech/TANF-app/issues/2938)
 
 ### Closed (not merged)
 
@@ -41,7 +41,8 @@
 ## Moved to Next Sprint (In Progress, Blocked, Raft Review)
 ### In Progress
   * [#2949 As tech lead, I need the DAC CSV export file naming conventions to include fiscal period and datetime](https://github.com/raft-tech/TANF-app/issues/2949) 
-  * [#2950 As tech lead, I need the STT filter for search_indexes to be updated](https://github.com/raft-tech/TANF-app/issues/2950) 
+  * [#2950 As tech lead, I need the STT filter for search_indexes to be updated](https://github.com/raft-tech/TANF-app/issues/2950)
+  * [#2802 [Django A11Y] [Spike] Multiple filter option](https://github.com/raft-tech/TANF-app/issues/2802)
 
 ### Blocked
   * [#2870 Spike: As tech lead, I need elastic re-indexing to be automated](https://github.com/raft-tech/TANF-app/issues/2870)
@@ -49,7 +50,6 @@
 ### Raft Review
   * [#2688 TANF Section 2 validation clean-up](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2688)
   * [#2749 As tech lead, I need validation checks to be consistent with FTANF validation checks.](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2749)
-  * [#2802 [Django A11Y] [Spike] Multiple filter option](https://github.com/raft-tech/TANF-app/issues/2802)
   * [#2795 As tech lead, I need TDP to detect duplicate records within a file and not store them in the db.](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2795)
   * [#2801 Friendly name cleanup](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2801)
   * [#2822 Resolve WebInspect scan findings for Jan-Feb 2024](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2822)
