@@ -2,7 +2,6 @@
 
 04-10-2024 - 04-23-2024
 
-
 ## Sprint Goal
 * Dev:*Support closing out (6) tickets in review & continue progress on parsing enhancement tickets*
   * Category 4 Validators #2842
@@ -35,32 +34,29 @@
 
 ### Ready to Merge
 
-
 ### Submitted (QASP Review, OCIO Review)
-  * [#1345 [Design Deliverable] Email Template for Data Due Date Reminder](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/1345)
-  * [#2509 As a data analyst I need to know when my data has been processed with or w/o errors](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2509)
+  * [#2757 Generate preparser errors when multi-record rows are the wrong length or are missing space-filled second records](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2802)
   * [#2826 As tech lead, I need some record types that currently require trailing spaces to be parsed](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2826)
-  * [#2842 Complete cat4 validation implementation](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2842)
   * [#2847 [Design Deliverable] Error Report Knowledge Center Explainer](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2847)
-  * [#2884 Generate preparser errors when multi-record rows are the wrong length or are missing space-filled second records - M3 and Tribal T3](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2884)
-  * [#2897 As a data analyst I want finalized language and guidance resources in Submission History & Error Reports](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2897)
 
 ### Closed (not merged)
-* [#2757 Generate preparser errors when multi-record rows are the wrong length or are missing space-filled second records](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2802)
 
 ---
 
 ## Moved to Next Sprint (In Progress, Blocked, Raft Review)
 ### In Progress
-  *	[#2802 [Django A11Y] [Spike] Multiple filter option](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2802)
+  * [#1345 [Design Deliverable] Email Template for Data Due Date Reminder](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/1345)
+  * [#2509 As a data analyst I need to know when my data has been processed with or w/o errors](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2509)
+  * [#2897 As a data analyst I want finalized language and guidance resources in Submission History & Error Reports](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2897)
+  * [#2688 TANF Section 2 validation clean-up](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2688)
+  * [#2795 As tech lead, I need TDP to detect duplicate records within a file and not store them in the db.](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2795)
+  * [#2801 Friendly name cleanup](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2801)
 
 ### Blocked
   * [#2870 Spike: As tech lead, I need elastic re-indexing to be automated](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2870)
 
 ### Raft Review
-* [#2688 TANF Section 2 validation clean-up](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2688)
+* [#2842 Complete cat4 validation implementation](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2842)
+* [#2884 Generate preparser errors when multi-record rows are the wrong length or are missing space-filled second records - M3 and Tribal T3](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2884)
 * [#2749 As tech lead, I need validation checks to be consistent with FTANF validation checks.](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2749)
-* [#2795 As tech lead, I need TDP to detect duplicate records within a file and not store them in the db.](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2795)
-* [#2801 Friendly name cleanup](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2801)
 * [#2822 Resolve WebInspect scan findings for Jan-Feb 2024](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2822)
-* [#2901 As an admin user, I want to be able to programmatically access to backend API](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2901) 
