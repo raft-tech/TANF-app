@@ -16,7 +16,7 @@
   * #2847 Knowledge Center Content
   * #2473 Email notification template supporting #2473 (due date reminders)
   * #2801 Friendly Name changes
-  * #2909 [Spike] research spike on-deck pending close-out of the above
+  * #2909 [Spike] Out of the box OFA Kibana Experience & DIGIT Data Access (pending close-out of the above)
 
 ## Tickets
 
