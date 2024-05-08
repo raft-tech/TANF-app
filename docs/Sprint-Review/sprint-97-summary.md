@@ -52,7 +52,7 @@
 
 ## Moved to Next Sprint (In Progress, Blocked, Raft Review)
 ### In Progress
-  *	#2802 [Django A11Y] [Spike] Multiple filter option
+  *	[#2802 [Django A11Y] [Spike] Multiple filter option](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2802)
 
 ### Blocked
   * [#2870 Spike: As tech lead, I need elastic re-indexing to be automated](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2870)
