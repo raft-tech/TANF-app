@@ -14,4 +14,4 @@ In order to use APIs, the `OFA Admin` user has to generate a new token and use i
    
 ```curl --location 'http://{host}/v1/users/' --header 'Authorization: Token {token}'```
 
-Note the token is available for certain period of time: this is set using `TOKEN_EXPIRATION_HOURS` env vars. If not set, it is set to 24hrs by default.  
+Note: the authentication token is available for 24 hours by default but this can be overridden using the `TOKEN_EXPIRATION_HOURS` environment variable.  
