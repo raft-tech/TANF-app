@@ -297,7 +297,7 @@ class Common(Configuration):
         "DEFAULT_AUTHENTICATION_CLASSES": (
             "tdpservice.users.authentication.CustomAuthentication",
             "rest_framework.authentication.SessionAuthentication",
-            "rest_framework.authentication.TokenAuthentication",
+            "tdpservice.security.utils.ExpTokenAuthentication",
         ),
         "DEFAULT_FILTER_BACKENDS": [
             "django_filters.rest_framework.DjangoFilterBackend",
