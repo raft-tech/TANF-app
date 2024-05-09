@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def can_get_new_token(user):
-    """Check if user can get a new token."""
+    """Check if system admin can get a new token."""
     return user.is_authenticated and user.is_ofa_sys_admin
 
 
