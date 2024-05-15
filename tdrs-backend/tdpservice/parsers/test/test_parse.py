@@ -57,7 +57,7 @@ def t2_invalid_dob_file():
     )
     return parsing_file
 
-
+# TODO: the name of this test doesn't make perfect sense anymore since it will always have errors now.
 @pytest.mark.django_db
 def test_parse_small_correct_file(test_datafile, dfs):
     """Test parsing of small_correct_file."""
@@ -68,18 +68,22 @@ def test_parse_small_correct_file(test_datafile, dfs):
 
     parse.parse_datafile(test_datafile, dfs)
 
+    errors = ParserError.objects.filter(file=test_datafile)
+    assert errors.count() == 1
+    assert errors.first().error_type == ParserErrorCategoryChoices.CASE_CONSISTENCY
+
     dfs.status = dfs.get_status()
     dfs.case_aggregates = aggregates.case_aggregates_by_month(
         dfs.datafile, dfs.status)
     for month in dfs.case_aggregates['months']:
         if month['month'] == 'Oct':
-            assert month['accepted_without_errors'] == 1
-            assert month['accepted_with_errors'] == 0
+            assert month['accepted_without_errors'] == 0
+            assert month['accepted_with_errors'] == 1
         else:
             assert month['accepted_without_errors'] == 0
             assert month['accepted_with_errors'] == 0
 
-    assert dfs.get_status() == DataFileSummary.Status.ACCEPTED
+    assert dfs.get_status() == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
     assert TANF_T1.objects.count() == 1
 
     # spot check
@@ -1357,15 +1361,16 @@ def test_rpt_month_year_mismatch(test_header_datafile, dfs):
     parse.parse_datafile(datafile, dfs)
 
     parser_errors = ParserError.objects.filter(file=datafile)
-    assert parser_errors.count() == 0
+    assert parser_errors.count() == 1
+    assert parser_errors.first().error_type == ParserErrorCategoryChoices.CASE_CONSISTENCY
 
     datafile.year = 2023
     datafile.save()
 
     parse.parse_datafile(datafile, dfs)
 
-    parser_errors = ParserError.objects.filter(file=datafile)
-    assert parser_errors.count() == 1
+    parser_errors = ParserError.objects.filter(file=datafile).order_by('-id')
+    assert parser_errors.count() == 2
 
     err = parser_errors.first()
     assert err.error_type == ParserErrorCategoryChoices.PRE_CHECK
@@ -1656,15 +1661,34 @@ def two_child_second_filled():
     return parsing_file
 
 
+@pytest.fixture
+def t3_file_zero_filled_second():
+    """Fixture for T3 file."""
+    # T3 record is space filled correctly
+    parsing_file = ParsingFileFactory(
+        year=2021,
+        quarter='Q3',
+        original_filename='t3_file_zero_filled_second.txt',
+        file__name='t3_file_zero_filled_second.txt',
+        file__section=DataFile.Section.ACTIVE_CASE_DATA,
+        file__data=(b'HEADER20212A25   TAN1ED\n' +
+                    b'T320210441111111115120160401WTTTT@BTB22212212204398100000000' +
+                    b'000000000000000000000000000000000000000000000000000000000000' +
+                    b'000000000000000000000000000000000000\n' +
+                    b'TRAILER0000001         ')
+    )
+    return parsing_file
+
 @pytest.mark.parametrize('file_fixture, result, number_of_errors, error_message',
-                         [('second_child_only_space_t3_file', True, 0, ''),
-                          ('one_child_t3_file', True, 0, ''),
-                          ('t3_file', True, 0, ''),
-                          ('t3_file_two_child', True, 1,
+                         [('second_child_only_space_t3_file', 1, 0, ''),
+                          ('one_child_t3_file', 1, 0, ''),
+                          ('t3_file', 1, 0, ''),
+                          ('t3_file_two_child', 1, 1,
                            'The second child record is too short at 97 characters' +
                            ' and must be at least 101 characters.'),
-                          ('t3_file_two_child_with_space_filled', True, 0, ''),
-                          ('two_child_second_filled', True, 9, 'T3: Year 6    must be larger than 1900.')])
+                          ('t3_file_two_child_with_space_filled', 2, 0, ''),
+                          ('two_child_second_filled', 2, 9, 'T3: Year 6    must be larger than 1900.'),
+                          ('t3_file_zero_filled_second', 1, 0, '')])
 @pytest.mark.django_db()
 def test_misformatted_multi_records(file_fixture, result, number_of_errors, error_message, request, dfs):
     """Test that (not space filled) multi-records are caught."""
@@ -1673,13 +1697,19 @@ def test_misformatted_multi_records(file_fixture, result, number_of_errors, erro
     parse.parse_datafile(file_fixture, dfs)
     parser_errors = ParserError.objects.filter(file=file_fixture)
     t3 = TANF_T3.objects.all()
-    assert t3.exists() == result
+    assert t3.count() == result
 
     parser_errors = ParserError.objects.all()
     assert parser_errors.count() == number_of_errors
     if number_of_errors > 0:
         error_messages = [parser_error.error_message for parser_error in parser_errors]
         assert error_message in error_messages
+
+    parser_errors = ParserError.objects.all().exclude(
+        # exclude extraneous cat 4 errors
+        error_message__contains='record should have at least one corresponding'
+    )
+    assert parser_errors.count() == number_of_errors
 
 @pytest.mark.django_db()
 def test_parse_t2_invalid_dob(t2_invalid_dob_file, dfs):
