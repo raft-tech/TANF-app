@@ -250,7 +250,7 @@ def oneOf(options=[]):
         for option in options:
             if "-" in str(option):
                 start, end = option.split("-")
-                options.extend([str(i) for i in range(int(start), int(end) + 1)])
+                options.extend([i for i in range(int(start), int(end) + 1)])
                 options.remove(option)
         return value in options
 
