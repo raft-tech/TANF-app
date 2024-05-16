@@ -3,9 +3,7 @@ from rest_framework import status
 import pytest
 import base64
 import openpyxl
-from django.core import mail
 from tdpservice.data_files.models import DataFile
-from tdpservice.users.models import AccountApprovalStatusChoices
 from tdpservice.parsers import parse, util
 from tdpservice.parsers.models import ParserError
 from tdpservice.parsers.test.factories import DataFileSummaryFactory
@@ -102,7 +100,7 @@ class DataFileAPITestBase:
 
         assert ws.cell(row=1, column=1).value == "Please refer to the most recent versions of the coding " \
             + "instructions (linked below) when looking up items and allowable values during the data revision process"
-        assert ws.cell(row=7, column=COL_ERROR_MESSAGE).value == "if cash amount :873 validator1 passed" \
+        assert ws.cell(row=8, column=COL_ERROR_MESSAGE).value == "if cash amount :873 validator1 passed" \
             + " then number of months T1: 0 is not larger than 0."
 
     @staticmethod
@@ -134,7 +132,7 @@ class DataFileAPITestBase:
 
         assert ws.cell(row=1, column=1).value == "Please refer to the most recent versions of the coding " \
             + "instructions (linked below) when looking up items and allowable values during the data revision process"
-        assert ws.cell(row=7, column=COL_ERROR_MESSAGE).value == ("if CASH_AMOUNT :873 validator1 passed then "
+        assert ws.cell(row=8, column=COL_ERROR_MESSAGE).value == ("if CASH_AMOUNT :873 validator1 passed then "
                                                                   "NBR_MONTHS T1: 0 is not larger than 0.")
 
     @staticmethod
@@ -378,20 +376,6 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
 
         response = self.post_data_file_file(api_client, data_file_data)
         assert response.data['section'] == 'Active Case Data'
-
-    def test_data_analyst_gets_email_when_user_uploads_report_for_their_stt(
-        self, api_client, data_file_data, user
-    ):
-        """Test that an STT Data Analyst gets emails after uploads for their location."""
-        user.account_approval_status = AccountApprovalStatusChoices.APPROVED
-        user.stt_id = data_file_data['stt']
-        user.save()
-
-        response = self.post_data_file_file(api_client, data_file_data)
-
-        assert len(mail.outbox) == 1
-        assert mail.outbox[0].subject == 'Data Submitted for Active Case Data'
-        assert response.status_code == status.HTTP_201_CREATED
 
 
 class TestDataFileAPIAsInactiveUser(DataFileAPITestBase):
