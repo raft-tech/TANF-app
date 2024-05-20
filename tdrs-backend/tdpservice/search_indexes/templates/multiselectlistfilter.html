@@ -1,4 +1,10 @@
+
 {% load i18n %}
+{% load static %}
+{% block footer %}
+<script src="{% static 'search_indexes/js/filters.js' %}" defer></script>
+{% endblock %}
+
 <h3>{% blocktrans with filter_title=title %} By {{ filter_title }} {% endblocktrans %}</h3>
 <ul class="mulitple-choice">
 {% for choice in choices %}

@@ -1,6 +1,6 @@
 """Filter classes."""
 from django.utils.translation import ugettext_lazy as _
-from django.contrib.admin import SimpleListFilter
+from django.contrib.admin import SimpleListFilter, ChoicesFieldListFilter
 from tdpservice.stts.models import STT
 import datetime
 
@@ -9,6 +9,7 @@ class MultipleChoiceListFilter(SimpleListFilter):
     """Filter class allowing multiple filter options."""
 
     template = 'multiselectlistfilter.html'
+    
 
     def lookups(self, request, model_admin):
         """Must be overridden to return a list of tuples (value, verbose value)."""
@@ -100,16 +101,22 @@ class STTFilter(MultipleChoiceListFilter):
     title = _('STT Code')
 
     parameter_name = 'stt_code'
+ 
 
     def lookups(self, request, model_admin):
         """Available options in dropdown."""
-        options = []
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info("__________ model_admin:" + str(model_admin.model.__dict__))
         
-        for obj in STT.objects.all():
+        listing_record_type = [i for i in str(request.path).lower().split('/') if i not in ['/', '']][-1]
+        options = []
+        if 'tribal' in listing_record_type:
+            objects = STT.objects.filter(type=STT.EntityType.TRIBE)
+        elif 'ssp' in listing_record_type:
+            objects = STT.objects.filter(type=STT.EntityType.TERRITORY)
+        else:
+            objects = STT.objects.filter(type='state')
+        for obj in objects:
             options.append((obj.stt_code, _(obj.name)))
+
         return options
 
     def queryset(self, request, queryset):
