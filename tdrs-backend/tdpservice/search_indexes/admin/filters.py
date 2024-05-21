@@ -1,6 +1,6 @@
 """Filter classes."""
 from django.utils.translation import ugettext_lazy as _
-from django.contrib.admin import SimpleListFilter, ChoicesFieldListFilter
+from django.contrib.admin import SimpleListFilter
 from tdpservice.stts.models import STT
 import datetime
 
@@ -111,9 +111,9 @@ class STTFilter(MultipleChoiceListFilter):
         if 'tribal' in listing_record_type:
             objects = STT.objects.filter(type=STT.EntityType.TRIBE)
         elif 'ssp' in listing_record_type:
-            objects = STT.objects.filter(type=STT.EntityType.TERRITORY)
+            objects = STT.objects.filter(ssp=True)
         else:
-            objects = STT.objects.filter(type='state')
+            objects = STT.objects.filter(type=STT.EntityType.STATE)
         for obj in objects:
             options.append((obj.stt_code, _(obj.name)))
 
