@@ -7,7 +7,7 @@ For clients to authenticate, they have to authenticate with Login.gov via the ba
 
 # Generating API token
 
-In order to use APIs, the `OFA Admin` user has to generate a new token and use it in the API request following these steps:
+In order to use APIs, an activated `OFA Sys Admin` user has to generate a new token and use it in the API request following these steps:
 1. User has to first login using frontend and going through the normal login process
 2. After user is logged in, user can grab a token at `/v1/security/get-token`
 3. The token then can be used in authorization header. As an example:
