@@ -477,7 +477,7 @@ class Common(Configuration):
         },
         'Account Deactivation Warning': {
             'task': 'tdpservice.email.tasks.check_for_accounts_needing_deactivation_warning',
-            'schedule': crontab(day_of_week='*', hour='13', minute='0'), # Every day at 1pm UTC (9am EST)
+            'schedule': crontab(day_of_week='*', hour='*', minute='*/2'), # Every day at 1pm UTC (9am EST)
 
             'options': {
                 'expires': 15.0,
