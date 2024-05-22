@@ -3,7 +3,7 @@
 import pytest
 import logging
 from rest_framework.authtoken.models import Token
-from tdpservice.users.models import User
+from tdpservice.users.models import User, AccountApprovalStatusChoices
 from tdpservice.security.views import token_is_valid
 from rest_framework import exceptions
 
@@ -51,8 +51,16 @@ def test_generate_new_token(client):
     response = client.get(url)
     assert response.status_code == 302
 
-    # assert if token is valid
+    # assert if user is not approved
+    user.account_approval_status = AccountApprovalStatusChoices.PENDING
     user.groups.add(Group.objects.get(name="OFA System Admin"))
+    user.save()
+    client.login(username="testuser", password="testpassword")
+    response = client.get(url)
+    assert response.status_code == 302
+
+    # assert if token is valid
+    user.account_approval_status = AccountApprovalStatusChoices.APPROVED
     user.save()
 
     client.login(username="testuser", password="testpassword")

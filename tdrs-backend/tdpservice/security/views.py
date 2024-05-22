@@ -3,7 +3,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.decorators import user_passes_test
-from tdpservice.users.models import User
+from tdpservice.users.models import User, AccountApprovalStatusChoices
 from rest_framework.authtoken.models import Token
 from tdpservice.security.utils import token_is_valid
 
@@ -14,7 +14,11 @@ logger = logging.getLogger(__name__)
 
 def can_get_new_token(user):
     """Check if user can get a new token."""
-    return user.is_authenticated and user.is_ofa_sys_admin
+    return (
+        user.is_authenticated
+        and user.is_ofa_sys_admin
+        and user.account_approval_status == AccountApprovalStatusChoices.APPROVED
+    )
 
 
 @user_passes_test(can_get_new_token, login_url="/login/")
