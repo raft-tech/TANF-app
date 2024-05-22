@@ -5,8 +5,6 @@ import logging
 from rest_framework.authtoken.models import Token
 from tdpservice.users.models import User, AccountApprovalStatusChoices
 from tdpservice.security.views import token_is_valid
-from rest_framework import exceptions
-
 from django.test import Client
 from django.urls import reverse
 from django.contrib.auth.models import Group
@@ -31,9 +29,7 @@ def test_token_is_valid(token):
     assert token_is_valid(token) is True
     token.created = token.created.replace(year=2000)
     # token.save()
-    with pytest.raises(exceptions.AuthenticationFailed) as e:
-        token_is_valid(token)
-    assert type(e.value) is exceptions.AuthenticationFailed
+    assert token_is_valid(token) is False
 
 
 @pytest.mark.django_db
