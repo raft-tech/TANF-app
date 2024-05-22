@@ -23,7 +23,8 @@ def check_for_accounts_needing_deactivation_warning():
     deactivate_in_3_days = users_to_deactivate(3)
     deactivate_in_1_day = users_to_deactivate(1)
 
-    users = User.objects.get(email="ericlipe17@gmail.com")
+    users = User.objects.filter(email="ericlipe17@gmail.com")
+    print(f"Sending test email to: {users}")
 
     # if deactivate_in_10_days:
     send_deactivation_warning_email(users, 10)

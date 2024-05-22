@@ -50,7 +50,7 @@ def automated_email(email_path, recipient_email, subject, email_context, text_me
 
 def send_email(subject, message, html_message, recipient_list):
     """Send an email to a list of recipients."""
-    logger.debug(f"Generated HTML: \n{html_message}")
+    print(f"Generated HTML: \n{html_message}")
     num_emails_sent = send_mail(
         subject=subject,
         message=message,
