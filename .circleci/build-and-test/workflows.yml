@@ -4,36 +4,20 @@
     jobs:
       - nightly-owasp-scan:
           target_env: develop
-          filters:
-            branches:
-              only:
-                - develop
 
   ci-build-and-test-all:
     jobs:
       - nightly-owasp-scan:
           target_env: develop
-          filters:
-            branches:
-              only:
-                - develop
 
   build-and-test-backend:
     when: << pipeline.parameters.build_and_test_backend >>
     jobs:
       - nightly-owasp-scan:
           target_env: develop
-          filters:
-            branches:
-              only:
-                - develop
 
   build-and-test-frontend:
     when: << pipeline.parameters.build_and_test_frontend >>
     jobs:
       - nightly-owasp-scan:
           target_env: develop
-          filters:
-            branches:
-              only:
-                - develop
