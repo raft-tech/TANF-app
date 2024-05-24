@@ -79,4 +79,5 @@
           environment: nightly
           target: frontend
           target_env: <<parameters.target_env>>
-      - save-owasp-scan-results
+      - save-owasp-scan-results:
+          target_env: <<parameters.target_env>>
