@@ -26,11 +26,12 @@
 
 
   save-owasp-scan-results:
-    target_env:
-          description: The target environment to be scanned.
-          type: enum
-          default: "develop"
-          enum: ["staging", "develop", "prod"]
+    parameters:
+      target_env:
+            description: The target environment to be scanned.
+            type: enum
+            default: "develop"
+            enum: ["staging", "develop", "prod"]
     steps:
       - run:
           name: Run post-processing task to record OWASP ZAP results
