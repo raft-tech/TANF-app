@@ -52,3 +52,16 @@ class Local(Common):
     """
     ACFTITAN_SFTP_PYTEST = os.getenv("ACFTITAN_SFTP_PYTEST").replace('_', '\n')
     APP_NAME = "tdrs-backend-local"
+
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+    import django
+    import logging
+    sentry_sdk.init(
+        dsn="http://84db0b2b74fea94d8d127ccbcadb94c8@10.0.0.235:9000/2",
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        traces_sample_rate=1.0,
+        integrations=[DjangoIntegration(), LoggingIntegration(level=logging.DEBUG, event_level=logging.DEBUG)],
+    )
