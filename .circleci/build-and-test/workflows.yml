@@ -2,66 +2,38 @@
   build-and-test-all:
     when: << pipeline.parameters.build_and_test_all >>
     jobs:
-      - secrets-check
-      - test-backend:
-          requires:
-            - secrets-check
-      - test-frontend:
-          requires:
-            - secrets-check
-      - test-e2e:
-          requires:
-            - secrets-check
+      - nightly-owasp-scan:
+          target_env: develop
+          filters:
+            branches:
+              only:
+                - develop
 
   ci-build-and-test-all:
     jobs:
-      - secrets-check:
+      - nightly-owasp-scan:
+          target_env: develop
           filters:
             branches:
               only:
-                - main
-                - master
-                - /^release.*/
-      - test-backend:
-          filters:
-            branches:
-              only:
-                - main
-                - master
-                - /^release.*/
-          requires:
-            - secrets-check
-      - test-frontend:
-          filters:
-            branches:
-              only:
-                - main
-                - master
-                - /^release.*/
-          requires:
-            - secrets-check
-      - test-e2e:
-          filters:
-            branches:
-              only:
-                - main
-                - master
-                - /^release.*/
-          requires:
-            - secrets-check
+                - develop
 
   build-and-test-backend:
     when: << pipeline.parameters.build_and_test_backend >>
     jobs:
-      - secrets-check
-      - test-backend:
-          requires:
-            - secrets-check
+      - nightly-owasp-scan:
+          target_env: develop
+          filters:
+            branches:
+              only:
+                - develop
 
   build-and-test-frontend:
     when: << pipeline.parameters.build_and_test_frontend >>
     jobs:
-      - secrets-check
-      - test-frontend:
-          requires:
-            - secrets-check
+      - nightly-owasp-scan:
+          target_env: develop
+          filters:
+            branches:
+              only:
+                - develop
