@@ -79,5 +79,12 @@
           environment: nightly
           target: frontend
           target_env: <<parameters.target_env>>
+      - run:
+          name: test run-task
+          command: |
+            CMD="python manage.py"
+            cf run-task tdp-backend-<< parameters.target_env >> \
+              --command "$CMD" \
+              --name test task
       - save-owasp-scan-results:
           target_env: <<parameters.target_env>>
