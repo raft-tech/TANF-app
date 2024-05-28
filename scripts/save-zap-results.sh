@@ -22,7 +22,7 @@ CMD_ARGS=(
 echo $CMD_ARGS
 # Evaluate the full command before passing it in so it doesn't
 # get improperly interpolated by Cloud.gov.
-CMD="python manage.py process_owasp_scan ${CMD_ARGS[*]}"
+CMD="python ./tdrs-backend/manage.py process_owasp_scan ${CMD_ARGS[*]}"
 echo $CMD
 
 echo "Starting tunnel..."
@@ -31,8 +31,6 @@ sleep 5
 echo "Done."
 
 echo Executing process_owasp_scan
-pwd
-ls
 $CMD
 status=$?
 echo Done.
