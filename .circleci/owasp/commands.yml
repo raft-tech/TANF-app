@@ -20,7 +20,7 @@
           name: Execute OWASP ZAP vulnerability scan
           #wait up to 60min for scan
           no_output_timeout: 60m
-          command: ./scripts/zap-scanner.sh <<parameters.target>> <<parameters.environment>> <<parameters.target_env>>
+          command: ./scripts/zap-scanner.sh
       - store_artifacts:
           path: tdrs-<<parameters.target>>/reports/owasp_report.html
 
