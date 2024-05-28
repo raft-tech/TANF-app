@@ -3,6 +3,15 @@
 # pipefail is needed to correctly carry over the exit code from zap-full-scan.py
 set -uxo pipefail
 
+usage() {
+  echo "Usage triggered. Lets see if the runtask command still fails!"
+  exit 0
+}
+
+if test "$#" -ne 3; then
+    usage
+fi
+
 TARGET=$1
 ENVIRONMENT=$2
 TARGET_ENV=$3
