@@ -200,5 +200,3 @@ if [ "$ENVIRONMENT" = "nightly" ]; then
     echo "export ZAP_${TARGET}_FAIL_COUNT=$ZAP_FAIL_COUNT"
   } >> "$BASH_ENV"
 fi
-
-exit 0
