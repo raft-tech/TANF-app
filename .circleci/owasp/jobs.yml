@@ -71,6 +71,13 @@
           cf-space: <<parameters.cf_space>>
           cf-org: <<parameters.cf_org>>
           cf-username: <<parameters.cf_username>>
+      - run:
+          name: test run-task before Zap Scan
+          command: |
+            CMD="python manage.py"
+            cf run-task tdp-backend-<< parameters.target_env >> \
+              --command "$CMD" \
+              --name test-task
       - run-owasp-scan:
           environment: nightly
           target: backend
