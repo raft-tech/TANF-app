@@ -31,6 +31,8 @@ sleep 5
 echo "Done."
 
 echo Executing process_owasp_scan
+pwd
+ls
 $CMD
 status=$?
 echo Done.
