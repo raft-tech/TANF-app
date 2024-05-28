@@ -4,9 +4,7 @@
 set -uxo pipefail
 
 
-TARGET=$1
-ENVIRONMENT=$2
-TARGET_ENV=$3
+TARGET_ENV=$1
 
 PROJECT_SLUG=$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
 # These environment variables are exported to Circle CI's BASH_ENV
