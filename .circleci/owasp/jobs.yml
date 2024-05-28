@@ -85,6 +85,6 @@
             CMD="python manage.py"
             cf run-task tdp-backend-<< parameters.target_env >> \
               --command "$CMD" \
-              --name test task
+              --name test-task
       - save-owasp-scan-results:
           target_env: <<parameters.target_env>>
