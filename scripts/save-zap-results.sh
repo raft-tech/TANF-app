@@ -6,18 +6,6 @@ set -uxo pipefail
 
 TARGET_ENV=$1
 
-cd ./tdrs-backend
-
-echo "Install dependencies..."
-sudo apt-get install -y gcc && sudo apt-get install -y graphviz && sudo apt-get install -y graphviz-dev
-sudo apt install -y libpq-dev python3-dev
-
-python -m venv ./env
-source ./env/bin/activate
-pip install --upgrade pip pipenv
-pipenv install --dev --system --deploy
-echo "Done."
-
 PROJECT_SLUG=$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
 # These environment variables are exported to Circle CI's BASH_ENV
 # by the zap-scanner.sh script for each respective app target.
@@ -34,22 +22,12 @@ CMD_ARGS=(
 echo $CMD_ARGS
 # Evaluate the full command before passing it in so it doesn't
 # get improperly interpolated by Cloud.gov.
-CMD="python manage.py process_owasp_scan ${CMD_ARGS[*]}"
+CMD="python ./app/manage.py process_owasp_scan ${CMD_ARGS[*]}"
 echo $CMD
 
-echo "Starting tunnel..."
-cf ssh -N tdp-backend-$TARGET_ENV &
-sleep 5
-echo "Done."
-
-echo Executing process_owasp_scan
-$CMD
+echo "Sending command via SSH"
+cf ssh tdp-backend-$TARGET_ENV --command $CMD
 status=$?
-echo Done.
-
-echo "Cleaning up..."
-deactivate
-kill $!
 echo "Done."
 
 if [ $status -eq 0 ]
