@@ -311,7 +311,7 @@ class Common(Configuration):
         "django.contrib.auth.backends.ModelBackend",
     )
 
-    TOKEN_EXPIRATION_HOURS = os.getenv("TOKEN_EXPIRATION_HOURS", 24)
+    TOKEN_EXPIRATION_HOURS = int(os.getenv("TOKEN_EXPIRATION_HOURS", 24))
 
     # CORS
     CORS_ALLOW_CREDENTIALS = True
