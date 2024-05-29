@@ -38,7 +38,7 @@ CMD="python manage.py process_owasp_scan ${CMD_ARGS[*]}"
 echo $CMD
 
 echo "Starting tunnel..."
-cf ssh -N -L tdp-backend-$TARGET_ENV &
+cf ssh -N tdp-backend-$TARGET_ENV &
 sleep 5
 echo "Done."
 
