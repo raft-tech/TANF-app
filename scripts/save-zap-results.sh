@@ -22,11 +22,11 @@ CMD_ARGS=(
 echo $CMD_ARGS
 # Evaluate the full command before passing it in so it doesn't
 # get improperly interpolated by Cloud.gov.
-CMD="python ./app/manage.py process_owasp_scan ${CMD_ARGS[*]}"
+CMD="/home/vcap/deps/1/bin/python ./app/manage.py process_owasp_scan ${CMD_ARGS[*]}"
 echo $CMD
 
 echo "Sending command via SSH"
-cf ssh tdp-backend-$TARGET_ENV --command $CMD
+cf ssh tdp-backend-$TARGET_ENV --command "$CMD"
 status=$?
 echo "Done."
 
