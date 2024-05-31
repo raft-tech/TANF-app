@@ -45,6 +45,7 @@ class Common(Configuration):
         "rest_framework",  # Utilities for rest apis
         "rest_framework.authtoken",  # Token authentication
         "django_filters",
+        "logstash",
         "django_admin_logs",  # logs for admin site
         "corsheaders",
         "django_extensions",
@@ -228,26 +229,36 @@ class Common(Configuration):
                 "class": "logging.StreamHandler",
                 "formatter": "color",
             },
+            'logstash': {
+                'level': LOGGING_LEVEL,
+                'class': 'logstash.TCPLogstashHandler',
+                'host': '10.0.0.245',
+                'port': 5959, # Default value: 5959
+                'version': 1, # Version of logstash event schema. Default value: 0 (for backward compatibility of the library)
+                'message_type': 'logstash',  # 'type' field in logstash message. Default value: 'logstash'.
+                'fqdn': False, # Fully qualified domain name. Default value: false.
+                'tags': ['tag1', 'tag2'], # list of tags. Default: None.
+            },
         },
         "loggers": {
             "tdpservice": {
-               "handlers": ["application"],
+               "handlers": ["application","logstash"],
                "propagate": True,
                "level": LOGGING_LEVEL
             },
             "tdpservice.parsers": {
-               "handlers": ["application"],
+               "handlers": ["application","logstash"],
                "propagate": False,
                "level": LOGGING_LEVEL
             },
             "django": {"handlers": ["console"], "propagate": True},
             "django.server": {
-                "handlers": ["django.server"],
+                "handlers": ["django.server","logstash"],
                 "propagate": False,
                 "level": LOGGING_LEVEL
             },
             "django.request": {
-                "handlers": ["console"],
+                "handlers": ["console", "logstash",],
                 "propagate": False,
                 "level": LOGGING_LEVEL
             },
