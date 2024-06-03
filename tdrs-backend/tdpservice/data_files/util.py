@@ -75,7 +75,7 @@ def get_xls_serialized_file(data):
     worksheet.write_url(
         row, col,
         'https://tdp-project-updates.app.cloud.gov/knowledge-center/viewing-error-reports.html',
-        string='Visit the Knowledge Center for further guidance on interpreting error reports'
+        string='Visit the Knowledge Center for further guidance on reviewing error reports'
     )
 
     row, col = 5, 0
