@@ -13,6 +13,8 @@ class TANF_T1(models.Model):
     """
 
     class Meta:
+        """Meta class for the model."""
+
         verbose_name = 'TANF T1'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -85,6 +87,8 @@ class TANF_T2(models.Model):
     """
 
     class Meta:
+        """Meta class for the model."""
+
         verbose_name = 'TANF T2'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -177,6 +181,8 @@ class TANF_T3(models.Model):
     """
 
     class Meta:
+        """Meta class for the model."""
+
         verbose_name = 'TANF T3'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -221,6 +227,8 @@ class TANF_T4(models.Model):
     """
 
     class Meta:
+        """Meta class for the model."""
+
         verbose_name = 'TANF T4'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -256,6 +264,8 @@ class TANF_T5(models.Model):
     """
 
     class Meta:
+        """Meta class for the model."""
+
         verbose_name = 'TANF T5'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -308,6 +318,8 @@ class TANF_T6(models.Model):
     """
 
     class Meta:
+        """Meta class for the model."""
+
         verbose_name = 'TANF T6'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -348,6 +360,8 @@ class TANF_T7(models.Model):
     """
 
     class Meta:
+        """Meta class for the model."""
+
         verbose_name = 'TANF T7'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

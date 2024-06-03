@@ -13,6 +13,8 @@ class SSP_M1(models.Model):
     """
 
     class Meta:
+        """Meta class for the model."""
+
         verbose_name = 'SSP M1'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -82,6 +84,8 @@ class SSP_M2(models.Model):
     """
 
     class Meta:
+        """Meta class for the model."""
+
         verbose_name = 'SSP M2'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -172,6 +176,8 @@ class SSP_M3(models.Model):
     """
 
     class Meta:
+        """Meta class for the model."""
+
         verbose_name = 'SSP M3'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -216,6 +222,8 @@ class SSP_M4(models.Model):
     """
 
     class Meta:
+        """Meta class for the model."""
+
         verbose_name = 'SSP M4'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -253,6 +261,8 @@ class SSP_M5(models.Model):
     """
 
     class Meta:
+        """Meta class for the model."""
+
         verbose_name = 'SSP M5'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -302,6 +312,8 @@ class SSP_M6(models.Model):
     """
 
     class Meta:
+        """Meta class for the model."""
+
         verbose_name = 'SSP M6'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -337,6 +349,8 @@ class SSP_M7(models.Model):
     """
 
     class Meta:
+        """Meta class for the model."""
+
         verbose_name = 'SSP M7'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

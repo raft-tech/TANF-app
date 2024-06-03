@@ -9,7 +9,6 @@ class MultipleChoiceListFilter(SimpleListFilter):
     """Filter class allowing multiple filter options."""
 
     template = 'multiselectlistfilter.html'
-    
 
     def lookups(self, request, model_admin):
         """Must be overridden to return a list of tuples (value, verbose value)."""
@@ -101,11 +100,9 @@ class STTFilter(MultipleChoiceListFilter):
     title = _('STT Code')
 
     parameter_name = 'stt_code'
- 
 
     def lookups(self, request, model_admin):
         """Available options in dropdown."""
-        
         listing_record_type = [i for i in str(request.path).lower().split('/') if i not in ['/', '']][-1]
         options = []
         if 'tribal' in listing_record_type:
