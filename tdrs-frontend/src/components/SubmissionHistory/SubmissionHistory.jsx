@@ -81,7 +81,7 @@ const SubmissionHistory = ({ filterValues }) => {
           aria-label="Knowledge Center error reports guidance"
           rel="noreferrer"
         >
-          Visit the Knowledge Center for further guidance on interpreting error
+          Visit the Knowledge Center for further guidance on reviewing error
           reports
         </a>
       </div>
