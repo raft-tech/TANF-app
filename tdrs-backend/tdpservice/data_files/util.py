@@ -47,7 +47,6 @@ def get_xls_serialized_file(data):
         ('item_name', lambda x: ','.join([i for i in chk(x)['fields_json']['friendly_name'].values()])),
         ('internal_variable_name', lambda x: ','.join([i for i in chk(x)['fields_json']['friendly_name'].keys()])),
         ('row_number', lambda x: x['row_number']),
-        ('column_number', lambda x: x['column_number'])
     ]
 
     # write beta banner
