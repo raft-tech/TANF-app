@@ -35,8 +35,6 @@ def get_xls_serialized_file(data):
     row, col = 0, 0
     output = BytesIO()
     workbook = xlsxwriter.Workbook(output)
-    bold_format = workbook.add_format({'bold': True})
-
     worksheet = workbook.add_worksheet()
 
     report_columns = [
@@ -64,28 +62,14 @@ def get_xls_serialized_file(data):
     worksheet.write_url(
         row, col,
         'https://www.acf.hhs.gov/ofa/policy-guidance/tribal-tanf-data-coding-instructions',
-        bold_format,
-        string='For Tribal TANF data reports:',
-    )
-
-    worksheet.write_url(
-        row, col + 1,
-        'https://www.acf.hhs.gov/ofa/policy-guidance/tribal-tanf-data-coding-instructions',
-        string='Tribal TANF Instructions'
+        string='For Tribal TANF data reports: Tribal TANF Instructions',
     )
 
     row, col = 2, 0
     worksheet.write_url(
         row, col,
         'https://www.acf.hhs.gov/ofa/policy-guidance/acf-ofa-pi-23-04',
-        bold_format,
-        string='For TANF and SSP-MOE data reports:'
-    )
-
-    worksheet.write_url(
-        row, col + 1,
-        'https://www.acf.hhs.gov/ofa/policy-guidance/acf-ofa-pi-23-04',
-        string='TANF / SSP-MOE (ACF-199 / ACF-209) Instructions'
+        string='For TANF and SSP-MOE data reports: TANF / SSP-MOE (ACF-199 / ACF-209) Instructions'
     )
 
     row, col = 3, 0
