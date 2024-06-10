@@ -297,7 +297,7 @@ class Common(Configuration):
         "DEFAULT_AUTHENTICATION_CLASSES": (
             "tdpservice.users.authentication.CustomAuthentication",
             "rest_framework.authentication.SessionAuthentication",
-            "rest_framework.authentication.TokenAuthentication",
+            "tdpservice.security.utils.ExpTokenAuthentication",
         ),
         "DEFAULT_FILTER_BACKENDS": [
             "django_filters.rest_framework.DjangoFilterBackend",
@@ -310,6 +310,8 @@ class Common(Configuration):
         "tdpservice.users.authentication.CustomAuthentication",
         "django.contrib.auth.backends.ModelBackend",
     )
+
+    TOKEN_EXPIRATION_HOURS = int(os.getenv("TOKEN_EXPIRATION_HOURS", 24))
 
     # CORS
     CORS_ALLOW_CREDENTIALS = True
@@ -440,17 +442,6 @@ class Common(Configuration):
         'AMS_CLIENT_SECRET',
         ''
     )
-
-    # ------- SFTP CONFIG
-    ACFTITAN_SERVER_ADDRESS = os.getenv('ACFTITAN_HOST', '')
-    """
-    To be able to fit the PRIVATE KEY in one line as environment variable, we replace the EOL
-    with an underscore char.
-    The next line replaces the _ with EOL before using the PRIVATE KEY
-    """
-    ACFTITAN_LOCAL_KEY = os.getenv('ACFTITAN_KEY', '').replace('_', '\n')
-    ACFTITAN_USERNAME = os.getenv('ACFTITAN_USERNAME', '')
-    ACFTITAN_DIRECTORY = os.getenv('ACFTITAN_DIRECTORY', '')
 
     # -------- CELERY CONFIG
     REDIS_URI = os.getenv(
