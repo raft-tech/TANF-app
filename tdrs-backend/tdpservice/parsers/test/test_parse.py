@@ -58,6 +58,7 @@ def t2_invalid_dob_file():
     return parsing_file
 
 # TODO: the name of this test doesn't make perfect sense anymore since it will always have errors now.
+# TODO: parametrize and merge with test_zero_filled_fips_code_file
 @pytest.mark.django_db
 def test_parse_small_correct_file(test_datafile, dfs):
     """Test parsing of small_correct_file."""
@@ -2048,3 +2049,42 @@ def test_parse_m5_cat2_invalid_23_24_file(m5_cat2_invalid_23_24_file, dfs):
 
     for e in parser_errors:
         assert e.error_message in error_msgs
+
+
+@pytest.fixture
+def test_file_zero_filled_fips_code():
+    """Fixture for T1 file with an invalid CITIZENSHIP_STATUS."""
+    parsing_file = ParsingFileFactory(
+        year=2021,
+        quarter='Q1',
+        file__name='t3_invalid_citizenship_file.txt',
+        file__section='Active Case Data',
+        file__data=(b'HEADER20241A01000TAN2ED\n'
+                    b'T1202401    2132333   0140951112 43312   03   0   0   2 554145' +
+                    b'   0 0  0   0  0   0  0   0  0   0222222   0   02229 22    \n' +
+                    b'T2202401    21323333219550117WT@TB9BT92122222222223 1329911 34' +
+                    b'  32 699 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0' +
+                    b' 0 0 0 0   0   01623   0   0   0\n' +
+                    b'T2202401    21323333219561102WTT@WBP992122221222222 2329911 28' +
+                    b'  32 699 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0' +
+                    b' 0 0 0 0   0   01432   0   0   0\n' +
+                    b'T3202401    2132333120070906WT@@#ZY@W212222122 63981   0   012' +
+                    b'0050201WTTYT#TT0212222122 63981   0   0                      \n' +
+                    b'TRAILER      4         ')
+    )
+    return parsing_file
+
+
+@pytest.mark.django_db()
+def test_zero_filled_fips_code_file(test_file_zero_filled_fips_code, dfs):
+    """Test parsing a file with zero filled FIPS code."""
+    # TODO: this test can be merged as parametrized test with  "test_parse_small_correct_file"
+    dfs.datafile = test_file_zero_filled_fips_code
+    test_file_zero_filled_fips_code.year = 2024
+    test_file_zero_filled_fips_code.quarter = 'Q2'
+    test_file_zero_filled_fips_code.save()
+
+    parse.parse_datafile(test_file_zero_filled_fips_code, dfs)
+
+    parser_errors = ParserError.objects.filter(file=test_file_zero_filled_fips_code)
+    assert 'COUNTY_FIPS_CODE is required but a value was not provided.' in [i.error_message for i in parser_errors]
