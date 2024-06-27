@@ -54,7 +54,6 @@ _Finishing feedback on reviews and targeting final parsing language refinement_
 * [#2801 Friendly name cleanup ](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2801)
 * [#2847 \[Design Deliverable\] Error Report Knowledge Center Explainer](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2847)
 * [#2897 As a data analyst I want finalized language and guidance resources in Submission History & Error Reports ](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2897)
-* [#3000 \[Design Deliverable\] TDP Poster for summer 2024 conferences](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3000)
 
 ### Ready to Merge
 
