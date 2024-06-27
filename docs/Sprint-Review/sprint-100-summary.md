@@ -46,7 +46,7 @@ _Finishing feedback on reviews and targeting final parsing language refinement_
 * [#2946 Spike - remove sleep from zap scanner](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2946)
 * [#2992 As tech lead, I need the `validate__FAM_AFF__HOH__Fed_Time` validator updated](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2992)
 * [#3001 DAC Datafile Parser Errors Filtering](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3001)
-
+* [#3000 \[Design Deliverable\] TDP Poster for summer 2024 conferences](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3000)
 ### Submitted (QASP Review, OCIO Review)
 
 * [#2795 As tech lead, I need TDP to detect duplicate records within a file and not store them in the db. ](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2795)
