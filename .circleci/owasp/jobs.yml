@@ -101,9 +101,10 @@
             CMD="python manage.py process_owasp_scan ${CMD_ARGS[*]}"
             # Submit a CF Task for execution after a 4 minute sleep to ensure all of the scan's previous state has been closed.
             # sleep 240
-            cf help
+            cf login -a https://api.fr.cloud.gov \
+                      -u ${CF_USERNAME_STAGING} \
+                      -p ${CF_PASSWORD_STAGING} \
+                      -o ${CF_ORG} \
+                      -s tanf-staging
 
-            cf services
-
-            cf apps
             cf run-task tdp-backend-<< parameters.target_env >> --command "$CMD" --name nightly-owasp-scan
