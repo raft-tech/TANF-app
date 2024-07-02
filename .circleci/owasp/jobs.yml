@@ -104,6 +104,6 @@
 
             echo "Running command: $CMD"
 
-            export CF_DIAL_TIMEOUT=60
+            cf curl "/v2/apps"
 
             cf run-task tdp-backend-<< parameters.target_env >> --command "$CMD" --name nightly-owasp-scan -v
