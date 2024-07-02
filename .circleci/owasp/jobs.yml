@@ -102,6 +102,8 @@
             # Submit a CF Task for execution after a 4 minute sleep to ensure all of the scan's previous state has been closed.
             # sleep 240
 
-            export CF_DIAL_TIMEOUT=30
+            echo "Running command: $CMD"
+
+            export CF_DIAL_TIMEOUT=60
 
             cf run-task tdp-backend-<< parameters.target_env >> --command "$CMD" --name nightly-owasp-scan -v
