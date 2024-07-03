@@ -85,6 +85,7 @@
             # Wait for the backend scan to complete
             while [cf curl "/v2/apps" -v | grep "HTTP/1.1 200 Accepted"]
             do
+              echo "Waiting for the backend scan to complete..."
               sleep 1
             done
       - run:
