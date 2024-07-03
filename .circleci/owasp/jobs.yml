@@ -83,8 +83,7 @@
           name: Wait for cloud.gov to finish processing the OWASP scan
           command: |
             # Wait for the backend scan to complete
-            while [cf curl "/v2/apps" -v | grep "HTTP/1.1 200 Accepted"]
-            do
+            while [[ $(cf curl "/v2/apps" -v | grep -c "HTTP/1.1 200") == 0 ]]; do
               echo "Waiting for the backend scan to complete..."
               sleep 1
             done
