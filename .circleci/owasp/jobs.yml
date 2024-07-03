@@ -80,6 +80,14 @@
           target: frontend
           target_env: <<parameters.target_env>>
       - run:
+          name: Wait for cloud.gov to finish processing the OWASP scan
+          command: |
+            # Wait for the backend scan to complete
+            while [cf curl "/v2/apps" -v | grep "HTTP/1.1 200 Accepted"]
+            do
+              sleep 1
+            done
+      - run:
           name: Run post-processing task to record OWASP ZAP results
           command: |
             # Construct the project slug from the current branch name and user
