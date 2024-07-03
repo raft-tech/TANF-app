@@ -85,7 +85,7 @@
             # Wait for the cf curl command to return a 200 status code
             while [[ $(cf curl "/v2/apps" -v | grep -c "HTTP/1.1 200") == 0 ]]; do
               echo "Waiting for the backend scan to complete..."
-              sleep 240
+              sleep 300
             done
       - run:
           name: Run post-processing task to record OWASP ZAP results
