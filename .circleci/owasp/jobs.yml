@@ -82,10 +82,10 @@
       - run:
           name: Wait for cloud.gov to finish processing the OWASP scan
           command: |
-            # Wait for the backend scan to complete
+            # Wait for the cf curl command to return a 200 status code
             while [[ $(cf curl "/v2/apps" -v | grep -c "HTTP/1.1 200") == 0 ]]; do
               echo "Waiting for the backend scan to complete..."
-              sleep 1
+              sleep 10
             done
       - run:
           name: Run post-processing task to record OWASP ZAP results
@@ -109,9 +109,5 @@
             CMD="python manage.py process_owasp_scan ${CMD_ARGS[*]}"
             # Submit a CF Task for execution after a 4 minute sleep to ensure all of the scan's previous state has been closed.
             # sleep 240
-
-            echo "Running command: $CMD"
-
-            cf curl "/v2/apps"
 
             cf run-task tdp-backend-<< parameters.target_env >> --command "$CMD" --name nightly-owasp-scan -v
