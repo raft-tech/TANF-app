@@ -83,10 +83,9 @@
           name: Wait for cloud.gov to finish processing the OWASP scan
           command: |
             # Wait for the cf curl command to return a 200 status code
-            sleep 240
             while [[ $(cf curl "/v2/apps" -v | grep -c "HTTP/1.1 200") == 0 ]]; do
               echo "Waiting for the backend scan to complete..."
-              sleep 600
+              sleep 60
             done
       - run:
           name: Run post-processing task to record OWASP ZAP results
