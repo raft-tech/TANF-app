@@ -4,11 +4,14 @@
 
 | Dev Site | Frontend URL | Backend URL | Branch/Commit | Purpose |
 | -------- | -------- | -------- | -------- | -------- |
-| A11y | https://tdp-frontend-a11y.app.cloud.gov | https://tdp-frontend-a11y.app.cloud.gov/admin/ | ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/andrew-jameson/ded3a260ed8245a5b231ba726b3039df/raw/Live-Environments-a11y.json) | Space for accessibility testing |
-| QASP | https://tdp-frontend-qasp.app.cloud.gov | https://tdp-frontend-qasp.app.cloud.gov/admin/ | ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/andrew-jameson/ded3a260ed8245a5b231ba726b3039df/raw/Live-Environments-qasp.json) | Space for QASP review |
-| raft | https://tdp-frontend-raft.app.cloud.gov | https://tdp-frontend-raft.app.cloud.gov/admin/ | ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/andrew-jameson/ded3a260ed8245a5b231ba726b3039df/raw/Live-Environments-raft.json)
+| A11y | https://tdp-frontend-a11y.app.cloud.gov | https://tdp-frontend-a11y.app.cloud.gov/admin/ |  | Space for accessibility testing |
+| QASP | https://tdp-frontend-qasp.app.cloud.gov | https://tdp-frontend-qasp.app.cloud.gov/admin/ |  | Space for QASP review |
+| raft | https://tdp-frontend-raft.app.cloud.gov | https://tdp-frontend-raft.app.cloud.gov/admin/ | 
  | Space for raft review |
 
+![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/andrew-jameson/ded3a260ed8245a5b231ba726b3039df/raw/Live-Environments-raft.json)
+![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/andrew-jameson/ded3a260ed8245a5b231ba726b3039df/raw/Live-Environments-a11y.json)
+![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/andrew-jameson/ded3a260ed8245a5b231ba726b3039df/raw/Live-Environments-qasp.json)
 ### Dependencies
 
 - `clamav-rest` - Virus scanner REST service used to scan file uploads.
