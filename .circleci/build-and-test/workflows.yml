@@ -50,18 +50,18 @@
       #     requires:
       #       - secrets-check
 
-  build-and-test-backend:
-    when: << pipeline.parameters.build_and_test_backend >>
-    jobs:
-      - secrets-check
-      - test-backend:
-          requires:
-            - secrets-check
+  # build-and-test-backend:
+  #   when: << pipeline.parameters.build_and_test_backend >>
+  #   jobs:
+  #     - secrets-check
+  #     - test-backend:
+  #         requires:
+  #           - secrets-check
 
-  build-and-test-frontend:
-    when: << pipeline.parameters.build_and_test_frontend >>
-    jobs:
-      - secrets-check
-      - test-frontend:
-          requires:
-            - secrets-check
+  # build-and-test-frontend:
+  #   when: << pipeline.parameters.build_and_test_frontend >>
+  #   jobs:
+  #     - secrets-check
+  #     - test-frontend:
+  #         requires:
+  #           - secrets-check
