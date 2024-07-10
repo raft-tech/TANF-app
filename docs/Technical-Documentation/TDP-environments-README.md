@@ -10,8 +10,11 @@
  | Space for raft review |
 
 ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/andrew-jameson/ded3a260ed8245a5b231ba726b3039df/raw/Live-Environments-raft.json)
+
 ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/andrew-jameson/ded3a260ed8245a5b231ba726b3039df/raw/Live-Environments-a11y.json)
+
 ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/andrew-jameson/ded3a260ed8245a5b231ba726b3039df/raw/Live-Environments-qasp.json)
+
 ### Dependencies
 
 - `clamav-rest` - Virus scanner REST service used to scan file uploads.
