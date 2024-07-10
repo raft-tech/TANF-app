@@ -60,14 +60,14 @@ jobs:
         echo "Current PR state: $STATE"
 
     - name: Live Environment Badge
-    uses: schneegans/dynamic-badges-action@v1.7.0
-    with:
-      auth: ${{ secrets.LIVE_ENV_GIST }}
-      gistID: ded3a260ed8245a5b231ba726b3039df
-      filename: Live-Environments.json
-      label: ${{steps.extract-deploy-env.outputs.DEPLOY_ENV}}
-      message: "${{ github.head_ref }} - ${{ github.sha }}"
-      color: blue
+      uses: schneegans/dynamic-badges-action@v1.7.0
+      with:
+        auth: ${{ secrets.LIVE_ENV_GIST }}
+        gistID: ded3a260ed8245a5b231ba726b3039df
+        filename: Live-Environments.json
+        label: ${{steps.extract-deploy-env.outputs.DEPLOY_ENV}}
+        message: "${{ github.head_ref }} - ${{ github.sha }}"
+        color: blue
 
     - name: Circle CI Deployment Trigger
       id: curl-circle-ci
