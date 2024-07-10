@@ -47,18 +47,18 @@ data "cloudfoundry_service" "rds" {
   name = "aws-rds"
 }
 
-# resource "cloudfoundry_service_instance" "database" {
-#   name             = "tdp-db-dev"
-#   space            = data.cloudfoundry_space.space.id
-#   service_plan     = data.cloudfoundry_service.rds.service_plans["micro-psql"]
-#   json_params      = "{\"version\": \"15\"}"
-#   recursive_delete = true
-#   timeouts {
-#     create = "60m"
-#     update = "60m"
-#     delete = "2h"
-#   }
-# }
+resource "cloudfoundry_service_instance" "database" {
+  name             = "tdp-db-dev"
+  space            = data.cloudfoundry_space.space.id
+  service_plan     = data.cloudfoundry_service.rds.service_plans["micro-psql"]
+  json_params      = "{\"version\": \"15\"}"
+  recursive_delete = true
+  timeouts {
+    create = "60m"
+    update = "60m"
+    delete = "2h"
+  }
+}
 
 ###
 # Provision S3 buckets
