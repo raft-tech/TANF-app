@@ -57,6 +57,8 @@ update_frontend()
     unlink .env.production
     mkdir deployment
 
+    echo "<!-- $CIRCLE_BRANCH - $CIRCLE_TAG - $CIRCLE_SHA1 -->" >> public/index.html
+
     cp -r build deployment/public
     cp nginx/cloud.gov/buildpack.nginx.conf deployment/nginx.conf
     cp nginx/cloud.gov/locations.conf deployment/locations.conf
