@@ -9,6 +9,7 @@ from urllib.parse import quote_plus, urlencode
 from django.conf import settings
 from django.http import HttpResponseRedirect, HttpResponse
 from django.views.generic.base import RedirectView
+from django.template.loader import render_to_string
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +94,7 @@ class LoginRedirectAMS(RedirectView):
 
         Includes currently published URLs for authorization, token, etc.
         """
+        return None
         r = requests.get(settings.AMS_CONFIGURATION_ENDPOINT)
         if r.status_code != 200:
             logger.error(
@@ -111,7 +113,9 @@ class LoginRedirectAMS(RedirectView):
         """Get request and manage login information with AMS OpenID."""
         configuration = self.get_ams_configuration()
         if not configuration:
-            return HttpResponse("Failed to get AMS configuration", status=500)
+            rendered = render_to_string('error_pages/500.html', {'foo': 'bar'})
+            return HttpResponse(rendered,
+                                status=200)
         auth_params = {
             "client_id": settings.AMS_CLIENT_ID,
             "nonce": nonce,
