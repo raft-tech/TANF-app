@@ -7,8 +7,8 @@ def test_get_ams_configuration(requests_get_mock):
     """Test the LoginRedirectAMS class."""
     requests_get_mock.return_value.status_code = 200
     requests_get_mock.return_value.json.return_value = {"key": "test"}
-    returned_value = LoginRedirectAMS.get_ams_configuration()
-    assert returned_value == ({'key': 'test'}, None)
+    returned_value, error = LoginRedirectAMS.get_ams_configuration()
+    assert returned_value == {'key': 'test'}
 
     # Test if the configuration is not returned
     requests_get_mock.return_value.status_code = 500
