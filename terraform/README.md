@@ -123,7 +123,7 @@ Sometimes a developer will need to run Terraform locally to perform manual opera
 1. Run `terraform destroy -var-file variables.tf` to clear the current deployment (if there is one).
    - If the current deployment isn't destroyed, `terraform apply` will fail later because the unique service instance names are already taken.
    - Be cautious and weary of your target environment when destroying infrastructure.
-1. Run `terraform plan -out tfapply -var-file variables.tf` to create a new execution plan.
+1. Run `terraform plan -out tfapply -var-file variables.tfvars` to create a new execution plan. When prompted for the `cf_app_name`, you should provide the value `tanf-<ENV>` where `<ENV>` is: `dev`, `staging`, `prod`.
 1. Run `terraform apply "tfapply"` to create the new infrastructure.
 
 A similar test deployment can also be executed from the `/scripts/deploy-infrastructure-dev.sh` script, albeit without the `destroy` step.
