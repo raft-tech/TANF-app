@@ -1,4 +1,4 @@
-#LoginRedirectAMS
+from django.conf import settings
 from unittest import mock
 from tdpservice.users.api.login_redirect_oidc import LoginRedirectAMS
 
@@ -23,6 +23,7 @@ def test_LoginRedirectAMS_get(secrets_token_hex_mock, requests_get_mock):
         session = {
             "state_nonce_tracker": "dummy_state_nonce_tracker"
         }
+
     requests_get_mock.return_value.status_code = 200
     requests_get_mock.return_value.json.return_value = {"authorization_endpoint": "dummy_authorization_endpoint"}
     
@@ -31,14 +32,14 @@ def test_LoginRedirectAMS_get(secrets_token_hex_mock, requests_get_mock):
     login_redirect_ams = LoginRedirectAMS()
     
     response = login_redirect_ams.get(DummyRequest)
-    assert response.url == "dummy_authorization_endpoint?client_id=&nonce=dummy_state_nonce&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fv1%2Foidc%2Fams&response_type=code&state=dummy_state_nonce&scope=openid+email"
+    assert response.url == "dummy_authorization_endpoint?client_id=&nonce=dummy_state_nonce&redirect_uri=http%3A" +\
+        "%2F%2Flocalhost%3A3000%2Fv1%2Foidc%2Fams&response_type=code&state=dummy_state_nonce&scope=openid+email"
     
 
     # Test if the AMS server is down
     requests_get_mock.return_value.status_code = 500
     login_redirect_ams = LoginRedirectAMS()
     response = login_redirect_ams.get("request")
-    print('____ response', response.__dict__)
     assert response.status_code == 500
 
     
