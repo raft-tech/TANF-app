@@ -8,10 +8,10 @@ if [ -z "$S3_CREDENTIALS" ]; then
 fi
 
 # Requires installation of jq - https://stedolan.github.io/jq/download/
-ACCESS_KEY=$(echo "${S3_CREDENTIALS}" | jq -r '.access_key_id')
-SECRET_KEY=$(echo "${S3_CREDENTIALS}" | jq -r '.secret_access_key')
-REGION=$(echo "${S3_CREDENTIALS}" | jq -r '.region')
-BUCKET=$(echo "${S3_CREDENTIALS}" | jq -r '.bucket')
+ACCESS_KEY=$(echo "${S3_CREDENTIALS}" | jq -r '.credentials.access_key_id')
+SECRET_KEY=$(echo "${S3_CREDENTIALS}" | jq -r '.credentials.secret_access_key')
+REGION=$(echo "${S3_CREDENTIALS}" | jq -r '.credentials.region')
+BUCKET=$(echo "${S3_CREDENTIALS}" | jq -r '.credentials.bucket')
 
 {
   echo "access_key = \"$ACCESS_KEY\""
@@ -19,4 +19,4 @@ BUCKET=$(echo "${S3_CREDENTIALS}" | jq -r '.bucket')
   echo "region = \"$REGION\""
   echo "bucket = \"$BUCKET\""
   echo "prefix = \"dev\""
-} >> ./dev/backend_config.tfvars
+} > ./dev/backend_config.tfvars
