@@ -94,16 +94,15 @@ class LoginRedirectAMS(RedirectView):
 
         Includes currently published URLs for authorization, token, etc.
         """
-        return None
-        r = requests.get(settings.AMS_CONFIGURATION_ENDPOINT)
+        r = requests.get(settings.AMS_CONFIGURATION_ENDPOINT, timeout=10)
         if r.status_code != 200:
             logger.error(
                 f"Failed to get AMS configuration: {r.status_code} - {r.text}"
             )
-            return None
+            return None, f"Failed to get AMS configuration: {r.status_code} - {r.text}"
         else:
             data = r.json()
-            return data
+            return data, None
 
     def get(self, request, *args, **kwargs):
         """Handle login workflow based on request origin."""
@@ -112,8 +111,8 @@ class LoginRedirectAMS(RedirectView):
         nonce = secrets.token_hex(32)
         """Get request and manage login information with AMS OpenID."""
         configuration = self.get_ams_configuration()
-        if not configuration:
-            rendered = render_to_string('error_pages/500.html', {'foo': 'bar'})
+        if not configuration[0]:
+            rendered = render_to_string('error_pages/500.html', {'error': configuration[1]})
             return HttpResponse(rendered,
                                 status=200)
         auth_params = {
