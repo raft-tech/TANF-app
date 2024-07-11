@@ -18,5 +18,4 @@ BUCKET=$(echo "${S3_CREDENTIALS}" | jq -r '.credentials.bucket')
   echo "secret_key = \"$SECRET_KEY\""
   echo "region = \"$REGION\""
   echo "bucket = \"$BUCKET\""
-  echo "prefix = \"dev\""
 } > ./dev/backend_config.tfvars
