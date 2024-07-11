@@ -100,8 +100,9 @@ class DataFileAPITestBase:
 
         assert ws.cell(row=1, column=1).value == "Please refer to the most recent versions of the coding " \
             + "instructions (linked below) when looking up items and allowable values during the data revision process"
-        assert ws.cell(row=8, column=COL_ERROR_MESSAGE).value == "Every T1 record should have at least one " + \
-            "corresponding T2 or T3 record with the same RPT_MONTH_YEAR and CASE_NUMBER."
+        assert ws.cell(row=8, column=COL_ERROR_MESSAGE).value == ("if cash amount :873 validator1 passed then number "
+                                                                  "of months T1 Item -1 (number of months): 0 is "
+                                                                  "not larger than 0.")
 
     @staticmethod
     def assert_error_report_ssp_file_content_matches_with_friendly_names(response):
@@ -112,8 +113,8 @@ class DataFileAPITestBase:
 
         assert ws.cell(row=1, column=1).value == "Please refer to the most recent versions of the coding " \
             + "instructions (linked below) when looking up items and allowable values during the data revision process"
-        assert ws.cell(row=7, column=COL_ERROR_MESSAGE).value == "TRAILER: record length is 15 characters " + \
-            "but must be 23."
+        assert ws.cell(row=7, column=COL_ERROR_MESSAGE).value == ("M1 Item 11 (receives subsidized housing): 3 is "
+                                                                  "not larger or equal to 1 and smaller or equal to 2.")
 
     @staticmethod
     def assert_error_report_file_content_matches_without_friendly_names(response):
@@ -132,9 +133,9 @@ class DataFileAPITestBase:
 
         assert ws.cell(row=1, column=1).value == "Please refer to the most recent versions of the coding " \
             + "instructions (linked below) when looking up items and allowable values during the data revision process"
-        assert ws.cell(row=8, column=COL_ERROR_MESSAGE).value == ("Every T1 record should have at least one "
-                                                                  "corresponding T2 or T3 record with the same "
-                                                                  "RPT_MONTH_YEAR and CASE_NUMBER.")
+        assert ws.cell(row=8, column=COL_ERROR_MESSAGE).value == ("if CASH_AMOUNT :873 validator1 passed then "
+                                                                  "NBR_MONTHS T1 Item -1 (NBR_MONTHS): 0 is not "
+                                                                  "larger than 0.")
 
     @staticmethod
     def assert_data_file_exists(data_file_data, version, user):
