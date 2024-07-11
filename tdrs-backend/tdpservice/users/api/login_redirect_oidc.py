@@ -110,11 +110,11 @@ class LoginRedirectAMS(RedirectView):
         state = secrets.token_hex(32)
         nonce = secrets.token_hex(32)
         """Get request and manage login information with AMS OpenID."""
-        configuration = self.get_ams_configuration()
-        if not configuration[0]:
-            rendered = render_to_string('error_pages/500.html', {'error': configuration[1]})
+        configuration, error = self.get_ams_configuration()
+        if error is not None:
+            rendered = render_to_string('error_pages/500.html', {'error': error})
             return HttpResponse(rendered,
-                                status=200)
+                                status=500)
         auth_params = {
             "client_id": settings.AMS_CLIENT_ID,
             "nonce": nonce,
