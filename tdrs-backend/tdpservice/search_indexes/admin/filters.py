@@ -63,7 +63,6 @@ class STTFilter(MultiSelectDropdownFilter):
             queryset = queryset.filter(type_query)
         return (queryset.distinct().order_by('name').values_list('name', flat=True))
 
-
     def lookups(self, request, model_admin):
         """Available options in dropdown."""
         listing_record_type = [i for i in str(request.path).lower().split('/') if i not in ['/', '']][-1]
