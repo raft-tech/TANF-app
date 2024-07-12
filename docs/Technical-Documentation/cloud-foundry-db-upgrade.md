@@ -7,7 +7,7 @@ If you are performing this process for the staging or production, you need to en
 
 ### 1. SSH into a backend app in your desired environment
 ```bash
-cf ssh tdp-backend-<ENV>
+cf ssh tdp-backend-<APP>
 ```
 <br/>
 
@@ -21,7 +21,7 @@ Note: you can get the required field values from `VCAP_SERVICES`.
 ### 3. Copy the backup(s) to your local machine
 Note: This assumes you ran the backup command above in the home directory of the app. As an added bonus for later steps, you should execute this command from somewhere within `tdrs-backend` directory! Make sure not to commit the files/directories that are copied to your local directory.
 ```bash
-cf ssh tdp-backend-<ENV> -c 'tar cfz - ~/app/*.pg' | tar xfz - -C .
+cf ssh tdp-backend--<APP> -c 'tar cfz - ~/app/*.pg' | tar xfz - -C .
 ```
 <br/>
 
@@ -58,7 +58,7 @@ Follow the instuctions in the `terraform/README.md` and procede from there. Modi
 
 ### 9. Bind backend to the new RDS instance to get credentials
 ```bash
-cf bind-service tdp-backend-<ENV> tdp-db-<ENV>
+cf bind-service tdp-backend-<APP> tdp-db-<ENV>
 ```
 Be sure to re-stage the app when prompted
 <br/><br/>
@@ -66,13 +66,13 @@ Be sure to re-stage the app when prompted
 ### 10. Apply the backend manifest to begin the restore process
 If you copied the backups as mentioned in the note from step 3, the backups will be copied for you to the app instance in the command below. If not, you will need to use `scp` to copy the backups to the app instance after running the command below.
 ```bash
-cf push tdp-backend-<ENV> --no-route -f manifest.buildpack.yml -t 180 --strategy rolling
+cf push tdp-backend-<APP> --no-route -f manifest.buildpack.yml -t 180 --strategy rolling
 ```
 <br/>
 
 ### 11. SSH into the app you just pushed
 ```bash
-cf ssh tdp-backend-<ENV>
+cf ssh tdp-backend-<APP>
 ```
 <br/>
 
