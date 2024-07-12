@@ -53,7 +53,7 @@ image: postgres:<NEW VERSION>
 <br/>
 
 ### 8. Update Terraform state to delete then re-create RDS instance
-Follow the instuctions in the `terraform/README.md` and procede from there. Modify the `main.tf` file in the `terraform/<ENV>` directory to inform TF of the changes. To delete the existing RDS instance you can simply comment out the whole database `resource` in the file (even though you made changes in the steps above). TF will see that the resource is no longer there, delete it, and appropriately update it's state. Then you simply re-comment the database `resource` back in with the changes you made in previous steps. TF will create the new RDS instance with your new updates, and also update the state in S3.
+Follow the instuctions in the `terraform/README.md` and proceed from there. Modify the `main.tf` file in the `terraform/<ENV>` directory to inform TF of the changes. To delete the existing RDS instance you can simply comment out the whole database `resource` in the file (even though you made changes in the steps above). TF will see that the resource is no longer there, delete it, and appropriately update it's state. Then you simply re-comment the database `resource` back in with the changes you made in previous steps. TF will create the new RDS instance with your new updates, and also update the state in S3.
 <br/><br/>
 
 ### 9. Bind backend to the new RDS instance to get credentials
