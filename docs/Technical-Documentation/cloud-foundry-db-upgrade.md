@@ -88,11 +88,11 @@ Note: you can get the required field values from `VCAP_SERVICES`.
 ```bash
 /home/vcap/deps/0/apt/usr/lib/postgresql/<NEW VERSION>/bin/pg_restore -p <PORT> -h <HOST> -U <DB_USER> -d <DB_NAME> <FILE_NAME>.pg
 ```
-During this step, you may see errors similar to:
+During this step, you may see errors similar to the message below. Note `<DB_USER>` is imputed in the message to avoid leaking environment specific usernames/roles.
 ```bash
-pg_restore: from TOC entry 215; 1259 17313 SEQUENCE users_user_user_permissions_id_seq uf9pycohv5jhv6zf
-pg_restore: error: could not execute query: ERROR:  role "uf9pycohv5jhv6zf" does not exist
-Command was: ALTER TABLE public.users_user_user_permissions_id_seq OWNER TO uf9pycohv5jhv6zf;
+pg_restore: from TOC entry 215; 1259 17313 SEQUENCE users_user_user_permissions_id_seq <DB_USER>
+pg_restore: error: could not execute query: ERROR:  role "<DB_USER>" does not exist
+Command was: ALTER TABLE public.users_user_user_permissions_id_seq OWNER TO <DB_USER>;
 ```
 and the result and total amount of these errors should be:
 ```bash
