@@ -7,6 +7,8 @@ from django.contrib.auth import get_user_model, login
 from django.core.exceptions import SuspiciousOperation
 from django.http import HttpResponseRedirect
 from django.utils import timezone
+from django.http import HttpResponse
+from django.template.loader import render_to_string
 
 import jwt
 import requests
@@ -334,6 +336,10 @@ class TokenAuthorizationAMS(TokenAuthorizationOIDC):
         access_token = token_data.get("access_token")
 
         ams_configuration, error = LoginRedirectAMS.get_ams_configuration()
+        if error is not None:
+            rendered = render_to_string('error_pages/500.html', {'error': error})
+            return HttpResponse(rendered,
+                                status=500)
         certs_endpoint = ams_configuration["jwks_uri"]
         cert_str = generate_jwt_from_jwks(certs_endpoint)
         issuer = ams_configuration["issuer"]
@@ -352,6 +358,10 @@ class TokenAuthorizationAMS(TokenAuthorizationOIDC):
         """Build out the query string params and full URL path for token endpoint."""
         # First fetch the token endpoint from AMS.
         ams_configuration, error = LoginRedirectAMS.get_ams_configuration()
+        if error is not None:
+            rendered = render_to_string('error_pages/500.html', {'error': error})
+            return HttpResponse(rendered,
+                                status=500)
         options = {
             "client_id": settings.AMS_CLIENT_ID,
             "client_secret": settings.AMS_CLIENT_SECRET,
@@ -375,6 +385,12 @@ class TokenAuthorizationAMS(TokenAuthorizationOIDC):
             # Fetch userinfo endpoint for AMS to authenticate against hhsid, or
             # other user claims.
             ams_configuration, error = LoginRedirectAMS.get_ams_configuration()
+            if error is not None:
+                rendered = render_to_string('error_pages/500.html', {'error': error})
+                return HttpResponse(rendered,
+                                    status=500)
+            
+            # TODO 1621: Add error handling for userinfo_response
             userinfo_response = requests.post(ams_configuration["userinfo_endpoint"],
                                               {"access_token": access_token})
             user_info = userinfo_response.json()

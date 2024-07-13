@@ -6,6 +6,8 @@ from urllib.parse import quote_plus, urlencode
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.views.generic.base import RedirectView
+from django.http import HttpResponse
+from django.template.loader import render_to_string
 
 from tdpservice.users.api.login_redirect_oidc import LoginRedirectAMS
 
@@ -59,6 +61,10 @@ class LogoutRedirectOIDC(RedirectView):
         # build out full API GET call to authorize endpoint
         if use_ams_handler:
             ams_configuration, error = LoginRedirectAMS.get_ams_configuration()
+            if error is not None:
+                rendered = render_to_string('error_pages/500.html', {'error': error})
+                return HttpResponse(rendered,
+                                    status=500)
             encoded_params = urlencode(logout_params, quote_via=quote_plus)
             return HttpResponseRedirect(ams_configuration["end_session_endpoint"] + "?" + encoded_params)
         else:
