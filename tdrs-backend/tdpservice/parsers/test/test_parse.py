@@ -1768,7 +1768,7 @@ def test_zero_filled_fips_code_file(test_file_zero_filled_fips_code, dfs):
     parse.parse_datafile(test_file_zero_filled_fips_code, dfs)
 
     parser_errors = ParserError.objects.filter(file=test_file_zero_filled_fips_code)
-    assert 'T1 Item 2 (county fips code): field is required but a value was not' + \
+    assert 'T1 Item 2 (County FIPS Code): field is required but a value was not' + \
            ' provided.' in [i.error_message for i in parser_errors]
 
 
