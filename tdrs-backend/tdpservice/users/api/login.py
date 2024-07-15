@@ -389,8 +389,7 @@ class TokenAuthorizationAMS(TokenAuthorizationOIDC):
                 rendered = render_to_string('error_pages/500.html', {'error': error})
                 return HttpResponse(rendered,
                                     status=500)
-            
-            # TODO 1621: Add error handling for userinfo_response
+
             userinfo_response = requests.post(ams_configuration["userinfo_endpoint"],
                                               {"access_token": access_token})
             user_info = userinfo_response.json()

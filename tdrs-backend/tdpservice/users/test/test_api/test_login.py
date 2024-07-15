@@ -9,11 +9,13 @@ def test_get_ams_configuration(requests_get_mock):
     requests_get_mock.return_value.json.return_value = {"key": "test"}
     returned_value, error = LoginRedirectAMS.get_ams_configuration()
     assert returned_value == {'key': 'test'}
+    assert error is None
 
     # Test if the configuration is not returned
     requests_get_mock.return_value.status_code = 500
     returned_value, error = LoginRedirectAMS.get_ams_configuration()
     assert returned_value is None
+    assert error == "AMS configuration not found"
 
 @mock.patch("requests.get")
 @mock.patch("secrets.token_hex")
