@@ -1,4 +1,6 @@
 """Test the LoginRedirectAMS class."""
+import pytest
+
 from unittest import mock
 from tdpservice.users.api.login_redirect_oidc import LoginRedirectAMS
 
@@ -12,7 +14,6 @@ def test_get_ams_configuration(requests_get_mock):
 
     # Test if the configuration is not returned
     requests_get_mock.return_value.status_code = 500
-    import pytest
     with pytest.raises(Exception):
         LoginRedirectAMS.get_ams_configuration()
 

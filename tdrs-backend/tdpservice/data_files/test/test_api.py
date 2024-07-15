@@ -283,7 +283,6 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         """Test that the error report file is downloaded as expected for a Data Analyst's set STT."""
         parse.parse_datafile(test_datafile, dfs)
         response = self.download_error_report_file(api_client, test_datafile.id)
-        print(response.__dict__)
 
         assert response.status_code == status.HTTP_200_OK
         self.assert_error_report_tanf_file_content_matches_with_friendly_names(response)
