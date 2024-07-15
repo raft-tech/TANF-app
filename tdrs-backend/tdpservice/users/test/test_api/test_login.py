@@ -7,15 +7,15 @@ def test_get_ams_configuration(requests_get_mock):
     """Test the LoginRedirectAMS class."""
     requests_get_mock.return_value.status_code = 200
     requests_get_mock.return_value.json.return_value = {"key": "test"}
-    returned_value, error = LoginRedirectAMS.get_ams_configuration()
+    returned_value = LoginRedirectAMS.get_ams_configuration()
     assert returned_value == {'key': 'test'}
-    assert error is None
 
     # Test if the configuration is not returned
     requests_get_mock.return_value.status_code = 500
-    returned_value, error = LoginRedirectAMS.get_ams_configuration()
-    assert returned_value is None
-    assert "Failed to get AMS configuration: 500" in error
+    import pytest
+    with pytest.raises(Exception):
+        LoginRedirectAMS.get_ams_configuration()
+
 
 @mock.patch("requests.get")
 @mock.patch("secrets.token_hex")

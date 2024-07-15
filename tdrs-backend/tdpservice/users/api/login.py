@@ -7,8 +7,6 @@ from django.contrib.auth import get_user_model, login
 from django.core.exceptions import SuspiciousOperation
 from django.http import HttpResponseRedirect
 from django.utils import timezone
-from django.http import HttpResponse
-from django.template.loader import render_to_string
 
 import jwt
 import requests
@@ -335,11 +333,11 @@ class TokenAuthorizationAMS(TokenAuthorizationOIDC):
         id_token = token_data.get("id_token")
         access_token = token_data.get("access_token")
 
-        ams_configuration, error = LoginRedirectAMS.get_ams_configuration()
-        if error is not None:
-            rendered = render_to_string('error_pages/500.html', {'error': error})
-            return HttpResponse(rendered,
-                                status=500)
+        try:
+            ams_configuration = LoginRedirectAMS.get_ams_configuration()
+        except Exception as e:
+            logger.error(e)
+            raise Exception(e)
         certs_endpoint = ams_configuration["jwks_uri"]
         cert_str = generate_jwt_from_jwks(certs_endpoint)
         issuer = ams_configuration["issuer"]
@@ -357,11 +355,11 @@ class TokenAuthorizationAMS(TokenAuthorizationOIDC):
     def get_token_endpoint_response(self, code):
         """Build out the query string params and full URL path for token endpoint."""
         # First fetch the token endpoint from AMS.
-        ams_configuration, error = LoginRedirectAMS.get_ams_configuration()
-        if error is not None:
-            rendered = render_to_string('error_pages/500.html', {'error': error})
-            return HttpResponse(rendered,
-                                status=500)
+        try:
+            ams_configuration = LoginRedirectAMS.get_ams_configuration()
+        except Exception as e:
+            logger.error(e)
+            raise Exception(e)
         options = {
             "client_id": settings.AMS_CLIENT_ID,
             "client_secret": settings.AMS_CLIENT_SECRET,
@@ -384,12 +382,11 @@ class TokenAuthorizationAMS(TokenAuthorizationOIDC):
             auth_options = {}
             # Fetch userinfo endpoint for AMS to authenticate against hhsid, or
             # other user claims.
-            ams_configuration, error = LoginRedirectAMS.get_ams_configuration()
-            if error is not None:
-                rendered = render_to_string('error_pages/500.html', {'error': error})
-                return HttpResponse(rendered,
-                                    status=500)
-
+            try:
+                ams_configuration = LoginRedirectAMS.get_ams_configuration()
+            except Exception as e:
+                logger.error(e)
+                raise Exception(e)
             userinfo_response = requests.post(ams_configuration["userinfo_endpoint"],
                                               {"access_token": access_token})
             user_info = userinfo_response.json()

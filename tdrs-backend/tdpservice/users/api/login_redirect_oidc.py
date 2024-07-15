@@ -99,10 +99,10 @@ class LoginRedirectAMS(RedirectView):
             logger.error(
                 f"Failed to get AMS configuration: {r.status_code} - {r.text}"
             )
-            return None, f"Failed to get AMS configuration: {r.status_code} - {r.text}"
+            raise Exception(f"Failed to get AMS configuration: {r.status_code} - {r.text}")
         else:
             data = r.json()
-            return data, None
+            return data
 
     def get(self, request, *args, **kwargs):
         """Handle login workflow based on request origin."""
@@ -110,9 +110,13 @@ class LoginRedirectAMS(RedirectView):
         state = secrets.token_hex(32)
         nonce = secrets.token_hex(32)
         """Get request and manage login information with AMS OpenID."""
-        configuration, error = self.get_ams_configuration()
-        if error is not None:
-            rendered = render_to_string('error_pages/500.html', {'error': error})
+        try:
+            configuration = self.get_ams_configuration()
+        except Exception as e:
+            logger.error(f"Failed to get AMS configuration: {e}")
+            rendered = render_to_string(
+                'error_pages/500.html',
+                {'error': f"Failed to get AMS configuration: {e}"})
             return HttpResponse(rendered,
                                 status=500)
         auth_params = {
