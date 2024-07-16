@@ -13,7 +13,7 @@ def test_get_ams_configuration(requests_get_mock):
     assert returned_value == {'key': 'test'}
 
     # Test if the configuration is not returned
-    requests_get_mock.return_value.status_code = 500
+    requests_get_mock.return_value.status_code = 503
     with pytest.raises(Exception):
         LoginRedirectAMS.get_ams_configuration()
 
@@ -40,7 +40,7 @@ def test_LoginRedirectAMS_get(secrets_token_hex_mock, requests_get_mock):
     assert "dummy_authorization_endpoint" in response.url
 
     # Test if the AMS server is down
-    requests_get_mock.return_value.status_code = 500
+    requests_get_mock.return_value.status_code = 503
     login_redirect_ams = LoginRedirectAMS()
     response = login_redirect_ams.get("request")
-    assert response.status_code == 500
+    assert response.status_code == 503

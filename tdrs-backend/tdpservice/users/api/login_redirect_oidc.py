@@ -4,6 +4,7 @@ import logging
 import requests
 import secrets
 import time
+from rest_framework import status
 from urllib.parse import quote_plus, urlencode
 
 from django.conf import settings
@@ -118,7 +119,7 @@ class LoginRedirectAMS(RedirectView):
                 'error_pages/500.html',
                 {'error': f"Failed to get AMS configuration: {e}"})
             return HttpResponse(rendered,
-                                status=500)
+                                status=status.HTTP_503_SERVICE_UNAVAILABLE)
         auth_params = {
             "client_id": settings.AMS_CLIENT_ID,
             "nonce": nonce,
