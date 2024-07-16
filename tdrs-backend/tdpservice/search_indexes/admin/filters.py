@@ -72,7 +72,7 @@ class STTFilter(MultiSelectDropdownFilter):
         elif 'ssp' in listing_record_type:
             objects = STT.objects.filter(ssp=True)
         else:
-            objects = STT.objects.filter(type=STT.EntityType.STATE)
+            objects = STT.objects.filter(Q(type=STT.EntityType.STATE) | Q(type=STT.EntityType.TERRITORY))
         for obj in objects:
             options.append((obj.stt_code, _(obj.name)))
 
