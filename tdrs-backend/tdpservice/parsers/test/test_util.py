@@ -553,3 +553,18 @@ def test_clean_options_string(options, expected):
     """Test `clean_options_string` util func."""
     result = clean_options_string(options)
     assert result == expected
+
+
+from .. import parse
+from ..models import ParserError, ParserErrorCategoryChoices, DataFileSummary
+from .. import schema_defs, aggregates
+
+
+@pytest.mark.django_db()
+def test_empty_SSN_DOB_space_filled(empty_SSN_DOB, dfs):
+    """test empty_SSN_DOB_space_filled."""
+    dfs.datafile = empty_SSN_DOB
+
+    parse.parse_datafile(empty_SSN_DOB, dfs)
+
+    assert True

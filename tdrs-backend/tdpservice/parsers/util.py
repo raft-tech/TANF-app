@@ -269,15 +269,40 @@ class SortedRecords:
 
 def generate_t1_t4_hashes(line, record):
     """Return hashes for duplicate and partial duplicate detection for T1 & T4 records."""
-    logger.debug(f"Partial Hash Field Values: {record.RecordType} {str(record.RPT_MONTH_YEAR)} {record.CASE_NUMBER}")
-    return hash(line), hash(record.RecordType + str(record.RPT_MONTH_YEAR) + record.CASE_NUMBER)
+    case_number = getattr(record, 'CASE_NUMBER', None)
+    rpt_month_year = getattr(record, 'RPT_MONTH_YEAR', None)
+    record_type = getattr(record, 'RecordType', None)
+
+    logger.debug(f"Partial Hash Field Values: {record_type} {str(rpt_month_year)} {case_number}")
+    
+    case_number = case_number if case_number is not None else ''
+    rpt_month_year = rpt_month_year if rpt_month_year is not None else ''
+    record_type = record_type if record_type is not None else ''
+    return hash(line), hash(record_type + str(rpt_month_year) + case_number)
 
 def generate_t2_t3_t5_hashes(line, record):
     """Return hashes for duplicate and partial duplicate detection for T2 & T3 & T5 records."""
+    # TODO: 3050 the bug starts here
+    case_number = getattr(record, 'CASE_NUMBER', None)
+    rpt_month_year = getattr(record, 'RPT_MONTH_YEAR', None)
+    record_type = getattr(record, 'RecordType', None)
+    family_affiliation = getattr(record, 'FAMILY_AFFILIATION', None)
+    date_of_birth = getattr(record, 'DATE_OF_BIRTH', None)
+    ssn = getattr(record, 'SSN', None)
+    
     logger.debug(f"Partial Hash Field Values: {record.RecordType} {str(record.RPT_MONTH_YEAR)} {record.CASE_NUMBER} " +
                  f"{str(record.FAMILY_AFFILIATION)} {record.DATE_OF_BIRTH} {record.SSN}")
-    return hash(line), hash(record.RecordType + str(record.RPT_MONTH_YEAR) + record.CASE_NUMBER +
-                            str(record.FAMILY_AFFILIATION) + record.DATE_OF_BIRTH + record.SSN)
+    # 3050 the bug: this assumes all value are not None, but they can be
+    case_number = case_number if case_number is not None else ''
+    rpt_month_year = rpt_month_year if rpt_month_year is not None else ''
+    record_type = record_type if record_type is not None else ''
+    family_affiliation = family_affiliation if family_affiliation is not None else ''
+    date_of_birth = date_of_birth if date_of_birth is not None else ''
+    ssn = ssn if ssn is not None else ''
+    record_type + str(rpt_month_year)
+    str(family_affiliation) + date_of_birth
+    return hash(line), hash(record_type + str(rpt_month_year) + case_number +
+                            str(family_affiliation) + date_of_birth + ssn)
 
 def get_t1_t4_partial_hash_members():
     """Return field names used to generate t1/t4 partial hashes."""
