@@ -4,8 +4,13 @@ import pytest
 from datetime import datetime
 from ..fields import Field
 from ..row_schema import RowSchema, SchemaManager
-from ..util import make_generate_parser_error, create_test_datafile, get_years_apart, clean_options_string
-
+from ..util import (
+    make_generate_parser_error,
+    create_test_datafile,
+    get_years_apart,
+    clean_options_string,
+    generate_t2_t3_t5_hashes)
+import logging
 
 def passing_validator():
     """Fake validator that always returns valid."""
@@ -555,16 +560,20 @@ def test_clean_options_string(options, expected):
     assert result == expected
 
 
-from .. import parse
-from ..models import ParserError, ParserErrorCategoryChoices, DataFileSummary
-from .. import schema_defs, aggregates
-
-
 @pytest.mark.django_db()
-def test_empty_SSN_DOB_space_filled(empty_SSN_DOB, dfs):
-    """test empty_SSN_DOB_space_filled."""
-    dfs.datafile = empty_SSN_DOB
+def test_empty_SSN_DOB_space_filled(caplog):
+    """Test empty_SSN_DOB_space_filled."""
+    line = 'T22023101111111693522        WWWWWWWWW2122222222221 13 1211  0  3106990 0 0 0 0 0 0' + \
+        '                                                  00000000000000000000000'
 
-    parse.parse_datafile(empty_SSN_DOB, dfs)
+    class record:
+        CASE_NUMBER = 'T22023101111111693522'
+        SSN = None
+        DATE_OF_BIRTH = None
+        FAMILY_AFFILIATION = '2122222222221'
+        RPT_MONTH_YEAR = '202310'
+        RecordType = '13'
 
-    assert True
+    with caplog.at_level(logging.ERROR):
+        generate_t2_t3_t5_hashes(line, record)
+    assert caplog.text == ''

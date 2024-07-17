@@ -274,7 +274,7 @@ def generate_t1_t4_hashes(line, record):
     record_type = getattr(record, 'RecordType', None)
 
     logger.debug(f"Partial Hash Field Values: {record_type} {str(rpt_month_year)} {case_number}")
-    
+
     case_number = case_number if case_number is not None else ''
     rpt_month_year = rpt_month_year if rpt_month_year is not None else ''
     record_type = record_type if record_type is not None else ''
@@ -282,17 +282,15 @@ def generate_t1_t4_hashes(line, record):
 
 def generate_t2_t3_t5_hashes(line, record):
     """Return hashes for duplicate and partial duplicate detection for T2 & T3 & T5 records."""
-    # TODO: 3050 the bug starts here
     case_number = getattr(record, 'CASE_NUMBER', None)
     rpt_month_year = getattr(record, 'RPT_MONTH_YEAR', None)
     record_type = getattr(record, 'RecordType', None)
     family_affiliation = getattr(record, 'FAMILY_AFFILIATION', None)
     date_of_birth = getattr(record, 'DATE_OF_BIRTH', None)
     ssn = getattr(record, 'SSN', None)
-    
+
     logger.debug(f"Partial Hash Field Values: {record.RecordType} {str(record.RPT_MONTH_YEAR)} {record.CASE_NUMBER} " +
                  f"{str(record.FAMILY_AFFILIATION)} {record.DATE_OF_BIRTH} {record.SSN}")
-    # 3050 the bug: this assumes all value are not None, but they can be
     case_number = case_number if case_number is not None else ''
     rpt_month_year = rpt_month_year if rpt_month_year is not None else ''
     record_type = record_type if record_type is not None else ''

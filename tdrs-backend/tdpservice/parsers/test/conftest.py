@@ -20,23 +20,6 @@ def dfs():
     return DataFileSummaryFactory.build()
 
 @pytest.fixture
-def empty_SSN_DOB():
-    """Fixture for empty SSN and DOB."""
-    parsing_file = ParsingFileFactory(
-    year=2024,
-    quarter='Q1',
-    original_filename='empty_SSN_DOB.txt',
-    section='Active Case Data',
-    file__data=(b'HEADER20234A37000TAN1ED\n'
-                b'T120231011111116835242 240198112 23111 1003   0   0   0 483  0   0 0  0   0  0   0  0   0  0   0222222   0   02229 22                                       \n'
-                b'T120231011111116935242 240198112 23111 1003   0   0   0 483  0   0 0  0   0  0   0  0   0  0   0222222   0   02229 22                                       \n'
-                b'T22023101111111693522        WWWWWWWWW2122222222221 13 1211  0  3106990 0 0 0 0 0 0                                                  00000000000000000000000\n'
-                b'T320231011111116935499999999WTTY9BWYW212221122 6306100000000120100702TTTTTTTTT212222122 6306100000000                                                       \n'
-                b'TRAILER0000003 ')
-    )
-    return parsing_file
-
-@pytest.fixture
 def t2_invalid_dob_file():
     """Fixture for T2 file with an invalid DOB."""
     parsing_file = ParsingFileFactory(
