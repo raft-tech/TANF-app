@@ -563,16 +563,15 @@ def test_clean_options_string(options, expected):
 @pytest.mark.django_db()
 def test_empty_SSN_DOB_space_filled(caplog):
     """Test empty_SSN_DOB_space_filled."""
-    line = 'T22023101111111693522        WWWWWWWWW2122222222221 13 1211  0  3106990 0 0 0 0 0 0' + \
-        '                                                  00000000000000000000000'
+    line = 'fake_line'
 
     class record:
-        CASE_NUMBER = 'T22023101111111693522'
+        CASE_NUMBER = 'fake_case_number'
         SSN = None
         DATE_OF_BIRTH = None
-        FAMILY_AFFILIATION = '2122222222221'
+        FAMILY_AFFILIATION = 'fake_family_affiliation'
         RPT_MONTH_YEAR = '202310'
-        RecordType = '13'
+        RecordType = 'T2'
 
     with caplog.at_level(logging.ERROR):
         generate_t2_t3_t5_hashes(line, record)
