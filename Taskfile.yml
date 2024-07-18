@@ -78,6 +78,45 @@ tasks:
     cmds:
       - docker-compose -f docker-compose.yml up -d
 
+  frontend-down:
+    desc: Stop frontend web server
+    dir: tdrs-frontend
+    cmds:
+      - docker-compose -f docker-compose.yml down
+
+  frontend-restart:
+    desc: Restart frontend web server
+    dir: tdrs-frontend
+    cmds:
+      - docker-compose -f docker-compose.yml restart -d
+
+  frontend-av:
+    desc: Start frontend with optional clamav service
+    dir: tdrs-frontend
+    cmds:
+      - task: frontend-up
+      - task: clamav-up
+
+  clean:
+    desc: Remove all containers, networks, and volumes
+    cmds:
+      - docker-compose -f tdrs-backend/docker-compose.yml down -v
+      - docker-compose -f tdrs-frontend/docker-compose.yml down -v
+      - docker system prune -f -a
+  
+  clamav-up:
+    desc: Start clamav service
+    dir: tdrs-backend
+    cmds:
+      - docker-compose -f docker-compose.yml up -d clamav-rest
+
+
+  frontend-logs:
+    desc: Show and follow frontend web server logs
+    dir: tdrs-frontend
+    cmds:
+      - docker-compose -f docker-compose.yml logs -f
+
   frontend-bash:
     desc: Open a shell in the frontend container
     dir: tdrs-frontend
