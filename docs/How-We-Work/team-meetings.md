@@ -13,13 +13,13 @@ A typical sprint schedule is described in the table below.
 | -----------  | ---- |
 | Day 1 - Wed  | Dev Sync |
 | Day 2 - Thu  | *No meetings*      |
-| Day 3 - Fri  | Product Sync, Tech Sync     |
-| Day 4 - Mon  | UX Sync    |
+| Day 3 - Fri  | Dev Sync     |
+| Day 4 - Mon  | UX Sync, Leads Sync    |
 | Day 5 - Tue  | Backlog Refinement     |
 | Day 6 - Wed  | Dev Sync     |
 | Day 7 - Thu  | *No meetings*     |
-| Day 8 - Fri  | Product Sync, Cross-Functional Product Sync, Tech Sync    |
-| Day 9 - Mon  | UX Sync     |
+| Day 8 - Fri  | Cross-Functional Product Sync, Dev Sync    |
+| Day 9 - Mon  | UX Sync, Leads Sync     |
 | Day 10 - Tue | Sprint Review/Internal Demo/Retro/Sprint Planning, Sprint Demo, Backlog Refinement     |
 
 ---
