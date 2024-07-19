@@ -143,6 +143,28 @@ update_backend()
     fi
 
     cd ..
+
+}
+
+check_app_health() {
+    #check if the backend is up and running
+    cf_cmd="cf a | grep -q "$CGAPPNAME_BACKEND" | awk '{print $2}' | grep "started" | wc -l"
+    app_status=$cf_cmd
+
+    #TODO: implement wait loop and then 10m timeout, need to catch perma-staging
+    cf_logs_cmd="cf logs $CGAPPNAME_BACKEND --recent| grep -q 'Starting gunicorn' && echo $?"
+    log_status=$cf_logs_cmd
+
+    cf_traceback_cmd="cf logs $CGAPPNAME_BACKEND --recent | grep -q 'Traceback .most recent call last.:' && echo $?"
+    cf_traceback_count=$cf_traceback_cmd
+
+    if [ "$app_status" -eq 0 ] || [ $log_status -eq 1]; then
+        echo "App $CGAPPNAME_BACKEND is not running. Exiting."
+        exit 1
+    elif [ $cf_traceback_count -gt 0 ]; then
+        echo "App $CGAPPNAME_BACKEND has a traceback. Exiting."
+        exit 1
+    fi
 }
 
 bind_backend_to_services() {
