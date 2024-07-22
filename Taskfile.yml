@@ -164,13 +164,6 @@ tasks:
     cmds:
       - docker-compose -f docker-compose.yml exec tdp-frontend sh
 
-  frontend-pip-lock:
-    desc: Lock the pip dependencies
-    dir: tdrs-frontend
-    cmds:
-      - task: frontend-up
-      - docker-compose -f docker-compose.yml exec tdp-frontend sh -c "pipenv lock"
-
   up:
     desc: Start both frontend and backend web servers
     cmds:
