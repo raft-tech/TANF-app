@@ -8,6 +8,7 @@ Backend API Service for TDP. Deployed to Cloud.gov at https://tdp-backend.app.cl
 - [Login.gov Account](https://login.gov/)
 - [Cloud.gov Account](https://cloud.gov/)
 - [Cloud Foundry CLI](https://docs.cloudfoundry.org/cf-cli/install-go-cli.html)
+- [Task file](https://taskfile.dev/installation/)
 
 # Contents
 

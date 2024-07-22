@@ -74,6 +74,14 @@ tasks:
     cmds:
       - docker-compose -f docker-compose.yml exec web sh -c "flake8 . && if [ $? -eq 0 ]; then echo 'Flake8 linter found no issues'; fi"
 
+  backend-pip-lock:
+    #TODO: Add a task to lock the pip dependencies
+    desc: Lock the pip dependencies
+    dir: tdrs-backend
+    cmds:
+      - docker-compose -f docker-compose.yml exec web sh -c "pipenv lock"
+
+
   clean:
     desc: Remove all containers, networks, and volumes
     cmds:
@@ -127,7 +135,15 @@ tasks:
     desc: Run frontend tests
     dir: tdrs-frontend
     cmds:
-      - docker-compose -f docker-compose.local.yml up tdp-frontend-test
+      - docker-compose -f docker-compose.local.yml up tdp-frontend-test -d
+      - docker-compose -f docker-compose.local.yml exec tdp-frontend-test sh -c "npm run test"
+
+  frontend-test-cov:
+    desc: Run frontend tests with coverage
+    dir: tdrs-frontend
+    cmds:
+      - docker-compose -f docker-compose.local.yml up tdp-frontend-test -d
+      - docker-compose -f docker-compose.local.yml exec tdp-frontend-test sh -c "npm run test:cov"
 
   frontend-lint:
     desc: Run eslint in the frontend container
@@ -147,6 +163,13 @@ tasks:
     dir: tdrs-frontend
     cmds:
       - docker-compose -f docker-compose.yml exec tdp-frontend sh
+
+  frontend-pip-lock:
+    desc: Lock the pip dependencies
+    dir: tdrs-frontend
+    cmds:
+      - task: frontend-up
+      - docker-compose -f docker-compose.yml exec tdp-frontend sh -c "pipenv lock"
 
   up:
     desc: Start both frontend and backend web servers

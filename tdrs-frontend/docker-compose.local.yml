@@ -23,7 +23,7 @@ services:
     build:
       context: .
       target: localdev
-    command: npm run test
+    command: sleep infinity
     volumes:
       - ./:/home/node/app
     networks:
