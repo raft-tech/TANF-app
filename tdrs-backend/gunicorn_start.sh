@@ -35,4 +35,4 @@ fi
 
 gunicorn_cmd="gunicorn $gunicorn_params"
 
-exec $gunicorn_cmd
+#exec $gunicorn_cmd

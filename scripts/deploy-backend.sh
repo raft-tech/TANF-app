@@ -247,6 +247,7 @@ if [ "$DEPLOY_STRATEGY" = "rolling" ] ; then
     # Perform a rolling update for the backend and frontend deployments if
     # specified, otherwise perform a normal deployment
     update_backend 'rolling'
+    check_app_health
     update_kibana 'rolling'
 elif [ "$DEPLOY_STRATEGY" = "bind" ] ; then
     # Bind the services the application depends on and restage the app.
@@ -258,6 +259,7 @@ elif [ "$DEPLOY_STRATEGY" = "initial" ]; then
     update_backend
     update_kibana
     bind_backend_to_services
+    check_app_health
 elif [ "$DEPLOY_STRATEGY" = "rebuild" ]; then
     # You want to redeploy the instance under the same name
     # Delete the existing app (with out deleting the services)
@@ -266,8 +268,10 @@ elif [ "$DEPLOY_STRATEGY" = "rebuild" ]; then
     update_backend
     update_kibana
     bind_backend_to_services
+    check_app_health
 else
     # No changes to deployment config, just deploy the changes and restart
     update_backend
+    check_app_health
     update_kibana
 fi
