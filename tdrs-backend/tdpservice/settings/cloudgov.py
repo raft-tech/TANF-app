@@ -9,7 +9,7 @@ from tdpservice.settings.common import Common
 import logging
 
 logger = logging.getLogger(__name__)
-induced failure
+
 def get_json_env_var(variable_name):
     """Retrieve and serialize a JSON environment variable."""
     return json.loads(
