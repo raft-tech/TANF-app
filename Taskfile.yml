@@ -30,7 +30,7 @@ tasks:
     dir: sentry
     cmds:
       # limiting the memory to 2GB and CPU to only one cpu @0, for faster response, you can remove the limittask :  --cpuset-cpus 0 
-      - (docker run --privileged -p 9000:9000 -d --memory="4g" --memory-swap="20g" --name sentry docker:dind) || true
+      - (docker run --privileged -p 9000:9000 -d --memory="6g" --memory-swap="20g" --name sentry docker:dind) || true
       - docker exec sentry sh -c "git clone https://github.com/getsentry/self-hosted.git || true"
 
       # need sleep 10 for docker to start
