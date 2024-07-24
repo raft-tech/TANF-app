@@ -1,4 +1,16 @@
-#2910 — Django Admin Experience Improvements Research Session
+7/03/2024 - 7/16/2024
+Dev:
+Prioritized DAC, improved dev tooling, and fixing bugs
+#1621 — As a TDP user, I'd like to see a descriptive error message page if authentication source is unavailable 
+#2687 — As sys admin, I need the Access Request emails to admins to resume
+#2792 — [Error Audit] Category 3 error messages clean-up
+#3027 — [Bug] Investigate codecov failure in build-and-test workflow
+#3004 — Implement (small) data lifecycle (backup/archive ES)
+DevOps:
+Successful deployments across environments and pipeline stability investments
+#1620 — [SPIKE] As tech lead, I need to know the real-time branches deployed in Cloud.gov spaces
+Design:
+Support reviews, Django Admin Experience epic research, email template delivery#2910 — Django Admin Experience Improvements Research Session
 #3057 — [Design Deliverable] Spec for light-lift fiscal quarter / calendar quarter explainer in TDP
 #3058 (stretch) — [Design Deliverable] Release notes email template
 #2968 (stretch pending Cat 3 completion) — Update Error Audit for Cat 4 / QA
