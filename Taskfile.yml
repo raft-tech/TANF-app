@@ -12,11 +12,12 @@ tasks:
     dir: tdrs-backend
     cmds:
       - task: create-network
-      - task: install-sentry
+      - task: create-sentry
       - docker-compose -f docker-compose.yml up -d --build
       - docker-compose -f docker-compose.yml exec web sh -c "python ./manage.py makemigrations"
       - docker-compose -f docker-compose.yml exec web sh -c "python ./manage.py migrate"
       - docker-compose -f docker-compose.yml down
+      - task: sentry-down
 
   clone-sentry-repo:
     desc: Clone the sentry repo
@@ -25,12 +26,12 @@ tasks:
       - git clone https://github.com/getsentry/self-hosted.git || true
 
 
-  test-sentry:
+  create-sentry:
     desc: Run sentry tests
     dir: sentry
     cmds:
       # limiting the memory to 2GB and CPU to only one cpu @0, for faster response, you can remove the limittask :  --cpuset-cpus 0 
-      - (docker run --privileged -p 9000:9000 -d --memory="6g" --memory-swap="20g" --name sentry docker:dind) || true
+      - (docker run --privileged -p 9000:9000 -d --memory="8g" --memory-swap="20g" --name sentry docker:dind) || true
       - docker exec sentry sh -c "git clone https://github.com/getsentry/self-hosted.git || true"
 
       # need sleep 10 for docker to start
@@ -40,14 +41,21 @@ tasks:
       # add bash
       - docker exec sentry sh -c "apk add bash"
       - docker exec sentry bash -c "cd self-hosted && ./install.sh --skip-user-creation --no-report-self-hosted-issues"
+      # create a new user
+      - docker exec sentry bash -c "cd self-hosted && docker-compose run --rm web createuser --email admin@tanf.com --password admin --superuser"
       - docker exec sentry bash -c "cd self-hosted && docker-compose up -d"
 
-  install-sentry:
-    desc: Install sentry
-    dir: sentry/self-hosted
+  sentry-up:
+    desc: Start sentry service
+    dir: tdrs-backend
     cmds:
-      - task: clone-sentry-repo
-      - ./install.sh --no-user-prompt --skip-user-creation --no-report-self-hosted-issues
+      - docker exec sentry bash -c "cd self-hosted && docker-compose up -d"
+
+  sentry-down:
+    desc: Stop sentry service
+    dir: tdrs-backend
+    cmds:
+      - docker exec sentry bash -c "cd self-hosted && docker-compose down"
 
   drop-db:
     desc: Drop the backend database
@@ -61,12 +69,14 @@ tasks:
     dir: tdrs-backend
     cmds:
       - docker-compose -f docker-compose.yml up -d
+      - task: sentry-up
 
   backend-down:
     desc: Stop backend web server
     dir: tdrs-backend
     cmds:
       - docker-compose -f docker-compose.yml down
+      - task: sentry-down
 
   backend-logs:
     desc: Show and follow backend web server logs
