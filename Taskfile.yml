@@ -11,10 +11,43 @@ tasks:
     desc: Initialize the backend project
     dir: tdrs-backend
     cmds:
+      - task: create-network
+      - task: install-sentry
       - docker-compose -f docker-compose.yml up -d --build
       - docker-compose -f docker-compose.yml exec web sh -c "python ./manage.py makemigrations"
       - docker-compose -f docker-compose.yml exec web sh -c "python ./manage.py migrate"
       - docker-compose -f docker-compose.yml down
+
+  clone-sentry-repo:
+    desc: Clone the sentry repo
+    dir: sentry
+    cmds:
+      - git clone https://github.com/getsentry/self-hosted.git || true
+
+
+  test-sentry:
+    desc: Run sentry tests
+    dir: sentry
+    cmds:
+      # limiting the memory to 2GB and CPU to only one cpu @0, for faster response, you can remove the limittask : --memory=6000m  --cpuset-cpus 0 
+      - docker run --privileged -d --name sentry docker:dind -p 9000:9000 || true
+      - docker exec sentry sh -c "git clone https://github.com/getsentry/self-hosted.git || true"
+
+      # need sleep 10 for docker to start
+      # there is a bug with other version of self-hosted. looks like they are trying to upgrade to Django 5.0 (July 2024)
+      - docker exec sentry sh -c "cd self-hosted && sleep 10 && git checkout tags/24.1.0"
+
+      # add bash
+      - docker exec sentry sh -c "apk add bash"
+      - docker exec sentry bash -c "cd self-hosted && ./install.sh --skip-user-creation --no-report-self-hosted-issues"
+      - docker exec sentry bash -c "cd self-hosted && docker-compose up -d"
+
+  install-sentry:
+    desc: Install sentry
+    dir: sentry/self-hosted
+    cmds:
+      - task: clone-sentry-repo
+      - ./install.sh --no-user-prompt --skip-user-creation --no-report-self-hosted-issues
 
   drop-db:
     desc: Drop the backend database
@@ -85,9 +118,10 @@ tasks:
   clean:
     desc: Remove all containers, networks, and volumes
     cmds:
-      - docker-compose -f tdrs-backend/docker-compose.yml down -v
-      - docker-compose -f tdrs-frontend/docker-compose.yml down -v
-      - docker system prune -f -a
+      - docker stop $(docker ps -aq)
+      - docker rm $(docker ps -aq)
+      - docker rmi $(docker images -q)
+      - docker volume rm $(docker volume ls -q)
   
   clamav-up:
     desc: Start clamav service
