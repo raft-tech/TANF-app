@@ -148,13 +148,15 @@ update_backend()
 
 check_app_health() {
     #check if the backend is up and running
-    cf_cmd="cf a | grep \"$CGAPPNAME_BACKEND\" | grep -c \"started\""
+    cf_cmd="cf a | grep \"$CGAPPNAME_BACKEND\" | grep --count \"started\"" # previously `-c`, circleci grep differs from local
     app_status=exec $cf_cmd
 
     #TODO: implement wait loop and then 10m timeout, need to catch perma-staging
+    # we have wait for it, this check is caught elsewhere
     cf_logs_cmd="cf logs $CGAPPNAME_BACKEND --recent| grep -q 'Starting gunicorn' && echo $?"
     log_status=exec $cf_logs_cmd
 
+    # inducing failure here is difficult
     cf_traceback_cmd="cf logs $CGAPPNAME_BACKEND --recent | grep -q 'Traceback .most recent call last.:' && echo $?"
     cf_traceback_count=exec $cf_traceback_cmd
 
