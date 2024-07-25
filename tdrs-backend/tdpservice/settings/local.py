@@ -1,5 +1,8 @@
 """Define configuration settings for local environment."""
 import os
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+import django
 from distutils.util import strtobool
 
 from .common import Common
@@ -43,3 +46,24 @@ class Local(Common):
     }
 
     REDIS_SERVER_LOCAL = bool(strtobool(os.getenv("REDIS_SERVER_LOCAL", "TRUE")))
+
+    
+    # SENTRY
+    sentry_sdk.init(
+        dsn="http://99f21b99fdc8ad374857c9cd8e45f34f@host.docker.internal:9001/2",
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        integrations=[
+            DjangoIntegration(
+                transaction_style='url',
+                middleware_spans=True,
+                signals_spans=True,
+                signals_denylist=[
+                    django.db.models.signals.pre_init,
+                    django.db.models.signals.post_init,
+                ],
+                cache_spans=False,
+            ),
+        ],
+        traces_sample_rate=1.0,
+    )
