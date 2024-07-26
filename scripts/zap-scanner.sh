@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # pipefail is needed to correctly carry over the exit code from zap-full-scan.py
-set -o pipefail
+set -uxo pipefail
 
 TARGET=$1
 ENVIRONMENT=$2
@@ -39,7 +39,7 @@ fi
 cd "$TARGET_DIR" || exit 2
 
 
-if [[ $(docker network inspect external-net 2>&1 | grep -c Scope) == 0 ]]; then 
+if [[ $(docker network inspect external-net 2>&1 | grep -c Scope) == 0 ]]; then
   docker network create external-net
 fi
 
@@ -199,5 +199,3 @@ if [ "$ENVIRONMENT" = "nightly" ]; then
     echo "export ZAP_${TARGET}_FAIL_COUNT=$ZAP_FAIL_COUNT"
   } >> "$BASH_ENV"
 fi
-
-exit $ZAP_EXIT

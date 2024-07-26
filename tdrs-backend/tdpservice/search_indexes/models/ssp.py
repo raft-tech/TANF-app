@@ -12,6 +12,11 @@ class SSP_M1(models.Model):
     Mapped to an elastic search index.
     """
 
+    class Meta:
+        """Meta class for the model."""
+
+        verbose_name = 'SSP M1'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     datafile = models.ForeignKey(
         DataFile,
@@ -78,6 +83,11 @@ class SSP_M2(models.Model):
     Mapped to an elastic search index.
     """
 
+    class Meta:
+        """Meta class for the model."""
+
+        verbose_name = 'SSP M2'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     datafile = models.ForeignKey(
         DataFile,
@@ -113,7 +123,7 @@ class SSP_M2(models.Model):
     RELATIONSHIP_HOH = models.IntegerField(null=True, blank=False)
     PARENT_MINOR_CHILD = models.IntegerField(null=True, blank=False)
     NEEDS_PREGNANT_WOMAN = models.IntegerField(null=True, blank=False)
-    EDUCATION_LEVEL = models.IntegerField(null=True, blank=False)
+    EDUCATION_LEVEL = models.CharField(max_length=2, null=True, blank=False)
     CITIZENSHIP_STATUS = models.IntegerField(null=True, blank=False)
     COOPERATION_CHILD_SUPPORT = models.IntegerField(null=True, blank=False)
     EMPLOYMENT_STATUS = models.IntegerField(null=True, blank=False)
@@ -165,6 +175,11 @@ class SSP_M3(models.Model):
     Mapped to an elastic search index.
     """
 
+    class Meta:
+        """Meta class for the model."""
+
+        verbose_name = 'SSP M3'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     datafile = models.ForeignKey(
         DataFile,
@@ -194,7 +209,7 @@ class SSP_M3(models.Model):
     RECEIVE_SSI = models.IntegerField(null=True, blank=False)
     RELATIONSHIP_HOH = models.IntegerField(null=True, blank=False)
     PARENT_MINOR_CHILD = models.IntegerField(null=True, blank=False)
-    EDUCATION_LEVEL = models.IntegerField(null=True, blank=False)
+    EDUCATION_LEVEL = models.CharField(max_length=2, null=True, blank=False)
     CITIZENSHIP_STATUS = models.IntegerField(null=True, blank=False)
     UNEARNED_SSI = models.IntegerField(null=True, blank=False)
     OTHER_UNEARNED_INCOME = models.IntegerField(null=True, blank=False)
@@ -205,6 +220,11 @@ class SSP_M4(models.Model):
 
     Mapped to an elastic search index.
     """
+
+    class Meta:
+        """Meta class for the model."""
+
+        verbose_name = 'SSP M4'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     datafile = models.ForeignKey(
@@ -239,6 +259,11 @@ class SSP_M5(models.Model):
 
     Mapped to an elastic search index.
     """
+
+    class Meta:
+        """Meta class for the model."""
+
+        verbose_name = 'SSP M5'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     datafile = models.ForeignKey(
@@ -286,6 +311,11 @@ class SSP_M6(models.Model):
     Mapped to an elastic search index.
     """
 
+    class Meta:
+        """Meta class for the model."""
+
+        verbose_name = 'SSP M6'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     datafile = models.ForeignKey(
         DataFile,
@@ -317,6 +347,11 @@ class SSP_M7(models.Model):
 
     Mapped to an elastic search index.
     """
+
+    class Meta:
+        """Meta class for the model."""
+
+        verbose_name = 'SSP M7'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     datafile = models.ForeignKey(

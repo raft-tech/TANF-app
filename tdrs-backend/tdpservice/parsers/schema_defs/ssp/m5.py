@@ -6,96 +6,106 @@ from tdpservice.parsers.fields import TransformField, Field
 from tdpservice.parsers.row_schema import RowSchema, SchemaManager
 from tdpservice.parsers import validators
 from tdpservice.search_indexes.documents.ssp import SSP_M5DataSubmissionDocument
+from tdpservice.parsers.util import generate_t2_t3_t5_hashes, get_t2_t3_t5_partial_hash_members
 
 
 m5 = SchemaManager(
     schemas=[
         RowSchema(
+            record_type="M5",
             document=SSP_M5DataSubmissionDocument(),
+            generate_hashes_func=generate_t2_t3_t5_hashes,
+            should_skip_partial_dup_func=lambda record: record.FAMILY_AFFILIATION in {3, 4, 5},
+            get_partial_hash_members_func=get_t2_t3_t5_partial_hash_members,
             preparsing_validators=[
-                validators.hasLength(66),
+                validators.recordHasLength(66),
+                validators.caseNumberNotEmpty(8, 19),
+                validators.or_priority_validators([
+                    validators.field_year_month_with_header_year_quarter(),
+                    validators.validateRptMonthYear(),
+                ]),
             ],
             postparsing_validators=[
                 validators.if_then_validator(
-                    condition_field="FAMILY_AFFILIATION",
+                    condition_field_name="FAMILY_AFFILIATION",
                     condition_function=validators.matches(1),
-                    result_field="SSN",
+                    result_field_name="SSN",
                     result_function=validators.validateSSN(),
                 ),
                 validators.validate__FAM_AFF__SSN(),
                 validators.if_then_validator(
-                    condition_field="FAMILY_AFFILIATION",
+                    condition_field_name="FAMILY_AFFILIATION",
                     condition_function=validators.isInLimits(1, 3),
-                    result_field="RACE_HISPANIC",
+                    result_field_name="RACE_HISPANIC",
                     result_function=validators.isInLimits(1, 2),
                 ),
                 validators.if_then_validator(
-                    condition_field="FAMILY_AFFILIATION",
+                    condition_field_name="FAMILY_AFFILIATION",
                     condition_function=validators.isInLimits(1, 3),
-                    result_field="RACE_AMER_INDIAN",
+                    result_field_name="RACE_AMER_INDIAN",
                     result_function=validators.isInLimits(1, 2),
                 ),
                 validators.if_then_validator(
-                    condition_field="FAMILY_AFFILIATION",
+                    condition_field_name="FAMILY_AFFILIATION",
                     condition_function=validators.isInLimits(1, 3),
-                    result_field="RACE_ASIAN",
+                    result_field_name="RACE_ASIAN",
                     result_function=validators.isInLimits(1, 2),
                 ),
                 validators.if_then_validator(
-                    condition_field="FAMILY_AFFILIATION",
+                    condition_field_name="FAMILY_AFFILIATION",
                     condition_function=validators.isInLimits(1, 3),
-                    result_field="RACE_BLACK",
+                    result_field_name="RACE_BLACK",
                     result_function=validators.isInLimits(1, 2),
                 ),
                 validators.if_then_validator(
-                    condition_field="FAMILY_AFFILIATION",
+                    condition_field_name="FAMILY_AFFILIATION",
                     condition_function=validators.isInLimits(1, 3),
-                    result_field="RACE_HAWAIIAN",
+                    result_field_name="RACE_HAWAIIAN",
                     result_function=validators.isInLimits(1, 2),
                 ),
                 validators.if_then_validator(
-                    condition_field="FAMILY_AFFILIATION",
+                    condition_field_name="FAMILY_AFFILIATION",
                     condition_function=validators.isInLimits(1, 3),
-                    result_field="RACE_WHITE",
+                    result_field_name="RACE_WHITE",
                     result_function=validators.isInLimits(1, 2),
                 ),
                 validators.if_then_validator(
-                    condition_field="FAMILY_AFFILIATION",
+                    condition_field_name="FAMILY_AFFILIATION",
                     condition_function=validators.isInLimits(1, 3),
-                    result_field="MARITAL_STATUS",
+                    result_field_name="MARITAL_STATUS",
                     result_function=validators.isInLimits(1, 5),
                 ),
                 validators.if_then_validator(
-                    condition_field="FAMILY_AFFILIATION",
+                    condition_field_name="FAMILY_AFFILIATION",
                     condition_function=validators.isInLimits(1, 2),
-                    result_field="PARENT_MINOR_CHILD",
+                    result_field_name="PARENT_MINOR_CHILD",
                     result_function=validators.isInLimits(1, 2),
                 ),
                 validators.if_then_validator(
-                    condition_field="FAMILY_AFFILIATION",
+                    condition_field_name="FAMILY_AFFILIATION",
                     condition_function=validators.isInLimits(1, 3),
-                    result_field="EDUCATION_LEVEL",
+                    result_field_name="EDUCATION_LEVEL",
                     result_function=validators.or_validators(
                         validators.isInStringRange(1, 16),
                         validators.isInStringRange(98, 99),
                     ),
                 ),
                 validators.if_then_validator(
-                    condition_field="FAMILY_AFFILIATION",
+                    condition_field_name="FAMILY_AFFILIATION",
                     condition_function=validators.matches(1),
-                    result_field="CITIZENSHIP_STATUS",
+                    result_field_name="CITIZENSHIP_STATUS",
                     result_function=validators.isInLimits(1, 3),
                 ),
                 validators.if_then_validator(
-                    condition_field="DATE_OF_BIRTH",
+                    condition_field_name="DATE_OF_BIRTH",
                     condition_function=validators.olderThan(18),
-                    result_field="REC_OASDI_INSURANCE",
+                    result_field_name="REC_OASDI_INSURANCE",
                     result_function=validators.isInLimits(1, 2),
                 ),
                 validators.if_then_validator(
-                    condition_field="FAMILY_AFFILIATION",
+                    condition_field_name="FAMILY_AFFILIATION",
                     condition_function=validators.matches(1),
-                    result_field="REC_FEDERAL_DISABILITY",
+                    result_field_name="REC_FEDERAL_DISABILITY",
                     result_function=validators.isInLimits(1, 2),
                 ),
             ],
@@ -103,7 +113,7 @@ m5 = SchemaManager(
                 Field(
                     item="0",
                     name="RecordType",
-                    friendly_name="record type",
+                    friendly_name="Record Type",
                     type="string",
                     startIndex=0,
                     endIndex=2,
@@ -113,7 +123,7 @@ m5 = SchemaManager(
                 Field(
                     item="3",
                     name="RPT_MONTH_YEAR",
-                    friendly_name="reporting month and year",
+                    friendly_name="Reporting Year and Month",
                     type="number",
                     startIndex=2,
                     endIndex=8,
@@ -126,17 +136,17 @@ m5 = SchemaManager(
                 Field(
                     item="5",
                     name="CASE_NUMBER",
-                    friendly_name="case number",
+                    friendly_name="Case Number",
                     type="string",
                     startIndex=8,
                     endIndex=19,
                     required=True,
-                    validators=[validators.isAlphaNumeric()],
+                    validators=[validators.notEmpty()],
                 ),
                 Field(
                     item="13",
                     name="FAMILY_AFFILIATION",
-                    friendly_name="family affiliation",
+                    friendly_name="Family Affiliation",
                     type="number",
                     startIndex=19,
                     endIndex=20,
@@ -146,32 +156,33 @@ m5 = SchemaManager(
                 Field(
                     item="14",
                     name="DATE_OF_BIRTH",
-                    friendly_name="date of birth",
+                    friendly_name="Date of Birth",
                     type="string",
                     startIndex=20,
                     endIndex=28,
                     required=True,
-                    validators=[
-                        validators.dateYearIsLargerThan(1900),
-                        validators.dateMonthIsValid(),
-                    ],
+                    validators=[validators.intHasLength(8),
+                                validators.dateYearIsLargerThan(1900),
+                                validators.dateMonthIsValid(),
+                                validators.dateDayIsValid()
+                                ],
                 ),
                 TransformField(
                     transform_func=ssp_ssn_decryption_func,
                     item="15",
                     name="SSN",
-                    friendly_name="social security number",
+                    friendly_name="Social Security Number",
                     type="string",
                     startIndex=28,
                     endIndex=37,
                     required=True,
-                    validators=[validators.validateSSN()],
+                    validators=[validators.isNumber()],
                     is_encrypted=False,
                 ),
                 Field(
                     item="16A",
                     name="RACE_HISPANIC",
-                    friendly_name="race hispanic",
+                    friendly_name="Hispanic or Latino",
                     type="number",
                     startIndex=37,
                     endIndex=38,
@@ -181,7 +192,7 @@ m5 = SchemaManager(
                 Field(
                     item="16B",
                     name="RACE_AMER_INDIAN",
-                    friendly_name="race american-indian",
+                    friendly_name="American Indian or Alaska Native",
                     type="number",
                     startIndex=38,
                     endIndex=39,
@@ -191,7 +202,7 @@ m5 = SchemaManager(
                 Field(
                     item="16C",
                     name="RACE_ASIAN",
-                    friendly_name="race asian",
+                    friendly_name="Asian",
                     type="number",
                     startIndex=39,
                     endIndex=40,
@@ -201,7 +212,7 @@ m5 = SchemaManager(
                 Field(
                     item="16D",
                     name="RACE_BLACK",
-                    friendly_name="race black",
+                    friendly_name="Black or African American",
                     type="number",
                     startIndex=40,
                     endIndex=41,
@@ -211,7 +222,7 @@ m5 = SchemaManager(
                 Field(
                     item="16E",
                     name="RACE_HAWAIIAN",
-                    friendly_name="race hawaiian",
+                    friendly_name="Native Hawaiian or Pacific Islander",
                     type="number",
                     startIndex=41,
                     endIndex=42,
@@ -221,7 +232,7 @@ m5 = SchemaManager(
                 Field(
                     item="16F",
                     name="RACE_WHITE",
-                    friendly_name="race white",
+                    friendly_name="White",
                     type="number",
                     startIndex=42,
                     endIndex=43,
@@ -231,7 +242,7 @@ m5 = SchemaManager(
                 Field(
                     item="17",
                     name="GENDER",
-                    friendly_name="gender",
+                    friendly_name="Gender",
                     type="number",
                     startIndex=43,
                     endIndex=44,
@@ -241,17 +252,17 @@ m5 = SchemaManager(
                 Field(
                     item="18A",
                     name="REC_OASDI_INSURANCE",
-                    friendly_name="receives old-age survivors and disability insurance",
+                    friendly_name="Received Disability Benefits: OASDI Program",
                     type="number",
                     startIndex=44,
                     endIndex=45,
-                    required=True,
+                    required=False,
                     validators=[validators.isInLimits(0, 2)],
                 ),
                 Field(
                     item="18B",
                     name="REC_FEDERAL_DISABILITY",
-                    friendly_name="receives federal disability",
+                    friendly_name="Received Disability Benefits: Other Federal Disability Status",
                     type="number",
                     startIndex=45,
                     endIndex=46,
@@ -261,7 +272,7 @@ m5 = SchemaManager(
                 Field(
                     item="18C",
                     name="REC_AID_TOTALLY_DISABLED",
-                    friendly_name="receives aid for totally disabled",
+                    friendly_name="Received Disability Benefits: Permanently and Totally Disabled",
                     type="number",
                     startIndex=46,
                     endIndex=47,
@@ -271,7 +282,7 @@ m5 = SchemaManager(
                 Field(
                     item="18D",
                     name="REC_AID_AGED_BLIND",
-                    friendly_name="receives from aid to the aged, blind, and disabled program",
+                    friendly_name="Received Disability Benefits: AABD",
                     type="number",
                     startIndex=47,
                     endIndex=48,
@@ -281,7 +292,7 @@ m5 = SchemaManager(
                 Field(
                     item="18E",
                     name="REC_SSI",
-                    friendly_name="receives SSI",
+                    friendly_name="Received Disability Benefits: SSI",
                     type="number",
                     startIndex=48,
                     endIndex=49,
@@ -291,7 +302,7 @@ m5 = SchemaManager(
                 Field(
                     item="19",
                     name="MARITAL_STATUS",
-                    friendly_name="marital status",
+                    friendly_name="Marital Status",
                     type="number",
                     startIndex=49,
                     endIndex=50,
@@ -301,7 +312,7 @@ m5 = SchemaManager(
                 Field(
                     item="20",
                     name="RELATIONSHIP_HOH",
-                    friendly_name="relationship to head of household",
+                    friendly_name="Relationship to Head-of-Household",
                     type="string",
                     startIndex=50,
                     endIndex=52,
@@ -311,7 +322,7 @@ m5 = SchemaManager(
                 Field(
                     item="21",
                     name="PARENT_MINOR_CHILD",
-                    friendly_name="parent of minor child",
+                    friendly_name="Parent with Minor Child in the Family",
                     type="number",
                     startIndex=52,
                     endIndex=53,
@@ -321,7 +332,7 @@ m5 = SchemaManager(
                 Field(
                     item="22",
                     name="NEEDS_OF_PREGNANT_WOMAN",
-                    friendly_name="needs of pregnant woman",
+                    friendly_name="Needs of a Pregnant Woman",
                     type="number",
                     startIndex=53,
                     endIndex=54,
@@ -331,7 +342,7 @@ m5 = SchemaManager(
                 Field(
                     item="23",
                     name="EDUCATION_LEVEL",
-                    friendly_name="education level",
+                    friendly_name="Educational Level",
                     type="string",
                     startIndex=54,
                     endIndex=56,
@@ -340,28 +351,26 @@ m5 = SchemaManager(
                         validators.or_validators(
                             validators.isInStringRange(0, 16),
                             validators.isInStringRange(98, 99),
-                        )
+                        ),
+                        validators.notMatches("00")
                     ],
                 ),
                 Field(
                     item="24",
                     name="CITIZENSHIP_STATUS",
-                    friendly_name="citizenship status",
+                    friendly_name="Citizenship/Immigration Status",
                     type="number",
                     startIndex=56,
                     endIndex=57,
                     required=False,
                     validators=[
-                        validators.or_validators(
-                            validators.isInLimits(0, 3),
-                            validators.matches(9)
-                        )
+                        validators.oneOf([1, 2, 3, 9]),
                     ],
                 ),
                 Field(
                     item="25",
                     name="EMPLOYMENT_STATUS",
-                    friendly_name="employment status",
+                    friendly_name="Employment Status",
                     type="number",
                     startIndex=57,
                     endIndex=58,
@@ -371,7 +380,7 @@ m5 = SchemaManager(
                 Field(
                     item="26",
                     name="AMOUNT_EARNED_INCOME",
-                    friendly_name="amount of earned income",
+                    friendly_name="Amount of Earned Income",
                     type="string",
                     startIndex=58,
                     endIndex=62,
@@ -381,7 +390,7 @@ m5 = SchemaManager(
                 Field(
                     item="27",
                     name="AMOUNT_UNEARNED_INCOME",
-                    friendly_name="amount of unearned income",
+                    friendly_name="Amount of Unearned Income",
                     type="string",
                     startIndex=62,
                     endIndex=66,

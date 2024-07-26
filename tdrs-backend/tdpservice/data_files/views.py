@@ -3,7 +3,6 @@ import logging
 from django.http import FileResponse
 from django_filters import rest_framework as filters
 from django.conf import settings
-from django.contrib.auth.models import Group
 from drf_yasg.openapi import Parameter
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.parsers import MultiPartParser
@@ -15,13 +14,14 @@ from rest_framework.decorators import action
 from wsgiref.util import FileWrapper
 from rest_framework import status
 
-from tdpservice.users.models import AccountApprovalStatusChoices, User
 from tdpservice.data_files.serializers import DataFileSerializer
+from tdpservice.data_files.util import get_xls_serialized_file
 from tdpservice.data_files.models import DataFile, get_s3_upload_path
 from tdpservice.users.permissions import DataFilePermissions, IsApprovedPermission
-from tdpservice.scheduling import sftp_task, parser_task
-from tdpservice.email.helpers.data_file import send_data_submitted_email
+from tdpservice.scheduling import parser_task
 from tdpservice.data_files.s3_client import S3Client
+from tdpservice.parsers.models import ParserError
+from tdpservice.parsers.serializers import ParsingErrorSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -59,12 +59,10 @@ class DataFileViewSet(ModelViewSet):
 
         # only if file is passed the virus scan and created successfully will we perform side-effects:
         # * Send to parsing
-        # * Upload to ACF-TITAN
         # * Send email to user
 
         logger.debug(f"{self.__class__.__name__}: status: {response.status_code}")
         if response.status_code == status.HTTP_201_CREATED or response.status_code == status.HTTP_200_OK:
-            user = request.user
             data_file_id = response.data.get('id')
             data_file = DataFile.objects.get(id=data_file_id)
 
@@ -75,41 +73,12 @@ class DataFileViewSet(ModelViewSet):
             parser_task.parse.delay(data_file_id)
             logger.info("Submitted parse task to queue for datafile %s.", data_file_id)
 
-            sftp_task.upload.delay(
-                data_file_pk=data_file_id,
-                server_address=settings.ACFTITAN_SERVER_ADDRESS,
-                local_key=settings.ACFTITAN_LOCAL_KEY,
-                username=settings.ACFTITAN_USERNAME,
-                port=22
-            )
-            logger.info("Submitted upload task to redis for datafile %s.", data_file_id)
-
             app_name = settings.APP_NAME + '/'
             key = app_name + get_s3_upload_path(data_file, '')
             version_id = self.get_s3_versioning_id(response.data.get('original_filename'), key)
 
             data_file.s3_versioning_id = version_id
             data_file.save(update_fields=['s3_versioning_id'])
-
-            # Send email to user to notify them of the file upload status
-            subject = f"Data Submitted for {data_file.section}"
-            email_context = {
-                'stt_name': str(data_file.stt),
-                'submission_date': data_file.created_at,
-                'submitted_by': user.get_full_name(),
-                'fiscal_year': data_file.fiscal_year,
-                'section_name': data_file.section,
-                'subject': subject,
-            }
-
-            recipients = User.objects.filter(
-                stt=data_file.stt,
-                account_approval_status=AccountApprovalStatusChoices.APPROVED,
-                groups=Group.objects.get(name='Data Analyst')
-            ).values_list('username', flat=True).distinct()
-
-            if len(recipients) > 0:
-                send_data_submitted_email(list(recipients), data_file, email_context, subject)
 
         logger.debug(f"{self.__class__.__name__}: return val: {response}")
         return response
@@ -129,10 +98,11 @@ class DataFileViewSet(ModelViewSet):
     def get_queryset(self):
         """Apply custom queryset filters."""
         queryset = super().get_queryset().order_by('-created_at')
-        if self.request.query_params.get('file_type') == 'ssp-moe':
-            queryset = queryset.filter(section__contains='SSP')
-        else:
-            queryset = queryset.exclude(section__contains='SSP')
+        if self.action == 'list':
+            if self.request.query_params.get('file_type') == 'ssp-moe':
+                queryset = queryset.filter(section__contains='SSP')
+            else:
+                queryset = queryset.exclude(section__contains='SSP')
 
         return queryset
 
@@ -172,6 +142,14 @@ class DataFileViewSet(ModelViewSet):
                 filename=record.original_filename
             )
         return response
+
+    @action(methods=["get"], detail=True)
+    def download_error_report(self, request, pk=None):
+        """Generate and return the parsing error report xlsx."""
+        datafile = self.get_object()
+        parser_errors = ParserError.objects.all().filter(file=datafile)
+        serializer = ParsingErrorSerializer(parser_errors, many=True, context=self.get_serializer_context())
+        return Response(get_xls_serialized_file(serializer.data))
 
 
 class GetYearList(APIView):

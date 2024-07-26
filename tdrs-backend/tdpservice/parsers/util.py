@@ -1,7 +1,6 @@
 """Utility file for functions shared between all parsers even preparser."""
 from .models import ParserError
 from django.contrib.contenttypes.models import ContentType
-from . import schema_defs
 from tdpservice.data_files.models import DataFile
 from datetime import datetime
 from pathlib import Path
@@ -86,6 +85,22 @@ def make_generate_file_precheck_parser_error(datafile, line_number):
     return generate
 
 
+def make_generate_case_consistency_parser_error(datafile):
+    """Configure a generate_parser_error that is specific to case consistency errors."""
+    def generate(schema, error_category, error_message, line_number=None, record=None, field=None):
+        return generate_parser_error(
+            datafile=datafile,
+            line_number=line_number,
+            schema=schema,
+            error_category=error_category,
+            error_message=error_message,
+            record=record,
+            field=field,
+        )
+
+    return generate
+
+
 def contains_encrypted_indicator(line, encryption_field):
     """Determine if line contains encryption indicator."""
     if encryption_field is not None:
@@ -93,128 +108,10 @@ def contains_encrypted_indicator(line, encryption_field):
     return False
 
 
-def get_schema_options(program, section, query=None, model=None, model_name=None):
-    """Centralized function to return the appropriate schema for a given program, section, and query.
-
-    TODO: need to rework this docstring as it is outdated hence the weird ';;' for some of them.
-
-    @param program: the abbreviated program type (.e.g, 'TAN')
-    @param section: the section of the file (.e.g, 'A');; or ACTIVE_CASE_DATA
-    @param query: the query for section_names (.e.g, 'section', 'models', etc.)
-    @return: the appropriate references (e.g., ACTIVE_CASE_DATA or {t1,t2,t3}) ;; returning 'A'
-    """
-    schema_options = {
-        'TAN': {
-            'A': {
-                'section': DataFile.Section.ACTIVE_CASE_DATA,
-                'models': {
-                    'T1': schema_defs.tanf.t1,
-                    'T2': schema_defs.tanf.t2,
-                    'T3': schema_defs.tanf.t3,
-                }
-            },
-            'C': {
-                'section': DataFile.Section.CLOSED_CASE_DATA,
-                'models': {
-                    'T4': schema_defs.tanf.t4,
-                    'T5': schema_defs.tanf.t5,
-                }
-            },
-            'G': {
-                'section': DataFile.Section.AGGREGATE_DATA,
-                'models': {
-                    'T6': schema_defs.tanf.t6,
-                }
-            },
-            'S': {
-                'section': DataFile.Section.STRATUM_DATA,
-                'models': {
-                    'T7': schema_defs.tanf.t7,
-                }
-            }
-        },
-        'SSP': {
-            'A': {
-                'section': DataFile.Section.SSP_ACTIVE_CASE_DATA,
-                'models': {
-                    'M1': schema_defs.ssp.m1,
-                    'M2': schema_defs.ssp.m2,
-                    'M3': schema_defs.ssp.m3,
-                }
-            },
-            'C': {
-                'section': DataFile.Section.SSP_CLOSED_CASE_DATA,
-                'models': {
-                    'M4': schema_defs.ssp.m4,
-                    'M5': schema_defs.ssp.m5,
-                }
-            },
-            'G': {
-                'section': DataFile.Section.SSP_AGGREGATE_DATA,
-                'models': {
-                    'M6': schema_defs.ssp.m6,
-                }
-            },
-            'S': {
-                'section': DataFile.Section.SSP_STRATUM_DATA,
-                'models': {
-                    'M7': schema_defs.ssp.m7,
-                }
-            }
-        },
-        'Tribal TAN': {
-            'A': {
-                'section': DataFile.Section.TRIBAL_ACTIVE_CASE_DATA,
-                'models': {
-                    'T1': schema_defs.tribal_tanf.t1,
-                    'T2': schema_defs.tribal_tanf.t2,
-                    'T3': schema_defs.tribal_tanf.t3,
-                }
-            },
-            'C': {
-                'section': DataFile.Section.TRIBAL_CLOSED_CASE_DATA,
-                'models': {
-                    'T4': schema_defs.tribal_tanf.t4,
-                    'T5': schema_defs.tribal_tanf.t5,
-                }
-            },
-            'G': {
-                'section': DataFile.Section.TRIBAL_AGGREGATE_DATA,
-                'models': {
-                    'T6': schema_defs.tribal_tanf.t6,
-                }
-            },
-            'S': {
-                'section': DataFile.Section.TRIBAL_STRATUM_DATA,
-                'models': {
-                    'T7': schema_defs.tribal_tanf.t7,
-                }
-            },
-        },
-    }
-
-    if query == "text":
-        for prog_name, prog_dict in schema_options.items():
-            for sect, val in prog_dict.items():
-                if val['section'] == section:
-                    return {'program_type': prog_name, 'section': sect}
-        raise ValueError("Model not found in schema_defs")
-    elif query == "section":
-        return schema_options.get(program, {}).get(section, None)[query]
-    elif query == "models":
-        links = schema_options.get(program, {}).get(section, None)
-
-        # if query is not chosen or wrong input, return all options
-        # query = 'models', model = 'T1'
-        models = links.get(query, links)
-
-        if model_name is None:
-            return models
-        elif model_name not in models.keys():
-            logger.debug(f"Model {model_name} not found in schema_defs")
-            return []  # intentionally trigger the error_msg for unknown record type
-        else:
-            return models.get(model_name, models)
+def clean_options_string(options, remove=['\'', '"', ' ']):
+    """Return a prettied-up version of an options array."""
+    options_str = ', '.join(str(o) for o in options)
+    return f'[{options_str}]'
 
 
 '''
@@ -230,21 +127,6 @@ section -> text
 text**: input string from the header/file
 '''
 
-def get_program_models(str_prog, str_section):
-    """Return the models dict for a given program and section."""
-    return get_schema_options(program=str_prog, section=str_section, query='models')
-
-def get_program_model(str_prog, str_section, str_model):
-    """Return singular model for a given program, section, and name."""
-    return get_schema_options(program=str_prog, section=str_section, query='models', model_name=str_model)
-
-def get_section_reference(str_prog, str_section):
-    """Return the named section reference for a given program and section."""
-    return get_schema_options(program=str_prog, section=str_section, query='section')
-
-def get_text_from_df(df):
-    """Return the short-hand text for program, section for a given datafile."""
-    return get_schema_options("", section=df.section, query='text')
 
 def get_prog_from_section(str_section):
     """Return the program type for a given section."""
@@ -259,10 +141,6 @@ def get_prog_from_section(str_section):
     # TODO: if given a datafile (section), we can reverse back to the program b/c the
     # section string has "tribal/ssp" in it, then process of elimination we have tanf
 
-def get_schema(line, section, program_type):
-    """Return the appropriate schema for the line."""
-    line_type = line[0:2]
-    return get_schema_options(program_type, section, query='models', model_name=line_type)
 
 def fiscal_to_calendar(year, fiscal_quarter):
     """Decrement the input quarter text by one."""
@@ -274,8 +152,14 @@ def fiscal_to_calendar(year, fiscal_quarter):
     ind_qtr = array.index(int_qtr)  # get the index so we can easily wrap-around end of array
     return year, "Q{}".format(array[ind_qtr - 1])  # return the previous quarter
 
+
+def calendar_to_fiscal(calendar_year, fiscal_quarter):
+    """Decrement the calendar year if in Q1."""
+    return calendar_year - 1 if fiscal_quarter == 'Q1' else calendar_year
+
+
 def transform_to_months(quarter):
-    """Return a list of months in a quarter."""
+    """Return a list of months in a quarter depending the quarter's format."""
     match quarter:
         case "Q1":
             return ["Jan", "Feb", "Mar"]
@@ -291,3 +175,126 @@ def transform_to_months(quarter):
 def month_to_int(month):
     """Return the integer value of a month."""
     return datetime.strptime(month, '%b').strftime('%m')
+
+def year_month_to_year_quarter(year_month):
+    """Return the year and quarter from a year_month string."""
+    def get_quarter_from_month(month):
+        """Return the quarter from a month."""
+        if month in ["01", "02", "03"]:
+            return "Q1"
+        elif month in ["04", "05", "06"]:
+            return "Q2"
+        elif month in ["07", "08", "09"]:
+            return "Q3"
+        elif month in ["10", "11", "12"]:
+            return "Q4"
+        else:
+            return "Invalid month value."
+
+    year = year_month[:4]
+    month = year_month[4:]
+    quarter = get_quarter_from_month(month)
+    return year, quarter
+
+
+def get_years_apart(rpt_month_year_date, date):
+    """Return the number of years (double) between rpt_month_year_date and the target date - both `datetime`s."""
+    delta = rpt_month_year_date - date
+    age = delta.days/365.25
+    return age
+
+
+class SortedRecords:
+    """Maintains a dict sorted by hash_val and model type.
+
+    Note, hash_val = `hash(str(record.RPT_MONTH_YEAR) + record.CASE_NUMBER)` for section 1 and 2 files; but for section
+    3 and 4 files hash_val = `hash(line)`.
+    """
+
+    def __init__(self, section):
+        self.records_are_s1_or_s2 = section in {'A', 'C'}
+        self.hash_sorted_cases = dict()
+        self.cases = dict()
+        self.cases_already_removed = set()
+        self.serialized_cases = set()
+
+    def add_record(self, case_hash, record_doc_pair, line_num):
+        """Add a record_doc_pair to the sorted object if the case hasn't been removed already."""
+        record, document = record_doc_pair
+        rpt_month_year = str(getattr(record, 'RPT_MONTH_YEAR'))
+
+        if case_hash in self.cases_already_removed:
+            logger.info("Record's case has already been removed due to category four errors. Not adding record with "
+                        f"info: ({record.RecordType}, {getattr(record, 'CASE_NUMBER', None)}, {rpt_month_year})")
+            return
+
+        if case_hash is not None:
+            hashed_case = self.hash_sorted_cases.get(case_hash, {})
+            records = hashed_case.get(document, [])
+            records.append(record)
+
+            hashed_case[document] = records
+            self.hash_sorted_cases[case_hash] = hashed_case
+            # We treat the nested dictionary here as a set because dictionaries are sorted while sets aren't. If we
+            # don't have a sorted container we have test failures.
+            self.cases.setdefault(document, dict())[record] = None
+        else:
+            logger.error(f"Error: Case hash for record at line #{line_num} was None!")
+
+    def get_bulk_create_struct(self):
+        """Return dict of form {document: {record: None}} for bulk_create_records to consume."""
+        return self.cases
+
+    def clear(self, all_created):
+        """Reset sorted structs if all records were created."""
+        if all_created:
+            self.serialized_cases.update(set(self.hash_sorted_cases.keys()))
+            self.hash_sorted_cases = dict()
+
+            # We don't want to re-assign self.cases here because we lose the keys of the record/doc types we've already
+            # made. If we don't maintain that state we might not delete everything if we need to roll the records back
+            # at the end of, or during parsing.
+            for key in self.cases.keys():
+                self.cases[key] = {}
+
+    def remove_case_due_to_errors(self, should_remove, case_hash):
+        """Remove all records from memory given the hash."""
+        if should_remove:
+            if case_hash in self.cases_already_removed:
+                return True
+            if case_hash in self.hash_sorted_cases:
+                self.cases_already_removed.add(case_hash)
+                removed = self.hash_sorted_cases.pop(case_hash)
+
+                case_ids = list()
+                for records in removed.values():
+                    for record in records:
+                        case_ids.append((record.RecordType, getattr(record, 'CASE_NUMBER', None),
+                                        record.RPT_MONTH_YEAR))
+                        for record_set in self.cases.values():
+                            record_set.pop(record, None)
+                    logger.info("Case consistency errors generated, removing case from in memory cache. "
+                                f"Record(s) info: {case_ids}.")
+                return True and case_hash not in self.serialized_cases
+        return False
+
+def generate_t1_t4_hashes(line, record):
+    """Return hashes for duplicate and partial duplicate detection for T1 & T4 records."""
+    logger.debug(f"Partial Hash Field Values: {record.RecordType} {str(record.RPT_MONTH_YEAR)} {record.CASE_NUMBER}")
+    return hash(line), hash(record.RecordType + str(record.RPT_MONTH_YEAR or '') + str(record.CASE_NUMBER or ''))
+
+def generate_t2_t3_t5_hashes(line, record):
+    """Return hashes for duplicate and partial duplicate detection for T2 & T3 & T5 records."""
+    logger.debug(f"Partial Hash Field Values: {record.RecordType} {str(record.RPT_MONTH_YEAR)} {record.CASE_NUMBER} " +
+                 f"{str(record.FAMILY_AFFILIATION)} {record.DATE_OF_BIRTH} {record.SSN}")
+    return hash(line), hash(record.RecordType + str(record.RPT_MONTH_YEAR or '') + str(record.CASE_NUMBER or '') +
+                            str(record.FAMILY_AFFILIATION or '') + str(record.DATE_OF_BIRTH or '') +
+                            str(record.SSN or ''))
+
+def get_t1_t4_partial_hash_members():
+    """Return field names used to generate t1/t4 partial hashes."""
+    return ["RecordType", "RPT_MONTH_YEAR", "CASE_NUMBER"]
+
+def get_t2_t3_t5_partial_hash_members():
+    """Return field names used to generate t2/t3/t5 partial hashes."""
+    return ["RecordType", "RPT_MONTH_YEAR", "CASE_NUMBER", "FAMILY_AFFILIATION", "DATE_OF_BIRTH", "SSN"]

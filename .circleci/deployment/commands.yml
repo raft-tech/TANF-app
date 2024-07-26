@@ -79,6 +79,12 @@
       frontend-appname:
         default: tdp-frontend
         type: string
+      kibana-appname:
+        default: tdp-kibana
+        type: string
+      proxy-appname:
+        default: tdp-elastic-proxy
+        type: string
       cf-space:
         default: tanf-dev
         type: string
@@ -86,12 +92,24 @@
       - get-app-deploy-strategy:
           appname: <<parameters.backend-appname>>
       - run:
+          name: Install dependencies
+          command: |
+            sudo apt update
+            sudo apt-get install -y wget
+            sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.42.1/yq_linux_amd64 && chmod +x /usr/local/bin/yq
+      - run:
+          name: Apply database migrations
+          command: |
+            bash ./scripts/apply-remote-migrations.sh <<parameters.backend-appname>>
+      - run:
           name: Deploy backend application
           command: |
             bash ./scripts/deploy-backend.sh \
               $DEPLOY_STRATEGY \
               <<parameters.frontend-appname>> \
               <<parameters.backend-appname>> \
+              <<parameters.kibana-appname>> \
+              <<parameters.proxy-appname>> \
               <<parameters.cf-space>>
 
   deploy-clamav:
@@ -115,6 +133,9 @@
       frontend-appname:
         default: tdp-frontend
         type: string
+      kibana-appname:
+        default: tdp-kibana
+        type: string
 # So the frontend knows what space its in for the banner.
 # I am unclear if the domain is a reliable metric to make this function
 # It seems like it might not be working
@@ -136,6 +157,7 @@
               $DEPLOY_STRATEGY \
               <<parameters.frontend-appname>> \
               <<parameters.backend-appname>> \
+              <<parameters.kibana-appname>> \
               <<parameters.cf-space>> \
               <<parameters.environment>>
 
@@ -253,7 +275,7 @@
           cf-space: <<parameters.cf-space>>
       - run:
           name: Ensure s3 versioning key exists
-          # use cf to check if a service key exists for tdp-datafiles-dev(or prod) 
+          # use cf to check if a service key exists for tdp-datafiles-dev(or prod)
           # exit 0 if it does, create it if it doesn't
           command: |
             chmod +x ./scripts/create_s3_versioning_key.sh

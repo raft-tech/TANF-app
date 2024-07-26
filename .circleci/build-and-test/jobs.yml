@@ -1,4 +1,3 @@
-# jobs:
   test-backend:
     executor: machine-executor
     steps:
@@ -31,7 +30,7 @@
           command: cd tdrs-frontend; npm run lint
       - run:
           name: Run Pa11y Accessibility Tests
-          command: cd tdrs-frontend; mkdir pa11y-screenshots/; npm run test:accessibility
+          command: cd tdrs-frontend; mkdir pa11y-screenshots/; export NODE_OPTIONS=--openssl-legacy-provider; npm run test:accessibility
       - run:
           name: Run Jest Unit Tests
           command: cd tdrs-frontend; npm run test:ci
@@ -61,7 +60,7 @@
                wait-for-it --service http://web:8080 --timeout 180 -- echo \"Django is ready\""
       - run:
           name: apply the migrations
-          command: cd tdrs-backend; docker-compose exec web bash -c "python manage.py makemigrations; python manage.py migrate" 
+          command: cd tdrs-backend; docker-compose exec web bash -c "python manage.py makemigrations; python manage.py migrate"
       - run:
           name: Remove existing cypress test users
           command: cd tdrs-backend; docker-compose exec web python manage.py delete_cypress_users -usernames new-cypress@teamraft.com cypress-admin@teamraft.com

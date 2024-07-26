@@ -3,7 +3,7 @@ version: "3.4"
 
 services:
   zaproxy:
-    image: owasp/zap2docker-stable:2.13.0
+    image: softwaresecurityproject/zap-stable:2.14.0
     command: sleep 3600
     depends_on:
       - web
@@ -12,7 +12,7 @@ services:
       - ../scripts/zap-hook.py:/zap/scripts/zap-hook.py:ro
 
   postgres:
-    image: postgres:11.6
+    image: postgres:15.7
     environment:
       - PGDATA=/var/lib/postgresql/data/
       - POSTGRES_DB=tdrs_test
@@ -46,24 +46,23 @@ services:
       - ../scripts/localstack-setup.sh:/docker-entrypoint-initaws.d/localstack-setup.sh
 
   kibana:
-    image: elastic/kibana:7.17.10
+    image: docker.elastic.co/kibana/kibana-oss:7.10.2
     ports:
       - 5601:5601
     environment:
-      - xpack.security.encryptionKey="something_at_least_32_characters"
-      - xpack.security.session.idleTimeout="1h"
-      - xpack.security.session.lifespan="30d"
-    volumes:
-      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
+      - ELASTICSEARCH_HOSTS="http://elastic:9200"
+      - SERVER_HOST=kibana
+      - SERVER_BASEPATH=/kibana
+      - SERVER_SECURITYRESPONSEHEADERS_REFERRERPOLICY=no-referrer
+      - CSP_WARNLEGACYBROWSERS=false
     depends_on:
       - elastic
 
   elastic:
-    image: elasticsearch:7.17.6
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:7.10.2
     environment:
       - discovery.type=single-node
       - logger.discovery.level=debug
-      - xpack.security.enabled=false
     ports:
       - 9200:9200
       - 9300:9300
@@ -92,15 +91,24 @@ services:
       - AMS_CLIENT_ID
       - AMS_CLIENT_SECRET
       - AMS_CONFIGURATION_ENDPOINT
-      - ACFTITAN_HOST
-      - ACFTITAN_KEY
-      - ACFTITAN_USERNAME
       - REDIS_URI=redis://redis-server:6379
       - REDIS_SERVER_LOCAL=TRUE
-      - ACFTITAN_SFTP_PYTEST
       - CYPRESS_TOKEN
       - DJANGO_DEBUG
       - SENDGRID_API_KEY
+      - GENERATE_TRAILER_ERRORS=True
+      - BYPASS_KIBANA_AUTH
+      - ELASTICSEARCH_REINDEX_THREAD_COUNT
+      - ELASTICSEARCH_REINDEX_CHUNK_SIZE
+      - ELASTICSEARCH_REINDEX_REQUEST_TIMEOUT
+      - ELASTICSEARCH_LOG_SEARCH_SLOW_THRESHOLD_WARN
+      - ELASTICSEARCH_LOG_SEARCH_SLOW_THRESHOLD_INFO
+      - ELASTICSEARCH_LOG_SEARCH_SLOW_THRESHOLD_TRACE
+      - ELASTICSEARCH_LOG_SEARCH_SLOW_LEVEL
+      - ELASTICSEARCH_LOG_INDEX_SLOW_THRESHOLD_WARN
+      - ELASTICSEARCH_LOG_INDEX_SLOW_THRESHOLD_INFO
+      - ELASTICSEARCH_LOG_INDEX_SLOW_THRESHOLD_TRACE
+      - ELASTICSEARCH_LOG_INDEX_SLOW_LEVEL
     volumes:
       - .:/tdpapp
     image: tdp

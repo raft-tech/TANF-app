@@ -51,7 +51,13 @@ resource "cloudfoundry_service_instance" "database" {
   name             = "tdp-db-staging"
   space            = data.cloudfoundry_space.space.id
   service_plan     = data.cloudfoundry_service.rds.service_plans["micro-psql"]
+  json_params      = "{\"version\": \"15\"}"
   recursive_delete = true
+  timeouts {
+    create = "60m"
+    update = "60m"
+    delete = "2h"
+  }
 }
 
 ###
@@ -74,4 +80,14 @@ resource "cloudfoundry_service_instance" "datafiles" {
   space            = data.cloudfoundry_space.space.id
   service_plan     = data.cloudfoundry_service.s3.service_plans["basic-sandbox"]
   recursive_delete = true
+}
+
+data "cloudfoundry_service" "elasticsearch" {
+  name = "aws-elasticsearch"
+}
+
+resource "cloudfoundry_service_instance" "elasticsearch" {
+  name         = "es-staging"
+  space        = data.cloudfoundry_space.space.id
+  service_plan = data.cloudfoundry_service.elasticsearch.service_plans["es-dev"]
 }

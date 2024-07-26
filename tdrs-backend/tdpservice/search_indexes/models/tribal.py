@@ -14,6 +14,11 @@ class Tribal_TANF_T1(models.Model):
     Mapped to an elastic search index.
     """
 
+    class Meta:
+        """Meta class for the model."""
+
+        verbose_name = 'Tribal TANF T1'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     datafile = models.ForeignKey(
         DataFile,
@@ -83,6 +88,11 @@ class Tribal_TANF_T2(models.Model):
     Mapped to an elastic search index.
     """
 
+    class Meta:
+        """Meta class for the model."""
+
+        verbose_name = 'Tribal TANF T2'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     datafile = models.ForeignKey(
         DataFile,
@@ -99,7 +109,7 @@ class Tribal_TANF_T2(models.Model):
 
     FAMILY_AFFILIATION = models.IntegerField(null=True, blank=False)
     NONCUSTODIAL_PARENT = models.IntegerField(null=True, blank=False)
-    DATE_OF_BIRTH = models.IntegerField(null=True, blank=False)
+    DATE_OF_BIRTH = models.CharField(max_length=8, null=True, blank=False)
     SSN = models.CharField(max_length=9, null=True, blank=False)
     RACE_HISPANIC = models.IntegerField(null=True, blank=False)
     RACE_AMER_INDIAN = models.IntegerField(null=True, blank=False)
@@ -155,6 +165,11 @@ class Tribal_TANF_T3(models.Model):
     Mapped to an elastic search index.
     """
 
+    class Meta:
+        """Meta class for the model."""
+
+        verbose_name = 'Tribal TANF T3'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     datafile = models.ForeignKey(
         DataFile,
@@ -170,7 +185,7 @@ class Tribal_TANF_T3(models.Model):
     CASE_NUMBER = models.CharField(max_length=11, null=True, blank=False)
     FAMILY_AFFILIATION = models.IntegerField(null=True, blank=False)
 
-    DATE_OF_BIRTH = models.IntegerField(null=True, blank=False)
+    DATE_OF_BIRTH = models.CharField(max_length=8, null=True, blank=False)
     SSN = models.CharField(max_length=9, null=True, blank=False)
     RACE_HISPANIC = models.IntegerField(null=True, blank=False)
     RACE_AMER_INDIAN = models.IntegerField(null=True, blank=False)
@@ -194,6 +209,11 @@ class Tribal_TANF_T4(models.Model):
 
     Mapped to an elastic search index.
     """
+
+    class Meta:
+        """Meta class for the model."""
+
+        verbose_name = 'Tribal TANF T4'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     datafile = models.ForeignKey(
@@ -225,6 +245,11 @@ class Tribal_TANF_T5(models.Model):
 
     Mapped to an elastic search index.
     """
+
+    class Meta:
+        """Meta class for the model."""
+
+        verbose_name = 'Tribal TANF T5'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     datafile = models.ForeignKey(
@@ -274,6 +299,11 @@ class Tribal_TANF_T6(models.Model):
     Mapped to an elastic search index.
     """
 
+    class Meta:
+        """Meta class for the model."""
+
+        verbose_name = 'Tribal TANF T6'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     datafile = models.ForeignKey(
         DataFile,
@@ -309,6 +339,11 @@ class Tribal_TANF_T7(models.Model):
 
     Mapped to an elastic search index.
     """
+
+    class Meta:
+        """Meta class for the model."""
+
+        verbose_name = 'Tribal TANF T7'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     datafile = models.ForeignKey(

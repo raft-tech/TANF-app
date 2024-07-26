@@ -11,7 +11,6 @@ terraform {
   }
 
   backend "s3" {
-
     key     = "terraform.tfstate.dev"
     prefix  = var.cf_app_name
     encrypt = true
@@ -52,7 +51,13 @@ resource "cloudfoundry_service_instance" "database" {
   name             = "tdp-db-dev"
   space            = data.cloudfoundry_space.space.id
   service_plan     = data.cloudfoundry_service.rds.service_plans["micro-psql"]
+  json_params      = "{\"version\": \"15\"}"
   recursive_delete = true
+  timeouts {
+    create = "60m"
+    update = "60m"
+    delete = "2h"
+  }
 }
 
 ###
@@ -90,4 +95,18 @@ resource "cloudfoundry_service_instance" "redis" {
   name         = "tdp-redis-${each.value}"
   space        = data.cloudfoundry_space.space.id
   service_plan = data.cloudfoundry_service.redis.service_plans["redis-dev"]
+}
+
+###
+# Provision elasticsearch
+###
+
+data "cloudfoundry_service" "elasticsearch" {
+  name = "aws-elasticsearch"
+}
+
+resource "cloudfoundry_service_instance" "elasticsearch" {
+  name         = "es-dev"
+  space        = data.cloudfoundry_space.space.id
+  service_plan = data.cloudfoundry_service.elasticsearch.service_plans["es-dev"]
 }

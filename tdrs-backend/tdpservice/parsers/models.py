@@ -33,7 +33,7 @@ class ParserError(models.Model):
         related_name="parser_errors",
         null=True,
     )
-    row_number = models.IntegerField(null=False)
+    row_number = models.IntegerField(null=True)
     column_number = models.CharField(null=True, max_length=8)
     item_number = models.CharField(null=True, max_length=8)
     field_name = models.TextField(null=True, max_length=128)
@@ -90,6 +90,9 @@ class DataFileSummary(models.Model):
 
     case_aggregates = models.JSONField(null=True, blank=False)
 
+    total_number_of_records_in_file = models.IntegerField(null=True, blank=False, default=0)
+    total_number_of_records_created = models.IntegerField(null=True, blank=False, default=0)
+
     def get_status(self):
         """Set and return the status field based on errors and models associated with datafile."""
         errors = ParserError.objects.filter(file=self.datafile)
@@ -100,17 +103,19 @@ class DataFileSummary(models.Model):
                                 .exclude(error_message__icontains="trailer")\
                                 .exclude(error_message__icontains="Unknown Record_Type was found.")
 
+        case_consistency_errors = errors.filter(error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY)
+
         row_precheck_errors = errors.filter(error_type=ParserErrorCategoryChoices.PRE_CHECK)\
                                     .filter(field_name="Record_Type")\
                                     .exclude(error_message__icontains="trailer")
 
         if errors is None:
             return DataFileSummary.Status.PENDING
+        elif precheck_errors.count() > 0 or self.total_number_of_records_created == 0:
+            return DataFileSummary.Status.REJECTED
         elif errors.count() == 0:
             return DataFileSummary.Status.ACCEPTED
-        elif precheck_errors.count() > 0:
-            return DataFileSummary.Status.REJECTED
-        elif row_precheck_errors.count() > 0:
+        elif row_precheck_errors.count() > 0 or case_consistency_errors.count() > 0:
             return DataFileSummary.Status.PARTIALLY_ACCEPTED
         else:
             return DataFileSummary.Status.ACCEPTED_WITH_ERRORS

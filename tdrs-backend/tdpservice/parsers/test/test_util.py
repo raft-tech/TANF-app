@@ -1,28 +1,34 @@
 """Test the methods of RowSchema to ensure parsing and validation work in all individual cases."""
 
 import pytest
+from datetime import datetime
 from ..fields import Field
 from ..row_schema import RowSchema, SchemaManager
-from ..util import make_generate_parser_error, create_test_datafile
-
+from ..util import (
+    make_generate_parser_error,
+    create_test_datafile,
+    get_years_apart,
+    clean_options_string,
+    generate_t2_t3_t5_hashes)
+import logging
 
 def passing_validator():
     """Fake validator that always returns valid."""
-    return lambda _: (True, None)
+    return lambda _, __, ___, ____: (True, None)
 
 
 def failing_validator():
     """Fake validator that always returns invalid."""
-    return lambda _: (False, 'Value is not valid.')
+    return lambda _, __, ___, ____: (False, 'Value is not valid.')
 
 def passing_postparsing_validator():
     """Fake validator that always returns valid."""
-    return lambda _: (True, None, [])
+    return lambda _, __: (True, None, [])
 
 
 def failing_postparsing_validator():
     """Fake validator that always returns invalid."""
-    return lambda _: (False, 'Value is not valid.', [])
+    return lambda _, __: (False, 'Value is not valid.', [])
 
 def error_func(schema, error_category, error_message, record, field):
     """Fake error func that returns an error_message."""
@@ -296,8 +302,8 @@ def test_field_validators_blank_and_required_returns_error(first, second):
     is_valid, errors = schema.run_field_validators(instance, error_func)
     assert is_valid is False
     assert errors == [
-        'first is required but a value was not provided.',
-        'second is required but a value was not provided.'
+        'T1 Item 1 (first): field is required but a value was not provided.',
+        'T1 Item 2 (second): field is required but a value was not provided.'
     ]
 
 
@@ -487,7 +493,7 @@ def test_run_postparsing_validators_returns_frinedly_fieldnames(test_datafile_em
 
     def postparse_validator():
         """Fake validator that always returns valid."""
-        return lambda _: (False, "an Error", ["FIRST", "SECOND"])
+        return lambda _, __: (False, "an Error", ["FIRST", "SECOND"])
 
     instance = {}
     schema = RowSchema(
@@ -525,3 +531,48 @@ def test_run_postparsing_validators_returns_frinedly_fieldnames(test_datafile_em
     assert is_valid is False
     assert errors[0].fields_json == {'friendly_name': {'FIRST': 'first', 'SECOND': 'second'}}
     assert errors[0].error_message == "an Error"
+
+
+@pytest.mark.parametrize("rpt_date_str,date_str,expected", [
+    ('20200102', '20100101', 10),
+    ('20200102', '20100106', 9),
+    ('20200101', '20200102', 0),
+    ('20200101', '20210102', -1),
+])
+def test_get_years_apart(rpt_date_str, date_str, expected):
+    """Test the get_years_apart util function."""
+    rpt_date = datetime.strptime(rpt_date_str, '%Y%m%d')
+    date = datetime.strptime(date_str, '%Y%m%d')
+    assert int(get_years_apart(rpt_date, date)) == expected
+
+
+@pytest.mark.parametrize('options, expected', [
+    ([1, 2, 3, 4], '[1, 2, 3, 4]'),
+    (['1', '2', '3', '4'], '[1, 2, 3, 4]'),
+    (['a', 'b', 'c', 'd'], '[a, b, c, d]'),
+    (('a', 'b', 'c', 'd'), '[a, b, c, d]'),
+    (["'a'", "'b'", "'c'", "'d'"], "['a', 'b', 'c', 'd']"),
+    (['words', 'are very', 'weird'], '[words, are very, weird]'),
+])
+def test_clean_options_string(options, expected):
+    """Test `clean_options_string` util func."""
+    result = clean_options_string(options)
+    assert result == expected
+
+
+@pytest.mark.django_db()
+def test_empty_SSN_DOB_space_filled(caplog):
+    """Test empty_SSN_DOB_space_filled."""
+    line = 'fake_line'
+
+    class record:
+        CASE_NUMBER = 'fake_case_number'
+        SSN = None
+        DATE_OF_BIRTH = None
+        FAMILY_AFFILIATION = 'fake_family_affiliation'
+        RPT_MONTH_YEAR = '202310'
+        RecordType = 'T2'
+
+    with caplog.at_level(logging.ERROR):
+        generate_t2_t3_t5_hashes(line, record)
+    assert caplog.text == ''

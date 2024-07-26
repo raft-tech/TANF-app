@@ -53,6 +53,7 @@ class Common(Configuration):
         "storages",
         "django_elasticsearch_dsl",
         "django_elasticsearch_dsl_drf",
+        "more_admin_filters",
         # Local apps
         "tdpservice.core.apps.CoreConfig",
         "tdpservice.users",
@@ -271,6 +272,8 @@ class Common(Configuration):
     SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
     SESSION_COOKIE_HTTPONLY = True
     SESSION_TIMEOUT = 30
+    SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+    SESSION_COOKIE_AGE = 30 * 60  # 30 minutes
     # The CSRF token Cookie holds no security benefits when confined to HttpOnly.
     # Setting this to false to allow the frontend to include it in the header
     # of API POST calls to prevent false negative authorization errors.
@@ -295,7 +298,7 @@ class Common(Configuration):
         "DEFAULT_AUTHENTICATION_CLASSES": (
             "tdpservice.users.authentication.CustomAuthentication",
             "rest_framework.authentication.SessionAuthentication",
-            "rest_framework.authentication.TokenAuthentication",
+            "tdpservice.security.utils.ExpTokenAuthentication",
         ),
         "DEFAULT_FILTER_BACKENDS": [
             "django_filters.rest_framework.DjangoFilterBackend",
@@ -308,6 +311,8 @@ class Common(Configuration):
         "tdpservice.users.authentication.CustomAuthentication",
         "django.contrib.auth.backends.ModelBackend",
     )
+
+    TOKEN_EXPIRATION_HOURS = int(os.getenv("TOKEN_EXPIRATION_HOURS", 24))
 
     # CORS
     CORS_ALLOW_CREDENTIALS = True
@@ -340,10 +345,34 @@ class Common(Configuration):
     # The number of seconds to wait for socket response from clamav-rest
     AV_SCAN_TIMEOUT = int(os.getenv('AV_SCAN_TIMEOUT', 30))
 
+    # Elastic/Kibana
+    ELASTICSEARCH_DSL = {
+        'default': {
+            'hosts': os.getenv('ELASTIC_HOST', 'elastic:9200'),
+        },
+    }
+    ELASTICSEARCH_DSL_PARALLEL = True
+    ELASTICSEARCH_REINDEX_THREAD_COUNT = int(os.getenv('ELASTICSEARCH_REINDEX_THREAD_COUNT', 3))
+    ELASTICSEARCH_REINDEX_CHUNK_SIZE = int(os.getenv('ELASTICSEARCH_REINDEX_CHUNK_SIZE', 500))
+    ELASTICSEARCH_REINDEX_REQUEST_TIMEOUT = int(os.getenv('ELASTICSEARCH_REINDEX_REQUEST_TIMEOUT', 10))
+    ELASTICSEARCH_LOG_SEARCH_SLOW_THRESHOLD_WARN = os.getenv('ELASTICSEARCH_LOG_SEARCH_SLOW_THRESHOLD_WARN', '1s')
+    ELASTICSEARCH_LOG_SEARCH_SLOW_THRESHOLD_INFO = os.getenv('ELASTICSEARCH_LOG_SEARCH_SLOW_THRESHOLD_INFO', '500ms')
+    ELASTICSEARCH_LOG_SEARCH_SLOW_THRESHOLD_TRACE = os.getenv('ELASTICSEARCH_LOG_SEARCH_SLOW_THRESHOLD_TRACE', '0ms')
+    ELASTICSEARCH_LOG_SEARCH_SLOW_LEVEL = os.getenv('ELASTICSEARCH_LOG_SEARCH_SLOW_LEVEL', 'info')
+    ELASTICSEARCH_LOG_INDEX_SLOW_THRESHOLD_WARN = os.getenv('ELASTICSEARCH_LOG_INDEX_SLOW_THRESHOLD_WARN', '1s')
+    ELASTICSEARCH_LOG_INDEX_SLOW_THRESHOLD_INFO = os.getenv('ELASTICSEARCH_LOG_INDEX_SLOW_THRESHOLD_INFO', '500ms')
+    ELASTICSEARCH_LOG_INDEX_SLOW_THRESHOLD_TRACE = os.getenv('ELASTICSEARCH_LOG_INDEX_SLOW_THRESHOLD_TRACE', '0ms')
+    ELASTICSEARCH_LOG_INDEX_SLOW_LEVEL = os.getenv('ELASTICSEARCH_LOG_SEARCH_SLOW_LEVEL', 'info')
+    KIBANA_BASE_URL = os.getenv('KIBANA_BASE_URL', 'http://kibana:5601')
+    BYPASS_KIBANA_AUTH = os.getenv("BYPASS_KIBANA_AUTH", False)
+    ELASTIC_INDEX_PREFIX = APP_NAME + '_'
+    es_logger = logging.getLogger('elasticsearch')
+    es_logger.setLevel(logging.WARNING)
+
     s3_src = "s3-us-gov-west-1.amazonaws.com"
 
     CSP_DEFAULT_SRC = ("'none'")
-    CSP_SCRIPT_SRC = ("'self'", s3_src)
+    CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", s3_src, KIBANA_BASE_URL)
     CSP_IMG_SRC = ("'self'", "data:", s3_src)
     CSP_FONT_SRC = ("'self'", s3_src)
     CSP_CONNECT_SRC = ("'self'", "*.cloud.gov")
@@ -351,7 +380,7 @@ class Common(Configuration):
     CSP_OBJECT_SRC = ("'none'")
     CSP_FRAME_ANCESTORS = ("'none'")
     CSP_FORM_ACTION = ("'self'")
-    CSP_STYLE_SRC = ("'self'", s3_src, "'unsafe-inline'")
+    CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", s3_src, KIBANA_BASE_URL)
 
 
     ####################################
@@ -417,17 +446,6 @@ class Common(Configuration):
         ''
     )
 
-    # ------- SFTP CONFIG
-    ACFTITAN_SERVER_ADDRESS = os.getenv('ACFTITAN_HOST', '')
-    """
-    To be able to fit the PRIVATE KEY in one line as environment variable, we replace the EOL
-    with an underscore char.
-    The next line replaces the _ with EOL before using the PRIVATE KEY
-    """
-    ACFTITAN_LOCAL_KEY = os.getenv('ACFTITAN_KEY', '').replace('_', '\n')
-    ACFTITAN_USERNAME = os.getenv('ACFTITAN_USERNAME', '')
-    ACFTITAN_DIRECTORY = os.getenv('ACFTITAN_DIRECTORY', '')
-
     # -------- CELERY CONFIG
     REDIS_URI = os.getenv(
         'REDIS_URI',
@@ -443,7 +461,7 @@ class Common(Configuration):
     CELERY_TIMEZONE = 'UTC'
 
     CELERY_BEAT_SCHEDULE = {
-        'name': {
+        'Database Backup': {
             'task': 'tdpservice.scheduling.tasks.postgres_backup',
             'schedule': crontab(minute='0', hour='4'), # Runs at midnight EST
             'args': "-b",
@@ -451,8 +469,8 @@ class Common(Configuration):
                 'expires': 15.0,
             },
         },
-        'name': {
-            'task': 'tdpservice.scheduling.tasks.check_for_accounts_needing_deactivation_warning',
+        'Account Deactivation Warning': {
+            'task': 'tdpservice.email.tasks.check_for_accounts_needing_deactivation_warning',
             'schedule': crontab(day_of_week='*', hour='13', minute='0'), # Every day at 1pm UTC (9am EST)
 
             'options': {
@@ -460,16 +478,57 @@ class Common(Configuration):
             },
         },
         'Email Admin Number of Access Requests' : {
-            'task': 'tdpservice.scheduling.tasks.email_admin_num_access_requests',
+            'task': 'tdpservice.email.tasks.email_admin_num_access_requests',
             'schedule': crontab(minute='0', hour='1', day_of_week='*', day_of_month='*', month_of_year='*'), # Every day at 1am UTC (9pm EST)
-        }
-    }
-
-    # Elastic
-    ELASTICSEARCH_DSL = {
-        'default': {
-            'hosts': os.getenv('ELASTIC_HOST', 'elastic:9200'),
+        },
+        'Email Data Analyst Q1 Upcoming Submission Deadline Reminder': {
+            'task': 'tdpservice.email.tasks.send_data_submission_reminder',
+            # Feb 9 at 1pm UTC (9am EST)
+            'schedule': crontab(month_of_year='2', day_of_month='9', hour='13', minute='0'),
+            # 'schedule': crontab(minute='*/3'),
+            'kwargs': {
+                'due_date': 'February 14th',
+                'reporting_period': 'Oct - Dec',
+                'fiscal_quarter': 'Q1',
+            }
+        },
+        'Email Data Analyst Q2 Upcoming Submission Deadline Reminder': {
+            'task': 'tdpservice.email.tasks.send_data_submission_reminder',
+            # May 10 at 1pm UTC (9am EST)
+            'schedule': crontab(month_of_year='5', day_of_month='10', hour='13', minute='0'),
+            # 'schedule': crontab(minute='*/3'),
+            'kwargs': {
+                'due_date': 'May 15th',
+                'reporting_period': 'Jan - Mar',
+                'fiscal_quarter': 'Q2',
+            }
+        },
+        'Email Data Analyst Q3 Upcoming Submission Deadline Reminder': {
+            'task': 'tdpservice.email.tasks.send_data_submission_reminder',
+            # Aug 9 at 1pm UTC (9am EST)
+            'schedule': crontab(month_of_year='8', day_of_month='9', hour='13', minute='0'),
+            # 'schedule': crontab(minute='*/3'),
+            'kwargs': {
+                'due_date': 'August 14th',
+                'reporting_period': 'Apr - Jun',
+                'fiscal_quarter': 'Q3',
+            }
+        },
+        'Email Data Analyst Q4 Upcoming Submission Deadline Reminder': {
+            'task': 'tdpservice.email.tasks.send_data_submission_reminder',
+            # Nov 9 at 1pm UTC (9am EST)
+            'schedule': crontab(month_of_year='11', day_of_month='9', hour='13', minute='0'),
+            # 'schedule': crontab(minute='*/3'),
+            'kwargs': {
+                'due_date': 'November 14th',
+                'reporting_period': 'Jul - Sep',
+                'fiscal_quarter': 'Q4',
+            }
         },
     }
 
     CYPRESS_TOKEN = os.getenv('CYPRESS_TOKEN', None)
+
+    GENERATE_TRAILER_ERRORS = os.getenv("GENERATE_TRAILER_ERRORS", False)
+    IGNORE_DUPLICATE_ERROR_PRECEDENCE = os.getenv("IGNORE_DUPLICATE_ERROR_PRECEDENCE", False)
+    BULK_CREATE_BATCH_SIZE = os.getenv("BULK_CREATE_BATCH_SIZE", 10000)

@@ -1,16 +1,19 @@
 """Schema for HEADER row of all submission types."""
 
 
-from ...transforms import calendar_quarter_to_rpt_month_year
-from ...fields import Field, TransformField
-from ...row_schema import RowSchema, SchemaManager
-from ... import validators
+from tdpservice.parsers.transforms import calendar_quarter_to_rpt_month_year
+from tdpservice.parsers.fields import Field, TransformField
+from tdpservice.parsers.row_schema import RowSchema, SchemaManager
+from tdpservice.parsers import validators
 from tdpservice.search_indexes.documents.ssp import SSP_M6DataSubmissionDocument
 
 s1 = RowSchema(
+    record_type="M6",
     document=SSP_M6DataSubmissionDocument(),
     preparsing_validators=[
-        validators.hasLength(259),
+        validators.recordHasLength(259),
+        validators.field_year_month_with_header_year_quarter(),
+        validators.calendarQuarterIsValid(2, 7),
     ],
     postparsing_validators=[
         validators.sumIsEqual(
@@ -31,7 +34,7 @@ s1 = RowSchema(
         Field(
             item="0",
             name='RecordType',
-            friendly_name='record type',
+            friendly_name='Record Type',
             type='string',
             startIndex=0,
             endIndex=2,
@@ -41,13 +44,13 @@ s1 = RowSchema(
         Field(
             item="2",
             name='CALENDAR_QUARTER',
-            friendly_name='calendar quarter',
+            friendly_name='Calendar Quarter',
             type='number',
             startIndex=2,
             endIndex=7,
             required=True,
             validators=[
-                validators.dateYearIsLargerThan(1998),
+                validators.dateYearIsLargerThan(2020),
                 validators.quarterIsValid()
             ]
         ),
@@ -55,7 +58,7 @@ s1 = RowSchema(
             calendar_quarter_to_rpt_month_year(0),
             item="2B",
             name='RPT_MONTH_YEAR',
-            friendly_name='reporting month and year',
+            friendly_name='Reporting Year and Month',
             type='number',
             startIndex=2,
             endIndex=7,
@@ -68,7 +71,7 @@ s1 = RowSchema(
         Field(
             item="3A",
             name='SSPMOE_FAMILIES',
-            friendly_name='ssp/moe families',
+            friendly_name='SSP-MOE Families',
             type='number',
             startIndex=7,
             endIndex=15,
@@ -78,7 +81,7 @@ s1 = RowSchema(
         Field(
             item="4A",
             name='NUM_2_PARENTS',
-            friendly_name='number of two-parent families',
+            friendly_name='SSP-MOE Two-Parent Families',
             type='number',
             startIndex=31,
             endIndex=39,
@@ -88,7 +91,7 @@ s1 = RowSchema(
         Field(
             item="5A",
             name='NUM_1_PARENTS',
-            friendly_name='number of one-parent families',
+            friendly_name='SSP-MOE One-Parent Families',
             type='number',
             startIndex=55,
             endIndex=63,
@@ -98,7 +101,7 @@ s1 = RowSchema(
         Field(
             item="6A",
             name='NUM_NO_PARENTS',
-            friendly_name='number of no-parent families',
+            friendly_name='SSP-MOE No-Parent Families',
             type='number',
             startIndex=79,
             endIndex=87,
@@ -108,7 +111,7 @@ s1 = RowSchema(
         Field(
             item="7A",
             name='NUM_RECIPIENTS',
-            friendly_name='number of recipients',
+            friendly_name='SSP-MOE Recipient',
             type='number',
             startIndex=103,
             endIndex=111,
@@ -118,7 +121,7 @@ s1 = RowSchema(
         Field(
             item="8A",
             name='ADULT_RECIPIENTS',
-            friendly_name='number of adult recipients',
+            friendly_name='SSP-MOE Adult Recipients',
             type='number',
             startIndex=127,
             endIndex=135,
@@ -128,7 +131,7 @@ s1 = RowSchema(
         Field(
             item="9A",
             name='CHILD_RECIPIENTS',
-            friendly_name='number of child recipients',
+            friendly_name='SSP-MOE Child Recipients',
             type='number',
             startIndex=151,
             endIndex=159,
@@ -138,7 +141,7 @@ s1 = RowSchema(
         Field(
             item="10A",
             name='NONCUSTODIALS',
-            friendly_name='number of noncustodial parents',
+            friendly_name='Total Number of Noncustodial Parents Participating in Work Activities',
             type='number',
             startIndex=175,
             endIndex=183,
@@ -148,7 +151,7 @@ s1 = RowSchema(
         Field(
             item="11A",
             name='AMT_ASSISTANCE',
-            friendly_name='amount of assistance',
+            friendly_name='SSP-MOE Amount of Assistance',
             type='number',
             startIndex=199,
             endIndex=211,
@@ -158,7 +161,7 @@ s1 = RowSchema(
         Field(
             item="12A",
             name='CLOSED_CASES',
-            friendly_name='number of closed cases',
+            friendly_name='SSP-MOE Number of Closed Cases',
             type='number',
             startIndex=235,
             endIndex=243,
@@ -169,9 +172,13 @@ s1 = RowSchema(
 )
 
 s2 = RowSchema(
+    record_type="M6",
     document=SSP_M6DataSubmissionDocument(),
+    quiet_preparser_errors=True,
     preparsing_validators=[
-        validators.hasLength(259),
+        validators.recordHasLength(259),
+        validators.field_year_month_with_header_year_quarter(),
+        validators.calendarQuarterIsValid(2, 7),
     ],
     postparsing_validators=[
         validators.sumIsEqual(
@@ -192,7 +199,7 @@ s2 = RowSchema(
         Field(
             item="0",
             name='RecordType',
-            friendly_name='record type',
+            friendly_name='Record Type',
             type='string',
             startIndex=0,
             endIndex=2,
@@ -202,13 +209,13 @@ s2 = RowSchema(
         Field(
             item="2",
             name='CALENDAR_QUARTER',
-            friendly_name='calendar quarter',
+            friendly_name='Calendar Quarter',
             type='number',
             startIndex=2,
             endIndex=7,
             required=True,
             validators=[
-                validators.dateYearIsLargerThan(1998),
+                validators.dateYearIsLargerThan(2020),
                 validators.quarterIsValid()
             ]
         ),
@@ -216,7 +223,7 @@ s2 = RowSchema(
             calendar_quarter_to_rpt_month_year(1),
             item="2B",
             name='RPT_MONTH_YEAR',
-            friendly_name='reporting month and year',
+            friendly_name='Reporting Year and Month',
             type='number',
             startIndex=2,
             endIndex=7,
@@ -229,7 +236,7 @@ s2 = RowSchema(
         Field(
             item="3B",
             name='SSPMOE_FAMILIES',
-            friendly_name='ssp/moe families',
+            friendly_name='SSP-MOE Families',
             type='number',
             startIndex=15,
             endIndex=23,
@@ -239,7 +246,7 @@ s2 = RowSchema(
         Field(
             item="4B",
             name='NUM_2_PARENTS',
-            friendly_name='number of two-parent families',
+            friendly_name='SSP-MOE Two-Parent Families',
             type='number',
             startIndex=39,
             endIndex=47,
@@ -249,7 +256,7 @@ s2 = RowSchema(
         Field(
             item="5B",
             name='NUM_1_PARENTS',
-            friendly_name='number of one-parent families',
+            friendly_name='SSP-MOE One-Parent Families',
             type='number',
             startIndex=63,
             endIndex=71,
@@ -259,7 +266,7 @@ s2 = RowSchema(
         Field(
             item="6B",
             name='NUM_NO_PARENTS',
-            friendly_name='number of no-parent families',
+            friendly_name='SSP-MOE No-Parent Families',
             type='number',
             startIndex=87,
             endIndex=95,
@@ -269,7 +276,7 @@ s2 = RowSchema(
         Field(
             item="7B",
             name='NUM_RECIPIENTS',
-            friendly_name='number of recipients',
+            friendly_name='SSP-MOE Recipients',
             type='number',
             startIndex=111,
             endIndex=119,
@@ -279,7 +286,7 @@ s2 = RowSchema(
         Field(
             item="8B",
             name='ADULT_RECIPIENTS',
-            friendly_name='number of adult recipients',
+            friendly_name='SSP-MOE Adult Recipients',
             type='number',
             startIndex=135,
             endIndex=143,
@@ -289,7 +296,7 @@ s2 = RowSchema(
         Field(
             item="9B",
             name='CHILD_RECIPIENTS',
-            friendly_name='number of child recipients',
+            friendly_name='SSP-MOE Child Recipients',
             type='number',
             startIndex=159,
             endIndex=167,
@@ -299,7 +306,7 @@ s2 = RowSchema(
         Field(
             item="10B",
             name='NONCUSTODIALS',
-            friendly_name='number of noncustodial parents',
+            friendly_name='SSP-MOE Noncustodial Parents Participating in Work Activities',
             type='number',
             startIndex=183,
             endIndex=191,
@@ -309,7 +316,7 @@ s2 = RowSchema(
         Field(
             item="11B",
             name='AMT_ASSISTANCE',
-            friendly_name='amount of assistance',
+            friendly_name='SSP-MOE Amount of Assistance',
             type='number',
             startIndex=211,
             endIndex=223,
@@ -319,7 +326,7 @@ s2 = RowSchema(
         Field(
             item="12B",
             name='CLOSED_CASES',
-            friendly_name='number of closed cases',
+            friendly_name='SSP-MOE Number of Closed Cases',
             type='number',
             startIndex=243,
             endIndex=251,
@@ -330,9 +337,13 @@ s2 = RowSchema(
 )
 
 s3 = RowSchema(
+    record_type="M6",
     document=SSP_M6DataSubmissionDocument(),
+    quiet_preparser_errors=True,
     preparsing_validators=[
-        validators.hasLength(259),
+        validators.recordHasLength(259),
+        validators.field_year_month_with_header_year_quarter(),
+        validators.calendarQuarterIsValid(2, 7),
     ],
     postparsing_validators=[
         validators.sumIsEqual(
@@ -353,7 +364,7 @@ s3 = RowSchema(
         Field(
             item="0",
             name='RecordType',
-            friendly_name='record type',
+            friendly_name='Record Type',
             type='string',
             startIndex=0,
             endIndex=2,
@@ -363,13 +374,13 @@ s3 = RowSchema(
         Field(
             item="2",
             name='CALENDAR_QUARTER',
-            friendly_name='calendar quarter',
+            friendly_name='Calendar Quarter',
             type='number',
             startIndex=2,
             endIndex=7,
             required=True,
             validators=[
-                validators.dateYearIsLargerThan(1998),
+                validators.dateYearIsLargerThan(2020),
                 validators.quarterIsValid()
             ]
         ),
@@ -377,7 +388,7 @@ s3 = RowSchema(
             calendar_quarter_to_rpt_month_year(2),
             item="2B",
             name='RPT_MONTH_YEAR',
-            friendly_name='reporting month and year',
+            friendly_name='Reporting Year and Month',
             type='number',
             startIndex=2,
             endIndex=7,
@@ -390,7 +401,7 @@ s3 = RowSchema(
         Field(
             item="3C",
             name='SSPMOE_FAMILIES',
-            friendly_name='ssp/moe families',
+            friendly_name='SSP-MOE Families',
             type='number',
             startIndex=23,
             endIndex=31,
@@ -400,7 +411,7 @@ s3 = RowSchema(
         Field(
             item="4C",
             name='NUM_2_PARENTS',
-            friendly_name='number of two-parent families',
+            friendly_name='SSP-MOE Two-Parent Families',
             type='number',
             startIndex=47,
             endIndex=55,
@@ -410,7 +421,7 @@ s3 = RowSchema(
         Field(
             item="5C",
             name='NUM_1_PARENTS',
-            friendly_name='number of one-parent families',
+            friendly_name='SSP-MOE One-Parent Families',
             type='number',
             startIndex=71,
             endIndex=79,
@@ -420,7 +431,7 @@ s3 = RowSchema(
         Field(
             item="6C",
             name='NUM_NO_PARENTS',
-            friendly_name='number of no-parent families',
+            friendly_name='SSP-MOE No-Parent Families',
             type='number',
             startIndex=95,
             endIndex=103,
@@ -430,7 +441,7 @@ s3 = RowSchema(
         Field(
             item="7C",
             name='NUM_RECIPIENTS',
-            friendly_name='number of recipients',
+            friendly_name='SSP-MOE Recipients',
             type='number',
             startIndex=119,
             endIndex=127,
@@ -440,7 +451,7 @@ s3 = RowSchema(
         Field(
             item="8C",
             name='ADULT_RECIPIENTS',
-            friendly_name='number of adult recipients',
+            friendly_name='SSP-MOE Adult Recipients',
             type='number',
             startIndex=143,
             endIndex=151,
@@ -450,7 +461,7 @@ s3 = RowSchema(
         Field(
             item="9C",
             name='CHILD_RECIPIENTS',
-            friendly_name='number of child recipients',
+            friendly_name='SSP-MOE Child Recipients',
             type='number',
             startIndex=167,
             endIndex=175,
@@ -460,7 +471,7 @@ s3 = RowSchema(
         Field(
             item="10C",
             name='NONCUSTODIALS',
-            friendly_name='number of noncustodial parents',
+            friendly_name='SSP-MOE Noncustodial Parents Participating in Work Activities',
             type='number',
             startIndex=191,
             endIndex=199,
@@ -470,7 +481,7 @@ s3 = RowSchema(
         Field(
             item="11C",
             name='AMT_ASSISTANCE',
-            friendly_name='amount of assistance',
+            friendly_name='SSP-MOE Amount of Assistance',
             type='number',
             startIndex=223,
             endIndex=235,
@@ -480,7 +491,7 @@ s3 = RowSchema(
         Field(
             item="12C",
             name='CLOSED_CASES',
-            friendly_name='number of closed cases',
+            friendly_name='SSP-MOE Number of Closed Cases',
             type='number',
             startIndex=251,
             endIndex=259,

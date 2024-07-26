@@ -1,7 +1,7 @@
 version: "3.4"
 services:
   zaproxy:
-    image: owasp/zap2docker-stable:2.13.0
+    image: softwaresecurityproject/zap-stable:2.14.0
     container_name: zap-scan
     command: sleep 3600
     ports:
@@ -28,18 +28,19 @@ services:
       - NGINX_FRONTEND=tdp-frontend
       - BACK_END=web
       - LOCAL_DEV=true
+      - KIBANA=kibana
       - REACT_APP_DEVAUTH=${REACT_APP_DEVAUTH}
     command: >
       /bin/sh -c
       "echo 'starting nginx' &&
-        envsubst '$${BACK_END}' < /etc/nginx/locations.conf > /etc/nginx/locations_.conf &&
+        envsubst '$${BACK_END} $${KIBANA}' < /etc/nginx/locations.conf > /etc/nginx/locations_.conf &&
         rm /etc/nginx/locations.conf &&
         cp /etc/nginx/locations_.conf /etc/nginx/locations.conf &&
        envsubst '
-      $${BACK_END} $${NGINX_FRONTEND} $${LOCAL_DEV}
+      $${KIBANA} $${BACK_END} $${NGINX_FRONTEND} $${LOCAL_DEV}
       '< /etc/nginx/default.conf.template
-      > /etc/nginx/nginx.conf
-      && nginx -g 'daemon off;'"
+      > /etc/nginx/nginx.conf &&
+      nginx -g 'daemon off;'"
 
 networks:
   default:
