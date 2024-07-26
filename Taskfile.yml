@@ -119,6 +119,7 @@ tasks:
     desc: Run flake8 in the backend container
     dir: tdrs-backend
     cmds:
+      - task backend-up
       - docker-compose -f docker-compose.yml exec web sh -c "flake8 . && if [ $? -eq 0 ]; then echo 'Flake8 linter found no issues'; fi"
 
   backend-pip-lock:
