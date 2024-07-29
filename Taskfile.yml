@@ -39,6 +39,7 @@ tasks:
 
       # add bash
       - docker exec sentry sh -c "apk add bash"
+      - docker cp docker-compose.yml sentry:/self-hosted/docker-compose.yml
       - docker exec sentry bash -c "cd self-hosted && ./install.sh --skip-user-creation --no-report-self-hosted-issues"
       # create a new user
       - docker exec sentry bash -c "cd self-hosted && docker-compose run --rm web createuser --email admin@tanf.com --password admin --superuser"
