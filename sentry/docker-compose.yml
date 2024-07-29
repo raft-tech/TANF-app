@@ -1,6 +1,0 @@
-services:
-  sentry:
-    image: docker
-    privileged: true
-    container_name: sentry
-    command: sleep infinity
