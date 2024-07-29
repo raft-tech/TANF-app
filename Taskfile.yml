@@ -68,6 +68,12 @@ tasks:
       - task backend-up
       - docker-compose -f docker-compose.yml exec web sh -c "pytest {{.PYTEST_ARGS}}"
 
+  backend-remove-volumes:
+    desc: Remove the backend volumes
+    dir: tdrs-backend
+    cmds:
+      - docker-compose -f docker-compose.yml down -v
+
   backend-lint:
     desc: Run flake8 in the backend container
     dir: tdrs-backend
@@ -81,6 +87,14 @@ tasks:
     cmds:
       - docker-compose -f docker-compose.yml exec web sh -c "pipenv lock"
 
+  psql:
+    desc: Open a psql shell in the backend container
+    dir: tdrs-backend
+    cmds:
+      - task create-network || true
+      - docker-compose -f docker-compose.yml up -d postgres
+      - sleep 5
+      - docker-compose -f docker-compose.yml exec postgres sh -c "psql -U tdpuser -d tdrs_test"
 
   clean:
     desc: Remove all containers, networks, and volumes
