@@ -1,7 +1,7 @@
 """Define configuration settings for local environment."""
 import os
 import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.django import DjangoIntegration, LoggingIntegration
 import django
 
 from distutils.util import strtobool
@@ -64,6 +64,7 @@ class Local(Common):
                 ],
                 cache_spans=False,
             ),
+            LoggingIntegration(level=logging.DEBUG, event_level=logging.DEBUG)
         ],
         traces_sample_rate=1.0,
     )
