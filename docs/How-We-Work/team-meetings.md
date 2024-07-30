@@ -60,6 +60,23 @@ A typical sprint schedule is described in the table below.
 - **Facilitator:** Raft PM/Scrum Master
 - **When:** Every Tuesday on non-sprint planning weeks 11:00am-12:00pm EST / Every Tuesday on sprint planning weeks 3:00pm-4:00pm EST
 - **Format:** The product owner and raft product manager will collaborate with the leads to review the backlog and prioritize issues in support of the next release and make sure items are ready for the upcoming Sprint Planning session. By the end of the session, there will be a common understanding of the upcoming priorities and acceptance criteria of refined issues. The refined set of issues should be sent to the sprint board before Sprint Planning. If there are outstanding questions on a particular issue they will be noted within the unrefined issue and remain in the backlog. The agenda and notes can be found in the [Product Notebook](https://hhsgov.sharepoint.com/sites/TANFDataPortalOFA/_layouts/15/Doc.aspx?sourcedoc={cbce2e75-17b2-4e70-b422-60d034fcd4af}&action=edit&wd=target%28Product.one%7Ccfbcc7fb-4b00-4c43-9e29-70bdedd83b98%2FBacklog%20Refinement%7C4ef1b64b-327d-4628-823a-0d1fc5fce6ea%2F%29) within the TDP OneNote.
+- **Column Definitions**
+- New Issues to be Sorted: New issues/tickets that need to be introduced to the core team. Author has ticket 90% drafted and can either get to 100% with some input from the team during backlog or needs significant scoping work but author's portion is complete for the time being.
+- Unrefined: Scoping is still needed but author has ticket drafted for all the "known known's" (not WIP)
+      -   Author needs significant information / developments from other work will significantly influence this ticket
+      -   Ticket can be introduced
+      -   External factors outside of the author spending time building the ticket (ie need external team's input, see how a feature develops, etc.)
+      -   Ex. Waiting on X ticket to finish the scope of said unrefined ticket, problem found / unsure how big it is and knows other work will unearth it
+      -   If we know the ACs but not the tasks, then its unrefined 
+- Refined: Ticket is complete and is ready to be executed.
+- Refined & Ready to Go (Next Sprint)
+      -   "Earmarked" work for the upcoming sprint.
+- **Labelling:**
+-   WIP 
+      -   Author knows the 5 W's or darn near (90%) 
+      -   Drafted ticket – either still on the author the finish their part or a short team conversation is needed. 
+      -   Administrative in nature
+      -   Ex. Stub, ticket that doesn't feel there's enough to warrant an introduction 
  
  ### Sprint Review 
 - **Goal:** To review the work that was completed in the last two weeks and identify work that will roll over into the next sprint cycle. 
