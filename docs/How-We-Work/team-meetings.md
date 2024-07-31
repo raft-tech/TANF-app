@@ -63,7 +63,7 @@ A typical sprint schedule is described in the table below.
 - **Column Definitions**
 - New Issues to be Sorted: New issues/tickets that need to be introduced to the core team. Author has ticket 90% drafted and can either get to 100% with some input from the team during backlog or needs significant scoping work but author's portion is complete for the time being.
 - Unrefined: Scoping is still needed but author has ticket drafted for all the "known known's" (not WIP)
-      -   Author needs significant information / developments from other work will significantly influence this ticket
+   -   Author needs significant information / developments from other work will significantly influence this ticket
       -   Ticket can be introduced
       -   External factors outside of the author spending time building the ticket (ie need external team's input, see how a feature develops, etc.)
       -   Ex. Waiting on X ticket to finish the scope of said unrefined ticket, problem found / unsure how big it is and knows other work will unearth it
