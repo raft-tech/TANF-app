@@ -1,4 +1,4 @@
-# How to Contribute  
+# How to Contribute
 
 Thank you for taking the time to contribute! 
 
