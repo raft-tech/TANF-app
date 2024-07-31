@@ -35,11 +35,12 @@ tasks:
 
       # need sleep 10 for docker to start
       # there is a bug with other version of self-hosted. looks like they are trying to upgrade to Django 5.0 (July 2024)
-      - docker exec sentry sh -c "cd self-hosted && sleep 10 && git checkout tags/24.1.0"
+      - docker exec sentry sh -c "cd self-hosted && sleep 10 && git checkout tags/23.7.2"
 
       # add bash
       - docker exec sentry sh -c "apk add bash"
       - docker cp docker-compose.yml sentry:/self-hosted/docker-compose.yml
+      - docker cp .env sentry:/self-hosted/.env
       - docker exec sentry bash -c "cd self-hosted && ./install.sh --skip-user-creation --no-report-self-hosted-issues"
       # create a new user
       - docker exec sentry bash -c "cd self-hosted && docker-compose run --rm web createuser --email admin@tanf.com --password admin --superuser"
@@ -57,12 +58,11 @@ tasks:
     dir: sentry
     cmds:
       - git clone https://github.com/getsentry/self-hosted.git || true
-      - cd self-hosted && sleep 10 && git checkout tags/24.1.0
+      - cd self-hosted && sleep 10 && git checkout tags/21.6.3
       - cd self-hosted && ./install.sh --skip-user-creation --no-report-self-hosted-issues
       - cd self-hosted && docker-compose run --rm web createuser --email admin@tanf.com --password admin --superuser
-      - cp ./backup.json ./self-hosted/sentry/backup.json
       - cd self-hosted && docker-compose up -d
-      - docker cp ./self-hosted/sentry/backup.json sentry-self-hosted-web-1:/home/sentry/backup.json
+      - docker cp ./backup.json sentry-self-hosted-web-1:/home/sentry/backup.json
       - docker exec sentry-self-hosted-web-1 bash -c 'sentry import global /home/sentry/backup.json --no-prompt'
       - cd ./self-hosted && docker-compose up -d
 
@@ -164,10 +164,10 @@ tasks:
   clean:
     desc: Remove all containers, networks, and volumes
     cmds:
-      - docker stop $(docker ps -aq)
-      - docker rm $(docker ps -aq)
-      - docker rmi $(docker images -q)
-      - docker volume rm $(docker volume ls -q)
+      - docker stop $(docker ps -aq) || true
+      - docker rm $(docker ps -aq) || true
+      - docker rmi $(docker images -q) || true
+      - docker volume rm $(docker volume ls -q) || true
   
   clamav-up:
     desc: Start clamav service
