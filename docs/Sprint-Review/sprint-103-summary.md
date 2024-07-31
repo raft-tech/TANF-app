@@ -52,6 +52,7 @@ _**Support reviews, Django Admin Experience epic research, email template delive
 * [#3004 Implement (small) data lifecycle (backup/archive ES)](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3004)
 * [#2954 Extend SESSION\_COOKIE\_AGE](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/2954)
 * [#3016 Spike - Cat2 Validator Improvement](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3016)
+  * approved during sprint 103, but included in the sprint 102 release 
 
 ### Ready to Merge
 
