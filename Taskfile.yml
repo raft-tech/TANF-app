@@ -30,7 +30,7 @@ tasks:
     dir: sentry
     cmds:
       # limiting the memory to 2GB and CPU to only one cpu @0, for faster response, you can remove the limittask :  --cpuset-cpus 0 
-      - (docker run --privileged -p 9001:9000 -d --memory="8g" --memory-swap="20g" --name sentry docker:dind) || true
+      - (docker run --privileged -p 9001:9000 -d --memory="8g" --memory-swap="8g" --name sentry docker:dind) || true
       - docker exec sentry sh -c "git clone https://github.com/getsentry/self-hosted.git || true"
 
       # need sleep 10 for docker to start
@@ -49,22 +49,9 @@ tasks:
       # restore backup
       - docker exec sentry bash -c "cd self-hosted && docker-compose up -d"
       - docker exec sentry bash -c "docker cp /self-hosted/sentry/backup.json sentry-self-hosted-web-1:/home/sentry/backup.json"
-      - docker exec sentry bash -c "docker exec sentry-self-hosted-web-1 bash -c 'sentry import global /home/sentry/backup.json --no-prompt'"
-      # sentry import global /etc/sentry/backup.json --no-prompt
+      - docker exec sentry bash -c "docker exec sentry-self-hosted-web-1 bash -c 'sentry import /home/sentry/backup.json'"
+      - docker exec sentry bash -c "cd self-hosted && docker-compose down"
       - docker exec sentry bash -c "cd self-hosted && docker-compose up -d"
-
-  sentry-local:
-    desc: Start sentry service locally
-    dir: sentry
-    cmds:
-      - git clone https://github.com/getsentry/self-hosted.git || true
-      - cd self-hosted && sleep 10 && git checkout tags/21.6.3
-      - cd self-hosted && ./install.sh --skip-user-creation --no-report-self-hosted-issues
-      - cd self-hosted && docker-compose run --rm web createuser --email admin@tanf.com --password admin --superuser
-      - cd self-hosted && docker-compose up -d
-      - docker cp ./backup.json sentry-self-hosted-web-1:/home/sentry/backup.json
-      - docker exec sentry-self-hosted-web-1 bash -c 'sentry import global /home/sentry/backup.json --no-prompt'
-      - cd ./self-hosted && docker-compose up -d
 
 
   sentry-up:
