@@ -13,6 +13,7 @@ from django.db.models import Max
 from tdpservice.backends import DataFilesS3Storage
 from tdpservice.stts.models import STT
 from tdpservice.users.models import User
+from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +152,16 @@ class DataFile(FileRecord):
                                         blank=False,
                                         null=True
                                         )
+
+    # # Field indicating if this file has been re-parsed. Sort of transient as the file won't track how many times it has
+    # # been re-parsed since we use the same underlying file object and just reset this field during a re-parse.
+    reparse_meta = models.ForeignKey(ReparseMeta,
+                                     blank=True,
+                                     null=True,
+                                     help_text="Re-parse event this file is associated with.",
+                                     on_delete=models.DO_NOTHING,
+                                     related_name="reparse_meta"
+                                    )
 
     @property
     def prog_type(self):

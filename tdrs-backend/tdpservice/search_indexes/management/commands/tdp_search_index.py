@@ -13,6 +13,7 @@ from django.conf import settings
 from tdpservice.core.utils import log
 from django.contrib.admin.models import ADDITION
 from tdpservice.users.models import User
+from tdpservice.search_indexes.util import get_latest_meta_model
 
 
 class Command(search_index.Command):
@@ -28,11 +29,17 @@ class Command(search_index.Command):
                    }
         return context
 
+    def __get_index_suffix(self):
+        meta_model = get_latest_meta_model()
+        if meta_model.exists() and not meta_model.finished:
+            return f"_{meta_model.pk}"
+        fmt = "%Y-%m-%d_%H.%M.%S"
+        return f"_{datetime.now().strftime(fmt)}"
+
     def _create(self, models, aliases, options):
         log_context = self.__get_log_context()
         alias_index_pairs = []
-        fmt = "%Y-%m-%d_%H.%M.%S"
-        index_suffix = f"_{datetime.now().strftime(fmt)}"
+        index_suffix = self.__get_index_suffix()
 
         for index in registry.get_indices(models):
             new_index = index._name + index_suffix

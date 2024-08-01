@@ -7,7 +7,8 @@ from elasticsearch.exceptions import ElasticsearchException
 from tdpservice.data_files.models import DataFile
 from tdpservice.parsers.models import ParserError
 from tdpservice.scheduling import parser_task
-from tdpservice.search_indexes.documents import tanf, ssp, tribal
+from tdpservice.search_indexes.util import DOCUMENTS, count_all_records, get_latest_meta_model
+from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 from tdpservice.core.utils import log
 from django.contrib.admin.models import ADDITION
 from tdpservice.users.models import User
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 class Command(BaseCommand):
     """Command class."""
 
-    help = "Delete and re-parse a set of datafiles. All re-parsed data will be moved into a new set of Elastic indexes."
+    help = "Delete and re-parse a set of datafiles.."
 
     def add_arguments(self, parser):
         """Add arguments to the management command."""
@@ -156,8 +157,33 @@ class Command(BaseCommand):
                     level='critical')
                 raise e
 
+    def __count_total_num_records(self, log_context):
+        """Count total number of records in the database for meta object."""
+        try:
+            return count_all_records()
+        except DatabaseError as e:
+            log(f'Encountered a DatabaseError while counting records for meta model. The database '
+                'and Elastic are consistent! Cancelling re-parse to be safe.',
+                logger_context=log_context,
+                level='error')
+            exit(1)
+        except Exception as e:
+            log(f'Encountered generic exception while counting records for meta model. '
+                'The database and Elastic are consistent! Cancelling re-parse to be safe.',
+                logger_context=log_context,
+                level='error')
+            exit(1)
+
+    def __assert_sequential_execution(self):
+        """Assert that no other re-parse commands are still executing."""
+        latest_meta_model = get_latest_meta_model()
+        if latest_meta_model.exists() and not latest_meta_model.finished: ## TODO: we need to add a "timeout" check here. if the reparse has been running for X hours, assume it is done
+            print("A previous execution of the re-parse command is still running. Cannot execute in parallel, exiting.")
+            exit(1)
+
     def handle(self, *args, **options):
         """Delete and re-parse datafiles matching a query."""
+        self.__assert_sequential_execution()
         fiscal_year = options.get('fiscal_year', None)
         fiscal_quarter = options.get('fiscal_quarter', None)
         reparse_all = options.get('all', False)
@@ -203,7 +229,8 @@ class Command(BaseCommand):
         fmt_str = "be" if delete_indices else "NOT be"
         continue_msg += "will {old_index} deleted.".format(old_index=fmt_str)
 
-        fmt_str = f"ALL ({files.count()})" if reparse_all else f"({files.count()})"
+        num_files = files.count()
+        fmt_str = f"ALL ({num_files})" if reparse_all else f"({num_files})"
         continue_msg += "\nThese options will delete and re-parse {0} datafiles.".format(fmt_str)
 
         c = str(input(f'\n{continue_msg}\nContinue [y/n]? ')).lower()
@@ -223,43 +250,39 @@ class Command(BaseCommand):
             logger_context=log_context,
             level='info')
 
-        if files.count() == 0:
+        if num_files == 0:
             log(f"No files available for the selected Fiscal Year: {fiscal_year if fiscal_year else all_fy} and "
                 f"Quarter: {fiscal_quarter if fiscal_quarter else all_q}. Nothing to do.",
                 logger_context=log_context,
                 level='warn')
             return
 
+        meta_model = ReparseMeta.objects.create(fiscal_quarter=fiscal_quarter,
+                                                fiscal_year=fiscal_year,
+                                                all=reparse_all,
+                                                new_indices=new_indices,
+                                                delete_old_indices=delete_indices,
+                                                num_files_to_reparse=num_files)
+
         # Backup the Postgres DB
         pattern = "%Y-%m-%d_%H.%M.%S"
         backup_file_name += f"_{datetime.now().strftime(pattern)}.pg"
         self.__backup(backup_file_name, log_context)
+
+        meta_model.db_backup_location = backup_file_name
 
         # Create and delete Elastic indices if necessary
         self.__handle_elastic(new_indices, delete_indices, log_context)
 
         # Delete records from Postgres and Elastic if necessary
         file_ids = files.values_list('id', flat=True).distinct()
-        docs = [
-                tanf.TANF_T1DataSubmissionDocument, tanf.TANF_T2DataSubmissionDocument,
-                tanf.TANF_T3DataSubmissionDocument, tanf.TANF_T4DataSubmissionDocument,
-                tanf.TANF_T5DataSubmissionDocument, tanf.TANF_T6DataSubmissionDocument,
-                tanf.TANF_T7DataSubmissionDocument,
-
-                ssp.SSP_M1DataSubmissionDocument, ssp.SSP_M2DataSubmissionDocument, ssp.SSP_M3DataSubmissionDocument,
-                ssp.SSP_M4DataSubmissionDocument, ssp.SSP_M5DataSubmissionDocument, ssp.SSP_M6DataSubmissionDocument,
-                ssp.SSP_M7DataSubmissionDocument,
-
-                tribal.Tribal_TANF_T1DataSubmissionDocument, tribal.Tribal_TANF_T2DataSubmissionDocument,
-                tribal.Tribal_TANF_T3DataSubmissionDocument, tribal.Tribal_TANF_T4DataSubmissionDocument,
-                tribal.Tribal_TANF_T5DataSubmissionDocument, tribal.Tribal_TANF_T6DataSubmissionDocument,
-                tribal.Tribal_TANF_T7DataSubmissionDocument
-            ]
-        total_deleted = self.__delete_records(docs, file_ids, new_indices, log_context)
-        logger.info(f"Deleted a total of {total_deleted} records accross {files.count()} files.")
+        meta_model.total_num_records_initial = self.__count_total_num_records()
+        total_deleted = self.__delete_records(DOCUMENTS, file_ids, new_indices, log_context)
+        meta_model.num_records_deleted = total_deleted
+        logger.info(f"Deleted a total of {total_deleted} records accross {num_files} files.")
 
         # Delete and re-save datafiles to handle cascading dependencies
-        logger.info(f'Deleting and re-parsing {files.count()} files')
+        logger.info(f'Deleting and re-parsing {num_files} files')
         self.__handle_datafiles(files, log_context)
 
         log("Database cleansing complete and all files have been re-scheduling for parsing and validation.",
