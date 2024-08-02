@@ -177,7 +177,7 @@ class Command(BaseCommand):
     def __assert_sequential_execution(self):
         """Assert that no other reparse commands are still executing."""
         latest_meta_model = ReparseMeta.get_latest()
-        if latest_meta_model.exists() and not latest_meta_model.finished: ## TODO: we need to add a "timeout" check here. if the reparse has been running for X hours, assume it is done
+        if latest_meta_model is not None and not latest_meta_model.finished: ## TODO: we need to add a "timeout" check here. if the reparse has been running for X hours, assume it is done
             print("A previous execution of the reparse command is still running. Cannot execute in parallel, exiting.")
             exit(1)
 
@@ -276,10 +276,11 @@ class Command(BaseCommand):
 
         # Delete records from Postgres and Elastic if necessary
         file_ids = files.values_list('id', flat=True).distinct()
-        meta_model.total_num_records_initial = self.__count_total_num_records()
+        meta_model.total_num_records_initial = self.__count_total_num_records(log_context)
         total_deleted = self.__delete_records(DOCUMENTS, file_ids, new_indices, log_context)
         meta_model.num_records_deleted = total_deleted
         logger.info(f"Deleted a total of {total_deleted} records accross {num_files} files.")
+        meta_model.save()
 
         # Delete and re-save datafiles to handle cascading dependencies
         logger.info(f'Deleting and re-parsing {num_files} files')

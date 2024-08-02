@@ -54,7 +54,7 @@ class ReparseMeta(models.Model):
         referrence the same ReparseMeta object that is being queried below. `select_for_update` provides a DB lock on
         the object and forces other transactions on the object to wait until this one completes.
         """
-        if meta_model is not None and meta_model.exists():
+        if meta_model is not None:
             with transaction.commit_on_success():
                 try:
                     meta = ReparseMeta.objects.select_for_update().get(pk=meta_model.pk)
@@ -76,7 +76,7 @@ class ReparseMeta(models.Model):
         referrence the same ReparseMeta object that is being queried below. `select_for_update` provides a DB lock on
         the object and forces other transactions on the object to wait until this one completes.
         """
-        if meta_model is not None and meta_model.exists():
+        if meta_model is not None:
             with transaction.commit_on_success():
                 try:
                     meta = ReparseMeta.objects.select_for_update().get(pk=meta_model.pk)
@@ -95,7 +95,7 @@ class ReparseMeta(models.Model):
         referrence the same ReparseMeta object that is being queried below. `select_for_update` provides a DB lock on
         the object and forces other transactions on the object to wait until this one completes.
         """
-        if meta_model is not None and meta_model.exists():
+        if meta_model is not None:
             with transaction.commit_on_success():
                 try:
                     meta = ReparseMeta.objects.select_for_update().get(pk=meta_model.pk)
@@ -109,4 +109,7 @@ class ReparseMeta(models.Model):
     def get_latest():
       """Get the ReparseMeta model with the greatest pk."""
       max_pk = ReparseMeta.objects.all().aggregate(Max('pk'))
+      print(f"\n\nMax PK: {max_pk}\n\n")
+      if max_pk.get("pk__max", None) is None:
+          return None
       return ReparseMeta.objects.get(pk=max_pk["pk__max"])
