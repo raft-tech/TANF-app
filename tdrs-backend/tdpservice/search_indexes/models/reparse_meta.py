@@ -25,6 +25,7 @@ class ReparseMeta(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     finished = models.BooleanField(default=False)
+    success = models.BooleanField(default=False, help_text="All files completed parsing.")
 
     num_files_to_reparse = models.PositiveIntegerField(default=0)
     files_completed = models.PositiveIntegerField(default=0)
@@ -46,6 +47,33 @@ class ReparseMeta(models.Model):
     delete_old_indices = models.BooleanField(default=False)
 
     @staticmethod
+    def assert_all_files_done(meta_model):
+        """
+        Check if all files have been parsed with or without exceptions.
+
+        This function assumes the meta_model has been passed in a distributed/thread safe way. If the database row
+        containing this model has not been locked the caller will experience race issues.
+        """
+        if (meta_model.files_completed == meta_model.num_files_to_reparse or
+            meta_model.files_completed + meta_model.files_failed == meta_model.num_files_to_reparse or
+            meta_model.files_failed == meta_model.num_files_to_reparse or meta_model.finished):
+                return True
+        return False
+
+    @staticmethod
+    def set_reparse_finished(meta_model):
+        """
+        Set status/completion fields to appropriate values.
+
+        This function assumes the meta_model has been passed in a distributed/thread safe way. If the database row
+        containing this model has not been locked the caller will experience race issues.
+        """
+        meta_model.finished = True
+        meta_model.success = meta_model.files_completed == meta_model.num_files_to_reparse
+        meta_model.total_num_records_post = count_all_records()
+        meta_model.save()
+
+    @staticmethod
     def increment_files_completed(meta_model):
         """
         Increment the count of files that have completed parsing.
@@ -55,13 +83,12 @@ class ReparseMeta(models.Model):
         the object and forces other transactions on the object to wait until this one completes.
         """
         if meta_model is not None:
-            with transaction.commit_on_success():
+            with transaction.atomic():
                 try:
                     meta = ReparseMeta.objects.select_for_update().get(pk=meta_model.pk)
                     meta.files_completed += 1
-                    if meta.files_completed == meta.num_files_to_reparse:
-                        meta.finished = True
-                        meta.total_num_records_post = count_all_records()
+                    if ReparseMeta.assert_all_files_done(meta):
+                        ReparseMeta.set_reparse_finished(meta)
                     meta.save()
                 except DatabaseError:
                     logger.exception("Encountered exception while trying to update the `files_reparsed` field on the "
@@ -77,10 +104,12 @@ class ReparseMeta(models.Model):
         the object and forces other transactions on the object to wait until this one completes.
         """
         if meta_model is not None:
-            with transaction.commit_on_success():
+            with transaction.atomic():
                 try:
                     meta = ReparseMeta.objects.select_for_update().get(pk=meta_model.pk)
-                    meta.num_files_failed += 1
+                    meta.files_failed += 1
+                    if ReparseMeta.assert_all_files_done(meta):
+                        ReparseMeta.set_reparse_finished(meta)
                     meta.save()
                 except DatabaseError:
                     logger.exception("Encountered exception while trying to update the `files_failed` field on the "
@@ -96,7 +125,7 @@ class ReparseMeta(models.Model):
         the object and forces other transactions on the object to wait until this one completes.
         """
         if meta_model is not None:
-            with transaction.commit_on_success():
+            with transaction.atomic():
                 try:
                     meta = ReparseMeta.objects.select_for_update().get(pk=meta_model.pk)
                     meta.num_records_created += num_created

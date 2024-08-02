@@ -134,12 +134,13 @@ class Command(BaseCommand):
                 level='critical')
             raise e
 
-    def __handle_datafiles(self, files, log_context):
+    def __handle_datafiles(self, files, meta_model, log_context):
         """Delete, re-save, and reparse selected datafiles."""
         for file in files:
             try:
                 logger.info(f"Deleting file with PK: {file.pk}")
                 file.delete()
+                file.reparse_meta = meta_model
                 file.save()
                 logger.info(f"New file PK: {file.pk}")
                 # latest version only? -> possible new ticket
@@ -174,11 +175,13 @@ class Command(BaseCommand):
                 level='error')
             exit(1)
 
-    def __assert_sequential_execution(self):
+    def __assert_sequential_execution(self, log_context):
         """Assert that no other reparse commands are still executing."""
         latest_meta_model = ReparseMeta.get_latest()
-        if latest_meta_model is not None and not latest_meta_model.finished: ## TODO: we need to add a "timeout" check here. if the reparse has been running for X hours, assume it is done
-            print("A previous execution of the reparse command is still running. Cannot execute in parallel, exiting.")
+        if latest_meta_model is not None and not ReparseMeta.assert_all_files_done(latest_meta_model): ## TODO: we need to add a "timeout" check here. if the reparse has been running for X hours, assume it is done
+            log(f'A previous execution of the reparse command is RUNNING. Cannot execute in parallel, exiting.',
+                logger_context=log_context,
+                level='warn')
             exit(1)
 
     def handle(self, *args, **options):
@@ -256,7 +259,7 @@ class Command(BaseCommand):
                 level='warn')
             return
 
-        self.__assert_sequential_execution()
+        self.__assert_sequential_execution(log_context)
         meta_model = ReparseMeta.objects.create(fiscal_quarter=fiscal_quarter,
                                                 fiscal_year=fiscal_year,
                                                 all=reparse_all,
@@ -265,8 +268,7 @@ class Command(BaseCommand):
                                                 num_files_to_reparse=num_files)
 
         # Backup the Postgres DB
-        pattern = "%Y-%m-%d_%H.%M.%S"
-        backup_file_name += f"_{datetime.now().strftime(pattern)}.pg"
+        backup_file_name += f"_rpv{meta_model.pk}.pg"
         self.__backup(backup_file_name, log_context)
 
         meta_model.db_backup_location = backup_file_name
@@ -284,7 +286,7 @@ class Command(BaseCommand):
 
         # Delete and re-save datafiles to handle cascading dependencies
         logger.info(f'Deleting and re-parsing {num_files} files')
-        self.__handle_datafiles(files, log_context)
+        self.__handle_datafiles(files, meta_model, log_context)
 
         log("Database cleansing complete and all files have been re-scheduling for parsing and validation.",
             logger_context=log_context,

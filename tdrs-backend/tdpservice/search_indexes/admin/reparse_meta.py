@@ -7,10 +7,12 @@ class ReparseMetaAdmin(ReadOnlyAdminMixin):
 
     list_display = [
         'created_at',
+        'success',
         'finished',
         'db_backup_location',
     ]
 
     list_filter = [
+        'success',
         'finished'
     ]
