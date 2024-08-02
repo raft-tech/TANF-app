@@ -1,4 +1,4 @@
-"""Meta data model for tracking re-parsed files."""
+"""Meta data model for tracking reparsed files."""
 
 from django.db import models, transaction
 from django.db.utils import DatabaseError
@@ -20,7 +20,7 @@ class ReparseMeta(models.Model):
     class Meta:
         """Meta class for the model."""
 
-        verbose_name = "Re-parse Meta"
+        verbose_name = "Reparse Meta Model"
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -38,7 +38,7 @@ class ReparseMeta(models.Model):
 
     db_backup_location = models.CharField(max_length=512)
 
-    # Options used to select the files to re-parse
+    # Options used to select the files to reparse
     fiscal_quarter = models.CharField(max_length=2, null=True)
     fiscal_year = models.PositiveIntegerField(null=True)
     all = models.BooleanField(default=False)
@@ -70,7 +70,7 @@ class ReparseMeta(models.Model):
     @staticmethod
     def increment_files_failed(meta_model):
         """
-        Increment the count of files parsed the datafile's re-parse meta model.
+        Increment the count of files parsed the datafile's reparse meta model.
 
         Because this function can be called in parallel we use `select_for_update` because multiple parse tasks can
         referrence the same ReparseMeta object that is being queried below. `select_for_update` provides a DB lock on
@@ -89,7 +89,7 @@ class ReparseMeta(models.Model):
     @staticmethod
     def increment_records_created(meta_model, num_created):
         """
-        Increment the count of files parsed the datafile's re-parse meta model.
+        Increment the count of files parsed the datafile's reparse meta model.
 
         Because this function can be called in parallel we use `select_for_update` because multiple parse tasks can
         referrence the same ReparseMeta object that is being queried below. `select_for_update` provides a DB lock on

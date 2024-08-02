@@ -1,4 +1,4 @@
-"""Delete and re-parse a set of datafiles."""
+"""Delete and reparse a set of datafiles."""
 
 from django.core.management.base import BaseCommand
 from django.core.management import call_command
@@ -21,16 +21,16 @@ logger = logging.getLogger(__name__)
 class Command(BaseCommand):
     """Command class."""
 
-    help = "Delete and re-parse a set of datafiles.."
+    help = "Delete and reparse a set of datafiles.."
 
     def add_arguments(self, parser):
         """Add arguments to the management command."""
         parser.add_argument("-q", "--fiscal_quarter", type=str, choices=["Q1", "Q2", "Q3", "Q4"],
-                            help="Re-parse all files in the fiscal quarter, e.g. Q1.")
-        parser.add_argument("-y", "--fiscal_year", type=int, help="Re-parse all files in the fiscal year, e.g. 2021.")
-        parser.add_argument("-a", "--all", action='store_true', help="Clean and re-parse all datafiles. If selected, "
+                            help="Reparse all files in the fiscal quarter, e.g. Q1.")
+        parser.add_argument("-y", "--fiscal_year", type=int, help="Reparse all files in the fiscal year, e.g. 2021.")
+        parser.add_argument("-a", "--all", action='store_true', help="Clean and reparse all datafiles. If selected, "
                             "fiscal_year/quarter aren't necessary.")
-        parser.add_argument("-n", "--new_indices", action='store_true', help="Move re-parsed data to new Elastic "
+        parser.add_argument("-n", "--new_indices", action='store_true', help="Move reparsed data to new Elastic "
                             "indices.")
         parser.add_argument("-d", "--delete_indices", action='store_true', help="Requires new_indices. Delete the "
                             "current Elastic indices.")
@@ -39,22 +39,22 @@ class Command(BaseCommand):
         """Return logger context."""
         context = {'user_id': system_user.id,
                    'action_flag': ADDITION,
-                   'object_repr': "Clean and Re-parse"
+                   'object_repr': "Clean and Reparse"
                    }
         return context
 
     def __backup(self, backup_file_name, log_context):
         """Execute Postgres DB backup."""
         try:
-            logger.info("Beginning re-parse DB Backup.")
+            logger.info("Beginning reparse DB Backup.")
             call_command('backup_db', '-b', '-f', f'{backup_file_name}')
-            logger.info("Backup complete! Commencing clean and re-parse.")
+            logger.info("Backup complete! Commencing clean and reparse.")
 
             log("Database backup complete.",
                 logger_context=log_context,
                 level='info')
         except Exception as e:
-            log("Database backup FAILED. Clean and re-parse NOT executed. Database and Elastic are CONSISTENT!",
+            log("Database backup FAILED. Clean and reparse NOT executed. Database and Elastic are CONSISTENT!",
                 logger_context=log_context,
                 level='error')
             raise e
@@ -71,13 +71,13 @@ class Command(BaseCommand):
                     logger_context=log_context,
                     level='info')
             except ElasticsearchException as e:
-                log("Elastic index creation FAILED. Clean and re-parse NOT executed. "
+                log("Elastic index creation FAILED. Clean and reparse NOT executed. "
                     "Database is CONSISTENT, Elastic is INCONSISTENT!",
                     logger_context=log_context,
                     level='error')
                 raise e
             except Exception as e:
-                log("Caught generic exception in __handle_elastic. Clean and re-parse NOT executed. "
+                log("Caught generic exception in __handle_elastic. Clean and reparse NOT executed. "
                     "Database is CONSISTENT, Elastic is INCONSISTENT!",
                     logger_context=log_context,
                     level='error')
@@ -135,7 +135,7 @@ class Command(BaseCommand):
             raise e
 
     def __handle_datafiles(self, files, log_context):
-        """Delete, re-save, and re-parse selected datafiles."""
+        """Delete, re-save, and reparse selected datafiles."""
         for file in files:
             try:
                 logger.info(f"Deleting file with PK: {file.pk}")
@@ -163,26 +163,26 @@ class Command(BaseCommand):
             return count_all_records()
         except DatabaseError as e:
             log(f'Encountered a DatabaseError while counting records for meta model. The database '
-                'and Elastic are consistent! Cancelling re-parse to be safe.',
+                'and Elastic are consistent! Cancelling reparse to be safe.',
                 logger_context=log_context,
                 level='error')
             exit(1)
         except Exception as e:
             log(f'Encountered generic exception while counting records for meta model. '
-                'The database and Elastic are consistent! Cancelling re-parse to be safe.',
+                'The database and Elastic are consistent! Cancelling reparse to be safe.',
                 logger_context=log_context,
                 level='error')
             exit(1)
 
     def __assert_sequential_execution(self):
-        """Assert that no other re-parse commands are still executing."""
+        """Assert that no other reparse commands are still executing."""
         latest_meta_model = ReparseMeta.get_latest()
         if latest_meta_model.exists() and not latest_meta_model.finished: ## TODO: we need to add a "timeout" check here. if the reparse has been running for X hours, assume it is done
-            print("A previous execution of the re-parse command is still running. Cannot execute in parallel, exiting.")
+            print("A previous execution of the reparse command is still running. Cannot execute in parallel, exiting.")
             exit(1)
 
     def handle(self, *args, **options):
-        """Delete and re-parse datafiles matching a query."""
+        """Delete and reparse datafiles matching a query."""
         fiscal_year = options.get('fiscal_year', None)
         fiscal_quarter = options.get('fiscal_quarter', None)
         reparse_all = options.get('all', False)
@@ -198,7 +198,7 @@ class Command(BaseCommand):
 
         backup_file_name = "/tmp/reparsing_backup"
         files = DataFile.objects.all()
-        continue_msg = "You have selected to re-parse datafiles for FY {fy} and {q}. The re-parsed files "
+        continue_msg = "You have selected to reparse datafiles for FY {fy} and {q}. The reparsed files "
         if reparse_all:
             backup_file_name += "_FY_All_Q1-4"
             continue_msg = continue_msg.format(fy="All", q="Q1-4")
@@ -230,7 +230,7 @@ class Command(BaseCommand):
 
         num_files = files.count()
         fmt_str = f"ALL ({num_files})" if reparse_all else f"({num_files})"
-        continue_msg += "\nThese options will delete and re-parse {0} datafiles.".format(fmt_str)
+        continue_msg += "\nThese options will delete and reparse {0} datafiles.".format(fmt_str)
 
         c = str(input(f'\n{continue_msg}\nContinue [y/n]? ')).lower()
         if c not in ['y', 'yes']:
@@ -244,7 +244,7 @@ class Command(BaseCommand):
 
         all_fy = "All"
         all_q = "Q1-4"
-        log(f"Starting clean and re-parse command for FY {fiscal_year if fiscal_year else all_fy} and "
+        log(f"Starting clean and reparse command for FY {fiscal_year if fiscal_year else all_fy} and "
             f"{fiscal_quarter if fiscal_quarter else all_q}",
             logger_context=log_context,
             level='info')
@@ -288,7 +288,7 @@ class Command(BaseCommand):
         log("Database cleansing complete and all files have been re-scheduling for parsing and validation.",
             logger_context=log_context,
             level='info')
-        log(f"Clean and re-parse command completed. All files for FY {fiscal_year if fiscal_year else all_fy} and "
+        log(f"Clean and reparse command completed. All files for FY {fiscal_year if fiscal_year else all_fy} and "
             f"{fiscal_quarter if fiscal_quarter else all_q} have been queued for parsing.",
             logger_context=log_context,
             level='info')

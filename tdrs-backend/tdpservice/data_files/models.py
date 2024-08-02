@@ -152,12 +152,12 @@ class DataFile(FileRecord):
                                         null=True
                                         )
 
-    # # Field indicating if this file has been re-parsed. Sort of transient as the file won't track how many times it has
-    # # been re-parsed since we use the same underlying file object and just reset this field during a re-parse.
+    # # Field indicating if this file has been reparsed. Sort of transient as the file won't track how many times it has
+    # # been reparsed since we use the same underlying file object and just reset this field during a reparse.
     reparse_meta = models.ForeignKey("search_indexes.ReparseMeta",
                                      blank=True,
                                      null=True,
-                                     help_text="Re-parse event this file is associated with.",
+                                     help_text="Reparse event this file is associated with.",
                                      on_delete=models.DO_NOTHING,
                                      related_name="reparse_meta"
                                     )
