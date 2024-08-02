@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
                 ('delete_old_indices', models.BooleanField(default=False)),
             ],
             options={
-                'verbose_name': 'Re-parse Meta',
+                'verbose_name': 'Reparse Meta Model',
             },
         ),
     ]

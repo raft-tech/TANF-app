@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='datafile',
             name='reparse_meta',
-            field=models.ForeignKey(blank=True, help_text='Re-parse event this file is associated with.', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='reparse_meta', to='search_indexes.reparsemeta'),
+            field=models.ForeignKey(blank=True, help_text='Reparse event this file is associated with.', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='reparse_meta', to='search_indexes.reparsemeta'),
         ),
     ]
