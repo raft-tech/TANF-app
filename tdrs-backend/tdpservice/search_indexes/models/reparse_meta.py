@@ -46,7 +46,7 @@ class ReparseMeta(models.Model):
     delete_old_indices = models.BooleanField(default=False)
 
     @staticmethod
-    def increment_files_completed(reparse_meta_id):
+    def increment_files_completed(meta_model):
         """
         Increment the count of files that have completed parsing.
 
@@ -54,10 +54,10 @@ class ReparseMeta(models.Model):
         referrence the same ReparseMeta object that is being queried below. `select_for_update` provides a DB lock on
         the object and forces other transactions on the object to wait until this one completes.
         """
-        if reparse_meta_id is not None:
+        if meta_model is not None and meta_model.exists():
             with transaction.commit_on_success():
                 try:
-                    meta = ReparseMeta.objects.select_for_update().get(pk=reparse_meta_id)
+                    meta = ReparseMeta.objects.select_for_update().get(pk=meta_model.pk)
                     meta.files_completed += 1
                     if meta.files_completed == meta.num_files_to_reparse:
                         meta.finished = True
@@ -65,10 +65,10 @@ class ReparseMeta(models.Model):
                     meta.save()
                 except DatabaseError:
                     logger.exception("Encountered exception while trying to update the `files_reparsed` field on the "
-                                     f"ReparseMeta object with ID: {reparse_meta_id}.")
+                                     f"ReparseMeta object with ID: {meta_model.pk}.")
 
     @staticmethod
-    def increment_files_failed(reparse_meta_id):
+    def increment_files_failed(meta_model):
         """
         Increment the count of files parsed the datafile's re-parse meta model.
 
@@ -76,18 +76,18 @@ class ReparseMeta(models.Model):
         referrence the same ReparseMeta object that is being queried below. `select_for_update` provides a DB lock on
         the object and forces other transactions on the object to wait until this one completes.
         """
-        if reparse_meta_id is not None:
+        if meta_model is not None and meta_model.exists():
             with transaction.commit_on_success():
                 try:
-                    meta = ReparseMeta.objects.select_for_update().get(pk=reparse_meta_id)
+                    meta = ReparseMeta.objects.select_for_update().get(pk=meta_model.pk)
                     meta.num_files_failed += 1
                     meta.save()
                 except DatabaseError:
                     logger.exception("Encountered exception while trying to update the `files_failed` field on the "
-                                     f"ReparseMeta object with ID: {reparse_meta_id}.")
+                                     f"ReparseMeta object with ID: {meta_model.pk}.")
 
     @staticmethod
-    def increment_records_created(reparse_meta_id, num_created):
+    def increment_records_created(meta_model, num_created):
         """
         Increment the count of files parsed the datafile's re-parse meta model.
 
@@ -95,15 +95,15 @@ class ReparseMeta(models.Model):
         referrence the same ReparseMeta object that is being queried below. `select_for_update` provides a DB lock on
         the object and forces other transactions on the object to wait until this one completes.
         """
-        if reparse_meta_id is not None:
+        if meta_model is not None and meta_model.exists():
             with transaction.commit_on_success():
                 try:
-                    meta = ReparseMeta.objects.select_for_update().get(pk=reparse_meta_id)
+                    meta = ReparseMeta.objects.select_for_update().get(pk=meta_model.pk)
                     meta.num_records_created += num_created
                     meta.save()
                 except DatabaseError:
                     logger.exception("Encountered exception while trying to update the `files_failed` field on the "
-                                     f"ReparseMeta object with ID: {reparse_meta_id}.")
+                                     f"ReparseMeta object with ID: {meta_model.pk}.")
 
     @staticmethod
     def get_latest():

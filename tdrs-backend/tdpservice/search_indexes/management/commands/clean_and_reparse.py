@@ -183,7 +183,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         """Delete and re-parse datafiles matching a query."""
-        self.__assert_sequential_execution()
         fiscal_year = options.get('fiscal_year', None)
         fiscal_quarter = options.get('fiscal_quarter', None)
         reparse_all = options.get('all', False)
@@ -257,6 +256,7 @@ class Command(BaseCommand):
                 level='warn')
             return
 
+        self.__assert_sequential_execution()
         meta_model = ReparseMeta.objects.create(fiscal_quarter=fiscal_quarter,
                                                 fiscal_year=fiscal_year,
                                                 all=reparse_all,

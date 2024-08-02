@@ -467,8 +467,8 @@ def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted, cas
                  f"validated {case_consistency_validator.total_cases_validated} of them.")
     dfs.save()
 
-    ReparseMeta.increment_files_completed(datafile.reparse_meta.pk)
-    ReparseMeta.increment_records_created(datafile.reparse_meta.pk, dfs.total_number_of_records_created)
+    ReparseMeta.increment_files_completed(datafile.reparse_meta)
+    ReparseMeta.increment_records_created(datafile.reparse_meta, dfs.total_number_of_records_created)
 
     return errors
 
