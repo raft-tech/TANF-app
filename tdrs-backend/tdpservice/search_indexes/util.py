@@ -1,6 +1,4 @@
 from tdpservice.search_indexes.documents import tanf, ssp, tribal
-from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
-from django.db.models import Max
 
 DOCUMENTS = [
       tanf.TANF_T1DataSubmissionDocument, tanf.TANF_T2DataSubmissionDocument,
@@ -26,7 +24,3 @@ def count_all_records():
             total_num_records += model.objects.all().count()
         return total_num_records
 
-def get_latest_meta_model():
-      """Get the ReparseMeta model with the greatest pk."""
-      max_pk = ReparseMeta.objects.all().aggregate(Max('pk'))
-      return ReparseMeta.objects.get(pk=max_pk["pk__max"])

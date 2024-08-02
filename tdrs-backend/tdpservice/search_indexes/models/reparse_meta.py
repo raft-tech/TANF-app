@@ -2,6 +2,7 @@
 
 from django.db import models, transaction
 from django.db.utils import DatabaseError
+from django.db.models import Max
 from tdpservice.search_indexes.util import count_all_records
 import logging
 
@@ -103,3 +104,9 @@ class ReparseMeta(models.Model):
                 except DatabaseError:
                     logger.exception("Encountered exception while trying to update the `files_failed` field on the "
                                      f"ReparseMeta object with ID: {reparse_meta_id}.")
+
+    @staticmethod
+    def get_latest():
+      """Get the ReparseMeta model with the greatest pk."""
+      max_pk = ReparseMeta.objects.all().aggregate(Max('pk'))
+      return ReparseMeta.objects.get(pk=max_pk["pk__max"])

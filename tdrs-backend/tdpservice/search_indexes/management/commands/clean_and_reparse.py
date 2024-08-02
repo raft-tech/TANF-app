@@ -7,7 +7,7 @@ from elasticsearch.exceptions import ElasticsearchException
 from tdpservice.data_files.models import DataFile
 from tdpservice.parsers.models import ParserError
 from tdpservice.scheduling import parser_task
-from tdpservice.search_indexes.util import DOCUMENTS, count_all_records, get_latest_meta_model
+from tdpservice.search_indexes.util import DOCUMENTS, count_all_records
 from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 from tdpservice.core.utils import log
 from django.contrib.admin.models import ADDITION
@@ -176,7 +176,7 @@ class Command(BaseCommand):
 
     def __assert_sequential_execution(self):
         """Assert that no other re-parse commands are still executing."""
-        latest_meta_model = get_latest_meta_model()
+        latest_meta_model = ReparseMeta.get_latest()
         if latest_meta_model.exists() and not latest_meta_model.finished: ## TODO: we need to add a "timeout" check here. if the reparse has been running for X hours, assume it is done
             print("A previous execution of the re-parse command is still running. Cannot execute in parallel, exiting.")
             exit(1)

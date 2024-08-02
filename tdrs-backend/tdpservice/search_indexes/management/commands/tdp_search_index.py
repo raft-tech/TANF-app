@@ -13,7 +13,7 @@ from django.conf import settings
 from tdpservice.core.utils import log
 from django.contrib.admin.models import ADDITION
 from tdpservice.users.models import User
-from tdpservice.search_indexes.util import get_latest_meta_model
+from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 
 
 class Command(search_index.Command):
@@ -30,7 +30,7 @@ class Command(search_index.Command):
         return context
 
     def __get_index_suffix(self):
-        meta_model = get_latest_meta_model()
+        meta_model = ReparseMeta.get_latest()
         if meta_model.exists() and not meta_model.finished:
             return f"_{meta_model.pk}"
         fmt = "%Y-%m-%d_%H.%M.%S"
