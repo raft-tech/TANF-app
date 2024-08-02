@@ -109,7 +109,6 @@ class ReparseMeta(models.Model):
     def get_latest():
       """Get the ReparseMeta model with the greatest pk."""
       max_pk = ReparseMeta.objects.all().aggregate(Max('pk'))
-      print(f"\n\nMax PK: {max_pk}\n\n")
       if max_pk.get("pk__max", None) is None:
           return None
       return ReparseMeta.objects.get(pk=max_pk["pk__max"])
