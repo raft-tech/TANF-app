@@ -1,3 +1,4 @@
+"""Utility functions and definitions for models and documents."""
 from tdpservice.search_indexes.documents import tanf, ssp, tribal
 
 DOCUMENTS = [
@@ -17,10 +18,9 @@ DOCUMENTS = [
       ]
 
 def count_all_records():
-        """Count total number of records in the database."""
-        total_num_records = 0
-        for doc in DOCUMENTS:
-            model = doc.Django.model
-            total_num_records += model.objects.all().count()
-        return total_num_records
-
+    """Count total number of records in the database."""
+    total_num_records = 0
+    for doc in DOCUMENTS:
+        model = doc.Django.model
+        total_num_records += model.objects.all().count()
+    return total_num_records

@@ -160,7 +160,7 @@ class DataFile(FileRecord):
                                      help_text="Reparse event this file is associated with.",
                                      on_delete=models.DO_NOTHING,
                                      related_name="reparse_meta"
-                                    )
+                                     )
 
     @property
     def prog_type(self):

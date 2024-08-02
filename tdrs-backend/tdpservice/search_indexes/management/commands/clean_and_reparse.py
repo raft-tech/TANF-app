@@ -12,7 +12,6 @@ from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 from tdpservice.core.utils import log
 from django.contrib.admin.models import ADDITION
 from tdpservice.users.models import User
-from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -163,14 +162,14 @@ class Command(BaseCommand):
         try:
             return count_all_records()
         except DatabaseError as e:
-            log(f'Encountered a DatabaseError while counting records for meta model. The database '
-                'and Elastic are consistent! Cancelling reparse to be safe.',
+            log('Encountered a DatabaseError while counting records for meta model. The database '
+                f'and Elastic are consistent! Cancelling reparse to be safe. \n{e}',
                 logger_context=log_context,
                 level='error')
             exit(1)
         except Exception as e:
-            log(f'Encountered generic exception while counting records for meta model. '
-                'The database and Elastic are consistent! Cancelling reparse to be safe.',
+            log('Encountered generic exception while counting records for meta model. '
+                f'The database and Elastic are consistent! Cancelling reparse to be safe. \n{e}',
                 logger_context=log_context,
                 level='error')
             exit(1)
@@ -178,8 +177,9 @@ class Command(BaseCommand):
     def __assert_sequential_execution(self, log_context):
         """Assert that no other reparse commands are still executing."""
         latest_meta_model = ReparseMeta.get_latest()
-        if latest_meta_model is not None and not ReparseMeta.assert_all_files_done(latest_meta_model): ## TODO: we need to add a "timeout" check here. if the reparse has been running for X hours, assume it is done
-            log(f'A previous execution of the reparse command is RUNNING. Cannot execute in parallel, exiting.',
+        # TODO: we need to add a "timeout" check here. if the reparse has been running for X hours, assume it is done
+        if latest_meta_model is not None and not ReparseMeta.assert_all_files_done(latest_meta_model):
+            log('A previous execution of the reparse command is RUNNING. Cannot execute in parallel, exiting.',
                 logger_context=log_context,
                 level='warn')
             exit(1)
