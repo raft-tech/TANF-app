@@ -6,6 +6,7 @@ class ReparseMetaAdmin(ReadOnlyAdminMixin):
     """ModelAdmin class for parsed M1 data files."""
 
     list_display = [
+        'id',
         'created_at',
         'timeout_at',
         'success',

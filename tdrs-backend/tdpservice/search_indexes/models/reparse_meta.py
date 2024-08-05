@@ -75,65 +75,65 @@ class ReparseMeta(models.Model):
         meta_model.save()
 
     @staticmethod
-    def increment_files_completed(meta_model):
+    def increment_files_completed(reparse_meta_models):
         """
-        Increment the count of files that have completed parsing.
+        Increment the count of files that have completed parsing for the datafile's current/latest reparse model.
 
         Because this function can be called in parallel we use `select_for_update` because multiple parse tasks can
         referrence the same ReparseMeta object that is being queried below. `select_for_update` provides a DB lock on
         the object and forces other transactions on the object to wait until this one completes.
         """
-        if meta_model is not None:
+        if reparse_meta_models.exists():
             with transaction.atomic():
                 try:
-                    meta = ReparseMeta.objects.select_for_update().get(pk=meta_model.pk)
-                    meta.files_completed += 1
-                    if ReparseMeta.assert_all_files_done(meta):
-                        ReparseMeta.set_reparse_finished(meta)
-                    meta.save()
+                    meta_model = reparse_meta_models.select_for_update().latest("pk")
+                    meta_model.files_completed += 1
+                    if ReparseMeta.assert_all_files_done(meta_model):
+                        ReparseMeta.set_reparse_finished(meta_model)
+                    meta_model.save()
                 except DatabaseError:
                     logger.exception("Encountered exception while trying to update the `files_reparsed` field on the "
-                                     f"ReparseMeta object with ID: {meta_model.pk}.")
+                                        f"ReparseMeta object with ID: {meta_model.pk}.")
 
     @staticmethod
-    def increment_files_failed(meta_model):
+    def increment_files_failed(reparse_meta_models):
         """
-        Increment the count of files parsed the datafile's reparse meta model.
+        Increment the count of files that failed parsing for the datafile's current/latest reparse meta model.
 
         Because this function can be called in parallel we use `select_for_update` because multiple parse tasks can
         referrence the same ReparseMeta object that is being queried below. `select_for_update` provides a DB lock on
         the object and forces other transactions on the object to wait until this one completes.
         """
-        if meta_model is not None:
+        if reparse_meta_models.exists():
             with transaction.atomic():
                 try:
-                    meta = ReparseMeta.objects.select_for_update().get(pk=meta_model.pk)
-                    meta.files_failed += 1
-                    if ReparseMeta.assert_all_files_done(meta):
-                        ReparseMeta.set_reparse_finished(meta)
-                    meta.save()
+                    meta_model = reparse_meta_models.select_for_update().latest("pk")
+                    meta_model.files_failed += 1
+                    if ReparseMeta.assert_all_files_done(meta_model):
+                        ReparseMeta.set_reparse_finished(meta_model)
+                    meta_model.save()
                 except DatabaseError:
                     logger.exception("Encountered exception while trying to update the `files_failed` field on the "
-                                     f"ReparseMeta object with ID: {meta_model.pk}.")
+                                        f"ReparseMeta object with ID: {meta_model.pk}.")
 
     @staticmethod
-    def increment_records_created(meta_model, num_created):
+    def increment_records_created(reparse_meta_models, num_created):
         """
-        Increment the count of files parsed the datafile's reparse meta model.
+        Increment the count of records created for the datafile's current/latest reparse meta model.
 
         Because this function can be called in parallel we use `select_for_update` because multiple parse tasks can
         referrence the same ReparseMeta object that is being queried below. `select_for_update` provides a DB lock on
         the object and forces other transactions on the object to wait until this one completes.
         """
-        if meta_model is not None:
+        if reparse_meta_models.exists():
             with transaction.atomic():
                 try:
-                    meta = ReparseMeta.objects.select_for_update().get(pk=meta_model.pk)
-                    meta.num_records_created += num_created
-                    meta.save()
+                    meta_model = reparse_meta_models.select_for_update().latest("pk")
+                    meta_model.num_records_created += num_created
+                    meta_model.save()
                 except DatabaseError:
                     logger.exception("Encountered exception while trying to update the `files_failed` field on the "
-                                     f"ReparseMeta object with ID: {meta_model.pk}.")
+                                        f"ReparseMeta object with ID: {meta_model.pk}.")
 
     @staticmethod
     def get_latest():

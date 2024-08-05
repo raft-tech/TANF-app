@@ -141,7 +141,8 @@ class Command(BaseCommand):
             try:
                 logger.info(f"Deleting file with PK: {file.pk}")
                 file.delete()
-                file.reparse_meta = meta_model
+                file.save()
+                file.reparse_meta_models.add(meta_model)
                 file.save()
                 logger.info(f"New file PK: {file.pk}")
                 # latest version only? -> possible new ticket
@@ -187,7 +188,7 @@ class Command(BaseCommand):
                 logger_context=log_context,
                 level='warn')
             exit(1)
-        elif (is_not_none and now > latest_meta_model.timeout_at and not
+        elif (is_not_none and latest_meta_model.timeout_at is not None and now > latest_meta_model.timeout_at and not
               ReparseMeta.assert_all_files_done(latest_meta_model)):
             log("Previous reparse has exceeded the timeout. Allowing execution of the command.",
                 logger_context=log_context,
@@ -200,7 +201,9 @@ class Command(BaseCommand):
         line_parse_time = MEDIAN_PARSE_TIME_ON_LOCAL * 10
         time_to_queue_datafile = 10
         time_in_seconds = num_files * time_to_queue_datafile + num_records * line_parse_time
-        return timedelta(seconds=time_in_seconds)
+        delta = timedelta(seconds=time_in_seconds)
+        logger.info(f"Setting timeout for the reparse event to be {delta} seconds from meta model creation date.")
+        return delta
 
     def handle(self, *args, **options):
         """Delete and reparse datafiles matching a query."""
