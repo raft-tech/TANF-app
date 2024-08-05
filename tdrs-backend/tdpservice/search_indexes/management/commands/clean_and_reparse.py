@@ -5,7 +5,7 @@ from django.core.management import call_command
 from django.db.utils import DatabaseError
 from elasticsearch.exceptions import ElasticsearchException
 from tdpservice.data_files.models import DataFile
-from tdpservice.parsers.models import ParserError
+from tdpservice.parsers.models import DataFileSummary, ParserError
 from tdpservice.scheduling import parser_task
 from tdpservice.search_indexes.util import DOCUMENTS, count_all_records
 from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
@@ -84,11 +84,28 @@ class Command(BaseCommand):
                     level='error')
                 raise e
 
-    def __delete_records(self, docs, file_ids, new_indices, log_context):
+    def __delete_summaries(self, file_ids, log_context):
+        """Raw delete all DataFileSummary objects."""
+        try:
+            qset = DataFileSummary.objects.filter(datafile_id__in=file_ids)
+            qset._raw_delete(qset.db)
+        except DatabaseError as e:
+            log('Encountered a DatabaseError while deleting DataFileSummary from Postgres. The database '
+                'and Elastic are INCONSISTENT! Restore the DB from the backup as soon as possible!',
+                logger_context=log_context,
+                level='critical')
+            raise e
+        except Exception as e:
+            log('Caught generic exception while deleting DataFileSummary. The database and Elastic are INCONSISTENT! '
+                'Restore the DB from the backup as soon as possible!',
+                logger_context=log_context,
+                level='critical')
+            raise e
+
+    def __delete_records(self, file_ids, new_indices, log_context):
         """Delete records, errors, and documents from Postgres and Elastic."""
         total_deleted = 0
-        self.__delete_errors(file_ids, log_context)
-        for doc in docs:
+        for doc in DOCUMENTS:
             try:
                 model = doc.Django.model
                 qset = model.objects.filter(datafile_id__in=file_ids)
@@ -135,17 +152,19 @@ class Command(BaseCommand):
                 level='critical')
             raise e
 
+    def __delete_associated_models(self, meta_model, file_ids, new_indices, log_context):
+        """Delete all models associated to the selected datafiles."""
+        self.__delete_summaries(file_ids, log_context)
+        self.__delete_errors(file_ids, log_context)
+        num_deleted = self.__delete_records(file_ids, new_indices, log_context)
+        meta_model.num_records_deleted = num_deleted
+
     def __handle_datafiles(self, files, meta_model, log_context):
         """Delete, re-save, and reparse selected datafiles."""
         for file in files:
             try:
-                logger.info(f"Deleting file with PK: {file.pk}")
-                file.delete()
-                file.save()
                 file.reparse_meta_models.add(meta_model)
                 file.save()
-                logger.info(f"New file PK: {file.pk}")
-                # latest version only? -> possible new ticket
                 parser_task.parse.delay(file.pk, should_send_submission_email=False)
             except DatabaseError as e:
                 log('Encountered a DatabaseError while re-creating datafiles. The database '
@@ -300,11 +319,13 @@ class Command(BaseCommand):
         # Delete records from Postgres and Elastic if necessary
         file_ids = files.values_list('id', flat=True).distinct()
         meta_model.total_num_records_initial = self.__count_total_num_records(log_context)
-        total_deleted = self.__delete_records(DOCUMENTS, file_ids, new_indices, log_context)
-        meta_model.num_records_deleted = total_deleted
-        meta_model.timeout_at = meta_model.created_at + self.__calculate_timeout(num_files, total_deleted)
-        logger.info(f"Deleted a total of {total_deleted} records accross {num_files} files.")
+
+        self.__delete_associated_models(meta_model, file_ids, new_indices, log_context)
+
+        meta_model.timeout_at = meta_model.created_at + self.__calculate_timeout(num_files,
+                                                                                 meta_model.num_records_deleted)
         meta_model.save()
+        logger.info(f"Deleted a total of {meta_model.num_records_deleted} records accross {num_files} files.")
 
         # Delete and re-save datafiles to handle cascading dependencies
         logger.info(f'Deleting and re-parsing {num_files} files')
