@@ -93,7 +93,7 @@ class ReparseMeta(models.Model):
                     meta_model.save()
                 except DatabaseError:
                     logger.exception("Encountered exception while trying to update the `files_reparsed` field on the "
-                                        f"ReparseMeta object with ID: {meta_model.pk}.")
+                                     f"ReparseMeta object with ID: {meta_model.pk}.")
 
     @staticmethod
     def increment_files_failed(reparse_meta_models):
@@ -114,7 +114,7 @@ class ReparseMeta(models.Model):
                     meta_model.save()
                 except DatabaseError:
                     logger.exception("Encountered exception while trying to update the `files_failed` field on the "
-                                        f"ReparseMeta object with ID: {meta_model.pk}.")
+                                     f"ReparseMeta object with ID: {meta_model.pk}.")
 
     @staticmethod
     def increment_records_created(reparse_meta_models, num_created):
@@ -133,7 +133,7 @@ class ReparseMeta(models.Model):
                     meta_model.save()
                 except DatabaseError:
                     logger.exception("Encountered exception while trying to update the `files_failed` field on the "
-                                        f"ReparseMeta object with ID: {meta_model.pk}.")
+                                     f"ReparseMeta object with ID: {meta_model.pk}.")
 
     @staticmethod
     def get_latest():
