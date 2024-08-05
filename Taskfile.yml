@@ -47,11 +47,11 @@ tasks:
       # copy backup.json file to sentry
       - docker cp backup.json sentry:/self-hosted/sentry/backup.json
       # restore backup
-      - docker exec sentry bash -c "cd self-hosted && docker-compose up -d"
+      - docker exec sentry bash -c "cd self-hosted && docker compose up -d"
       - docker exec sentry bash -c "docker cp /self-hosted/sentry/backup.json sentry-self-hosted-web-1:/home/sentry/backup.json"
       - docker exec sentry bash -c "docker exec sentry-self-hosted-web-1 bash -c 'sentry import /home/sentry/backup.json'"
-      - docker exec sentry bash -c "cd self-hosted && docker-compose down"
-      - docker exec sentry bash -c "cd self-hosted && docker-compose up -d"
+      - docker exec sentry bash -c "cd self-hosted && docker compose down"
+      - docker exec sentry bash -c "cd self-hosted && docker compose up -d"
 
 
   sentry-up:
