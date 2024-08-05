@@ -35,7 +35,7 @@ tasks:
 
       # need sleep 10 for docker to start
       # there is a bug with other version of self-hosted. looks like they are trying to upgrade to Django 5.0 (July 2024)
-      - docker exec sentry sh -c "cd self-hosted && sleep 10 && git checkout tags/23.7.2"
+      - docker exec sentry sh -c "cd self-hosted && sleep 10 && git checkout tags/23.10.1"
 
       # add bash
       - docker exec sentry sh -c "apk add bash"
