@@ -15,6 +15,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('timeout_at', models.DateTimeField(auto_now_add=False, null=True)),
                 ('finished', models.BooleanField(default=False)),
                 ('success', models.BooleanField(default=False,help_text="All files completed parsing.")),
                 ('num_files_to_reparse', models.PositiveIntegerField(default=0)),

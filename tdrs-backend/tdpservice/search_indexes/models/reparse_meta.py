@@ -23,6 +23,7 @@ class ReparseMeta(models.Model):
         verbose_name = "Reparse Meta Model"
 
     created_at = models.DateTimeField(auto_now_add=True)
+    timeout_at = models.DateTimeField(auto_now_add=False, null=True)
 
     finished = models.BooleanField(default=False)
     success = models.BooleanField(default=False, help_text="All files completed parsing.")
@@ -54,9 +55,9 @@ class ReparseMeta(models.Model):
         This function assumes the meta_model has been passed in a distributed/thread safe way. If the database row
         containing this model has not been locked the caller will experience race issues.
         """
-        if (meta_model.files_completed == meta_model.num_files_to_reparse or
+        if (meta_model.finished or meta_model.files_completed == meta_model.num_files_to_reparse or
                 meta_model.files_completed + meta_model.files_failed == meta_model.num_files_to_reparse or
-                meta_model.files_failed == meta_model.num_files_to_reparse or meta_model.finished):
+                meta_model.files_failed == meta_model.num_files_to_reparse):
             return True
         return False
 

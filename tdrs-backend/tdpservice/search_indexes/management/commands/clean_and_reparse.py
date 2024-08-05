@@ -12,6 +12,8 @@ from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 from tdpservice.core.utils import log
 from django.contrib.admin.models import ADDITION
 from tdpservice.users.models import User
+from datetime import timedelta
+from django.utils import timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -177,12 +179,28 @@ class Command(BaseCommand):
     def __assert_sequential_execution(self, log_context):
         """Assert that no other reparse commands are still executing."""
         latest_meta_model = ReparseMeta.get_latest()
-        # TODO: we need to add a "timeout" check here. if the reparse has been running for X hours, assume it is done
-        if latest_meta_model is not None and not ReparseMeta.assert_all_files_done(latest_meta_model):
+        now = timezone.now()
+        is_not_none = latest_meta_model is not None
+        if (is_not_none and not ReparseMeta.assert_all_files_done(latest_meta_model) and
+                not now > latest_meta_model.timeout_at):
             log('A previous execution of the reparse command is RUNNING. Cannot execute in parallel, exiting.',
                 logger_context=log_context,
                 level='warn')
             exit(1)
+        elif (is_not_none and now > latest_meta_model.timeout_at and not
+              ReparseMeta.assert_all_files_done(latest_meta_model)):
+            log("Previous reparse has exceeded the timeout. Allowing execution of the command.",
+                logger_context=log_context,
+                level='warn')
+
+    def __calculate_timeout(self, num_files, num_records):
+        """Estimate a timeout parameter based on the number of files and the number of records."""
+        MEDIAN_PARSE_TIME_ON_LOCAL = 0.0005574226379394531
+        # Increase by an order of magnitude to have the bases covered.
+        line_parse_time = MEDIAN_PARSE_TIME_ON_LOCAL * 10
+        time_to_queue_datafile = 10
+        time_in_seconds = num_files * time_to_queue_datafile + num_records * line_parse_time
+        return timedelta(seconds=time_in_seconds)
 
     def handle(self, *args, **options):
         """Delete and reparse datafiles matching a query."""
@@ -281,6 +299,7 @@ class Command(BaseCommand):
         meta_model.total_num_records_initial = self.__count_total_num_records(log_context)
         total_deleted = self.__delete_records(DOCUMENTS, file_ids, new_indices, log_context)
         meta_model.num_records_deleted = total_deleted
+        meta_model.timeout_at = meta_model.created_at + self.__calculate_timeout(num_files, total_deleted)
         logger.info(f"Deleted a total of {total_deleted} records accross {num_files} files.")
         meta_model.save()
 

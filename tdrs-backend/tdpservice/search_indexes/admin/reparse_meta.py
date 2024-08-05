@@ -7,6 +7,7 @@ class ReparseMetaAdmin(ReadOnlyAdminMixin):
 
     list_display = [
         'created_at',
+        'timeout_at',
         'success',
         'finished',
         'db_backup_location',
