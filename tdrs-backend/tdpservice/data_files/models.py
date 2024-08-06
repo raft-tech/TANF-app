@@ -152,8 +152,6 @@ class DataFile(FileRecord):
                                         null=True
                                         )
 
-    # # Field indicating if this file has been reparsed. Sort of transient as the file won't track how many times it has
-    # # been reparsed since we use the same underlying file object and just reset this field during a reparse.
     reparse_meta_models = models.ManyToManyField("search_indexes.ReparseMeta",
                                                  help_text="Reparse events this file has been associated with.",
                                                  related_name="reparse_meta_models"
