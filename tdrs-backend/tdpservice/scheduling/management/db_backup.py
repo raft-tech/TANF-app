@@ -57,28 +57,16 @@ def get_system_values():
     sys_values['S3_SECRET_ACCESS_KEY'] = sys_values['S3_CREDENTIALS']['secret_access_key']
     sys_values['S3_BUCKET'] = sys_values['S3_CREDENTIALS']['bucket']
     sys_values['S3_REGION'] = sys_values['S3_CREDENTIALS']['region']
-    sys_values['DATABASE_URI'] = OS_ENV['DATABASE_URL']
+
     # Set AWS credentials in env, Boto3 uses the env variables for connection
     os.environ["AWS_ACCESS_KEY_ID"] = sys_values['S3_ACCESS_KEY_ID']
     os.environ["AWS_SECRET_ACCESS_KEY"] = sys_values['S3_SECRET_ACCESS_KEY']
 
     # Set Database connection info
-    AWS_RDS_SERVICE_JSON = json.loads(OS_ENV['VCAP_SERVICES'])['aws-rds'][0]['credentials']
-    sys_values['DATABASE_PORT'] = AWS_RDS_SERVICE_JSON['port']
-    sys_values['DATABASE_PASSWORD'] = AWS_RDS_SERVICE_JSON['password']
-    sys_values['DATABASE_DB_NAME'] = AWS_RDS_SERVICE_JSON['db_name']
-    sys_values['DATABASE_HOST'] = AWS_RDS_SERVICE_JSON['host']
-    sys_values['DATABASE_USERNAME'] = AWS_RDS_SERVICE_JSON['username']
+    AWS_RDS_SERVICE_JSON = json.loads(OS_ENV['VCAP_SERVICES'])['aws-rds'][0]
+    sys_values['DATABASE_URI'] = AWS_RDS_SERVICE_JSON['credentials']['uri'].rsplit('/', 1)[0]
+    sys_values['DATABASE_DB_NAME'] = AWS_RDS_SERVICE_JSON['name']
 
-    # write .pgpass
-    with open('/home/vcap/.pgpass', 'w') as f:
-        f.write(sys_values['DATABASE_HOST'] + ":"
-                + sys_values['DATABASE_PORT'] + ":"
-                + settings.DATABASES['default']['NAME'] + ":"
-                + sys_values['DATABASE_USERNAME'] + ":"
-                + sys_values['DATABASE_PASSWORD'])
-    os.environ['PGPASSFILE'] = '/home/vcap/.pgpass'
-    os.system('chmod 0600 /home/vcap/.pgpass')
     return sys_values
 
 
@@ -94,17 +82,7 @@ def backup_database(file_name,
     pg_dump -F c --no-acl --no-owner -f backup.pg postgresql://${USERNAME}:${PASSWORD}@${HOST}:${PORT}/${NAME}
     """
     try:
-        # TODO: This is a bandaid until the correct logic is determined for the system values with respect to the
-        # correct database name.
-        # cmd = postgres_client + "pg_dump -Fc --no-acl -f " + file_name + " -d " + database_uri
-        db_host = settings.DATABASES['default']['HOST']
-        db_port = settings.DATABASES['default']['PORT']
-        db_name = settings.DATABASES['default']['NAME']
-        db_user = settings.DATABASES['default']['USER']
-
-        export_password = f"export PGPASSWORD={settings.DATABASES['default']['PASSWORD']}"
-        cmd = (f"{export_password} && {postgres_client}pg_dump -h {db_host} -p {db_port} -d {db_name} -U {db_user} "
-               f"-F c --no-password --no-acl --no-owner -f {file_name}")
+        cmd = postgres_client + "pg_dump -Fc --no-acl -f " + file_name + " -d " + database_uri
         logger.info(f"Executing backup command: {cmd}")
         os.system(cmd)
         msg = "Successfully executed backup. Wrote pg dumpfile to {}".format(file_name)
@@ -272,12 +250,13 @@ def get_database_credentials(database_uri):
 def main(argv, sys_values, system_user):
     """Handle commandline args."""
     arg_file = "/tmp/backup.pg"
-    arg_database = sys_values['DATABASE_URI']
+    db_base_uri = sys_values['DATABASE_URI']
     arg_to_restore = False
     arg_to_backup = False
+    restore_db_name = None
 
     try:
-        opts, args = getopt.getopt(argv, "hbrf:d:", ["help", "backup", "restore", "file=", "database=", ])
+        opts, args = getopt.getopt(argv, "hbrf:n:", ["help", "backup", "restore", "file=", "restore_db_name="])
         for opt, arg in opts:
             if "backup" in opt or "-b" in opt:
                 arg_to_backup = True
@@ -285,9 +264,11 @@ def main(argv, sys_values, system_user):
                 arg_to_restore = True
             if "file" in opt or "-f" in opt and arg:
                 arg_file = arg if arg[0] == "/" else "/tmp/" + arg
-            if "database" in opt or "-d" in opt:
-                arg_database = arg
+            if "restore_db_name" in opt or "-n" in opt and arg:
+                restore_db_name = arg
 
+        if arg_to_restore and not restore_db_name:
+            raise ValueError("You must pass a `-n <DB_NAME>` when trying to restore a DB.")
     except Exception as e:
         raise e
 
@@ -303,7 +284,7 @@ def main(argv, sys_values, system_user):
         # back up database
         backup_database(file_name=arg_file,
                         postgres_client=sys_values['POSTGRES_CLIENT_DIR'],
-                        database_uri=arg_database,
+                        database_uri=f"{db_base_uri}/{sys_values['DATABASE_DB_NAME']}",
                         system_user=system_user)
 
         # upload backup file
@@ -348,7 +329,7 @@ def main(argv, sys_values, system_user):
         # restore database
         restore_database(file_name=arg_file,
                          postgres_client=sys_values['POSTGRES_CLIENT_DIR'],
-                         database_uri=arg_database,
+                         database_uri=f"{db_base_uri}/{restore_db_name}",
                          system_user=system_user)
 
         LogEntry.objects.log_action(
