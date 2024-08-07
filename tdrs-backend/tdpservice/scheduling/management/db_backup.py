@@ -246,9 +246,9 @@ def get_database_credentials(database_uri):
     database_name = database_uri
     return [username, password, host, port, database_name]
 
-def get_opts(argv):
+def get_opts(argv, db_name):
     """Parse command line options."""
-    arg_file = "/tmp/backup.pg"
+    arg_file = f"/tmp/{db_name}_backup.pg"
     arg_to_restore = False
     arg_to_backup = False
     restore_db_name = None
@@ -272,7 +272,7 @@ def main(argv, sys_values, system_user):
     """Handle commandline args."""
     db_base_uri = sys_values['DATABASE_URI']
 
-    arg_file, arg_to_backup, arg_to_restore, restore_db_name = get_opts(argv)
+    arg_file, arg_to_backup, arg_to_restore, restore_db_name = get_opts(argv, sys_values['DATABASE_DB_NAME'])
 
     if arg_to_backup:
         LogEntry.objects.log_action(
