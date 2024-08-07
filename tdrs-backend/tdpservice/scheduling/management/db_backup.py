@@ -246,31 +246,33 @@ def get_database_credentials(database_uri):
     database_name = database_uri
     return [username, password, host, port, database_name]
 
-
-def main(argv, sys_values, system_user):
-    """Handle commandline args."""
+def get_opts(argv):
+    """Parse command line options."""
     arg_file = "/tmp/backup.pg"
-    db_base_uri = sys_values['DATABASE_URI']
     arg_to_restore = False
     arg_to_backup = False
     restore_db_name = None
+    opts, args = getopt.getopt(argv, "hbrf:n:", ["help", "backup", "restore", "file=", "restore_db_name="])
+    for opt, arg in opts:
+        if "backup" in opt or "-b" in opt:
+            arg_to_backup = True
+        elif "restore" in opt or "-r" in opt:
+            arg_to_restore = True
+        if "file" in opt or "-f" in opt and arg:
+            arg_file = arg if arg[0] == "/" else "/tmp/" + arg
+        if "restore_db_name" in opt or "-n" in opt and arg:
+            restore_db_name = arg
 
-    try:
-        opts, args = getopt.getopt(argv, "hbrf:n:", ["help", "backup", "restore", "file=", "restore_db_name="])
-        for opt, arg in opts:
-            if "backup" in opt or "-b" in opt:
-                arg_to_backup = True
-            elif "restore" in opt or "-r" in opt:
-                arg_to_restore = True
-            if "file" in opt or "-f" in opt and arg:
-                arg_file = arg if arg[0] == "/" else "/tmp/" + arg
-            if "restore_db_name" in opt or "-n" in opt and arg:
-                restore_db_name = arg
+    if arg_to_restore and not restore_db_name:
+        raise ValueError("You must pass a `-n <DB_NAME>` when trying to restore a DB.")
 
-        if arg_to_restore and not restore_db_name:
-            raise ValueError("You must pass a `-n <DB_NAME>` when trying to restore a DB.")
-    except Exception as e:
-        raise e
+    return arg_to_backup, arg_file, arg_to_restore, restore_db_name
+
+def main(argv, sys_values, system_user):
+    """Handle commandline args."""
+    db_base_uri = sys_values['DATABASE_URI']
+
+    arg_file, arg_to_backup, arg_to_restore, restore_db_name = get_opts(argv)
 
     if arg_to_backup:
         LogEntry.objects.log_action(
