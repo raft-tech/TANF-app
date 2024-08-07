@@ -1,13 +1,13 @@
 """`seed_db` command."""
 
-import faker
+import sys
 import random
 import logging
 from pathlib import Path
 
 from django.core.management import BaseCommand
-from django.utils import timezone
-
+from faker import Faker
+fake = Faker()
 
 from tdpservice.parsers.test.factories import ParsingFileFactory, TanfT1Factory # maybe need other factories
 from tdpservice.parsers.schema_defs.header import header
@@ -16,6 +16,8 @@ from tdpservice.parsers.schema_defs.utils import *  # maybe need other utilities
 # all models should be referenced by using the utils.py get_schema_options wrappers
 from tdpservice.parsers import schema_defs
 from tdpservice.data_files.models import DataFile
+from tdpservice.stts.models import STT
+
 logger = logging.getLogger(__name__)
 
 '''
@@ -41,97 +43,7 @@ Tool will "fuzz" or generate out of range values to intentionally create issues 
 Create django command such that tool can be pointed at deployed environments 
 '''
 
-'''
-schema_options = {
-    'TAN': {
-        'A': {
-            'section': DataFile.Section.ACTIVE_CASE_DATA,
-            'models': {
-                'T1': schema_defs.tanf.t1,
-                'T2': schema_defs.tanf.t2,
-                'T3': schema_defs.tanf.t3,
-            }
-        },
-        'C': {
-            'section': DataFile.Section.CLOSED_CASE_DATA,
-            'models': {
-                'T4': schema_defs.tanf.t4,
-                'T5': schema_defs.tanf.t5,
-            }
-        },
-        'G': {
-            'section': DataFile.Section.AGGREGATE_DATA,
-            'models': {
-                'T6': schema_defs.tanf.t6,
-            }
-        },
-        'S': {
-            'section': DataFile.Section.STRATUM_DATA,
-            'models': {
-                'T7': schema_defs.tanf.t7,
-            }
-        }
-    },
-    'SSP': {
-        'A': {
-            'section': DataFile.Section.SSP_ACTIVE_CASE_DATA,
-            'models': {
-                'M1': schema_defs.ssp.m1,
-                'M2': schema_defs.ssp.m2,
-                'M3': schema_defs.ssp.m3,
-            }
-        },
-        'C': {
-            'section': DataFile.Section.SSP_CLOSED_CASE_DATA,
-            'models': {
-                'M4': schema_defs.ssp.m4,
-                'M5': schema_defs.ssp.m5,
-            }
-        },
-        'G': {
-            'section': DataFile.Section.SSP_AGGREGATE_DATA,
-            'models': {
-                'M6': schema_defs.ssp.m6,
-            }
-        },
-        'S': {
-            'section': DataFile.Section.SSP_STRATUM_DATA,
-            'models': {
-                'M7': schema_defs.ssp.m7,
-            }
-        }
-    },
-    'Tribal TAN': {
-        'A': {
-            'section': DataFile.Section.TRIBAL_ACTIVE_CASE_DATA,
-            'models': {
-                'T1': schema_defs.tribal_tanf.t1,
-                'T2': schema_defs.tribal_tanf.t2,
-                'T3': schema_defs.tribal_tanf.t3,
-            }
-        },
-        'C': {
-            'section': DataFile.Section.TRIBAL_CLOSED_CASE_DATA,
-            'models': {
-                'T4': schema_defs.tribal_tanf.t4,
-                'T5': schema_defs.tribal_tanf.t5,
-            }
-        },
-        'G': {
-            'section': DataFile.Section.TRIBAL_AGGREGATE_DATA,
-            'models': {
-                'T6': schema_defs.tribal_tanf.t6,
-            }
-        },
-        'S': {
-            'section': DataFile.Section.TRIBAL_STRATUM_DATA,
-            'models': {
-                'T7': schema_defs.tribal_tanf.t7,
-            }
-        },
-    },
-}
-'''
+
 
 # t1 fields
 '''
@@ -183,7 +95,7 @@ FAMILY_NEW_CHILD(116-117)
 BLANK(117-156)
 '''
 # https://faker.readthedocs.io/en/stable/providers/baseprovider.html#faker.providers.BaseProvider
-class FieldFaker(faker.providers.BaseProvider):
+""" class FieldFaker(faker.providers.BaseProvider):
     def record_type(self):
         return self.random_element(elements=('00', '01', '02'))
 
@@ -219,7 +131,7 @@ class FieldFaker(faker.providers.BaseProvider):
 
     def receives_sub_housing(self):
         return self.random_element(elements=('Y', 'N'))
-
+ """
 def build_datafile(year, quarter, original_filename, file_name, section, file_data):
     """Build a datafile."""
     return ParsingFileFactory.build(
@@ -258,7 +170,7 @@ def validValues(field):
         field_format = '?' * field_len
     else:
         field_format = '#' * field_len
-    return faker.bothify(text=field_format)
+    return fake.bothify(text=field_format)
 
 
 def make_line(schemaMgr):
@@ -273,18 +185,35 @@ def make_line(schemaMgr):
     else:
         for field in schemaMgr.fields:
             line += validValues(field)
+
     return line
+
+from tdpservice.data_files.models import DataFile
 
 def make_files(stt, year, quarter):
     '''Given a STT, parameterize calls to build_datafile and make_line.'''
-    """Psuedo code"""
-    sections = stt.filenames
+    sections = stt.filenames.keys()
+    # {'Active Case Data': 'ADS.E2J.FTP1.TS05', 'Closed Case Data': 'ADS.E2J.FTP2.TS05', 'Aggregate Data': 'ADS.E2J.FTP3.TS05'}"
+    # "{'Active Case Data': 'ADS.E2J.NDM1.TS24', 'Closed Case Data': 'ADS.E2J.NDM2.TS24', 'Aggregate Data': 'ADS.E2J.NDM3.TS24', 
+    #       'Stratum Data': 'ADS.E2J.NDM4.TS24', 'SSP Active Case Data': 'ADS.E2J.NDM1.MS24', 'SSP Closed Case Data': 'ADS.E2J.NDM2.MS24', 'SSP Aggregate Data': 
+    #       'ADS.E2J.NDM3.MS24', 'SSP Stratum Data': 'ADS.E2J.NDM4.MS24'}"
+    files_for_quarter = {}
 
-    for section in sections:
 
+    for s in sections:
         # based on section, get models from schema_options
+        #if stt.ssp is True:
+        # we can match section to the schema_options
+        # elif stt.state is not None:
+        # we can declare prog_type to Tribal
+
+        # given a leaf of 'section', get 'TAN' or 'SSP' or 'Tribal TAN' from schema_options
         
-        models_in_section = get_program_models(stt.program, section)
+        # match schema_options[_]['section'] to our section
+        text_dict = get_schema_options("", section=s, query='text')
+        prog_type = text_dict['program_type']
+        section = text_dict['section']
+        models_in_section = get_program_models(prog_type, section)
         temp_file = ''
         #TODO: make header line
         temp_file += make_line(header)
@@ -308,9 +237,18 @@ def make_files(stt, year, quarter):
         temp_file += make_line(trailer)
 
         # build datafile
+        # TODO convert temp_file to bytes literal
+        datafile = build_datafile(
+            year=year,
+            quarter=quarter,
+            original_filename=f'{section}.txt', #this is awful
+            file_name=f'{section}.txt', #also bad
+            section=section,
+            file_data=temp_file,
+        )
+        files_for_quarter[section] = datafile
 
-    # return dictionary of binary blobs
-    # return {'Active Case Data': b'...', 'Closed Case Data': b'...', 'Aggregate Data': b'...', 'Stratum Data': b'...'}
+    return files_for_quarter
 
 class Command(BaseCommand):
     """Command class."""
@@ -339,15 +277,15 @@ class Command(BaseCommand):
         ) """
         #parsing_file.save()
 
-        x = get_text_from_df(parsing_file)
-        print(x)
+        #x = get_text_from_df(parsing_file)
+        #print(x)
     
         # t1 = schema_options.get('TAN').get('A').get('models').get('T1')
-        T1_fields = t1.schemas[0].fields
+        #T1_fields = t1.schemas[0].fields
 
-        [print(i) for i in T1_fields]
+        #[print(i) for i in T1_fields]
 
-        t1_line = ''
+        """ t1_line = ''
         for field in T1_fields:
             field_len = field.endIndex - field.startIndex
             # check list of validators
@@ -361,15 +299,25 @@ class Command(BaseCommand):
             else:
                 field_format = '#' * field_len
             t1_line += faker.bothify(text=field_format)
-        print(t1_line)
+        print(t1_line) """
 
         # TODO: allowed values per field, try manual and if commonalities exist, create a function to generate
         # TODO: can we utilize validators somehow to get a validValues(schemaMgr.fields[])?
   
+        stts = STT.objects.all()
+        for stt in stts:
+            # for y in years[2024]
+            for q in [1,2,3,4]:
+                placeholder = make_files(stt, 2024, q)
+                # save to db or upload endpoint
+                # parse the file? or use DFS factory?
+        # dump db in full
+
+
         '''
         # utilize parsers/schema_defs/utils.py as a reference for getting the lists of STT/years/quarters/sections
         for i in STT[]:
-            for y in years[] # 1998 - 2099
+            for y in years[] # 2020-2022
                 for q in quarters[] # 1-4
                     for p in programs[] # TAN, SSP, Tribal TAN
                         for s in sections[] # [x for x['section'] in schema_options[p].keys()]
