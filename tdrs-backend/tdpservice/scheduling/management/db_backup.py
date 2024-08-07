@@ -65,7 +65,7 @@ def get_system_values():
     # Set Database connection info
     AWS_RDS_SERVICE_JSON = json.loads(OS_ENV['VCAP_SERVICES'])['aws-rds'][0]
     sys_values['DATABASE_URI'] = AWS_RDS_SERVICE_JSON['credentials']['uri'].rsplit('/', 1)[0]
-    sys_values['DATABASE_DB_NAME'] = AWS_RDS_SERVICE_JSON['name']
+    sys_values['DATABASE_DB_NAME'] = AWS_RDS_SERVICE_JSON['credentials']['db_name']
 
     return sys_values
 
@@ -82,9 +82,11 @@ def backup_database(file_name,
     pg_dump -F c --no-acl --no-owner -f backup.pg postgresql://${USERNAME}:${PASSWORD}@${HOST}:${PORT}/${NAME}
     """
     try:
-        cmd = postgres_client + "pg_dump -Fc --no-acl -f " + file_name + " -d " + database_uri
+        cmd = f"{postgres_client}pg_dump -Fc --no-acl -f {file_name} -d {database_uri}"
         logger.info(f"Executing backup command: {cmd}")
-        os.system(cmd)
+        code = os.system(cmd)
+        if code != 0:
+            raise Exception("pg_dump command failed with a non zero exit code.")
         msg = "Successfully executed backup. Wrote pg dumpfile to {}".format(file_name)
         logger.info(msg)
         LogEntry.objects.log_action(
@@ -266,13 +268,27 @@ def get_opts(argv, db_name):
     if arg_to_restore and not restore_db_name:
         raise ValueError("You must pass a `-n <DB_NAME>` when trying to restore a DB.")
 
-    return arg_to_backup, arg_file, arg_to_restore, restore_db_name
+    return arg_file, arg_to_backup, arg_to_restore, restore_db_name
+
+def get_db_name(sys_values):
+    """
+    Get the correct database name.
+
+    In prod we use the default database name that AWS creates. In the Dev and Staging environments the databases are
+    named based off of their app; i.e. tdp_db_raft. The deploy script sets the APP_DB_NAME environment variable for all
+    apps except prod.
+    """
+    env_db_name = os.getenv("APP_DB_NAME", None)
+    if env_db_name is None:
+        return sys_values['DATABASE_DB_NAME']
+    return env_db_name
 
 def main(argv, sys_values, system_user):
     """Handle commandline args."""
     db_base_uri = sys_values['DATABASE_URI']
 
-    arg_file, arg_to_backup, arg_to_restore, restore_db_name = get_opts(argv, sys_values['DATABASE_DB_NAME'])
+    db_name = get_db_name(sys_values)
+    arg_file, arg_to_backup, arg_to_restore, restore_db_name = get_opts(argv, db_name)
 
     if arg_to_backup:
         LogEntry.objects.log_action(
@@ -286,7 +302,7 @@ def main(argv, sys_values, system_user):
         # back up database
         backup_database(file_name=arg_file,
                         postgres_client=sys_values['POSTGRES_CLIENT_DIR'],
-                        database_uri=f"{db_base_uri}/{sys_values['DATABASE_DB_NAME']}",
+                        database_uri=f"{db_base_uri}/{db_name}",
                         system_user=system_user)
 
         # upload backup file
