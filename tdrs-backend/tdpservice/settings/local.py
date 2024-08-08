@@ -50,6 +50,7 @@ class Local(Common):
 
     REDIS_SERVER_LOCAL = bool(strtobool(os.getenv("REDIS_SERVER_LOCAL", "TRUE")))
 
+    """
     # SENTRY
     sentry_sdk.init(
         dsn="http://43ebf8abe1434ec6aea2c7b92c465a0e@host.docker.internal:9001/2",
@@ -70,3 +71,4 @@ class Local(Common):
         ],
         traces_sample_rate=1.0,
     )
+    """
