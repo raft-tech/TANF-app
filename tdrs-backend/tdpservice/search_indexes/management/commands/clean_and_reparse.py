@@ -196,34 +196,6 @@ class Command(BaseCommand):
                 level='error')
             exit(1)
 
-    def __assert_sequential_execution(self, log_context):
-        """Assert that no other reparse commands are still executing."""
-        latest_meta_model = ReparseMeta.get_latest()
-        now = timezone.now()
-        is_not_none = latest_meta_model is not None
-        if (is_not_none and not ReparseMeta.assert_all_files_done(latest_meta_model) and
-                not now > latest_meta_model.timeout_at):
-            log('A previous execution of the reparse command is RUNNING. Cannot execute in parallel, exiting.',
-                logger_context=log_context,
-                level='warn')
-            exit(1)
-        elif (is_not_none and latest_meta_model.timeout_at is not None and now > latest_meta_model.timeout_at and not
-              ReparseMeta.assert_all_files_done(latest_meta_model)):
-            log("Previous reparse has exceeded the timeout. Allowing execution of the command.",
-                logger_context=log_context,
-                level='warn')
-
-    def __calculate_timeout(self, num_files, num_records):
-        """Estimate a timeout parameter based on the number of files and the number of records."""
-        MEDIAN_PARSE_TIME_ON_LOCAL = 0.0005574226379394531
-        # Increase by an order of magnitude to have the bases covered.
-        line_parse_time = MEDIAN_PARSE_TIME_ON_LOCAL * 10
-        time_to_queue_datafile = 10
-        time_in_seconds = num_files * time_to_queue_datafile + num_records * line_parse_time
-        delta = timedelta(seconds=time_in_seconds)
-        logger.info(f"Setting timeout for the reparse event to be {delta} seconds from meta model creation date.")
-        return delta
-
     def handle(self, *args, **options):
         """Delete and reparse datafiles matching a query."""
         fiscal_year = options.get('fiscal_year', None)
@@ -299,7 +271,6 @@ class Command(BaseCommand):
                 level='warn')
             return
 
-        self.__assert_sequential_execution(log_context)
         meta_model = ReparseMeta.objects.create(fiscal_quarter=fiscal_quarter,
                                                 fiscal_year=fiscal_year,
                                                 all=reparse_all,
@@ -322,8 +293,6 @@ class Command(BaseCommand):
 
         self.__delete_associated_models(meta_model, file_ids, new_indices, log_context)
 
-        meta_model.timeout_at = meta_model.created_at + self.__calculate_timeout(num_files,
-                                                                                 meta_model.num_records_deleted)
         meta_model.save()
         logger.info(f"Deleted a total of {meta_model.num_records_deleted} records accross {num_files} files.")
 
