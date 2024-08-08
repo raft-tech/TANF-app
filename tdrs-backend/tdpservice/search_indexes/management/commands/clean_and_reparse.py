@@ -14,6 +14,7 @@ from django.contrib.admin.models import ADDITION
 from tdpservice.users.models import User
 from datetime import timedelta
 from django.utils import timezone
+from django.conf import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -215,9 +216,8 @@ class Command(BaseCommand):
 
     def __calculate_timeout(self, num_files, num_records):
         """Estimate a timeout parameter based on the number of files and the number of records."""
-        MEDIAN_PARSE_TIME_ON_LOCAL = 0.0005574226379394531
         # Increase by an order of magnitude to have the bases covered.
-        line_parse_time = MEDIAN_PARSE_TIME_ON_LOCAL * 10
+        line_parse_time = settings.MEDIAN_LINE_PARSE_TIME * 10
         time_to_queue_datafile = 10
         time_in_seconds = num_files * time_to_queue_datafile + num_records * line_parse_time
         delta = timedelta(seconds=time_in_seconds)
