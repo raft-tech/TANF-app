@@ -12,8 +12,6 @@ from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 from tdpservice.core.utils import log
 from django.contrib.admin.models import ADDITION
 from tdpservice.users.models import User
-from datetime import timedelta
-from django.utils import timezone
 import logging
 
 logger = logging.getLogger(__name__)
