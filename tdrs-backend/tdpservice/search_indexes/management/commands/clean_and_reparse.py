@@ -299,6 +299,7 @@ class Command(BaseCommand):
                 level='warn')
             return
 
+        self.__assert_sequential_execution(log_context)
         meta_model = ReparseMeta.objects.create(fiscal_quarter=fiscal_quarter,
                                                 fiscal_year=fiscal_year,
                                                 all=reparse_all,
@@ -321,6 +322,8 @@ class Command(BaseCommand):
 
         self.__delete_associated_models(meta_model, file_ids, new_indices, log_context)
 
+        meta_model.timeout_at = meta_model.created_at + self.__calculate_timeout(num_files,
+                                                                                 meta_model.num_records_deleted)
         meta_model.save()
         logger.info(f"Deleted a total of {meta_model.num_records_deleted} records accross {num_files} files.")
 
