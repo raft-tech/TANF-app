@@ -1,6 +1,6 @@
 """Define configuration settings for local environment."""
 import os
-import sentry_sdk
+#import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 import logging
