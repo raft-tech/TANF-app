@@ -119,7 +119,8 @@ class LoginRedirectAMS(RedirectView):
                 'error_pages/500.html',
                 {'error': f"Failed to get AMS configuration: {e}"})
             return HttpResponse(rendered,
-                                status=status.HTTP_503_SERVICE_UNAVAILABLE)
+                                {'frontend': settings.FRONTEND_BASE_URL},
+                                status=status.HTTP_503_SERVICE_UNAVAILABLE,)
         auth_params = {
             "client_id": settings.AMS_CLIENT_ID,
             "nonce": nonce,
