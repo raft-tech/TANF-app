@@ -67,20 +67,6 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
     error_report_link.allow_tags = True
 
-    def rpm_links(self, obj):
-        """Generate a list of links to ReparseMeta models this file is associated with."""
-        rpm_list = "<ul>"
-        # Only show the 5 most recent reparse events the file has been associated with.
-        latest_meta = obj.reparse_meta_models.all().order_by('-id')[:5]
-        if len(latest_meta) > 0:
-            for rpm in latest_meta:
-                url = f'{DOMAIN}/admin/search_indexes/reparsemeta/?id=' + str(rpm.id)
-                rpm_list += f"<li><a href={url}>RPM {rpm.id}</a></li>"
-        else:
-            rpm_list += "<li>None</li>"
-        rpm_list += "</ul>"
-        return format_html(rpm_list)
-
     def data_file_summary(self, obj):
         """Return the data file summary."""
         df = DataFileSummary.objects.get(datafile=obj)
@@ -99,7 +85,6 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         'version',
         'data_file_summary',
         'error_report_link',
-        'rpm_links'
     ]
 
     list_filter = [
