@@ -117,9 +117,9 @@ class LoginRedirectAMS(RedirectView):
             logger.error(f"Failed to get AMS configuration: {e}")
             rendered = render_to_string(
                 'error_pages/500.html',
-                {'error': f"Failed to get AMS configuration: {e}"})
+                {'error': f"Failed to get AMS configuration: {e}",
+                 'frontend': settings.FRONTEND_BASE_URL})
             return HttpResponse(rendered,
-                                {'frontend': settings.FRONTEND_BASE_URL},
                                 status=status.HTTP_503_SERVICE_UNAVAILABLE,)
         auth_params = {
             "client_id": settings.AMS_CLIENT_ID,
