@@ -60,7 +60,44 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         return format_html("<a href='{url}'>{field}</a>",
                            field=f'{df.id}' + ":" + df.get_status(),
                            url=f"{DOMAIN}/admin/parsers/datafilesummary/{df.id}/change/")
+    
+    class by_submission_date(admin.SimpleListFilter):
+        """filter data files by month."""
+        title = 'Submission Time'
+        parameter_name = 'Submission Day/Month/Year'
 
+        def lookups(self, request, model_admin):
+            """Return a list of tuples."""
+            return [
+                ('y', 'Yesterday'),
+                ('0', 'Today'),
+                ('7', 'Past 7 days'),
+                ('t-m', 'This month'),
+                ('t-y', 'This year'),
+            ]
+        
+        def queryset(self, request, queryset):
+            """Return a queryset."""
+            from datetime import datetime, timedelta, timezone
+            yesterday = datetime.now(tz=timezone.utc) - timedelta(days=1)
+            this_month = datetime.now(tz=timezone.utc).replace(day=1)
+            this_year = datetime.now(tz=timezone.utc).replace(month=1, day=1)
+            if self.value() == 'y':
+                query_set_ids = [df.id for df in queryset if df.submitted_at == yesterday]
+                return queryset.filter(id__in=query_set_ids)
+            elif self.value() in :
+                last_login__lte=datetime.now(tz=timezone.utc) - timedelta(days=self.value())
+                query_set_ids = [df.id for df in queryset if df.submitted_at >= last_login__lte]
+                return queryset.filter(id__in=query_set_ids)
+            elif self.value() == 30:
+                query_set_ids = [df.id for df in queryset if df.submitted_at >= this_month]
+                return queryset.filter(id__in=query_set_ids)
+            elif self.value() == 365:
+                query_set_ids = [df.id for df in queryset if df.submitted_at >= this_year]
+                return queryset.filter(id__in=query_set_ids)
+            else:
+                return queryset
+            
     list_display = [
         'id',
         'stt',
@@ -78,6 +115,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         'stt',
         'user',
         'year',
+        by_submission_date,
         'version',
         'summary__status',
         DataFileSummaryPrgTypeFilter
