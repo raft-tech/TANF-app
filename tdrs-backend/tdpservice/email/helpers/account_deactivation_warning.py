@@ -40,8 +40,6 @@ def send_deactivation_warning_email(users, days):
 
 def send_deactivation_email(user):
     """Send an email to a user that their account has been deactivated."""
-    #from tdpservice.users.models import User
-
     template_path = EmailType.ACCOUNT_DEACTIVATED.value
     text_message = 'Your account has been deactivated.'
     subject = 'Account Deactivated'

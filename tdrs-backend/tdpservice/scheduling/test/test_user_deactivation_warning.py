@@ -42,7 +42,7 @@ def test_deactivate_users(user, mocker):
     user.account_approval_status = AccountApprovalStatusChoices.APPROVED
     user.save()
     tdpservice.email.tasks.deactivate_users()
-    assert user.groups.count() == 0 
+    assert user.groups.count() == 0
     assert tdpservice.email.helpers.account_deactivation_warning.send_deactivation_email.called_once_with(user)
 
 
