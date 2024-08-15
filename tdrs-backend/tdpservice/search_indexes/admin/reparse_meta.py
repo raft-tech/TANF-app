@@ -19,5 +19,7 @@ class ReparseMetaAdmin(ReadOnlyAdminMixin):
 
     list_filter = [
         'success',
-        'finished'
+        'finished',
+        'fiscal_year',
+        'fiscal_quarter',
     ]
