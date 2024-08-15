@@ -63,37 +63,37 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     
     class by_submission_date(admin.SimpleListFilter):
         """filter data files by month."""
-        title = 'Submission Time'
+        title = 'Submission Date'
         parameter_name = 'Submission Day/Month/Year'
 
         def lookups(self, request, model_admin):
             """Return a list of tuples."""
             return [
-                ('y', 'Yesterday'),
+                ('1', 'Yesterday'),
                 ('0', 'Today'),
                 ('7', 'Past 7 days'),
-                ('t-m', 'This month'),
-                ('t-y', 'This year'),
+                ('30', 'This month'),
+                ('365', 'This year'),
             ]
         
         def queryset(self, request, queryset):
             """Return a queryset."""
             from datetime import datetime, timedelta, timezone
-            yesterday = datetime.now(tz=timezone.utc) - timedelta(days=1)
+            yesterday = (datetime.now(tz=timezone.utc) - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
             this_month = datetime.now(tz=timezone.utc).replace(day=1)
             this_year = datetime.now(tz=timezone.utc).replace(month=1, day=1)
-            if self.value() == 'y':
-                query_set_ids = [df.id for df in queryset if df.submitted_at == yesterday]
+            if self.value() == '1':
+                query_set_ids = [df.id for df in queryset if df.created_at.replace(hour=0, minute=0, second=0, microsecond=0) == yesterday]
                 return queryset.filter(id__in=query_set_ids)
-            elif self.value() in :
-                last_login__lte=datetime.now(tz=timezone.utc) - timedelta(days=self.value())
-                query_set_ids = [df.id for df in queryset if df.submitted_at >= last_login__lte]
+            elif self.value() in ['0', '7']:
+                last_login__lte=datetime.now(tz=timezone.utc) - timedelta(days=int(self.value()))
+                query_set_ids = [df.id for df in queryset if df.created_at >= last_login__lte]
                 return queryset.filter(id__in=query_set_ids)
-            elif self.value() == 30:
-                query_set_ids = [df.id for df in queryset if df.submitted_at >= this_month]
+            elif self.value() == '30':
+                query_set_ids = [df.id for df in queryset if df.created_at >= this_month]
                 return queryset.filter(id__in=query_set_ids)
-            elif self.value() == 365:
-                query_set_ids = [df.id for df in queryset if df.submitted_at >= this_year]
+            elif self.value() == '365':
+                query_set_ids = [df.id for df in queryset if df.created_at >= this_year]
                 return queryset.filter(id__in=query_set_ids)
             else:
                 return queryset
