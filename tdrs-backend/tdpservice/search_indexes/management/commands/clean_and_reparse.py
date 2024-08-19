@@ -202,6 +202,12 @@ class Command(BaseCommand):
         latest_meta_model = ReparseMeta.get_latest()
         now = timezone.now()
         is_not_none = latest_meta_model is not None
+        if (is_not_none and latest_meta_model.timeout_at is None):
+            log(f"The latest ReparseMeta model's (ID: {latest_meta_model.pk}) timeout_at field is None. "
+                "Cannot safely execute reparse, please fix manually.",
+                logger_context=log_context,
+                level='error')
+            exit(1)
         if (is_not_none and not ReparseMeta.assert_all_files_done(latest_meta_model) and
                 not now > latest_meta_model.timeout_at):
             log('A previous execution of the reparse command is RUNNING. Cannot execute in parallel, exiting.',
