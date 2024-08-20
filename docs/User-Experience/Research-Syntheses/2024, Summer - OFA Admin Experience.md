@@ -3,7 +3,7 @@
 **Jump To:**
 
 * [Background](#background)
-* [What we did & who we talked to](#what-we-did-and-who-we-talked-to)
+* [What we did & who we talked to](#what-we-did--who-we-talked-to)
 * [What we learned](#what-we-learned)
 * [Next steps](#next-steps)
 
