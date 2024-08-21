@@ -27,6 +27,7 @@ class DataFileSummaryPrgTypeFilter(admin.SimpleListFilter):
 
 class LatestReparseEvent(admin.SimpleListFilter):
     """Filter class to filter files based on the latest reparse event."""
+
     title = _('Reparse Event')
 
     parameter_name = 'reparse_meta_model'

@@ -299,7 +299,7 @@ class Command(BaseCommand):
                                                 fiscal_year=fiscal_year,
                                                 all=reparse_all,
                                                 new_indices=new_indices,
-                                                delete_old_indices=new_indices, # TODO REMOVE FIELD
+                                                delete_old_indices=new_indices,
                                                 num_files_to_reparse=num_files)
 
         # Backup the Postgres DB
