@@ -30,6 +30,19 @@ class DataFileSummaryPrgTypeFilter(admin.SimpleListFilter):
         else:
             return queryset
 
+
+class DataFileInline(admin.TabularInline):
+    """Inline model for many to many relationship."""
+
+    model = DataFile.reparse_meta_models.through
+    can_delete = False
+    ordering = ["-pk"]
+
+    def has_change_permission(self, request, obj=None):
+        """Read only permissions."""
+        return False
+
+
 @admin.register(DataFile)
 class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Admin class for DataFile models."""
@@ -60,6 +73,8 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         return format_html("<a href='{url}'>{field}</a>",
                            field=f'{df.id}' + ":" + df.get_status(),
                            url=f"{DOMAIN}/admin/parsers/datafilesummary/{df.id}/change/")
+
+    inlines = [DataFileInline]
 
     list_display = [
         'id',
