@@ -11,7 +11,7 @@
 
 ## Background
 
-The Django Admin Console (DAC) is an internal tool tailored for our OFA System Admin and DIGIT Team users]. It allows for access to the Postgres database & system logs, managing user permissions, and has been increasingly adopted to provide the DIGIT team with quick insights into data file errors and STT submissions.&#x20;
+The Django Admin Console (DAC) is an internal tool tailored for our OFA System Admin and DIGIT Team users. It allows for access to the Postgres database & system logs, managing user permissions, and has been increasingly adopted to provide the DIGIT team with quick insights into data file errors and STT submissions.&#x20;
 
 ***
 
