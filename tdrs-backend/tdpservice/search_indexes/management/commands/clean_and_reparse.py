@@ -32,10 +32,6 @@ class Command(BaseCommand):
         parser.add_argument("-y", "--fiscal_year", type=int, help="Reparse all files in the fiscal year, e.g. 2021.")
         parser.add_argument("-a", "--all", action='store_true', help="Clean and reparse all datafiles. If selected, "
                             "fiscal_year/quarter aren't necessary.")
-        parser.add_argument("-n", "--new_indices", action='store_true', help="Move reparsed data to new Elastic "
-                            "indices.")
-        parser.add_argument("-d", "--delete_indices", action='store_true', help="Requires new_indices. Delete the "
-                            "current Elastic indices.")
 
     def __get_log_context(self, system_user):
         """Return logger context."""
@@ -61,14 +57,11 @@ class Command(BaseCommand):
                 level='error')
             raise e
 
-    def __handle_elastic(self, new_indices, delete_indices, log_context):
+    def __handle_elastic(self, new_indices, log_context):
         """Create new Elastic indices and delete old ones."""
         if new_indices:
             try:
-                if not delete_indices:
-                    call_command('tdp_search_index', '--create', '-f', '--use-alias', '--use-alias-keep-index')
-                else:
-                    call_command('tdp_search_index', '--create', '-f', '--use-alias')
+                call_command('tdp_search_index', '--create', '-f', '--use-alias')
                 log("Index creation complete.",
                     logger_context=log_context,
                     level='info')
@@ -235,8 +228,7 @@ class Command(BaseCommand):
         fiscal_year = options.get('fiscal_year', None)
         fiscal_quarter = options.get('fiscal_quarter', None)
         reparse_all = options.get('all', False)
-        new_indices = options.get('new_indices', False)
-        delete_indices = options.get('delete_indices', False)
+        new_indices = reparse_all is True
 
         args_passed = fiscal_year is not None or fiscal_quarter is not None or reparse_all
 
@@ -274,9 +266,6 @@ class Command(BaseCommand):
         fmt_str = "be" if new_indices else "NOT be"
         continue_msg += "will {new_index} stored in new indices and the old indices ".format(new_index=fmt_str)
 
-        fmt_str = "be" if delete_indices else "NOT be"
-        continue_msg += "will {old_index} deleted.".format(old_index=fmt_str)
-
         num_files = files.count()
         fmt_str = f"ALL ({num_files})" if reparse_all else f"({num_files})"
         continue_msg += "\nThese options will delete and reparse {0} datafiles.".format(fmt_str)
@@ -310,7 +299,7 @@ class Command(BaseCommand):
                                                 fiscal_year=fiscal_year,
                                                 all=reparse_all,
                                                 new_indices=new_indices,
-                                                delete_old_indices=delete_indices,
+                                                delete_old_indices=new_indices, # TODO REMOVE FIELD
                                                 num_files_to_reparse=num_files)
 
         # Backup the Postgres DB
@@ -320,7 +309,7 @@ class Command(BaseCommand):
         meta_model.db_backup_location = backup_file_name
 
         # Create and delete Elastic indices if necessary
-        self.__handle_elastic(new_indices, delete_indices, log_context)
+        self.__handle_elastic(new_indices, log_context)
 
         # Delete records from Postgres and Elastic if necessary
         file_ids = files.values_list('id', flat=True).distinct()

@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='datafile',
             name='reparse_meta_models',
-            field=models.ManyToManyField(help_text='Reparse events this file has been associated with.', related_name='reparse_meta_models', to='search_indexes.ReparseMeta'),
+            field=models.ManyToManyField(help_text='Reparse events this file has been associated with.', related_name='datafiles', to='search_indexes.ReparseMeta'),
         ),
     ]
