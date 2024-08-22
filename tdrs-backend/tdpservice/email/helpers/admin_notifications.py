@@ -1,4 +1,4 @@
-# helper functions to administer user accounts
+"""helper functions to administer user accounts."""
 
 def email_admin_deactivated_user(user):
     """Send an email to OFA Admins when a user is deactivated."""
@@ -19,7 +19,7 @@ def email_admin_deactivated_user(user):
     text_message = 'A user account has been deactivated.'
     subject = 'User Account Deactivated'
     context = {
-        'user': user, 
+        'user': user,
     }
 
     log(f"Preparing email to OFA Admins for deactivated user {user.username}", logger_context=logger_context)
