@@ -37,6 +37,10 @@ def test_deactivate_users(user, mocker):
         'tdpservice.email.helpers.account_deactivation_warning.send_deactivation_email',
         return_value=None
     )
+    mocker.patch(
+        'tdpservice.email.helpers.admin_notifications.email_admin_deactivated_user',
+        return_value=None
+    )
     user.groups.add()
     user.last_login = datetime.now(tz=timezone.utc) - timedelta(days=181)
     user.account_approval_status = AccountApprovalStatusChoices.APPROVED
@@ -44,6 +48,7 @@ def test_deactivate_users(user, mocker):
     tdpservice.email.tasks.deactivate_users()
     assert user.groups.count() == 0
     assert tdpservice.email.helpers.account_deactivation_warning.send_deactivation_email.called_once_with(user)
+    assert tdpservice.email.helpers.admin_notifications.email_admin_deactivated_user.called_once_with(user)
 
 
 @pytest.mark.django_db
