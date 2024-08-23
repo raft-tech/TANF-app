@@ -8,7 +8,7 @@ from pathlib import Path
 from django.core.management import BaseCommand
 from faker import Faker
 fake = Faker()
-
+from django.core.files.base import ContentFile
 from tdpservice.parsers.test.factories import ParsingFileFactory, TanfT1Factory # maybe need other factories
 from tdpservice.parsers.schema_defs.header import header
 from tdpservice.parsers.schema_defs.trailer import trailer
@@ -16,7 +16,11 @@ from tdpservice.parsers.schema_defs.utils import *  # maybe need other utilities
 # all models should be referenced by using the utils.py get_schema_options wrappers
 from tdpservice.parsers import schema_defs
 from tdpservice.data_files.models import DataFile
+from tdpservice.scheduling import parser_task
 from tdpservice.stts.models import STT
+#import the system_user
+from tdpservice.users.models import User
+
 
 logger = logging.getLogger(__name__)
 
@@ -132,18 +136,30 @@ BLANK(117-156)
     def receives_sub_housing(self):
         return self.random_element(elements=('Y', 'N'))
  """
-def build_datafile(year, quarter, original_filename, file_name, section, file_data):
-    """Build a datafile."""
-    return ParsingFileFactory.build(
-        year=year,
-        quarter=quarter,
-        original_filename=original_filename,
-        file__name=file_name,
-        section=section,
-        file__data=file_data,
-    )
 
-def validValues(field):
+
+def build_datafile(stt, year, quarter, original_filename, file_name, section, file_data):
+    """Build a datafile."""
+    
+    try:
+        d = DataFile.objects.create(
+            user=User.objects.get_or_create(username='system')[0],
+            stt=stt,
+            year=year,
+            quarter=quarter,
+            original_filename=original_filename,
+            section=section,
+            version=random.randint(1, 1993415),
+        )
+
+
+        d.file.save(file_name, ContentFile(file_data))
+    except django.db.utils.IntegrityError as e:
+        pass
+    return d
+
+
+def validValues(schemaMgr, field):
     '''Takes in a field and returns a line of valid values.'''
     #niave implementation will just zero or 'a' fill the field
     '''field_len = field.endIndex - field.startIndex
@@ -164,6 +180,9 @@ def validValues(field):
         # treat header/trailer special, it actually checks for string values
         # check for zero or pad fill
         # transformField might be tricky
+    if field.name == 'RecordType':
+        print(schemaMgr.record_type)
+        return schemaMgr.record_type
     if field.name == 'SSN':
         # only used by recordtypes 2,3,5 
         # TODO: reverse the TransformField logic to 'encrypt' a random number
@@ -172,21 +191,25 @@ def validValues(field):
         field_format = '#' * field_len
     return fake.bothify(text=field_format)
 
-
-def make_line(schemaMgr):
+from tdpservice.parsers.row_schema import RowSchema
+def make_line(schemaMgr, section):
     '''Takes in a schema manager and returns a line of data.'''
     line = ''
 
     #TODO: check for header/trailer
-    if schemaMgr.record_type == 'HEADER' or schemaMgr.record_type == 'TRAILER':
-        for field in schemaMgr.fields:
-            line += validValues(field)
-
+    if type(schemaMgr) is RowSchema:
+            if schemaMgr.record_type == 'HEADER':
+                line += 'HEADER20204{}01   TAN1 D'.format(section)
+            elif schemaMgr.record_type == 'TRAILER':
+                line += ' ' * 23
     else:
-        for field in schemaMgr.fields:
-            line += validValues(field)
+        row_schema = schemaMgr.schemas[0]
+        for field in row_schema.fields:
+            print(field)
+            line += validValues(row_schema, field)
 
-    return line
+    print(line)
+    return line + '\n'
 
 from tdpservice.data_files.models import DataFile
 
@@ -211,41 +234,48 @@ def make_files(stt, year, quarter):
         
         # match schema_options[_]['section'] to our section
         text_dict = get_schema_options("", section=s, query='text')
-        prog_type = text_dict['program_type']
-        section = text_dict['section']
+        prog_type = text_dict['program_type'] # TAN
+        section = text_dict['section']  # A
         models_in_section = get_program_models(prog_type, section)
         temp_file = ''
         #TODO: make header line
-        temp_file += make_line(header)
+        print("making file for section: ", section)
+        temp_file += make_line(header,section)
 
         # iterate over models and generate lines
-        for model in models_in_section:
-            if section in ['Active Case Data', 'Closed Case Data']:
+        for _, model in models_in_section.items():
+            print(section)
+            if s in ['Active Case Data', 'Closed Case Data','Aggregate Data', 'Stratum Data']:
+                print('yes, secction in all of them')
                 # obviously, this first approach can't prevent duplicates (unlikely),
                 #    nor can it ensure that the case data is internally consistent
                 #    (e.g. a case with a child but no adult)
 
                 # we should generate hundreds, thousands, tens of thousands of records
-                for i in range(random.randint(5, 9999)):
-                    temp_file += make_line(model)
-            elif section in ['Aggregate Data', 'Stratum Data']:
-                # we should generate a smaller count of lines...maybe leave this as a TODO
-                # shouldn't this be based on the active/closed case data?
-                pass
+                length = range(random.randint(5, 9))
+                print(length)
+                for i in length:
+                    temp_file += make_line(model,section)
+            #elif section in ['Aggregate Data', 'Stratum Data']:
+            #    # we should generate a smaller count of lines...maybe leave this as a TODO
+            #    # shouldn't this be based on the active/closed case data?
+            #    pass
 
         # make trailer line
-        temp_file += make_line(trailer)
+        temp_file += make_line(trailer,section)
 
         # build datafile
         # TODO convert temp_file to bytes literal
         datafile = build_datafile(
+            stt=stt,
             year=year,
             quarter=quarter,
             original_filename=f'{section}.txt', #this is awful
             file_name=f'{section}.txt', #also bad
             section=section,
-            file_data=temp_file,
+            file_data=bytes(temp_file, 'utf-8'),
         )
+        datafile.save()
         files_for_quarter[section] = datafile
 
     return files_for_quarter
@@ -303,16 +333,44 @@ class Command(BaseCommand):
 
         # TODO: allowed values per field, try manual and if commonalities exist, create a function to generate
         # TODO: can we utilize validators somehow to get a validValues(schemaMgr.fields[])?
-  
-        stts = STT.objects.all()
-        for stt in stts:
-            # for y in years[2024]
-            for q in [1,2,3,4]:
-                placeholder = make_files(stt, 2024, q)
+        from tdpservice.parsers.models import DataFileSummary
+        from tdpservice.parsers import parse
+        from tdpservice.parsers.test.factories import DataFileSummaryFactory
+        files_for_qtr = make_files(STT.objects.get(id=1), 2024, 1)
+        print(files_for_qtr)  # file has no id, and no payload/content
+        for f in files_for_qtr.keys():
+            df = files_for_qtr[f]
+            #dfs = DataFileSummary.objects.create(datafile=df, status=DataFileSummary.Status.PENDING) #maybe i need df.file_data?
+            dfs = DataFileSummaryFactory.build()
+            dfs.datafile = df
+            parse.parse_datafile(df, dfs)
+
+        #files_for_qtr[0].save()
+
+        # HALT
+        # stts = STT.objects.all()
+        # for stt in stts:
+        #     print(stt)
+        #     # for y in years[2024]
+        #     for q in [1,2,3,4]:
+        #         files_for_qtr = make_files(stt, 2024, q)
+        #         print(files_for_qtr)
                 # save to db or upload endpoint
+                
+                #for f in files_for_qtr:
+
+                #    parser_task.parse(f.id, should_send_submission_email=False)
                 # parse the file? or use DFS factory?
         # dump db in full
 
+
+        '''TODO: try out parameterization like so:
+        T2Factory.create(
+                RPT_MONTH_YEAR=202010,
+                CASE_NUMBER='123',
+                FAMILY_AFFILIATION=1,
+            ),
+        '''
 
         '''
         # utilize parsers/schema_defs/utils.py as a reference for getting the lists of STT/years/quarters/sections
