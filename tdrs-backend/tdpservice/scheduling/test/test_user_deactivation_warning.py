@@ -34,10 +34,6 @@ def test_deactivation_email_10_days(user, mocker):
 def test_deactivate_users(user, mocker):
     """Test that the deactivate_users task runs."""
     mocker.patch(
-        'tdpservice.email.helpers.account_deactivation_warning.send_deactivation_email',
-        return_value=None
-    )
-    mocker.patch(
         'tdpservice.email.helpers.admin_notifications.email_admin_deactivated_user',
         return_value=None
     )
@@ -47,7 +43,6 @@ def test_deactivate_users(user, mocker):
     user.save()
     tdpservice.email.tasks.deactivate_users()
     assert user.groups.count() == 0
-    assert tdpservice.email.helpers.account_deactivation_warning.send_deactivation_email.called_once_with(user)
     assert tdpservice.email.helpers.admin_notifications.email_admin_deactivated_user.called_once_with(user)
 
 

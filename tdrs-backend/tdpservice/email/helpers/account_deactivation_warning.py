@@ -36,32 +36,3 @@ def send_deactivation_warning_email(users, days):
             text_message=text_message,
             logger_context=logger_context
         )
-
-
-def send_deactivation_email(user):
-    """Send an email to a user that their account has been deactivated."""
-    template_path = EmailType.ACCOUNT_DEACTIVATED.value
-    text_message = 'Your account has been deactivated.'
-    subject = 'Account Deactivated'
-
-    recipient_email = user.email
-    context = {
-        'first_name': user.first_name,
-        'url': f'{settings.FRONTEND_BASE_URL}/login/'
-    }
-
-    logger_context = {
-        'user_id': user.id,
-        'object_id': user.id,
-        'object_repr': user.email,
-        'content_type': User,
-    }
-
-    automated_email(
-        email_path=template_path,
-        recipient_email=recipient_email,
-        subject=subject,
-        email_context=context,
-        text_message=text_message,
-        logger_context=logger_context
-    )

@@ -16,7 +16,6 @@ from tdpservice.data_files.models import DataFile
 from tdpservice.email.email import automated_email, log
 from tdpservice.email.email_enums import EmailType
 from tdpservice.parsers.util import calendar_to_fiscal
-from tdpservice.email.helpers.account_deactivation_warning import send_deactivation_email
 from tdpservice.email.helpers.admin_notifications import email_admin_deactivated_user
 
 
@@ -40,9 +39,7 @@ def deactivate_users():
             'object_id': user.id,
             'object_repr': user.username,
         }
-        send_deactivation_email(user)
         email_admin_deactivated_user(user)
-
         log(
             f"Deactivated user {user.username} for inactivity.",
             logger_context=logger_context if not settings.DEBUG else None
