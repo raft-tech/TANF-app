@@ -6,6 +6,7 @@ from .models import DataFile, LegacyFileTransfer
 from tdpservice.parsers.models import DataFileSummary, ParserError
 from django.conf import settings
 from django.utils.html import format_html
+from datetime import datetime, timedelta, timezone
 
 DOMAIN = settings.FRONTEND_BASE_URL
 
@@ -79,7 +80,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
         def queryset(self, request, queryset):
             """Return a queryset."""
-            from datetime import datetime, timedelta, timezone
+
             yesterday = (datetime.now(tz=timezone.utc) - timedelta(days=1)).replace(
                 hour=0, minute=0, second=0, microsecond=0
                 )
