@@ -80,7 +80,6 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
         def queryset(self, request, queryset):
             """Return a queryset."""
-
             yesterday = (datetime.now(tz=timezone.utc) - timedelta(days=1)).replace(
                 hour=0, minute=0, second=0, microsecond=0
                 )
