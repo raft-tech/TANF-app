@@ -2,7 +2,7 @@
 
 7/31/2024 - 8/14/2024
 
-### <mark style="color:orange;">Priority Setting</mark>
+### Priority Setting
 
 * Reparsing&#x20;
   * Tickets:&#x20;
@@ -12,7 +12,7 @@
 * System Monitoring &#x20;
 * DIGIT Work  &#x20;
 
-### <mark style="color:orange;">Sprint Goal</mark>
+### Sprint Goal
 
 **Dev:**
 
