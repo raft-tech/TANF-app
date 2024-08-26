@@ -66,57 +66,19 @@ The commands should ALWAYS be executed in the order they appear below.
     - The primary key for all reparsed datafiles should no longer be the same.
     - `ParserError` and `DataFileSummary` objects should be consistent with the file.
 
-#### Clean and Reparse All with New Indices and Deleting Old Indices
-1. Execute `python manage.py clean_and_reparse -a -n -d`
+#### Clean and Reparse All
+1. Execute `python manage.py clean_and_reparse -a`
 2. The expected results for this command will be exactly the same as above. The only difference is that no matter how many times you execute this command, you should only see 21 indices in Elastic with the `dev` prefix.
 
-#### Clean and Reparse All with Same Indices
-1. Execute `python manage.py clean_and_reparse -a`
-2. The expected results for this command will match the initial result from above.
-
 ```
-health status index                   uuid                   pri rep docs.count docs.deleted store.size pri.store.size
-green  open   .kibana_1               VKeA-BPcSQmJJl_AbZr8gQ   1   0          1            0      4.9kb          4.9kb
-yellow open   dev_ssp_m1_submissions  mDIiQxJrRdq0z7W9H_QUYg   1   1          5            0       24kb           24kb
-yellow open   dev_ssp_m2_submissions  OUrgAN1XRKOJgJHwr4xm7w   1   1          6            0     33.6kb         33.6kb
-yellow open   dev_ssp_m3_submissions  60fCBXHGTMK31MyWw4t2gQ   1   1          8            0     32.4kb         32.4kb
-yellow open   dev_tanf_t1_submissions 19f_lawWQKSeuwejo2Qgvw   1   1        817            0    288.2kb        288.2kb
-yellow open   dev_tanf_t2_submissions dPj2BdNtSJyAxCqnMaV2aw   1   1        884            0    414.4kb        414.4kb
-yellow open   dev_tanf_t3_submissions e7bEl0AURPmcZ5kiFwclcA   1   1       1380            0    355.2kb        355.2kb
-```
-
-#### Clean and Reparse FY 2024 New Indices and Keep Old Indices
-1. Execute `python manage.py clean_and_reparse -y 2024 -n`
-2. The expected results here are much different with respect to Elastic. Again, Postgres is the ground truth and it's counts should never change. Because this is the first time we execute this command and therfore are creating our Elastic aliases the result returned from the [indices](http://localhost:9200/_cat/indices/?pretty&v&s=index) url might be confusing. See below.
-
-```
-index                                       docs.count
-.kibana_1                                            2
-dev_ssp_m1_submissions_2024-07-05_17.26.26           5
-dev_ssp_m2_submissions_2024-07-05_17.26.26           6
-dev_ssp_m3_submissions_2024-07-05_17.26.26           8
-dev_tanf_t1_submissions_2024-07-05_17.26.26          2
-dev_tanf_t2_submissions_2024-07-05_17.26.26          2
-dev_tanf_t3_submissions_2024-07-05_17.26.26          4
-```
-
-- While the DAC reports the correct number of records for all submitted types, Elastic does not. This is because we only reparsed a subset of the entire collection of datafiles for the first time we executed the `clean_and_reparse` command. Therefore, Elastic only has documents for the subset of resubmitted files. If we had already executed the command: `python manage.py clean_and_reparse -a -n` and then executed `python manage.py clean_and_reparse -y 2024 -n`, we would see what you might have initially expected to see.
-
-```
-index                                       docs.count
-.kibana_1                                            2
-dev_ssp_m1_submissions_2024-07-05_17.34.34           5
-dev_ssp_m1_submissions_2024-07-05_17.35.26           5
-dev_ssp_m2_submissions_2024-07-05_17.34.34           6
-dev_ssp_m2_submissions_2024-07-05_17.35.26           6
-dev_ssp_m3_submissions_2024-07-05_17.34.34           8
-dev_ssp_m3_submissions_2024-07-05_17.35.26           8
-dev_tanf_t1_submissions_2024-07-05_17.34.34        817
-dev_tanf_t1_submissions_2024-07-05_17.35.26          2
-dev_tanf_t2_submissions_2024-07-05_17.34.34        884
-dev_tanf_t2_submissions_2024-07-05_17.35.26          2
-dev_tanf_t3_submissions_2024-07-05_17.34.34       1380
-dev_tanf_t3_submissions_2024-07-05_17.35.26          4
+health status index                                       uuid                   pri rep docs.count docs.deleted store.size pri.store.size
+green  open   .kibana_1                                   VKeA-BPcSQmJJl_AbZr8gQ   1   0          1            0      4.9kb          4.9kb
+yellow open   dev_ssp_m1_submissions_2024-07-05_17.26.26  mDIiQxJrRdq0z7W9H_QUYg   1   1          5            0       24kb           24kb
+yellow open   dev_ssp_m2_submissions_2024-07-05_17.26.26  OUrgAN1XRKOJgJHwr4xm7w   1   1          6            0     33.6kb         33.6kb
+yellow open   dev_ssp_m3_submissions_2024-07-05_17.26.26  60fCBXHGTMK31MyWw4t2gQ   1   1          8            0     32.4kb         32.4kb
+yellow open   dev_tanf_t1_submissions_2024-07-05_17.26.26 19f_lawWQKSeuwejo2Qgvw   1   1        817            0    288.2kb        288.2kb
+yellow open   dev_tanf_t2_submissions_2024-07-05_17.26.26 dPj2BdNtSJyAxCqnMaV2aw   1   1        884            0    414.4kb        414.4kb
+yellow open   dev_tanf_t3_submissions_2024-07-05_17.26.26 e7bEl0AURPmcZ5kiFwclcA   1   1       1380            0    355.2kb        355.2kb
 ```
 
 ## Cloud.gov Examples
@@ -216,8 +178,6 @@ options:
   -y FISCAL_YEAR, --fiscal_year FISCAL_YEAR
                         Reparse all files in the fiscal year, e.g. 2021.
   -a, --all             Clean and reparse all datafiles. If selected, fiscal_year/quarter aren't necessary.
-  -n, --new_indices     Move reparsed data to new Elastic indices.
-  -d, --delete_indices  Requires new_indices. Delete the current Elastic indices.
   --configuration CONFIGURATION
                         The name of the configuration class to load, e.g. "Development". If this isn't provided, the DJANGO_CONFIGURATION environment variable will be used.
   --version             show program's version number and exit
