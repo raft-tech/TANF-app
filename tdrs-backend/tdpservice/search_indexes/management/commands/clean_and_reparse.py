@@ -307,6 +307,7 @@ class Command(BaseCommand):
         self.__backup(backup_file_name, log_context)
 
         meta_model.db_backup_location = backup_file_name
+        meta_model.save()
 
         # Create and delete Elastic indices if necessary
         self.__handle_elastic(new_indices, log_context)
@@ -314,6 +315,7 @@ class Command(BaseCommand):
         # Delete records from Postgres and Elastic if necessary
         file_ids = files.values_list('id', flat=True).distinct()
         meta_model.total_num_records_initial = self.__count_total_num_records(log_context)
+        meta_model.save()
 
         self.__delete_associated_models(meta_model, file_ids, new_indices, log_context)
 
