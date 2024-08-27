@@ -91,8 +91,8 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
                     ) == yesterday]
                 return queryset.filter(id__in=query_set_ids)
             elif self.value() in ['0', '7']:
-                last_login__lte = datetime.now(tz=timezone.utc) - timedelta(days=int(self.value()))
-                query_set_ids = [df.id for df in queryset if df.created_at >= last_login__lte]
+                last_week = datetime.now(tz=timezone.utc) - timedelta(days=int(self.value()))
+                query_set_ids = [df.id for df in queryset if df.created_at >= last_week]
                 return queryset.filter(id__in=query_set_ids)
             elif self.value() == '30':
                 query_set_ids = [df.id for df in queryset if df.created_at >= this_month]
