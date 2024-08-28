@@ -38,6 +38,8 @@ function Reports() {
   // The logged in user saved in our redux `auth` state object
   const user = useSelector((state) => state.auth.user)
   const isOFAAdmin = useSelector(selectPrimaryUserRole)?.name === 'OFA Admin'
+  const isDIGITTeam = useSelector(selectPrimaryUserRole)?.name === 'DIGIT Team'
+  console.log('______________ isDIGITTeam:', isDIGITTeam)
   const sttList = useSelector((state) => state?.stts?.sttList)
 
   const [errorModalVisible, setErrorModalVisible] = useState(false)
@@ -59,7 +61,7 @@ function Reports() {
     Q4: 'Quarter 4 (July - September)',
   }
 
-  const currentStt = isOFAAdmin ? selectedStt : userProfileStt
+  const currentStt = isOFAAdmin || isDIGITTeam ? selectedStt : userProfileStt
 
   const stt = sttList?.find((stt) => stt?.name === currentStt)
 
@@ -68,7 +70,7 @@ function Reports() {
 
   const errorsCount = formValidation.errors
 
-  const missingStt = !isOFAAdmin && !currentStt
+  const missingStt = !isOFAAdmin && !isDIGITTeam && !currentStt
 
   const errorsRef = useRef(null)
 
@@ -194,7 +196,7 @@ function Reports() {
       )
       const touchedFields = Object.keys(touched).length
 
-      const expected_fields = isOFAAdmin ? 3 : 2
+      const expected_fields = isOFAAdmin || isDIGITTeam ? 3 : 2
 
       const errors = touchedFields === 3 ? expected_fields - form.length : 0
 
@@ -215,6 +217,7 @@ function Reports() {
     setFormValidationState,
     touched,
     isOFAAdmin,
+    isDIGITTeam,
   ])
 
   return (
@@ -237,7 +240,7 @@ function Reports() {
           </div>
         )}
         <form>
-          {isOFAAdmin && (
+          {(isOFAAdmin || isDIGITTeam) && (
             <div
               className={classNames('usa-form-group maxw-mobile margin-top-4', {
                 'usa-form-group--error': formValidation.stt,
