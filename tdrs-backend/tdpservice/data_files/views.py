@@ -181,7 +181,7 @@ class GetYearList(APIView):
     def get(self, request, **kwargs):
         """Handle get action for get list of years there are data_files."""
         user = request.user
-        is_ofa_admin = user.groups.filter(name__in=["OFA Admin", "DIGIT Team"]).exists()
+        is_ofa_admin = user.groups.filter(name="OFA Admin").exists()
 
         stt_id = kwargs.get('stt') if is_ofa_admin else user.stt.id
         if not stt_id:
