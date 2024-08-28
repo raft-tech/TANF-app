@@ -49,10 +49,6 @@ _**Support reviews, Complete Research Synthesis, Continue Error Audit (Cat 4)**_
 * [#3033 As tech lead, I need the sections 3 and 4 calendar quarter logic updated](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3033)
 * [#3055 Service timeout blocks parsing completion](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3055)
 * [#3057 \[Design Deliverable\] Spec for light-lift fiscal quarter / calendar quarter explainer in TDP](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3057)
-* [#3058 \[Design Deliverable\] Release notes email template](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3058)
-* [#3062 bug: ES docker image for non-dev spaces stored in personal dockerhub](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3062)
-* [#3073 \[bug\] TDP is raising cat 4 error on TANF/SSP closed case files that is not present](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3073)
-* [#3107 \[Re-parse command\] Retain original submission date when command runs](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3107)
 * [#3113 As tech lead, I need the validation on the header update indicator revised to unblock parsing ](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3113)
 
 ### Submitted (QASP Review, OCIO Review)
@@ -67,7 +63,10 @@ _**Support reviews, Complete Research Synthesis, Continue Error Audit (Cat 4)**_
 
 ### Ready to Merge
 
-*
+* [#3058 \[Design Deliverable\] Release notes email template](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3058)
+* [#3062 bug: ES docker image for non-dev spaces stored in personal dockerhub](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3062)
+* [#3073 \[bug\] TDP is raising cat 4 error on TANF/SSP closed case files that is not present](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3073)
+* [#3107 \[Re-parse command\] Retain original submission date when command runs](https://app.zenhub.com/workspaces/sprint-board-5f18ab06dfd91c000f7e682e/issues/gh/raft-tech/tanf-app/3107)
 
 ### Closed (Not Merged)
 
