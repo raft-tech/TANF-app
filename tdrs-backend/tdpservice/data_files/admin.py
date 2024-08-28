@@ -80,27 +80,27 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
         def queryset(self, request, queryset):
             """Return a queryset."""
-            yesterday = (datetime.now(tz=timezone.utc) - timedelta(days=1)).replace(
-                hour=0, minute=0, second=0, microsecond=0
-                )
-            this_month = datetime.now(tz=timezone.utc).replace(
-                day=1, hour=0, minute=0, second=0, microsecond=0)
-            this_year = datetime.now(tz=timezone.utc).replace(
-                month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-            last_week_today = datetime.now(tz=timezone.utc) - timedelta(days=int(self.value()))
-            last_week_today = last_week_today.replace(hour=0, minute=0, second=0, microsecond=0)
             if self.value() == '1':
+                yesterday = (datetime.now(tz=timezone.utc) - timedelta(days=1)).replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                    )
                 query_set_ids = [df.id for df in queryset if df.created_at.replace(
                     hour=0, minute=0, second=0, microsecond=0
                     ) == yesterday]
                 return queryset.filter(id__in=query_set_ids)
             elif self.value() in ['0', '7']:
+                last_week_today = datetime.now(tz=timezone.utc) - timedelta(days=int(self.value()))
+                last_week_today = last_week_today.replace(hour=0, minute=0, second=0, microsecond=0)
                 query_set_ids = [df.id for df in queryset if df.created_at >= last_week_today]
                 return queryset.filter(id__in=query_set_ids)
             elif self.value() == '30':
+                this_month = datetime.now(tz=timezone.utc).replace(
+                    day=1, hour=0, minute=0, second=0, microsecond=0)
                 query_set_ids = [df.id for df in queryset if df.created_at >= this_month]
                 return queryset.filter(id__in=query_set_ids)
             elif self.value() == '365':
+                this_year = datetime.now(tz=timezone.utc).replace(
+                    month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
                 query_set_ids = [df.id for df in queryset if df.created_at >= this_year]
                 return queryset.filter(id__in=query_set_ids)
             else:
