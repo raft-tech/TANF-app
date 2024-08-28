@@ -181,12 +181,18 @@ def validValues(schemaMgr, field):
         # check for zero or pad fill
         # transformField might be tricky
     if field.name == 'RecordType':
-        print(schemaMgr.record_type)
         return schemaMgr.record_type
     if field.name == 'SSN':
         # only used by recordtypes 2,3,5 
         # TODO: reverse the TransformField logic to 'encrypt' a random number
         field_format = '?' * field_len
+    elif field.name in ('RPT_MONTH_YEAR', 'CALENDAR_QUARTER'):
+
+        lower = 1 # TODO: get quarter and use acceptable range for month
+        upper = 3
+        # need to generate a two-digit month with leading zero using format() and randit()
+        month = '{}'.format(random.randint(lower, upper)).zfill(2)
+        field_format = '2024' + str(month)  # fake.date_time_this_month(before_now=True, after_now=False).strftime('%m%Y')
     else:
         field_format = '#' * field_len
     return fake.bothify(text=field_format)
@@ -196,20 +202,16 @@ def make_line(schemaMgr, section):
     '''Takes in a schema manager and returns a line of data.'''
     line = ''
 
-    #TODO: check for header/trailer
     if type(schemaMgr) is RowSchema:
             if schemaMgr.record_type == 'HEADER':
-                line += 'HEADER20204{}01   TAN1 D'.format(section)
+                line += 'HEADER20241{}01   TAN1 D'.format(section)
             elif schemaMgr.record_type == 'TRAILER':
-                line += ' ' * 23
+                line += 'TRAILER' + '1' * 16
     else:
         row_schema = schemaMgr.schemas[0]
         for field in row_schema.fields:
-            print(field)
             line += validValues(row_schema, field)
-
-    print(line)
-    return line + '\n'
+    return line + ' \n'
 
 from tdpservice.data_files.models import DataFile
 
@@ -238,23 +240,19 @@ def make_files(stt, year, quarter):
         section = text_dict['section']  # A
         models_in_section = get_program_models(prog_type, section)
         temp_file = ''
-        #TODO: make header line
+
         print("making file for section: ", section)
         temp_file += make_line(header,section)
 
         # iterate over models and generate lines
         for _, model in models_in_section.items():
-            print(section)
             if s in ['Active Case Data', 'Closed Case Data','Aggregate Data', 'Stratum Data']:
-                print('yes, secction in all of them')
                 # obviously, this first approach can't prevent duplicates (unlikely),
                 #    nor can it ensure that the case data is internally consistent
                 #    (e.g. a case with a child but no adult)
 
                 # we should generate hundreds, thousands, tens of thousands of records
-                length = range(random.randint(5, 9))
-                print(length)
-                for i in length:
+                for i in range(random.randint(5, 9)):
                     temp_file += make_line(model,section)
             #elif section in ['Aggregate Data', 'Stratum Data']:
             #    # we should generate a smaller count of lines...maybe leave this as a TODO
@@ -263,17 +261,16 @@ def make_files(stt, year, quarter):
 
         # make trailer line
         temp_file += make_line(trailer,section)
-
-        # build datafile
-        # TODO convert temp_file to bytes literal
+        print(temp_file)
+        
         datafile = build_datafile(
             stt=stt,
             year=year,
-            quarter=quarter,
-            original_filename=f'{section}.txt', #this is awful
-            file_name=f'{section}.txt', #also bad
-            section=section,
-            file_data=bytes(temp_file, 'utf-8'),
+            quarter=f"Q{quarter}",
+            original_filename=f'{stt}-{section}-{year}Q{quarter}.txt',
+            file_name=f'{stt}-{section}-{year}Q{quarter}',
+            section=s,
+            file_data=bytes(temp_file.rstrip(), 'utf-8'),
         )
         datafile.save()
         files_for_quarter[section] = datafile
@@ -336,7 +333,7 @@ class Command(BaseCommand):
         from tdpservice.parsers.models import DataFileSummary
         from tdpservice.parsers import parse
         from tdpservice.parsers.test.factories import DataFileSummaryFactory
-        files_for_qtr = make_files(STT.objects.get(id=1), 2024, 1)
+        files_for_qtr = make_files(STT.objects.get(id=1), 2024, 2)
         print(files_for_qtr)  # file has no id, and no payload/content
         for f in files_for_qtr.keys():
             df = files_for_qtr[f]

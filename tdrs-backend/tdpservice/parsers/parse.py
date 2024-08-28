@@ -33,6 +33,7 @@ def parse_datafile(datafile, dfs):
         logger.info(f"Preparser Error: {len(header_errors)} header errors encountered.")
         errors['header'] = header_errors
         bulk_create_errors({1: header_errors}, 1, flush=True)
+        print("ERRORS: ", errors)
         return errors
 
     field_values = schema_defs.header.get_field_values_by_names(header_line,
@@ -466,8 +467,13 @@ def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted, cas
 
 def manager_parse_line(line, schema_manager, generate_error, datafile, is_encrypted=False):
     """Parse and validate a datafile line using SchemaManager."""
+
     if type(schema_manager) is row_schema.SchemaManager:
         schema_manager.datafile = datafile
+    elif type(schema_manager) is list:
+        print(line)
+        print("sMgr(" +str(type(schema_manager))+"): " +str(schema_manager))
+        print("datafile: " +str(type(datafile)))
     try:
         schema_manager.update_encrypted_fields(is_encrypted)
         records = schema_manager.parse_and_validate(line, generate_error)
