@@ -1,26 +1,25 @@
 """`seed_db` command."""
 
-import sys
+
 import random
 import logging
-from pathlib import Path
 
 from django.core.management import BaseCommand
 from faker import Faker
 fake = Faker()
 from django.core.files.base import ContentFile
-from tdpservice.parsers.test.factories import ParsingFileFactory, TanfT1Factory # maybe need other factories
 from tdpservice.parsers.schema_defs.header import header
 from tdpservice.parsers.schema_defs.trailer import trailer
 from tdpservice.parsers.schema_defs.utils import *  # maybe need other utilities
 # all models should be referenced by using the utils.py get_schema_options wrappers
-from tdpservice.parsers import schema_defs
-from tdpservice.data_files.models import DataFile
-from tdpservice.scheduling import parser_task
-from tdpservice.stts.models import STT
-#import the system_user
-from tdpservice.users.models import User
 
+from tdpservice.data_files.models import DataFile
+from tdpservice.parsers import parse
+from tdpservice.parsers.test.factories import DataFileSummaryFactory
+from tdpservice.scheduling import parser_task  # not using this, don't have datafile id
+from tdpservice.stts.models import STT
+from tdpservice.users.models import User
+from tdpservice.parsers.row_schema import RowSchema
 
 logger = logging.getLogger(__name__)
 
@@ -49,55 +48,6 @@ Create django command such that tool can be pointed at deployed environments
 
 
 
-# t1 fields
-'''
-RecordType(0-2)
-RPT_MONTH_YEAR(2-8)
-CASE_NUMBER(8-19)
-COUNTY_FIPS_CODE(19-22)
-STRATUM(22-24)
-ZIP_CODE(24-29)
-FUNDING_STREAM(29-30)
-DISPOSITION(30-31)
-NEW_APPLICANT(31-32)
-NBR_FAMILY_MEMBERS(32-34)
-FAMILY_TYPE(34-35)
-RECEIVES_SUB_HOUSING(35-36)
-RECEIVES_MED_ASSISTANCE(36-37)
-RECEIVES_FOOD_STAMPS(37-38)
-AMT_FOOD_STAMP_ASSISTANCE(38-42)
-RECEIVES_SUB_CC(42-43)
-AMT_SUB_CC(43-47)
-CHILD_SUPPORT_AMT(47-51)
-FAMILY_CASH_RESOURCES(51-55)
-CASH_AMOUNT(55-59)
-NBR_MONTHS(59-62)
-CC_AMOUNT(62-66)
-CHILDREN_COVERED(66-68)
-CC_NBR_MONTHS(68-71)
-TRANSP_AMOUNT(71-75)
-TRANSP_NBR_MONTHS(75-78)
-TRANSITION_SERVICES_AMOUNT(78-82)
-TRANSITION_NBR_MONTHS(82-85)
-OTHER_AMOUNT(85-89)
-OTHER_NBR_MONTHS(89-92)
-SANC_REDUCTION_AMT(92-96)
-WORK_REQ_SANCTION(96-97)
-FAMILY_SANC_ADULT(97-98)
-SANC_TEEN_PARENT(98-99)
-NON_COOPERATION_CSE(99-100)
-FAILURE_TO_COMPLY(100-101)
-OTHER_SANCTION(101-102)
-RECOUPMENT_PRIOR_OVRPMT(102-106)
-OTHER_TOTAL_REDUCTIONS(106-110)
-FAMILY_CAP(110-111)
-REDUCTIONS_ON_RECEIPTS(111-112)
-OTHER_NON_SANCTION(112-113)
-WAIVER_EVAL_CONTROL_GRPS(113-114)
-FAMILY_EXEMPT_TIME_LIMITS(114-116)
-FAMILY_NEW_CHILD(116-117)
-BLANK(117-156)
-'''
 # https://faker.readthedocs.io/en/stable/providers/baseprovider.html#faker.providers.BaseProvider
 """ class FieldFaker(faker.providers.BaseProvider):
     def record_type(self):
@@ -159,21 +109,8 @@ def build_datafile(stt, year, quarter, original_filename, file_name, section, fi
     return d
 
 
-def validValues(schemaMgr, field):
+def validValues(schemaMgr, field, year):
     '''Takes in a field and returns a line of valid values.'''
-    #niave implementation will just zero or 'a' fill the field
-    '''field_len = field.endIndex - field.startIndex
-    if field.type is "number":
-        line += "0" * field_len
-    elif field.type is "string":
-        line += "A" * field_len
-    else:
-        raise ValueError("Field type not recognized")
-    return line'''
-    #brute implementation will use faker and we'll run it through the validators
-    #pass
-
-    # elegant implementation will use the validators to generate the valid values
 
     field_len = field.endIndex - field.startIndex
     # check list of validators
@@ -187,41 +124,41 @@ def validValues(schemaMgr, field):
         # TODO: reverse the TransformField logic to 'encrypt' a random number
         field_format = '?' * field_len
     elif field.name in ('RPT_MONTH_YEAR', 'CALENDAR_QUARTER'):
-
         lower = 1 # TODO: get quarter and use acceptable range for month
-        upper = 3
+        upper = 12
         # need to generate a two-digit month with leading zero using format() and randit()
         month = '{}'.format(random.randint(lower, upper)).zfill(2)
-        field_format = '2024' + str(month)  # fake.date_time_this_month(before_now=True, after_now=False).strftime('%m%Y')
+        field_format = '{}{}'.format(year, str(month))  # fake.date_time_this_month(before_now=True, after_now=False).strftime('%m%Y')
     else:
         field_format = '#' * field_len
     return fake.bothify(text=field_format)
 
-from tdpservice.parsers.row_schema import RowSchema
-def make_line(schemaMgr, section):
+
+def make_line(schemaMgr, section, year):
     '''Takes in a schema manager and returns a line of data.'''
     line = ''
 
     if type(schemaMgr) is RowSchema:
             if schemaMgr.record_type == 'HEADER':
-                line += 'HEADER20241{}01   TAN1 D'.format(section)
+                line += 'HEADER{}1{}01   TAN1 D'.format(year, section)  # do I need to do that off-by-one thing on quarter
             elif schemaMgr.record_type == 'TRAILER':
                 line += 'TRAILER' + '1' * 16
     else:
-        row_schema = schemaMgr.schemas[0]
-        for field in row_schema.fields:
-            line += validValues(row_schema, field)
-    return line + ' \n'
+        #row_schema = schemaMgr.schemas[0]
+        for row_schema in schemaMgr.schemas:  # this is to handle multi-schema like T6
+            for field in row_schema.fields:
+                line += validValues(row_schema, field, year)
+    return line + '\n'
 
-from tdpservice.data_files.models import DataFile
 
 def make_files(stt, year, quarter):
     '''Given a STT, parameterize calls to build_datafile and make_line.'''
     sections = stt.filenames.keys()
-    # {'Active Case Data': 'ADS.E2J.FTP1.TS05', 'Closed Case Data': 'ADS.E2J.FTP2.TS05', 'Aggregate Data': 'ADS.E2J.FTP3.TS05'}"
+    """ {'Active Case Data': 'ADS.E2J.FTP1.TS05', 'Closed Case Data': 'ADS.E2J.FTP2.TS05', 'Aggregate Data': 'ADS.E2J.FTP3.TS05'}"
     # "{'Active Case Data': 'ADS.E2J.NDM1.TS24', 'Closed Case Data': 'ADS.E2J.NDM2.TS24', 'Aggregate Data': 'ADS.E2J.NDM3.TS24', 
     #       'Stratum Data': 'ADS.E2J.NDM4.TS24', 'SSP Active Case Data': 'ADS.E2J.NDM1.MS24', 'SSP Closed Case Data': 'ADS.E2J.NDM2.MS24', 'SSP Aggregate Data': 
     #       'ADS.E2J.NDM3.MS24', 'SSP Stratum Data': 'ADS.E2J.NDM4.MS24'}"
+    """
     files_for_quarter = {}
 
 
@@ -241,8 +178,7 @@ def make_files(stt, year, quarter):
         models_in_section = get_program_models(prog_type, section)
         temp_file = ''
 
-        print("making file for section: ", section)
-        temp_file += make_line(header,section)
+        temp_file += make_line(header, section, year)
 
         # iterate over models and generate lines
         for _, model in models_in_section.items():
@@ -253,15 +189,15 @@ def make_files(stt, year, quarter):
 
                 # we should generate hundreds, thousands, tens of thousands of records
                 for i in range(random.randint(5, 9)):
-                    temp_file += make_line(model,section)
+                    temp_file += make_line(model,section, year)
             #elif section in ['Aggregate Data', 'Stratum Data']:
             #    # we should generate a smaller count of lines...maybe leave this as a TODO
             #    # shouldn't this be based on the active/closed case data?
             #    pass
 
         # make trailer line
-        temp_file += make_line(trailer,section)
-        print(temp_file)
+        temp_file += make_line(trailer, section, year)
+        #print(temp_file)
         
         datafile = build_datafile(
             stt=stt,
@@ -276,6 +212,14 @@ def make_files(stt, year, quarter):
         files_for_quarter[section] = datafile
 
     return files_for_quarter
+
+def make_seed():
+    """Invokes scheduling/management/commands/backup_db management command."""
+    from tdpservice.scheduling.management.commands.backup_db import Command as BackupCommand
+    backup = BackupCommand()
+    backup.handle(file = '/tdpapp/tdrs_db_seed.pg') # /tmp/tdrs_db_backup.pg')
+
+
 
 class Command(BaseCommand):
     """Command class."""
@@ -330,35 +274,23 @@ class Command(BaseCommand):
 
         # TODO: allowed values per field, try manual and if commonalities exist, create a function to generate
         # TODO: can we utilize validators somehow to get a validValues(schemaMgr.fields[])?
-        from tdpservice.parsers.models import DataFileSummary
-        from tdpservice.parsers import parse
-        from tdpservice.parsers.test.factories import DataFileSummaryFactory
-        files_for_qtr = make_files(STT.objects.get(id=1), 2024, 2)
-        print(files_for_qtr)  # file has no id, and no payload/content
-        for f in files_for_qtr.keys():
-            df = files_for_qtr[f]
-            #dfs = DataFileSummary.objects.create(datafile=df, status=DataFileSummary.Status.PENDING) #maybe i need df.file_data?
-            dfs = DataFileSummaryFactory.build()
-            dfs.datafile = df
-            parse.parse_datafile(df, dfs)
+        from tdpservice.scheduling.parser_task import parse as parse_task
+        for yr in range(2020, 2025):
+            for qtr in [1,2,3,4]:
+                files_for_qtr = make_files(STT.objects.get(id=1), yr, qtr)
+                print(files_for_qtr)
+                for f in files_for_qtr.keys():
+                    df = files_for_qtr[f]
+                    print(df.id)
+                    #dfs = DataFileSummary.objects.create(datafile=df, status=DataFileSummary.Status.PENDING) #maybe i need df.file_data?
+                    dfs = DataFileSummaryFactory.build()
+                    dfs.datafile = df
+                    #parse.parse_datafile(df, dfs)
+                    parse_task(df.id, False)  # does this work too?
 
-        #files_for_qtr[0].save()
+        # dump db in full using `make_seed` func
+        make_seed()
 
-        # HALT
-        # stts = STT.objects.all()
-        # for stt in stts:
-        #     print(stt)
-        #     # for y in years[2024]
-        #     for q in [1,2,3,4]:
-        #         files_for_qtr = make_files(stt, 2024, q)
-        #         print(files_for_qtr)
-                # save to db or upload endpoint
-                
-                #for f in files_for_qtr:
-
-                #    parser_task.parse(f.id, should_send_submission_email=False)
-                # parse the file? or use DFS factory?
-        # dump db in full
 
 
         '''TODO: try out parameterization like so:
