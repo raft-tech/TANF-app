@@ -57,14 +57,14 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     class SubmissionDateFilter(admin.SimpleListFilter):
         """filter data files by month."""
 
-        title = 'Submission Date'
+        title = 'submission date'
         parameter_name = 'Submission Day/Month/Year'
 
         def lookups(self, request, model_admin):
             """Return a list of tuples."""
             return [
-                ('1', 'Yesterday'),
                 ('0', 'Today'),
+                ('1', 'Yesterday'),
                 ('7', 'Past 7 days'),
                 ('30', 'This month'),
                 ('365', 'This year'),
