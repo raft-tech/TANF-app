@@ -30,10 +30,10 @@ def test_SubmissionDateFilter(client):
     fake_query = DataFile.objects.all()
     data_file_admin = DataFileAdmin(DataFile, AdminSite())
     filter = DataFileAdmin.SubmissionDateFilter(None, {'Submission Day/Month/Year': '1'}, DataFile, DataFileAdmin)
-    assert data_file_admin.SubmissionDateFilter.title == 'Submission Date'
+    assert data_file_admin.SubmissionDateFilter.title == 'submission date'
     assert data_file_admin.SubmissionDateFilter.parameter_name == 'Submission Day/Month/Year'
     assert data_file_admin.SubmissionDateFilter.lookups(filter, None, None) == [
-        ('1', 'Yesterday'), ('0', 'Today'), ('7', 'Past 7 days'), ('30', 'This month'), ('365', 'This year')
+        ('0', 'Today'), ('1', 'Yesterday'), ('7', 'Past 7 days'), ('30', 'This month'), ('365', 'This year')
         ]
     assert data_file_admin.SubmissionDateFilter.queryset(filter, None, fake_query).exists() is False
     df = DataFileFactory()
