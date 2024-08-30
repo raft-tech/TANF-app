@@ -22,7 +22,7 @@ apt -y update && apt install postgresql-client-15 -y
 # Install packages:
 RUN apt install -y gcc graphviz graphviz-dev libpq-dev python3-dev vim
 # Install pipenv
-RUN pip install --upgrade pip pipenv setuptools
+RUN pip install --upgrade pip pipenv
 RUN pipenv install --dev --system --deploy
 
 # Adds our application code to the image
