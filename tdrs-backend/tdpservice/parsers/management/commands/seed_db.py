@@ -11,12 +11,13 @@ from django.core.files.base import ContentFile
 from tdpservice.parsers.schema_defs.header import header
 from tdpservice.parsers.schema_defs.trailer import trailer
 from tdpservice.parsers.schema_defs.utils import *  # maybe need other utilities
+from tdpservice.parsers.util import fiscal_to_calendar
 # all models should be referenced by using the utils.py get_schema_options wrappers
 
 from tdpservice.data_files.models import DataFile
 from tdpservice.parsers import parse
 from tdpservice.parsers.test.factories import DataFileSummaryFactory
-from tdpservice.scheduling import parser_task  # not using this, don't have datafile id
+from tdpservice.scheduling.parser_task import parse as parse_task
 from tdpservice.stts.models import STT
 from tdpservice.users.models import User
 from tdpservice.parsers.row_schema import RowSchema
@@ -138,20 +139,71 @@ def make_line(schemaMgr, section, year):
     '''Takes in a schema manager and returns a line of data.'''
     line = ''
 
-    if type(schemaMgr) is RowSchema:
-            if schemaMgr.record_type == 'HEADER':
-                line += 'HEADER{}1{}01   TAN1 D'.format(year, section)  # do I need to do that off-by-one thing on quarter
-            elif schemaMgr.record_type == 'TRAILER':
-                line += 'TRAILER' + '1' * 16
-    else:
-        #row_schema = schemaMgr.schemas[0]
-        for row_schema in schemaMgr.schemas:  # this is to handle multi-schema like T6
-            for field in row_schema.fields:
-                line += validValues(row_schema, field, year)
+    #row_schema = schemaMgr.schemas[0]
+    for row_schema in schemaMgr.schemas:  # this is to handle multi-schema like T6
+        for field in row_schema.fields:
+            line += validValues(row_schema, field, year)
     return line + '\n'
 
+def make_HT(schemaMgr, prog_type, section, year, quarter, stt):
+    line = ''
 
-def make_files(stt, year, quarter):
+    '''
+    The following fields are defined in the schema for the HEADER row of all submission types:  
+    1. title
+    2. year
+    3. quarter
+    4. type
+    5. state_fips
+    6. tribe_code
+    7. program_type
+    8. edit
+    9. encryption
+    10. update
+    '''
+    if type(schemaMgr) is RowSchema:
+        if schemaMgr.record_type == 'HEADER':
+            # HEADER2020Q1CAL000TAN1ED
+            for field in schemaMgr.fields:
+                if field.name == 'title':
+                    line += 'HEADER'
+                elif field.name == 'year':
+                    line += '{}'.format(year)
+                elif field.name == 'quarter':
+                    line += quarter[1:]  # remove the 'Q', e.g., 'Q1' -> '1'
+                elif field.name == 'type':
+                    line += section
+                elif field.name == 'state_fips':
+                    if stt.state is not None:  # this is a tribe
+                        my_stt = stt.state
+                    else:
+                        my_stt = stt
+                    line += '{}'.format(my_stt.stt_code).zfill(2)
+                elif field.name == 'tribe_code':
+                    if stt.type == 'tribe':
+                        line += stt.stt_code
+                    else:
+                        line += '000'
+                elif field.name == 'program_type':
+                    line += prog_type
+                elif field.name == 'edit':
+                    line += '1'
+                elif field.name == 'encryption':
+                    line += 'E'
+                elif field.name == 'update':
+                    line += 'D'
+                
+
+            #line += 'HEADER{}1{}01   TAN1 D'.format(year, section)  # do I need to do that off-by-one thing on quarter
+        elif schemaMgr.record_type == 'TRAILER':
+            line += 'TRAILER' + '1' * 16
+    else:
+        print('Invalid record type')
+        return None
+
+    return line + '\n'
+
+def make_files(stt, sub_year, sub_quarter):
     '''Given a STT, parameterize calls to build_datafile and make_line.'''
     sections = stt.filenames.keys()
     """ {'Active Case Data': 'ADS.E2J.FTP1.TS05', 'Closed Case Data': 'ADS.E2J.FTP2.TS05', 'Aggregate Data': 'ADS.E2J.FTP3.TS05'}"
@@ -162,7 +214,7 @@ def make_files(stt, year, quarter):
     files_for_quarter = {}
 
 
-    for s in sections:
+    for long_section in sections:
         # based on section, get models from schema_options
         #if stt.ssp is True:
         # we can match section to the schema_options
@@ -172,40 +224,71 @@ def make_files(stt, year, quarter):
         # given a leaf of 'section', get 'TAN' or 'SSP' or 'Tribal TAN' from schema_options
         
         # match schema_options[_]['section'] to our section
-        text_dict = get_schema_options("", section=s, query='text')
+        text_dict = get_schema_options("", section=long_section, query='text')
         prog_type = text_dict['program_type'] # TAN
         section = text_dict['section']  # A
         models_in_section = get_program_models(prog_type, section)
         temp_file = ''
 
-        temp_file += make_line(header, section, year)
+        '''
+        def fiscal_to_calendar(year, fiscal_quarter):
+            """Decrement the input quarter text by one."""
+            array = [1, 2, 3, 4]  # wrapping around an array
+            int_qtr = int(fiscal_quarter[1:])  # remove the 'Q', e.g., 'Q1' -> '1'
+            if int_qtr == 1:
+                year = year - 1
+
+            ind_qtr = array.index(int_qtr)  # get the index so we can easily wrap-around end of array
+            return year, "Q{}".format(array[ind_qtr - 1])  # return the previous quarter
+
+
+        def calendar_to_fiscal(calendar_year, fiscal_quarter):
+            """Decrement the calendar year if in Q1."""
+            return calendar_year - 1 if fiscal_quarter == 'Q1' else calendar_year
+
+
+        def transform_to_months(quarter):
+            """Return a list of months in a quarter depending the quarter's format."""
+            match quarter:
+                case "Q1":
+                    return ["Jan", "Feb", "Mar"]
+        ....
+
+        def month_to_int(month):
+            """Return the integer value of a month."""
+            return datetime.strptime(month, '%b').strftime('%m')
+                calendar_year, calendar_quarter = get_calendar_quarter(year, quarter)
+        '''
+
+
+
+        cal_year, cal_quarter = fiscal_to_calendar(sub_year, 'Q{}'.format(sub_quarter))
+
+
+        
+        temp_file += make_HT(header, prog_type, section, cal_year, cal_quarter, stt)
 
         # iterate over models and generate lines
         for _, model in models_in_section.items():
-            if s in ['Active Case Data', 'Closed Case Data','Aggregate Data', 'Stratum Data']:
-                # obviously, this first approach can't prevent duplicates (unlikely),
-                #    nor can it ensure that the case data is internally consistent
-                #    (e.g. a case with a child but no adult)
-
-                # we should generate hundreds, thousands, tens of thousands of records
+            if long_section in ['Active Case Data', 'Closed Case Data','Aggregate Data', 'Stratum Data']:
                 for i in range(random.randint(5, 9)):
-                    temp_file += make_line(model,section, year)
+                    temp_file += make_line(model,section, cal_year)
             #elif section in ['Aggregate Data', 'Stratum Data']:
             #    # we should generate a smaller count of lines...maybe leave this as a TODO
             #    # shouldn't this be based on the active/closed case data?
             #    pass
 
         # make trailer line
-        temp_file += make_line(trailer, section, year)
+        temp_file += make_HT(trailer, prog_type, section, cal_year, cal_quarter, stt)
         #print(temp_file)
         
         datafile = build_datafile(
             stt=stt,
-            year=year,
-            quarter=f"Q{quarter}",
-            original_filename=f'{stt}-{section}-{year}Q{quarter}.txt',
-            file_name=f'{stt}-{section}-{year}Q{quarter}',
-            section=s,
+            year=sub_year,  # fiscal submission year
+            quarter=f"Q{sub_quarter}",  # fiscal submission quarter
+            original_filename=f'{stt}-{section}-{sub_year}Q{sub_quarter}.txt',
+            file_name=f'{stt}-{section}-{sub_year}Q{sub_quarter}',
+            section=long_section,
             file_data=bytes(temp_file.rstrip(), 'utf-8'),
         )
         datafile.save()
@@ -274,19 +357,21 @@ class Command(BaseCommand):
 
         # TODO: allowed values per field, try manual and if commonalities exist, create a function to generate
         # TODO: can we utilize validators somehow to get a validValues(schemaMgr.fields[])?
-        from tdpservice.scheduling.parser_task import parse as parse_task
-        for yr in range(2020, 2025):
-            for qtr in [1,2,3,4]:
-                files_for_qtr = make_files(STT.objects.get(id=1), yr, qtr)
-                print(files_for_qtr)
-                for f in files_for_qtr.keys():
-                    df = files_for_qtr[f]
-                    print(df.id)
-                    #dfs = DataFileSummary.objects.create(datafile=df, status=DataFileSummary.Status.PENDING) #maybe i need df.file_data?
-                    dfs = DataFileSummaryFactory.build()
-                    dfs.datafile = df
-                    #parse.parse_datafile(df, dfs)
-                    parse_task(df.id, False)  # does this work too?
+
+        for stt in STT.objects.filter(id__in=range(1,2)):
+        #get(id=1):  # all():
+            for yr in range(2020, 2025):
+                for qtr in [1,2,3,4]:
+                    files_for_qtr = make_files(stt, yr, qtr)
+                    print(files_for_qtr)
+                    for f in files_for_qtr.keys():
+                        df = files_for_qtr[f]
+                        print(df.id)
+                        #dfs = DataFileSummary.objects.create(datafile=df, status=DataFileSummary.Status.PENDING) #maybe i need df.file_data?
+                        dfs = DataFileSummaryFactory.build()
+                        dfs.datafile = df
+                        #parse.parse_datafile(df, dfs)
+                        parse_task(df.id, False)  # does this work too?
 
         # dump db in full using `make_seed` func
         make_seed()
