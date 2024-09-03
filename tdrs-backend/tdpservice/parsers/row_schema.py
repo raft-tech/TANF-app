@@ -66,8 +66,6 @@ class RowSchema:
             if is_quiet_preparser_errors:
                 return None, True, []
             logger.info(f"{len(preparsing_errors)} preparser error(s) encountered.")
-            logger.info(line)
-            logger.info(preparsing_errors)
             return None, False, preparsing_errors
 
         # parse line to model

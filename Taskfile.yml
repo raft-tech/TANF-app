@@ -59,7 +59,7 @@ tasks:
     cmds:
       - docker-compose -f docker-compose.yml exec web sh -c "python ./manage.py shell"
 
-  backend-exec:
+  backend-exec-seed-db:
     desc: Execute a command in the backend container
     dir: tdrs-backend
     vars:
