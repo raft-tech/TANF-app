@@ -23,9 +23,19 @@ class DataFileInline(admin.TabularInline):
         return False
 
 
+@admin.action(description="Reparse selected data files")
+def make_published(modeladmin, request, queryset):
+    """Reparse the selected data files."""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"--------------Reparse selected data files: {queryset}")
+    for data_file in queryset:
+        data_file.reparse()
+
 @admin.register(DataFile)
 class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Admin class for DataFile models."""
+    actions = [make_published]
 
     def status(self, obj):
         """Return the status of the data file summary."""
