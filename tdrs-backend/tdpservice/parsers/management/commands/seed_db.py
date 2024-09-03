@@ -2,6 +2,7 @@
 
 from django.core.management import BaseCommand
 from django.core.files.base import ContentFile
+from django.db.utils import IntegrityError
 from tdpservice.parsers.schema_defs.header import header
 from tdpservice.parsers.schema_defs.trailer import trailer
 from tdpservice.parsers.schema_defs.utils import get_schema_options, get_program_models
@@ -38,7 +39,7 @@ def build_datafile(stt, year, quarter, original_filename, file_name, section, fi
         )
 
         d.file.save(file_name, ContentFile(file_data))
-    except django.db.utils.IntegrityError as e:
+    except IntegrityError as e:
         logger.error(f"Error creating datafile: {e}")
         pass
     return d
