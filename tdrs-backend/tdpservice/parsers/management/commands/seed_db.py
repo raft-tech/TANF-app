@@ -1,35 +1,31 @@
 """`seed_db` command."""
 
-
-import random
-import logging
-
 from django.core.management import BaseCommand
-from faker import Faker
-fake = Faker()
 from django.core.files.base import ContentFile
 from tdpservice.parsers.schema_defs.header import header
 from tdpservice.parsers.schema_defs.trailer import trailer
-from tdpservice.parsers.schema_defs.utils import *  # maybe need other utilities
+from tdpservice.parsers.schema_defs.utils import get_schema_options, get_program_models
 from tdpservice.parsers.util import fiscal_to_calendar
 # all models should be referenced by using the utils.py get_schema_options wrappers
-
 from tdpservice.data_files.models import DataFile
-#from tdpservice.parsers import parse
+# from tdpservice.parsers import parse
 from tdpservice.parsers.test.factories import DataFileSummaryFactory
 from tdpservice.scheduling.parser_task import parse as parse_task
 from tdpservice.stts.models import STT
 from tdpservice.users.models import User
 from tdpservice.parsers.row_schema import RowSchema
+from faker import Faker
+import logging
+import random
 
+fake = Faker()
 logger = logging.getLogger(__name__)
 
 # https://faker.readthedocs.io/en/stable/providers/baseprovider.html#faker.providers.BaseProvider
-""" class FieldFaker(faker.providers.BaseProvider):..."""
+# """ class FieldFaker(faker.providers.BaseProvider):..."""
 
 def build_datafile(stt, year, quarter, original_filename, file_name, section, file_data):
     """Build a datafile."""
-    
     try:
         d = DataFile.objects.create(
             user=User.objects.get_or_create(username='system')[0],
@@ -41,26 +37,25 @@ def build_datafile(stt, year, quarter, original_filename, file_name, section, fi
             version=random.randint(1, 1993415),
         )
 
-
         d.file.save(file_name, ContentFile(file_data))
     except django.db.utils.IntegrityError as e:
+        logger.error(f"Error creating datafile: {e}")
         pass
     return d
 
 
 def validValues(schemaMgr, field, year):
-    '''Takes in a field and returns a line of valid values.'''
-
+    """Take in a field and returns a line of valid values."""
     field_len = field.endIndex - field.startIndex
 
     if field.name == 'RecordType':
         return schemaMgr.record_type
     if field.name == 'SSN':
-        # only used by recordtypes 2,3,5 
+        # only used by recordtypes 2,3,5
         # TODO: reverse the TransformField logic to 'encrypt' a random number
         field_format = '?' * field_len
     elif field.name in ('RPT_MONTH_YEAR', 'CALENDAR_QUARTER'):
-        lower = 1 # TODO: get quarter and use acceptable range for month
+        lower = 1  # TODO: get quarter and use acceptable range for month
         upper = 12
 
         month = '{}'.format(random.randint(lower, upper)).zfill(2)
@@ -71,7 +66,7 @@ def validValues(schemaMgr, field, year):
 
 
 def make_line(schemaMgr, section, year):
-    '''Takes in a schema manager and returns a line of data.'''
+    """Take in a schema manager and returns a line of data."""
     line = ''
 
     for row_schema in schemaMgr.schemas:  # this is to handle multi-schema like T6
@@ -80,6 +75,7 @@ def make_line(schemaMgr, section, year):
     return line + '\n'
 
 def make_HT(schemaMgr, prog_type, section, year, quarter, stt):
+    """Handle special case of header/trailer lines."""
     line = ''
 
     if type(schemaMgr) is RowSchema:
@@ -113,7 +109,7 @@ def make_HT(schemaMgr, prog_type, section, year, quarter, stt):
                     line += 'E'
                 elif field.name == 'update':
                     line += 'D'
-                
+
         elif schemaMgr.record_type == 'TRAILER':
             line += 'TRAILER' + '1' * 16
     else:
@@ -123,38 +119,34 @@ def make_HT(schemaMgr, prog_type, section, year, quarter, stt):
     return line + '\n'
 
 def make_files(stt, sub_year, sub_quarter):
-    '''Given a STT, parameterize calls to build_datafile and make_line.'''
+    """Given a STT, parameterize calls to build_datafile and make_line."""
     sections = stt.filenames.keys()
     files_for_quarter = {}
 
-
     for long_section in sections:
         text_dict = get_schema_options("", section=long_section, query='text')
-        prog_type = text_dict['program_type'] # TAN
+        prog_type = text_dict['program_type']  # TAN
         section = text_dict['section']  # A
         models_in_section = get_program_models(prog_type, section)
         temp_file = ''
 
         cal_year, cal_quarter = fiscal_to_calendar(sub_year, 'Q{}'.format(sub_quarter))
-
-
-        
         temp_file += make_HT(header, prog_type, section, cal_year, cal_quarter, stt)
 
         # iterate over models and generate lines
         for _, model in models_in_section.items():
-            if long_section in ['Active Case Data', 'Closed Case Data','Aggregate Data', 'Stratum Data']:
+            if long_section in ['Active Case Data', 'Closed Case Data', 'Aggregate Data', 'Stratum Data']:
                 for i in range(random.randint(5, 999)):
-                    temp_file += make_line(model,section, cal_year)
-            #elif section in ['Aggregate Data', 'Stratum Data']:
+                    temp_file += make_line(model, section, cal_year)
+            # elif section in ['Aggregate Data', 'Stratum Data']:
             #    # we should generate a smaller count of lines...maybe leave this as a TODO
             #    # shouldn't this be based on the active/closed case data?
             #    pass
 
         # make trailer line
         temp_file += make_HT(trailer, prog_type, section, cal_year, cal_quarter, stt)
-        #print(temp_file)
-        
+        # print(temp_file)
+
         datafile = build_datafile(
             stt=stt,
             year=sub_year,  # fiscal submission year
@@ -170,10 +162,10 @@ def make_files(stt, sub_year, sub_quarter):
     return files_for_quarter
 
 def make_seed():
-    """Invokes scheduling/management/commands/backup_db management command."""
+    """Invoke scheduling/management/commands/backup_db management command."""
     from tdpservice.scheduling.management.commands.backup_db import Command as BackupCommand
     backup = BackupCommand()
-    backup.handle(file = '/tdpapp/tdrs_db_seed.pg')
+    backup.handle(file='/tdpapp/tdrs_db_seed.pg')
 
 class Command(BaseCommand):
     """Command class."""
@@ -182,19 +174,17 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         """Populate datafiles, records, summaries, and errors for all STTs."""
-   
         for stt in STT.objects.all():  # filter(id__in=range(1,2)):
             for yr in range(2020, 2025):
-                for qtr in [1,2,3,4]:
+                for qtr in [1, 2, 3, 4]:
                     files_for_qtr = make_files(stt, yr, qtr)
                     print(files_for_qtr)
                     for f in files_for_qtr.keys():
                         df = files_for_qtr[f]
                         dfs = DataFileSummaryFactory.build()
                         dfs.datafile = df
-                        #parse.parse_datafile(df, dfs)
+                        # parse.parse_datafile(df, dfs)
                         parse_task(df.id, False)
 
         # dump db in full using `make_seed` func
         make_seed()
-        

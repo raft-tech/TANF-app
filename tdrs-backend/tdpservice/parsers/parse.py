@@ -494,7 +494,6 @@ def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted, cas
 
 def manager_parse_line(line, schema_manager, generate_error, datafile, is_encrypted=False):
     """Parse and validate a datafile line using SchemaManager."""
-
     if type(schema_manager) is row_schema.SchemaManager:
         schema_manager.datafile = datafile
     try:
