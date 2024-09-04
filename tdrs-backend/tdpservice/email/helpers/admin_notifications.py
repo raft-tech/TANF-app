@@ -17,7 +17,7 @@ def email_admin_deactivated_user(user):
 
     template_path = EmailType.ACCOUNT_DEACTIVATED_ADMIN.value
     text_message = 'A user account has been deactivated.'
-    subject = 'User Account Deactivated'
+    subject = ' TDP User Account Deactivated due to Inactivity'
     context = {
         'user': user,
     }
