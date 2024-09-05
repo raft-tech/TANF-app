@@ -83,7 +83,6 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         'stt',
         'user',
         'year',
-        SubmissionDateFilter,
         'version',
         'summary__status',
         DataFileSummaryPrgTypeFilter,
