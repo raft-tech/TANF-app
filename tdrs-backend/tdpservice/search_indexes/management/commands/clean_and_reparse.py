@@ -32,6 +32,7 @@ class Command(BaseCommand):
         parser.add_argument("-y", "--fiscal_year", type=int, help="Reparse all files in the fiscal year, e.g. 2021.")
         parser.add_argument("-a", "--all", action='store_true', help="Clean and reparse all datafiles. If selected, "
                             "fiscal_year/quarter aren't necessary.")
+        parser.add_argument("-f", "--files", nargs='+', type=int, help="Reparse specific datafiles by ID.")
 
     def __get_log_context(self, system_user):
         """Return logger context."""
@@ -228,7 +229,10 @@ class Command(BaseCommand):
         fiscal_year = options.get('fiscal_year', None)
         fiscal_quarter = options.get('fiscal_quarter', None)
         reparse_all = options.get('all', False)
+        selected_files = options.get('files', None)
         new_indices = reparse_all is True
+
+        print('_______ selected_files:', selected_files)
 
         args_passed = fiscal_year is not None or fiscal_quarter is not None or reparse_all
 
