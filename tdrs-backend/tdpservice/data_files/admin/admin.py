@@ -6,7 +6,6 @@ from tdpservice.parsers.models import DataFileSummary, ParserError
 from tdpservice.data_files.admin.filters import DataFileSummaryPrgTypeFilter, LatestReparseEvent
 from django.conf import settings
 from django.utils.html import format_html
-from datetime import datetime, timedelta, timezone
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
