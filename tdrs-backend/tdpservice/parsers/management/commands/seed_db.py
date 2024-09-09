@@ -82,34 +82,16 @@ def make_HT(schemaMgr, prog_type, section, year, quarter, stt):
     if type(schemaMgr) is RowSchema:
         if schemaMgr.record_type == 'HEADER':
             # e.g. HEADER20201CAL000TAN1ED
-            for field in schemaMgr.fields:
-                if field.name == 'title':
-                    line += 'HEADER'
-                elif field.name == 'year':
-                    line += '{}'.format(year)
-                elif field.name == 'quarter':
-                    line += quarter[1:]  # remove the 'Q', e.g., 'Q1' -> '1'
-                elif field.name == 'type':
-                    line += section
-                elif field.name == 'state_fips':
-                    if stt.state is not None:  # this is a tribe
-                        my_stt = stt.state
-                    else:
-                        my_stt = stt
-                    line += '{}'.format(my_stt.stt_code).zfill(2)
-                elif field.name == 'tribe_code':
-                    if stt.type == 'tribe':
-                        line += stt.stt_code
-                    else:
-                        line += '000'
-                elif field.name == 'program_type':
-                    line += prog_type
-                elif field.name == 'edit':
-                    line += '1'
-                elif field.name == 'encryption':
-                    line += 'E'
-                elif field.name == 'update':
-                    line += 'D'
+
+            if stt.state is not None:  # this is a tribe
+                my_stt = stt.state
+            else:
+                my_stt = stt
+            state_fips = '{}'.format(my_stt.stt_code).zfill(2)
+            # state_fips = stt.state.stt_code if stt.state is not None else stt.stt_code
+            tribe_code = '{}'.format(stt.stt_code) if stt.type == 'tribe' else '000'
+
+            line = f"HEADER{year}{quarter[1:]}{section}{state_fips}{tribe_code}{prog_type}1ED"
 
         elif schemaMgr.record_type == 'TRAILER':
             line += 'TRAILER' + '1' * 16
@@ -136,7 +118,8 @@ def make_files(stt, sub_year, sub_quarter):
 
         # iterate over models and generate lines
         for _, model in models_in_section.items():
-            if long_section in ['Active Case Data', 'Closed Case Data', 'Aggregate Data', 'Stratum Data']:
+            # below is equivalent to 'contains' for the tuple
+            if any(section in long_section for section in ('Active Case', 'Closed Case', 'Aggregate', 'Stratum')):
                 for i in range(random.randint(5, 999)):
                     temp_file += make_line(model, section, cal_year)
             # elif section in ['Aggregate Data', 'Stratum Data']:
@@ -175,7 +158,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         """Populate datafiles, records, summaries, and errors for all STTs."""
-        for stt in STT.objects.all():  # filter(id__in=range(1,2)):
+        for stt in STT.objects.all():  # .filter(id__in=range(1,25))
             for yr in range(2020, 2025):
                 for qtr in [1, 2, 3, 4]:
                     files_for_qtr = make_files(stt, yr, qtr)

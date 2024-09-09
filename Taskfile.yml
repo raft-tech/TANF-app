@@ -109,8 +109,16 @@ tasks:
     cmds:
       - docker-compose -f docker-compose.yml exec web sh -c "python ./manage.py shell"
 
-  backend-exec-seed-db:
+  backend-exec:
     desc: Execute a command in the backend container
+    dir: tdrs-backend
+    vars:
+      CMD: '{{.CMD}}'
+    cmds:
+      - docker-compose -f docker-compose.yml exec web sh -c "python manage.py {{.CMD}}"
+
+  backend-exec-seed-db:
+    desc: Execute seed_db command in the backend container
     dir: tdrs-backend
     vars:
       CMD: '{{.CMD}}'
