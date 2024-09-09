@@ -16,6 +16,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.conf import settings
 import logging
+from django.core import serializers
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,12 @@ class Command(BaseCommand):
         parser.add_argument("-y", "--fiscal_year", type=int, help="Reparse all files in the fiscal year, e.g. 2021.")
         parser.add_argument("-a", "--all", action='store_true', help="Clean and reparse all datafiles. If selected, "
                             "fiscal_year/quarter aren't necessary.")
-        parser.add_argument("-f", "--files", nargs='+', type=int, help="Reparse specific datafiles by ID.")
+        
+        # we can use "from django.core import serializers" to serialize the datafiles and then use the datafiles to reparse
+        # the problem is that we need to serialize the datafiles before we can use them
+        # if the number of datafiles is small, we can serialize all of them and then use them to reparse
+        # if the number of datafiles is large, we can serialize them in batches and then use them to reparse
+        parser.add_argument("-f", "--files", nargs='+', type=str, help="Re-parse specific datafiles by datafile id")
 
     def __get_log_context(self, system_user):
         """Return logger context."""
@@ -230,11 +236,11 @@ class Command(BaseCommand):
         fiscal_quarter = options.get('fiscal_quarter', None)
         reparse_all = options.get('all', False)
         selected_files = options.get('files', None)
+        selected_files = [int(file) for file in selected_files[0].split(',')] if selected_files else None
         new_indices = reparse_all is True
 
-        print('_______ selected_files:', selected_files)
-
-        args_passed = fiscal_year is not None or fiscal_quarter is not None or reparse_all
+        # have to check if the selected_files is not None
+        args_passed = fiscal_year is not None or fiscal_quarter is not None or reparse_all or selected_files
 
         if not args_passed:
             logger.warn("No arguments supplied.")
@@ -247,8 +253,8 @@ class Command(BaseCommand):
         if reparse_all:
             backup_file_name += "_FY_All_Q1-4"
             continue_msg = continue_msg.format(fy="All", q="Q1-4")
-        else:
-            if not fiscal_year and not fiscal_quarter:
+        else: # check for selected_files
+            if not fiscal_year and not fiscal_quarter and not selected_files:
                 print(
                     'Options --fiscal_year and --fiscal_quarter not set. '
                     'Provide either option to continue, or --all to wipe all submissions.'
@@ -266,18 +272,24 @@ class Command(BaseCommand):
                 files = files.filter(quarter=fiscal_quarter)
                 backup_file_name += f"_FY_All_{fiscal_quarter}"
                 continue_msg = continue_msg.format(fy="All", q=fiscal_quarter)
+            elif selected_files:
+                files = files.filter(id__in=selected_files)
+                backup_file_name += f"_selected_files"
+                continue_msg = continue_msg.format(fy="All", q="Q1-4")
+
 
         fmt_str = "be" if new_indices else "NOT be"
         continue_msg += "will {new_index} stored in new indices and the old indices ".format(new_index=fmt_str)
-
+        
         num_files = files.count()
         fmt_str = f"ALL ({num_files})" if reparse_all else f"({num_files})"
         continue_msg += "\nThese options will delete and reparse {0} datafiles.".format(fmt_str)
 
-        c = str(input(f'\n{continue_msg}\nContinue [y/n]? ')).lower()
-        if c not in ['y', 'yes']:
-            print('Cancelled.')
-            return
+        if not selected_files:
+            c = str(input(f'\n{continue_msg}\nContinue [y/n]? ')).lower()
+            if c not in ['y', 'yes']:
+                print('Cancelled.')
+                return
 
         system_user, created = User.objects.get_or_create(username='system')
         if created:

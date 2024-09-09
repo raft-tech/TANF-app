@@ -7,6 +7,8 @@ from tdpservice.data_files.admin.filters import DataFileSummaryPrgTypeFilter, La
 from django.conf import settings
 from django.utils.html import format_html
 from datetime import datetime, timedelta, timezone
+from django.core.management import call_command
+from django.core.management.base import CommandError
 
 DOMAIN = settings.FRONTEND_BASE_URL
 
@@ -24,18 +26,17 @@ class DataFileInline(admin.TabularInline):
 
 
 @admin.action(description="Reparse selected data files")
-def make_published(modeladmin, request, queryset):
+def reparse_cmd(modeladmin, request, queryset):
     """Reparse the selected data files."""
     import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"--------------Reparse selected data files: {queryset}")
-    for data_file in queryset:
-        data_file.reparse()
+    # Reparse the selected data files using management command
+    files=queryset.values_list("id", flat=True)
+    call_command("clean_and_reparse", f'-f {",".join(map(str, files))}')
 
 @admin.register(DataFile)
 class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Admin class for DataFile models."""
-    actions = [make_published]
+    actions = [reparse_cmd]
 
     def status(self, obj):
         """Return the status of the data file summary."""
