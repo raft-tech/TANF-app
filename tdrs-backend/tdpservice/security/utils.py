@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 def token_is_valid(token):
     """Check if token is valid."""
+    # TODO: Add logging
     utc_now = datetime.now()
     utc_now = utc_now.replace(tzinfo=pytz.utc)
     if token.created < (utc_now - timedelta(hours=settings.TOKEN_EXPIRATION_HOURS)):
