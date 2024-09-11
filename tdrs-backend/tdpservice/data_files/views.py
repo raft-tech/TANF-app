@@ -150,6 +150,13 @@ class DataFileViewSet(ModelViewSet):
         parser_errors = ParserError.objects.all().filter(file=datafile)
         serializer = ParsingErrorSerializer(parser_errors, many=True, context=self.get_serializer_context())
         return Response(get_xls_serialized_file(serializer.data))
+    
+    @action(methods=["get"], detail=False)
+    def run_action_reparse_cmd(self, request, pk=None):
+        """Run the reparse command."""
+        # Need to add the reparsing file ids to the request object
+        print('________ request: ', request.__dict__)
+
 
 
 class GetYearList(APIView):

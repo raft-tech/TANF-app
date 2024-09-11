@@ -33,6 +33,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     #@admin.action(description="Reparse selected data files")
     def reparse_cmd(self, request, queryset):
         """Reparse the selected data files."""
+        # TOTO: remove this if part. This is just for testing
         if request.POST.get('post'):
             files = queryset.values_list("id", flat=True)
             self.message_user(request, f"Reparse command has been sent to the Celery queue for {len(files)} data files.")
@@ -50,7 +51,20 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
             request.current_app = self.admin_site.name
             from django.template.response import TemplateResponse
             # add information about reparsing here to this page
-            return TemplateResponse(request, "admin/action_confirmation.html")
+            number_of_files = queryset.count()
+            number_of_records = sum([df.summary.total_number_of_records_in_file for df in queryset])
+            context = dict(
+                self.admin_site.each_context(request),
+                title="Are you sure?",
+                action="reparse_cmd",
+                queryset=queryset,
+                opts=self.model._meta,
+                msg = f"{number_of_files} datafiles, {number_of_records} records will be lost"
+            )
+            # template should hit an action endpoint, which will call the command
+            # that endpoint will then redirect to the search_indexes_reparsemeta_changelist
+
+            return TemplateResponse(request, "admin/action_confirmation.html", context)
 
     # TODO: add tests for this method
     def get_actions(self, request):
