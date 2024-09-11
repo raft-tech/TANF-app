@@ -7,7 +7,6 @@ from tdpservice.data_files.admin.filters import DataFileSummaryPrgTypeFilter, La
 from django.conf import settings
 from django.utils.html import format_html
 from django.core.management import call_command
-from django.core.management.base import CommandError
 
 DOMAIN = settings.FRONTEND_BASE_URL
 
@@ -23,19 +22,42 @@ class DataFileInline(admin.TabularInline):
         """Read only permissions."""
         return False
 
-
-@admin.action(description="Reparse selected data files")
-def reparse_cmd(modeladmin, request, queryset):
-    """Reparse the selected data files."""
-    import logging
-    # Reparse the selected data files using management command
-    files=queryset.values_list("id", flat=True)
-    call_command("clean_and_reparse", f'-f {",".join(map(str, files))}')
-
 @admin.register(DataFile)
 class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Admin class for DataFile models."""
-    actions = [reparse_cmd]
+
+    actions = ['reparse_cmd']
+
+    #@admin.action(description="Reparse selected data files")
+    def reparse_cmd(self, request, queryset):
+        """Reparse the selected data files."""
+        if request.POST.get('post'):
+            files = queryset.values_list("id", flat=True)
+            self.message_user(request, f"Reparse command has been sent to the Celery queue for {len(files)} data files.")
+            from django.http import HttpResponseRedirect
+            return None
+            #return HttpResponseRedirect(request.get_full_path())
+            #call_command("clean_and_reparse", f'-f {",".join(map(str, files))}')
+            #modeladmin.message_user(request, "Data files reparse command has been sent to the Celery queue."
+            self.message_user(request, "Data files reparse command has been sent to the Celery queue.")
+            from django.shortcuts import redirect
+            from django.urls import reverse
+            url = reverse('admin:search_indexes_reparsemeta_changelist')
+            return redirect(url)
+        else:
+            request.current_app = self.admin_site.name
+            from django.template.response import TemplateResponse
+            return TemplateResponse(request, "admin/action_confirmation.html")
+
+    # TODO: add tests for this method
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not request.user.groups.filter(
+            name__in=["OFA System Admin", "OFA Admin"]
+            ).exists():
+            if "reparse_cmd" in actions:
+                del actions["reparse_cmd"]
+        return actions
 
     def status(self, obj):
         """Return the status of the data file summary."""

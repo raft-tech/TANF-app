@@ -16,7 +16,6 @@ from datetime import timedelta
 from django.utils import timezone
 from django.conf import settings
 import logging
-from django.core import serializers
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +32,6 @@ class Command(BaseCommand):
         parser.add_argument("-y", "--fiscal_year", type=int, help="Reparse all files in the fiscal year, e.g. 2021.")
         parser.add_argument("-a", "--all", action='store_true', help="Clean and reparse all datafiles. If selected, "
                             "fiscal_year/quarter aren't necessary.")
-        
-        # we can use "from django.core import serializers" to serialize the datafiles and then use the datafiles to reparse
-        # the problem is that we need to serialize the datafiles before we can use them
-        # if the number of datafiles is small, we can serialize all of them and then use them to reparse
-        # if the number of datafiles is large, we can serialize them in batches and then use them to reparse
         parser.add_argument("-f", "--files", nargs='+', type=str, help="Re-parse specific datafiles by datafile id")
 
     def __get_log_context(self, system_user):
@@ -250,10 +244,14 @@ class Command(BaseCommand):
         backup_file_name = "/tmp/reparsing_backup"
         files = DataFile.objects.all()
         continue_msg = "You have selected to reparse datafiles for FY {fy} and {q}. The reparsed files "
+        if selected_files:
+            files = files.filter(id__in=selected_files)
+            backup_file_name += "_selected_files"
+            continue_msg = continue_msg.format(fy="All", q="Q1-4")
         if reparse_all:
             backup_file_name += "_FY_All_Q1-4"
             continue_msg = continue_msg.format(fy="All", q="Q1-4")
-        else: # check for selected_files
+        else:
             if not fiscal_year and not fiscal_quarter and not selected_files:
                 print(
                     'Options --fiscal_year and --fiscal_quarter not set. '
@@ -272,15 +270,10 @@ class Command(BaseCommand):
                 files = files.filter(quarter=fiscal_quarter)
                 backup_file_name += f"_FY_All_{fiscal_quarter}"
                 continue_msg = continue_msg.format(fy="All", q=fiscal_quarter)
-            elif selected_files:
-                files = files.filter(id__in=selected_files)
-                backup_file_name += f"_selected_files"
-                continue_msg = continue_msg.format(fy="All", q="Q1-4")
-
 
         fmt_str = "be" if new_indices else "NOT be"
         continue_msg += "will {new_index} stored in new indices and the old indices ".format(new_index=fmt_str)
-        
+
         num_files = files.count()
         fmt_str = f"ALL ({num_files})" if reparse_all else f"({num_files})"
         continue_msg += "\nThese options will delete and reparse {0} datafiles.".format(fmt_str)
