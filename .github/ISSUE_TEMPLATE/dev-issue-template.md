@@ -47,3 +47,9 @@ _Please include any questions or decisions that must be made before beginning wo
 
 - _Open Question 1_
 - _Open Question 2_
+
+**Release Note Considerations**
+_Please include bullets on "so what?" value to STT end users and/or related guidance that should be communicated to STTs in release notes_
+
+- _Value to user_
+- _Talking point to user_
