@@ -49,6 +49,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         else:
             request.current_app = self.admin_site.name
             from django.template.response import TemplateResponse
+            # add information about reparsing here to this page
             return TemplateResponse(request, "admin/action_confirmation.html")
 
     # TODO: add tests for this method
