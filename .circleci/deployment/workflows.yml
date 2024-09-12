@@ -6,6 +6,7 @@
             - equal: [ master, << pipeline.git.branch >> ]
             - equal: [ main, << pipeline.git.branch >> ]
             - equal: [ develop, << pipeline.git.branch >> ]
+            - equal: [ bug/3141-e2e-failing, << pipeline.git.branch >> ]
             - << pipeline.parameters.run_dev_deployment >>
         - not: << pipeline.parameters.run_nightly_owasp_scan >>
 
@@ -15,6 +16,7 @@
             branches:
               only:
                 - develop
+                - bug/3141-e2e-failing
       - deploy-infrastructure-dev:
           target_env: << pipeline.parameters.target_env >>
           filters:
@@ -55,6 +57,7 @@
             branches:
               only:
                 - develop
+                - bug/3141-e2e-failing
       - enable-versioning:
           requires:
             - deploy-infrastructure-staging
@@ -123,9 +126,11 @@
             branches:
               only:
                 - develop
+                - bug/3141-e2e-failing
       - make_erd: # from ../util folder
           filters:
             branches:
               only:
                 - develop
                 - master
+                - bug/3141-e2e-failing
