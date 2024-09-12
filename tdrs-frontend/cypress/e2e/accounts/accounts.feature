@@ -19,7 +19,9 @@ Feature: Users can create and manage their accounts
         When 'new-cypress@teamraft.com' visits the home page
         And 'new-cypress@teamraft.com' logs in
         Then 'new-cypress@teamraft.com' requests access
-        And The admin sets the approval status of 'new-cypress@teamraft.com' to 'Approved'
+        Given The admin logs in
+        Then The admin sets the approval status of 'new-cypress@teamraft.com' to 'Approved'
+        And 'new-cypress@teamraft.com' logs in
         Then 'new-cypress@teamraft.com' can see the hompage
     Scenario: A new user is denied access
         Given The admin logs in

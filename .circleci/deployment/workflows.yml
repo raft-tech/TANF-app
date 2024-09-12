@@ -28,6 +28,7 @@
             branches:
               only:
                 - develop
+                - bug/3141-e2e-failing
                 - main
       - deploy-infrastructure-production:
           filters:
@@ -100,6 +101,7 @@
             branches:
               only:
                 - develop
+                - bug/3141-e2e-failing
       - deploy-staging:
           requires:
             - deploy-infrastructure-staging
