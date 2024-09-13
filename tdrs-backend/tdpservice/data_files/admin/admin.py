@@ -30,13 +30,11 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
     actions = ['reparse_cmd']
 
-    #@admin.action(description="Reparse selected data files")
     def reparse_cmd(self, request, queryset):
         """Reparse the selected data files."""
         # TOTO: remove this if part. This is just for testing
         files = queryset.values_list("id", flat=True)
-        file_ids = ",".join(map(str, files))        
-        #request.current_app = self.admin_site.name
+        file_ids = ",".join(map(str, files))
         number_of_files = queryset.count()
         number_of_records = sum([df.summary.total_number_of_records_in_file for df in queryset])
         context = dict(
@@ -45,17 +43,16 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
             action="reparse_cmd",
             queryset=queryset,
             opts=self.model._meta,
-            msg = f"{number_of_files} datafiles, {number_of_records} records will be lost",
+            msg=f"{number_of_files} datafiles, {number_of_records} records will be lost",
             file_ids=file_ids,
         )
         return TemplateResponse(request, "admin/action_confirmation.html", context)
 
     # TODO: add tests for this method
     def get_actions(self, request):
+        """Return the actions."""
         actions = super().get_actions(request)
-        if not request.user.groups.filter(
-            name__in=["OFA System Admin", "OFA Admin"]
-            ).exists():
+        if not request.user.groups.filter(name__in=["OFA System Admin", "OFA Admin"]).exists():
             if "reparse_cmd" in actions:
                 del actions["reparse_cmd"]
         return actions
