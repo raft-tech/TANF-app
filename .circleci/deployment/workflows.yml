@@ -16,13 +16,13 @@
             branches:
               only:
                 - develop
-                - bug/3141-e2e-failing
       - deploy-infrastructure-dev:
           target_env: << pipeline.parameters.target_env >>
           filters:
             branches:
               ignore:
                 - develop
+                - bug/3141-e2e-failing
                 - main
                 - master
       - deploy-infrastructure-staging:
@@ -44,6 +44,7 @@
             branches:
               ignore:
                 - develop
+                - bug/3141-e2e-failing
                 - main
                 - master
       - enable-versioning:
@@ -57,7 +58,6 @@
             branches:
               only:
                 - develop
-                - bug/3141-e2e-failing
       - enable-versioning:
           requires:
             - deploy-infrastructure-staging
@@ -97,6 +97,7 @@
                 - develop
                 - main
                 - master
+                - bug/3141-e2e-failing
       - deploy-develop:
           requires:
             - deploy-infrastructure-staging
@@ -133,4 +134,4 @@
               only:
                 - develop
                 - master
-                - bug/3141-e2e-failing
+
