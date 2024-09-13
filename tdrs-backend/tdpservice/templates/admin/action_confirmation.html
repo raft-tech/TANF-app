@@ -53,9 +53,10 @@
                         <div class="grid-row grid-gap">
                             <main class="" id="main-content">
                                 <div class="usa-prose">
-                                    <h1 tabindex="-1">Confirm</h1>
-                                    {{ msg}} <br>{{ file_ids }}
-                                    <button onclick="submit()" id="myButton" class="float-left submit-button" >Confirm</button>
+                                    <h1 tabindex="-1">Reparsing...</h1>
+                                    <br>
+                                    {{ msg}} <br> <br>
+                                    <button type="submit" onclick="submit()" id="myButton" class="float-left submit-button" >Confirm</button>
                                 </div>
                             </main>
                         </div>
@@ -108,8 +109,6 @@
         formData = new FormData();
         formData.append('file_ids', '{{ file_ids }}');
         data = {'file_ids': '{{ file_ids }}'};
-        console.log('____________' + data);
-        console.log('____________' + JSON.stringify(data));
         console.log(xhr)
         xhr.send(JSON.stringify(data));
     }

@@ -7,9 +7,8 @@ from tdpservice.parsers.models import DataFileSummary, ParserError
 from tdpservice.data_files.admin.filters import DataFileSummaryPrgTypeFilter, LatestReparseEvent, VersionFilter
 from django.conf import settings
 from django.utils.html import format_html
-from django.core.management import call_command
-from django.core.management.base import CommandError
 from datetime import datetime, timedelta, timezone
+from django.template.response import TemplateResponse
 
 DOMAIN = settings.FRONTEND_BASE_URL
 
@@ -36,39 +35,20 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         """Reparse the selected data files."""
         # TOTO: remove this if part. This is just for testing
         files = queryset.values_list("id", flat=True)
-        file_ids = ",".join(map(str, files))
-        file_ids = f'[{file_ids}]'
-        if request.POST.get('post'):
-            self.message_user(request, f"Reparse command has been sent to the Celery queue for {len(files)} data files.")
-            from django.http import HttpResponseRedirect
-            return None
-            #return HttpResponseRedirect(request.get_full_path())
-            #call_command("clean_and_reparse", f'-f {",".join(map(str, files))}')
-            #modeladmin.message_user(request, "Data files reparse command has been sent to the Celery queue."
-            self.message_user(request, "Data files reparse command has been sent to the Celery queue.")
-            from django.shortcuts import redirect
-            from django.urls import reverse
-            url = reverse('admin:search_indexes_reparsemeta_changelist')
-            return redirect(url)
-        else:
-            request.current_app = self.admin_site.name
-            from django.template.response import TemplateResponse
-            # add information about reparsing here to this page
-            number_of_files = queryset.count()
-            number_of_records = sum([df.summary.total_number_of_records_in_file for df in queryset])
-            context = dict(
-                self.admin_site.each_context(request),
-                title="Are you sure?",
-                action="reparse_cmd",
-                queryset=queryset,
-                opts=self.model._meta,
-                msg = f"{number_of_files} datafiles, {number_of_records} records will be lost",
-                file_ids=file_ids,
-            )
-            # template should hit an action endpoint, which will call the command
-            # that endpoint will then redirect to the search_indexes_reparsemeta_changelist
-
-            return TemplateResponse(request, "admin/action_confirmation.html", context)
+        file_ids = ",".join(map(str, files))        
+        #request.current_app = self.admin_site.name
+        number_of_files = queryset.count()
+        number_of_records = sum([df.summary.total_number_of_records_in_file for df in queryset])
+        context = dict(
+            self.admin_site.each_context(request),
+            title="Are you sure?",
+            action="reparse_cmd",
+            queryset=queryset,
+            opts=self.model._meta,
+            msg = f"{number_of_files} datafiles, {number_of_records} records will be lost",
+            file_ids=file_ids,
+        )
+        return TemplateResponse(request, "admin/action_confirmation.html", context)
 
     # TODO: add tests for this method
     def get_actions(self, request):
