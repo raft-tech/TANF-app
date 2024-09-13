@@ -34,8 +34,10 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     def reparse_cmd(self, request, queryset):
         """Reparse the selected data files."""
         # TOTO: remove this if part. This is just for testing
+        files = queryset.values_list("id", flat=True)
+        file_ids = ",".join(map(str, files))
+        file_ids = f'[{file_ids}]'
         if request.POST.get('post'):
-            files = queryset.values_list("id", flat=True)
             self.message_user(request, f"Reparse command has been sent to the Celery queue for {len(files)} data files.")
             from django.http import HttpResponseRedirect
             return None
@@ -59,7 +61,8 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
                 action="reparse_cmd",
                 queryset=queryset,
                 opts=self.model._meta,
-                msg = f"{number_of_files} datafiles, {number_of_records} records will be lost"
+                msg = f"{number_of_files} datafiles, {number_of_records} records will be lost",
+                file_ids=file_ids,
             )
             # template should hit an action endpoint, which will call the command
             # that endpoint will then redirect to the search_indexes_reparsemeta_changelist

@@ -150,12 +150,18 @@ class DataFileViewSet(ModelViewSet):
         parser_errors = ParserError.objects.all().filter(file=datafile)
         serializer = ParsingErrorSerializer(parser_errors, many=True, context=self.get_serializer_context())
         return Response(get_xls_serialized_file(serializer.data))
-    
-    @action(methods=["get"], detail=False)
+
+
+    from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
+
+    @action(methods=["post"], detail=False, parser_classes=[JSONParser, MultiPartParser, FormParser])
     def run_action_reparse_cmd(self, request, pk=None):
         """Run the reparse command."""
         # Need to add the reparsing file ids to the request object
-        print('________ request: ', request.__dict__)
+        print('________ request: ', request.data)
+        from django.core.management import call_command
+        call_command("clean_and_reparse", f"-f {request.data['file_ids']}")
+        return Response({'status': 'success'})
 
 
 
