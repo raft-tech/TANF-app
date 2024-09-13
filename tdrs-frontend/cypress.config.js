@@ -3,15 +3,14 @@ const webpack = require('@cypress/webpack-preprocessor')
 const preprocessor = require('@badeball/cypress-cucumber-preprocessor')
 
 module.exports = defineConfig({
-  defaultCommandTimeout: 10000,
   e2e: {
-    baseUrl: 'https://tdp-frontend-develop.acf.hhs.gov', //'http://localhost:3000',
+    baseUrl: 'http://localhost:3000',
     specPattern: '**/*.feature',
 
     env: {
-      apiUrl: 'https://tdp-frontend-develop.acf.hhs.gov/v1', //'http://localhost:3000/v1',
-      adminUrl: 'https://tdp-frontend-develop.acf.hhs.gov/admin', //'http://localhost:3000/admin',
-      cypressToken: 'VPryEbqCsudfVCgen2kk', //'local-cypress-token',
+      apiUrl: 'http://localhost:3000/v1',
+      adminUrl: 'http://localhost:3000/admin',
+      cypressToken: 'local-cypress-token',
     },
 
     async setupNodeEvents(on, config) {
