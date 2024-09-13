@@ -2,7 +2,7 @@
 
 8/28/2024 - 9/10/2024
 
-### <mark style="color:orange;">Priority Setting</mark>
+### Priority Setting
 
 * Re-parsing epic &#x20;
   * Re: OFA's reports behind schedule because db incomplete&#x20;
@@ -14,7 +14,7 @@
 * Continuous communication with STTs about latest TDP features and updates&#x20;
   * Re: release notes&#x20;
 
-### <mark style="color:orange;">Sprint Goal</mark>
+### Sprint Goal
 
 **Dev:**
 
