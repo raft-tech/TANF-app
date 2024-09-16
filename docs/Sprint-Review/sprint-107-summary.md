@@ -16,18 +16,16 @@
 _**Re-parsing, Admin Console Improvements, and Application Health Monitoring work**_
 
 * \#3106 — Re-Parse Django Action&#x20;
-* \#2965 — As tech lead, I want a database seed implemented for testing
 * \#3137 — \[bug] OFA unable to export data to csv by record type and fiscal period
 * \#3074 — TDP Data Files page permissions for DIGIT & Sys Admin user groups
+* \#3044 — Prometheus/Grafana - Local Environment
 * \#3042 — Sentry in cloud.gov
-* \#2458 — Integrate Nexus into CircleCI
 
 **DevOps:**
-
 _**Successful deployments across environments and pipeline stability investments**_
 
-* \#3044 — Prometheus/Grafana - Local Environment
-
+* \#2965 — As tech lead, I want a database seed implemented for testing
+* \#2458 — Integrate Nexus into CircleCI
 **Design:**
 
 _**Support reviews, In-app banner to support parsed data, Continue Error Audit (Cat 4)**_
