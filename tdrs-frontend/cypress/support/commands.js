@@ -80,7 +80,7 @@ Cypress.Commands.add(
       url: `${Cypress.env('adminUrl')}${path}`,
       form: true,
       headers: {
-        Referer: `${Cypress.env('adminUrl')}`,   //'https://tdp-frontend-develop.acf.hhs.gov/admin', //
+        Referer: `${Cypress.env('adminUrl')}`,
       },
     }
 
@@ -111,5 +111,7 @@ Cypress.Commands.add(
         cy.setCookie('csrftoken', csrfToken)
       )
     }
+
+
   }
 )
