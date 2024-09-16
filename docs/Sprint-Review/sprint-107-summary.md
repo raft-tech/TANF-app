@@ -5,14 +5,9 @@
 ### Priority Setting
 
 * Re-parsing epic &#x20;
-  * Re: OFA's reports behind schedule because db incomplete&#x20;
 * Postgres db access &#x20;
-  * Re: after db re-populated, csv exports not functional&#x20;
-  * Note: short-term workaround in-place, but will have limited value with incomplete db  &#x20;
 * UX research with DIGIT team&#x20;
-  * Re: provide clarity on OFA's data use  to help inform strategies and tools needed for the system to better support the DIGIT team's goals.&#x20;
 * Continuous communication with STTs about latest TDP features and updates&#x20;
-  * Re: release notes&#x20;
 
 ### Sprint Goal
 
