@@ -26,6 +26,7 @@ _**Successful deployments across environments and pipeline stability investments
 
 * \#2965 — As tech lead, I want a database seed implemented for testing
 * \#2458 — Integrate Nexus into CircleCI
+
 **Design:**
 
 _**Support reviews, In-app banner to support parsed data, Continue Error Audit (Cat 4)**_
