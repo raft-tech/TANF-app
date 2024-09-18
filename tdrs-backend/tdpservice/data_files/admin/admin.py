@@ -28,6 +28,9 @@ class DataFileInline(admin.TabularInline):
 class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Admin class for DataFile models."""
 
+    class Media:
+        js = ('admin/js/admin/mymodel.js',)
+
     actions = ['reparse_cmd']
 
     def reparse_cmd(self, request, queryset):
