@@ -40,8 +40,8 @@
             sudo apt-get install -y libgbm-dev
             export NVM_NODEJS_ORG_MIRROR='https://registry.npmjs.org/'
             source /opt/circleci/.nvm/nvm.sh
-            nvm install v16.13
-            nvm alias default v16.13
+            nvm install v16.13.2
+            nvm alias default v16.13.2
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
             echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
 
