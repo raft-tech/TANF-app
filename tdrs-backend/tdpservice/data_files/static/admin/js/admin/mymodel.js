@@ -1,13 +1,3 @@
-// get current form by id
-/*
-$('button[type="submit"]').submit(function() {
-    //this.submit();
-    console.log('submitting');
-    disableFields(); // your own function
-    return false;
-});
-*/
-
 $(window).on('load', function() {
     //your code here
     console.log('loaded');
@@ -34,3 +24,41 @@ disableFields = function() {
     console.log('disabling fields');
 }
 
+
+reparseFiles = function() {
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+            alert(xhr.response);
+        }
+    }
+    xhr.open('POST', '/v1/data_files/run_action_reparse_cmd/', false);
+    xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    formData = new FormData();
+    formData.append('file_ids', '{{ file_ids }}');
+    data = {'file_ids': '{{ file_ids }}'};
+    console.log(xhr)
+    xhr.send(JSON.stringify(data));
+}
+
+/*
+<script>
+    function submit() {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                alert(xhr.response);
+            }
+        }
+        xhr.open('POST', '/v1/data_files/run_action_reparse_cmd/', false);
+        xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        formData = new FormData();
+        formData.append('file_ids', '{{ file_ids }}');
+        data = {'file_ids': '{{ file_ids }}'};
+        console.log(xhr)
+        xhr.send(JSON.stringify(data));
+    }
+</script>
+*/

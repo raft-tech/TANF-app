@@ -36,6 +36,8 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     def reparse_cmd(self, request, queryset):
         """Reparse the selected data files."""
         # TOTO: remove this if part. This is just for testing
+        # we can run the command directly here
+
         files = queryset.values_list("id", flat=True)
         file_ids = ",".join(map(str, files))
         number_of_files = queryset.count()
@@ -49,7 +51,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
             msg=f"{number_of_files} datafiles, {number_of_records} records will be lost",
             file_ids=file_ids,
         )
-        return TemplateResponse(request, "admin/action_confirmation.html", context)
+        #return TemplateResponse(request, "admin/action_confirmation.html", context)
 
     # TODO: add tests for this method
     def get_actions(self, request):
