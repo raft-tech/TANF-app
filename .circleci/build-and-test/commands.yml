@@ -36,6 +36,7 @@
       - run:
           name: Install Node.JS
           command: |
+            echo "Are we entering command block?"
             sudo apt-get update
             sudo apt-get install -y libgbm-dev
             export NVM_NODEJS_ORG_MIRROR='https://registry.npmjs.org/'
