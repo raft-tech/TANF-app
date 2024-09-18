@@ -78,9 +78,10 @@ Cypress.Commands.add(
       method,
       body,
       url: `${Cypress.env('adminUrl')}${path}`,
+      //csrfmiddlewaretoken: ,
       form: true,
       headers: {
-        Referer: `${Cypress.env('adminUrl')}`,
+        Referer: `${Cypress.env('adminUrl')}${path}`,
       },
     }
 

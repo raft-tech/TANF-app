@@ -10,16 +10,18 @@ Feature: Users can create and manage their accounts
         And 'new-cypress@teamraft.com' is in begin state
         When 'new-cypress@teamraft.com' visits the home page
         And 'new-cypress@teamraft.com' logs in
-        Then 'new-cypress@teamraft.com' requests access
         And The admin sets the approval status of 'new-cypress@teamraft.com' to 'Pending'
         Then 'new-cypress@teamraft.com' sees the request still submitted
-    Scenario: A new user is approved and can see the app homepage
+    Scenario: A new user requests access
         Given The admin logs in
         And 'new-cypress@teamraft.com' is in begin state
         When 'new-cypress@teamraft.com' visits the home page
         And 'new-cypress@teamraft.com' logs in
-        Then 'new-cypress@teamraft.com' requests access
+        When 'new-cypress@teamraft.com' requests access
+        Then 'new-cypress@teamraft.com' sees the request still submitted
+    Scenario: A new user is approved and can see the app homepage
         Given The admin logs in
+        When 'new-cypress@teamraft.com' visits the home page
         Then The admin sets the approval status of 'new-cypress@teamraft.com' to 'Approved'
         And 'new-cypress@teamraft.com' logs in
         Then 'new-cypress@teamraft.com' can see the hompage

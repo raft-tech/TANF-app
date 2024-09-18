@@ -6,6 +6,10 @@ When('{string} visits the home page', (username) => {
   cy.contains('Sign into TANF Data Portal', { timeout: 30000 })
 })
 
+When('{string} visits', (username) => {
+  cy.visit('/')
+})
+
 When('The admin logs in', () => {
   cy.adminLogin('cypress-admin@teamraft.com')
 })
@@ -34,5 +38,8 @@ When('The admin sets the approval status of {string} to {string}', (username, st
       `/users/user/${cypressUser.selector.id}/change/`,
       body
     )
+    //cy.intercept('POST', `/users/user/${cypressUser.selector.id}/change/`, (req) => {
+    //  req.headers['Referer'] = window.location.href;
+    //});
   })
 })
