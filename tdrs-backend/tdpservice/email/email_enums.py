@@ -15,3 +15,5 @@ class EmailType(Enum):
     ACCOUNT_DEACTIVATED = 'account-deactivated.html'
     ACCOUNT_DEACTIVATED_ADMIN = 'account-deactivated-admin.html'
     UPCOMING_SUBMISSION_DEADLINE = 'upcoming-submission-deadline.html'
+    STUCK_FILE_SINGLE = 'stuck-file-single.html'
+    STUCK_FILE_LIST = 'stuck-file-list.html'
