@@ -314,7 +314,7 @@ class Common(Configuration):
 
     # CORS
     CORS_ALLOW_CREDENTIALS = True
-    CORS_REPLACE_HTTPS_REFERER = True
+    #CORS_REPLACE_HTTPS_REFERER = True
 
     # Capture all logging statements across the service in the root handler
     logger = logging.getLogger()

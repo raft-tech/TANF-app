@@ -65,11 +65,11 @@ class UserSerializer(serializers.ModelSerializer):
             'last_login',
             'date_joined',
             'access_requested_date',
-            'access_request',
         )
         read_only_fields = (
             'id',
             'username',
+            'access_request',
             'account_approval_status',
             'groups',
             'login_gov_uuid',

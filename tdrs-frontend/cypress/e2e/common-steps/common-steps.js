@@ -38,8 +38,5 @@ When('The admin sets the approval status of {string} to {string}', (username, st
       `/users/user/${cypressUser.selector.id}/change/`,
       body
     )
-    //cy.intercept('POST', `/users/user/${cypressUser.selector.id}/change/`, (req) => {
-    //  req.headers['Referer'] = window.location.href;
-    //});
   })
 })
