@@ -8,7 +8,6 @@ from tdpservice.data_files.admin.filters import DataFileSummaryPrgTypeFilter, La
 from django.conf import settings
 from django.utils.html import format_html
 from datetime import datetime, timedelta, timezone
-from django.template.response import TemplateResponse
 
 DOMAIN = settings.FRONTEND_BASE_URL
 
@@ -29,6 +28,8 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Admin class for DataFile models."""
 
     class Media:
+        """Media class for DataFileAdmin."""
+
         js = ('admin/js/admin/mymodel.js',)
 
     actions = ['reparse_cmd']
@@ -40,20 +41,21 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
         files = queryset.values_list("id", flat=True)
         file_ids = ",".join(map(str, files))
-        number_of_files = queryset.count()
-        number_of_records = sum([df.summary.total_number_of_records_in_file for df in queryset])
-        context = dict(
-            self.admin_site.each_context(request),
-            title="Are you sure?",
-            action="reparse_cmd",
-            queryset=queryset,
-            opts=self.model._meta,
-            msg=f"{number_of_files} datafiles, {number_of_records} records will be lost",
-            file_ids=file_ids,
+        from django.core.management import call_command
+        from django.utils.translation import ngettext
+        from django.contrib import messages
+        call_command("clean_and_reparse", f"-f {file_ids}")
+        self.message_user(
+            request,
+            ngettext(
+                "%d file successfully submitted for reparsing.",
+                "%d files successfully submitted for reparsing.",
+                files.count(),
+            )
+            % files.count(),
+            messages.SUCCESS,
         )
-        #return TemplateResponse(request, "admin/action_confirmation.html", context)
 
-    # TODO: add tests for this method
     def get_actions(self, request):
         """Return the actions."""
         actions = super().get_actions(request)
