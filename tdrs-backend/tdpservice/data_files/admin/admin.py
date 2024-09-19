@@ -36,9 +36,6 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
     def reparse_cmd(self, request, queryset):
         """Reparse the selected data files."""
-        # TOTO: remove this if part. This is just for testing
-        # we can run the command directly here
-
         files = queryset.values_list("id", flat=True)
         file_ids = ",".join(map(str, files))
         from django.core.management import call_command
