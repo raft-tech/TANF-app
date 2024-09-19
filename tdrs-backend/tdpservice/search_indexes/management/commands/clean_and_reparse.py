@@ -224,23 +224,8 @@ class Command(BaseCommand):
         logger.info(f"Setting timeout for the reparse event to be {delta} seconds from meta model creation date.")
         return delta
 
-    def handle(self, *args, **options):
-        """Delete and reparse datafiles matching a query."""
-        fiscal_year = options.get('fiscal_year', None)
-        fiscal_quarter = options.get('fiscal_quarter', None)
-        reparse_all = options.get('all', False)
-        selected_files = options.get('files', None)
-        selected_files = [int(file) for file in selected_files[0].split(',')] if selected_files else None
-        new_indices = reparse_all is True
-
-        # have to check if the selected_files is not None
-        args_passed = fiscal_year is not None or fiscal_quarter is not None or reparse_all or selected_files
-
-        if not args_passed:
-            logger.warn("No arguments supplied.")
-            self.print_help("manage.py", "clean_and_parse")
-            return
-
+    def get_files_to_reparse(case, fiscal_year, fiscal_quarter, selected_files, reparse_all):
+        """Get the files to reparse."""
         backup_file_name = "/tmp/reparsing_backup"
         files = DataFile.objects.all()
         continue_msg = "You have selected to reparse datafiles for FY {fy} and {q}. The reparsed files "
@@ -270,6 +255,33 @@ class Command(BaseCommand):
                 files = files.filter(quarter=fiscal_quarter)
                 backup_file_name += f"_FY_All_{fiscal_quarter}"
                 continue_msg = continue_msg.format(fy="All", q=fiscal_quarter)
+        return files, backup_file_name, continue_msg
+
+    def handle(self, *args, **options):
+        """Delete and reparse datafiles matching a query."""
+        fiscal_year = options.get('fiscal_year', None)
+        fiscal_quarter = options.get('fiscal_quarter', None)
+        reparse_all = options.get('all', False)
+        selected_files = options.get('files', None)
+        selected_files = [int(file) for file in selected_files[0].split(',')] if selected_files else None
+        new_indices = reparse_all is True
+
+        # have to check if the selected_files is not None
+        args_passed = fiscal_year is not None or fiscal_quarter is not None or reparse_all or selected_files
+
+        if not args_passed:
+            logger.warning("No arguments supplied.")
+            self.print_help("manage.py", "clean_and_parse")
+            return
+
+        # Set up the backup file name and continue message
+        files, backup_file_name, continue_msg = self.get_files_to_reparse(
+            fiscal_year,
+            fiscal_quarter,
+            selected_files,
+            reparse_all)
+
+        # end of the if statement
 
         fmt_str = "be" if new_indices else "NOT be"
         continue_msg += "will {new_index} stored in new indices and the old indices ".format(new_index=fmt_str)
