@@ -6,6 +6,10 @@ When('{string} visits the home page', (username) => {
   cy.contains('Sign into TANF Data Portal', { timeout: 30000 })
 })
 
+When('{string} visits', (username) => {
+  cy.visit('/')
+})
+
 When('The admin logs in', () => {
   cy.adminLogin('cypress-admin@teamraft.com')
 })
