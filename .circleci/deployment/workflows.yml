@@ -6,7 +6,7 @@
             - equal: [ master, << pipeline.git.branch >> ]
             - equal: [ main, << pipeline.git.branch >> ]
             - equal: [ develop, << pipeline.git.branch >> ]
-            - equal: [ bug/3141-e2e-failing, << pipeline.git.branch >> ]
+            - equal: [ bug/3141-e2e-revert-versions, << pipeline.git.branch >> ]
             - << pipeline.parameters.run_dev_deployment >>
         - not: << pipeline.parameters.run_nightly_owasp_scan >>
 
@@ -22,7 +22,7 @@
             branches:
               ignore:
                 - develop
-                - bug/3141-e2e-failing
+                - bug/3141-e2e-revert-versions
                 - main
                 - master
       - deploy-infrastructure-staging:
@@ -30,7 +30,7 @@
             branches:
               only:
                 - develop
-                - bug/3141-e2e-failing
+                - bug/3141-e2e-revert-versions
                 - main
       - deploy-infrastructure-production:
           filters:
@@ -44,7 +44,7 @@
             branches:
               ignore:
                 - develop
-                - bug/3141-e2e-failing
+                - bug/3141-e2e-revert-versions
                 - main
                 - master
       - enable-versioning:
@@ -97,7 +97,7 @@
                 - develop
                 - main
                 - master
-                - bug/3141-e2e-failing
+                - bug/3141-e2e-revert-versions
       - deploy-develop:
           requires:
             - deploy-infrastructure-staging
@@ -105,7 +105,7 @@
             branches:
               only:
                 - develop
-                - bug/3141-e2e-failing 
+                - bug/3141-e2e-revert-versions 
       - deploy-staging:
           requires:
             - deploy-infrastructure-staging
@@ -127,7 +127,7 @@
             branches:
               only:
                 - develop
-                - bug/3141-e2e-failing
+                - bug/3141-e2e-revert-versions
       - make_erd: # from ../util folder
           filters:
             branches:
