@@ -34,13 +34,11 @@ Feature: Users can create and manage their accounts
         Then 'new-cypress@teamraft.com' requests access
         And The admin sets the approval status of 'new-cypress@teamraft.com' to 'Denied'
         Then 'new-cypress@teamraft.com' sees request page again
-    @focus
-    Scenario: A user account is deactivated
+    Scenario: A deactived user account setup
         Given The admin logs in
         And 'new-cypress@teamraft.com' is in approved state
         When 'new-cypress@teamraft.com' visits the home page
         When 'new-cypress@teamraft.com' logs in
-    @focus
     Scenario: User account is deactivated
         Given The admin logs in
         When The admin sets the approval status of 'new-cypress@teamraft.com' to 'Deactivated'
