@@ -46,4 +46,5 @@ class Command(BaseCommand):
 
         stuck_files = get_stuck_files()
 
-        send_stuck_file_email(stuck_files, recipients)
+        if stuck_files.count() > 0:
+            send_stuck_file_email(stuck_files, recipients)
