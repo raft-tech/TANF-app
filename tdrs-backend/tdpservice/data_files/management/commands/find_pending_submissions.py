@@ -7,12 +7,35 @@ from django.utils import timezone
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.contrib.auth.models import Group
+from django.db.models import Q, Count
 from tdpservice.core.utils import log
 from django.contrib.admin.models import ADDITION
 from tdpservice.users.models import AccountApprovalStatusChoices, User
 from tdpservice.data_files.models import DataFile
 from tdpservice.parsers.models import DataFileSummary
 from tdpservice.email.helpers.data_file import send_stuck_file_email
+
+
+def get_stuck_files():
+    stuck_files = DataFile.objects.annotate(reparse_count=Count('reparse_meta_models')).filter(
+        # non-reparse submissions over an hour old
+        Q(
+            reparse_count=0,
+            created_at__lte=datetime.now(tz=timezone.utc) - timedelta(hours=1),
+        ) |  # OR
+        # reparse submissions past the timeout, where the reparse did not complete
+        Q(
+            reparse_count__gt=0,
+            reparse_meta_models__timeout_at__lte=datetime.now(tz=timezone.utc),
+            reparse_meta_models__finished=False,
+            reparse_meta_models__success=False
+        )
+    ).filter(
+        # where there is NO summary or the summary is in PENDING status
+        Q(summary=None) | Q(summary__status=DataFileSummary.Status.PENDING)
+    )
+
+    return stuck_files
 
 
 class Command(BaseCommand):
@@ -24,13 +47,15 @@ class Command(BaseCommand):
             groups=Group.objects.get(name='OFA System Admin')
         ).values_list('username', flat=True).distinct()
 
-        stuck_files = DataFile.objects.filter(
-            created_at__lte=datetime.now(tz=timezone.utc) - timedelta(hours=0, seconds=10),
-            summary__status=DataFileSummary.Status.PENDING,
-        )
+        stuck_files = get_stuck_files()
 
         # where no summary created?
         # where celery task not still running?
+            # query running task
+            # offset created_at by 10 min (max parse time?) (make sure we don't miss an increment)
+        # reparsing?
+            # all reparsing meta models associated with file completed?
+            # separate notification from reparse flow?
 
         for file in stuck_files:
             print(f'file {file.pk} stuck')
