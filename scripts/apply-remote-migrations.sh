@@ -47,6 +47,10 @@ set +a
 echo "Done."
 
 echo "Applying migrations..."
+# create the log dir
+mkdir /logs
+touch /logs/django.log
+
 python manage.py migrate
 status=$?
 echo "Done."
