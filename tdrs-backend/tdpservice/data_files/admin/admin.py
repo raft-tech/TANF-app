@@ -8,6 +8,7 @@ from tdpservice.data_files.admin.filters import DataFileSummaryPrgTypeFilter, La
 from django.conf import settings
 from django.utils.html import format_html
 from datetime import datetime, timedelta, timezone
+from django.shortcuts import redirect
 
 DOMAIN = settings.FRONTEND_BASE_URL
 
@@ -52,6 +53,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
             % files.count(),
             messages.SUCCESS,
         )
+        return redirect("/admin/search_indexes/reparsemeta/")
 
     def get_actions(self, request):
         """Return the actions."""
