@@ -1,5 +1,6 @@
-"""Discover files stuck in a 'Pending' status and notify System Administrators."""
+"""Celery shared tasks for use in scheduled jobs."""
 
+from celery import shared_task
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.core.management.base import BaseCommand
@@ -34,17 +35,15 @@ def get_stuck_files():
     return stuck_files
 
 
-class Command(BaseCommand):
+@shared_task
+def notify_stuck_files():
     """Find files stuck in 'Pending' and notify SysAdmins."""
+    recipients = User.objects.filter(
+        account_approval_status=AccountApprovalStatusChoices.APPROVED,
+        groups=Group.objects.get(name='OFA System Admin')
+    ).values_list('username', flat=True).distinct()
 
-    def handle(self, *args, **options):
-        """Run when the management command is invoked."""
-        recipients = User.objects.filter(
-            account_approval_status=AccountApprovalStatusChoices.APPROVED,
-            groups=Group.objects.get(name='OFA System Admin')
-        ).values_list('username', flat=True).distinct()
+    stuck_files = get_stuck_files()
 
-        stuck_files = get_stuck_files()
-
-        if stuck_files.count() > 0:
-            send_stuck_file_email(stuck_files, recipients)
+    if stuck_files.count() > 0:
+        send_stuck_file_email(stuck_files, recipients)
