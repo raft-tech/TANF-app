@@ -85,7 +85,6 @@ def send_stuck_file_email(stuck_files, recipients):
     text_message = f'The system has detected stuck files.'
 
     context = {
-        "name": recipients,  # .first().get_full_name(),
         "url": settings.FRONTEND_BASE_URL,
         "files": stuck_files,
     }
