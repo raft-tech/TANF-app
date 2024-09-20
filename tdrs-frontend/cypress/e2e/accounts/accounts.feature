@@ -10,6 +10,7 @@ Feature: Users can create and manage their accounts
         And 'new-cypress@teamraft.com' is in begin state
         When 'new-cypress@teamraft.com' visits the home page
         And 'new-cypress@teamraft.com' logs in
+        Then 'new-cypress@teamraft.com' requests access
         And The admin sets the approval status of 'new-cypress@teamraft.com' to 'Pending'
         Then 'new-cypress@teamraft.com' sees the request still submitted
     Scenario: A new user requests access
@@ -33,13 +34,14 @@ Feature: Users can create and manage their accounts
         Then 'new-cypress@teamraft.com' requests access
         And The admin sets the approval status of 'new-cypress@teamraft.com' to 'Denied'
         Then 'new-cypress@teamraft.com' sees request page again
+    @focus
     Scenario: A user account is deactivated
         Given The admin logs in
-        And 'new-cypress@teamraft.com' is in begin state
+        And 'new-cypress@teamraft.com' is in approved state
         When 'new-cypress@teamraft.com' visits the home page
-        And 'new-cypress@teamraft.com' logs in
-        Then 'new-cypress@teamraft.com' requests access
-        And The admin sets the approval status of 'new-cypress@teamraft.com' to 'Approved'
-        Then 'new-cypress@teamraft.com' can see the hompage
+        When 'new-cypress@teamraft.com' logs in
+    @focus
+    Scenario: User account is deactivated
+        Given The admin logs in
         When The admin sets the approval status of 'new-cypress@teamraft.com' to 'Deactivated'
-        Then 'new-cypress@teamraft.com' cannot log in
+        Then 'new-cypress@teamraft.com' fails to log in

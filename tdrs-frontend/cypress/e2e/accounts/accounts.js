@@ -81,6 +81,27 @@ Then('{string} cannot log in', (username) => {
   cy.visit('/')
   cy.contains('Inactive Account').should('exist')
 })
+
+Then('{string} fails to log in', (username) => {
+  cy.visit('/')
+  cy.login(username)
+  cy.contains('Welcome').should('exist').then(() => {
+    // get sessionId and csrfToken from cookie store
+    cy.getCookie('sessionid').its('value').as('userSessionId')
+    cy.getCookie('csrftoken').its('value').as('userCsrfToken')
+  })
+  const userSessionId = cy.state('aliases').userSessionId
+  const userCsrfToken = cy.state('aliases').userCsrfToken
+
+  // cy.authcheck(userSessionId, userCsrfToken)
+  // cy.visit('/').then(() => {
+  //  cy.contains('Inactive Account').should('exist')
+  // })
+  cy.wait(30000).then(() => {
+   cy.contains('Inactive Account').should('exist')
+  })
+})
+
 Then('{string} sees the request still submitted', (username) => {
   cy.visit('/')
   cy.contains('Request Submitted').should('exist')

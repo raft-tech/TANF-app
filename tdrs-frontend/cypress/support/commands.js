@@ -116,3 +116,28 @@ Cypress.Commands.add(
 
   }
 )
+
+Cypress.Commands.add(
+  'authcheck',
+  (sesh, csrf, method = 'GET', path = '/auth_check', 
+    body = {
+      username: 'new-cypress@teamraft.com',
+      token: Cypress.env('cypressToken'),
+      //csrfToken: csrf,
+      //sessionId: sesh,
+    },
+    options = {
+      method,
+      body,
+      url: `${Cypress.env('apiUrl')}${path}`,
+      //csrfmiddlewaretoken: ,
+      form: true,
+      headers: {
+        Referer: `${Cypress.env('apiUrl')}${path}`,
+      },
+    }) => {
+    cy.request(options)}
+  
+)
+
+
