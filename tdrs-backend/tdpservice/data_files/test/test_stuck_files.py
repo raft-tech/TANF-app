@@ -1,3 +1,6 @@
+"""Test the get_stuck_files function."""
+
+
 import pytest
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -21,7 +24,7 @@ def test_find_pending_submissions__none_stuck(stt_user, stt):
     df1.created_at = _time_ago(hours=2)
     df1.save()
 
-    dfs1 = DataFileSummary.objects.create(
+    _ = DataFileSummary.objects.create(
         datafile=df1,
         status=DataFileSummary.Status.ACCEPTED,
     )
@@ -33,7 +36,7 @@ def test_find_pending_submissions__none_stuck(stt_user, stt):
     df2.created_at = _time_ago(hours=1)
     df2.save()
 
-    dfs2 = DataFileSummary.objects.create(
+    _ = DataFileSummary.objects.create(
         datafile=df2,
         status=DataFileSummary.Status.ACCEPTED,
     )
@@ -56,7 +59,7 @@ def test_find_pending_submissions__none_stuck(stt_user, stt):
     df3.created_at = _time_ago(minutes=40)
     df3.save()
 
-    dfs3 = DataFileSummary.objects.create(
+    _ = DataFileSummary.objects.create(
         datafile=df3,
         status=DataFileSummary.Status.PENDING,
     )
@@ -75,7 +78,7 @@ def test_find_pending_submissions__non_reparse_stuck(stt_user, stt):
     df1.created_at = _time_ago(hours=2)
     df1.save()
 
-    dfs1 = DataFileSummary.objects.create(
+    _ = DataFileSummary.objects.create(
         datafile=df1,
         status=DataFileSummary.Status.PENDING,
     )
@@ -87,7 +90,7 @@ def test_find_pending_submissions__non_reparse_stuck(stt_user, stt):
     df2.created_at = _time_ago(hours=1)
     df2.save()
 
-    dfs2 = DataFileSummary.objects.create(
+    _ = DataFileSummary.objects.create(
         datafile=df2,
         status=DataFileSummary.Status.ACCEPTED,
     )
@@ -125,7 +128,7 @@ def test_find_pending_submissions__non_reparse_stuck__no_dfs(stt_user, stt):
     df2.created_at = _time_ago(hours=1)
     df2.save()
 
-    dfs2 = DataFileSummary.objects.create(
+    _ = DataFileSummary.objects.create(
         datafile=df2,
         status=DataFileSummary.Status.ACCEPTED,
     )
@@ -156,7 +159,7 @@ def test_find_pending_submissions__reparse_stuck(stt_user, stt):
     df1.created_at = _time_ago(hours=2)
     df1.save()
 
-    dfs1 = DataFileSummary.objects.create(
+    _ = DataFileSummary.objects.create(
         datafile=df1,
         status=DataFileSummary.Status.ACCEPTED,
     )
@@ -168,7 +171,7 @@ def test_find_pending_submissions__reparse_stuck(stt_user, stt):
     df2.created_at = _time_ago(hours=1)
     df2.save()
 
-    dfs2 = DataFileSummary.objects.create(
+    _ = DataFileSummary.objects.create(
         datafile=df2,
         status=DataFileSummary.Status.PENDING,
     )
@@ -199,7 +202,7 @@ def test_find_pending_submissions__reparse_stuck__no_dfs(stt_user, stt):
     df1.created_at = _time_ago(hours=2)
     df1.save()
 
-    dfs1 = DataFileSummary.objects.create(
+    _ = DataFileSummary.objects.create(
         datafile=df1,
         status=DataFileSummary.Status.ACCEPTED,
     )
@@ -237,7 +240,7 @@ def test_find_pending_submissions__reparse_and_non_reparse_stuck(stt_user, stt):
     df1.created_at = _time_ago(hours=2)
     df1.save()
 
-    dfs1 = DataFileSummary.objects.create(
+    _ = DataFileSummary.objects.create(
         datafile=df1,
         status=DataFileSummary.Status.PENDING,
     )
@@ -249,7 +252,7 @@ def test_find_pending_submissions__reparse_and_non_reparse_stuck(stt_user, stt):
     df2.created_at = _time_ago(hours=1)
     df2.save()
 
-    dfs2 = DataFileSummary.objects.create(
+    _ = DataFileSummary.objects.create(
         datafile=df2,
         status=DataFileSummary.Status.PENDING,
     )
@@ -315,7 +318,7 @@ def test_find_pending_submissions__old_reparse_stuck__new_not_stuck(stt_user, st
     df1.created_at = _time_ago(hours=2)
     df1.save()
 
-    dfs1 = DataFileSummary.objects.create(
+    _ = DataFileSummary.objects.create(
         datafile=df1,
         status=DataFileSummary.Status.PENDING,
     )
@@ -332,8 +335,8 @@ def test_find_pending_submissions__old_reparse_stuck__new_not_stuck(stt_user, st
     df1.reparse_meta_models.add(rpm1)
 
     # reparse again, succeeds this time
-    dfs1.delete()  # reparse deletes the original dfs and creates the new one
-    dfs2 = DataFileSummary.objects.create(
+    _.delete()  # reparse deletes the original dfs and creates the new one
+    _ = DataFileSummary.objects.create(
         datafile=df1,
         status=DataFileSummary.Status.ACCEPTED,
     )
@@ -362,7 +365,7 @@ def test_find_pending_submissions__new_reparse_stuck__old_not_stuck(stt_user, st
     df1.created_at = _time_ago(hours=2)
     df1.save()
 
-    dfs1 = DataFileSummary.objects.create(
+    _ = DataFileSummary.objects.create(
         datafile=df1,
         status=DataFileSummary.Status.REJECTED,
     )
@@ -379,8 +382,8 @@ def test_find_pending_submissions__new_reparse_stuck__old_not_stuck(stt_user, st
     df1.reparse_meta_models.add(rpm1)
 
     # reparse again, succeeds this time
-    dfs1.delete()  # reparse deletes the original dfs and creates the new one
-    dfs2 = DataFileSummary.objects.create(
+    _.delete()  # reparse deletes the original dfs and creates the new one
+    _ = DataFileSummary.objects.create(
         datafile=df1,
         status=DataFileSummary.Status.PENDING,
     )

@@ -1,15 +1,10 @@
-"""
-Discover files stuck in a 'Pending' status and notify System Administrators.
-"""
+"""Discover files stuck in a 'Pending' status and notify System Administrators."""
 
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.core.management.base import BaseCommand
-from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db.models import Q, Count
-from tdpservice.core.utils import log
-from django.contrib.admin.models import ADDITION
 from tdpservice.users.models import AccountApprovalStatusChoices, User
 from tdpservice.data_files.models import DataFile
 from tdpservice.parsers.models import DataFileSummary
@@ -17,6 +12,7 @@ from tdpservice.email.helpers.data_file import send_stuck_file_email
 
 
 def get_stuck_files():
+    """Return a queryset containing files in a 'stuck' state."""
     stuck_files = DataFile.objects.annotate(reparse_count=Count('reparse_meta_models')).filter(
         # non-reparse submissions over an hour old
         Q(
@@ -42,22 +38,12 @@ class Command(BaseCommand):
     """Find files stuck in 'Pending' and notify SysAdmins."""
 
     def handle(self, *args, **options):
+        """Run when the management command is invoked."""
         recipients = User.objects.filter(
             account_approval_status=AccountApprovalStatusChoices.APPROVED,
             groups=Group.objects.get(name='OFA System Admin')
         ).values_list('username', flat=True).distinct()
 
         stuck_files = get_stuck_files()
-
-        # where no summary created?
-        # where celery task not still running?
-            # query running task
-            # offset created_at by 10 min (max parse time?) (make sure we don't miss an increment)
-        # reparsing?
-            # all reparsing meta models associated with file completed?
-            # separate notification from reparse flow?
-
-        for file in stuck_files:
-            print(f'file {file.pk} stuck')
 
         send_stuck_file_email(stuck_files, recipients)

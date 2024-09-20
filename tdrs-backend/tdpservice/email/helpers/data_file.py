@@ -74,24 +74,21 @@ def send_data_submitted_email(
 
 def send_stuck_file_email(stuck_files, recipients):
     """Send an email to sys admins with details of files stuck in Pending."""
-    from tdpservice.parsers.models import DataFileSummary
-
     logger_context = {
         'user_id': User.objects.get_or_create(username='system')[0].pk
     }
 
     template_path = EmailType.STUCK_FILE_LIST.value
-    subject = f'Stuck files'
-    text_message = f'The system has detected stuck files.'
+    subject = 'Stuck files'
+    text_message = 'The system has detected stuck files.'
 
     context = {
+        "subject": subject,
         "url": settings.FRONTEND_BASE_URL,
         "files": stuck_files,
     }
 
     log(f'Emailing stuck files to SysAdmins: {list(recipients)}', logger_context=logger_context)
-
-    context.update({'subject': subject})
 
     automated_email(
         email_path=template_path,
