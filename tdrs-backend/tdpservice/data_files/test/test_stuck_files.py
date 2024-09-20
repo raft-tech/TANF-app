@@ -7,7 +7,7 @@ from django.utils import timezone
 from tdpservice.data_files.models import DataFile
 from tdpservice.parsers.models import DataFileSummary
 from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
-from tdpservice.data_files.management.commands.find_pending_submissions import get_stuck_files
+from tdpservice.data_files.tasks import get_stuck_files
 
 
 def _time_ago(hours=0, minutes=0, seconds=0):
