@@ -45,7 +45,7 @@ def build_datafile(stt, year, quarter, original_filename, file_name, section, fi
     return d
 
 
-def validValues(schemaMgr, field, year):
+def validValues(schemaMgr, field, year, qtr):
     """Take in a field and returns a line of valid values."""
     field_len = field.endIndex - field.startIndex
 
@@ -55,24 +55,43 @@ def validValues(schemaMgr, field, year):
         # only used by recordtypes 2,3,5
         # TODO: reverse the TransformField logic to 'encrypt' a random number
         field_format = '?' * field_len
-    elif field.name in ('RPT_MONTH_YEAR', 'CALENDAR_QUARTER'):
-        lower = 1  # TODO: get quarter and use acceptable range for month
-        upper = 12
+    elif field.name in ('RPT_MONTH_YEAR'):  # previously had CALENDAR_QUARTER
+        # given a quarter, set upper lower bounds for month
+        qtr = qtr[1:]
+        match qtr:
+            case '1':
+                lower = 1
+                upper = 3
+            case '2':
+                lower = 4
+                upper = 6
+            case '3':
+                lower = 7
+                upper = 9
+            case '4':
+                lower = 10
+                upper = 12
 
         month = '{}'.format(random.randint(lower, upper)).zfill(2)
         field_format = '{}{}'.format(year, str(month))
     else:
+        if field.friendly_name == 'Family Affiliation':
+            print('Family Affiliation')
         field_format = '#' * field_len
     return fake.bothify(text=field_format)
 
 
-def make_line(schemaMgr, section, year):
+def make_line(schemaMgr, section, year, qtr):
     """Take in a schema manager and returns a line of data."""
     line = ''
 
-    for row_schema in schemaMgr.schemas:  # this is to handle multi-schema like T6
-        for field in row_schema.fields:
-            line += validValues(row_schema, field, year)
+    #for row_schema in schemaMgr.schemas:  # this is to handle multi-schema like T6
+    #if len(schemaMgr.schemas) > 1:
+    row_schema = schemaMgr.schemas[0]
+
+    for field in row_schema.fields:
+        line += validValues(row_schema, field, year, qtr)
+        print(f"Field: {field.name}, field length {field.endIndex - field.startIndex} Value: {line}")
     return line + '\n'
 
 def make_HT(schemaMgr, prog_type, section, year, quarter, stt):
@@ -120,8 +139,8 @@ def make_files(stt, sub_year, sub_quarter):
         for _, model in models_in_section.items():
             # below is equivalent to 'contains' for the tuple
             if any(section in long_section for section in ('Active Case', 'Closed Case', 'Aggregate', 'Stratum')):
-                for i in range(random.randint(5, 999)):
-                    temp_file += make_line(model, section, cal_year)
+                for i in range(random.randint(1, 3)):
+                    temp_file += make_line(model, section, cal_year, cal_quarter)
             # elif section in ['Aggregate Data', 'Stratum Data']:
             #    # we should generate a smaller count of lines...maybe leave this as a TODO
             #    # shouldn't this be based on the active/closed case data?
@@ -158,9 +177,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         """Populate datafiles, records, summaries, and errors for all STTs."""
-        for stt in STT.objects.all():  # .filter(id__in=range(1,25))
-            for yr in range(2020, 2025):
-                for qtr in [1, 2, 3, 4]:
+
+        
+        for stt in STT.objects.filter(id__in=range(1,2)):  # .all():
+            for yr in range(2020, 2021):
+                for qtr in [1, 2]: #, 3, 4]:
                     files_for_qtr = make_files(stt, yr, qtr)
                     print(files_for_qtr)
                     for f in files_for_qtr.keys():
@@ -169,6 +190,34 @@ class Command(BaseCommand):
                         dfs.datafile = df
                         # parse.parse_datafile(df, dfs)
                         parse_task(df.id, False)
+        """
+
+        # run validValues() and make_line() but only for T3 types
+        from tdpservice.parsers.row_schema import SchemaManager
+        from tdpservice.parsers.parse import manager_parse_line
+        from tdpservice.parsers.util import make_generate_parser_error
+        t3_model = get_schema_options(program='TAN', section='A', model_name='T3', query='models')
+
+        quarter = 'Q2'
+
+        datafile = DataFile.objects.create(
+            user=User.objects.get_or_create(username='system')[0],
+            stt=STT.objects.get(id=1),
+            year=2021,
+            quarter='Q3',
+            original_filename='TAN-A-2021Q1.txt',
+            section='Active Case',
+            version=random.randint(1, 415),
+        )
+        generate_error = make_generate_parser_error(datafile, 1)
+        print(type(t3_model))
+        schemaMgr = t3_model
+  
+        for i in range(5):
+            t3_line = make_line(schemaMgr, 'A', 2021, quarter)
+            manager_parse_line(t3_line, schemaMgr, generate_error, datafile, is_encrypted=False)
+
+        """
 
         # dump db in full using `make_seed` func
-        make_seed()
+        # make_seed()
