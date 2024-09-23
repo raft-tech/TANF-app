@@ -58,19 +58,8 @@ def validValues(schemaMgr, field, year, qtr):
     elif field.name in ('RPT_MONTH_YEAR'):  # previously had CALENDAR_QUARTER
         # given a quarter, set upper lower bounds for month
         qtr = qtr[1:]
-        match qtr:
-            case '1':
-                lower = 1
-                upper = 3
-            case '2':
-                lower = 4
-                upper = 6
-            case '3':
-                lower = 7
-                upper = 9
-            case '4':
-                lower = 10
-                upper = 12
+        upper = int(qtr) * 3
+        lower = upper - 2
 
         month = '{}'.format(random.randint(lower, upper)).zfill(2)
         field_format = '{}{}'.format(year, str(month))
@@ -85,8 +74,8 @@ def make_line(schemaMgr, section, year, qtr):
     """Take in a schema manager and returns a line of data."""
     line = ''
 
-    #for row_schema in schemaMgr.schemas:  # this is to handle multi-schema like T6
-    #if len(schemaMgr.schemas) > 1:
+    # for row_schema in schemaMgr.schemas:  # this is to handle multi-schema like T6
+    # if len(schemaMgr.schemas) > 1:
     row_schema = schemaMgr.schemas[0]
 
     for field in row_schema.fields:
@@ -177,47 +166,16 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         """Populate datafiles, records, summaries, and errors for all STTs."""
-
-        
-        for stt in STT.objects.filter(id__in=range(1,2)):  # .all():
+        for stt in STT.objects.filter(id__in=range(1, 2)):  # .all():
             for yr in range(2020, 2021):
-                for qtr in [1, 2]: #, 3, 4]:
+                for qtr in [1, 2]:  # , 3, 4]:
                     files_for_qtr = make_files(stt, yr, qtr)
                     print(files_for_qtr)
                     for f in files_for_qtr.keys():
                         df = files_for_qtr[f]
                         dfs = DataFileSummaryFactory.build()
                         dfs.datafile = df
-                        # parse.parse_datafile(df, dfs)
                         parse_task(df.id, False)
-        """
-
-        # run validValues() and make_line() but only for T3 types
-        from tdpservice.parsers.row_schema import SchemaManager
-        from tdpservice.parsers.parse import manager_parse_line
-        from tdpservice.parsers.util import make_generate_parser_error
-        t3_model = get_schema_options(program='TAN', section='A', model_name='T3', query='models')
-
-        quarter = 'Q2'
-
-        datafile = DataFile.objects.create(
-            user=User.objects.get_or_create(username='system')[0],
-            stt=STT.objects.get(id=1),
-            year=2021,
-            quarter='Q3',
-            original_filename='TAN-A-2021Q1.txt',
-            section='Active Case',
-            version=random.randint(1, 415),
-        )
-        generate_error = make_generate_parser_error(datafile, 1)
-        print(type(t3_model))
-        schemaMgr = t3_model
-  
-        for i in range(5):
-            t3_line = make_line(schemaMgr, 'A', 2021, quarter)
-            manager_parse_line(t3_line, schemaMgr, generate_error, datafile, is_encrypted=False)
-
-        """
 
         # dump db in full using `make_seed` func
-        # make_seed()
+        make_seed()
