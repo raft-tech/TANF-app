@@ -3,7 +3,6 @@
 from celery import shared_task
 from datetime import datetime, timedelta
 from django.utils import timezone
-from django.core.management.base import BaseCommand
 from django.contrib.auth.models import Group
 from django.db.models import Q, Count
 from tdpservice.users.models import AccountApprovalStatusChoices, User
