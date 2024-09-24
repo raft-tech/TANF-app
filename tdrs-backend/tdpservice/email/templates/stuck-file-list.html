@@ -29,7 +29,9 @@
       <td style="padding: 4px; border-style: solid; border-color: #000000; border-width: 1px;">{{ file.section }}</td>
       <td style="padding: 4px; border-style: solid; border-color: #000000; border-width: 1px;">{{ file.fiscal_year }}</td>
       <td style="padding: 4px; border-style: solid; border-color: #000000; border-width: 1px;">{{ file.created_at }} {{ file.created_time_ago }}</td>
-      <td style="padding: 4px; border-style: solid; border-color: #000000; border-width: 1px;"><a href="">View in Admin Console</a></td>
+      <td style="padding: 4px; border-style: solid; border-color: #000000; border-width: 1px;">
+        <a href={{ file.admin_link }}>View in Admin Console</a>
+      </td>
     </tr>
     {% endfor %}
   </tbody>
