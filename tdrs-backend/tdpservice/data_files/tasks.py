@@ -37,12 +37,12 @@ def get_stuck_files():
 @shared_task
 def notify_stuck_files():
     """Find files stuck in 'Pending' and notify SysAdmins."""
-    recipients = User.objects.filter(
-        account_approval_status=AccountApprovalStatusChoices.APPROVED,
-        groups=Group.objects.get(name='OFA System Admin')
-    ).values_list('username', flat=True).distinct()
-
     stuck_files = get_stuck_files()
 
     if stuck_files.count() > 0:
+        recipients = User.objects.filter(
+            account_approval_status=AccountApprovalStatusChoices.APPROVED,
+            groups=Group.objects.get(name='OFA System Admin')
+        ).values_list('username', flat=True).distinct()
+
         send_stuck_file_email(stuck_files, recipients)
