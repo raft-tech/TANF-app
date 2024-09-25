@@ -1,7 +1,7 @@
 """Celery shared tasks for use in scheduled jobs."""
 
 from celery import shared_task
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.utils import timezone
 from django.contrib.auth.models import Group
 from django.db.models import Q, Count
@@ -17,12 +17,12 @@ def get_stuck_files():
         # non-reparse submissions over an hour old
         Q(
             reparse_count=0,
-            created_at__lte=datetime.now(tz=timezone.utc) - timedelta(hours=1),
+            created_at__lte=timezone.now() - timedelta(hours=1),
         ) |  # OR
         # reparse submissions past the timeout, where the reparse did not complete
         Q(
             reparse_count__gt=0,
-            reparse_meta_models__timeout_at__lte=datetime.now(tz=timezone.utc),
+            reparse_meta_models__timeout_at__lte=timezone.now(),
             reparse_meta_models__finished=False,
             reparse_meta_models__success=False
         )
