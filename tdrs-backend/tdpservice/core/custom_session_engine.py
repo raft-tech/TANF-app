@@ -1,6 +1,7 @@
 from django.contrib.sessions.backends import signed_cookies
 from django.core import signing
 import datetime
+from django.conf import settings
 
 class SessionStore(signed_cookies.SessionStore):
     """Custom session engine for TDP."""
@@ -25,7 +26,7 @@ class SessionStore(signed_cookies.SessionStore):
                 self.session_key,
                 serializer=self.serializer,
                 # This doesn't handle non-default expiry dates, see #19201
-                max_age=datetime.timedelta(days=1), #self.get_session_cookie_age(), #
+                max_age=datetime.timedelta(seconds=settings.SIGNED_COOKIE_EXPIRES),
                 salt="django.contrib.sessions.backends.signed_cookies",
             )
         except Exception as e:
