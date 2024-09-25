@@ -1,0 +1,3 @@
+deb https://tdp-nexus.dev.raftlabs.tech/repository/apt-proxy/ buster main
+deb https://tdp-nexus.dev.raftlabs.tech/repository/apt-proxy/ buster-updates main
+deb https://tdp-nexus.dev.raftlabs.tech/repository/apt-proxy-security/ buster/updates main
