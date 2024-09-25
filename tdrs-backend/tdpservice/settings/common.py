@@ -268,10 +268,12 @@ class Common(Configuration):
     )
 
     # Sessions
-    SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+    #SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+    SESSION_ENGINE = "tdpservice.core.custom_session_engine"
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-    SESSION_COOKIE_AGE = 15 * 60  # 15 minutes
+    #SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+    SESSION_SAVE_EVERY_REQUEST = True
+    SESSION_COOKIE_AGE = 10  # 15 minutes
     # The CSRF token Cookie holds no security benefits when confined to HttpOnly.
     # Setting this to false to allow the frontend to include it in the header
     # of API POST calls to prevent false negative authorization errors.
@@ -538,3 +540,6 @@ class Common(Configuration):
     IGNORE_DUPLICATE_ERROR_PRECEDENCE = os.getenv("IGNORE_DUPLICATE_ERROR_PRECEDENCE", False)
     BULK_CREATE_BATCH_SIZE = os.getenv("BULK_CREATE_BATCH_SIZE", 10000)
     MEDIAN_LINE_PARSE_TIME = os.getenv("MEDIAN_LINE_PARSE_TIME", 0.0005574226379394531)
+
+    CSRF_COOKIE_SAMESITE = None
+    SESSION_COOKIE_SAMESITE = None
