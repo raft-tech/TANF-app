@@ -1,7 +1,6 @@
 """Admin class for DataFile objects."""
 from django.contrib import admin
 from tdpservice.core.utils import ReadOnlyAdminMixin
-# from tdpservice.core.filters import custom_filter_title
 from tdpservice.data_files.models import DataFile, LegacyFileTransfer
 from tdpservice.parsers.models import DataFileSummary, ParserError
 from tdpservice.data_files.admin.filters import DataFileSummaryPrgTypeFilter, LatestReparseEvent, VersionFilter
@@ -9,6 +8,9 @@ from django.conf import settings
 from django.utils.html import format_html
 from datetime import datetime, timedelta, timezone
 from django.shortcuts import redirect
+from django.core.management import call_command
+from django.utils.translation import ngettext
+from django.contrib import messages
 
 DOMAIN = settings.FRONTEND_BASE_URL
 
@@ -39,9 +41,6 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         """Reparse the selected data files."""
         files = queryset.values_list("id", flat=True)
         file_ids = ",".join(map(str, files))
-        from django.core.management import call_command
-        from django.utils.translation import ngettext
-        from django.contrib import messages
         call_command("clean_and_reparse", f"-f {file_ids}")
         self.message_user(
             request,
