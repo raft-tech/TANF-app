@@ -31,7 +31,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     class Media:
         """Media class for DataFileAdmin."""
 
-        js = ('admin/js/admin/mymodel.js',)
+        js = ('admin/js/admin/admin_datafile_model.js',)
 
     actions = ['reparse_cmd']
 

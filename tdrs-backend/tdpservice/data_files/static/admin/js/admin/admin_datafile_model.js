@@ -1,8 +1,8 @@
 $(window).on('load', function() {
     //your code here
     console.log('loaded');
-    var S=document.querySelector('button[type=submit]');    // add the first listener
-    var theForm = S.parentNode.parentNode;
+    var submitBtn=document.querySelector('button[type=submit]');    // add the first listener
+    var theForm = submitBtn.parentNode.parentNode;
 
     for (var i = 0; i < theForm.childNodes.length; i++) {
         console.log(theForm.childNodes[i].className)
@@ -18,7 +18,7 @@ $(window).on('load', function() {
           break;
         }        
     }
-    S.addEventListener('click', function(e) {
+    submitBtn.addEventListener('click', function(e) {
         e.preventDefault();
         disableFields();
         if (confirm("You are about to re-parse " + number_of_files.innerHTML.split(/(\s+)/)[0] + " files. Are you sure you want to continue?")) {
@@ -31,8 +31,3 @@ $(window).on('load', function() {
 
     
 });
-
-
-disableFields = function() {
-    console.log('disabling fields');
-}
