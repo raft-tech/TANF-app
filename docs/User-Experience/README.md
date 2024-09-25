@@ -1,5 +1,5 @@
 
-# Welcome to the TDP User Experience (UX) Directory
+# Welcome to the TDP User Experience (UX) Directory 
 
 TDP is being developed for its core users. To that end, we follow an iterative design process backed by rigorous generative and evaluative research.  We listen to our users' needs - both STT and OFA- and build functionality that not only fulfils, but also eases their data prepping and transmission requirements. 
 
