@@ -153,6 +153,7 @@ class DataFile(FileRecord):
                                         )
 
     reparse_meta_models = models.ManyToManyField("search_indexes.ReparseMeta",
+                                                 through='search_indexes.ReparseFileMeta',
                                                  help_text="Reparse events this file has been associated with.",
                                                  related_name="datafiles"
                                                  )

@@ -5,6 +5,7 @@ from django.db.utils import DatabaseError
 from django.db.models import Max
 from tdpservice.search_indexes.util import count_all_records
 import logging
+from tdpservice.data_files.models import DataFile
 
 logger = logging.getLogger(__name__)
 
@@ -142,3 +143,18 @@ class ReparseMeta(models.Model):
         if max_pk.get("pk__max", None) is None:
             return None
         return ReparseMeta.objects.get(pk=max_pk["pk__max"])
+
+
+class ReparseFileMeta(models.Model):
+    """Meta data model representing a single file parse within a reparse execution."""
+    data_file = models.ForeignKey(DataFile)
+    reparse_meta = models.ForeignKey(ReparseMeta)
+
+    finished = models.BooleanField(default=False)
+    success = models.BooleanField(default=False)
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(auto_now_add=False, null=True)
+
+    num_records_deleted = models.PositiveIntegerField(default=0)
+    num_records_created = models.PositiveIntegerField(default=0)
+    cat_4_errors_generated = models.PositiveIntegerField(default=0)
