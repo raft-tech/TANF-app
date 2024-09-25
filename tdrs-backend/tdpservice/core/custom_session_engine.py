@@ -1,3 +1,5 @@
+"""Custom session engine for TDP."""
+
 from django.contrib.sessions.backends import signed_cookies
 from django.core import signing
 import datetime
@@ -12,14 +14,11 @@ class SessionStore(signed_cookies.SessionStore):
 
     def load(self):
         """Load the session data from the database."""
-        # get self.session
-        #session_data = super().load()
         """
         Load the data from the key itself instead of fetching from some
         external data store. Opposite of _get_session_key(), raise BadSignature
         if signature fails.
         """
-
 
         try:
             return signing.loads(
@@ -29,11 +28,11 @@ class SessionStore(signed_cookies.SessionStore):
                 max_age=datetime.timedelta(seconds=settings.SIGNED_COOKIE_EXPIRES),
                 salt="django.contrib.sessions.backends.signed_cookies",
             )
-        except Exception as e:
+        except Exception:
             # BadSignature, ValueError, or unpickling exceptions. If any of
-            # these happen, reset the session. 
+            # these happen, reset the session.
             return {}
-    
+
     def cycle_key(self):
         """Cycle the session key."""
         super().cycle_key()
