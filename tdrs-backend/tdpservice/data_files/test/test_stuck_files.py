@@ -6,7 +6,6 @@ from datetime import timedelta
 from django.utils import timezone
 from tdpservice.data_files.models import DataFile
 from tdpservice.parsers.models import DataFileSummary
-from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 from tdpservice.data_files.tasks import get_stuck_files
 from tdpservice.parsers.test.factories import ParsingFileFactory, DataFileSummaryFactory, ReparseMetaFactory
 
@@ -16,6 +15,7 @@ def _time_ago(hours=0, minutes=0, seconds=0):
 
 
 def make_datafile(stt_user, stt, version):
+    """Create a test data file with default params."""
     datafile = ParsingFileFactory.create(
         quarter=DataFile.Quarter.Q1, section=DataFile.Section.ACTIVE_CASE_DATA,
         year=2023, version=version, user=stt_user, stt=stt
@@ -24,6 +24,7 @@ def make_datafile(stt_user, stt, version):
 
 
 def make_summary(datafile, status):
+    """Create a test data file summary given a file and status."""
     return DataFileSummaryFactory.create(
         datafile=datafile,
         status=status,
@@ -31,6 +32,7 @@ def make_summary(datafile, status):
 
 
 def make_reparse_meta(finished, success):
+    """Create a test reparse meta model."""
     return ReparseMetaFactory.create(
         timeout_at=_time_ago(hours=1),
         finished=finished,
