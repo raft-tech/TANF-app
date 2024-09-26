@@ -8,61 +8,58 @@ from tdpservice.data_files.models import DataFile
 from tdpservice.parsers.models import DataFileSummary
 from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 from tdpservice.data_files.tasks import get_stuck_files
+from tdpservice.parsers.test.factories import ParsingFileFactory, DataFileSummaryFactory, ReparseMetaFactory
 
 
 def _time_ago(hours=0, minutes=0, seconds=0):
     return timezone.now() - timedelta(hours=hours, minutes=minutes, seconds=seconds)
 
 
+def make_datafile(stt_user, stt, version):
+    datafile = ParsingFileFactory.create(
+        quarter=DataFile.Quarter.Q1, section=DataFile.Section.ACTIVE_CASE_DATA,
+        year=2023, version=version, user=stt_user, stt=stt
+    )
+    return datafile
+
+
+def make_summary(datafile, status):
+    return DataFileSummaryFactory.create(
+        datafile=datafile,
+        status=status,
+    )
+
+
+def make_reparse_meta(finished, success):
+    return ReparseMetaFactory.create(
+        timeout_at=_time_ago(hours=1),
+        finished=finished,
+        success=success
+    )
+
+
 @pytest.mark.django_db
 def test_find_pending_submissions__none_stuck(stt_user, stt):
     """Finds no stuck files."""
-    df1 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q1, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # an accepted standard submission, more than an hour old
+    df1 = make_datafile(stt_user, stt, 1)
     df1.created_at = _time_ago(hours=2)
     df1.save()
+    make_summary(df1, DataFileSummary.Status.ACCEPTED)
 
-    DataFileSummary.objects.create(
-        datafile=df1,
-        status=DataFileSummary.Status.ACCEPTED,
-    )
-
-    df2 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q2, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # an accepted reparse submission, past the timeout
+    df2 = make_datafile(stt_user, stt, 2)
     df2.created_at = _time_ago(hours=1)
     df2.save()
-
-    DataFileSummary.objects.create(
-        datafile=df2,
-        status=DataFileSummary.Status.ACCEPTED,
-    )
-
-    rpm = ReparseMeta.objects.create(
-        timeout_at=_time_ago(hours=1),
-        finished=True,
-        success=True,
-        num_files_to_reparse=1,
-        files_completed=1,
-        files_failed=0,
-    )
-
+    make_summary(df2, DataFileSummary.Status.ACCEPTED)
+    rpm = make_reparse_meta(True, True)
     df2.reparse_meta_models.add(rpm)
 
-    df3 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q3, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # a pending standard submission, less than an hour old
+    df3 = make_datafile(stt_user, stt, 3)
     df3.created_at = _time_ago(minutes=40)
     df3.save()
-
-    DataFileSummary.objects.create(
-        datafile=df3,
-        status=DataFileSummary.Status.PENDING,
-    )
+    make_summary(df3, DataFileSummary.Status.PENDING)
 
     stuck_files = get_stuck_files()
     assert stuck_files.count() == 0
@@ -71,39 +68,18 @@ def test_find_pending_submissions__none_stuck(stt_user, stt):
 @pytest.mark.django_db
 def test_find_pending_submissions__non_reparse_stuck(stt_user, stt):
     """Finds standard upload/submission stuck in Pending."""
-    df1 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q1, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # a pending standard submission, more than an hour old
+    df1 = make_datafile(stt_user, stt, 1)
     df1.created_at = _time_ago(hours=2)
     df1.save()
+    make_summary(df1, DataFileSummary.Status.PENDING)
 
-    DataFileSummary.objects.create(
-        datafile=df1,
-        status=DataFileSummary.Status.PENDING,
-    )
-
-    df2 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q2, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # an accepted reparse submission, past the timeout
+    df2 = make_datafile(stt_user, stt, 2)
     df2.created_at = _time_ago(hours=1)
     df2.save()
-
-    DataFileSummary.objects.create(
-        datafile=df2,
-        status=DataFileSummary.Status.ACCEPTED,
-    )
-
-    rpm = ReparseMeta.objects.create(
-        timeout_at=_time_ago(hours=1),
-        finished=True,
-        success=True,
-        num_files_to_reparse=1,
-        files_completed=1,
-        files_failed=0,
-    )
-
+    make_summary(df2, DataFileSummary.Status.ACCEPTED)
+    rpm = make_reparse_meta(True, True)
     df2.reparse_meta_models.add(rpm)
 
     stuck_files = get_stuck_files()
@@ -114,34 +90,17 @@ def test_find_pending_submissions__non_reparse_stuck(stt_user, stt):
 @pytest.mark.django_db
 def test_find_pending_submissions__non_reparse_stuck__no_dfs(stt_user, stt):
     """Finds standard upload/submission stuck in Pending."""
-    df1 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q1, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # a standard submission with no summary
+    df1 = make_datafile(stt_user, stt, 1)
     df1.created_at = _time_ago(hours=2)
     df1.save()
 
-    df2 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q2, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # an accepted reparse submission, past the timeout
+    df2 = make_datafile(stt_user, stt, 2)
     df2.created_at = _time_ago(hours=1)
     df2.save()
-
-    DataFileSummary.objects.create(
-        datafile=df2,
-        status=DataFileSummary.Status.ACCEPTED,
-    )
-
-    rpm = ReparseMeta.objects.create(
-        timeout_at=_time_ago(hours=1),
-        finished=True,
-        success=True,
-        num_files_to_reparse=1,
-        files_completed=1,
-        files_failed=0,
-    )
-
+    make_summary(df2, DataFileSummary.Status.ACCEPTED)
+    rpm = make_reparse_meta(True, True)
     df2.reparse_meta_models.add(rpm)
 
     stuck_files = get_stuck_files()
@@ -152,39 +111,18 @@ def test_find_pending_submissions__non_reparse_stuck__no_dfs(stt_user, stt):
 @pytest.mark.django_db
 def test_find_pending_submissions__reparse_stuck(stt_user, stt):
     """Finds a reparse submission stuck in pending, past the timeout."""
-    df1 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q1, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # an accepted standard submission, more than an hour old
+    df1 = make_datafile(stt_user, stt, 1)
     df1.created_at = _time_ago(hours=2)
     df1.save()
+    make_summary(df1, DataFileSummary.Status.ACCEPTED)
 
-    DataFileSummary.objects.create(
-        datafile=df1,
-        status=DataFileSummary.Status.ACCEPTED,
-    )
-
-    df2 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q2, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # a pending reparse submission, past the timeout
+    df2 = make_datafile(stt_user, stt, 2)
     df2.created_at = _time_ago(hours=1)
     df2.save()
-
-    DataFileSummary.objects.create(
-        datafile=df2,
-        status=DataFileSummary.Status.PENDING,
-    )
-
-    rpm = ReparseMeta.objects.create(
-        timeout_at=_time_ago(hours=1),
-        finished=False,
-        success=False,
-        num_files_to_reparse=1,
-        files_completed=0,
-        files_failed=0,
-    )
-
+    make_summary(df2, DataFileSummary.Status.PENDING)
+    rpm = make_reparse_meta(False, False)
     df2.reparse_meta_models.add(rpm)
 
     stuck_files = get_stuck_files()
@@ -195,34 +133,17 @@ def test_find_pending_submissions__reparse_stuck(stt_user, stt):
 @pytest.mark.django_db
 def test_find_pending_submissions__reparse_stuck__no_dfs(stt_user, stt):
     """Finds a reparse submission stuck in pending, past the timeout."""
-    df1 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q1, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # an accepted standard submission, more than an hour old
+    df1 = make_datafile(stt_user, stt, 1)
     df1.created_at = _time_ago(hours=2)
     df1.save()
+    make_summary(df1, DataFileSummary.Status.ACCEPTED)
 
-    DataFileSummary.objects.create(
-        datafile=df1,
-        status=DataFileSummary.Status.ACCEPTED,
-    )
-
-    df2 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q2, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # a reparse submission with no summary, past the timeout
+    df2 = make_datafile(stt_user, stt, 2)
     df2.created_at = _time_ago(hours=1)
     df2.save()
-
-    rpm = ReparseMeta.objects.create(
-        timeout_at=_time_ago(hours=1),
-        finished=False,
-        success=False,
-        num_files_to_reparse=1,
-        files_completed=0,
-        files_failed=0,
-    )
-
+    rpm = make_reparse_meta(False, False)
     df2.reparse_meta_models.add(rpm)
 
     stuck_files = get_stuck_files()
@@ -233,39 +154,18 @@ def test_find_pending_submissions__reparse_stuck__no_dfs(stt_user, stt):
 @pytest.mark.django_db
 def test_find_pending_submissions__reparse_and_non_reparse_stuck(stt_user, stt):
     """Finds stuck submissions, both reparse and standard parse."""
-    df1 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q1, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # a pending standard submission, more than an hour old
+    df1 = make_datafile(stt_user, stt, 1)
     df1.created_at = _time_ago(hours=2)
     df1.save()
+    make_summary(df1, DataFileSummary.Status.PENDING)
 
-    DataFileSummary.objects.create(
-        datafile=df1,
-        status=DataFileSummary.Status.PENDING,
-    )
-
-    df2 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q2, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # a pending reparse submission, past the timeout
+    df2 = make_datafile(stt_user, stt, 2)
     df2.created_at = _time_ago(hours=1)
     df2.save()
-
-    DataFileSummary.objects.create(
-        datafile=df2,
-        status=DataFileSummary.Status.PENDING,
-    )
-
-    rpm = ReparseMeta.objects.create(
-        timeout_at=_time_ago(hours=1),
-        finished=False,
-        success=False,
-        num_files_to_reparse=1,
-        files_completed=0,
-        files_failed=0,
-    )
-
+    make_summary(df2, DataFileSummary.Status.PENDING)
+    rpm = make_reparse_meta(False, False)
     df2.reparse_meta_models.add(rpm)
 
     stuck_files = get_stuck_files()
@@ -277,29 +177,16 @@ def test_find_pending_submissions__reparse_and_non_reparse_stuck(stt_user, stt):
 @pytest.mark.django_db
 def test_find_pending_submissions__reparse_and_non_reparse_stuck_no_dfs(stt_user, stt):
     """Finds stuck submissions, both reparse and standard parse."""
-    df1 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q1, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # a pending standard submission, more than an hour old
+    df1 = make_datafile(stt_user, stt, 1)
     df1.created_at = _time_ago(hours=2)
     df1.save()
 
-    df2 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q2, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # a pending reparse submission, past the timeout
+    df2 = make_datafile(stt_user, stt, 2)
     df2.created_at = _time_ago(hours=1)
     df2.save()
-
-    rpm = ReparseMeta.objects.create(
-        timeout_at=_time_ago(hours=1),
-        finished=False,
-        success=False,
-        num_files_to_reparse=1,
-        files_completed=0,
-        files_failed=0,
-    )
-
+    rpm = make_reparse_meta(False, False)
     df2.reparse_meta_models.add(rpm)
 
     stuck_files = get_stuck_files()
@@ -311,27 +198,14 @@ def test_find_pending_submissions__reparse_and_non_reparse_stuck_no_dfs(stt_user
 @pytest.mark.django_db
 def test_find_pending_submissions__old_reparse_stuck__new_not_stuck(stt_user, stt):
     """Finds no stuck files, as the new parse is successful."""
-    df1 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q1, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # a pending standard submission, more than an hour old
+    df1 = make_datafile(stt_user, stt, 1)
     df1.created_at = _time_ago(hours=2)
     df1.save()
-
-    dfs1 = DataFileSummary.objects.create(
-        datafile=df1,
-        status=DataFileSummary.Status.PENDING,
-    )
+    dfs1 = make_summary(df1, DataFileSummary.Status.PENDING)
 
     # reparse fails the first time
-    rpm1 = ReparseMeta.objects.create(
-        timeout_at=_time_ago(hours=2),
-        finished=False,
-        success=False,
-        num_files_to_reparse=1,
-        files_completed=0,
-        files_failed=0,
-    )
+    rpm1 = make_reparse_meta(False, False)
     df1.reparse_meta_models.add(rpm1)
 
     stuck_files = get_stuck_files()
@@ -339,19 +213,9 @@ def test_find_pending_submissions__old_reparse_stuck__new_not_stuck(stt_user, st
 
     # reparse again, succeeds this time
     dfs1.delete()  # reparse deletes the original dfs and creates the new one
-    DataFileSummary.objects.create(
-        datafile=df1,
-        status=DataFileSummary.Status.ACCEPTED,
-    )
+    make_summary(df1, DataFileSummary.Status.ACCEPTED)
 
-    rpm2 = ReparseMeta.objects.create(
-        timeout_at=_time_ago(hours=1),
-        finished=True,
-        success=True,
-        num_files_to_reparse=1,
-        files_completed=1,
-        files_failed=0,
-    )
+    rpm2 = make_reparse_meta(True, True)
     df1.reparse_meta_models.add(rpm2)
 
     stuck_files = get_stuck_files()
@@ -361,44 +225,24 @@ def test_find_pending_submissions__old_reparse_stuck__new_not_stuck(stt_user, st
 @pytest.mark.django_db
 def test_find_pending_submissions__new_reparse_stuck__old_not_stuck(stt_user, stt):
     """Finds files stuck from the new reparse, even though the old one was successful."""
-    df1 = DataFile.objects.create(
-        quarter=DataFile.Quarter.Q1, section=DataFile.Section.ACTIVE_CASE_DATA,
-        year=2023, version=1, user=stt_user, stt=stt
-    )
+    # file rejected on first upload
+    df1 = make_datafile(stt_user, stt, 1)
     df1.created_at = _time_ago(hours=2)
     df1.save()
+    dfs1 = make_summary(df1, DataFileSummary.Status.REJECTED)
 
-    dfs1 = DataFileSummary.objects.create(
-        datafile=df1,
-        status=DataFileSummary.Status.REJECTED,
-    )
-
-    # reparse fails the first time
-    rpm1 = ReparseMeta.objects.create(
-        timeout_at=_time_ago(hours=2),
-        finished=False,
-        success=False,
-        num_files_to_reparse=1,
-        files_completed=0,
-        files_failed=0,
-    )
+    # reparse succeeds
+    rpm1 = make_reparse_meta(True, True)
     df1.reparse_meta_models.add(rpm1)
 
-    # reparse again, succeeds this time
+    # reparse again, fails this time
     dfs1.delete()  # reparse deletes the original dfs and creates the new one
     DataFileSummary.objects.create(
         datafile=df1,
         status=DataFileSummary.Status.PENDING,
     )
 
-    rpm2 = ReparseMeta.objects.create(
-        timeout_at=_time_ago(hours=1),
-        finished=True,
-        success=True,
-        num_files_to_reparse=1,
-        files_completed=1,
-        files_failed=0,
-    )
+    rpm2 = make_reparse_meta(False, False)
     df1.reparse_meta_models.add(rpm2)
 
     stuck_files = get_stuck_files()
