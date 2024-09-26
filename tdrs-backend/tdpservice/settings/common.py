@@ -282,7 +282,7 @@ class Common(Configuration):
 
     # Sessions
     SESSION_ENGINE = "tdpservice.core.custom_session_engine"
-    #SIGNED_COOKIE_EXPIRES = 60 * 60 * 24  # 24 hours
+    SIGNED_COOKIE_EXPIRES = 60 * 60 * 24  # 24 hours
     SESSION_COOKIE_HTTPONLY = True
     SESSION_SAVE_EVERY_REQUEST = True
     SESSION_EXPIRE_AT_BROWSER_CLOSE = True
