@@ -282,9 +282,10 @@ class Common(Configuration):
 
     # Sessions
     SESSION_ENGINE = "tdpservice.core.custom_session_engine"
-    SIGNED_COOKIE_EXPIRES = 60 * 60 * 24  # 24 hours
+    #SIGNED_COOKIE_EXPIRES = 60 * 60 * 24  # 24 hours
     SESSION_COOKIE_HTTPONLY = True
     SESSION_SAVE_EVERY_REQUEST = True
+    SESSION_EXPIRE_AT_BROWSER_CLOSE = True
     SESSION_COOKIE_AGE = 10  # 15 minutes
     # The CSRF token Cookie holds no security benefits when confined to HttpOnly.
     # Setting this to false to allow the frontend to include it in the header
