@@ -152,11 +152,17 @@ class DataFile(FileRecord):
                                         null=True
                                         )
 
-    reparse_meta_models = models.ManyToManyField("search_indexes.ReparseMeta",
-                                                 through='search_indexes.ReparseFileMeta',
-                                                 help_text="Reparse events this file has been associated with.",
-                                                 related_name="datafiles"
-                                                 )
+    reparses = models.ManyToManyField(
+        "search_indexes.ReparseMeta",
+        through='search_indexes.ReparseFileMeta',
+        help_text="Reparse events this file has been associated with.",
+        related_name="files"
+    )
+
+    # reparse_meta_models = models.ManyToManyField("search_indexes.ReparseMeta",
+    #                                              help_text="Reparse events this file has been associated with.",
+    #                                              related_name="datafiles"
+    #                                              )
 
     @property
     def prog_type(self):

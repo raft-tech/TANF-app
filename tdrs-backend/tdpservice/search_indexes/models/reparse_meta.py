@@ -147,8 +147,8 @@ class ReparseMeta(models.Model):
 
 class ReparseFileMeta(models.Model):
     """Meta data model representing a single file parse within a reparse execution."""
-    data_file = models.ForeignKey(DataFile)
-    reparse_meta = models.ForeignKey(ReparseMeta)
+    data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
+    reparse_meta = models.ForeignKey(ReparseMeta, on_delete=models.CASCADE)
 
     finished = models.BooleanField(default=False)
     success = models.BooleanField(default=False)
