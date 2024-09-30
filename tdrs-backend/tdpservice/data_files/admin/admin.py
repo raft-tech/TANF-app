@@ -114,16 +114,15 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
     list_filter = [
         'id',
+        'stt',
+        'year',
         'quarter',
         'section',
-        'stt',
+        'summary__status',
         'stt__type',
         'stt__region',
         'user',
-        'year',
         SubmissionDateFilter,
-        'summary__status',
-        DataFileSummaryPrgTypeFilter,
         LatestReparseEvent,
         VersionFilter,
     ]
