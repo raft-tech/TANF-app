@@ -35,9 +35,9 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
         js = ('admin/js/admin/admin_datafile_model.js',)
 
-    actions = ['reparse_cmd']
+    actions = ['reparse']
 
-    def reparse_cmd(self, request, queryset):
+    def reparse(self, request, queryset):
         """Reparse the selected data files."""
         files = queryset.values_list("id", flat=True)
         file_ids = ",".join(map(str, files))
@@ -58,8 +58,8 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         """Return the actions."""
         actions = super().get_actions(request)
         if not request.user.groups.filter(name__in=["OFA System Admin", "OFA Admin"]).exists():
-            if "reparse_cmd" in actions:
-                del actions["reparse_cmd"]
+            if "reparse" in actions:
+                del actions["reparse"]
         return actions
 
     def status(self, obj):
