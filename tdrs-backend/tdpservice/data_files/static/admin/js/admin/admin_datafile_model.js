@@ -20,7 +20,6 @@ $(window).on('load', function() {
     }
     submitBtn.addEventListener('click', function(e) {
         e.preventDefault();
-        disableFields();
         if (confirm("You are about to re-parse " + number_of_files.innerHTML.split(/(\s+)/)[0] + " files. Are you sure you want to continue?")) {
             console.log('submitting');
             theForm.submit();
