@@ -113,7 +113,6 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     ]
 
     list_filter = [
-        'id',
         'stt',
         'year',
         'quarter',
