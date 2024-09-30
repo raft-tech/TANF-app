@@ -2,6 +2,7 @@ $(window).on('load', function() {
     //your code here
     console.log('loaded');
     var submitBtn=document.querySelector('button[type=submit]');    // add the first listener
+    console.log(submitBtn.parentNode);
     var theForm = submitBtn.parentNode.parentNode;
 
     for (var i = 0; i < theForm.childNodes.length; i++) {

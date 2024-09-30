@@ -60,6 +60,9 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         if not request.user.groups.filter(name__in=["OFA System Admin", "OFA Admin"]).exists():
             if "reparse" in actions:
                 del actions["reparse"]
+        else:
+            if "reparse" not in actions:
+                actions["reparse"] = (self.reparse, "reparse", "Reparse selected data files)")
         return actions
 
     def status(self, obj):
