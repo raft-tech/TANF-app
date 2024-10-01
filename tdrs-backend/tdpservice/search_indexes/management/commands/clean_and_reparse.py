@@ -157,9 +157,9 @@ class Command(BaseCommand):
         """Delete, re-save, and reparse selected datafiles."""
         for file in files:
             try:
-                file.reparse_meta_models.add(meta_model)
+                file.reparses.add(meta_model)
                 file.save()
-                parser_task.parse.delay(file.pk, should_send_submission_email=False)
+                parser_task.parse.delay(file.pk, reparse_id=meta_model.pk)
             except DatabaseError as e:
                 log('Encountered a DatabaseError while re-creating datafiles. The database '
                     'and Elastic are INCONSISTENT! Restore the DB from the backup as soon as possible!',

@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 from celery import shared_task
 import logging
+from django.utils import timezone
 from django.contrib.auth.models import Group
 from django.db.utils import DatabaseError
 from tdpservice.users.models import AccountApprovalStatusChoices, User
@@ -11,20 +12,21 @@ from tdpservice.parsers.models import DataFileSummary, ParserErrorCategoryChoice
 from tdpservice.parsers.aggregates import case_aggregates_by_month, total_errors_by_month
 from tdpservice.parsers.util import log_parser_exception, make_generate_parser_error
 from tdpservice.email.helpers.data_file import send_data_submitted_email
-from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
+from tdpservice.search_indexes.models.reparse_meta import ReparseMeta, ReparseFileMeta
 
 
 logger = logging.getLogger(__name__)
 
 
 @shared_task
-def parse(data_file_id, should_send_submission_email=True):
+def parse(data_file_id, reparse_id=None):
     """Send data file for processing."""
     # passing the data file FileField across redis was rendering non-serializable failures, doing the below lookup
     # to avoid those. I suppose good practice to not store/serializer large file contents in memory when stored in redis
     # for undetermined amount of time.
     try:
         data_file = DataFile.objects.get(id=data_file_id)
+        file_meta = ReparseFileMeta.objects.get(data_file_id=data_file_id, reparse_id=reparse_id)
         logger.info(f"DataFile parsing started for file {data_file.filename}")
 
         dfs = DataFileSummary.objects.create(datafile=data_file, status=DataFileSummary.Status.PENDING)
@@ -41,7 +43,7 @@ def parse(data_file_id, should_send_submission_email=True):
         logger.info(f"Parsing finished for file -> {repr(data_file)} with status "
                     f"{dfs.status} and {len(errors)} errors.")
 
-        if should_send_submission_email is True:
+        if reparse_id is not None:
             recipients = User.objects.filter(
                 stt=data_file.stt,
                 account_approval_status=AccountApprovalStatusChoices.APPROVED,
@@ -54,7 +56,13 @@ def parse(data_file_id, should_send_submission_email=True):
                              f"Encountered Database exception in parser_task.py: \n{e}",
                              "error"
                              )
-        ReparseMeta.increment_files_failed(data_file.reparse_meta_models)
+        file_meta.update(
+            finished=True,
+            success=False,
+            finished_at=timezone.now()
+        )
+        file_meta.save()
+        # ReparseMeta.increment_files_failed(data_file.reparse_meta_models)
     except Exception as e:
         generate_error = make_generate_parser_error(data_file, None)
         error = generate_error(schema=None,
@@ -72,4 +80,10 @@ def parse(data_file_id, should_send_submission_email=True):
                              (f"Uncaught exception while parsing datafile: {data_file.pk}! Please review the logs to "
                               f"see if manual intervention is required. Exception: \n{e}"),
                              "critical")
-        ReparseMeta.increment_files_failed(data_file.reparse_meta_models)
+        file_meta.update(
+            finished=True,
+            success=False,
+            finished_at=timezone.now()
+        )
+        file_meta.save()
+        # ReparseMeta.increment_files_failed(data_file.reparse_meta_models)

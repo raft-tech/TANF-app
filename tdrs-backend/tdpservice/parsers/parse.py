@@ -112,7 +112,7 @@ def parse_datafile(datafile, dfs):
 
     return errors
 
-def update_meta_model(datafile, dfs):
+def update_meta_model(datafile, reparse_id, dfs):
     """Update appropriate meta models."""
     ReparseMeta.increment_records_created(datafile.reparses, dfs.total_number_of_records_created)
     ReparseMeta.increment_files_completed(datafile.reparses)
