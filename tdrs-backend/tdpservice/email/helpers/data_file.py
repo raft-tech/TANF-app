@@ -79,7 +79,7 @@ def send_stuck_file_email(stuck_files, recipients):
     }
 
     template_path = EmailType.STUCK_FILE_LIST.value
-    subject = 'Stuck files'
+    subject = 'List of submitted files with pending status after 1 hour'
     text_message = 'The system has detected stuck files.'
 
     context = {
