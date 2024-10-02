@@ -6,6 +6,7 @@
             - equal: [ master, << pipeline.git.branch >> ]
             - equal: [ main, << pipeline.git.branch >> ]
             - equal: [ develop, << pipeline.git.branch >> ]
+            - equal: [ bug/e2e-minimal, << pipeline.git.branch >> ]
             - << pipeline.parameters.run_dev_deployment >>
         - not: << pipeline.parameters.run_nightly_owasp_scan >>
 
@@ -21,6 +22,7 @@
             branches:
               ignore:
                 - develop
+                - bug/e2e-minimal
                 - main
                 - master
       - deploy-infrastructure-staging:
@@ -28,6 +30,7 @@
             branches:
               only:
                 - develop
+                - bug/e2e-minimal
                 - main
       - deploy-infrastructure-production:
           filters:
@@ -41,6 +44,7 @@
             branches:
               ignore:
                 - develop
+                - bug/e2e-minimal
                 - main
                 - master
       - enable-versioning:
@@ -93,6 +97,7 @@
                 - develop
                 - main
                 - master
+                - bug/e2e-minimal
       - deploy-develop:
           requires:
             - deploy-infrastructure-staging
@@ -100,6 +105,7 @@
             branches:
               only:
                 - develop
+                - bug/e2e-minimal 
       - deploy-staging:
           requires:
             - deploy-infrastructure-staging
@@ -121,9 +127,11 @@
             branches:
               only:
                 - develop
+                - bug/e2e-minimal
       - make_erd: # from ../util folder
           filters:
             branches:
               only:
                 - develop
                 - master
+
