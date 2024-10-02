@@ -306,7 +306,10 @@ class Command(BaseCommand):
         selected_files = [int(file) for file in selected_files[0].split(',')] if selected_files else None
         new_indices = reparse_all is True
 
-        # have to check if the selected_files is not None
+        # Option that can only be specified by calling `handle` directly and passing it.
+        testing = options.get('testing', False)
+        ##
+
         args_passed = fiscal_year is not None or fiscal_quarter is not None or reparse_all or selected_files
 
         if not args_passed:
@@ -330,7 +333,8 @@ class Command(BaseCommand):
         fmt_str = f"ALL ({num_files})" if reparse_all else f"({num_files})"
         continue_msg += "\nThese options will delete and reparse {0} datafiles.".format(fmt_str)
 
-        self._handle_input(testing, continue_msg)
+        if not selected_files:
+            self._handle_input(testing, continue_msg)
 
         system_user, created = User.objects.get_or_create(username='system')
         if created:
