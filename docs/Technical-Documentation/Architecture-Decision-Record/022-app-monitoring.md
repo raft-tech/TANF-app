@@ -7,20 +7,42 @@ Date: 2024-09-30
 Pending
 
 ## Context
-Historic feedback highlighted an ongoing desire for improved alerting and monitoring mechanisms, particularly originating in issue [#831](https://github.com/raft-tech/TANF-app/issues/831). Currently, our cloud platform has limited monitoring features leading to a  "blindness" to errors and stack traces that have occurred, ultimately impairing our ability to maintain system stability; additionally, the existing dashboards only offer live performance data lacking data over time or any archives. Without context for either performance or system logging, determination of anomalous or suboptimal system behavior is not possible.
+Historic feedback highlighted an ongoing desire for improved alerting and monitoring mechanisms, particularly originating in issue [#831](https://github.com/raft-tech/TANF-app/issues/831) circa 2021. Currently, our cloud platform has limited logging features and user interface issues leading to a "blindness" to errors and stack traces that have occurred, ultimately impairing our ability to maintain system stability; additionally, the existing dashboards only offer live performance data lacking data over time or any archives. Without context for either performance or system logging, determination of anomalous or erroneous system behavior is not possible. 
 
 Additionally, we have experienced critical blocking issues related to our updates to both Elasticsearch (ES) and PostgreSQL, which have compounded the need for more proactive alerting and load-testing in lower environments. Without timely notifications, we risk delays in addressing failures that could escalate into more significant problems. 
 
 
 ## Decision
-Implementing a comprehensive monitoring and alerting ecosystem will not only help in identifying errors in real-time but also enable us to establish benchmarks based on historical data. This approach will foster a more proactive response strategy, ensuring that potential issues are mitigated before they impact our users or that system owners are aware of issues that have impacted users.
+We will build out a suite of tools in accordance with industry best practices to monitor our applications. Implementing a comprehensive monitoring and alerting ecosystem will not only help in identifying errors in real-time but also enable us to establish benchmarks based on historical data. This approach will foster a more proactive response strategy, ensuring that potential issues are mitigated before they impact our users or that system owners are aware of issues that have impacted users.
 
-We will build out a suite of tools in accordance with industry best practices to monitor our applications including:
-- Prometheus
-- Loki
-- Grafana
-- Promtail
-- Sentry
+### Why Sentry
+Sentry captures unhandled exceptions and incorporates detail context about exceptions including error messages, stack traces, affected URLs and user data information. Such information is essential in demystifying the cause of error.
+
+Additionally, as can be seen in the image below, the following information is available:
+
+- Frequency: shows the frequency detail of error 
+- Timeline: when has the error happened in a period
+- Can create a ticket and assign automatically
+- Variables at each step of stack trace. This is very important for debugging
+
+<p style="text-align:center; margin:0; padding:0;">Issues with filter enabled</p>
+
+![Issues with filter enabled](../images/sentry/1.%20Issues%20with%20filter%20enabled.png)
+
+<p style="text-align:center; margin:0;padding:0;">Detail exceptions</p>
+
+![Detail exceptions](../images/sentry/3.%20detail%20about%20exception.png)
+
+<p style="text-align:center; margin:0; padding:0;">Full stack trace of the exceptions</p>
+
+![Full stack trace of the exceptions](../images/sentry/4.%20full%20stack%20trace%20of%20the%20exceptions.png)
+
+
+Performance monitoring in Sentry can greatly enhance backend application by providing real-time insights into how TANF app is performing. It tracks various metrics such as response time, database queries, and external API calls, with which we can identify performance bottlenecks to our backend app.
+
+A unique ability of Sentry is that it can link performance issues and group them together. This gives us the ability to attack and resolve more critical issues with highest impact first. Not only it can detect issues with web transactions, it also detects problems with DB queries as well as function regressions (if the duration of function has increased)
+
+### Why Prometheus-Loki-Grafana
 
 Grafana shall provide a visualization dashboard for these various tools which will collect and aggregate performance metrics, system logs, and deeper analysis for all aspects of our systems: frontend, proxies, backend, databases, and even networking. Additionally, the development team will seek to hone a proactive alerting system for out-of-threshold issues and errors for improved visibility of system issues.
 
