@@ -6,7 +6,7 @@ from django.db import migrations
 def switch_reparse_meta_through_model(apps, schema_editor):
     DataFile=apps.get_model("data_files","DataFile")
     ReparseMeta=apps.get_model("search_indexes","ReparseMeta")
-    OldThru=DataFile.reparses.through
+    OldThru=DataFile.reparse_meta_models.through
     ReparseFileMeta=apps.get_model("search_indexes", "ReparseFileMeta")
 
     q = OldThru.objects.all()
@@ -15,8 +15,8 @@ def switch_reparse_meta_through_model(apps, schema_editor):
 
     for m in q:
         ReparseFileMeta.objects.create(
-            data_file_id=m.data_file.pk,
-            reparse_meta_id=m.reparse_meta.pk
+            data_file_id=m.datafile.pk,
+            reparse_meta_id=m.reparsemeta.pk
         )
         m.delete()
 
