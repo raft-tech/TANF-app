@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('data_files', '0014_remove_datafile_reparse_meta_models'),
+        ('data_files', '0013_datafile_reparse_meta'),
         ('search_indexes', '0030_reparse_meta_model'),
     ]
 

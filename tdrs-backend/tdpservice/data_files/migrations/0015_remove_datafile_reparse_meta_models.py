@@ -6,10 +6,12 @@ from django.db import migrations
 def switch_reparse_meta_through_model(apps, schema_editor):
     DataFile=apps.get_model("data_files","DataFile")
     ReparseMeta=apps.get_model("search_indexes","ReparseMeta")
-    OldThru=DataFile.through
+    OldThru=DataFile.reparses.through
     ReparseFileMeta=apps.get_model("search_indexes", "ReparseFileMeta")
 
     q = OldThru.objects.all()
+
+    print(f'switching {q.count()} through models')
 
     for m in q:
         ReparseFileMeta.objects.create(
@@ -22,7 +24,7 @@ def switch_reparse_meta_through_model(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('data_files', '0014_datafile_reparse_meta'),
+        ('data_files', '0014_datafile_reparses'),
     ]
 
     operations = [

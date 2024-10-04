@@ -60,7 +60,7 @@ class ReparseMeta(models.Model):
     @property
     def finished_at(self):
         last_parse = self.reparse_file_metas.order_by('-finished_at').first()
-        return last_parse.finished_at
+        return last_parse.finished_at if last_parse else None
 
     @property
     def num_files(self):

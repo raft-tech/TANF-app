@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('data_files', '0014_datafile_reparse_meta'),
+        ('data_files', '0013_datafile_reparse_meta'),
         ('search_indexes', '0031_reparsefilemeta'),
     ]
 
