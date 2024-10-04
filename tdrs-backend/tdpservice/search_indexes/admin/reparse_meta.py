@@ -11,9 +11,10 @@ class ReparseMetaAdmin(ReadOnlyAdminMixin):
     list_display = [
         'id',
         'created_at',
+        'finished_at',
         'timeout_at',
-        'success',
-        'finished',
+        'is_success',
+        'is_finished',
         'db_backup_location',
     ]
 

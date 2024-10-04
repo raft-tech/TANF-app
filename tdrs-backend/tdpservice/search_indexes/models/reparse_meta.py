@@ -25,28 +25,58 @@ class ReparseMeta(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     timeout_at = models.DateTimeField(auto_now_add=False, null=True)
+    # finished_at  # property
 
-    finished = models.BooleanField(default=False)
-    success = models.BooleanField(default=False, help_text="All files completed parsing.")
+    finished = models.BooleanField(default=False)    # property
+    success = models.BooleanField(default=False, help_text="All files completed parsing.")    # property
 
-    num_files_to_reparse = models.PositiveIntegerField(default=0)
-    files_completed = models.PositiveIntegerField(default=0)
-    files_failed = models.PositiveIntegerField(default=0)
+    num_files_to_reparse = models.PositiveIntegerField(default=0)    # property
+    files_completed = models.PositiveIntegerField(default=0)    # property
+    files_failed = models.PositiveIntegerField(default=0)  # property
 
     num_records_deleted = models.PositiveIntegerField(default=0)
-    num_records_created = models.PositiveIntegerField(default=0)
+    num_records_created = models.PositiveIntegerField(default=0)  # property
 
     total_num_records_initial = models.PositiveBigIntegerField(default=0)
     total_num_records_post = models.PositiveBigIntegerField(default=0)
 
     db_backup_location = models.CharField(max_length=512)
 
-    # Options used to select the files to reparse
+    # Options used to select the files to reparse (from mgmt cmd only, remove if command deprecated)
     fiscal_quarter = models.CharField(max_length=2, null=True)
     fiscal_year = models.PositiveIntegerField(null=True)
     all = models.BooleanField(default=False)
     new_indices = models.BooleanField(default=False)
     delete_old_indices = models.BooleanField(default=False)
+
+    @property
+    def is_finished(self):
+        return all([r.finished for r in self.reparse_file_metas.all()])
+
+    @property
+    def is_success(self):
+        return all([r.success for r in self.reparse_file_metas.all()])
+
+    @property
+    def finished_at(self):
+        last_parse = self.reparse_file_metas.order_by('-finished_at').first()
+        return last_parse.finished_at
+
+    @property
+    def num_files(self):
+        return self.reparse_file_metas.count()
+
+    @property
+    def num_files_completed(self):
+        return self.reparse_file_metas.filter(finished=True).count()
+
+    @property
+    def num_files_failed(self):
+        return self.reparse_file_metas.filter(success=False).count()
+
+    @property
+    def num_records_cre(self):
+        return sum([r.num_records_created for r in self.reparse_file_metas.all()])
 
     @staticmethod
     def assert_all_files_done(meta_model):
@@ -147,14 +177,14 @@ class ReparseMeta(models.Model):
 
 class ReparseFileMeta(models.Model):
     """Meta data model representing a single file parse within a reparse execution."""
-    data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
-    reparse_meta = models.ForeignKey(ReparseMeta, on_delete=models.CASCADE)
+    data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE, related_name='reparse_file_metas')
+    reparse_meta = models.ForeignKey(ReparseMeta, on_delete=models.CASCADE, related_name='reparse_file_metas')
 
     finished = models.BooleanField(default=False)
     success = models.BooleanField(default=False)
-    started_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(auto_now_add=False, null=True)  # set at beg of parse run
     finished_at = models.DateTimeField(auto_now_add=False, null=True)
 
-    num_records_deleted = models.PositiveIntegerField(default=0)
+    # num_records_deleted = models.PositiveIntegerField(default=0)
     num_records_created = models.PositiveIntegerField(default=0)
     cat_4_errors_generated = models.PositiveIntegerField(default=0)

@@ -8,7 +8,7 @@ from django.db.utils import DatabaseError
 from tdpservice.users.models import AccountApprovalStatusChoices, User
 from tdpservice.data_files.models import DataFile
 from tdpservice.parsers.parse import parse_datafile
-from tdpservice.parsers.models import DataFileSummary, ParserErrorCategoryChoices
+from tdpservice.parsers.models import DataFileSummary, ParserError, ParserErrorCategoryChoices
 from tdpservice.parsers.aggregates import case_aggregates_by_month, total_errors_by_month
 from tdpservice.parsers.util import log_parser_exception, make_generate_parser_error
 from tdpservice.email.helpers.data_file import send_data_submitted_email
@@ -26,11 +26,16 @@ def parse(data_file_id, reparse_id=None):
     # for undetermined amount of time.
     try:
         data_file = DataFile.objects.get(id=data_file_id)
-        file_meta = ReparseFileMeta.objects.get(data_file_id=data_file_id, reparse_id=reparse_id)
         logger.info(f"DataFile parsing started for file {data_file.filename}")
 
+        file_meta = None
+        if reparse_id:
+            file_meta = ReparseFileMeta.objects.get(data_file_id=data_file_id, reparse_meta_id=reparse_id)
+            file_meta.started_at = timezone.now()
+            file_meta.save()
+
         dfs = DataFileSummary.objects.create(datafile=data_file, status=DataFileSummary.Status.PENDING)
-        errors = parse_datafile(data_file, dfs)
+        errors = parse_datafile(data_file, dfs, reparse_id)
         dfs.status = dfs.get_status()
 
         if "Case Data" in data_file.section:
@@ -44,25 +49,32 @@ def parse(data_file_id, reparse_id=None):
                     f"{dfs.status} and {len(errors)} errors.")
 
         if reparse_id is not None:
+            file_meta.num_records_created = dfs.total_number_of_records_created
+            file_meta.cat_4_errors_generated = ParserError.objects.filter(
+                file_id=data_file_id,
+                error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY
+            ).count()
+            file_meta.finished = True
+            file_meta.success = True
+            file_meta.finished_at = timezone.now()
+            file_meta.save()
+        else:
             recipients = User.objects.filter(
                 stt=data_file.stt,
                 account_approval_status=AccountApprovalStatusChoices.APPROVED,
                 groups=Group.objects.get(name='Data Analyst')
             ).values_list('username', flat=True).distinct()
-
             send_data_submitted_email(dfs, recipients)
     except DatabaseError as e:
         log_parser_exception(data_file,
                              f"Encountered Database exception in parser_task.py: \n{e}",
                              "error"
                              )
-        file_meta.update(
-            finished=True,
-            success=False,
-            finished_at=timezone.now()
-        )
-        file_meta.save()
-        # ReparseMeta.increment_files_failed(data_file.reparse_meta_models)
+        if reparse_id:
+            file_meta.finished = True
+            file_meta.success = False
+            file_meta.finished_at = timezone.now()
+            file_meta.save()
     except Exception as e:
         generate_error = make_generate_parser_error(data_file, None)
         error = generate_error(schema=None,
@@ -80,10 +92,8 @@ def parse(data_file_id, reparse_id=None):
                              (f"Uncaught exception while parsing datafile: {data_file.pk}! Please review the logs to "
                               f"see if manual intervention is required. Exception: \n{e}"),
                              "critical")
-        file_meta.update(
-            finished=True,
-            success=False,
-            finished_at=timezone.now()
-        )
-        file_meta.save()
-        # ReparseMeta.increment_files_failed(data_file.reparse_meta_models)
+        if reparse_id:
+            file_meta.finished = True
+            file_meta.success = False
+            file_meta.finished_at = timezone.now()
+            file_meta.save()

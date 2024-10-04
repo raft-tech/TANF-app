@@ -13,12 +13,12 @@ from tdpservice.parsers.validators.util import value_is_empty
 from tdpservice.parsers.schema_defs.utils import get_section_reference, get_program_model
 from tdpservice.parsers.case_consistency_validator import CaseConsistencyValidator
 from tdpservice.parsers.util import log_parser_exception
-from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
+from tdpservice.search_indexes.models.reparse_meta import ReparseMeta, ReparseFileMeta
 
 logger = logging.getLogger(__name__)
 
 
-def parse_datafile(datafile, dfs):
+def parse_datafile(datafile, dfs, reparse_id=None):
     """Parse and validate Datafile header/trailer, then select appropriate schema and parse/validate all lines."""
     rawfile = datafile.file
     errors = {}
@@ -34,7 +34,6 @@ def parse_datafile(datafile, dfs):
         logger.info(f"Preparser Error: {len(header_errors)} header errors encountered.")
         errors['header'] = header_errors
         bulk_create_errors({1: header_errors}, 1, flush=True)
-        update_meta_model(datafile, dfs)
         return errors
     elif header_is_valid and len(header_errors) > 0:
         logger.info(f"Preparser Warning: {len(header_errors)} header warnings encountered.")
@@ -75,7 +74,6 @@ def parse_datafile(datafile, dfs):
                     f"({header['program_type']}) and FIPS Code ({field_values['state_fips']}).",)
         errors['header'] = [tribe_error]
         bulk_create_errors({1: [tribe_error]}, 1, flush=True)
-        update_meta_model(datafile, dfs)
         return errors
 
     # Ensure file section matches upload section
@@ -90,7 +88,6 @@ def parse_datafile(datafile, dfs):
         errors['document'] = [section_error]
         unsaved_parser_errors = {1: [section_error]}
         bulk_create_errors(unsaved_parser_errors, 1, flush=True)
-        update_meta_model(datafile, dfs)
         return errors
 
     rpt_month_year_is_valid, rpt_month_year_error = category1.validate_header_rpt_month_year(
@@ -103,19 +100,21 @@ def parse_datafile(datafile, dfs):
         errors['document'] = [rpt_month_year_error]
         unsaved_parser_errors = {1: [rpt_month_year_error]}
         bulk_create_errors(unsaved_parser_errors, 1, flush=True)
-        update_meta_model(datafile, dfs)
         return errors
 
-    line_errors = parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted, case_consistency_validator)
+    line_errors = parse_datafile_lines(
+        datafile,
+        dfs,
+        program_type,
+        section,
+        is_encrypted,
+        case_consistency_validator,
+        reparse_id
+    )
 
     errors = errors | line_errors
 
     return errors
-
-def update_meta_model(datafile, reparse_id, dfs):
-    """Update appropriate meta models."""
-    ReparseMeta.increment_records_created(datafile.reparses, dfs.total_number_of_records_created)
-    ReparseMeta.increment_files_completed(datafile.reparses)
 
 def bulk_create_records(unsaved_records, line_number, header_count, datafile, dfs, flush=False):
     """Bulk create passed in records."""
@@ -328,7 +327,15 @@ def delete_serialized_records(duplicate_manager, dfs):
     if total_deleted:
         logger.info(f"Deleted a total of {total_deleted} records from the DB because of case consistenecy errors.")
 
-def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted, case_consistency_validator):
+def parse_datafile_lines(
+    datafile,
+    dfs,
+    program_type,
+    section,
+    is_encrypted,
+    case_consistency_validator,
+    reparse_id=None,
+):
     """Parse lines with appropriate schema and return errors."""
     rawfile = datafile.file
     errors = {}
@@ -386,7 +393,6 @@ def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted, cas
             rollback_records(unsaved_records.get_bulk_create_struct(), datafile)
             rollback_parser_errors(datafile)
             bulk_create_errors(preparse_error, num_errors, flush=True)
-            update_meta_model(datafile, dfs)
             return errors
 
         if prev_sum != header_count + trailer_count:
@@ -449,7 +455,6 @@ def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted, cas
         rollback_parser_errors(datafile)
         preparse_error = {line_number: [err_obj]}
         bulk_create_errors(preparse_error, num_errors, flush=True)
-        update_meta_model(datafile, dfs)
         return errors
 
     should_remove = validate_case_consistency(case_consistency_validator)
@@ -470,7 +475,6 @@ def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted, cas
         logger.error(f"Not all parsed records created for file: {datafile.id}!")
         rollback_records(unsaved_records.get_bulk_create_struct(), datafile)
         bulk_create_errors(unsaved_parser_errors, num_errors, flush=True)
-        update_meta_model(datafile, dfs)
         return errors
 
     # Add any generated cat4 errors to our error data structure & clear our caches errors list
@@ -486,8 +490,6 @@ def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted, cas
     logger.debug(f"Cat4 validator cached {case_consistency_validator.total_cases_cached} cases and "
                  f"validated {case_consistency_validator.total_cases_validated} of them.")
     dfs.save()
-
-    update_meta_model(datafile, dfs)
 
     return errors
 
