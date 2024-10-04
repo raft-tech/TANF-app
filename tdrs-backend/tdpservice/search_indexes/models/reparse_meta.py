@@ -79,6 +79,21 @@ class ReparseMeta(models.Model):
         return sum([r.num_records_created for r in self.reparse_file_metas.all()])
 
     @staticmethod
+    def file_counts_match(meta_model):
+        """
+        Check whether the file counts match.
+
+        This function assumes the meta_model has been passed in a distributed/thread safe way. If the database row
+        containing this model has not been locked the caller will experience race issues.
+        """
+        print("\n\nINSIDE FILE COUNTS MATCH:")
+        print(f"{meta_model.num_files_to_reparse }, {meta_model.files_completed}, {meta_model.files_failed}\n\n")
+        return (meta_model.files_completed == meta_model.num_files_to_reparse or
+                meta_model.files_completed + meta_model.files_failed ==
+                meta_model.num_files_to_reparse or
+                meta_model.files_failed == meta_model.num_files_to_reparse)
+
+    @staticmethod
     def assert_all_files_done(meta_model):
         """
         Check if all files have been parsed with or without exceptions.
@@ -86,9 +101,7 @@ class ReparseMeta(models.Model):
         This function assumes the meta_model has been passed in a distributed/thread safe way. If the database row
         containing this model has not been locked the caller will experience race issues.
         """
-        if (meta_model.finished or meta_model.files_completed == meta_model.num_files_to_reparse or
-                meta_model.files_completed + meta_model.files_failed == meta_model.num_files_to_reparse or
-                meta_model.files_failed == meta_model.num_files_to_reparse):
+        if meta_model.finished and ReparseMeta.file_counts_match(meta_model):
             return True
         return False
 
@@ -119,7 +132,7 @@ class ReparseMeta(models.Model):
                 try:
                     meta_model = reparse_meta_models.select_for_update().latest("pk")
                     meta_model.files_completed += 1
-                    if ReparseMeta.assert_all_files_done(meta_model):
+                    if ReparseMeta.file_counts_match(meta_model):
                         ReparseMeta.set_reparse_finished(meta_model)
                     meta_model.save()
                 except DatabaseError:
@@ -140,7 +153,7 @@ class ReparseMeta(models.Model):
                 try:
                     meta_model = reparse_meta_models.select_for_update().latest("pk")
                     meta_model.files_failed += 1
-                    if ReparseMeta.assert_all_files_done(meta_model):
+                    if ReparseMeta.file_counts_match(meta_model):
                         ReparseMeta.set_reparse_finished(meta_model)
                     meta_model.save()
                 except DatabaseError:
