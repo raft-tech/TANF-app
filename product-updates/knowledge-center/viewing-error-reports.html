@@ -558,6 +558,7 @@ Family-level data for a specific month the family is receiving assistance.
   <li>Item Number and Item Name — which can be used alongside the error message to cross-reference with the coding instructions.</li>
   <li>Internal Variable Name — a value specific to TDP's database for use in support sessions with the TANF data team.</li>
   <li>Row Number — identifying which row of the submitted file contains the record associated with a given error.</li>
+  <li>Error Type — indicates the broad category of error and is related to both the cause of the error, and the effect of that error on file and record acceptance into the database.</li>
 </ul>
 <div style="min-height: 22px;"></div> 
 
@@ -565,12 +566,110 @@ Family-level data for a specific month the family is receiving assistance.
   <a href="../img/error-reports/error-report.png" data-lity data-lity-desc="TDP error report containing some of the error examples below opened in Excel">
       <img src="../img/error-reports/error-report.png" alt="TDP error report containing some of the error examples below opened in Excel">
       </a>
+
+      <div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
+      <h3 id="interpreting-error-types">Interpreting Error Types</h3>
+      <div style="min-height: 22px;"></div>
+      <p>There are four error types which affect data submission differently. Unlike low priority errors, high priority errors WILL prevent a file or record from being added to the database.</p>
+      <table class="usa-table">
+        <thead>
+          <tr>
+            <th scope="col">Error Type</th>
+            <th scope="col">Description</th>
+            <th scope="col">Priority</th>
+            <th scope="col">Impact</th>
+            <th scope="col">File Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">File Pre-Check</th>
+            <td>
+            Relate to the format of a file. (e.g. incorrect headers or footers, records of incorrect length) and prevent the entire file from being added to the database. 
+            </td>
+            <td>
+            High
+            </td>
+            <td>
+             Entire file will be rejected
+            </td>
+            <td>
+              Rejected
+            </td>
+      
+          </tr>
+          <tr>
+            <th scope="row">Case Consistency</th>
+            <td>
+            Caused by inconsistency across records (e.g. inconsistency across related person and family level records) and prevent the affected records from being added to the database. These errors are triggered by a series of checks that confirm that all the records for a family are related in a meaningful way. Inconsistency across one or more cases in a file will trigger this status,  where at least some of the records in the file weren't added to the database. 
+            </td>
+            <td>
+              High
+              </td>
+              <td>
+               Record rejected
+              </td>
+              <td>
+                Partially accepted with errors
+              </td>
+      
+          </tr>
+          <tr>
+            <th scope="row">Record Value Invalid</th>
+            <td>
+              These errors involve unexpected values in the record (e.g. missing values or out-of-range values) and will not prevent a record from being added to the database. Users may want to correct for accuracy. 
+            </td>
+            <td>
+              Low
+              </td>
+              <td>
+               Record accepted
+              </td>
+              <td>
+                Accepted with errors
+              </td>
+      
+          </tr>
+          <tr>
+            <th scope="row">Record Value Inconsistency</th>
+            <td>
+              These errors stem from inconsistencies in the record (e.g. conflicting data between items in the same record) and will not prevent a record from being added to the database.  Users may want to correct for accuracy. 
+            </td>
+            <td>
+              Low
+              </td>
+              <td>
+               Record accepted
+              </td>
+              <td>
+                Accepted with errors
+              </td>
+      
+          </tr>
+            
+        </tbody>
+      </table>
+      <h4>To filter High Priority Errors:</h4>
+      <ol>
+        <li>Download the Error Report</li>
+        <li>Select Row 6</li>
+       <li> Navigate to Data > Format, Select Filter</li>
+        <li>Scroll to the right and find the Error Type column</li>
+       <li> Use the filter options to prioritize:</li>
+       <ul>
+        <li>File Pre-Check</li>
+        <li>Case Consistency</li>
+       </ul>
+      </ol>
+      <p> This will highlight errors that most significantly affect your file submission.</p> <br>
+<p><i>For users familiar with the legacy system, errors are equivalent to edits.  File Pre-Check and Case Consistency errors are similar to fatal edits and Record Value Invalid and Record Value Inconsistency are similar to warnings. </i></p>
 <div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
+
+
+
 <h3>Examples of Common Errors</h3>
 <div style="min-height: 22px;"></div>
 <p>Below are examples of error messages associated with common issues that may be listed in an error report.</p>
-
-
 
         <div class="usa-alert usa-alert--info usa-alert--no-icon">
   <div class="usa-alert__body">
@@ -581,7 +680,7 @@ Family-level data for a specific month the family is receiving assistance.
 
 <div style="min-height: 22px;"></div>
 <div style="min-height: 22px;"></div>
-  <h4>Errors related to header or trailer records:</h4>
+  <h4>File Pre-Check: Errors related to header or trailer records:</h4>
   <div style="min-height: 22px;"></div>
   <p>Header-related errors are often the result of submitting files for a fiscal period that is not consistent with the time period in the header record (e.g. trying to submit 2022 data for a 2024 submission). Other header or trailer errors may be related to how the file was generated (e.g. the file produced is missing a header or trailer record). Some examples of how these types of error may appear in your error report are included below:</p>
 
@@ -599,7 +698,7 @@ Family-level data for a specific month the family is receiving assistance.
 
 
   <div style="min-height: 22px;"></div><div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
-  <h4>Errors related to record length:</h4>
+  <h4>File Pre-Check: Errors related to record length:</h4>
   <div style="min-height: 22px;"></div>
   <p>Record length-related errors will be raised if the specified record is not aligned with the record layout requirements. For example, this kind of error may appear as follows in the report:</p>
    <div style="min-height: 22px;"></div>
@@ -615,7 +714,7 @@ Family-level data for a specific month the family is receiving assistance.
            <p>Please refer to the <a href="https://www.acf.hhs.gov/ofa/policy-guidance/final-tanf-ssp-moe-data-reporting-system-transmission-files-layouts-and-edits">Transmission File Layout documents</a> to compare your records against their expected layouts.</p>
 
   <div style="min-height: 22px;"></div><div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
-  <h4>Errors related to invalid values for a specific item/data element:</h4>
+  <h4>Record Value Invalid: Errors related to invalid values for a specific item/data element:</h4>
   <div style="min-height: 22px;"></div>
   <p>Invalid value errors can come up when a specific item/data element has an unexpected value (e.g. a letter or a symbol was reported for the zip code field, such as: "462$1"): </p>
 
@@ -632,7 +731,7 @@ Family-level data for a specific month the family is receiving assistance.
 
 
   <div style="min-height: 22px;"></div><div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
-  <h4 id="inconsistent-values">Errors related to inconsistent values for related items/data elements in the same record:</h4>
+  <h4 id="inconsistent-values">Record Value Inconsistency: Errors related to inconsistent values for related items/data elements in the same record:</h4>
    <div style="min-height: 22px;"></div>
   <p>Some errors may require review of the coding instructions for multiple items (and their respective values) to determine the proper correction. In the example below, the error is communicating that the value reported for Item 49 is in a conflict with the value for Item 30 in the same record. This message suggests a problem with either the value of Item 49 or the value of Item 30. Refer to the coding instructions and your own data to determine which value needs to be corrected.</p>
 
@@ -644,7 +743,7 @@ Family-level data for a specific month the family is receiving assistance.
 <div style="min-height: 22px;"></div>
 
     <div style="min-height: 22px;"></div><div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
-  <h4 id="related-records">Errors related to inconsistent values across related records:</h4>
+  <h4 id="related-records">Care Consistency: Errors related to inconsistent values across related records:</h4>
   <div style="min-height: 22px;"></div>
   <p>Errors with inconsistent values across related records may require review of the coding instructions to determine the proper correction. In the example below, the error is communicating that a T1 (family) record was found in the file that did not have a corresponding T2 (adult) or T3 (child) record, which effectively means that person-level records associated with this family are missing from the file. </p>
 
