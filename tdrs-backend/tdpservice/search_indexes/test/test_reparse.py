@@ -4,7 +4,7 @@ import pytest
 from tdpservice.parsers import util, parse
 from tdpservice.parsers.test.factories import DataFileSummaryFactory
 from tdpservice.search_indexes.management.commands import clean_and_reparse
-from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
+from tdpservice.data_files.models import ReparseMeta
 from tdpservice.users.models import User
 
 from django.contrib.admin.models import LogEntry, ADDITION

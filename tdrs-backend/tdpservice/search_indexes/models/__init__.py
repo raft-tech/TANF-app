@@ -1,6 +1,5 @@
-from . import tanf, tribal, ssp, reparse_meta
+from . import tanf, tribal, ssp
 
 tanf = tanf
 tribal = tribal
 ssp = ssp
-reparse_meta = reparse_meta

@@ -9,7 +9,7 @@ from tdpservice.data_files.models import DataFile
 from tdpservice.parsers.models import DataFileSummary, ParserError
 from tdpservice.scheduling import parser_task
 from tdpservice.search_indexes.util import DOCUMENTS, count_all_records
-from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
+from tdpservice.data_files.models import ReparseMeta
 from tdpservice.core.utils import log
 from django.contrib.admin.models import ADDITION
 from tdpservice.users.models import User

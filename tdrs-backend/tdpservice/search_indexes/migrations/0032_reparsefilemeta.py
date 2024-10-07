@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('data_files', '0013_datafile_reparse_meta'),
-        ('search_indexes', '0030_reparse_meta_model'),
+        ('search_indexes', '0031_alter_tribal_tanf_t4_closure_reason'),
     ]
 
     operations = [
@@ -22,8 +22,8 @@ class Migration(migrations.Migration):
                 ('finished_at', models.DateTimeField(null=True)),
                 ('num_records_created', models.PositiveIntegerField(default=0)),
                 ('cat_4_errors_generated', models.PositiveIntegerField(default=0)),
-                ('data_file', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reparse_file_metas', to='data_files.datafile')),
-                ('reparse_meta', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reparse_file_metas', to='search_indexes.reparsemeta')),
+                ('data_file', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reparse_file_metas', to='data_files.DataFile')),
+                ('reparse_meta', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reparse_file_metas', to='search_indexes.ReparseMeta')),
             ],
         ),
     ]

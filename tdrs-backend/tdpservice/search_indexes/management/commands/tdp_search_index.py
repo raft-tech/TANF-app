@@ -13,7 +13,7 @@ from django.conf import settings
 from tdpservice.core.utils import log
 from django.contrib.admin.models import ADDITION
 from tdpservice.users.models import User
-from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
+from tdpservice.data_files.models import ReparseMeta
 
 
 class Command(search_index.Command):

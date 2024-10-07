@@ -13,7 +13,7 @@ from tdpservice.parsers.validators.util import value_is_empty
 from tdpservice.parsers.schema_defs.utils import get_section_reference, get_program_model
 from tdpservice.parsers.case_consistency_validator import CaseConsistencyValidator
 from tdpservice.parsers.util import log_parser_exception
-from tdpservice.search_indexes.models.reparse_meta import ReparseMeta, ReparseFileMeta
+from tdpservice.data_files.models import ReparseMeta, ReparseFileMeta
 
 logger = logging.getLogger(__name__)
 

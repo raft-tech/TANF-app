@@ -1,7 +1,7 @@
 """Filter classes for DataFiles admin page."""
 from django.contrib import admin
 from django.utils.translation import ugettext_lazy as _
-from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
+from tdpservice.data_files.models import ReparseMeta
 from tdpservice.core.filters import MostRecentVersionFilter
 
 class DataFileSummaryPrgTypeFilter(admin.SimpleListFilter):
