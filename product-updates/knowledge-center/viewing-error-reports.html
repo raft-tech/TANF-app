@@ -558,7 +558,7 @@ Family-level data for a specific month the family is receiving assistance.
   <li>Item Number and Item Name — which can be used alongside the error message to cross-reference with the coding instructions.</li>
   <li>Internal Variable Name — a value specific to TDP's database for use in support sessions with the TANF data team.</li>
   <li>Row Number — identifying which row of the submitted file contains the record associated with a given error.</li>
-  <li>Error Type — indicates the broad category of error and is related to both the cause of the error, and the effect of that error on file and record acceptance into the database.</li>
+  <li>Error Type — indicates the category of error and is related to both the cause of the error, and its effect on whether records are accepted into the database.</li>
 </ul>
 <div style="min-height: 22px;"></div> 
 
@@ -570,7 +570,7 @@ Family-level data for a specific month the family is receiving assistance.
       <div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
       <h3 id="interpreting-error-types">Interpreting Error Types</h3>
       <div style="min-height: 22px;"></div>
-      <p>There are four error types which affect data submission differently. High priority errors will prevent a file or record from being added to the database. Low priority errors will not.</p>
+      <p>There are four error types which affect data submission differently. Unlike low priority errors, high priority errors will prevent some/all records in the file from being accepted into the TDP system's database. You may filter the report to display high-priority errors first. Low priority errors will not affect whether a record makes it into the data base, but we encourage you to refer to the coding instructions to make corrections for the most accurate data. <a href="https://support.microsoft.com/en-us/office/filter-data-in-a-range-or-table-01832226-31b5-4568-8806-38c37dcc180e" target="_blank">Learn how to filter data here.</a></p>
       <table class="usa-table">
         <thead>
           <tr>
@@ -585,7 +585,7 @@ Family-level data for a specific month the family is receiving assistance.
           <tr>
             <th scope="row">File Pre-Check</th>
             <td>
-              Error in file formatting (e.g. header month does not match submission month, record length is incorrect).  
+              Relate to the format of the records within a file (e.g. incorrect headers incorrect record length).  
             </td>
             <td>
             High
@@ -602,8 +602,8 @@ Family-level data for a specific month the family is receiving assistance.
           <tr>
             <th scope="row">Case Consistency</th>
             <td>
-            Logical inconsistencies across related records for a family (e.g. family record does not have an associated adult or child).
-            </td>
+              Relates to inconsistency across records (e.g. inconsistency across related person- and family-level records).
+              These errors are triggered by a series of checks that confirm that all the records for a family in a given month are related in a meaningful way.            </td>
             <td>
               High
               </td>
@@ -618,7 +618,7 @@ Family-level data for a specific month the family is receiving assistance.
           <tr>
             <th scope="row">Record Value Invalid</th>
             <td>
-              Unexpected value in the record (e.g. month and/or year provided are not valid). 
+              These errors involve <i>unexpected</i> values in the record (e.g. missing values or out-of-range values).   
             </td>
             <td>
               Low
@@ -634,8 +634,8 @@ Family-level data for a specific month the family is receiving assistance.
           <tr>
             <th scope="row">Record Value Inconsistency</th>
             <td>
-              Logical inconsistencies within the record. (e.g. benefit amount is greater than 0 but the number of months on TANF is not greater than 0). 
-             </td>
+              These errors stem from inconsistencies in the record (e.g. conflicting data between items in the same record).              
+            </td>
             <td>
               Low
               </td>
@@ -650,19 +650,8 @@ Family-level data for a specific month the family is receiving assistance.
             
         </tbody>
       </table>
-      <h4>To filter High Priority Errors:</h4>
-      <ol>
-        <li>Download the Error Report</li>
-        <li>Select Row 6</li>
-       <li> Turn on Filtering <a href="https://support.microsoft.com/en-us/office/filter-data-in-a-range-or-table-01832226-31b5-4568-8806-38c37dcc180e"> (Read more information on filtering in Excel here).</a></li>
-        <li>Scroll to the right and find the Error Type column</li>
-       <li> Use the filter options to prioritize:
-       <ul>
-        <li>File Pre-Check</li>
-        <li>Case Consistency</li>
-       </ul></li>
-      </ol>
-<p><i>For users familiar with the legacy system, errors are equivalent to edits. File Pre-Check and Case Consistency errors are similar to fatal edits and Record Value Invalid and Record Value Inconsistency are similar to warnings. </i></p>
+ 
+<p><i>For users familiar with the legacy system, errors are equivalent to edits. File Pre-Check and Case Consistency errors are similar to fatal edits and Record Value Invalid and Record Value Inconsistency are similar to warnings.</i></p>
 <div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
 
 
