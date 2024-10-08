@@ -570,7 +570,7 @@ Family-level data for a specific month the family is receiving assistance.
       <div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
       <h3 id="interpreting-error-types">Interpreting Error Types</h3>
       <div style="min-height: 22px;"></div>
-      <p>There are four error types which affect data submission differently. Unlike low priority errors, high priority errors WILL prevent a file or record from being added to the database.</p>
+      <p>There are four error types which affect data submission differently. High priority errors will prevent a file or record from being added to the database. Low priority errors will not.</p>
       <table class="usa-table">
         <thead>
           <tr>
@@ -585,7 +585,7 @@ Family-level data for a specific month the family is receiving assistance.
           <tr>
             <th scope="row">File Pre-Check</th>
             <td>
-            Relate to the format of a file. (e.g. incorrect headers or footers, records of incorrect length) and prevent the entire file from being added to the database. 
+              Error in file formatting (e.g. header month does not match submission month, record length is incorrect).  
             </td>
             <td>
             High
@@ -601,7 +601,7 @@ Family-level data for a specific month the family is receiving assistance.
           <tr>
             <th scope="row">Case Consistency</th>
             <td>
-            Caused by inconsistency across records (e.g. inconsistency across related person and family level records) and prevent the affected records from being added to the database. These errors are triggered by a series of checks that confirm that all the records for a family are related in a meaningful way. Inconsistency across one or more cases in a file will trigger this status,  where at least some of the records in the file weren't added to the database. 
+            Logical inconsistencies across related records for a family (e.g. family record does not have an associated adult or child).
             </td>
             <td>
               High
@@ -617,7 +617,7 @@ Family-level data for a specific month the family is receiving assistance.
           <tr>
             <th scope="row">Record Value Invalid</th>
             <td>
-              These errors involve unexpected values in the record (e.g. missing values or out-of-range values) and will not prevent a record from being added to the database. Users may want to correct for accuracy. 
+              Unexpected value in the record (e.g. month and/or year provided are not valid). 
             </td>
             <td>
               Low
@@ -633,8 +633,8 @@ Family-level data for a specific month the family is receiving assistance.
           <tr>
             <th scope="row">Record Value Inconsistency</th>
             <td>
-              These errors stem from inconsistencies in the record (e.g. conflicting data between items in the same record) and will not prevent a record from being added to the database.  Users may want to correct for accuracy. 
-            </td>
+              Logical inconsistencies within the record. (e.g. benefit amount is greater than 0 but the number of months on TANF is not greater than 0). 
+             </td>
             <td>
               Low
               </td>
@@ -653,7 +653,7 @@ Family-level data for a specific month the family is receiving assistance.
       <ol>
         <li>Download the Error Report</li>
         <li>Select Row 6</li>
-       <li> Navigate to Data > Format, Select Filter</li>
+       <li> Turn on Filtering <a href="https://support.microsoft.com/en-us/office/filter-data-in-a-range-or-table-01832226-31b5-4568-8806-38c37dcc180e"> (Read more information on filtering in Excel here).</a></li>
         <li>Scroll to the right and find the Error Type column</li>
        <li> Use the filter options to prioritize:
        <ul>
@@ -661,8 +661,7 @@ Family-level data for a specific month the family is receiving assistance.
         <li>Case Consistency</li>
        </ul></li>
       </ol>
-      <p> This will highlight errors that most significantly affect your file submission.</p> <br>
-<p><i>For users familiar with the legacy system, errors are equivalent to edits.  File Pre-Check and Case Consistency errors are similar to fatal edits and Record Value Invalid and Record Value Inconsistency are similar to warnings. </i></p>
+<p><i>For users familiar with the legacy system, errors are equivalent to edits. File Pre-Check and Case Consistency errors are similar to fatal edits and Record Value Invalid and Record Value Inconsistency are similar to warnings. </i></p>
 <div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
 
 
