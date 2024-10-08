@@ -13,7 +13,7 @@ Additionally, we have experienced critical blocking issues related to our update
 
 
 ## Decision
-We will build out a suite of tools in accordance with industry best practices to monitor our applications. Implementing a comprehensive monitoring and alerting ecosystem will not only help in identifying errors in real-time but also enable us to establish benchmarks based on historical data. This approach will foster a more proactive response strategy, ensuring that potential issues are mitigated before they impact our users or that system owners are aware of issues that have impacted users.
+We will build out a suite of tools in accordance with industry best practices to monitor our applications. Implementing a comprehensive monitoring and alerting ecosystem will not only help in identifying errors in real-time but also enable us to establish benchmarks based on historical data. This approach will foster a more proactive response strategy, ensuring that potential issues are mitigated before they impact our users or that system owners and system admins are aware of issues that have impacted users.
 
 <p style="text-align:center; margin:0; padding:0;">Cloud Environments Workflow</p>
 
@@ -44,13 +44,13 @@ Additionally, as can be seen in the image below, the following information is av
 
 Performance monitoring in Sentry can greatly enhance backend application by providing real-time insights into how TANF app is performing. It tracks various metrics such as response time, database queries, and external API calls, with which we can identify performance bottlenecks to our backend app.
 
-A unique ability of Sentry is that it can link performance issues and group them together. This gives us the ability to attack and resolve more critical issues with highest impact first. Not only it can detect issues with web transactions, it also detects problems with DB queries as well as function regressions (if the duration of function has increased)
+A unique ability of Sentry is that it can link performance issues and group them together. This gives us the ability to attack and resolve more critical issues with highest impact first. Not only can it detect issues with web transactions, it also detects problems with DB queries as well as function regressions (if the duration of function has increased)
 
 ### Why Prometheus-Loki-Grafana
 
 Grafana shall provide a visualization dashboard for these various tools which will collect and aggregate performance metrics, system logs, and allow deeper analysis for all aspects of our systems: frontend, proxies, backend, databases, and even networking. Additionally, the development team will seek to hone a proactive alerting system for out-of-threshold issues and errors for improved visibility of system issues.
 
-The storing of system logs will allow more expedient troubleshooting and debugging that is currently out of reach with Cloud.gov's existing Kibana interface. The ability to find and correlate log events is critical to technical analysis of faults, performance degradation, and system's overall health.
+The storing of system logs will allow more expedient troubleshooting and debugging that is currently out of reach with Cloud.gov's existing Kibana interface for logging. The ability to find and correlate log events is critical to technical analysis of faults, performance degradation, and system's overall health.
 
 By having our monitoring ecosystem take in performance metrics, we will garner performance metrics over time as opposed to simply a live snapshot as is currently provided. This will allow to spotting of anomolous or out-of-bounds behaviors such as out of memory, high memory, cpu spikes, and disk thrashing.
 
