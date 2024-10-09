@@ -680,8 +680,6 @@ Family-level data for a specific month the family is receiving assistance.
     <code style="border-left: solid 5px; border-color: #005ea2; padding: 8px; background-color: #f8f8f8; display: inline-block;">Your file does not begin with a HEADER record.
     </code>
 <div style="min-height: 22px;"></div>
-
-
             <p>Please refer to the <a href="https://www.acf.hhs.gov/sites/default/files/documents/ofa/transmission_file_header_trailer_record.pdf">Transmission File Header Record definitions</a> to compare your file's header or trailer to the expected layout.
 
 
@@ -691,14 +689,27 @@ Family-level data for a specific month the family is receiving assistance.
   <p>Record length-related errors will be raised if the specified record is not aligned with the record layout requirements. For example, this kind of error may appear as follows in the report:</p>
    <div style="min-height: 22px;"></div>
 
-
-
         
     <code style="border-left: solid 5px; border-color: #005ea2; padding: 8px; background-color: #f8f8f8; display: inline-block;">T6 record length is 409 characters but must be 379.
     </code>
 
+    <div style="min-height: 22px;"></div>
+    <code style="border-left: solid 5px; border-color: #005ea2; padding: 8px; background-color: #f8f8f8; display: inline-block;">If Item 30 (Family Affiliation) is 1 then Item 49 (Work Participation Status) must be in set of values [01, 02, 05, 07, 09, 15, 17, 18, 19, 99].
+    </code>
 
-           <div style="min-height: 22px;"></div>
+
+    <div style="min-height: 22px;"></div><div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
+  <h4 id="related-records">Case Consistency: Errors related to inconsistent values across related records:</h4>
+  <div style="min-height: 22px;"></div>
+  <p>Errors with inconsistent values across related records may require review of the coding instructions to determine the proper correction. In the example below, the error is communicating that a T1 (family) record was found in the file that did not have a corresponding T2 (adult) or T3 (child) record, which effectively means that person-level records associated with this family are missing from the file. </p>
+
+
+
+                       <div style="min-height: 22px;"></div>
+    <code style="border-left: solid 5px; border-color: #005ea2; padding: 8px; background-color: #f8f8f8; display: inline-block;">Every T1 record should have at least one corresponding T2 or T3 record with the same Report Month & Year and Case Number.
+    </code>
+<div style="min-height: 22px;"></div>
+
            <p>Please refer to the <a href="https://www.acf.hhs.gov/ofa/policy-guidance/final-tanf-ssp-moe-data-reporting-system-transmission-files-layouts-and-edits">Transmission File Layout documents</a> to compare your records against their expected layouts.</p>
 
   <div style="min-height: 22px;"></div><div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
@@ -717,30 +728,10 @@ Family-level data for a specific month the family is receiving assistance.
             <li><a href="https://www.acf.hhs.gov/ofa/policy-guidance/acf-ofa-pi-23-04">TANF (ACF-199) and SSP-MOE (ACF-209) Coding Instructions</a></li>
           </ul>
 
-
   <div style="min-height: 22px;"></div><div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
   <h4 id="inconsistent-values">Record Value Inconsistency: Errors related to inconsistent values for related items/data elements in the same record:</h4>
    <div style="min-height: 22px;"></div>
   <p>Some errors may require review of the coding instructions for multiple items (and their respective values) to determine the proper correction. In the example below, the error is communicating that the value reported for Item 49 is in a conflict with the value for Item 30 in the same record. This message suggests a problem with either the value of Item 49 or the value of Item 30. Refer to the coding instructions and your own data to determine which value needs to be corrected.</p>
-
-
-
-             <div style="min-height: 22px;"></div>
-    <code style="border-left: solid 5px; border-color: #005ea2; padding: 8px; background-color: #f8f8f8; display: inline-block;">If Item 30 (Family Affiliation) is 1 then Item 49 (Work Participation Status) must be in set of values [01, 02, 05, 07, 09, 15, 17, 18, 19, 99].
-    </code>
-<div style="min-height: 22px;"></div>
-
-    <div style="min-height: 22px;"></div><div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
-  <h4 id="related-records">Care Consistency: Errors related to inconsistent values across related records:</h4>
-  <div style="min-height: 22px;"></div>
-  <p>Errors with inconsistent values across related records may require review of the coding instructions to determine the proper correction. In the example below, the error is communicating that a T1 (family) record was found in the file that did not have a corresponding T2 (adult) or T3 (child) record, which effectively means that person-level records associated with this family are missing from the file. </p>
-
-
-
-                       <div style="min-height: 22px;"></div>
-    <code style="border-left: solid 5px; border-color: #005ea2; padding: 8px; background-color: #f8f8f8; display: inline-block;">Every T1 record should have at least one corresponding T2 or T3 record with the same Report Month & Year and Case Number.
-    </code>
-<div style="min-height: 22px;"></div>
 
 <div style="min-height: 22px;"></div> <div style="min-height: 22px;"></div> 
 
