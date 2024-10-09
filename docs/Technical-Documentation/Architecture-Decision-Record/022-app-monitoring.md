@@ -13,7 +13,7 @@ Additionally, we have experienced critical blocking issues related to our update
 
 
 ## Decision
-We will build out a suite of tools in accordance with industry best practices to monitor our applications. Implementing a comprehensive monitoring and alerting ecosystem will not only help in identifying errors in real-time but also enable us to establish benchmarks based on historical data. This approach will foster a more proactive response strategy, ensuring that potential issues are mitigated before they impact our users or that system owners are aware of issues that have impacted users.
+We will build out a suite of tools in accordance with industry best practices to monitor our applications. Implementing a comprehensive monitoring and alerting ecosystem will not only help in identifying errors in real-time but also enable us to establish benchmarks based on historical data. This approach will foster a more proactive response strategy, ensuring that potential issues are mitigated before they impact our users or that system owners and system admins are aware of issues that have impacted users.
 
 <p style="text-align:center; margin:0; padding:0;">Cloud Environments Workflow</p>
 
@@ -50,7 +50,7 @@ A unique ability of Sentry is that it links performance issues and groups them t
 
 Grafana shall provide a visualization dashboard for these various tools which will collect and aggregate performance metrics, system logs, and allow deeper analysis for all aspects of our systems: frontend, proxies, backend, databases, and even networking. Additionally, the development team will seek to hone a proactive alerting system for out-of-threshold issues and errors for improved visibility of system issues.
 
-The storing of system logs will allow more expedient troubleshooting and debugging that is currently out of reach with Cloud.gov's existing Kibana interface. The ability to find and correlate log events is critical to technical analysis of faults, performance degradation, and system's overall health.
+The storing of system logs will allow more expedient troubleshooting and debugging that is currently out of reach with Cloud.gov's existing Kibana interface for logging. The ability to find and correlate log events is critical to technical analysis of faults, performance degradation, and system's overall health.
 
 By having our monitoring ecosystem take in performance metrics, we will garner performance metrics over time as opposed to simply a live snapshot as is currently provided. This will allow to spotting of anomolous or out-of-bounds behaviors such as out of memory, high memory, cpu spikes, and disk thrashing.
 
