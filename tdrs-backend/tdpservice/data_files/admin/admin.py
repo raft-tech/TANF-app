@@ -57,12 +57,9 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     def get_actions(self, request):
         """Return the actions."""
         actions = super().get_actions(request)
-        print('get actions')
         if not request.user.groups.filter(name__in=["OFA System Admin", "OFA Admin"]).exists():
-            print('not allowed')
             actions.pop("reparse", None)
         else:
-            print('allowed')
             if "reparse" not in actions:
                 actions["reparse"] = (self.reparse, "reparse", "Reparse selected data files)")
         return actions
