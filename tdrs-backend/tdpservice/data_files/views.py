@@ -22,8 +22,6 @@ from tdpservice.scheduling import parser_task
 from tdpservice.data_files.s3_client import S3Client
 from tdpservice.parsers.models import ParserError
 from tdpservice.parsers.serializers import ParsingErrorSerializer
-from rest_framework.parsers import JSONParser, FormParser
-from django.core.management import call_command
 
 logger = logging.getLogger(__name__)
 
