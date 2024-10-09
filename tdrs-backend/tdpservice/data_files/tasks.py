@@ -51,5 +51,6 @@ def notify_stuck_files():
 
 @shared_task
 def reparse_files(file_ids):
+    """Call the clean_and_reparse management command with a list of file ids."""
     file_ids_str = ",".join(map(str, file_ids))
     call_command("clean_and_reparse", f"-f {file_ids_str}")
