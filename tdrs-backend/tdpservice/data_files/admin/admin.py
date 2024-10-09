@@ -8,9 +8,9 @@ from django.conf import settings
 from django.utils.html import format_html
 from datetime import datetime, timedelta, timezone
 from django.shortcuts import redirect
-from django.core.management import call_command
 from django.utils.translation import ngettext
 from django.contrib import messages
+from tdpservice.data_files.tasks import reparse_files
 
 DOMAIN = settings.FRONTEND_BASE_URL
 
@@ -40,8 +40,8 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     def reparse(self, request, queryset):
         """Reparse the selected data files."""
         files = queryset.values_list("id", flat=True)
-        file_ids = ",".join(map(str, files))
-        call_command("clean_and_reparse", f"-f {file_ids}")
+        reparse_files.delay(list(files))
+
         self.message_user(
             request,
             ngettext(
@@ -57,9 +57,12 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     def get_actions(self, request):
         """Return the actions."""
         actions = super().get_actions(request)
+        print('get actions')
         if not request.user.groups.filter(name__in=["OFA System Admin", "OFA Admin"]).exists():
+            print('not allowed')
             actions.pop("reparse", None)
         else:
+            print('allowed')
             if "reparse" not in actions:
                 actions["reparse"] = (self.reparse, "reparse", "Reparse selected data files)")
         return actions
