@@ -7,9 +7,9 @@ Date: 2024-09-30
 Pending
 
 ## Context
-Historic feedback highlighted an ongoing desire for improved alerting and monitoring mechanisms, particularly originating in issue [#831](https://github.com/raft-tech/TANF-app/issues/831) circa 2021. Currently, our cloud platform has limited logging features and user interface issues leading to a "blindness" to errors and stack traces that have occurred, ultimately impairing our ability to maintain system stability; additionally, the existing dashboards only offer live performance data lacking data over time or any archives. Without context for either performance or system logging, determination of anomalous or erroneous system behavior is not possible. 
+Historic feedback highlighted an ongoing desire for improved alerting and monitoring mechanisms, particularly originating in issue [#831](https://github.com/raft-tech/TANF-app/issues/831) circa 2021. Currently, our cloud platform has limited logging features and user interface issues leading to a "blindness" to errors and stack traces that have occurred, ultimately impairing our ability to maintain system stability; additionally, the existing dashboards only offer live performance data lacking data over time or any archives. Without context for either performance or system logging, determination of anomalous or erroneous system behavior is not possible.
 
-Additionally, we have experienced critical blocking issues related to our updates to both Elasticsearch (ES) and PostgreSQL, which have compounded the need for more proactive alerting and load-testing in lower environments. Without timely notifications, we risk delays in addressing failures that could escalate into more significant problems. 
+Additionally, we have experienced critical blocking issues related to our updates to both Elasticsearch (ES) and PostgreSQL, which have compounded the need for more proactive alerting and load-testing in lower environments. Without timely notifications, we risk delays in addressing failures that could escalate into more significant problems.
 
 
 ## Decision
@@ -24,7 +24,7 @@ Sentry captures unhandled exceptions and incorporates detail context about excep
 
 Additionally, as can be seen in the image below, the following information is available:
 
-- Frequency: shows the frequency detail of error 
+- Frequency: shows the frequency detail of error
 - Timeline: when has the error happened in a period
 - Can create a ticket and assign automatically
 - Variables at each step of stack trace. This is very important for debugging
@@ -42,9 +42,9 @@ Additionally, as can be seen in the image below, the following information is av
 ![Full stack trace of the exceptions](../images/sentry/4.%20full%20stack%20trace%20of%20the%20exceptions.png)
 
 
-Performance monitoring in Sentry can greatly enhance backend application by providing real-time insights into how TANF app is performing. It tracks various metrics such as response time, database queries, and external API calls, with which we can identify performance bottlenecks to our backend app.
+Performance monitoring in Sentry can greatly enhance the backend application by providing real-time insights into how the TANF app is performing. Sentry tracks various metrics such as response time, database queries, and external API calls. These metrics will help identify performance bottlenecks associated to the backend app.
 
-A unique ability of Sentry is that it can link performance issues and group them together. This gives us the ability to attack and resolve more critical issues with highest impact first. Not only it can detect issues with web transactions, it also detects problems with DB queries as well as function regressions (if the duration of function has increased)
+A unique ability of Sentry is that it links performance issues and groups them together. This gives us the ability to visualize areas that consistently have poor performance. Allowing us to swarm and resolve the most frequent offenders that have the highest impact. Sentry also detects issues with web transactions, database queries, and function regressions (if the duration of function has increased).
 
 ### Why Prometheus-Loki-Grafana
 
@@ -54,7 +54,7 @@ The storing of system logs will allow more expedient troubleshooting and debuggi
 
 By having our monitoring ecosystem take in performance metrics, we will garner performance metrics over time as opposed to simply a live snapshot as is currently provided. This will allow to spotting of anomolous or out-of-bounds behaviors such as out of memory, high memory, cpu spikes, and disk thrashing.
 
-Finally, having all of this data in one place will allow technical staff to easily cross-reference given time periods with problematic performance, ongoing issues, or error stacktraces leading to a holistic view of all of our applications both in lower tier development sites and in critical production. 
+Finally, having all of this data in one place will allow technical staff to easily cross-reference given time periods with problematic performance, ongoing issues, or error stacktraces leading to a holistic view of all of our applications both in lower tier development sites and in critical production.
 
 ## Consequences
 
