@@ -1,5 +1,4 @@
 $(window).on('load', function() {
-    //your code here
     console.log('loaded');
     var submitBtn=document.querySelector('button[type=submit]');    // add the first listener
     var theForm = submitBtn.parentNode.parentNode;
@@ -7,14 +6,16 @@ $(window).on('load', function() {
     for (var i = 0; i < theForm.childNodes.length; i++) {
         if (theForm.childNodes[i].className == "actions") {
           form_header = theForm.childNodes[i];
+
+          for (var i = 0; i < form_header.childNodes.length; i++) {
+              if (form_header.childNodes[i].className == "action-counter") {
+                number_of_files = form_header.childNodes[i];
+                break;
+              }
+            }
+
           break;
-        }        
-    }
-    for (var i = 0; i < form_header.childNodes.length; i++) {
-        if (form_header.childNodes[i].className == "action-counter") {
-          number_of_files = form_header.childNodes[i];
-          break;
-        }        
+        }
     }
     submitBtn.addEventListener('click', function(e) {
         e.preventDefault();
@@ -26,5 +27,4 @@ $(window).on('load', function() {
         };
     });
 
-    
 });
