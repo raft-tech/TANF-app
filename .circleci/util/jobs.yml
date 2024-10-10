@@ -4,6 +4,7 @@
     steps:
       - checkout
       - docker-compose-check
+      - docker-login
       - run:
           name: Run graph_models
           command: |
