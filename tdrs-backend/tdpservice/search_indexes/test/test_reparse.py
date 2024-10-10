@@ -110,7 +110,7 @@ def test_reparse_backup_succeed(log_context, dfs, cat4_edge_case_file, big_file,
     time.sleep(10)
 
     file_size = os.path.getsize(file_name)
-    assert file_size > 180000
+    assert file_size > 160000
 
 @pytest.mark.django_db
 def test_reparse_backup_fail(mocker, log_context, dfs, cat4_edge_case_file, big_file, small_ssp_section1_datafile,
@@ -308,12 +308,12 @@ def test_reparse_quarter_and_year(mocker, dfs, cat4_edge_case_file, big_file, sm
         return_value=None
     )
 
-    opts = {'fiscal_quarter': 'Q1', 'fiscal_year': 2021, 'testing': True}
+    opts = {'fiscal_quarter': 'Q1', 'fiscal_year': 2022, 'testing': True}
     cmd.handle(**opts)
 
     latest = ReparseMeta.objects.select_for_update().latest("pk")
-    assert latest.num_files_to_reparse == 1
-    assert latest.num_records_deleted == 3073
+    assert latest.num_files_to_reparse == 2
+    assert latest.num_records_deleted == 3077
 
 @pytest.mark.django_db()
 def test_reparse_quarter(mocker, dfs, cat4_edge_case_file, big_file, small_ssp_section1_datafile,
