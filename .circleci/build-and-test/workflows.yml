@@ -49,6 +49,13 @@
                 - /^release.*/
           requires:
             - secrets-check
+      - make_erd: # from ../util folder
+          filters:
+            branches:
+              only:
+                - develop
+                - master
+                - hotfix/make-erd-docker-login
 
   build-and-test-backend:
     when: << pipeline.parameters.build_and_test_backend >>
