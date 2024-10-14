@@ -1,4 +1,5 @@
-FROM python:3.10.8-slim-bullseye
+FROM python:3.10.8-buster
+    #slim-bullseye
 ENV PYTHONUNBUFFERED 1
 
 ARG user=tdpuser
