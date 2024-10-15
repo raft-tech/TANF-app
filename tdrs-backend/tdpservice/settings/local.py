@@ -44,7 +44,10 @@ class Local(Common):
         'level': 'DEBUG',
         'handlers': ['console']
     }
-
+    INSTALLED_APPS = Common.INSTALLED_APPS + (
+        #'debug_toolbar',
+    )
+    
     REDIS_SERVER_LOCAL = bool(strtobool(os.getenv("REDIS_SERVER_LOCAL", "TRUE")))
 
     if os.getenv("ENABLE_SENTRY", "no") == "yes":
@@ -53,7 +56,7 @@ class Local(Common):
         from sentry_sdk.integrations.django import DjangoIntegration
         from sentry_sdk.integrations.logging import LoggingIntegration
         sentry_sdk.init(
-            dsn="http://43ebf8abe1434ec6aea2c7b92c465a0e@host.docker.internal:9001/2",
+            dsn="http://e1357afab17cbfe754813aef2ef964ba@192.168.68.59:9001/1",
             # Set traces_sample_rate to 1.0 to capture 100%
             # of transactions for performance monitoring.
             integrations=[
