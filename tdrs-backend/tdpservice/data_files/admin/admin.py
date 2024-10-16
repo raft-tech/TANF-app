@@ -3,7 +3,7 @@ from django.contrib import admin
 from tdpservice.core.utils import ReadOnlyAdminMixin
 from tdpservice.data_files.models import DataFile, LegacyFileTransfer
 from tdpservice.parsers.models import DataFileSummary, ParserError
-from tdpservice.data_files.admin.filters import DataFileSummaryPrgTypeFilter, LatestReparseEvent, VersionFilter
+from tdpservice.data_files.admin.filters import LatestReparseEvent, VersionFilter
 from django.conf import settings
 from django.utils.html import format_html
 from datetime import datetime, timedelta, timezone
@@ -149,14 +149,15 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     ]
 
     list_filter = [
+        'stt',
+        'year',
         'quarter',
         'section',
-        'stt',
-        'user',
-        'year',
-        SubmissionDateFilter,
         'summary__status',
-        DataFileSummaryPrgTypeFilter,
+        'stt__type',
+        'stt__region',
+        'user',
+        SubmissionDateFilter,
         LatestReparseEvent,
         VersionFilter,
     ]
