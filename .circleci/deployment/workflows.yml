@@ -148,4 +148,3 @@
               only:
                 - develop
                 - master
-                - hotfix/make-erd-docker-login
