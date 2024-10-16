@@ -272,7 +272,7 @@ class Command(BaseCommand):
         if selected_files:
             files = files.filter(id__in=selected_files)
             backup_file_name += "_selected_files"
-            continue_msg = continue_msg.format(fy="All", q="Q1-4")
+            continue_msg = continue_msg.format(fy=f"selected files: {str(selected_files)}", q="Q1-4")
         if reparse_all:
             backup_file_name += "_FY_All_Q1-4"
             continue_msg = continue_msg.format(fy="All", q="Q1-4")
