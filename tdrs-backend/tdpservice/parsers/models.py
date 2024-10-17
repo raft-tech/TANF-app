@@ -53,7 +53,8 @@ class ParserError(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     fields_json = models.JSONField(null=True)
 
-    # SHA1 hash of the validator's name prepended with catX_ where X is in [1, 2, 3]
+    # SHA1 hash of the validator's name prepended with catX_ where X is in [1, 2, 3]. We have the prepended string
+    # because names are re-used accross different categories of validators
     validator_id = models.TextField(null=True, max_length=40)
 
     @property
