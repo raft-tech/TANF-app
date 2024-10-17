@@ -10,43 +10,43 @@ def format_error_context(eargs: ValidationErrorArgs):
     return f'{eargs.row_schema.record_type} Item {eargs.item_num} ({eargs.friendly_name}):'
 
 
-@validator(base.isEqual)
+@validator(1, base.isEqual)
 def isEqual(option, **kwargs):
     """Return a custom message for the isEqual validator."""
     return lambda eargs: f"{format_error_context(eargs)} {eargs.value} does not match {option}."
 
 
-@validator(base.isNotEqual)
+@validator(1, base.isNotEqual)
 def isNotEqual(option, **kwargs):
     """Return a custom message for the isNotEqual validator."""
     return lambda eargs: f"{format_error_context(eargs)} {eargs.value} matches {option}."
 
 
-@validator(base.isOneOf)
+@validator(1, base.isOneOf)
 def isOneOf(options, **kwargs):
     """Return a custom message for the isOneOf validator."""
     return lambda eargs: f"{format_error_context(eargs)} {eargs.value} is not in {clean_options_string(options)}."
 
 
-@validator(base.isNotOneOf)
+@validator(1, base.isNotOneOf)
 def isNotOneOf(options, **kwargs):
     """Return a custom message for the isNotOneOf validator."""
     return lambda eargs: f"{format_error_context(eargs)} {eargs.value} is in {clean_options_string(options)}."
 
 
-@validator(base.isGreaterThan)
+@validator(1, base.isGreaterThan)
 def isGreaterThan(option, inclusive=False, **kwargs):
     """Return a custom message for the isGreaterThan validator."""
     return lambda eargs: f"{format_error_context(eargs)} {eargs.value} is not larger than {option}."
 
 
-@validator(base.isLessThan)
+@validator(1, base.isLessThan)
 def isLessThan(option, inclusive=False, **kwargs):
     """Return a custom message for the isLessThan validator."""
     return lambda eargs: f"{format_error_context(eargs)} {eargs.value} is not smaller than {option}."
 
 
-@validator(base.isBetween)
+@validator(1, base.isBetween)
 def isBetween(min, max, inclusive=False, **kwargs):
     """Return a custom message for the isBetween validator."""
     def inclusive_err(eargs):
@@ -58,31 +58,31 @@ def isBetween(min, max, inclusive=False, **kwargs):
     return inclusive_err if inclusive else exclusive_err
 
 
-@validator(base.startsWith)
+@validator(1, base.startsWith)
 def startsWith(substr, **kwargs):
     """Return a custom message for the startsWith validator."""
     return lambda eargs: f"{format_error_context(eargs)} {eargs.value} does not start with {substr}."
 
 
-@validator(base.contains)
+@validator(1, base.contains)
 def contains(substr, **kwargs):
     """Return a custom message for the contains validator."""
     return lambda eargs: f"{format_error_context(eargs)} {eargs.value} does not contain {substr}."
 
 
-@validator(base.isNumber)
+@validator(1, base.isNumber)
 def isNumber(**kwargs):
     """Return a custom message for the isNumber validator."""
     return lambda eargs: f"{format_error_context(eargs)} {eargs.value} is not a number."
 
 
-@validator(base.isAlphaNumeric)
+@validator(1, base.isAlphaNumeric)
 def isAlphaNumeric(**kwargs):
     """Return a custom message for the isAlphaNumeric validator."""
     return lambda eargs: f"{format_error_context(eargs)} {eargs.value} is not alphanumeric."
 
 
-@validator(base.isEmpty)
+@validator(1, base.isEmpty)
 def isEmpty(start=0, end=None, **kwargs):
     """Return a custom message for the isEmpty validator."""
     return lambda eargs: (
@@ -91,7 +91,7 @@ def isEmpty(start=0, end=None, **kwargs):
     )
 
 
-@validator(base.isNotEmpty)
+@validator(1, base.isNotEmpty)
 def isNotEmpty(start=0, end=None, **kwargs):
     """Return a custom message for the isNotEmpty validator."""
     return lambda eargs: (
@@ -100,13 +100,13 @@ def isNotEmpty(start=0, end=None, **kwargs):
     )
 
 
-@validator(base.isBlank)
+@validator(1, base.isBlank)
 def isBlank(**kwargs):
     """Return a custom message for the isBlank validator."""
     return lambda eargs: f"{format_error_context(eargs)} {eargs.value} is not blank."
 
 
-@validator(base.hasLength)
+@validator(1, base.hasLength)
 def hasLength(length, **kwargs):
     """Return a custom message for the hasLength validator."""
     return lambda eargs: (
@@ -115,7 +115,7 @@ def hasLength(length, **kwargs):
     )
 
 
-@validator(base.hasLengthGreaterThan)
+@validator(1, base.hasLengthGreaterThan)
 def hasLengthGreaterThan(length, inclusive=False, **kwargs):
     """Return a custom message for the hasLengthGreaterThan validator."""
     return lambda eargs: (
@@ -123,13 +123,13 @@ def hasLengthGreaterThan(length, inclusive=False, **kwargs):
     )
 
 
-@validator(base.intHasLength)
+@validator(1, base.intHasLength)
 def intHasLength(length, **kwargs):
     """Return a custom message for the intHasLength validator."""
     return lambda eargs: f"{format_error_context(eargs)} {eargs.value} does not have exactly {length} digits."
 
 
-@validator(base.isNotZero)
+@validator(1, base.isNotZero)
 def isNotZero(number_of_zeros=1, **kwargs):
     """Return a custom message for the isNotZero validator."""
     return lambda eargs: f"{format_error_context(eargs)} {eargs.value} is zero."
@@ -141,7 +141,7 @@ def dateYearIsLargerThan(year, **kwargs):
     _validator = base.dateYearIsLargerThan(year, **kwargs)
     return make_validator(
         lambda value: _validator(int(str(value)[:4])),
-        lambda eargs: f"{format_error_context(eargs)} Year {str(eargs.value)[:4]} must be larger than {year}.",
+        lambda eargs: f"{format_error_context(eargs)} Year {str(eargs.value)[:4]} must be larger than {year}.", 1
     )
 
 
@@ -150,7 +150,7 @@ def dateMonthIsValid(**kwargs):
     _validator = base.dateMonthIsValid(**kwargs)
     return make_validator(
         lambda val: _validator(int(str(val)[4:6])),
-        lambda eargs: f"{format_error_context(eargs)} {str(eargs.value)[4:6]} is not a valid month.",
+        lambda eargs: f"{format_error_context(eargs)} {str(eargs.value)[4:6]} is not a valid month.", 1
     )
 
 
@@ -159,7 +159,7 @@ def dateDayIsValid(**kwargs):
     _validator = base.dateDayIsValid(**kwargs)
     return make_validator(
         lambda value: _validator(int(str(value)[6:])),
-        lambda eargs: f"{format_error_context(eargs)} {str(eargs.value)[6:]} is not a valid day.",
+        lambda eargs: f"{format_error_context(eargs)} {str(eargs.value)[6:]} is not a valid day.", 1
     )
 
 
@@ -168,7 +168,7 @@ def quarterIsValid(**kwargs):
     _validator = base.quarterIsValid(**kwargs)
     return make_validator(
         lambda value: _validator(int(str(value)[-1])),
-        lambda eargs: f"{format_error_context(eargs)} {str(eargs.value)[-1]} is not a valid quarter.",
+        lambda eargs: f"{format_error_context(eargs)} {str(eargs.value)[-1]} is not a valid quarter.", 1
     )
 
 
@@ -177,7 +177,7 @@ def validateRace():
     return make_validator(
         base.isBetween(0, 2, inclusive=True),
         lambda eargs:
-            f"{format_error_context(eargs)} {eargs.value} is not in range [0, 2]."
+            f"{format_error_context(eargs)} {eargs.value} is not in range [0, 2].", 1
     )
 
 
@@ -187,5 +187,5 @@ def validateHeaderUpdateIndicator():
         base.isEqual('D'),
         lambda eargs:
             f"HEADER Update Indicator must be set to D instead of {eargs.value}. "
-            "Please review Exporting Complete Data Using FTANF in the Knowledge Center."
+            "Please review Exporting Complete Data Using FTANF in the Knowledge Center.", 1
     )

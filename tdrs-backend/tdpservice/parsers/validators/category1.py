@@ -16,7 +16,7 @@ def recordIsNotEmpty(start=0, end=None, **kwargs):
     return make_validator(
         base.isNotEmpty(start, end, **kwargs),
         lambda eargs: f'{format_error_context(eargs)} {str(eargs.value)} contains blanks '
-        f'between positions {start} and {end if end else len(str(eargs.value))}.'
+        f'between positions {start} and {end if end else len(str(eargs.value))}.', 1
     )
 
 
@@ -25,7 +25,7 @@ def recordHasLength(length, **kwargs):
     return make_validator(
         base.hasLength(length, **kwargs),
         lambda eargs:
-            f"{eargs.row_schema.record_type}: record length is {len(eargs.value)} characters but must be {length}.",
+            f"{eargs.row_schema.record_type}: record length is {len(eargs.value)} characters but must be {length}.", 1
     )
 
 
@@ -36,7 +36,7 @@ def recordHasLengthBetween(min, max, **kwargs):
         lambda record: _validator(len(record)),
         lambda eargs:
             f"{eargs.row_schema.record_type}: record length of {len(eargs.value)} "
-            f"characters is not in the range [{min}, {max}].",
+            f"characters is not in the range [{min}, {max}].", 1
     )
 
 
@@ -44,7 +44,7 @@ def recordStartsWith(substr, func=None, **kwargs):
     """Return a function that tests that a record/line starts with a specified substr."""
     return make_validator(
         base.startsWith(substr, **kwargs),
-        func if func else lambda eargs: f'{eargs.value} must start with {substr}.'
+        func if func else lambda eargs: f'{eargs.value} must start with {substr}.', 1
     )
 
 
@@ -52,7 +52,7 @@ def caseNumberNotEmpty(start=0, end=None, **kwargs):
     """Return a function that tests that a record/line is not blank between the Case Number indices."""
     return make_validator(
         base.isNotEmpty(start, end, **kwargs),
-        lambda eargs: f'{eargs.row_schema.record_type}: Case number {str(eargs.value)} cannot contain blanks.'
+        lambda eargs: f'{eargs.row_schema.record_type}: Case number {str(eargs.value)} cannot contain blanks.', 1
     )
 
 
@@ -64,10 +64,10 @@ def or_priority_validators(validators=[]):
     """
     def or_priority_validators_func(value, eargs):
         for validator in validators:
-            result, msg = validator(value, eargs)
+            result, msg, id = validator(value, eargs)
             if not result:
-                return (result, msg)
-        return (True, None)
+                return (result, msg, id)
+        return (True, None, 1)
 
     return or_priority_validators_func
 
@@ -86,12 +86,12 @@ def validate_fieldYearMonth_with_headerYearQuarter():
         file_calendar_year, file_calendar_qtr = fiscal_to_calendar(df_year, f"{df_quarter}")
 
         if str(file_calendar_year) == str(field_year) and file_calendar_qtr == field_quarter:
-            return (True, None)
+            return (True, None, 1)
 
         return (
             False,
             f"{row_schema.record_type}: Reporting month year {field_month_year} " +
-            f"does not match file reporting year:{df_year}, quarter:{df_quarter}.",
+            f"does not match file reporting year:{df_year}, quarter:{df_quarter}.", 1
         )
 
     return validate_reporting_month_year_fields_header
@@ -105,7 +105,7 @@ def validateRptMonthYear():
         },
         lambda eargs:
             f"{format_error_context(eargs)} The value: {eargs.value[2:8]}, "
-            "does not follow the YYYYMM format for Reporting Year and Month.",
+            "does not follow the YYYYMM format for Reporting Year and Month.", 1
     )
 
 
@@ -113,23 +113,23 @@ def t3_m3_child_validator(which_child):
     """T3 child validator."""
     def t3_first_child_validator_func(line, eargs):
         if not _is_empty(line, 1, 60) and len(line) >= 60:
-            return (True, None)
+            return (True, None, 1)
         elif not len(line) >= 60:
             return (False, f"The first child record is too short at {len(line)} "
-                    "characters and must be at least 60 characters.")
+                    "characters and must be at least 60 characters.", 1)
         else:
-            return (False, "The first child record is empty.")
+            return (False, "The first child record is empty.", 1)
 
     def t3_second_child_validator_func(line, eargs):
         if not _is_empty(line, 60, 101) and len(line) >= 101 and \
                 not _is_empty(line, 8, 19) and \
                 not _is_all_zeros(line, 60, 101):
-            return (True, None)
+            return (True, None, 1)
         elif not len(line) >= 101:
             return (False, f"The second child record is too short at {len(line)} "
-                    "characters and must be at least 101 characters.")
+                    "characters and must be at least 101 characters.", 1)
         else:
-            return (False, "The second child record is empty.")
+            return (False, "The second child record is empty.", 1)
 
     return t3_first_child_validator_func if which_child == 1 else t3_second_child_validator_func
 
@@ -140,7 +140,7 @@ def calendarQuarterIsValid(start=0, end=None):
         lambda value: value[start:end].isnumeric() and int(value[start:end - 1]) >= 2020
         and int(value[end - 1:end]) > 0 and int(value[end - 1:end]) < 5,
         lambda eargs: f"{eargs.row_schema.record_type}: {eargs.value[start:end]} is invalid. "
-        "Calendar Quarter must be a numeric representing the Calendar Year and Quarter formatted as YYYYQ",
+        "Calendar Quarter must be a numeric representing the Calendar Year and Quarter formatted as YYYYQ", 1
     )
 
 
@@ -166,7 +166,7 @@ def validate_tribe_fips_program_agree(program_type, tribe_code, state_fips_code,
             field=None
         )
 
-    return is_valid, error
+    return is_valid, error, 1
 
 
 def validate_header_section_matches_submission(datafile, section, generate_error):
@@ -183,7 +183,7 @@ def validate_header_section_matches_submission(datafile, section, generate_error
             field=None,
         )
 
-    return is_valid, error
+    return is_valid, error, 1
 
 
 def validate_header_rpt_month_year(datafile, header, generate_error):
@@ -206,4 +206,4 @@ def validate_header_rpt_month_year(datafile, header, generate_error):
             record=None,
             field=None,
         )
-    return is_valid, error
+    return is_valid, error, 1

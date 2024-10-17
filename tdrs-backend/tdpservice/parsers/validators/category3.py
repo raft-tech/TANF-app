@@ -14,109 +14,109 @@ def format_error_context(eargs: ValidationErrorArgs):
     return f'Item {eargs.item_num} ({eargs.friendly_name})'
 
 
-@validator(base.isEqual)
+@validator(1, base.isEqual)
 def isEqual(option, **kwargs):
     """Return a custom message for the isEqual validator."""
     return lambda eargs: f'must match {option}'
 
 
-@validator(base.isNotEqual)
+@validator(1, base.isNotEqual)
 def isNotEqual(option, **kwargs):
     """Return a custom message for the isNotEqual validator."""
     return lambda eargs: f'must not be equal to {option}'
 
 
-@validator(base.isOneOf)
+@validator(1, base.isOneOf)
 def isOneOf(options, **kwargs):
     """Return a custom message for the isOneOf validator."""
     return lambda eargs: f'must be one of {options}'
 
 
-@validator(base.isNotOneOf)
+@validator(1, base.isNotOneOf)
 def isNotOneOf(options, **kwargs):
     """Return a custom message for the isNotOneOf validator."""
     return lambda eargs: f'must not be one of {options}'
 
 
-@validator(base.isGreaterThan)
+@validator(1, base.isGreaterThan)
 def isGreaterThan(option, inclusive=False, **kwargs):
     """Return a custom message for the isGreaterThan validator."""
     return lambda eargs: f'must be greater than {option}'
 
 
-@validator(base.isLessThan)
+@validator(1, base.isLessThan)
 def isLessThan(option, inclusive=False, **kwargs):
     """Return a custom message for the isLessThan validator."""
     return lambda eargs: f'must be less than {option}'
 
 
-@validator(base.isBetween)
+@validator(1, base.isBetween)
 def isBetween(min, max, inclusive=False, **kwargs):
     """Return a custom message for the isBetween validator."""
     return lambda eargs: f'must be between {min} and {max}'
 
 
-@validator(base.startsWith)
+@validator(1, base.startsWith)
 def startsWith(substr, **kwargs):
     """Return a custom message for the startsWith validator."""
     return lambda eargs: f'must start with {substr}'
 
 
-@validator(base.contains)
+@validator(1, base.contains)
 def contains(substr, **kwargs):
     """Return a custom message for the contains validator."""
     return lambda eargs: f'must contain {substr}'
 
 
-@validator(base.isNumber)
+@validator(1, base.isNumber)
 def isNumber(**kwargs):
     """Return a custom message for the isNumber validator."""
     return lambda eargs: 'must be a number'
 
 
-@validator(base.isAlphaNumeric)
+@validator(1, base.isAlphaNumeric)
 def isAlphaNumeric(**kwargs):
     """Return a custom message for the isAlphaNumeric validator."""
     return lambda eargs: 'must be alphanumeric'
 
 
-@validator(base.isEmpty)
+@validator(1, base.isEmpty)
 def isEmpty(start=0, end=None, **kwargs):
     """Return a custom message for the isEmpty validator."""
     return lambda eargs: 'must be empty'
 
 
-@validator(base.isNotEmpty)
+@validator(1, base.isNotEmpty)
 def isNotEmpty(start=0, end=None, **kwargs):
     """Return a custom message for the isNotEmpty validator."""
     return lambda eargs: 'must not be empty'
 
 
-@validator(base.isBlank)
+@validator(1, base.isBlank)
 def isBlank(**kwargs):
     """Return a custom message for the isBlank validator."""
     return lambda eargs: 'must be blank'
 
 
-@validator(base.hasLength)
+@validator(1, base.hasLength)
 def hasLength(length, **kwargs):
     """Return a custom message for the hasLength validator."""
     return lambda eargs: f'must have length {length}'
 
 
-@validator(base.hasLengthGreaterThan)
+@validator(1, base.hasLengthGreaterThan)
 def hasLengthGreaterThan(length, inclusive=False, **kwargs):
     """Return a custom message for the hasLengthGreaterThan validator."""
     return lambda eargs: f'must have length greater than {length}'
 
 
-@validator(base.intHasLength)
+@validator(1, base.intHasLength)
 def intHasLength(length, **kwargs):
     """Return a custom message for the intHasLength validator."""
     return lambda eargs: f'must have length {length}'
 
 
-@validator(base.isNotZero)
+@validator(1, base.isNotZero)
 def isNotZero(number_of_zeros=1, **kwargs):
     """Return a custom message for the isNotZero validator."""
     return lambda eargs: 'must not be zero'
@@ -135,7 +135,7 @@ def isOlderThan(min_age):
         _validate,
         lambda eargs:
             f"{str(eargs.value)[:4]} must be less "
-            f"than or equal to {datetime.date.today().year - min_age} to meet the minimum age requirement."
+            f"than or equal to {datetime.date.today().year - min_age} to meet the minimum age requirement.", 1
     )
 
 
@@ -144,7 +144,7 @@ def validateSSN():
     options = [str(i) * 9 for i in range(0, 10)]
     return make_validator(
         base.isNotOneOf(options),
-        lambda eargs: f"is in {options}."
+        lambda eargs: f"is in {options}.", 1
     )
 
 
@@ -167,7 +167,7 @@ def ifThenAlso(condition_field_name, condition_function, result_field_name, resu
             friendly_name=condition_field.friendly_name,
             item_num=condition_field.item,
         )
-        condition_success, msg1 = condition_function(condition_value, condition_field_eargs)
+        condition_success, msg1, id = condition_function(condition_value, condition_field_eargs)
 
         result_value = get_record_value_by_field_name(record, result_field_name)
         result_field = row_schema.get_field_by_name(result_field_name)
@@ -177,10 +177,10 @@ def ifThenAlso(condition_field_name, condition_function, result_field_name, resu
             friendly_name=result_field.friendly_name,
             item_num=result_field.item,
         )
-        result_success, msg2 = result_function(result_value, result_field_eargs)
+        result_success, msg2, id2 = result_function(result_value, result_field_eargs)
 
         if not condition_success:
-            return (True, None, [result_field_name, condition_field_name])  # order is important
+            return (True, None, [result_field_name, condition_field_name], 1)  # order is important
         elif not result_success:
             center_error = None
             if condition_success:
@@ -192,9 +192,9 @@ def ifThenAlso(condition_field_name, condition_function, result_field_name, resu
                 f"{result_value} {msg2}"
             )
 
-            return (result_success, error_message, [condition_field_name, result_field_name])
+            return (result_success, error_message, [condition_field_name, result_field_name], 1)
         else:
-            return (result_success, None, [condition_field_name, result_field_name])
+            return (result_success, None, [condition_field_name, result_field_name], 1)
 
     return if_then_validator_func
 
@@ -209,9 +209,9 @@ def orValidators(validators, **kwargs):
         if not any(result[0] for result in validator_results):
             error_msg = f'{format_error_context(eargs)} {value} ' if not is_if_result_func else ''
             error_msg += " or ".join([result[1] for result in validator_results]) + '.'
-            return (False, error_msg)
+            return (False, error_msg, 1)
 
-        return (True, None)
+        return (True, None, 1)
 
     return _validate
 
@@ -231,12 +231,12 @@ def sumIsEqual(condition_field_name, sum_fields=[]):
         fields.extend(sum_fields)
 
         if sum == condition_val:
-            return (True, None, fields)
+            return (True, None, fields, 1)
         return (
             False,
             f"{row_schema.record_type}: The sum of {sum_fields} does not equal {condition_field_name} "
             f"{condition_field.friendly_name} Item {condition_field.item}.",
-            fields
+            fields, 1
         )
 
     return sumIsEqualFunc
@@ -251,12 +251,12 @@ def sumIsLarger(fields, val):
             sum += 0 if temp_val is None else temp_val
 
         if sum > val:
-            return (True, None, fields)
+            return (True, None, fields, 1)
 
         return (
             False,
             f"{row_schema.record_type}: The sum of {fields} is not larger than {val}.",
-            fields,
+            fields, 1
         )
 
     return sumIsLargerFunc
@@ -307,12 +307,12 @@ def validate__FAM_AFF__SSN():
                     f"{row_schema.record_type}: Since {format_error_context(fam_affil_eargs)} is 2 "
                     f"and {format_error_context(cit_stat_eargs)} is 1 or 2, "
                     f"then {format_error_context(ssn_eargs)} must not be in 000000000 -- 999999999.",
-                    ["FAMILY_AFFILIATION", "CITIZENSHIP_STATUS", "SSN"],
+                    ["FAMILY_AFFILIATION", "CITIZENSHIP_STATUS", "SSN"], 1
                 )
             else:
-                return (True, None, ["FAMILY_AFFILIATION", "CITIZENSHIP_STATUS", "SSN"])
+                return (True, None, ["FAMILY_AFFILIATION", "CITIZENSHIP_STATUS", "SSN"], 1)
         else:
-            return (True, None, ["FAMILY_AFFILIATION", "CITIZENSHIP_STATUS", "SSN"])
+            return (True, None, ["FAMILY_AFFILIATION", "CITIZENSHIP_STATUS", "SSN"], 1)
 
     return validate
 
@@ -350,12 +350,12 @@ def validate__WORK_ELIGIBLE_INDICATOR__HOH__AGE():
             f"{row_schema.record_type}: Since {format_error_context(work_elig_eargs)} is 11 "
             f"and {format_error_context(age_eargs)} is less than 19, "
             f"then {format_error_context(relat_hoh_eargs)} must not be 1.",
-            ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH']
+            ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH'], 1
         )
         true_case = (
             True,
             None,
-            ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH'],
+            ['WORK_ELIGIBLE_INDICATOR', 'RELATIONSHIP_HOH', 'DATE_OF_BIRTH'], 1
         )
         try:
             WORK_ELIGIBLE_INDICATOR = get_record_value_by_field_name(record, 'WORK_ELIGIBLE_INDICATOR')

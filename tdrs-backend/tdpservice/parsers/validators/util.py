@@ -9,7 +9,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-def make_validator(validator_func, error_func):
+def make_validator(validator_func, error_func, id):
     """
     Return a function accepting a value input and returning (bool, string) to represent validation state.
 
@@ -21,17 +21,17 @@ def make_validator(validator_func, error_func):
     def validator(value, eargs):
         try:
             if validator_func(value):
-                return (True, None)
+                return (True, None, id)
         except Exception:
             logger.exception("Caught exception in validator.")
-        return (False, error_func(eargs))
+        return (False, error_func(eargs), id)
 
     return validator
 
 
 # decorator helper
 # outer function wraps the decorator to handle arguments to the decorator itself
-def validator(baseValidator):
+def validator(id, baseValidator):
     """
     Wrap error generation func to create a validator with baseValidator.
 
@@ -46,7 +46,7 @@ def validator(baseValidator):
         def _validator(*args, **kwargs):
             validator_func = baseValidator(*args, **kwargs)
             error_func = errorFunc(*args, **kwargs)
-            return make_validator(validator_func, error_func)
+            return make_validator(validator_func, error_func, id)
         return _validator
     return _decorator
 
