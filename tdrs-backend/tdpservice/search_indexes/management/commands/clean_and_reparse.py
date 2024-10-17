@@ -302,8 +302,10 @@ class Command(BaseCommand):
         fiscal_year = options.get('fiscal_year', None)
         fiscal_quarter = options.get('fiscal_quarter', None)
         reparse_all = options.get('all', False)
+        print(f'************** reparse all {reparse_all}')
         selected_files = options.get('files', None)
         selected_files = [int(file) for file in selected_files[0].split(',')] if selected_files else None
+        print(f'************** selected files {selected_files}')
         new_indices = reparse_all is True
 
         # Option that can only be specified by calling `handle` directly and passing it.
@@ -343,10 +345,16 @@ class Command(BaseCommand):
 
         all_fy = "All"
         all_q = "Q1-4"
-        log(f"Starting clean and reparse command for FY {fiscal_year if fiscal_year else all_fy} and "
-            f"{fiscal_quarter if fiscal_quarter else all_q}",
-            logger_context=log_context,
-            level='info')
+
+        if not selected_files:
+            log(f"Starting clean and reparse command for FY {fiscal_year if fiscal_year else all_fy} and "
+                f"{fiscal_quarter if fiscal_quarter else all_q}",
+                logger_context=log_context,
+                level='info')
+        else:
+            log(f"Starting clean and reparse action for files: {str(selected_files)}",
+                logger_context=log_context,
+                level='info')
 
         if num_files == 0:
             log(f"No files available for the selected Fiscal Year: {fiscal_year if fiscal_year else all_fy} and "
