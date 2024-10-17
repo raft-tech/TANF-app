@@ -149,6 +149,7 @@ def validateSSN():
 
 
 # compositional validators, build an error message using multiple of the above functions
+#TODO: aggregate ids
 def ifThenAlso(condition_field_name, condition_function, result_field_name, result_function, **kwargs):
     """Return second validation if the first validator is true.
 
@@ -197,7 +198,7 @@ def ifThenAlso(condition_field_name, condition_function, result_field_name, resu
 
     return if_then_validator_func
 
-
+# TODO: aggregate val ids
 def orValidators(validators, **kwargs):
     """Return a validator that is true only if one of the validators is true."""
     is_if_result_func = kwargs.get('if_result', False)

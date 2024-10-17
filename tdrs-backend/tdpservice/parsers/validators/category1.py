@@ -56,6 +56,7 @@ def caseNumberNotEmpty(start=0, end=None, **kwargs):
     )
 
 
+# # TODO : make ID for aggregate val
 def or_priority_validators(validators=[]):
     """Return a validator that is true based on a priority of validators.
 

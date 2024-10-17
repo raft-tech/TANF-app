@@ -147,83 +147,8 @@ class DataFileViewSet(ModelViewSet):
     def download_error_report(self, request, pk=None):
         """Generate and return the parsing error report xlsx."""
         datafile = self.get_object()
-        all_errors = ParserError.objects.filter(file=datafile).order_by('pk')
-        filtered_errors = None
-        user = self.request.user
-        if not (user.is_ofa_sys_admin or user.is_ofa_admin):
-            # All cat1/4 errors
-            error_type_query = Q(error_type=ParserErrorCategoryChoices.PRE_CHECK) | \
-                Q(error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY)
-            filtered_errors = all_errors.filter(error_type_query)
-
-            # All cat2 errors associated with FAMILY_AFFILIATION or CITIZENSHIP_STATUS
-            filtered_errors = filtered_errors.union(all_errors.filter(fields_json__friendly_name__has_any_keys=[
-                "FAMILY_AFFILIATION",
-                "CITIZENSHIP_STATUS"
-                ],
-                error_type=ParserErrorCategoryChoices.FIELD_VALUE))
-
-            # All cat3 errors associated with FAMILY_AFFILIATION and CITIZENSHIP_STATUS
-            filtered_errors = filtered_errors.union(all_errors.filter(fields_json__friendly_name__has_keys=[
-                "FAMILY_AFFILIATION",
-                "CITIZENSHIP_STATUS"
-                ],
-                error_type=ParserErrorCategoryChoices.VALUE_CONSISTENCY))
-
-            # All cat3 errors associated with FAMILY_AFFILIATION and SSN
-            filtered_errors = filtered_errors.union(all_errors.filter(fields_json__friendly_name__has_keys=[
-                "FAMILY_AFFILIATION",
-                "SSN"
-                ],
-                error_type=ParserErrorCategoryChoices.VALUE_CONSISTENCY))
-
-            if "Active" in datafile.section:
-                # All cat3 errors associated with FAMILY_AFFILIATION and SSN and CITIZENSHIP_STATUS
-                filtered_errors = filtered_errors.union(all_errors.filter(fields_json__friendly_name__has_keys=[
-                    "FAMILY_AFFILIATION",
-                    "SSN",
-                    "CITIZENSHIP_STATUS"
-                    ],
-                    error_type=ParserErrorCategoryChoices.VALUE_CONSISTENCY))
-
-                # All cat3 errors associated with FAMILY_AFFILIATION and PARENT_MINOR_CHILD
-                filtered_errors = filtered_errors.union(all_errors.filter(fields_json__friendly_name__has_keys=[
-                    "FAMILY_AFFILIATION",
-                    "PARENT_MINOR_CHILD",
-                    ],
-                    error_type=ParserErrorCategoryChoices.VALUE_CONSISTENCY))
-
-                # All cat3 errors associated with FAMILY_AFFILIATION and EDUCATION_LEVEL
-                filtered_errors = filtered_errors.union(all_errors.filter(fields_json__friendly_name__has_keys=[
-                    "FAMILY_AFFILIATION",
-                    "EDUCATION_LEVEL",
-                    ],
-                    error_type=ParserErrorCategoryChoices.VALUE_CONSISTENCY))
-
-                # All cat3 errors associated with FAMILY_AFFILIATION and WORK_ELIGIBLE_INDICATOR
-                filtered_errors = filtered_errors.union(all_errors.filter(fields_json__friendly_name__has_keys=[
-                    "FAMILY_AFFILIATION",
-                    "WORK_ELIGIBLE_INDICATOR",
-                    ],
-                    error_type=ParserErrorCategoryChoices.VALUE_CONSISTENCY))
-
-                # All cat3 errors associated with CITIZENSHIP_STATUS and WORK_ELIGIBLE_INDICATOR
-                filtered_errors = filtered_errors.union(all_errors.filter(fields_json__friendly_name__has_keys=[
-                    "CITIZENSHIP_STATUS",
-                    "WORK_ELIGIBLE_INDICATOR",
-                    ],
-                    error_type=ParserErrorCategoryChoices.VALUE_CONSISTENCY))
-
-                # All cat3 errors associated with summed fields: AMT_FOOD_STAMP_ASSISTANCE, AMT_SUB_CC, CASH_AMOUNT,
-                # CC_AMOUNT, TRANSP_AMOUNT
-                filtered_errors = filtered_errors.union(all_errors.filter(fields_json__friendly_name__has_keys=[
-                    "AMT_FOOD_STAMP_ASSISTANCE", "AMT_SUB_CC", "CASH_AMOUNT", "CC_AMOUNT", "TRANSP_AMOUNT"
-                    ],
-                    error_type=ParserErrorCategoryChoices.VALUE_CONSISTENCY))
-        else:
-            filtered_errors = all_errors
-
-        return Response(get_xls_serialized_file(filtered_errors))
+        parser_errors = ParserError.objects.filter(file=datafile).order_by('pk')
+        return Response(get_xls_serialized_file(parser_errors))
 
 
 class GetYearList(APIView):
