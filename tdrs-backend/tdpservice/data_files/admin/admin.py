@@ -1,7 +1,6 @@
 """Admin class for DataFile objects."""
 from django.contrib import admin
 from tdpservice.core.utils import ReadOnlyAdminMixin
-# from tdpservice.core.filters import custom_filter_title
 from tdpservice.data_files.models import DataFile, LegacyFileTransfer
 from tdpservice.parsers.models import DataFileSummary, ParserError
 from tdpservice.data_files.admin.filters import LatestReparseEvent, VersionFilter
@@ -15,7 +14,7 @@ DOMAIN = settings.FRONTEND_BASE_URL
 class DataFileInline(admin.TabularInline):
     """Inline model for many to many relationship."""
 
-    model = DataFile.reparse_meta_models.through
+    model = DataFile.reparses.through
     can_delete = False
     ordering = ["-pk"]
 
