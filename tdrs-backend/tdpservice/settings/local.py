@@ -44,7 +44,7 @@ class Local(Common):
         'level': 'DEBUG',
         'handlers': ['console']
     }
-    
+
     REDIS_SERVER_LOCAL = bool(strtobool(os.getenv("REDIS_SERVER_LOCAL", "TRUE")))
 
     if os.getenv("ENABLE_SENTRY", "no") == "yes":
