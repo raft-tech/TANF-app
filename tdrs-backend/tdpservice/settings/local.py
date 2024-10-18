@@ -44,9 +44,6 @@ class Local(Common):
         'level': 'DEBUG',
         'handlers': ['console']
     }
-    INSTALLED_APPS = Common.INSTALLED_APPS + (
-        #'debug_toolbar',
-    )
     
     REDIS_SERVER_LOCAL = bool(strtobool(os.getenv("REDIS_SERVER_LOCAL", "TRUE")))
 
