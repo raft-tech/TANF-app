@@ -113,7 +113,8 @@ class RowSchema:
                         error_category=ParserErrorCategoryChoices.PRE_CHECK,
                         error_message=validator_error,
                         record=None,
-                        field="Record_Type"
+                        field="Record_Type",
+                        validator_id=id
                     )
                 )
 
@@ -161,7 +162,8 @@ class RowSchema:
                                 error_category=ParserErrorCategoryChoices.FIELD_VALUE,
                                 error_message=validator_error,
                                 record=instance,
-                                field=field
+                                field=field,
+                                validator_id=id
                             )
                         )
             elif field.required:
@@ -199,6 +201,7 @@ class RowSchema:
                         error_message=validator_error,
                         record=instance,
                         field=fields,
+                        validator_id=id
                     )
                 )
 

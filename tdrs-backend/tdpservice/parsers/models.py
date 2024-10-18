@@ -55,7 +55,7 @@ class ParserError(models.Model):
 
     # SHA1 hash of the validator's name prepended with catX_ where X is in [1, 2, 3]. We have the prepended string
     # because names are re-used accross different categories of validators
-    validator_id = models.TextField(null=True, max_length=40)
+    validator_id = models.PositiveIntegerField(null=True)
 
     @property
     def rpt_month_name(self):

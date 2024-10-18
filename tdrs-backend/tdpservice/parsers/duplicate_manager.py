@@ -3,6 +3,9 @@ from django.conf import settings
 from enum import IntEnum
 from .models import ParserErrorCategoryChoices
 
+DUPLICATE_VALIDATOR_ID = 67
+PARTIAL_DUPLICATE_VALIDATOR_ID = 68
+
 class ErrorLevel(IntEnum):
     """Error level enumerations for precedence."""
 
@@ -76,7 +79,8 @@ class CaseDuplicateDetector:
             return self.record_ids
         return dict()
 
-    def __generate_error(self, err_msg, record, schema, line_number, has_precedence, is_new_max_precedence):
+    def __generate_error(self, err_msg, record, schema, line_number,
+                         has_precedence, is_new_max_precedence, validator_id):
         """Add an error to the managers error dictionary.
 
         @param err_msg: string representation of the error message
@@ -93,6 +97,7 @@ class CaseDuplicateDetector:
                         record=record,
                         field=None,
                         error_message=err_msg,
+                        validator_id=validator_id
                     )
             if is_new_max_precedence:
                 self.manager_error_dict[self.my_hash] = [error]
@@ -134,6 +139,7 @@ class CaseDuplicateDetector:
         if self.current_line_number is None or self.current_line_number != line_number:
             self.current_line_number = line_number
             err_msg = None
+            validator_id = None
             has_precedence = False
             is_new_max_precedence = False
 
@@ -146,14 +152,18 @@ class CaseDuplicateDetector:
                 err_msg = (f"Duplicate record detected with record type "
                            f"{record.RecordType} at line {line_number}. Record is a duplicate of the record at "
                            f"line number {existing_record_line_number}.")
+                validator_id = DUPLICATE_VALIDATOR_ID
             elif not should_skip_partial_dup and partial_hash in self.partial_hashes:
                 has_precedence, is_new_max_precedence = self.error_precedence.has_precedence(
                     ErrorLevel.PARTIAL_DUPLICATE)
                 existing_record_line_number = self.partial_hashes[partial_hash]
                 err_msg = self.__get_partial_dup_error_msg(schema, record.RecordType,
                                                            line_number, existing_record_line_number)
+                validator_id = PARTIAL_DUPLICATE_VALIDATOR_ID
 
-            self.__generate_error(err_msg, record, schema, line_number, has_precedence, is_new_max_precedence)
+            self.__generate_error(err_msg, record, schema, line_number,
+                                  has_precedence, is_new_max_precedence,
+                                  validator_id)
             if line_hash not in self.record_hashes:
                 self.record_hashes[line_hash] = line_number
             if partial_hash is not None and partial_hash not in self.partial_hashes:
@@ -169,7 +179,7 @@ class DuplicateManager:
         ################################################################################################################
         # WARNING
         self.generated_errors = dict()
-        # Do not change/re-assign the dictionary unless you exactly know what you're doing! This object is a one to many
+        # Do not change/re-assign the dictionary unless you know exactly what you're doing! This object is a one to many
         # relationship. That is, each CaseDuplicateDetector has a reference to this dictionary so that it can store
         # it's generated duplicate errors which avoids needing the DuplicateManager to loop over all
         # CaseDuplicateDetectors to get their errors which is a serious performance boost.

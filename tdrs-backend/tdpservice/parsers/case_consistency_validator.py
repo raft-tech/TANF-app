@@ -54,7 +54,7 @@ class CaseConsistencyValidator:
                                          )
         return format_error_context(error_args)
 
-    def __generate_and_add_error(self, schema, record, field, line_num, msg):
+    def __generate_and_add_error(self, schema, record, field, line_num, msg, validator_id):
         """Generate a ParserError and add it to the `generated_errors` list."""
         err = self.generate_error(
             error_category=ParserErrorCategoryChoices.CASE_CONSISTENCY,
@@ -63,6 +63,7 @@ class CaseConsistencyValidator:
             record=record,
             field=field,
             error_message=msg,
+            validator_id=validator_id
         )
         self.generated_errors.append(err)
 

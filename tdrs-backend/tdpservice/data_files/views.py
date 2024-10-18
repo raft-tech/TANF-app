@@ -1,6 +1,5 @@
 """Check if user is authorized."""
 import logging
-from django.db.models import Q
 from django.http import FileResponse
 from django_filters import rest_framework as filters
 from django.conf import settings
@@ -21,7 +20,7 @@ from tdpservice.data_files.models import DataFile, get_s3_upload_path
 from tdpservice.users.permissions import DataFilePermissions, IsApprovedPermission
 from tdpservice.scheduling import parser_task
 from tdpservice.data_files.s3_client import S3Client
-from tdpservice.parsers.models import ParserError, ParserErrorCategoryChoices
+from tdpservice.parsers.models import ParserError
 
 logger = logging.getLogger(__name__)
 
