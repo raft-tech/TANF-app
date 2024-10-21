@@ -557,3 +557,16 @@ class Common(Configuration):
     BULK_CREATE_BATCH_SIZE = os.getenv("BULK_CREATE_BATCH_SIZE", 10000)
     MEDIAN_LINE_PARSE_TIME = os.getenv("MEDIAN_LINE_PARSE_TIME", 0.0005574226379394531)
     BYPASS_OFA_AUTH = os.getenv("BYPASS_OFA_AUTH", False)
+
+    # Sentry
+    import sentry_sdk
+    sentry_sdk.init(
+    dsn="https://1cabed98ed242ea8f6fb130695e86f79@o4507307346493440.ingest.us.sentry.io/4508161320288256",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for tracing.
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,
+)
