@@ -315,7 +315,7 @@ def test_reparse_quarter_and_year(mocker, dfs, cat4_edge_case_file, big_file, sm
     cmd.handle(**opts)
 
     latest = ReparseMeta.objects.select_for_update().latest("pk")
-    assert latest.num_files_to_reparse == 2
+    assert latest.num_files == 2
     assert latest.num_records_deleted == 3077
 
 @pytest.mark.django_db()
