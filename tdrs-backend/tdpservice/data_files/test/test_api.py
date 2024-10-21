@@ -1,4 +1,5 @@
 """Tests for DataFiles Application."""
+import os
 from rest_framework import status
 import pytest
 import base64
@@ -82,6 +83,9 @@ class DataFileAPITestBase:
         """Return error report."""
         decoded_response = base64.b64decode(response.data['xls_report'])
 
+        if os.path.exists('mycls.xlsx'):
+            os.remove('mycls.xlsx')
+
         # write the excel file to disk
         with open('mycls.xlsx', 'wb') as f:
             f.write(decoded_response)
@@ -101,9 +105,8 @@ class DataFileAPITestBase:
         assert ws.cell(row=1, column=1).value == "Please refer to the most recent versions of the coding " \
             + "instructions (linked below) when looking up items and allowable values during the data revision process"
         assert ws.cell(row=8, column=COL_ERROR_MESSAGE).value == (
-            "Since Item 21A (Cash Amount) is 873, then Item 21B "
-            "(Cash and Cash Equivalents: Number of Months) 0 must be greater than 0"
-        )
+            "Every T1 record should have at least one corresponding T2 or T3 record with the same Item 4 "
+            "(Reporting Year and Month) and Item 6 (Case Number).")
 
     @staticmethod
     def assert_error_report_ssp_file_content_matches_with_friendly_names(response):
@@ -114,29 +117,21 @@ class DataFileAPITestBase:
 
         assert ws.cell(row=1, column=1).value == "Please refer to the most recent versions of the coding " \
             + "instructions (linked below) when looking up items and allowable values during the data revision process"
-        assert ws.cell(row=7, column=COL_ERROR_MESSAGE).value == ("M1 Item 11 (Receives Subsidized Housing): 3 is "
-                                                                  "not in range [1, 2].")
+        assert ws.cell(row=7, column=COL_ERROR_MESSAGE).value == ("TRAILER: record length is 15 characters "
+                                                                  "but must be 23.")
 
     @staticmethod
     def assert_error_report_file_content_matches_without_friendly_names(response):
         """Assert the error report file contents match expected without friendly names."""
-        decoded_response = base64.b64decode(response.data['xls_report'])
-
-        # write the excel file to disk
-        with open('mycls.xlsx', 'wb') as f:
-            f.write(decoded_response)
-
-        # read the excel file from disk
-        wb = openpyxl.load_workbook('mycls.xlsx')
-        ws = wb.get_sheet_by_name('Sheet1')
+        ws = DataFileAPITestBase.get_spreadsheet(response)
 
         COL_ERROR_MESSAGE = 4
 
         assert ws.cell(row=1, column=1).value == "Please refer to the most recent versions of the coding " \
             + "instructions (linked below) when looking up items and allowable values during the data revision process"
         assert ws.cell(row=8, column=COL_ERROR_MESSAGE).value == (
-            "Since Item 21A (Cash Amount) is 873, then Item 21B "
-            "(Cash and Cash Equivalents: Number of Months) 0 must be greater than 0"
+            "Every T1 record should have at least one corresponding T2 or T3 record with the same Item 4 "
+            "(Reporting Year and Month) and Item 6 (Case Number)."
         )
 
     @staticmethod
