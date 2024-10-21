@@ -133,6 +133,9 @@ def test_parse_big_file(big_file, dfs):
     expected_t2_record_count = 882
     expected_t3_record_count = 1376
 
+    big_file.year = 2022
+    big_file.quarter = 'Q1'
+
     dfs.datafile = big_file
 
     parse.parse_datafile(big_file, dfs)
@@ -783,7 +786,10 @@ def test_dfs_set_case_aggregates(small_correct_file, dfs):
     small_correct_file.save()
     # this still needs to execute to create db objects to be queried
     parse.parse_datafile(small_correct_file, dfs)
-    dfs.file = small_correct_file
+
+    dfs.datafile = small_correct_file
+    dfs.save()
+
     dfs.status = dfs.get_status()
     dfs.case_aggregates = aggregates.case_aggregates_by_month(
         small_correct_file, dfs.status)
@@ -870,7 +876,7 @@ def test_parse_small_tanf_section2_file(small_tanf_section2_file, dfs):
 @pytest.mark.django_db()
 def test_parse_tanf_section2_file(tanf_section2_file, dfs):
     """Test parsing TANF Section 2 submission."""
-    tanf_section2_file.year = 2021
+    tanf_section2_file.year = 2022
     tanf_section2_file.quarter = 'Q1'
 
     dfs.datafile = tanf_section2_file

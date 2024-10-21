@@ -242,5 +242,5 @@ class SchemaManager:
         """Update whether schema fields are encrypted or not."""
         for schema in self.schemas:
             for field in schema.fields:
-                if type(field) == TransformField and "is_encrypted" in field.kwargs:
+                if type(field) is TransformField and "is_encrypted" in field.kwargs:
                     field.kwargs['is_encrypted'] = is_encrypted
