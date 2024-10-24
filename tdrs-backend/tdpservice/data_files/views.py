@@ -1,5 +1,6 @@
 """Check if user is authorized."""
 import logging
+from django.db.models import Q
 from django.http import FileResponse
 from django_filters import rest_framework as filters
 from django.conf import settings
@@ -20,8 +21,7 @@ from tdpservice.data_files.models import DataFile, get_s3_upload_path
 from tdpservice.users.permissions import DataFilePermissions, IsApprovedPermission
 from tdpservice.scheduling import parser_task
 from tdpservice.data_files.s3_client import S3Client
-from tdpservice.parsers.models import ParserError
-from tdpservice.parsers.serializers import ParsingErrorSerializer
+from tdpservice.parsers.models import ParserError, ParserErrorCategoryChoices
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +51,21 @@ class DataFileViewSet(ModelViewSet):
     # TODO: Handle versioning in queryset
     # Ref: https://github.com/raft-tech/TANF-app/issues/1007
     queryset = DataFile.objects.all()
+
+    PRIORITIZED_CAT2 = (
+        ("FAMILY_AFFILIATION", "CITIZENSHIP_STATUS", "CLOSURE_REASON"),
+    )
+
+    PRIORITIZED_CAT3 = (
+        ("FAMILY_AFFILIATION", "SSN"),
+        ("FAMILY_AFFILIATION", "CITIZENSHIP_STATUS"),
+        ("AMT_FOOD_STAMP_ASSISTANCE", "AMT_SUB_CC", "CASH_AMOUNT", "CC_AMOUNT", "TRANSP_AMOUNT"),
+        ("FAMILY_AFFILIATION", "SSN", "CITIZENSHIP_STATUS"),
+        ("FAMILY_AFFILIATION", "PARENT_MINOR_CHILD"),
+        ("FAMILY_AFFILIATION", "EDUCATION_LEVEL"),
+        ("FAMILY_AFFILIATION", "WORK_ELIGIBLE_INDICATOR"),
+        ("CITIZENSHIP_STATUS", "WORK_ELIGIBLE_INDICATOR"),
+    )
 
     def create(self, request, *args, **kwargs):
         """Override create to upload in case of successful scan."""
@@ -143,13 +158,44 @@ class DataFileViewSet(ModelViewSet):
             )
         return response
 
+    def __prioritize_queryset(self, filtered_errors, all_errors):
+        """Generate prioritized queryset of ParserErrors."""
+        # All cat1/4 errors
+        error_type_query = Q(error_type=ParserErrorCategoryChoices.PRE_CHECK) | \
+            Q(error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY)
+        filtered_errors = all_errors.filter(error_type_query)
+
+        for fields in self.PRIORITIZED_CAT2:
+            filtered_errors = filtered_errors.union(all_errors.filter(
+                field_name__in=fields,
+                error_type=ParserErrorCategoryChoices.FIELD_VALUE
+            ))
+
+        for fields in self.PRIORITIZED_CAT3:
+            filtered_errors = filtered_errors.union(all_errors.filter(
+                fields_json__friendly_name__has_keys=fields,
+                error_type=ParserErrorCategoryChoices.VALUE_CONSISTENCY
+            ))
+
+        return filtered_errors
+
     @action(methods=["get"], detail=True)
     def download_error_report(self, request, pk=None):
         """Generate and return the parsing error report xlsx."""
         datafile = self.get_object()
-        parser_errors = ParserError.objects.all().filter(file=datafile)
-        serializer = ParsingErrorSerializer(parser_errors, many=True, context=self.get_serializer_context())
-        return Response(get_xls_serialized_file(serializer.data))
+        all_errors = ParserError.objects.filter(file=datafile)
+        filtered_errors = None
+        user = self.request.user
+        is_s1_s2 = "Active" in datafile.section or "Closed" in datafile.section
+
+        # We only filter Active and Closed submissions. Aggregate and Stratum return all errors.
+        if not user.is_an_admin and is_s1_s2:
+            filtered_errors = self.__prioritize_queryset(filtered_errors, all_errors)
+        else:
+            filtered_errors = all_errors
+
+        filtered_errors = filtered_errors.order_by('-pk')
+        return Response(get_xls_serialized_file(filtered_errors))
 
 
 class GetYearList(APIView):
