@@ -22,6 +22,9 @@ By addressing authentication in a standard way and storing all session cookies a
 
 ## Method/Design
 
+### Abstracted Gherkin Steps
+Presently, many of the defined Javascript functions for a given Gherkin step are bespoke or single-use instead of abstracted and should be adapted. Additionally, it was found that sessions were lingering between Gherkin scenarios as we did not have generic `setup` and `teardown` implementations ahead of these. Sufficient utilization of abstraction within the scenarios which are now doing setup/teardown between scenarios and proper session management should result in a cleaner Cypress execution and make future additions simpler.
+
 ### Abstracted utility authentication functions
 Our current cypress implementation has writes Gherkin scenarios `accounts.feature` which relies on definitions in `accounts.js`, `common-steps.js`, and finally `commands.js` which handle authentication in different ways for different scenarios (e.g., `login()`, `adminLogin()`, and `adminApiRequest()`)
 
@@ -80,10 +83,6 @@ cy.intercept('/users*', { hostname: 'localhost' }, (req) => {
 })
 ```
 [Intercept Documentation](https://docs.cypress.io/api/commands/intercept)
-
-
-### Abstracted Gherkin Steps
-Presently, many of the defined Javascript functions for a given Gherkin step are bespoke or single-use instead of abstracted and should be adapted.
 
 ## Affected Systems
 Existing Django CypressAuth class, django middleware, and existing Nginx implementation.
