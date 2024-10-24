@@ -5,10 +5,15 @@
 **Date**:     October 16th, 2024 <br>
 
 ## Summary
-Digging into our pipeline failures associated in ticket #3141, it was found that our cypress code is not easily extensible and has bugs associated with lack of session management and compartmentilization.
+Digging into our pipeline failures associated in ticket #3141, it was found that our cypress authentication was not persisting for the admin user within a single routine that also used the STT user. Further investigation showed our cypress code is not easily extensible and has not only issues with CSRF compliance but scenario-specific authentication as opposed to abstracted and compartmented sessions. While splitting the scenario and/or using `cypress.wait()` might temporarily solve one problem, we have uncovered technical debt requiring refactoring of this code.
 
-## Background (Optional)
-Speak to splitting up gherkin tests, 30 sec wait for `authcheck`, etc.
+### Background
+Debugging the failures within the pipeline had 3 recurring issues:
+1. Referer not found as in [this post](https://github.com/cypress-io/cypress/issues/16975)
+2. `adminApiRequest` failed to update status, resulting in next step failure.
+3. Errors regarding Django's 'csrf_middleware_token`.
+
+By addressing authentication in a standard way and storing all session cookies and tokens, we should be able to resolve these 3 issues.
 
 ## Out of Scope
 * Any changes to frontend ReactJS and Nginx apps
@@ -16,25 +21,72 @@ Speak to splitting up gherkin tests, 30 sec wait for `authcheck`, etc.
 * New Cypress workflows beyond our end-to-end test against deployed develop branch
 
 ## Method/Design
-This section should contain sub sections that provide general implementation details surrounding key components required to implement the feature.
-
-### Abstracted Gherkin Steps
-sub header content describing component.
-
-### Session Management Documentation
-https://github.com/cypress-io/cypress/issues/16975
-https://docs.cypress.io/api/commands/session#Switching-sessions-inside-tests
-https://docs.cypress.io/api/commands/intercept
-
-What do these cypress? How will they help us manage sessions?
-
 
 ### Abstracted utility authentication functions
+Our current cypress implementation has writes Gherkin scenarios `accounts.feature` which relies on definitions in `accounts.js`, `common-steps.js`, and finally `commands.js` which handle authentication in different ways for different scenarios (e.g., `login()`, `adminLogin()`, and `adminApiRequest()`)
+
+These current functions do not handle the new django `crsf_middleware_token` which may be required for smooth operation. We will move to a standardized authentication function with wrappers which will make the Gherkin scenarios uniform in their approach to authentication and session management.  
+
+### Session Management 
+These new implementations will need to leverage newer Cypress commands `session` and `intercept` for managing our two-user scenarios.
+
+```Javascript
+const login = (name) => {
+  cy.session(name, () => {
+    cy.request({
+      method: 'POST',
+      url: '/login',
+      body: { name, password: 's3cr3t' },
+    }).then(({ body }) => {
+      window.localStorage.setItem('authToken', body.token)
+    })
+  })
+}
+
+it('should transfer money between users', () => {
+  login('user')
+  cy.visit('/transfer')
+  cy.get('#amount').type('100.00')
+  cy.get('#send-money').click()
+
+  login('other-user')
+  cy.visit('/account_balance')
+  cy.get('#balance').should('eq', '100.00')
+})
+```
+[Session Documentation](https://docs.cypress.io/api/commands/session#Switching-sessions-inside-tests)
+
+```Javascript
+// spying
+cy.intercept('/users/**')
+cy.intercept('GET', '/users*')
+cy.intercept({
+  method: 'GET',
+  url: '/users*',
+  hostname: 'localhost',
+})
+
+// spying and response stubbing
+cy.intercept('POST', '/users*', {
+  statusCode: 201,
+  body: {
+    name: 'Peter Pan',
+  },
+})
+
+// spying, dynamic stubbing, request modification, etc.
+cy.intercept('/users*', { hostname: 'localhost' }, (req) => {
+  /* do something with request and/or response */
+})
+```
+[Intercept Documentation](https://docs.cypress.io/api/commands/intercept)
 
 
+### Abstracted Gherkin Steps
+Presently, many of the defined Javascript functions for a given Gherkin step are bespoke or single-use instead of abstracted and should be adapted.
 
 ## Affected Systems
 Existing Django CypressAuth class, django middleware, and existing Nginx implementation.
 
 ## Use and Test cases to consider
-provide a list of use cases and test cases to be considered when the feature is being implemented.
+Test E2E Deployment pipelines and future Cypress integration tests.
