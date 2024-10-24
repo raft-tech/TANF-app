@@ -14,6 +14,7 @@ class ParserErrorAdmin(admin.ModelAdmin):
         'error_message',
     ]
 
+    list_per_page = 50
 
 class DataFileSummaryAdmin(admin.ModelAdmin):
     """ModelAdmin class for DataFileSummary objects generated in parsing."""
