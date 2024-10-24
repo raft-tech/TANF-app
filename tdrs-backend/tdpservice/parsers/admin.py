@@ -14,10 +14,7 @@ class ParserErrorAdmin(admin.ModelAdmin):
         'error_message',
     ]
 
-    def get_queryset(self, request):
-        """Override the queryset to include the related datafile."""
-        queryset = super().get_queryset(request).only('row_number', 'field_name', 'error_type', 'error_message',)
-        return queryset
+    list_per_page = 50
 
 class DataFileSummaryAdmin(admin.ModelAdmin):
     """ModelAdmin class for DataFileSummary objects generated in parsing."""
