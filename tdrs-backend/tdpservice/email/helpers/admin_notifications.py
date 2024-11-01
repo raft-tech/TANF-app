@@ -34,12 +34,12 @@ def email_admin_deactivated_user(user):
             logger_context=logger_context
         )
 
-def email_system_owner_system_admin_role_change(user):
+def email_system_owner_system_admin_role_change(user, action):
     """Send an email to the System Owner when a user is assigned or removed from the System Admin role."""
     from tdpservice.users.models import User
     from tdpservice.email.email_enums import EmailType
     from tdpservice.email.email import automated_email, log
-    from tdpservice.email.tasks import get_ofa_admin_user_emails, get_system_owner_email
+    from tdpservice.email.tasks import get_system_owner_email
     recipient_email = get_system_owner_email()
     logger_context = {
         'user_id': user.id,
@@ -53,6 +53,7 @@ def email_system_owner_system_admin_role_change(user):
     subject = 'TDP User Role Change: System Admin'
     context = {
         'user': user,
+        'action': action,
     }
 
     log(f"Preparing email to System Owner for System Admin role change for user {user.username}", logger_context=logger_context)

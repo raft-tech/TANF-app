@@ -17,7 +17,7 @@ def user_group_changed(sender, instance, action, pk_set, **kwargs):
     group_change_list = [pk for pk in pk_set]
     if ADMIN_GROUP_PK in group_change_list and action == ACTIONS['PRE_ADD']:
         # EMAIL ADMIN GROUP ADDED to OFA ADMIN
-        email_system_owner_system_admin_role_change(instance)
+        email_system_owner_system_admin_role_change(instance, "added")
     elif ADMIN_GROUP_PK in group_change_list and action == ACTIONS['PRE_REMOVE']:
         # EMAIL ADMIN GROUP REMOVED from OFA ADMIN
-        email_system_owner_system_admin_role_change(instance)
+        email_system_owner_system_admin_role_change(instance, "removed")
