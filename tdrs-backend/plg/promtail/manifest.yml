@@ -1,0 +1,14 @@
+version: 1
+applications:
+  - name: promtail
+    memory: 128M
+    disk_quota: 7G
+    routes:
+    - route: promtail.apps.internal
+    instances: 1
+    command: |
+      wget https://github.com/grafana/loki/releases/download/v3.1.1/promtail-linux-amd64.zip
+      unzip -a promtail-linux-amd64.zip && rm -rf promtail-linux-amd64.zip
+      ./promtail-linux-amd64 -config.file=/home/vcap/app/config.yml
+    buildpacks:
+    - https://github.com/cloudfoundry/binary-buildpack
