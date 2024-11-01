@@ -121,6 +121,7 @@ services:
     image: grafana/promtail:3.1.1
     ports:
       - 9080:9080
+      - 5514:5514
     volumes:
       - ./plg/promtail/config.local.yml:/etc/promtail/config.yml
       - ~/tdp-logs/nginx:/var/log/nginx

@@ -1,7 +1,7 @@
 server:
   http_listen_port: 9080
   grpc_listen_port: 0
-  log_level: info
+  log_level: debug
 
 positions:
   filename: /tmp/positions.yaml
@@ -31,3 +31,9 @@ scrape_configs:
         labels:
           job: nginx
           __path__: /var/log/nginx/*log
+  - job_name: syslog
+    syslog:
+      listen_address: 0.0.0.0:5514
+      idle_timeout: 60s
+      labels:
+        job: syslog
