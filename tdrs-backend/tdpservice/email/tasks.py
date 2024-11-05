@@ -80,7 +80,7 @@ def get_system_owner_email():
     try:
         user_email = User.objects.filter(groups__name='System Owner').values_list('email', flat=True).distinct()
     except User.DoesNotExist:
-        user_email=[None]
+        user_email = [None]
     return user_email
 
 def get_num_access_requests():

@@ -5,7 +5,7 @@ def email_admin_deactivated_user(user):
     from tdpservice.users.models import User
     from tdpservice.email.email_enums import EmailType
     from tdpservice.email.email import automated_email, log
-    from tdpservice.email.tasks import get_ofa_admin_user_emails, get_system_owner_email
+    from tdpservice.email.tasks import get_ofa_admin_user_emails
 
     recipient_emails = get_ofa_admin_user_emails()
     logger_context = {
@@ -56,7 +56,8 @@ def email_system_owner_system_admin_role_change(user, action):
         'action': action,
     }
 
-    log(f"Preparing email to System Owner for System Admin role change for user {user.username}", logger_context=logger_context)
+    log(f"Preparing email to System Owner for System Admin role change for user {user.username}",
+        logger_context=logger_context)
 
     automated_email(
         email_path=template_path,
