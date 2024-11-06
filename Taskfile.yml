@@ -146,7 +146,7 @@ tasks:
     dir: tdrs-backend
     cmds:
       - task backend-up
-      - docker-compose -f docker-compose.yml exec web sh -c "flake8 . && if [ $? -eq 0 ]; then echo 'Flake8 linter found no issues'; fi"
+      - docker-compose -f docker-compose.yml exec -T web sh -c "flake8 . && if [ $? -eq 0 ]; then echo 'Flake8 linter found no issues'; fi"
 
   backend-pip-lock:
     #TODO: Add a task to lock the pip dependencies
