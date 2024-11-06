@@ -234,7 +234,7 @@ tasks:
     dir: tdrs-frontend
     cmds:
       - docker-compose -f docker-compose.local.yml up -d tdp-frontend-test --quiet-pull
-      - docker-compose -f docker-compose.yml exec tdp-frontend-test sh -c "npm run lint"
+      - docker-compose -f docker-compose.yml exec -T tdp-frontend-test sh -c "npm run lint"
 
   frontend-logs:
     desc: Show and follow frontend web server logs
