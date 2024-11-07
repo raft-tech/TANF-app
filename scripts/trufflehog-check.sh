@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-pythonVersion="3.10"
+pythonVersion="3"
 
 if ! [ -x "$(command -v truffleHog)" ]; then
     echo The command truffleHog is not available, installing...
@@ -25,7 +25,8 @@ last_merge=$(git log --format=format:"%H" -n 1 "$CIRCLE_BRANCH")
 
 # --since_commit - Look at all commits since the last merge into develop
 # --entropy=True - Entropy checks on large git diffs
-python ./trufflehog-check/lib/python$pythonVersion/site-packages/truffleHog/truffleHog.py \
+hogpath=$(find . -name truffleHog.py)
+python $hogpath \
   --regex \
   --entropy=True \
   --branch "$CIRCLE_BRANCH" \
