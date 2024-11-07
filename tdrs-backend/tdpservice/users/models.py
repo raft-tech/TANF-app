@@ -242,4 +242,3 @@ class User(AbstractUser):
                 return
 
         super(User, self).save(*args, **kwargs)
-}
