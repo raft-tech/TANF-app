@@ -1,0 +1,7 @@
+#!/bin/sh
+
+task frontend-lint
+task backend-lint
+bash ./scripts/git-secrets-check.sh
+branch=$(git symbolic-ref --short HEAD)
+#bash ./scripts/trufflehog-check.sh "$branch"

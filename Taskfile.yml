@@ -2,6 +2,11 @@ version: '3'
 
 tasks:
 
+  gitcfg:
+    desc: Configure git
+    cmds:
+      - git config core.hooksPath .githooks
+
   create-network:
     desc: Create the external network
     cmds:
