@@ -21,4 +21,3 @@ export const setAlert = (alert) => (dispatch) => {
 export const clearAlert = () => (dispatch) => {
   return dispatch({ type: CLEAR_ALERT })
 }
- }@

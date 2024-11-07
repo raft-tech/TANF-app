@@ -1,5 +1,5 @@
-#!/bin/sh
-
+#!/bin/bash
+set -e
 task frontend-lint
 task backend-lint
 bash ./scripts/git-secrets-check.sh
