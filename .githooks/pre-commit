@@ -4,6 +4,6 @@ set -e
 # git-secrets needs to be installed for macos
 #git secrets --pre_commit_hook -- "$@"
 #git secrets --prepare_commit_msg_hook -- "$@"
-bash ./scripts/git-secrets-check.sh
+zsh ./scripts/git-secrets-check.sh local
 #branch=$(git symbolic-ref --short HEAD)
 #bash ./scripts/trufflehog-check.sh "$branch"

@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+islocal=$1
 
 if [ -d /tmp/git-secrets ]; then
     echo The command git-secrets is available
@@ -30,10 +31,11 @@ fi
 if [ $islocal ]; then
     echo "git-secrets-check.sh: Scanning files staged for commit ..."
     setopt shwordsplit
-    staged_files=$(git diff --cached --name-status | cut -f2 | xargs)
+    staged_files=$(git diff --cached --name-status | grep -vE "^R[0-9]+"| cut -f2 | xargs)
 
     for filename in $staged_files; do
-        git secrets --scan $file
+        echo "git-secrets-check.sh: Scanning $filename ..."
+        git secrets --scan $filename
         retVal=$?
         if [[ $retVal -ne 0 ]]; then
             echo "git-secrets-check.sh: Issues found with return code $retVal, please remediate."
