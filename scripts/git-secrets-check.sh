@@ -7,15 +7,16 @@ if [ -d /tmp/git-secrets ]; then
 else
     echo The command git-secrets is not available, cloning...
     git clone git@github.com:awslabs/git-secrets.git /tmp/git-secrets/
-    if [ ! -f /tmp/git-secrets/git-secrets ]; then
-        if [ uname -s == "Darwin" ]; then  # Mac OSX check
-            echo "Moving git secrets into PATH"
-            sudo cp /tmp/git-secrets/git-secrets /usr/local/bin/
-            git-secrets --install
-        else
-            echo "Moving git secrets into PATH"
-            sudo cp /tmp/git-secrets/git-secrets /usr/sbin/
+    if [ -f /tmp/git-secrets/git-secrets ]; then
+        if [[ $(uname -s) == "Darwin" ]]; then  # Mac OSX check
+            gs_path="/usr/local/bin"
+        else # Linux, we're likely running in CircleCI
+            gs_path="/usr/sbin"
         fi
+        
+        echo "Moving git secrets into PATH"
+        sudo cp /tmp/git-secrets/git-secrets $gs_path/
+        $gs_path/git-secrets --install
     else
 	    echo "Git clone failed for git-secrets"
     fi
@@ -39,7 +40,7 @@ if [ $islocal ]; then
         git secrets --scan $filename
         retVal=$?
         if [[ $retVal -ne 0 ]]; then
-            echo "git-secrets-check.sh: Issues found with return code $retVal, please remediate."
+            echo "git-secrets found issues, prevented commit."
             return 1
         fi
     done
