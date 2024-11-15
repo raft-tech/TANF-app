@@ -39,4 +39,3 @@ Feature: Users can create and manage their accounts
         Then 'new-cypress@teamraft.com' can see the hompage
         When The admin sets the approval status of 'new-cypress@teamraft.com' to 'Deactivated'
         Then 'new-cypress@teamraft.com' cannot log in
-
