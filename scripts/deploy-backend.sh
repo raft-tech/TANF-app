@@ -58,7 +58,6 @@ set_cf_envs()
   "LOGGING_LEVEL"
   "REDIS_URI"
   "JWT_KEY"
-  "STAGING_JWT_KEY"
   "SENDGRID_API_KEY"
   )
 
@@ -71,9 +70,13 @@ set_cf_envs()
         cf_cmd="cf unset-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
         $cf_cmd
         continue
-    elif [[ ("$var_name" =~ "STAGING_") && ("$CF_SPACE" = "tanf-staging") ]]; then
-        sed_var_name=$(echo "$var_name" | sed -e 's@STAGING_@@g')
-        cf_cmd="cf set-env $CGAPPNAME_BACKEND $sed_var_name ${!var_name}"
+    elif [[ ("$CF_SPACE" = "tanf-staging") ]]; then
+        var_value=${!var_name}
+        staging_var="STAGING_$var_name"
+        if [[ "${!staging_var}" ]]; then
+          var_value=${!staging_var}
+        fi
+        cf_cmd="cf set-env $CGAPPNAME_BACKEND $var_name ${var_value}"
     else
       cf_cmd="cf set-env $CGAPPNAME_BACKEND $var_name ${!var_name}"
     fi
@@ -99,6 +102,31 @@ update_kibana()
   cf add-network-policy "$CGAPPNAME_BACKEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
   cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
   cf add-network-policy "$CGAPPNAME_KIBANA" "$CGAPPNAME_FRONTEND" --protocol tcp --port 80
+
+  # Upload dashboards to Kibana
+  CMD="curl -X POST $CGAPPNAME_KIBANA.apps.internal:5601/api/saved_objects/_import -H 'kbn-xsrf: true' --form file=@/home/vcap/app/tdpservice/search_indexes/kibana_saved_objs.ndjson"
+  cf run-task $CGAPPNAME_BACKEND --command "$CMD" --name kibana-obj-upload
+}
+
+prepare_promtail() {
+  pushd tdrs-backend/plg/promtail
+  CONFIG=config.yml
+  yq eval -i ".scrape_configs[0].job_name = \"system-$backend_app_name\""  $CONFIG
+  yq eval -i ".scrape_configs[0].static_configs[0].labels.job = \"system-$backend_app_name\""  $CONFIG
+  yq eval -i ".scrape_configs[1].job_name = \"backend-$backend_app_name\""  $CONFIG
+  yq eval -i ".scrape_configs[1].static_configs[0].labels.job = \"backend-$backend_app_name\""  $CONFIG
+  popd
+}
+
+update_plg_networking() {
+  # Need to switch the space after deploy since we're not always in dev space to handle specific networking from dev
+  # PLG apps to the correct backend app.
+  cf target -o hhs-acf-ofa -s tanf-dev
+  cf add-network-policy prometheus "$CGAPPNAME_BACKEND" -s "$CF_SPACE" --protocol tcp --port 8080
+  cf target -o hhs-acf-ofa -s "$CF_SPACE"
+
+  # Promtial needs to send logs to Loki
+  cf add-network-policy "$CGAPPNAME_BACKEND" loki -s "tanf-dev" --protocol tcp --port 8080
 }
 
 update_backend()
@@ -138,6 +166,9 @@ update_backend()
 
     # Add network policy to allow frontend to access backend
     cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_BACKEND" --protocol tcp --port 8080
+
+    # Add PLG routing
+    update_plg_networking
 
     if [ "$CF_SPACE" = "tanf-prod" ]; then
       # Add network policy to allow backend to access tanf-prod services
@@ -225,6 +256,7 @@ else
   CYPRESS_TOKEN=$CYPRESS_TOKEN
 fi
 
+prepare_promtail
 if [ "$DEPLOY_STRATEGY" = "rolling" ] ; then
     # Perform a rolling update for the backend and frontend deployments if
     # specified, otherwise perform a normal deployment

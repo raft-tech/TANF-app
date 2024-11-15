@@ -25,7 +25,7 @@
             fi
             echo "export CURRENT_FLAG=$CURRENT_FLAG" >> $BASH_ENV
       - run:
-          name: Upload code coverage report if target branch
+          name: Upload code coverage report of target branch
           command: codecov -t "$CODECOV_TOKEN" -f <<parameters.coverage-report>> -F "$CURRENT_FLAG"
 
   install-nodejs-machine:
@@ -49,6 +49,13 @@
       - run:
           name: Disable npm audit warnings in CI
           command: npm set audit false
-          
+
   # This allows us to use the node orb to install packages within other commands
   install-nodejs-packages: node/install-packages
+
+  docker-login:
+    steps:
+      - run:
+          name: Docker login
+          command: |
+            echo "$CIRCI_DOCKER_LOGIN" | docker login https://tdp-docker.dev.raftlabs.tech -u tdp-circi --password-stdin

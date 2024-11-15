@@ -5,6 +5,7 @@ from hashlib import sha256
 from io import StringIO
 from typing import Union
 
+from django.conf import settings
 from django.contrib.admin.models import ADDITION, ContentType, LogEntry
 from django.core.files.base import File
 from django.db import models
@@ -77,6 +78,24 @@ class FileRecord(models.Model):
     # or even have one at all. The UI will provide this information
     # separately
     extension = models.CharField(max_length=8, default="txt")
+
+class ReparseFileMeta(models.Model):
+    """Meta data model representing a single file parse within a reparse execution."""
+
+    data_file = models.ForeignKey('data_files.DataFile', on_delete=models.CASCADE, related_name='reparse_file_metas')
+    reparse_meta = models.ForeignKey(
+        'search_indexes.ReparseMeta',
+        on_delete=models.CASCADE,
+        related_name='reparse_file_metas'
+    )
+
+    finished = models.BooleanField(default=False)
+    success = models.BooleanField(default=False)
+    started_at = models.DateTimeField(auto_now_add=False, null=True)
+    finished_at = models.DateTimeField(auto_now_add=False, null=True)
+
+    num_records_created = models.PositiveIntegerField(default=0)
+    cat_4_errors_generated = models.PositiveIntegerField(default=0)
 
 
 class DataFile(FileRecord):
@@ -152,10 +171,12 @@ class DataFile(FileRecord):
                                         null=True
                                         )
 
-    reparse_meta_models = models.ManyToManyField("search_indexes.ReparseMeta",
-                                                 help_text="Reparse events this file has been associated with.",
-                                                 related_name="datafiles"
-                                                 )
+    reparses = models.ManyToManyField(
+        "search_indexes.ReparseMeta",
+        through="data_files.ReparseFileMeta",
+        help_text="Reparse events this file has been associated with.",
+        related_name="files"
+    )
 
     @property
     def prog_type(self):
@@ -163,8 +184,6 @@ class DataFile(FileRecord):
         # e.g., 'SSP Closed Case Data'
         if self.section.startswith('SSP'):
             return 'SSP'
-        elif self.section.startswith('Tribal'):
-            return 'TAN'  # problematic, do we need to infer tribal entirely from tribe/fips code?
         else:
             return 'TAN'
 
@@ -205,6 +224,10 @@ class DataFile(FileRecord):
     def submitted_by(self):
         """Return the author as a string for this data file."""
         return self.user.get_full_name()
+
+    def admin_link(self):
+        """Return a link to the admin console for this file."""
+        return f"{settings.FRONTEND_BASE_URL}/admin/data_files/datafile/?id={self.pk}"
 
     @classmethod
     def create_new_version(self, data):
