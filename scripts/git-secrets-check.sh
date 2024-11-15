@@ -8,9 +8,10 @@ else
     echo The command git-secrets is not available, cloning...
     git clone git@github.com:awslabs/git-secrets.git /tmp/git-secrets/
     if [ ! -f /tmp/git-secrets/git-secrets ]; then
-        if [ uname -s == "Darwin" ]; then
+        if [ uname -s == "Darwin" ]; then  # Mac OSX check
             echo "Moving git secrets into PATH"
             sudo cp /tmp/git-secrets/git-secrets /usr/local/bin/
+            git-secrets --install
         else
             echo "Moving git secrets into PATH"
             sudo cp /tmp/git-secrets/git-secrets /usr/sbin/
