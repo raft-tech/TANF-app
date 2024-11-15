@@ -16,14 +16,14 @@ else
 
         echo "Moving git secrets into PATH"
         sudo cp /tmp/git-secrets/git-secrets $gs_path/
-        $gs_path/git-secrets --install
+        $gs_path/git-secrets --install -f
     else
 	    echo "Git clone failed for git-secrets"
     fi
 fi
 
 # ensure we have correct configs in place
-if [ -f ../.gitconfig ]; then
+if [ -f .gitconfig ]; then
     cat .gitconfig >> .git/config 
     echo "Git-Secrets Config loaded:"
     grep -A10 secrets .git/config
