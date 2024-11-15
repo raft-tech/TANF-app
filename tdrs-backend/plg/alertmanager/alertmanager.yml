@@ -4,7 +4,7 @@ global:
   smtp_from: 'no-reply@tanfdata.acf.hhs.gov'
   smtp_auth_username: 'apikey'
   # I promise the below is fake
-
+  smtp_auth_password: '2835hg8924h5g982h5g909035g245g245g24=='
   smtp_auth_password: '{{ send_grid_api_key }}'
   smtp_auth_password_file: '/etc/postfix/sasl_passwd'
 

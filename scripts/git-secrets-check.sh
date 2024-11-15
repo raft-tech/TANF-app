@@ -13,7 +13,7 @@ else
         else # Linux, we're likely running in CircleCI
             gs_path="/usr/sbin"
         fi
-        
+
         echo "Moving git secrets into PATH"
         sudo cp /tmp/git-secrets/git-secrets $gs_path/
         $gs_path/git-secrets --install
@@ -59,3 +59,6 @@ else
   return 1
 fi
 
+#cleanup for testing
+rm -rf /tmp/git-secrets
+sudo rm -f $gs_path/git-secrets
