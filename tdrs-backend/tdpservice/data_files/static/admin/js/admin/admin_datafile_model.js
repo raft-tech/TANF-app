@@ -7,28 +7,24 @@ $(window).on('load', function() {
 
     submitBtn.addEventListener('click', function(e) {
         e.preventDefault();
-        for (var i = 0; i < theForm.childNodes.length; i++) {
-          if (theForm.childNodes[i].className === "actions") {
-            form_header = theForm.childNodes[i];
-            for (var i = 0; i < form_header.childNodes.length; i++) {
-                if (form_header.childNodes[i].nodeName === "LABEL") {
-                  var select_node = form_header.childNodes[i].childNodes[1];
-                  if (select_node.value === "reparse") { // action is reparse
-                    action = select_node.value;
-                  }
-                }
-                if (form_header.childNodes[i].className == "action-counter" || form_header.childNodes[i].className == "all") {
-                  number_of_files_line = form_header.childNodes[i];
-                  break;
-                }
-              }
-  
-            break;
-          }
+        // number of files
+        action_counter = document.querySelector('span.action-counter')
+        is_action_counter_hidden = action_counter.className === "action-counter hidden"
+
+        action_counter_all = document.querySelector('span.all')
+
+        if (is_action_counter_hidden) {
+          number_of_files_line = action_counter_all.innerText;
+        } else {
+          number_of_files_line = action_counter.innerText;
         }
+        
+        // what action is selected
+        action = document.querySelector('select[name=action]').value;
+
         if (action === "reparse") {
           console.log('reparse');
-          var splitted_number_of_files = number_of_files_line.innerHTML.split(/(\s+)/);
+          var splitted_number_of_files = number_of_files_line.split(/(\s+)/);
           if (Number(splitted_number_of_files[0]) > 0 ) {
             number_of_files = splitted_number_of_files[0];
           } else {
@@ -42,6 +38,7 @@ $(window).on('load', function() {
           };
         } else {
           console.log('not reparse');
+          alert('Please select the "Reparse" action to continue.');
         }
     });
 
