@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { useDispatch, useSelector } from 'react-redux'
-import fileType from 'file-type/browser'
+import { fileTypeFromBlob } from 'file-type'
 
 import {
   clearError,
@@ -148,7 +148,7 @@ function FileUpload({ section, setLocalAlertState }) {
 
         // file-type should detect and return values for most other
         // known binary files
-        fileType.fromBlob(blob).then((res) => {
+        fileTypeFromBlob(blob).then((res) => {
           // res should be undefined for non-binary files
           /* istanbul ignore next */
           if (res) {
