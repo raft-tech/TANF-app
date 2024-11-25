@@ -1,5 +1,5 @@
 import React from 'react'
-import thunk from 'redux-thunk'
+import { thunk } from 'redux-thunk'
 import { Provider } from 'react-redux'
 import { mount } from 'enzyme'
 import { fireEvent, render } from '@testing-library/react'

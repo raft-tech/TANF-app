@@ -2,7 +2,7 @@ import React from 'react'
 import { render, fireEvent, waitFor, getByText } from '@testing-library/react'
 
 import { Provider } from 'react-redux'
-import thunk from 'redux-thunk'
+import { thunk } from 'redux-thunk'
 import configureStore from 'redux-mock-store'
 import appConfigureStore from '../../configureStore'
 import Reports from './Reports'
