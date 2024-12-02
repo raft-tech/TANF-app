@@ -32,7 +32,6 @@ scrape_configs:
           logger:
           message:
           time:
-  - job_name: nginx
   - job_name: backend-prod
     static_configs:
       - targets:
