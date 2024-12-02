@@ -118,7 +118,7 @@
         "h": 28,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 0
       },
       "id": 1,
       "options": {
@@ -158,7 +158,7 @@
     "list": [
       {
         "current": {
-          "selected": true,
+          "selected": false,
           "text": "All",
           "value": "$__all"
         },
