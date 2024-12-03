@@ -28,23 +28,22 @@ Under `tdrs-frontend/`, we have just 2 manifests:
 - manifest.yml: references a `{{docker-frontend}}` variable. Unused?
 
 ### Bash Deploy scripts
-`deploy-backend.sh`: Used in CircleCI pipelines to not only push `tdrs-backend/` manifests but also manage environment variables, Cloud.gov services, network policies, our monitoring apps, and connecting corresponding frontend apps.
-`deploy-frontend.sh`: Used in CircleCI pipelines to push `tdrs-frontend/manifest.buildback.yml`
-`deploy-infrastructure-dev.sh` and `deploy-infrastructure-staging.sh`: Used for a developer to kick off circleci deployments from their machine.
-`deploy-tdp-product-update-site.sh`: Responsible for knowledge center with staticfiles buildpack under `product-updates/`.
+- `deploy-backend.sh`: Used in CircleCI pipelines to not only push `tdrs-backend/` manifests but also manage environment variables, Cloud.gov services, network policies, our monitoring apps, and connecting corresponding frontend apps.
+- `deploy-frontend.sh`: Used in CircleCI pipelines to push `tdrs-frontend/manifest.buildback.yml`
+- `deploy-infrastructure-dev.sh` and `deploy-infrastructure-staging.sh`: Used for a developer to kick off circleci deployments from their machine.
+- `deploy-tdp-product-update-site.sh`: Responsible for knowledge center with staticfiles buildpack under `product-updates/`.
 
 ### CircleCI workflows
 Under `.circleci/deployment/workflows.yml`, we have dozens of workflows to target specific branches or spaces in a duplicative manner.
 `deploy-infrastructure-{space}`: These similarly call `deploy-infrastructure` with various parameters to invoke our existing Terraform configurations.
-`build-and-tag-{space}`: These have jobs underneath them which call the command `build-and-tag-images` which simply performs setup for a call to `./scripts/build-and-tag-images.sh ` for uploading docker images to Nexus.
-`deploy-{space}`: calls the command `deploy-cloud-dot-gov` which underneath runs scripts underneath in this order:
-- ./scripts/apply-remote-migrations.sh
-- ./scripts/deploy-backend.sh
-- ./scripts/deploy-frontend.sh
-
-`prod-deploy-clamav`: Redeploys our virus scanner image in tanf-prod space.
-`deploy-project-updates-site`: Runs `deploy-tdp-product-update-site.sh`.
-`enable-versioning`: ensures s3 versioning flags are toggled on for apps/spaces x4 (dev, develop, staging, prod)
+- `build-and-tag-{space}`: These have jobs underneath them which call the command `build-and-tag-images` which simply performs setup for a call to `./scripts/build-and-tag-images.sh ` for uploading docker images to Nexus.
+-`deploy-{space}`: calls the command `deploy-cloud-dot-gov` which underneath runs scripts underneath in this order:
+  - ./scripts/apply-remote-migrations.sh
+  - ./scripts/deploy-backend.sh
+  - ./scripts/deploy-frontend.sh
+- `prod-deploy-clamav`: Redeploys our virus scanner image in tanf-prod space.
+- `deploy-project-updates-site`: Runs `deploy-tdp-product-update-site.sh`.
+- `enable-versioning`: ensures s3 versioning flags are toggled on for apps/spaces x4 (dev, develop, staging, prod)
 
 ### Pre-existing Terraform scope
 Luckily, we already have CircleCI invoking Terraform under the command `deploy-infrastructure` utilizes by the aforementioned workflows. It procures four service instances for us per space: two s3 buckets (static and datafiles), relational database service (RDS), and elasticsearch.
@@ -57,10 +56,6 @@ To obsolesce our `deploy-backend` and `deploy-frontend` scripts, we'll need to a
 - Next would be to ensure our apps can talk to each other as necessary with network policies and routes as we have a complicated network running proxies between our three spaces.
 -As our services are infrequently updated, they would be added last for polish and holistic visibility and ensuring connectivity.
 
-+-------+------+------+--------------+-----+
-| Space | Name | Type | Related Apps | Etc.|
-+-------+------+------+--------------+-----+
-|  tanf-prod  |  tdp-backend | app | | |
 
 ## Affected Systems
 provide a list of systems this feature will depend on/change.
