@@ -1,4 +1,4 @@
-# TITLE
+# Upgrading frontend dependencies (react-scripts v3 to v5)
 
 **Audience**: TDP Software Engineers <br>
 **Subject**:  Upgrading frontend dependencies - React Scripts v5 upgrade <br>
