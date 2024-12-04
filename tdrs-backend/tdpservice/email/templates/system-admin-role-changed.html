@@ -3,8 +3,15 @@
 <!-- Body copy -->
 <p style="color: #000000;">
 
-    <p>The following Admin User account for the TANF Data Portal (TDP) has been {{ action }}.</p>
+{% if action == "added" %}
+<p>The following Admin User account for the TANF Data Portal (TDP) has been assigned to OFA System Admin group:</p>
 
+
+{% else %}
+<p>The following Admin User account for the TANF Data Portal (TDP) has been removed from OFA System Admin group:</p>
+
+{% endif %}
+</p>
     <p>Account Information:</p>
     <ul>
         <li>Name: {{ user.first_name }}</li>
@@ -14,5 +21,4 @@
 
     <p>Thank you,</p>
     TDP Team
-</p>
 {% endblock %}
