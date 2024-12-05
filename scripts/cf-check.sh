@@ -11,10 +11,12 @@ else
             echo "Failed to install curl and jq"
             apk add --no-cache curl jq
         fi
+
     else
         apt-get update
         apt-get install curl wget gnupg2 apt-transport-https jq
     fi
+
     NEXUS_ARCHIVE="cf7-cli_7.7.13_linux_x86-64.tgz"
     NEXUS_URL="https://tdp-nexus.dev.raftlabs.tech/repository/tdp-bin/cloudfoundry-cli/$NEXUS_ARCHIVE"
     curl $NEXUS_URL -o $NEXUS_ARCHIVE  # prefers anonymous, use of -u failed.
