@@ -6,6 +6,7 @@
             - equal: [ master, << pipeline.git.branch >> ]
             - equal: [ main, << pipeline.git.branch >> ]
             - equal: [ develop, << pipeline.git.branch >> ]
+            - equal: [ hotfix/cf-check, << pipeline.git.branch >> ]
             - << pipeline.parameters.run_dev_deployment >>
         - not: << pipeline.parameters.run_nightly_owasp_scan >>
 
@@ -144,6 +145,7 @@
             branches:
               only:
                 - develop
+                - hotfix/cf-check
       - make_erd: # from ../util folder
           filters:
             branches:
