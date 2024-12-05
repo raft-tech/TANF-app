@@ -86,6 +86,8 @@ spritesmith.scss
 
 # Testing files
 htmlcov/*
+scripts/github/*csv
+scripts/github/*json
 
 # Commmon
 .DS_Store
