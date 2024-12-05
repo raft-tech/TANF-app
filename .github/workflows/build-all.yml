@@ -32,7 +32,6 @@ on:
   push:
     branches-ignore:
       - develop
-      - hotfix/cf-check
       - main
       - master
       - 'release/**'

@@ -6,7 +6,6 @@
             - equal: [ master, << pipeline.git.branch >> ]
             - equal: [ main, << pipeline.git.branch >> ]
             - equal: [ develop, << pipeline.git.branch >> ]
-            - equal: [ hotfix/cf-check, << pipeline.git.branch >> ]
             - << pipeline.parameters.run_dev_deployment >>
         - not: << pipeline.parameters.run_nightly_owasp_scan >>
 
@@ -22,7 +21,6 @@
             branches:
               ignore:
                 - develop
-                - hotfix/cf-check
                 - main
                 - master
       - deploy-infrastructure-staging:
@@ -31,7 +29,6 @@
               only:
                 - develop
                 - main
-                - hotfix/cf-check
       - deploy-infrastructure-production:
           filters:
             branches:
@@ -94,7 +91,6 @@
             branches:
               ignore:
                 - develop
-                - hotfix/cf-check
                 - main
                 - master
       - build-and-tag-develop:
@@ -104,7 +100,6 @@
             branches:
               only:
                 - develop
-                - hotfix/cf-check
       - deploy-develop:
           requires:
             - build-and-tag-develop
@@ -112,7 +107,6 @@
             branches:
               only:
                 - develop
-                - hotfix/cf-check
       - build-and-tag-staging:
           requires:
             - deploy-infrastructure-staging
@@ -148,7 +142,6 @@
             branches:
               only:
                 - develop
-                - hotfix/cf-check
       - make_erd: # from ../util folder
           filters:
             branches:
