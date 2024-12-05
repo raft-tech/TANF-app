@@ -94,6 +94,7 @@
             branches:
               ignore:
                 - develop
+                - hotfix/cf-check
                 - main
                 - master
       - build-and-tag-develop:
