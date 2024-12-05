@@ -25,6 +25,53 @@ By addressing authentication in a standard way and storing all session cookies a
 ### Abstracted Gherkin Steps
 Presently, many of the defined Javascript functions for a given Gherkin step are bespoke or single-use instead of abstracted and should be adapted. Additionally, it was found that sessions were lingering between Gherkin scenarios as we did not have generic `setup` and `teardown` implementations ahead of these. Sufficient utilization of abstraction within the scenarios which are now doing setup/teardown between scenarios and proper session management should result in a cleaner Cypress execution and make future additions simpler.
 
+Before:
+```
+    Scenario: A new user is put in the pending state
+        Given The admin logs in
+        And 'new-cypress@teamraft.com' is in begin state
+        When 'new-cypress@teamraft.com' visits the home page
+        And 'new-cypress@teamraft.com' logs in
+        Then 'new-cypress@teamraft.com' requests access
+        And The admin sets the approval status of 'new-cypress@teamraft.com' to 'Pending'
+        Then 'new-cypress@teamraft.com' sees the request still submitted
+```
+
+There are specific functions for each of the Gherkin Steps and they might rely on the setup steps such as "user is in begin state" which could be handled if we utilized Cypress setup steps:
+
+After:
+```
+    Scenario: A new user is put in the pending state
+        Given 'new-cypress@teamraft.com' logs in
+        And 'new-cypress@teamraft.com' requests access
+        When The admin sets the approval status of 'new-cypress@teamraft.com' to 'Pending'
+        Then 'new-cypress@teamraft.com' sees the request still submitted
+```
+
+Setup/Teardown hook psuedo-code:
+```JavaScript
+describe('E2E User Approval Flow', ()=> {
+  beforeEach(() => {
+    cy.AdminLogsIn(kwargs)
+    cy.UserIsInBeginState(user)
+  }))
+
+  afterEach(() => {
+    cy.get(@testTeardownId).then(id => {
+       cy.resetUser(user)
+       cy.resetFilesUploaded(user)
+    })
+  }
+})
+
+When('The admin sets the approval status of {string} to {string}',
+  (username, status) => {
+    // proceed with your test steps
+  }
+```
+
+- [Cypress Teardown Hook Blog Post](https://medium.com/@joydeep56053/how-to-implement-test-teardown-hook-in-cypress-671fc9667e07)
+
 ### Abstracted utility authentication functions
 Our current Cypress implementation has Gherkin scenarios `accounts.feature` which relies on definitions in `accounts.js`, `common-steps.js`, and finally `commands.js` which handle authentication in different ways for different scenarios (e.g., `login()`, `adminLogin()`, and `adminApiRequest()`)
 
