@@ -35,7 +35,7 @@ fi
 if [ $islocal ]; then
     echo "git-secrets-check.sh: Scanning files staged for commit ..."
     setopt shwordsplit
-    staged_files=$(git diff --cached --name-status | grep -vE "^R[0-9]+"| cut -f2 | xargs)
+    staged_files=$(git diff --cached --name-status | grep -vE "D|^R[0-9]+"| cut -f2 | xargs)
 
     for filename in $staged_files; do
         echo "git-secrets-check.sh: Scanning $filename ..."
