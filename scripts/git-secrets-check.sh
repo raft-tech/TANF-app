@@ -2,21 +2,23 @@
 set -e
 islocal=$1
 
-if [ -d /tmp/git-secrets ]; then
+if [[ $(uname -s) == "Darwin" ]]; then  # Mac OSX check
+    gs_path="/usr/local/bin"
+else # Linux, we're likely running in CircleCI
+    gs_path="/usr/sbin"
+fi
+
+if [ -f "$gs_path/git-secrets" ]; then
     echo The command git-secrets is available
 else
     echo The command git-secrets is not available, cloning...
     git clone git@github.com:awslabs/git-secrets.git /tmp/git-secrets/
     if [ -f /tmp/git-secrets/git-secrets ]; then
-        if [[ $(uname -s) == "Darwin" ]]; then  # Mac OSX check
-            gs_path="/usr/local/bin"
-        else # Linux, we're likely running in CircleCI
-            gs_path="/usr/sbin"
-        fi
 
         echo "Moving git secrets into PATH"
         sudo cp /tmp/git-secrets/git-secrets $gs_path/
         $gs_path/git-secrets --install -f
+        rm -rf /tmp/git-secrets #cleanup of clone dir
     else
 	    echo "Git clone failed for git-secrets"
     fi
