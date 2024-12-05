@@ -6,11 +6,7 @@ else
     if [[ -f /bin/terraform ]]; then
         echo "This is our Terraform executor, Alpine Linux v3.13"
         apk update
-        apk install curl jq
-        if [ $? -ne 0 ]; then
-            echo "Failed to install curl and jq"
-            apk add --no-cache curl jq
-        fi
+        apk add curl jq
 
     else
         apt-get update
