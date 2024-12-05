@@ -104,6 +104,7 @@
             branches:
               only:
                 - develop
+                - hotfix/cf-check
       - deploy-develop:
           requires:
             - build-and-tag-develop
