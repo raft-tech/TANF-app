@@ -10,6 +10,6 @@ else
         apk add sudo
     else
         apt-get update && apt-get install -y sudo
+        ls -al /bin/sh && sudo rm /bin/sh && sudo ln -s /bin/bash /bin/sh && ls -al /bin/sh
     fi
-    ls -al /bin/sh && sudo rm /bin/sh && sudo ln -s /bin/bash /bin/sh && ls -al /bin/sh
 fi  

@@ -22,6 +22,7 @@
             branches:
               ignore:
                 - develop
+                - hotfix/cf-check
                 - main
                 - master
       - deploy-infrastructure-staging:
