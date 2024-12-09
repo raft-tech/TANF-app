@@ -32,3 +32,17 @@ scrape_configs:
           logger:
           message:
           time:
+  - job_name: {{ frontend_env_name }}
+    static_configs:
+      - targets:
+        - localhost
+        labels:
+          job: {{ frontend_env_name }}
+          __path__: /var/log/nginx/access_log.log
+          level: DEBUG
+      - targets:
+        - localhost
+        labels:
+          job: {{ frontend_env_name }}
+          __path__: /var/log/nginx/error_log.log
+          level: ERROR
