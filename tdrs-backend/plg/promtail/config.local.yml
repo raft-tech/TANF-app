@@ -45,4 +45,11 @@ scrape_configs:
         - localhost
         labels:
           job: frontend-local
-          __path__: /var/log/nginx/*log
+          __path__: /var/log/nginx/access_log.log
+          level: DEBUG
+      - targets:
+        - localhost
+        labels:
+          job: frontend-local
+          __path__: /var/log/nginx/error_log.log
+          level: ERROR
