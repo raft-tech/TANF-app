@@ -1,10 +1,10 @@
 """helper functions to administer user accounts."""
+from tdpservice.users.models import User
+from tdpservice.email.email_enums import EmailType
+from tdpservice.email.email import automated_email, log
 
 def email_admin_deactivated_user(user):
     """Send an email to OFA Admins when a user is deactivated."""
-    from tdpservice.users.models import User
-    from tdpservice.email.email_enums import EmailType
-    from tdpservice.email.email import automated_email, log
     from tdpservice.email.tasks import get_ofa_admin_user_emails
 
     recipient_emails = get_ofa_admin_user_emails()
@@ -36,9 +36,6 @@ def email_admin_deactivated_user(user):
 
 def email_system_owner_system_admin_role_change(user, action):
     """Send an email to the System Owner when a user is assigned or removed from the System Admin role."""
-    from tdpservice.users.models import User
-    from tdpservice.email.email_enums import EmailType
-    from tdpservice.email.email import automated_email, log
     from tdpservice.email.tasks import get_system_owner_email
     recipient_email = get_system_owner_email()
     logger_context = {
