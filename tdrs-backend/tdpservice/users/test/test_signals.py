@@ -1,6 +1,6 @@
 """Test signals."""
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, call
 from tdpservice.users.models import User
 from tdpservice.users.test.factories import AdminUserFactory
 from django.contrib.auth.models import Group
@@ -34,4 +34,8 @@ def test_my_signal_receiver(mocker):
     ) as mock_email_system_owner_system_admin_role_change:
         instance = AdminUserFactory.create()
         instance.groups.add(Group.objects.get(name="OFA System Admin"))
-        mock_email_system_owner_system_admin_role_change.assert_called_once()
+        mock_email_system_owner_system_admin_role_change.assert_has_calls([
+            call(instance, 'is_staff_assigned'),
+            call(instance, 'is_superuser_assigned'),
+            call(instance, "added")
+        ])

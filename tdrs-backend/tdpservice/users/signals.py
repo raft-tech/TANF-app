@@ -4,7 +4,6 @@ from django.dispatch import receiver
 from tdpservice.users.models import User
 from django.contrib.auth.models import Group
 from tdpservice.email.helpers.admin_notifications import email_system_owner_system_admin_role_change
-from django.db.models import Q
 
 import logging
 logger = logging.getLogger()
@@ -34,7 +33,14 @@ def user_group_changed(sender, instance, action, pk_set, **kwargs):
 def user_is_staff_superuser_changed(sender, instance, **kwargs):
     """Send an email to the System Owner when a user is assigned or removed from the System Admin role."""
     # first get instance from db for existing state
-    current_user_state = User.objects.get(pk=instance.pk)
+    try:
+        current_user_state = User.objects.get(pk=instance.pk)
+    except User.DoesNotExist:
+        if instance.is_staff:
+            email_system_owner_system_admin_role_change(instance, "is_staff_assigned")
+        if instance.is_superuser:
+            email_system_owner_system_admin_role_change(instance, "is_superuser_assigned")
+        return
 
     # check if is_staff is assigned
     if instance.is_staff and not current_user_state.is_staff:
