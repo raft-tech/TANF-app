@@ -47,8 +47,14 @@ def email_system_owner_system_admin_role_change(user, action):
 
     template_path = EmailType.SYSTEM_ADMIN_ROLE_CHANGED.value
 
-    if action == 'assigned':
+    if action == 'added':
         text_message = 'A user has been assigned to OFA System Admin role.'
+    elif action == 'is_staff_assigned':
+        text_message = 'A user has been assigned to staff role.'
+    elif action == 'is_superuser_assigned':
+        text_message = 'A user has been assigned to superuser role.'
+    elif action == 'is_staff_removed':
+        text_message = 'A user has been removed from staff role.'
     else:
         text_message = 'A user has been removed from OFA System Admin role.'
     subject = 'TDP User Role Change: OFA System Admin'

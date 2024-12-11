@@ -81,6 +81,8 @@ def get_system_owner_email():
         user_email = User.objects.filter(groups__name='System Owner').values_list('email', flat=True).distinct()
     except User.DoesNotExist:
         user_email = [None]
+    except User.MultipleObjectsReturned:
+        user_email = user_email[0]
     return user_email
 
 def get_num_access_requests():
