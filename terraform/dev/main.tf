@@ -124,7 +124,7 @@ resource "cloudfoundry_service_instance" "elasticsearch" {
 ###
 resource "cloudfoundry_app" "tdp-frontend" {
     space = "tanf-dev"
-    for_each = toset(var.dev_app_names)
+    for_each = toset(var.test_app_names)
     name = "tdp-frontend-${each.value}"
     buildpack = "https://github.com/cloudfoundry/nginx-buildpack.git#v1.2.6"
     memory = 256
@@ -134,9 +134,12 @@ resource "cloudfoundry_app" "tdp-frontend" {
 
 resource "cloudfoundry_app" "tdp-backend" {
     space = "tanf-dev"
-    for_each = toset(var.dev_app_names)
+    for_each = toset(var.test_app_names)
     name = "tdp-backend-${each.value}"
     memory = 2048
+    disk_quota = 4096
+    command = "./gunicorn_start.sh cloud"
+
     buildpacks = [
       "https://github.com/cloudfoundry/apt-buildpack",
       "https://github.com/cloudfoundry/python-buildpack.git#v1.8.3",
@@ -150,5 +153,8 @@ resource "cloudfoundry_app" "tdp-backend" {
     }
     service_binding {
       service_instance = cloudfoundry_service_instance.datafiles.id
+    }
+    environment = {
+      REDIS_URI = "redis://localhost:6379"
     }
 }

@@ -42,3 +42,9 @@ variable "dev_app_names" {
   description = "list of app names deployed in the dev environment"
   default     = ["a11y", "qasp", "raft"]
 }
+
+variable "test_app_names" {
+  type        = list(string)
+  description = "test names"
+  default     = ["fake"]
+}
