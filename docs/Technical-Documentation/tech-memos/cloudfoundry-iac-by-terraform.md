@@ -56,9 +56,24 @@ To obsolesce our `deploy-backend` and `deploy-frontend` scripts, we'll need to a
 - Next would be to ensure our apps can talk to each other as necessary with network policies and routes as we have a complicated network running proxies between our three spaces.
 -As our services are infrequently updated, they would be added last for polish and holistic visibility and ensuring connectivity.
 
+TODO: need to review Eric's PLG deploy script and map that flow out for future work.
 
 ## Affected Systems
-provide a list of systems this feature will depend on/change.
+These proposed changes will affect all Cloud.gov infrastructure as well as CircleCI pipelines both for HHS and raft-tech instances.
 
 ## Use and Test cases to consider
 provide a list of use cases and test cases to be considered when the feature is being implemented.
+
+### Use Cases
+Regular feature work
+Merge to develop
+Releases
+  also hhs:main->hhs:master
+Crashed app(s)
+
+### Test Cases
+From scratch
+  with carve out for RDS as we can't automate creation of named databases
+From mixed existing/not existing
+From downed/crashed
+From stable

@@ -6,7 +6,7 @@ terraform {
   required_providers {
     cloudfoundry = {
       source  = "cloudfoundry-community/cloudfoundry"
-      version = "0.14.2"
+      version = "0.53.1"
     }
   }
 
@@ -17,6 +17,7 @@ terraform {
     region  = "us-gov-west-1"
   }
 }
+
 
 provider "cloudfoundry" {
   api_url      = var.cf_api_url
@@ -116,4 +117,38 @@ resource "cloudfoundry_service_instance" "elasticsearch" {
     update = "60m"
     delete = "2h"
   }
+}
+
+###
+# Provision apps
+###
+resource "cloudfoundry_app" "tdp-frontend" {
+    space = "tanf-dev"
+    for_each = toset(var.dev_app_names)
+    name = "tdp-frontend-${each.value}"
+    buildpack = "https://github.com/cloudfoundry/nginx-buildpack.git#v1.2.6"
+    memory = 256
+    disk_quota = 256
+    timeout = 180
+}
+
+resource "cloudfoundry_app" "tdp-backend" {
+    space = "tanf-dev"
+    for_each = toset(var.dev_app_names)
+    name = "tdp-backend-${each.value}"
+    memory = 2048
+    buildpacks = [
+      "https://github.com/cloudfoundry/apt-buildpack",
+      "https://github.com/cloudfoundry/python-buildpack.git#v1.8.3",
+      "https://github.com/cloudfoundry/binary-buildpack"
+    ]
+    service_binding {
+      service_instance = cloudfoundry_service_instance.staticfiles.id
+    }
+    service_binding {
+      service_instance = cloudfoundry_service_instance.database.id
+    }
+    service_binding {
+      service_instance = cloudfoundry_service_instance.datafiles.id
+    }
 }
