@@ -55,9 +55,6 @@ def user_is_staff_superuser_changed(sender, instance, **kwargs):
 @receiver(post_save, sender=User)
 def user_is_staff_superuser_created(sender, instance, created, **kwargs):
     """Send an email to the System Owner when a user is assigned or removed from the System Admin role."""
-    print('___________________')
-    print('___________ created:', created)
-    print('__________ instance:', instance.__dict__)
     if created:
         if instance.is_staff:
             email_system_owner_system_admin_role_change(instance, "is_staff_assigned")
