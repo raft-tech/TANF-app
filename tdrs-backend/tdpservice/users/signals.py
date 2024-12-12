@@ -1,5 +1,5 @@
 """Signals for the users app."""
-from django.db.models.signals import m2m_changed, pre_save
+from django.db.models.signals import m2m_changed, pre_save, post_save
 from django.dispatch import receiver
 from tdpservice.users.models import User
 from django.contrib.auth.models import Group
@@ -36,10 +36,6 @@ def user_is_staff_superuser_changed(sender, instance, **kwargs):
     try:
         current_user_state = User.objects.get(pk=instance.pk)
     except User.DoesNotExist:
-        if instance.is_staff:
-            email_system_owner_system_admin_role_change(instance, "is_staff_assigned")
-        if instance.is_superuser:
-            email_system_owner_system_admin_role_change(instance, "is_superuser_assigned")
         return
 
     # check if is_staff is assigned
@@ -54,3 +50,16 @@ def user_is_staff_superuser_changed(sender, instance, **kwargs):
     # check if is_superuser is removed
     elif not instance.is_superuser and current_user_state.is_superuser:
         email_system_owner_system_admin_role_change(instance, "is_superuser_removed")
+
+
+@receiver(post_save, sender=User)
+def user_is_staff_superuser_created(sender, instance, created, **kwargs):
+    """Send an email to the System Owner when a user is assigned or removed from the System Admin role."""
+    print('___________________')
+    print('___________ created:', created)
+    print('__________ instance:', instance.__dict__)
+    if created:
+        if instance.is_staff:
+            email_system_owner_system_admin_role_change(instance, "is_staff_assigned")
+        if instance.is_superuser:
+            email_system_owner_system_admin_role_change(instance, "is_superuser_assigned")
