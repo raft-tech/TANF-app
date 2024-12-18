@@ -11,6 +11,7 @@ from django.contrib.admin.models import ADDITION
 from datetime import timedelta
 from django.utils import timezone
 from django.conf import settings
+from tdpservice.data_files.models import DataFile
 import logging
 
 logger = logging.getLogger(__name__)
@@ -206,6 +207,39 @@ def delete_associated_models(meta_model, file_ids, new_indices, log_context):
         delete_errors(file_ids, log_context)
         num_deleted = delete_records(file_ids, new_indices, log_context)
         meta_model.num_records_deleted = num_deleted
+
+def get_files_to_reparse(fiscal_year, fiscal_quarter, selected_files, reparse_all):
+    """Get the files to reparse."""
+    backup_file_name = "/tmp/reparsing_backup"
+    files = DataFile.objects.all()
+    continue_msg = "You have selected to reparse datafiles for FY {fy} and {q}. The reparsed files "
+    if selected_files:
+        files = files.filter(id__in=selected_files)
+        backup_file_name += "_selected_files"
+        continue_msg = continue_msg.format(fy=f"selected files: {str(selected_files)}", q="Q1-4")
+    if reparse_all:
+        backup_file_name += "_FY_All_Q1-4"
+        continue_msg = continue_msg.format(fy="All", q="Q1-4")
+    else:
+        if not fiscal_year and not fiscal_quarter and not selected_files:
+            print(
+                'Options --fiscal_year and --fiscal_quarter not set. '
+                'Provide either option to continue, or --all to wipe all submissions.'
+            )
+            return
+        if fiscal_year is not None and fiscal_quarter is not None:
+            files = files.filter(year=fiscal_year, quarter=fiscal_quarter)
+            backup_file_name += f"_FY_{fiscal_year}_{fiscal_quarter}"
+            continue_msg = continue_msg.format(fy=fiscal_year, q=fiscal_quarter)
+        elif fiscal_year is not None:
+            files = files.filter(year=fiscal_year)
+            backup_file_name += f"_FY_{fiscal_year}_Q1-4"
+            continue_msg = continue_msg.format(fy=fiscal_year, q="Q1-4")
+        elif fiscal_quarter is not None:
+            files = files.filter(quarter=fiscal_quarter)
+            backup_file_name += f"_FY_All_{fiscal_quarter}"
+            continue_msg = continue_msg.format(fy="All", q=fiscal_quarter)
+    return files, backup_file_name, continue_msg
 
 def calculate_timeout(num_files, num_records):
         """Estimate a timeout parameter based on the number of files and the number of records."""

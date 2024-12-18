@@ -115,9 +115,9 @@ def test_count_total_num_records(log_context, dfs, cat4_edge_case_file, big_file
     parse_files(dfs, cat4_edge_case_file, big_file, small_ssp_section1_datafile, tribal_section_1_file)
 
     cmd = clean_and_reparse.Command()
-    assert 3104 == cmd._count_total_num_records(log_context)
+    assert 3104 == count_total_num_records(log_context)
     cat4_edge_case_file.delete()
-    assert 3096 == cmd._count_total_num_records(log_context)
+    assert 3096 == count_total_num_records(log_context)
 
 @pytest.mark.django_db
 def test_reparse_backup_succeed(log_context, dfs, cat4_edge_case_file, big_file, small_ssp_section1_datafile,
@@ -163,14 +163,14 @@ def test_delete_associated_models(log_context, new_indexes, dfs, cat4_edge_case_
     ids = parse_files(dfs, cat4_edge_case_file, big_file, small_ssp_section1_datafile, tribal_section_1_file)
 
     cmd = clean_and_reparse.Command()
-    assert 3104 == cmd._count_total_num_records(log_context)
+    assert 3104 == count_total_num_records(log_context)
 
     class Fake:
         pass
     fake_meta = Fake()
-    cmd._delete_associated_models(fake_meta, ids, new_indexes, log_context)
+    delete_associated_models(fake_meta, ids, new_indexes, log_context)
 
-    assert cmd._count_total_num_records(log_context) == 0
+    assert count_total_num_records(log_context) == 0
 
 @pytest.mark.parametrize(("exc_msg, exception_type"), [
     (('Encountered a DatabaseError while deleting DataFileSummary from Postgres. The database '
@@ -219,13 +219,12 @@ def test_handle_elastic_exceptions(mocker, log_context, exc_msg, exception_type)
 @pytest.mark.django_db
 def test_delete_records_exceptions(mocker, log_context, exc_msg, exception_type):
     """Test record exception handling."""
-    mocker.patch(
-        'tdpservice.search_indexes.management.commands.clean_and_reparse.Command._delete_records',
+    mocked_delete_records = mocker.patch(
+        'tdpservice.search_indexes.utils.delete_records',
         side_effect=exception_type('Record delete exception')
     )
-    cmd = clean_and_reparse.Command()
     with pytest.raises(exception_type):
-        cmd._delete_records([], True, log_context)
+        mocked_delete_records([], True, log_context)
         exception_msg = LogEntry.objects.latest('pk').change_message
         assert exception_msg == exc_msg
 
@@ -238,13 +237,12 @@ def test_delete_records_exceptions(mocker, log_context, exc_msg, exception_type)
 @pytest.mark.django_db
 def test_delete_errors_exceptions(mocker, log_context, exc_msg, exception_type):
     """Test error exception handling."""
-    mocker.patch(
-        'tdpservice.search_indexes.management.commands.clean_and_reparse.Command._delete_errors',
+    mocked_delete_errors = mocker.patch(
+        'tdpservice.search_indexes.utils.delete_errors',
         side_effect=exception_type('Error delete exception')
     )
-    cmd = clean_and_reparse.Command()
     with pytest.raises(exception_type):
-        cmd._delete_errors([], log_context)
+        mocked_delete_errors([], log_context)
         exception_msg = LogEntry.objects.latest('pk').change_message
         assert exception_msg == exc_msg
 
@@ -257,13 +255,12 @@ def test_delete_errors_exceptions(mocker, log_context, exc_msg, exception_type):
 @pytest.mark.django_db
 def test_handle_files_exceptions(mocker, log_context, exc_msg, exception_type):
     """Test error exception handling."""
-    mocker.patch(
-        'tdpservice.search_indexes.management.commands.clean_and_reparse.Command._handle_datafiles',
+    mocked_handle_datafiles = mocker.patch(
+        'tdpservice.search_indexes.utils.handle_datafiles',
         side_effect=exception_type('Files exception')
     )
-    cmd = clean_and_reparse.Command()
     with pytest.raises(exception_type):
-        cmd._handle_datafiles([], None, log_context)
+        mocked_handle_datafiles([], None, log_context)
         exception_msg = LogEntry.objects.latest('pk').change_message
         assert exception_msg == exc_msg
 
@@ -274,11 +271,11 @@ def test_timeout_calculation(log_context, dfs, cat4_edge_case_file, big_file, sm
     ids = parse_files(dfs, cat4_edge_case_file, big_file, small_ssp_section1_datafile, tribal_section_1_file)
 
     cmd = clean_and_reparse.Command()
-    num_records = cmd._count_total_num_records(log_context)
+    num_records = count_total_num_records(log_context)
 
-    assert cmd._calculate_timeout(len(ids), num_records).seconds == 57
+    assert calculate_timeout(len(ids), num_records).seconds == 57
 
-    assert cmd._calculate_timeout(len(ids), 50).seconds == 40
+    assert calculate_timeout(len(ids), 50).seconds == 40
 
 @pytest.mark.django_db
 def test_reparse_dunce():
@@ -291,10 +288,10 @@ def test_reparse_dunce():
 def test_reparse_sequential(log_context, big_file):
     """Test reparse _assert_sequential_execution."""
     cmd = clean_and_reparse.Command()
-    assert True is cmd._assert_sequential_execution(log_context)
+    assert True is assert_sequential_execution(log_context)
 
     meta = ReparseMeta.objects.create(timeout_at=None)
-    assert False is cmd._assert_sequential_execution(log_context)
+    assert False is assert_sequential_execution(log_context)
     timeout_entry = LogEntry.objects.latest('pk')
     assert timeout_entry.change_message == (
         f"The latest ReparseMeta model's (ID: {meta.pk}) timeout_at field is None. Cannot "
@@ -304,7 +301,7 @@ def test_reparse_sequential(log_context, big_file):
     big_file.reparses.add(meta)
     meta.timeout_at = timezone.now() + timedelta(seconds=100)
     meta.save()
-    assert False is cmd._assert_sequential_execution(log_context)
+    assert False is assert_sequential_execution(log_context)
     not_seq_entry = LogEntry.objects.latest('pk')
     assert not_seq_entry.change_message == ("A previous execution of the reparse command is RUNNING. "
                                             "Cannot execute in parallel, exiting.")
@@ -312,7 +309,7 @@ def test_reparse_sequential(log_context, big_file):
     meta.timeout_at = timezone.now()
     meta.save()
 
-    assert True is cmd._assert_sequential_execution(log_context)
+    assert True is assert_sequential_execution(log_context)
     timeout_entry = LogEntry.objects.latest('pk')
     assert timeout_entry.change_message == ("Previous reparse has exceeded the timeout. Allowing "
                                             "execution of the command.")
