@@ -20,6 +20,17 @@ from datetime import timedelta
 import os
 import time
 
+from tdpservice.search_indexes.utils import (
+    backup,
+    assert_sequential_execution,
+    should_exit,
+    delete_associated_models,
+    count_total_num_records,
+    calculate_timeout,
+    handle_datafiles,
+    delete_summaries
+)
+
 @pytest.fixture
 def cat4_edge_case_file(stt_user, stt):
     """Fixture for cat_4_edge_case.txt."""
@@ -87,6 +98,16 @@ def parse_files(summary, f1, f2, f3, f4):
     f4.save()
     return [f1.pk, f2.pk, f3.pk, f4.pk]
 
+
+# write test for reparse command
+@pytest.mark.django_db
+def test_reparse_a_file(log_context, dfs, cat4_edge_case_file, big_file, small_ssp_section1_datafile,
+                                 tribal_section_1_file):
+    """Count total number of files in DB."""
+    parsed_files = parse_files(dfs, cat4_edge_case_file, big_file, small_ssp_section1_datafile, tribal_section_1_file)
+    from tdpservice.search_indexes.reparse import clean_reparse
+    clean_reparse(['1,3'])
+
 @pytest.mark.django_db
 def test_count_total_num_records(log_context, dfs, cat4_edge_case_file, big_file,
                                  small_ssp_section1_datafile, tribal_section_1_file):
@@ -106,7 +127,7 @@ def test_reparse_backup_succeed(log_context, dfs, cat4_edge_case_file, big_file,
 
     cmd = clean_and_reparse.Command()
     file_name = "/tmp/test_reparse.pg"
-    cmd._backup(file_name, log_context)
+    backup(file_name, log_context)
     time.sleep(10)
 
     file_size = os.path.getsize(file_name)
@@ -119,13 +140,13 @@ def test_reparse_backup_fail(mocker, log_context, dfs, cat4_edge_case_file, big_
     parse_files(dfs, cat4_edge_case_file, big_file, small_ssp_section1_datafile, tribal_section_1_file)
 
     mocker.patch(
-        'tdpservice.search_indexes.management.commands.clean_and_reparse.Command._backup',
+        'tdpservice.search_indexes.utils.backup',
         side_effect=Exception('Backup exception')
     )
     cmd = clean_and_reparse.Command()
     file_name = "/tmp/test_reparse.pg"
     with pytest.raises(Exception):
-        cmd._backup(file_name, log_context)
+        backup(file_name, log_context)
         assert os.path.exists(file_name) is False
         exception_msg = LogEntry.objects.latest('pk').change_message
         assert exception_msg == ("Database backup FAILED. Clean and reparse NOT executed. Database "
@@ -160,13 +181,12 @@ def test_delete_associated_models(log_context, new_indexes, dfs, cat4_edge_case_
 @pytest.mark.django_db
 def test_delete_summaries_exceptions(mocker, log_context, exc_msg, exception_type):
     """Test summary exception handling."""
-    mocker.patch(
-        'tdpservice.search_indexes.management.commands.clean_and_reparse.Command._delete_summaries',
+    mocked_delete_summaries = mocker.patch(
+        'tdpservice.search_indexes.utils.delete_summaries',
         side_effect=exception_type('Summary delete exception')
     )
-    cmd = clean_and_reparse.Command()
     with pytest.raises(exception_type):
-        cmd._delete_summaries([], log_context)
+        mocked_delete_summaries([], log_context)
         exception_msg = LogEntry.objects.latest('pk').change_message
         assert exception_msg == exc_msg
 
@@ -179,13 +199,12 @@ def test_delete_summaries_exceptions(mocker, log_context, exc_msg, exception_typ
 @pytest.mark.django_db
 def test_handle_elastic_exceptions(mocker, log_context, exc_msg, exception_type):
     """Test summary exception handling."""
-    mocker.patch(
-        'tdpservice.search_indexes.management.commands.clean_and_reparse.Command._handle_elastic',
+    mocked_handle_elastic = mocker.patch(
+        'tdpservice.search_indexes.utils.handle_elastic',
         side_effect=exception_type('Summary delete exception')
     )
-    cmd = clean_and_reparse.Command()
     with pytest.raises(exception_type):
-        cmd._handle_elastic([], True, log_context)
+        mocked_handle_elastic(True, log_context)
         exception_msg = LogEntry.objects.latest('pk').change_message
         assert exception_msg == exc_msg
 

@@ -1,6 +1,7 @@
 """Utility functions and definitions for models and documents."""
 from tdpservice.search_indexes.documents import tanf, ssp, tribal
 
+
 DOCUMENTS = [
       tanf.TANF_T1DataSubmissionDocument, tanf.TANF_T2DataSubmissionDocument,
       tanf.TANF_T3DataSubmissionDocument, tanf.TANF_T4DataSubmissionDocument,

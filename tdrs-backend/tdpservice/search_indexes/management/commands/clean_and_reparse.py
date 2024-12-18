@@ -20,6 +20,20 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from tdpservice.search_indexes.utils import (
+    backup,
+    get_log_context,
+    assert_sequential_execution,
+    should_exit,
+    handle_elastic,
+    delete_summaries,
+    delete_associated_models,
+    count_total_num_records,
+    calculate_timeout,
+    handle_datafiles,
+    handle_elastic_doc_delete
+)
+
 
 class Command(BaseCommand):
     """Command class."""
@@ -34,73 +48,6 @@ class Command(BaseCommand):
         parser.add_argument("-a", "--all", action='store_true', help="Clean and reparse all datafiles. If selected, "
                             "fiscal_year/quarter aren't necessary.")
         parser.add_argument("-f", "--files", nargs='+', type=str, help="Re-parse specific datafiles by datafile id")
-
-    def _get_log_context(self, system_user):
-        """Return logger context."""
-        context = {'user_id': system_user.id,
-                   'action_flag': ADDITION,
-                   'object_repr': "Clean and Reparse"
-                   }
-        return context
-
-    def _backup(self, backup_file_name, log_context):
-        """Execute Postgres DB backup."""
-        try:
-            logger.info("Beginning reparse DB Backup.")
-            call_command('backup_db', '-b', '-f', f'{backup_file_name}')
-            logger.info("Backup complete! Commencing clean and reparse.")
-
-            log("Database backup complete.",
-                logger_context=log_context,
-                level='info')
-        except Exception as e:
-            log("Database backup FAILED. Clean and reparse NOT executed. Database and Elastic are CONSISTENT!",
-                logger_context=log_context,
-                level='error')
-            raise e
-
-    def _handle_elastic(self, new_indices, log_context):
-        """Create new Elastic indices and delete old ones."""
-        if new_indices:
-            try:
-                logger.info("Creating new elastic indexes.")
-                call_command('tdp_search_index', '--create', '-f', '--use-alias')
-                log("Index creation complete.",
-                    logger_context=log_context,
-                    level='info')
-            except ElasticsearchException as e:
-                log("Elastic index creation FAILED. Clean and reparse NOT executed. "
-                    "Database is CONSISTENT, Elastic is INCONSISTENT!",
-                    logger_context=log_context,
-                    level='error')
-                raise e
-            except Exception as e:
-                log("Caught generic exception in _handle_elastic. Clean and reparse NOT executed. "
-                    "Database is CONSISTENT, Elastic is INCONSISTENT!",
-                    logger_context=log_context,
-                    level='error')
-                raise e
-
-    def _delete_summaries(self, file_ids, log_context):
-        """Raw delete all DataFileSummary objects."""
-        try:
-            qset = DataFileSummary.objects.filter(datafile_id__in=file_ids)
-            count = qset.count()
-            logger.info(f"Deleting {count} datafile summary objects.")
-            qset._raw_delete(qset.db)
-            logger.info("Successfully deleted datafile summary objects.")
-        except DatabaseError as e:
-            log('Encountered a DatabaseError while deleting DataFileSummary from Postgres. The database '
-                'and Elastic are INCONSISTENT! Restore the DB from the backup as soon as possible!',
-                logger_context=log_context,
-                level='critical')
-            raise e
-        except Exception as e:
-            log('Caught generic exception while deleting DataFileSummary. The database and Elastic are INCONSISTENT! '
-                'Restore the DB from the backup as soon as possible!',
-                logger_context=log_context,
-                level='critical')
-            raise e
 
     def __handle_elastic_doc_delete(self, doc, qset, model, elastic_exceptions, new_indices):
         """Delete documents from Elastic and handle exceptions."""
@@ -128,7 +75,7 @@ class Command(BaseCommand):
                 count = qset.count()
                 total_deleted += count
                 logger.info(f"Deleting {count} records of type: {model}.")
-                self.__handle_elastic_doc_delete(doc, qset, model, elastic_exceptions, new_indices)
+                handle_elastic_doc_delete(doc, qset, model, elastic_exceptions, new_indices)
                 qset._raw_delete(qset.db)
             except DatabaseError as e:
                 log(f'Encountered a DatabaseError while deleting records of type {model} from Postgres. The database '
@@ -174,7 +121,7 @@ class Command(BaseCommand):
 
     def _delete_associated_models(self, meta_model, file_ids, new_indices, log_context):
         """Delete all models associated to the selected datafiles."""
-        self._delete_summaries(file_ids, log_context)
+        delete_summaries(file_ids, log_context)
         self._delete_errors(file_ids, log_context)
         num_deleted = self._delete_records(file_ids, new_indices, log_context)
         meta_model.num_records_deleted = num_deleted
@@ -302,10 +249,8 @@ class Command(BaseCommand):
         fiscal_year = options.get('fiscal_year', None)
         fiscal_quarter = options.get('fiscal_quarter', None)
         reparse_all = options.get('all', False)
-        print(f'************** reparse all {reparse_all}')
         selected_files = options.get('files', None)
         selected_files = [int(file) for file in selected_files[0].split(',')] if selected_files else None
-        print(f'************** selected files {selected_files}')
         new_indices = reparse_all is True
 
         # Option that can only be specified by calling `handle` directly and passing it.
@@ -341,7 +286,7 @@ class Command(BaseCommand):
         system_user, created = User.objects.get_or_create(username='system')
         if created:
             logger.debug('Created reserved system user.')
-        log_context = self._get_log_context(system_user)
+        log_context = get_log_context(system_user)
 
         all_fy = "All"
         all_q = "Q1-4"
@@ -373,13 +318,13 @@ class Command(BaseCommand):
 
         # Backup the Postgres DB
         backup_file_name += f"_rpv{meta_model.pk}.pg"
-        self._backup(backup_file_name, log_context)
+        backup(backup_file_name, log_context)
 
         meta_model.db_backup_location = backup_file_name
         meta_model.save()
 
         # Create and delete Elastic indices if necessary
-        self._handle_elastic(new_indices, log_context)
+        handle_elastic(new_indices, log_context)
 
         # Delete records from Postgres and Elastic if necessary
         file_ids = files.values_list('id', flat=True).distinct()
