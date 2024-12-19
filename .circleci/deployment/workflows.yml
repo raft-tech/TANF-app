@@ -10,11 +10,7 @@
         - not: << pipeline.parameters.run_nightly_owasp_scan >>
 
     jobs:
-      - deploy-project-updates-site:
-          filters:
-            branches:
-              only:
-                - develop
+# Dev environments
       - deploy-infrastructure-dev:
           target_env: << pipeline.parameters.target_env >>
           filters:
@@ -23,17 +19,15 @@
                 - develop
                 - main
                 - master
-      - deploy-infrastructure-staging:
+      - deploy-dev:
+          target_env: << pipeline.parameters.target_env >>
           filters:
             branches:
-              only:
+              ignore:
                 - develop
                 - main
-      - deploy-infrastructure-production:
-          filters:
-            branches:
-              only:
                 - master
+
       - enable-versioning:
           requires:
             - deploy-infrastructure-dev
@@ -43,6 +37,19 @@
                 - develop
                 - main
                 - master
+
+# Develop
+      - deploy-infrastructure-staging:
+          filters:
+            branches:
+              only:
+                - develop
+                - main
+      - deploy-project-updates-site:
+          filters:
+            branches:
+              only:
+                - develop
       - enable-versioning:
           requires:
             - deploy-infrastructure-staging
@@ -54,6 +61,36 @@
             branches:
               only:
                 - develop
+      - build-and-tag-develop:
+          requires:
+            - deploy-infrastructure-staging
+          filters:
+            branches:
+              only:
+                - develop
+      - deploy-develop:
+          requires:
+            - build-and-tag-develop
+          filters:
+            branches:
+              only:
+                - develop
+      - test-deployment-e2e:
+          requires:
+            - deploy-develop
+          filters:
+            branches:
+              only:
+                - develop
+
+# Staging
+      - build-and-tag-staging:
+          requires:
+            - deploy-infrastructure-staging
+          filters:
+            branches:
+              only:
+                - main
       - enable-versioning:
           requires:
             - deploy-infrastructure-staging
@@ -65,6 +102,20 @@
             branches:
               only:
                 - main
+      - deploy-staging:
+          requires:
+            - build-and-tag-staging
+          filters:
+            branches:
+              only:
+                - main
+      
+# Production
+      - deploy-infrastructure-production:
+          filters:
+            branches:
+              only:
+                - master
       - enable-versioning:
           requires:
             - deploy-infrastructure-production
@@ -83,44 +134,6 @@
             branches:
               only:
                 - master
-      - deploy-dev:
-          target_env: << pipeline.parameters.target_env >>
-          requires:
-            - deploy-infrastructure-dev
-          filters:
-            branches:
-              ignore:
-                - develop
-                - main
-                - master
-      - build-and-tag-develop:
-          requires:
-            - deploy-infrastructure-staging
-          filters:
-            branches:
-              only:
-                - develop
-      - deploy-develop:
-          requires:
-            - build-and-tag-develop
-          filters:
-            branches:
-              only:
-                - develop
-      - build-and-tag-staging:
-          requires:
-            - deploy-infrastructure-staging
-          filters:
-            branches:
-              only:
-                - main
-      - deploy-staging:
-          requires:
-            - build-and-tag-staging
-          filters:
-            branches:
-              only:
-                - main
       - build-and-tag-production:
           requires:
             - deploy-infrastructure-production
@@ -135,13 +148,6 @@
             branches:
               only:
                 - master
-      - test-deployment-e2e:
-          requires:
-            - deploy-develop
-          filters:
-            branches:
-              only:
-                - develop
       - make_erd: # from ../util folder
           filters:
             branches:
