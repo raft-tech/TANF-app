@@ -22,7 +22,7 @@
 
       - enable-versioning:
           requires:
-            - deploy-infrastructure-dev
+            - deploy-dev
           filters:
             branches:
               ignore:
