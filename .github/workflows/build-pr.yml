@@ -27,6 +27,7 @@ on:
       - main
       - master
       - 'release/**'
+      - feat/3223-terraform-cf
     types: [review_requested, ready_for_review, synchronize]
 jobs:
   build_and_test_pr:

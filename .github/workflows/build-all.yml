@@ -35,6 +35,7 @@ on:
       - main
       - master
       - 'release/**'
+      - feat/3223-terraform-cf
     paths:
       - 'scripts/**'
       - '.circleci/**'
