@@ -40,7 +40,7 @@
           backend-appname: tdp-backend-<< parameters.target_env >>
           frontend-appname: tdp-frontend-<< parameters.target_env >>
       - deploy-infrastructure:
-          cf-app: << parameters.target_env >> 
+          cf-app: << parameters.target_env >>
 
   deploy-staging:
     executor: docker-executor
