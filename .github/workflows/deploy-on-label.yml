@@ -26,7 +26,7 @@ name: Deploy PR based on Label
 on:
   push:
     branches:
-      - 'feat/3223-terraform-cf'
+      - 'feat/3223-terraform-cf' 
 jobs:
   pr_labeled_deployment:
     if: startsWith(github.event.label.name, 'Deploy with CircleCI')
