@@ -75,16 +75,26 @@ update_frontend()
         # Do a zero downtime deploy.  This requires enough memory for
         # two apps to exist in the org/space at one time.
         #cf push "$CGHOSTNAME_FRONTEND" --no-route -f manifest.buildpack.yml --strategy rolling || exit 1
+            echo ''
+
     else
-        #cf push "$CGHOSTNAME_FRONTEND" --no-route -f manifest.buildpack.yml
+        #cf push "$CGHOSTNAME_FRONTEND" --no-route -f manifest.buildpack.yml    
+        echo ''
+
     fi
 
     if [ "$CF_SPACE" = "tanf-prod" ]; then
         #cf map-route "$CGHOSTNAME_FRONTEND" tanfdata.acf.hhs.gov
+            echo ''
+
     elif [ "$CF_SPACE" = "tanf-staging" ]; then
         #cf map-route "$CGHOSTNAME_FRONTEND" "$CGHOSTNAME_FRONTEND".acf.hhs.gov
+            echo ''
+
     else
         #cf map-route "$CGHOSTNAME_FRONTEND" app.cloud.gov --hostname "${CGHOSTNAME_FRONTEND}"
+            echo ''
+
     fi
 
     cd ../..
