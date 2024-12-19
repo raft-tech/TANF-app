@@ -79,6 +79,7 @@ npm-debug.log
 /output/
 /cache/
 boilerplate.zip
+.circleci/generated_config.yml
 
 # Spritesmith
 spritesmith-generated/
@@ -117,3 +118,4 @@ cypress.env.json
 # DB seeds
 tdrs-backend/*.pg
 tdrs-backend/django.log
+

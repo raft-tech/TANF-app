@@ -11,14 +11,6 @@
 
     jobs:
 # Dev environments
-      - deploy-infrastructure-dev:
-          target_env: << pipeline.parameters.target_env >>
-          filters:
-            branches:
-              ignore:
-                - develop
-                - main
-                - master
       - deploy-dev:
           target_env: << pipeline.parameters.target_env >>
           filters:
