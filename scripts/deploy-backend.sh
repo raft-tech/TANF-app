@@ -124,8 +124,10 @@ update_backend()
     #cf unset-env "$CGAPPNAME_BACKEND" "AV_SCAN_URL"
 
     if [ "$CF_SPACE" = "tanf-prod" ]; then
+    echo ''
       #cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tanf-prod-clamav-rest.apps.internal:9000/scan"
-    else
+    else   
+     echo ''
       # Add environment varilables for clamav
       #cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tdp-clamav-nginx-$env.apps.internal:9000/scan"
 
@@ -159,8 +161,12 @@ update_backend()
     if [ "$CF_SPACE" = "tanf-prod" ]; then
       # Add network policy to allow backend to access tanf-prod services
       #cf add-network-policy "$CGAPPNAME_BACKEND" clamav-rest --protocol tcp --port 9000
+          echo ''
+
     else
       #cf add-network-policy "$CGAPPNAME_BACKEND" tdp-clamav-nginx-$env --protocol tcp --port 9000
+          echo ''
+
     fi
 
     cd ..
