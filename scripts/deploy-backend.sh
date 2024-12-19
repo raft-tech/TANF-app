@@ -82,7 +82,7 @@ set_cf_envs()
     fi
 
     echo "Setting var : $var_name"
-    $cf_cmd
+    #$cf_cmd
   done
 
 }
@@ -92,20 +92,20 @@ generate_jwt_cert()
 {
     echo "regenerating JWT cert/key"
     yes 'XX' | openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -sha256
-    cf set-env "$CGAPPNAME_BACKEND" JWT_CERT "$(cat cert.pem)"
-    cf set-env "$CGAPPNAME_BACKEND" JWT_KEY "$(cat key.pem)"
+    #cf set-env "$CGAPPNAME_BACKEND" JWT_CERT "$(cat cert.pem)"
+    #cf set-env "$CGAPPNAME_BACKEND" JWT_KEY "$(cat key.pem)"
 }
 
 update_kibana()
 {
   # Add network policy allowing Kibana to talk to the proxy and to allow the backend to talk to Kibana
-  cf add-network-policy "$CGAPPNAME_BACKEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
-  cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
-  cf add-network-policy "$CGAPPNAME_KIBANA" "$CGAPPNAME_FRONTEND" --protocol tcp --port 80
+  #cf add-network-policy "$CGAPPNAME_BACKEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
+  #cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
+  #cf add-network-policy "$CGAPPNAME_KIBANA" "$CGAPPNAME_FRONTEND" --protocol tcp --port 80
 
   # Upload dashboards to Kibana
   CMD="curl -X POST $CGAPPNAME_KIBANA.apps.internal:5601/api/saved_objects/_import -H 'kbn-xsrf: true' --form file=@/home/vcap/app/tdpservice/search_indexes/kibana_saved_objs.ndjson"
-  cf run-task $CGAPPNAME_BACKEND --command "$CMD" --name kibana-obj-upload
+  #cf run-task $CGAPPNAME_BACKEND --command "$CMD" --name kibana-obj-upload
 }
 
 prepare_promtail() {
@@ -121,26 +121,26 @@ prepare_promtail() {
 update_backend()
 {
     cd tdrs-backend || exit
-    cf unset-env "$CGAPPNAME_BACKEND" "AV_SCAN_URL"
+    #cf unset-env "$CGAPPNAME_BACKEND" "AV_SCAN_URL"
 
     if [ "$CF_SPACE" = "tanf-prod" ]; then
-      cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tanf-prod-clamav-rest.apps.internal:9000/scan"
+      #cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tanf-prod-clamav-rest.apps.internal:9000/scan"
     else
       # Add environment varilables for clamav
-      cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tdp-clamav-nginx-$env.apps.internal:9000/scan"
+      #cf set-env "$CGAPPNAME_BACKEND" AV_SCAN_URL "http://tdp-clamav-nginx-$env.apps.internal:9000/scan"
 
       # Add variable for dev/staging apps to know their DB name. Prod uses default AWS name.
-      cf unset-env "$CGAPPNAME_BACKEND" "APP_DB_NAME"
-      cf set-env "$CGAPPNAME_BACKEND" "APP_DB_NAME" "tdp_db_$backend_app_name"
+      #cf unset-env "$CGAPPNAME_BACKEND" "APP_DB_NAME"
+      #cf set-env "$CGAPPNAME_BACKEND" "APP_DB_NAME" "tdp_db_$backend_app_name"
     fi
 
     if [ "$1" = "rolling" ] ; then
         set_cf_envs
         # Do a zero downtime deploy.  This requires enough memory for
         # two apps to exist in the org/space at one time.
-        cf push "$CGAPPNAME_BACKEND" --no-route -f manifest.buildpack.yml -t 180 --strategy rolling || exit 1
+        #cf push "$CGAPPNAME_BACKEND" --no-route -f manifest.buildpack.yml -t 180 --strategy rolling || exit 1
     else
-        cf push "$CGAPPNAME_BACKEND" --no-route -f manifest.buildpack.yml -t 180
+        #cf push "$CGAPPNAME_BACKEND" --no-route -f manifest.buildpack.yml -t 180
         # set up JWT key if needed
         if cf e "$CGAPPNAME_BACKEND" | grep -q JWT_KEY ; then
             echo jwt cert already created
@@ -151,16 +151,16 @@ update_backend()
 
     set_cf_envs
 
-    cf map-route "$CGAPPNAME_BACKEND" apps.internal --hostname "$CGAPPNAME_BACKEND"
+    #cf map-route "$CGAPPNAME_BACKEND" apps.internal --hostname "$CGAPPNAME_BACKEND"
 
     # Add network policy to allow frontend to access backend
-    cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_BACKEND" --protocol tcp --port 8080
+    #cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_BACKEND" --protocol tcp --port 8080
 
     if [ "$CF_SPACE" = "tanf-prod" ]; then
       # Add network policy to allow backend to access tanf-prod services
-      cf add-network-policy "$CGAPPNAME_BACKEND" clamav-rest --protocol tcp --port 9000
+      #cf add-network-policy "$CGAPPNAME_BACKEND" clamav-rest --protocol tcp --port 9000
     else
-      cf add-network-policy "$CGAPPNAME_BACKEND" tdp-clamav-nginx-$env --protocol tcp --port 9000
+      #cf add-network-policy "$CGAPPNAME_BACKEND" tdp-clamav-nginx-$env --protocol tcp --port 9000
     fi
 
     cd ..
@@ -176,17 +176,17 @@ bind_backend_to_services() {
       env="develop"
     fi
 
-    cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-${env}"
-    cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${env}"
-    cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${env}"
+    #cf bind-service "$CGAPPNAME_BACKEND" "tdp-staticfiles-${env}"
+    #cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${env}"
+    #cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${env}"
 
     # Setting up the ElasticSearch service
-    cf bind-service "$CGAPPNAME_BACKEND" "es-${env}"
+    #cf bind-service "$CGAPPNAME_BACKEND" "es-${env}"
 
     set_cf_envs
 
     echo "Restarting app: $CGAPPNAME_BACKEND"
-    cf restage "$CGAPPNAME_BACKEND"
+    #cf restage "$CGAPPNAME_BACKEND"
 
 }
 
@@ -262,7 +262,7 @@ elif [ "$DEPLOY_STRATEGY" = "rebuild" ]; then
     # You want to redeploy the instance under the same name
     # Delete the existing app (with out deleting the services)
     # and perform the initial deployment strategy.
-    cf delete "$CGAPPNAME_BACKEND" -r -f
+    #cf delete "$CGAPPNAME_BACKEND" -r -f
     update_backend
     update_kibana
     bind_backend_to_services
