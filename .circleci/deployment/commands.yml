@@ -121,7 +121,9 @@
           name: Install dependencies
           command: |
             sudo apk update
-            sudo apk add wget
+            sudo apk add wget bash python3 py3-pip
+            sudo pip3 install --upgrade pip
+            ln -s /usr/bin/python3 /usr/bin/python
             sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.42.1/yq_linux_amd64 && chmod +x /usr/local/bin/yq
       - run:
           name: Apply database migrations
@@ -252,6 +254,7 @@
               echo "cf_space_name = \"<<parameters.cf-space>>\""
               echo "cf_app_name = \"<<parameters.cf-app>>\""
             } >> ./variables.tfvars
+            sudo apt-get install -y terraform
       - terraform/init:
           path: <<parameters.tf-path>>
           backend_config_file: ./backend_config.tfvars

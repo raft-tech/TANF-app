@@ -32,7 +32,7 @@
     parameters:
       target_env:
         type: string
-    executor: terraform/default
+    executor: docker-executor
     working_directory: ~/tdp-deploy
     steps:
       - init-deploy
