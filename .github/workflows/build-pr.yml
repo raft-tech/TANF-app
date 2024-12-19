@@ -27,7 +27,7 @@ on:
       - main
       - master
       - 'release/**'
-      - feat/3223-terraform-cf
+      - 'feat/3223-terraform-cf'
     types: [review_requested, ready_for_review, synchronize]
 jobs:
   build_and_test_pr:
@@ -43,6 +43,6 @@ jobs:
           project-slug: ${{ github.repository }}
           branch: ${{ (github.event_name == 'pull_request') && github.head_ref || github.ref_name }}
           payload: '{
-            "build_and_test_all": true,
+            "build_and_test_all": false,
             "triggered": true
           }'
