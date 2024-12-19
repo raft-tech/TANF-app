@@ -24,12 +24,12 @@
 ###########################################################################
 name: Deploy PR based on Label
 on:
-  push:
-    branches:
-      - 'feat/3223-terraform-cf'
+  pull_request:
+    types:
+      - labeled
 jobs:
   pr_labeled_deployment:
-    #if: startsWith(github.event.label.name, 'Deploy with CircleCI')
+    if: startsWith(github.event.label.name, 'Deploy with CircleCI')
     runs-on: ubuntu-latest
     name: Initiate deploy job in CircleCI
     steps:
@@ -52,12 +52,12 @@ jobs:
         ref: ${{ github.event.pull_request.head.ref }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #- name: Extract current PR state
-    #  id: get-pr-state
-    #  run: |
-    #    STATE=${{ fromJson(steps.get-pr-checks.outputs.data).state }}
-    #    echo "::set-output name=STATE::$STATE"
-    #    echo "Current PR state: $STATE"
+    - name: Extract current PR state
+      id: get-pr-state
+      run: |
+        STATE=${{ fromJson(steps.get-pr-checks.outputs.data).state }}
+        echo "::set-output name=STATE::$STATE"
+        echo "Current PR state: $STATE"
 
     - name: Live Environment Badge
       uses: schneegans/dynamic-badges-action@v1.7.0
