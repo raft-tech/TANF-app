@@ -256,7 +256,6 @@
            cd tdp-deploy/terraform/<<parameters.cf-space>>
            terraform init -backend-config backend_config.tfvars -var-file variables.tfvars
            terraform validate
-           cd ./terraform/<<parameters.cf-space>/
            terraform plan -var-file ./variables.tfvars
 
   enable-s3-versioning:
