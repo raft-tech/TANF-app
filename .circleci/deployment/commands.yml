@@ -259,7 +259,7 @@
       - run:
           name: Terraform Init
           command: |
-           terraform init -backend_config backend_config.tfvars
+           terraform init -backend-config backend_config.tfvars
            terraform validate
       - terraform/fmt:
           path: <<parameters.tf-path>>
