@@ -229,23 +229,28 @@
       - run:
           name: Export S3 Credentials for TFState
           command: |
+            strip() {
+                # Usage: strip "string" "pattern"
+                printf '%s\n' "${1##$2}"
+            }
+            # The cloud.gov space defined via environment variable (e.g., "tanf-dev", "tanf-staging")
+            env=$(strip <<parameters.cf-space>> "tanf-")
+
             S3_CREDENTIALS=$(cf service-key tdp-tf-states tdp-tf-key | tail -n +2)
             {
               echo "access_key = \"$(echo "${S3_CREDENTIALS}" | jq -r .access_key_id)\""
               echo "secret_key = \"$(echo "${S3_CREDENTIALS}" | jq -r .secret_access_key)\""
               echo "region = \"$(echo "${S3_CREDENTIALS}" | jq -r '.region')\""
               echo "bucket = \"$(echo "${S3_CREDENTIALS}" | jq -r '.bucket')\""
-            } >> ./terraform/<<parameters.cf-space>>/backend_config.tfvars
-      - run:
-          name: Prepare Terraform Variables
-          command: |
+            } >> ./terraform/$env/backend_config.tfvars
+
             S3_CREDENTIALS=$(cf service-key tdp-tf-states tdp-tf-key | tail -n +2)
             {
               echo "cf_password = \"$<<parameters.cf-password>>\""
               echo "cf_user = \"$<<parameters.cf-username>>\""
               echo "cf_space_name = \"<<parameters.cf-space>>\""
               echo "cf_app_name = \"<<parameters.cf-app>>\""
-            } >> ./terraform/<<parameters.cf-space>>/variables.tfvars
+            } >> ./terraform/$env/variables.tfvars
       - run:
           name: Terraform Check
           command: |
