@@ -261,14 +261,7 @@
           command: |
            terraform init -backend-config backend_config.tfvars
            terraform validate
-      - terraform/fmt:
-          path: <<parameters.tf-path>>
-      - terraform/plan:
-          path: <<parameters.tf-path>>
-          var_file: ./variables.tfvars
-      - terraform/apply:
-          path: <<parameters.tf-path>>
-          var_file: ./variables.tfvars
+           terraform plan -backend-config backend_config.tfvars
 
   enable-s3-versioning:
     parameters:
