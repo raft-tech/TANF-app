@@ -256,11 +256,11 @@
           name: Terraform Check
           command: |
             bash ./scripts/terraform-check.sh
-      - terraform/init:
-          path: <<parameters.tf-path>>
-          backend_config_file: ./backend_config.tfvars
-      - terraform/validate:
-          path: <<parameters.tf-path>>
+      - run:
+          name: Terraform Init
+          command: |
+           terraform init -backend_config backend_config.tfvars
+           terraform validate
       - terraform/fmt:
           path: <<parameters.tf-path>>
       - terraform/plan:
