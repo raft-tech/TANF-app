@@ -118,17 +118,11 @@
       - get-app-deploy-strategy:
           appname: <<parameters.backend-appname>>
       - run:
-          name: Install dependencies
-          command: |
-            sudo apt update
-            sudo apt-get install -y wget
-            sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.42.1/yq_linux_amd64 && chmod +x /usr/local/bin/yq
-      - run:
           name: Apply database migrations
           command: |
             bash ./scripts/apply-remote-migrations.sh <<parameters.backend-appname>>
       - run:
-          name: Deploy backend application
+          name: Prepare backend application
           command: |
             bash ./scripts/deploy-backend.sh \
               $DEPLOY_STRATEGY \
@@ -177,7 +171,7 @@
       - get-app-deploy-strategy:
           appname: <<parameters.frontend-appname>>
       - run:
-          name: Deploy frontend application
+          name: Prepare frontend application
           command: |
             bash ./scripts/deploy-frontend.sh \
               $DEPLOY_STRATEGY \
@@ -241,7 +235,7 @@
               echo "secret_key = \"$(echo "${S3_CREDENTIALS}" | jq -r .secret_access_key)\""
               echo "region = \"$(echo "${S3_CREDENTIALS}" | jq -r '.region')\""
               echo "bucket = \"$(echo "${S3_CREDENTIALS}" | jq -r '.bucket')\""
-            } >> ./backend_config.tfvars
+            } >> ./terraform/<<parameters.cf-space>/backend_config.tfvars
       - run:
           name: Prepare Terraform Variables
           command: |
@@ -251,7 +245,7 @@
               echo "cf_user = \"$<<parameters.cf-username>>\""
               echo "cf_space_name = \"<<parameters.cf-space>>\""
               echo "cf_app_name = \"<<parameters.cf-app>>\""
-            } >> ./variables.tfvars
+            } >> ./terraform/<<parameters.cf-space>/variables.tfvars
       - run:
           name: Terraform Check
           command: |
@@ -259,9 +253,11 @@
       - run:
           name: Terraform Init
           command: |
-           terraform init -backend-config backend_config.tfvars
+           cd tdp-deploy/terraform/<<parameters.cf-space>>
+           terraform init -backend-config backend_config.tfvars -var-file variables.tfvars
            terraform validate
-           terraform plan -backend-config backend_config.tfvars
+           cd ./terraform/<<parameters.cf-space>/
+           terraform plan -var-file ./variables.tfvars
 
   enable-s3-versioning:
     parameters:

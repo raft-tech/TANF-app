@@ -5,8 +5,10 @@ app=${1}
 cd ./tdrs-backend
 
 echo "Install dependencies..."
-sudo apt-get install -y gcc && sudo apt-get install -y graphviz && sudo apt-get install -y graphviz-dev
-sudo apt install -y libpq-dev python3-dev
+sudo apt-get install -y gcc wget graphviz graphviz-dev libpq-dev python3-dev
+sudo apt update
+sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.42.1/yq_linux_amd64 && chmod +x /usr/local/bin/yq
+
 
 python -m venv ./env
 source ./env/bin/activate
