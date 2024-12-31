@@ -235,6 +235,7 @@
             }
             # The cloud.gov space defined via environment variable (e.g., "tanf-dev", "tanf-staging")
             env=$(strip <<parameters.cf-space>> "tanf-")
+            echo "terraform path: $env "
 
             S3_CREDENTIALS=$(cf service-key tdp-tf-states tdp-tf-key | tail -n +2)
             {
