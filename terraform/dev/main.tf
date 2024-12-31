@@ -8,6 +8,10 @@ terraform {
       source  = "cloudfoundry-community/cloudfoundry"
       version = "0.14.2"
     }
+    zipper = {
+      source = "ArthurHlt/zipper"
+      version = "0.14.0"
+    }
   }
 
   backend "s3" {
@@ -52,7 +56,6 @@ resource "cloudfoundry_service_instance" "database" {
   space            = data.cloudfoundry_space.space.id
   service_plan     = data.cloudfoundry_service.rds.service_plans["medium-gp-psql"]
   json_params      = "{\"version\": \"15\", \"storage_type\": \"gp3\", \"storage\": 50}"
-  recursive_delete = true
   timeouts {
     create = "60m"
     update = "60m"
@@ -72,14 +75,12 @@ resource "cloudfoundry_service_instance" "staticfiles" {
   name             = "tdp-staticfiles-dev"
   space            = data.cloudfoundry_space.space.id
   service_plan     = data.cloudfoundry_service.s3.service_plans["basic-public-sandbox"]
-  recursive_delete = true
 }
 
 resource "cloudfoundry_service_instance" "datafiles" {
   name             = "tdp-datafiles-dev"
   space            = data.cloudfoundry_space.space.id
   service_plan     = data.cloudfoundry_service.s3.service_plans["basic-sandbox"]
-  recursive_delete = true
 }
 
 ###
@@ -116,4 +117,31 @@ resource "cloudfoundry_service_instance" "elasticsearch" {
     update = "60m"
     delete = "2h"
   }
+}
+
+
+provider "zipper" {
+  skip_ssl_validation = false
+}
+
+resource "zipper_file" "frontend" {
+  source = "../../tdrs-frontend/deployment"
+  output_path = "../../frontend.zip"
+}
+
+resource "zipper_file" "backend" {
+  source = "../../tdrs-backend"
+  output_path = "../../backend.zip"
+}
+
+resource "cloudfoundry_app" "tdp-frontend-fake" {
+    space =  data.cloudfoundry_space.space.id
+    for_each = toset(var.test_app_names)
+    name = "tdp-frontend-fake${each.value}"
+    buildpack = "https://github.com/cloudfoundry/nginx-buildpack.git" 
+    path = zipper_file.frontend.output_path
+    strategy = "rolling"
+    memory = 256
+    disk_quota = 256
+    timeout = 180
 }
