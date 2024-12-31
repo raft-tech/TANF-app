@@ -235,7 +235,6 @@
             }
             # The cloud.gov space defined via environment variable (e.g., "tanf-dev", "tanf-staging")
             env=$(strip <<parameters.cf-space>> "tanf-")
-            echo "terraform path: $env "
 
             S3_CREDENTIALS=$(cf service-key tdp-tf-states tdp-tf-key | tail -n +2)
             {
@@ -259,7 +258,7 @@
       - run:
           name: Terraform Init
           command: |
-           cd tdp-deploy/terraform/<<parameters.cf-space>>
+           cd tdp-deploy/terraform/$env
            terraform init -backend-config backend_config.tfvars -var-file variables.tfvars
            terraform validate
            terraform plan -var-file ./variables.tfvars
