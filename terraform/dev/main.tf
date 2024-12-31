@@ -140,7 +140,7 @@ resource "cloudfoundry_app" "tdp-frontend-fake" {
     name = "tdp-frontend-fake${each.value}"
     buildpack = "https://github.com/cloudfoundry/nginx-buildpack.git" 
     path = zipper_file.frontend.output_path
-    strategy = "rolling"
+    strategy = "v2"
     memory = 256
     disk_quota = 256
     timeout = 180
