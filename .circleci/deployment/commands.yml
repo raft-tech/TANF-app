@@ -268,6 +268,7 @@
            terraform init -backend-config backend_config.tfvars -var-file variables.tfvars
            terraform validate
            terraform plan -var-file ./variables.tfvars
+           terraform apply
 
   enable-s3-versioning:
     parameters:
