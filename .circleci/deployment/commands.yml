@@ -267,8 +267,8 @@
            cd ./terraform/$env
            terraform init -backend-config backend_config.tfvars -var-file variables.tfvars
            terraform validate
-           terraform plan -var-file ./variables.tfvars
-           terraform apply
+           terraform plan -out tfapply -var-file ./variables.tfvars
+           terraform apply tfapply
 
   enable-s3-versioning:
     parameters:
