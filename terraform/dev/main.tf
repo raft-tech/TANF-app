@@ -139,4 +139,8 @@ resource "cloudfoundry_app" "tdp-frontend-fake" {
     memory = 256
     disk_quota = 256
     timeout = 180
+    environment: {
+      "CONNECT_SRC" : "*.app.cloud.gov",
+      "ALLOWED_ORIGIN" : "https://$CGHOSTNAME_FRONTEND.app.cloud.gov",
+    }
 }
