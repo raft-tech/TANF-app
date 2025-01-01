@@ -141,6 +141,6 @@ resource "cloudfoundry_app" "tdp-frontend-fake" {
     timeout = 180
     environment = {
       "CONNECT_SRC" = "*.app.cloud.gov"
-      "ALLOWED_ORIGIN" = "https://$CGHOSTNAME_FRONTEND.app.cloud.gov"
+      "ALLOWED_ORIGIN" = "https://${cloudfoundry_app.tdp-frontend-fake}.app.cloud.gov"
     }
 }
