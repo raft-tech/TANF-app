@@ -166,14 +166,14 @@ resource "cloudfoundry_app" "tdp-backend-fake" {
     timeout = 180
     environment = {
       "DJANGO_SU_NAME" = 'ajameson@teamraft.com',
-      AV_SCAN_URL" = "http://tdp-clamav-nginx-dev.apps.internal:9000/scan",
-      BASE_URL" = "https://tdp-frontend-raft.app.cloud.gov/v1",
-      CLAMAV_NEEDED" = "True",
-      CYPRESS_TOKEN" = "local-cypress-token",
-      DJANGO_CONFIGURATION" = "Development",
-      DJANGO_DEBUG" = "Yes",
-      DJANGO_SETTINGS_MODULE" = "tdpservice.settings.cloudgov",
-      DJANGO_SU_NAME" = "ajameson@teamraft.com",
-      FRONTEND_BASE_URL" = "https://tdp-frontend-raft.app.cloud.gov",
+      "AV_SCAN_URL" = "http://tdp-clamav-nginx-dev.apps.internal:9000/scan",
+      "BASE_URL" = "https://tdp-frontend-raft.app.cloud.gov/v1",
+      "CLAMAV_NEEDED" = "True",
+      "CYPRESS_TOKEN" = "local-cypress-token",
+      "DJANGO_CONFIGURATION" = "Development",
+      "DJANGO_DEBUG" = "Yes",
+      "DJANGO_SETTINGS_MODULE" = "tdpservice.settings.cloudgov",
+      "DJANGO_SU_NAME" = "ajameson@teamraft.com",
+      "FRONTEND_BASE_URL" = "https://tdp-frontend-raft.app.cloud.gov",
     }
 }
