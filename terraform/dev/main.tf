@@ -161,6 +161,7 @@ resource "cloudfoundry_app" "tdp-backend-fake" {
     ]
     path = zipper_file.backend.output_path
     strategy = "v2"
+    command = "./gunicorn_start.sh cloud"
     memory = 2048
     disk_quota = 4096
     timeout = 180
