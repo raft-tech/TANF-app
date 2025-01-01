@@ -154,7 +154,7 @@ resource "cloudfoundry_app" "tdp-backend-fake" {
     space =  data.cloudfoundry_space.space.id
     for_each = toset(var.test_app_names)
     name = "tdp-backend-${each.value}"
-    buildpacks = [
+    buildpack = [
      "https://github.com/cloudfoundry/apt-buildpack",
      "https://github.com/cloudfoundry/python-buildpack.git#v1.8.3",
      "https://github.com/cloudfoundry/binary-buildpack"
