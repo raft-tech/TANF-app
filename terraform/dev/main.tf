@@ -165,7 +165,7 @@ resource "cloudfoundry_app" "tdp-backend-fake" {
     disk_quota = 4096
     timeout = 180
     environment = {
-      "DJANGO_SU_NAME" = 'ajameson@teamraft.com',
+      "DJANGO_SU_NAME" = "ajameson@teamraft.com",
       "AV_SCAN_URL" = "http://tdp-clamav-nginx-dev.apps.internal:9000/scan",
       "BASE_URL" = "https://tdp-frontend-raft.app.cloud.gov/v1",
       "CLAMAV_NEEDED" = "True",
