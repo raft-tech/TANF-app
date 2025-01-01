@@ -98,7 +98,6 @@ update_frontend()
     fi
 
     cd ../..
-    rm -r tdrs-frontend/deployment
 }
 
 # perform a rolling update for the backend and frontend deployments if
