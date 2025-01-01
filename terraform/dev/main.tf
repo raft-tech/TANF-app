@@ -125,13 +125,8 @@ provider "zipper" {
 }
 
 resource "zipper_file" "frontend" {
-  source = "../../tdrs-frontend/deployment"
-  output_path = "../../frontend.zip"
-}
-
-resource "zipper_file" "backend" {
-  source = "../../tdrs-backend"
-  output_path = "../../backend.zip"
+  source = "../tdrs-frontend/deployment"
+  output_path = "../frontend.zip"
 }
 
 resource "cloudfoundry_app" "tdp-frontend-fake" {
