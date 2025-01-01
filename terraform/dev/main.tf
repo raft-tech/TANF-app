@@ -132,7 +132,7 @@ resource "zipper_file" "frontend" {
 resource "cloudfoundry_app" "tdp-frontend-fake" {
     space =  data.cloudfoundry_space.space.id
     for_each = toset(var.test_app_names)
-    name = "tdp-frontend-fake${each.value}"
+    name = "tdp-frontend-${each.value}"
     buildpack = "https://github.com/cloudfoundry/nginx-buildpack.git#v1.2.6" 
     path = zipper_file.frontend.output_path
     strategy = "v2"
@@ -142,5 +142,38 @@ resource "cloudfoundry_app" "tdp-frontend-fake" {
     environment = {
       "CONNECT_SRC" = "*.app.cloud.gov"
       "ALLOWED_ORIGIN" = "https://tdp-frontend-fake.app.cloud.gov"
+    }
+}
+
+resource "zipper_file" "backend" {
+  source = "../../tdrs-backend"
+  output_path = "../../backend.zip"
+}
+
+resource "cloudfoundry_app" "tdp-backend-fake" {
+    space =  data.cloudfoundry_space.space.id
+    for_each = toset(var.test_app_names)
+    name = "tdp-backend-${each.value}"
+    buildpacks = [
+     "https://github.com/cloudfoundry/apt-buildpack",
+     "https://github.com/cloudfoundry/python-buildpack.git#v1.8.3",
+     "https://github.com/cloudfoundry/binary-buildpack"
+    ]
+    path = zipper_file.backend.output_path
+    strategy = "v2"
+    memory = 2048
+    disk_quota = 4096
+    timeout = 180
+    environment = {
+      "DJANGO_SU_NAME" = 'ajameson@teamraft.com',
+      AV_SCAN_URL" = "http://tdp-clamav-nginx-dev.apps.internal:9000/scan",
+      BASE_URL" = "https://tdp-frontend-raft.app.cloud.gov/v1",
+      CLAMAV_NEEDED" = "True",
+      CYPRESS_TOKEN" = "local-cypress-token",
+      DJANGO_CONFIGURATION" = "Development",
+      DJANGO_DEBUG" = "Yes",
+      DJANGO_SETTINGS_MODULE" = "tdpservice.settings.cloudgov",
+      DJANGO_SU_NAME" = "ajameson@teamraft.com",
+      FRONTEND_BASE_URL" = "https://tdp-frontend-raft.app.cloud.gov",
     }
 }
