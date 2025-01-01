@@ -133,7 +133,7 @@ resource "cloudfoundry_app" "tdp-frontend-fake" {
     space =  data.cloudfoundry_space.space.id
     for_each = toset(var.test_app_names)
     name = "tdp-frontend-fake${each.value}"
-    buildpack = "https://github.com/cloudfoundry/nginx-buildpack.git" 
+    buildpack = "https://github.com/cloudfoundry/nginx-buildpack.git#v1.2.6" 
     path = zipper_file.frontend.output_path
     strategy = "v2"
     memory = 256
