@@ -245,7 +245,7 @@
             fi
             cd terraform
             bash ./create_backend_vars.sh $env
-            bash ./create_tfvars.sh $env 
+            bash ./create_tf_vars.sh $env 
             
             #TODO: need to tell terraform which app to update using the cf-app parameter
             echo "export CF_APP=<<parameters.cf-app>>" >> terraform/$env/variables.tfvars
