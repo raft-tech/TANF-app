@@ -165,7 +165,7 @@ resource "cloudfoundry_app" "tdp-backend-fake" {
       "DJANGO_SU_NAME" = "ajameson@teamraft.com",
       "AV_SCAN_URL" = "http://tdp-clamav-nginx-dev.apps.internal:9000/scan",
       "BASE_URL" = "https://tdp-frontend-raft.app.cloud.gov/v1",
-      "CLAMAV_NEEDED" = "True",
+      "CLAMAV_NEEDED" = var.CLAMAV_NEEDED
       "CYPRESS_TOKEN" = "local-cypress-token",
       "DJANGO_CONFIGURATION" = "Development",
       "DJANGO_DEBUG" = "Yes",
