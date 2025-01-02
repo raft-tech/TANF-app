@@ -4,7 +4,6 @@ from django.core.paginator import Paginator
 from django.db.utils import DatabaseError
 from elasticsearch.exceptions import ElasticsearchException
 from tdpservice.parsers.models import DataFileSummary, ParserError
-from tdpservice.scheduling import parser_task
 from tdpservice.search_indexes.util import DOCUMENTS, count_all_records
 from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 from tdpservice.core.utils import log
@@ -88,31 +87,6 @@ def should_exit(condition):
     """Exit on condition."""
     if condition:
         exit(1)
-
-
-def handle_elastic(new_indices, log_context):
-    """Create new Elastic indices and delete old ones."""
-    if new_indices:
-        try:
-            logger.info("Creating new elastic indexes.")
-            call_command("tdp_search_index", "--create", "-f", "--use-alias")
-            log("Index creation complete.", logger_context=log_context, level="info")
-        except ElasticsearchException as e:
-            log(
-                "Elastic index creation FAILED. Clean and reparse NOT executed. "
-                "Database is CONSISTENT, Elastic is INCONSISTENT!",
-                logger_context=log_context,
-                level="error",
-            )
-            raise e
-        except Exception as e:
-            log(
-                "Caught generic exception in _handle_elastic. Clean and reparse NOT executed. "
-                "Database is CONSISTENT, Elastic is INCONSISTENT!",
-                logger_context=log_context,
-                level="error",
-            )
-            raise e
 
 
 def count_total_num_records(log_context):
@@ -301,27 +275,9 @@ def calculate_timeout(num_files, num_records):
     )
     return delta
 
-
-def handle_datafiles(files, meta_model, log_context):
-    """Delete, re-save, and reparse selected datafiles."""
+def get_number_of_records(files):
+    """Get the number of records in the files."""
+    total_number_of_records = 0
     for file in files:
-        try:
-            file.reparses.add(meta_model)
-            file.save()
-            parser_task.parse.delay(file.pk, reparse_id=meta_model.pk)
-        except DatabaseError as e:
-            log(
-                "Encountered a DatabaseError while re-creating datafiles. The database "
-                "and Elastic are INCONSISTENT! Restore the DB from the backup as soon as possible!",
-                logger_context=log_context,
-                level="critical",
-            )
-            raise e
-        except Exception as e:
-            log(
-                "Caught generic exception in _handle_datafiles. Database and Elastic are INCONSISTENT! "
-                "Restore the DB from the backup as soon as possible!",
-                logger_context=log_context,
-                level="critical",
-            )
-            raise e
+        total_number_of_records += DataFileSummary.objects.filter(file=file).total_number_of_records_in_file
+    return total_number_of_records

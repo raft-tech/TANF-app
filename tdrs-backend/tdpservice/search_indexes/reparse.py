@@ -1,33 +1,85 @@
 """Reparsing command for selected files."""
 # should include all the steps in the management command
+from django.core.management import call_command
+from elasticsearch.exceptions import ElasticsearchException
 from tdpservice.data_files.models import DataFile
 from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 from tdpservice.core.utils import log
 from tdpservice.users.models import User
+from tdpservice.scheduling import parser_task
+from django.db.utils import DatabaseError
 from tdpservice.search_indexes.utils import (
     backup,
     get_log_context,
     assert_sequential_execution,
-    should_exit,
-    handle_elastic,
     delete_associated_models,
     count_total_num_records,
     calculate_timeout,
-    handle_datafiles,
+    get_number_of_records
 )
 import logging
 
 logger = logging.getLogger(__name__)
 
+def handle_datafiles(files, meta_model, log_context):
+    """Delete, re-save, and reparse selected datafiles."""
+    for file in files:
+        try:
+            file.reparses.add(meta_model)
+            file.save()
+            parser_task.parse.delay(file.pk, reparse_id=meta_model.pk)
+        except DatabaseError as e:
+            log(
+                "Encountered a DatabaseError while re-creating datafiles. The database "
+                "and Elastic are INCONSISTENT! Restore the DB from the backup as soon as possible!",
+                logger_context=log_context,
+                level="critical",
+            )
+            raise e
+        except Exception as e:
+            log(
+                "Caught generic exception in _handle_datafiles. Database and Elastic are INCONSISTENT! "
+                "Restore the DB from the backup as soon as possible!",
+                logger_context=log_context,
+                level="critical",
+            )
+            raise e
+        
+def handle_elastic(new_indices, log_context):
+    """Create new Elastic indices and delete old ones."""
+    if new_indices:
+        try:
+            logger.info("Creating new elastic indexes.")
+            call_command("tdp_search_index", "--create", "-f", "--use-alias")
+            log("Index creation complete.", logger_context=log_context, level="info")
+        except ElasticsearchException as e:
+            log(
+                "Elastic index creation FAILED. Clean and reparse NOT executed. "
+                "Database is CONSISTENT, Elastic is INCONSISTENT!",
+                logger_context=log_context,
+                level="error",
+            )
+            raise e
+        except Exception as e:
+            log(
+                "Caught generic exception in _handle_elastic. Clean and reparse NOT executed. "
+                "Database is CONSISTENT, Elastic is INCONSISTENT!",
+                logger_context=log_context,
+                level="error",
+            )
+            raise e
 
 def clean_reparse(selected_file_ids):
     """Reparse selected files."""
     selected_files = [int(file_id) for file_id in selected_file_ids[0].split(",")]
 
-    ######
     files = DataFile.objects.filter(id__in=selected_files)
+ 
+    total_number_of_records = get_number_of_records(files)
+    calculated_timeout_at = calculate_timeout(
+        num_files, meta_model.num_records_deleted
+    )
     backup_file_name = "/tmp/reparsing_backup"
-    backup_file_name += "_selected_files"
     continue_msg = "You have selected to reparse datafiles for FY {fy} and {q}. The reparsed files "
     continue_msg = continue_msg.format(
         fy=f"selected files: {str(selected_files)}", q="Q1-4"
@@ -52,8 +104,10 @@ def clean_reparse(selected_file_ids):
     )
 
     is_sequential = assert_sequential_execution(log_context)
-    should_exit(not is_sequential)
+    if not is_sequential:
+        raise Exception(f"Sequential execution required for selected file ids: {selected_file_ids}")
 
+    # TODO: need to clean up the following fields since these can be deduced from the selected files
     fiscal_quarter = None
     fiscal_year = None
     all_reparse = False
@@ -83,11 +137,10 @@ def clean_reparse(selected_file_ids):
 
     delete_associated_models(meta_model, file_ids, new_indices, log_context)
 
-    meta_model.timeout_at = meta_model.created_at + calculate_timeout(
-        num_files, meta_model.num_records_deleted
-    )
-
     meta_model.save()
+
+    meta_model.timeout_at = meta_model.created_at + calculated_timeout_at
+
     logger.info(
         f"Deleted a total of {meta_model.num_records_deleted} records across {num_files} files."
     )

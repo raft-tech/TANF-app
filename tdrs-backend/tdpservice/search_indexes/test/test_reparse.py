@@ -278,7 +278,7 @@ def test_delete_summaries_exceptions(mocker, log_context, exc_msg, exception_typ
 def test_handle_elastic_exceptions(mocker, log_context, exc_msg, exception_type):
     """Test summary exception handling."""
     mocked_handle_elastic = mocker.patch(
-        "tdpservice.search_indexes.utils.handle_elastic",
+        "tdpservice.search_indexes.reparse.handle_elastic",
         side_effect=exception_type("Summary delete exception"),
     )
     with pytest.raises(exception_type):
@@ -381,7 +381,7 @@ def test_delete_errors_exceptions(mocker, log_context, exc_msg, exception_type):
 def test_handle_files_exceptions(mocker, log_context, exc_msg, exception_type):
     """Test error exception handling."""
     mocked_handle_datafiles = mocker.patch(
-        "tdpservice.search_indexes.utils.handle_datafiles",
+        "tdpservice.search_indexes.reparse.handle_datafiles",
         side_effect=exception_type("Files exception"),
     )
     with pytest.raises(exception_type):

@@ -10,13 +10,12 @@ from tdpservice.search_indexes.utils import (
     get_log_context,
     assert_sequential_execution,
     should_exit,
-    handle_elastic,
     delete_associated_models,
     count_total_num_records,
     calculate_timeout,
-    handle_datafiles,
     get_files_to_reparse,
 )
+from tdpservice.search_indexes.reparse import handle_datafiles, handle_elastic
 
 logger = logging.getLogger(__name__)
 class Command(BaseCommand):
