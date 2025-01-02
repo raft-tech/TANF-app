@@ -61,6 +61,5 @@ for var_name in ${var_list[@]}; do
       fi
   fi
 
-  echo "Setting var : $var_name"
   echo "${var_name} = \"${var_value}\""  >> ./$1/backend_config.tfvars
 done
