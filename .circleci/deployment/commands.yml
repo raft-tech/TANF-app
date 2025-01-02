@@ -227,7 +227,11 @@
           cf-username: <<parameters.cf-username>>
           cf-space: <<parameters.cf-space>>
       - run:
-          name: Export S3 Credentials for TFState
+          name: Terraform Install Check
+          command: |
+            bash ./scripts/terraform-check.sh
+      - run:
+          name: Create Env Vars & Credentials for TFState
           command: |
             strip() {
                 # Usage: strip "string" "pattern"
@@ -235,26 +239,16 @@
             }
             # The cloud.gov space defined via environment variable (e.g., "tanf-dev", "tanf-staging")
             env=$(strip <<parameters.cf-space>> "tanf-")
+            # scripts take these: 'dev', 'staging', 'production'. but 'prod' would be passed in
+            if [ $env == "prod" ]; then
+              env="production"
+            fi
 
-            S3_CREDENTIALS=$(cf service-key tdp-tf-states tdp-tf-key | tail -n +2)
-            {
-              echo "access_key = \"$(echo "${S3_CREDENTIALS}" | jq -r .access_key_id)\""
-              echo "secret_key = \"$(echo "${S3_CREDENTIALS}" | jq -r .secret_access_key)\""
-              echo "region = \"$(echo "${S3_CREDENTIALS}" | jq -r '.region')\""
-              echo "bucket = \"$(echo "${S3_CREDENTIALS}" | jq -r '.bucket')\""
-            } >> ./terraform/$env/backend_config.tfvars
+            bash ./terraform/create_backend_vars.sh $env
+            bash ./terraform/create_tfvars.sh $env 
 
-            S3_CREDENTIALS=$(cf service-key tdp-tf-states tdp-tf-key | tail -n +2)
-            {
-              echo "cf_password = \"$<<parameters.cf-password>>\""
-              echo "cf_user = \"$<<parameters.cf-username>>\""
-              echo "cf_space_name = \"<<parameters.cf-space>>\""
-              echo "cf_app_name = \"<<parameters.cf-app>>\""
-            } >> ./terraform/$env/variables.tfvars
-      - run:
-          name: Terraform Check
-          command: |
-            bash ./scripts/terraform-check.sh
+            #debugging, verifying var files get created
+            ls -al
       - run:
           name: Terraform Init
           command: |
