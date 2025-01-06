@@ -124,7 +124,7 @@
       - run:
           name: Prepare backend application
           command: |
-            bash ./scripts/deploy-backend.sh \
+            bash ./scripts/prepare-backend.sh \
               $DEPLOY_STRATEGY \
               <<parameters.frontend-appname>> \
               <<parameters.backend-appname>> \

@@ -162,15 +162,23 @@ resource "cloudfoundry_app" "tdp-backend-fake" {
     disk_quota = 4096
     timeout = 180
     environment = {
-      "DJANGO_SU_NAME" = "ajameson@teamraft.com",
+      "DJANGO_SU_NAME" = var.DJANGO_SU_NAME,
       "AV_SCAN_URL" = "http://tdp-clamav-nginx-dev.apps.internal:9000/scan",
-      "BASE_URL" = "https://tdp-frontend-raft.app.cloud.gov/v1",
-      "CLAMAV_NEEDED" = var.CLAMAV_NEEDED
-      "CYPRESS_TOKEN" = "local-cypress-token",
-      "DJANGO_CONFIGURATION" = "Development",
-      "DJANGO_DEBUG" = "Yes",
-      "DJANGO_SETTINGS_MODULE" = "tdpservice.settings.cloudgov",
-      "DJANGO_SU_NAME" = "ajameson@teamraft.com",
-      "FRONTEND_BASE_URL" = "https://tdp-frontend-raft.app.cloud.gov",
+      "BASE_URL" = var.BASE_URL,
+      "CLAMAV_NEEDED" = var.CLAMAV_NEEDED,
+      "CYPRESS_TOKEN" = var.CYPRESS_TOKEN,
+      "DJANGO_CONFIGURATION" = var.DJANGO_CONFIGURATION,
+      "DJANGO_DEBUG" = var.DJANGO_DEBUG,
+      "DJANGO_SETTINGS_MODULE" = var.DJANGO_SETTINGS_MODULE,
+      "FRONTEND_BASE_URL" =var.FRONTEND_BASE_URL,
+      "AMS_CLIENT_ID" = var.AMS_CLIENT_ID,
+      "AMS_CLIENT_SECRET" = var.AMS_CLIENT_SECRET,
+      "AMS_CONFIGURATION_ENDPOINT" = var.AMS_CONFIGURATION_ENDPOINT,
+      "DJANGO_SECRET_KEY" = var.DJANGO_SECRET_KEY,
+      "KIBANA_BASE_URL" = var.KIBANA_BASE_URL,
+      "LOGGING_LEVEL" = var.LOGGING_LEVEL,
+      "REDIS_URI" = var.REDIS_URI,
+      "JWT_KEY" = var.JWT_KEY,
+      "SENDGRID_API_KEY" = var.SENDGRID_API_KEY,
     }
 }
