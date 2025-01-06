@@ -185,7 +185,6 @@ if [ "$DEPLOY_STRATEGY" = "rolling" ] ; then
     # Perform a rolling update for the backend and frontend deployments if
     # specified, otherwise perform a normal deployment
     update_backend 'rolling'
-    update_kibana 'rolling'
 elif [ "$DEPLOY_STRATEGY" = "bind" ] ; then
     # Bind the services the application depends on and restage the app.
     bind_backend_to_services
@@ -194,7 +193,6 @@ elif [ "$DEPLOY_STRATEGY" = "initial" ]; then
     # for it to work. the app will fail to start once, have the services bind,
     # and then get restaged.
     update_backend
-    update_kibana
     bind_backend_to_services
 elif [ "$DEPLOY_STRATEGY" = "rebuild" ]; then
     # You want to redeploy the instance under the same name
@@ -202,10 +200,8 @@ elif [ "$DEPLOY_STRATEGY" = "rebuild" ]; then
     # and perform the initial deployment strategy.
     #cf delete "$CGAPPNAME_BACKEND" -r -f
     update_backend
-    update_kibana
     bind_backend_to_services
 else
     # No changes to deployment config, just deploy the changes and restart
     update_backend
-    update_kibana
 fi
