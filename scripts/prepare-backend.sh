@@ -46,18 +46,7 @@ generate_jwt_cert()
     yes 'XX' | openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -sha256
     #cf set-env "$CGAPPNAME_BACKEND" JWT_CERT "$(cat cert.pem)"
     #cf set-env "$CGAPPNAME_BACKEND" JWT_KEY "$(cat key.pem)"
-}
-
-update_kibana()
-{
-  # Add network policy allowing Kibana to talk to the proxy and to allow the backend to talk to Kibana
-  #cf add-network-policy "$CGAPPNAME_BACKEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
-  #cf add-network-policy "$CGAPPNAME_FRONTEND" "$CGAPPNAME_KIBANA" --protocol tcp --port 5601
-  #cf add-network-policy "$CGAPPNAME_KIBANA" "$CGAPPNAME_FRONTEND" --protocol tcp --port 80
-
-  # Upload dashboards to Kibana
-  CMD="curl -X POST $CGAPPNAME_KIBANA.apps.internal:5601/api/saved_objects/_import -H 'kbn-xsrf: true' --form file=@/home/vcap/app/tdpservice/search_indexes/kibana_saved_objs.ndjson"
-  #cf run-task $CGAPPNAME_BACKEND --command "$CMD" --name kibana-obj-upload
+    #TODO: export to ENV then create_backend_vars.sh should transpose it.
 }
 
 prepare_promtail() {
@@ -88,11 +77,7 @@ update_backend()
       #cf set-env "$CGAPPNAME_BACKEND" "APP_DB_NAME" "tdp_db_$backend_app_name"
     fi
 
-    if [ "$1" = "rolling" ] ; then
-        # Do a zero downtime deploy.  This requires enough memory for
-        # two apps to exist in the org/space at one time.
-        #cf push "$CGAPPNAME_BACKEND" --no-route -f manifest.buildpack.yml -t 180 --strategy rolling || exit 1
-    else
+    if [ ! "$1" = "rolling" ] ; then
         #cf push "$CGAPPNAME_BACKEND" --no-route -f manifest.buildpack.yml -t 180
         # set up JWT key if needed
         if cf e "$CGAPPNAME_BACKEND" | grep -q JWT_KEY ; then
@@ -101,8 +86,6 @@ update_backend()
             generate_jwt_cert
         fi
     fi
-
-    set_cf_envs
 
     #cf map-route "$CGAPPNAME_BACKEND" apps.internal --hostname "$CGAPPNAME_BACKEND"
 
@@ -140,8 +123,6 @@ bind_backend_to_services() {
     # Setting up the ElasticSearch service
     #cf bind-service "$CGAPPNAME_BACKEND" "es-${env}"
 
-    set_cf_envs
-
     echo "Restarting app: $CGAPPNAME_BACKEND"
     #cf restage "$CGAPPNAME_BACKEND"
 
@@ -156,47 +137,47 @@ bind_backend_to_services() {
 DEFAULT_ROUTE="https://$CGAPPNAME_FRONTEND.app.cloud.gov"
 if [ -n "$BASE_URL" ]; then
   # Use Shell Parameter Expansion to replace localhost in the URL
-  BASE_URL="${BASE_URL//http:\/\/localhost:8080/$DEFAULT_ROUTE}"
+  export BASE_URL="${BASE_URL//http:\/\/localhost:8080/$DEFAULT_ROUTE}"
 elif [ "$CF_SPACE" = "tanf-prod" ]; then
   # Keep the base url set explicitly for production.
-  BASE_URL="https://tanfdata.acf.hhs.gov/v1"
+  export BASE_URL="https://tanfdata.acf.hhs.gov/v1"
 elif [ "$CF_SPACE" = "tanf-staging" ]; then
   # use .acf.hss.gov domain for develop and staging.
-  BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov/v1"
+  export BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov/v1"
 else
   # Default to the route formed with the cloud.gov env for the lower environments.
-  BASE_URL="$DEFAULT_ROUTE/v1"
+  export BASE_URL="$DEFAULT_ROUTE/v1"
 fi
 
 DEFAULT_FRONTEND_ROUTE="${DEFAULT_ROUTE//backend/frontend}"
 if [ -n "$FRONTEND_BASE_URL" ]; then
-  FRONTEND_BASE_URL="${FRONTEND_BASE_URL//http:\/\/localhost:3000/$DEFAULT_FRONTEND_ROUTE}"
+  export FRONTEND_BASE_URL="${FRONTEND_BASE_URL//http:\/\/localhost:3000/$DEFAULT_FRONTEND_ROUTE}"
 elif [ "$CF_SPACE" = "tanf-prod" ]; then
   # Keep the base url set explicitly for production.
-  FRONTEND_BASE_URL="https://tanfdata.acf.hhs.gov"
+  export FRONTEND_BASE_URL="https://tanfdata.acf.hhs.gov"
 elif [ "$CF_SPACE" = "tanf-staging" ]; then
    # use .acf.hss.gov domain for develop and staging.
-  FRONTEND_BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov"
+  export FRONTEND_BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov"
 else
   # Default to the route formed with the cloud.gov env for the lower environments.
-  FRONTEND_BASE_URL="$DEFAULT_FRONTEND_ROUTE"
+  export FRONTEND_BASE_URL="$DEFAULT_FRONTEND_ROUTE"
 fi
 
-KIBANA_BASE_URL="http://$CGAPPNAME_KIBANA.apps.internal"
+export KIBANA_BASE_URL="http://$CGAPPNAME_KIBANA.apps.internal"
 
 # Dynamically generate a new DJANGO_SECRET_KEY
-DJANGO_SECRET_KEY=$(python3 -c "from secrets import token_urlsafe; print(token_urlsafe(50))")
+export DJANGO_SECRET_KEY=$(python3 -c "from secrets import token_urlsafe; print(token_urlsafe(50))")
 
 # Dynamically set DJANGO_CONFIGURATION based on Cloud.gov Space
-DJANGO_SETTINGS_MODULE="tdpservice.settings.cloudgov"
+export DJANGO_SETTINGS_MODULE="tdpservice.settings.cloudgov"
 if [ "$CF_SPACE" = "tanf-prod" ]; then
-  DJANGO_CONFIGURATION="Production"
+  export DJANGO_CONFIGURATION="Production"
 elif [ "$CF_SPACE" = "tanf-staging" ]; then
-  DJANGO_CONFIGURATION="Staging"
+  export DJANGO_CONFIGURATION="Staging"
 else
-  DJANGO_CONFIGURATION="Development"
-  DJANGO_DEBUG="Yes"
-  CYPRESS_TOKEN=$CYPRESS_TOKEN
+  export DJANGO_CONFIGURATION="Development"
+  export DJANGO_DEBUG="Yes"
+  export CYPRESS_TOKEN=$CYPRESS_TOKEN
 fi
 
 prepare_promtail
