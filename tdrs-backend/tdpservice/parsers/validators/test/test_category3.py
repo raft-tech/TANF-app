@@ -223,7 +223,10 @@ def test_isNotZero(val, number_of_zeros, kwargs, exp_result, exp_message):
     ('199510', 18, {}, True, None),
     (
         f'{datetime.date.today().year - 18}01', 18, {}, False,
-        f'{datetime.date.today().year - 18} must be less than or equal to {datetime.date.today().year - 18} to meet the minimum age requirement.'
+        (
+            f'{datetime.date.today().year - 18} must be less than or equal to '
+            f'{datetime.date.today().year - 18} to meet the minimum age requirement.'
+        )
     ),
     (
         '202010', 18, {}, False,
