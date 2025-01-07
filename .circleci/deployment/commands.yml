@@ -263,9 +263,8 @@
            # The cloud.gov space defined via environment variable (e.g., "tanf-dev", "tanf-staging")
            env=$(strip <<parameters.cf-space>> "tanf-")
            cd ./terraform/$env
-           terraform validate
            terraform init -backend-config backend_config.tfvars -var-file variables.tfvars -var-file env_vars.tfvars
-
+           terraform validate
            terraform plan -out tfapply -var-file ./variables.tfvars
            terraform apply tfapply
 
