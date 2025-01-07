@@ -31,7 +31,7 @@ fi
   echo "bucket = \"$(echo "${S3_CREDENTIALS}" | jq -r '.bucket')\""
 } >> $backvarspath
 
-exit 1
+
 set_backend_vars() {
   var_list=(
   "AMS_CLIENT_ID"
