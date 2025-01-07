@@ -63,7 +63,7 @@ set_backend_vars() {
         echo "WARNING: Empty value for $var_name."
         continue
     fi
-    echo "variable \"${var_name}\" {
+    echo \nvariable \"${var_name}\" {
       type        = string
       description = \"\"
     }" >> $varspath
