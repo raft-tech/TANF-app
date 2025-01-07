@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+backvarspath="./$1/backend_config.tfvars"
+echo "backvarspath: $backvarspath"
+varspath="./$1/variables.tf"
+echo "varspath: $varspath"
+
 if [[ $# -eq 0 ]] ; then
     echo 'You need to pass the env you are configuring: 'dev', 'staging', 'production'.'
     exit 1
@@ -22,7 +27,7 @@ fi
   echo "secret_key = \"$(echo "${S3_CREDENTIALS}" | jq -r .secret_access_key)\""
   echo "region = \"$(echo "${S3_CREDENTIALS}" | jq -r '.region')\""
   echo "bucket = \"$(echo "${S3_CREDENTIALS}" | jq -r '.bucket')\""
-} >> ./$1/backend_config.tfvars
+} >> $backvarspath
 
 
 set_backend_vars() {
@@ -54,13 +59,16 @@ set_backend_vars() {
         if [[ "${!staging_var}" ]]; then
           var_value=${!staging_var}
         fi
+    elif [[ -z "${!var_name}" ]]; then
+        echo "WARNING: Empty value for $var_name."
+        continue
     fi
     echo "variable \"${var_name}\" {
       type        = string
       description = \"\"
-    }" >> ./$1/variables.tf
+    }" >> $varspath
 
-    echo "${var_name} = \"${var_value}\""  >> ./$1/backend_config.tfvars
+    echo "${var_name} = \"${var_value}\""  >> $backvarspath
   done
 }
 
