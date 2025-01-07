@@ -44,7 +44,7 @@ def handle_datafiles(files, meta_model, log_context):
                 level="critical",
             )
             raise e
-        
+
 def handle_elastic(new_indices, log_context):
     """Create new Elastic indices and delete old ones."""
     if new_indices:
@@ -74,18 +74,30 @@ def clean_reparse(selected_file_ids):
     selected_files = [int(file_id) for file_id in selected_file_ids[0].split(",")]
 
     files = DataFile.objects.filter(id__in=selected_files)
- 
+    num_files = files.count()
+
+    # TODO: need to clean up the following fields since these can be deduced from the selected files
+    fiscal_quarter = None
+    fiscal_year = None
+    all_reparse = False
+    new_indices = False
+
+    meta_model = ReparseMeta.objects.create(
+        fiscal_quarter=fiscal_quarter,
+        fiscal_year=fiscal_year,
+        all=all_reparse,
+        new_indices=new_indices,
+        delete_old_indices=new_indices,
+    )
     total_number_of_records = get_number_of_records(files)
     calculated_timeout_at = calculate_timeout(
-        num_files, meta_model.num_records_deleted
+        total_number_of_records, meta_model.num_records_deleted
     )
     backup_file_name = "/tmp/reparsing_backup"
     continue_msg = "You have selected to reparse datafiles for FY {fy} and {q}. The reparsed files "
     continue_msg = continue_msg.format(
         fy=f"selected files: {str(selected_files)}", q="Q1-4"
     )
-
-    num_files = files.count()
 
     # add fmt_str
 
@@ -106,20 +118,6 @@ def clean_reparse(selected_file_ids):
     is_sequential = assert_sequential_execution(log_context)
     if not is_sequential:
         raise Exception(f"Sequential execution required for selected file ids: {selected_file_ids}")
-
-    # TODO: need to clean up the following fields since these can be deduced from the selected files
-    fiscal_quarter = None
-    fiscal_year = None
-    all_reparse = False
-    new_indices = False
-
-    meta_model = ReparseMeta.objects.create(
-        fiscal_quarter=fiscal_quarter,
-        fiscal_year=fiscal_year,
-        all=all_reparse,
-        new_indices=new_indices,
-        delete_old_indices=new_indices,
-    )
 
     # Backup the Postgres DB
     backup_file_name += f"_rpv{meta_model.pk}.pg"
