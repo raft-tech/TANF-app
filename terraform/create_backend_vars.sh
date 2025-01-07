@@ -30,36 +30,39 @@ BUCKET=$(echo "${S3_CREDENTIALS}" | jq -r '.credentials.bucket')
   echo "bucket = \"$BUCKET\""
 } > ./$1/backend_config.tfvars
 
+set_backend_vars() {
+  var_list=(
+  "AMS_CLIENT_ID"
+  "AMS_CLIENT_SECRET"
+  "AMS_CONFIGURATION_ENDPOINT"
+  "BASE_URL"
+  "CLAMAV_NEEDED"
+  "CYPRESS_TOKEN"
+  "DJANGO_CONFIGURATION"
+  "DJANGO_DEBUG"
+  "DJANGO_SECRET_KEY"
+  "DJANGO_SETTINGS_MODULE"
+  "DJANGO_SU_NAME"
+  "FRONTEND_BASE_URL"
+  "KIBANA_BASE_URL"
+  "LOGGING_LEVEL"
+  "REDIS_URI"
+  "JWT_KEY"
+  "SENDGRID_API_KEY"
+  )
 
-var_list=(
-"AMS_CLIENT_ID"
-"AMS_CLIENT_SECRET"
-"AMS_CONFIGURATION_ENDPOINT"
-"BASE_URL"
-"CLAMAV_NEEDED"
-"CYPRESS_TOKEN"
-"DJANGO_CONFIGURATION"
-"DJANGO_DEBUG"
-"DJANGO_SECRET_KEY"
-"DJANGO_SETTINGS_MODULE"
-"DJANGO_SU_NAME"
-"FRONTEND_BASE_URL"
-"KIBANA_BASE_URL"
-"LOGGING_LEVEL"
-"REDIS_URI"
-"JWT_KEY"
-"SENDGRID_API_KEY"
-)
+  for var_name in ${var_list[@]}; do
+    var_value=${!var_name}
 
-for var_name in ${var_list[@]}; do
-  var_value=${!var_name}
+    if [[ ("$CF_SPACE" = "tanf-staging") ]]; then
+        staging_var="STAGING_$var_name"
+        if [[ "${!staging_var}" ]]; then
+          var_value=${!staging_var}
+        fi
+    fi
 
-  if [[ ("$CF_SPACE" = "tanf-staging") ]]; then
-      staging_var="STAGING_$var_name"
-      if [[ "${!staging_var}" ]]; then
-        var_value=${!staging_var}
-      fi
-  fi
+    echo "${var_name} = \"${var_value}\""  >> ./$1/variables.tfvars
+  done
+}
 
-  echo "${var_name} = \"${var_value}\""  >> ./$1/backend_config.tfvars
-done
+set_backend_vars
