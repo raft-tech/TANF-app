@@ -98,6 +98,7 @@ resource "cloudfoundry_service_instance" "redis" {
   service_plan = data.cloudfoundry_service.redis.service_plans["redis-dev"]
 }
 
+
 ###
 # Provision elasticsearch
 ###
@@ -192,7 +193,7 @@ resource "cloudfoundry_app" "tdp-backend-fake" {
       service_instance = cloudfoundry_service_instance.database.id
     }
     service_binding {
-      service_instance = cloudfoundry_service_instance.t_redis[each.key].id
+      service_instance = cloudfoundry_service_instance.redis.tdp-redis-raft.id
     }
     service_binding {
       service_instance = cloudfoundry_service_instance.elasticsearch.id
