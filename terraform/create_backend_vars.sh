@@ -4,6 +4,8 @@ backvarspath="./$1/backend_config.tfvars"
 echo "backvarspath: $backvarspath"
 varspath="./$1/variables.tf"
 echo "varspath: $varspath"
+envpath="./$1/env_vars.tfvars"
+echo "envpath: $envpath"
 
 if [[ $# -eq 0 ]] ; then
     echo 'You need to pass the env you are configuring: 'dev', 'staging', 'production'.'
@@ -29,7 +31,7 @@ fi
   echo "bucket = \"$(echo "${S3_CREDENTIALS}" | jq -r '.bucket')\""
 } >> $backvarspath
 
-
+exit 1
 set_backend_vars() {
   var_list=(
   "AMS_CLIENT_ID"
@@ -54,6 +56,11 @@ set_backend_vars() {
   for var_name in ${var_list[@]}; do
     var_value=${!var_name}
 
+    echo "\nvariable \"${var_name}\" {
+      type        = string
+      description = \"\"
+    }" >> $varspath
+
     if [[ ("$CF_SPACE" = "tanf-staging") ]]; then
         staging_var="STAGING_$var_name"
         if [[ "${!staging_var}" ]]; then
@@ -63,12 +70,8 @@ set_backend_vars() {
         echo "WARNING: Empty value for $var_name."
         continue
     fi
-    echo \nvariable \"${var_name}\" {
-      type        = string
-      description = \"\"
-    }" >> $varspath
 
-    echo "${var_name} = \"${var_value}\""  >> $backvarspath
+    echo "${var_name} = \"${var_value}\""  >> $envpath
   done
 }
 

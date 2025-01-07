@@ -243,6 +243,7 @@
             if [ $env == "prod" ]; then
               env="production"
             fi
+            echo "env: $env"
             cd terraform
             bash ./create_backend_vars.sh $env
             bash ./create_tf_vars.sh $env 
@@ -262,8 +263,9 @@
            # The cloud.gov space defined via environment variable (e.g., "tanf-dev", "tanf-staging")
            env=$(strip <<parameters.cf-space>> "tanf-")
            cd ./terraform/$env
-           terraform init -backend-config backend_config.tfvars -var-file variables.tfvars
            terraform validate
+           terraform init -backend-config backend_config.tfvars -var-file variables.tfvars -var-file env_vars.tfvars
+
            terraform plan -out tfapply -var-file ./variables.tfvars
            terraform apply tfapply
 
