@@ -138,47 +138,47 @@ bind_backend_to_services() {
 DEFAULT_ROUTE="https://$CGAPPNAME_FRONTEND.app.cloud.gov"
 if [ -n "$BASE_URL" ]; then
   # Use Shell Parameter Expansion to replace localhost in the URL
-  BASE_URL="${BASE_URL//http:\/\/localhost:8080/$DEFAULT_ROUTE}" >> $tf_path/backend_config.tfvars
+  BASE_URL="${BASE_URL//http:\/\/localhost:8080/$DEFAULT_ROUTE}" >> $tf_path/variables.tfvars
 elif [ "$CF_SPACE" = "tanf-prod" ]; then
   # Keep the base url set explicitly for production.
-  BASE_URL="https://tanfdata.acf.hhs.gov/v1" >> $tf_path/backend_config.tfvars
+  BASE_URL="https://tanfdata.acf.hhs.gov/v1" >> $tf_path/variables.tfvars
 elif [ "$CF_SPACE" = "tanf-staging" ]; then
   # use .acf.hss.gov domain for develop and staging.
-  BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov/v1" >> $tf_path/backend_config.tfvars
+  BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov/v1" >> $tf_path/variables.tfvars
 else
   # Default to the route formed with the cloud.gov env for the lower environments.
-  BASE_URL="$DEFAULT_ROUTE/v1" >> $tf_path/backend_config.tfvars
+  BASE_URL="$DEFAULT_ROUTE/v1" >> $tf_path/variables.tfvars
 fi
 
 DEFAULT_FRONTEND_ROUTE="${DEFAULT_ROUTE//backend/frontend}"
 if [ -n "$FRONTEND_BASE_URL" ]; then
-  FRONTEND_BASE_URL="${FRONTEND_BASE_URL//http:\/\/localhost:3000/$DEFAULT_FRONTEND_ROUTE}" >> $tf_path/backend_config.tfvars
+  FRONTEND_BASE_URL="${FRONTEND_BASE_URL//http:\/\/localhost:3000/$DEFAULT_FRONTEND_ROUTE}" >> $tf_path/variables.tfvars
 elif [ "$CF_SPACE" = "tanf-prod" ]; then
   # Keep the base url set explicitly for production.
-  FRONTEND_BASE_URL="https://tanfdata.acf.hhs.gov" >> $tf_path/backend_config.tfvars
+  FRONTEND_BASE_URL="https://tanfdata.acf.hhs.gov" >> $tf_path/variables.tfvars
 elif [ "$CF_SPACE" = "tanf-staging" ]; then
    # use .acf.hss.gov domain for develop and staging.
-  FRONTEND_BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov" >> $tf_path/backend_config.tfvars
+  FRONTEND_BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov" >> $tf_path/variables.tfvars
 else
   # Default to the route formed with the cloud.gov env for the lower environments.
-  FRONTEND_BASE_URL="$DEFAULT_FRONTEND_ROUTE" >> $tf_path/backend_config.tfvars
+  FRONTEND_BASE_URL="$DEFAULT_FRONTEND_ROUTE" >> $tf_path/variables.tfvars
 fi
 
 KIBANA_BASE_URL="http://$CGAPPNAME_KIBANA.apps.internal"
 
 # Dynamically generate a new DJANGO_SECRET_KEY
-DJANGO_SECRET_KEY=$(python3 -c "from secrets import token_urlsafe; print(token_urlsafe(50))") >> $tf_path/backend_config.tfvars
+DJANGO_SECRET_KEY=$(python3 -c "from secrets import token_urlsafe; print(token_urlsafe(50))") >> $tf_path/variables.tfvars
 
 # Dynamically set DJANGO_CONFIGURATION based on Cloud.gov Space
-DJANGO_SETTINGS_MODULE="tdpservice.settings.cloudgov" >> $tf_path/backend_config.tfvars
+DJANGO_SETTINGS_MODULE="tdpservice.settings.cloudgov" >> $tf_path/variables.tfvars
 if [ "$CF_SPACE" = "tanf-prod" ]; then
-  DJANGO_CONFIGURATION="Production" >> $tf_path/backend_config.tfvars
+  DJANGO_CONFIGURATION="Production" >> $tf_path/variables.tfvars
 elif [ "$CF_SPACE" = "tanf-staging" ]; then
-  DJANGO_CONFIGURATION="Staging" >> $tf_path/backend_config.tfvars
+  DJANGO_CONFIGURATION="Staging" >> $tf_path/variables.tfvars
 else
-  DJANGO_CONFIGURATION="Development" >> $tf_path/backend_config.tfvars
-  DJANGO_DEBUG="Yes" >> $tf_path/backend_config.tfvars
-  CYPRESS_TOKEN=$CYPRESS_TOKEN >> $tf_path/backend_config.tfvars
+  DJANGO_CONFIGURATION="Development" >> $tf_path/variables.tfvars
+  DJANGO_DEBUG="Yes" >> $tf_path/variables.tfvars
+  CYPRESS_TOKEN=$CYPRESS_TOKEN >> $tf_path/variables.tfvars
 fi
 
 prepare_promtail
