@@ -181,4 +181,36 @@ resource "cloudfoundry_app" "tdp-backend-fake" {
       "JWT_KEY" = var.JWT_KEY,
       "SENDGRID_API_KEY" = var.SENDGRID_API_KEY,
     }
+
+    service_binding {
+      service_instance = cloudfoundry_service_instance.staticfiles.id
+    }
+    service_binding {
+      service_instance = cloudfoundry_service_instance.datafiles.id
+    }
+    service_binding {
+      service_instance = cloudfoundry_service_instance.database.id
+    }
+    service_binding {
+      service_instance = cloudfoundry_service_instance.t_redis[each.key].id
+    }
+    service_binding {
+      service_instance = cloudfoundry_service_instance.elasticsearch.id
+    }
+}
+
+resource "cloudfoundry_network_policy" "backend_policy" {
+
+  policy {
+    destination_app = cloudfoundry_app.tdp-frontend-fake.id
+    port            = "8080"
+    protocol        = "tcp"
+    source_app      = cloudfoundry_app.tdp-backend-fake.id
+  }
+  policy {
+    destination_app = tdp-clamav-nginx-dev
+    port            = "9000"
+    protocol        = "tcp"
+    source_app      = cloudfoundry_app.tdp-backend-fake.id
+  }
 }
