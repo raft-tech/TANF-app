@@ -203,15 +203,15 @@ resource "cloudfoundry_app" "tdp-backend-fake" {
 resource "cloudfoundry_network_policy" "backend_policy" {
 
   policy {
-    destination_app = cloudfoundry_app.tdp-frontend-fake.id
+    destination_app = cloudfoundry_app.tdp-frontend-fake[each.key].id
     port            = "8080"
     protocol        = "tcp"
-    source_app      = cloudfoundry_app.tdp-backend-fake.id
+    source_app      = cloudfoundry_app.tdp-backend-fake[each.key].id
   }
   policy {
-    destination_app = tdp-clamav-nginx-dev
+    destination_app = tdp-clamav-nginx-dev.id
     port            = "9000"
     protocol        = "tcp"
-    source_app      = cloudfoundry_app.tdp-backend-fake.id
+    source_app      = cloudfoundry_app.tdp-backend-fake[each.key].id
   }
 }
