@@ -55,6 +55,10 @@ set_backend_vars() {
           var_value=${!staging_var}
         fi
     fi
+    echo "variable \"${var_name}\" {
+      type        = string
+      description = \"\"
+    }" >> ./$1/variables.tf
 
     echo "${var_name} = \"${var_value}\""  >> ./$1/backend_config.tfvars
   done
