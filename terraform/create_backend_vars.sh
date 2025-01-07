@@ -55,8 +55,8 @@ set_backend_vars() {
 
   for var_name in ${var_list[@]}; do
     var_value=${!var_name}
-
-    echo "\nvariable \"${var_name}\" {
+    echo "" >> $varspathß
+    echo "variable \"${var_name}\" {
       type        = string
       description = \"\"
     }" >> $varspath
