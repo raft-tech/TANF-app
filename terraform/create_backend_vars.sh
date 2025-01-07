@@ -17,52 +17,9 @@ if [ -z "$S3_CREDENTIALS" ]; then
   exit 1
 fi
 
-# Requires installation of jq - https://stedolan.github.io/jq/download/
-ACCESS_KEY=$(echo "${S3_CREDENTIALS}" | jq -r '.credentials.access_key_id')
-SECRET_KEY=$(echo "${S3_CREDENTIALS}" | jq -r '.credentials.secret_access_key')
-REGION=$(echo "${S3_CREDENTIALS}" | jq -r '.credentials.region')
-BUCKET=$(echo "${S3_CREDENTIALS}" | jq -r '.credentials.bucket')
-
 {
-  echo "access_key = \"$ACCESS_KEY\""
-  echo "secret_key = \"$SECRET_KEY\""
-  echo "region = \"$REGION\""
-  echo "bucket = \"$BUCKET\""
-} > ./$1/backend_config.tfvars
-
-set_backend_vars() {
-  var_list=(
-  "AMS_CLIENT_ID"
-  "AMS_CLIENT_SECRET"
-  "AMS_CONFIGURATION_ENDPOINT"
-  "BASE_URL"
-  "CLAMAV_NEEDED"
-  "CYPRESS_TOKEN"
-  "DJANGO_CONFIGURATION"
-  "DJANGO_DEBUG"
-  "DJANGO_SECRET_KEY"
-  "DJANGO_SETTINGS_MODULE"
-  "DJANGO_SU_NAME"
-  "FRONTEND_BASE_URL"
-  "KIBANA_BASE_URL"
-  "LOGGING_LEVEL"
-  "REDIS_URI"
-  "JWT_KEY"
-  "SENDGRID_API_KEY"
-  )
-
-  for var_name in ${var_list[@]}; do
-    var_value=${!var_name}
-
-    if [[ ("$CF_SPACE" = "tanf-staging") ]]; then
-        staging_var="STAGING_$var_name"
-        if [[ "${!staging_var}" ]]; then
-          var_value=${!staging_var}
-        fi
-    fi
-
-    echo "${var_name} = \"${var_value}\""  >> ./$1/variables.tfvars
-  done
-}
-
-set_backend_vars
+  echo "access_key = \"$(echo "${S3_CREDENTIALS}" | jq -r .access_key_id)\""
+  echo "secret_key = \"$(echo "${S3_CREDENTIALS}" | jq -r .secret_access_key)\""
+  echo "region = \"$(echo "${S3_CREDENTIALS}" | jq -r '.region')\""
+  echo "bucket = \"$(echo "${S3_CREDENTIALS}" | jq -r '.bucket')\""
+} >> ./$1/backend_config.tfvars
