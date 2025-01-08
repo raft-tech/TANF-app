@@ -201,7 +201,6 @@ resource "cloudfoundry_app" "tdp-backend-fake" {
 }
 
 resource "cloudfoundry_network_policy" "backend_policy" {
-
   policy {
     destination_app = cloudfoundry_app.tdp-frontend-fake[each.key].id
     port            = "8080"
