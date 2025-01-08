@@ -167,7 +167,7 @@ fi
 echo KIBANA_BASE_URL="\"http://$CGAPPNAME_KIBANA.apps.internal\"" >> $tf_path/env_vars.tfvars
 
 # Dynamically generate a new DJANGO_SECRET_KEY
-echo DJANGO_SECRET_KEY=\"$(python3 -c "from secrets import token_urlsafe; print(token_urlsafe(50))")\"" >> $tf_path/env_vars.tfvars
+echo "DJANGO_SECRET_KEY=\"$(python3 -c "from secrets import token_urlsafe; print(token_urlsafe(50))")\"" >> $tf_path/env_vars.tfvars
 
 # Dynamically set DJANGO_CONFIGURATION based on Cloud.gov Space
 echo DJANGO_SETTINGS_MODULE=\"tdpservice.settings.cloudgov\" >> $tf_path/env_vars.tfvars
@@ -178,7 +178,7 @@ elif [ "$CF_SPACE" = "tanf-staging" ]; then
 else
   echo DJANGO_CONFIGURATION=\"Development\" >> $tf_path/env_vars.tfvars
   echo DJANGO_DEBUG=\"Yes\" >> $tf_path/env_vars.tfvars
-  echo CYPRESS_TOKEN=\"$CYPRESS_TOKEN\"" >> $tf_path/env_vars.tfvars
+  echo CYPRESS_TOKEN=\"$CYPRESS_TOKEN\" >> $tf_path/env_vars.tfvars
 fi
 echo "" >> $tf_path/env_vars.tfvars
 
