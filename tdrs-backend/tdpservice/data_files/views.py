@@ -54,6 +54,19 @@ class DataFileViewSet(ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Override create to upload in case of successful scan."""
         logger.debug(f"{self.__class__.__name__}: {request}")
+
+        # Check if the file is an FRA file
+        # TODO: Refactor when FRA is available
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        data_file = serializer.save(commit=False)
+        if data_file.prog_type == 'FRA':
+            return Response(
+                {'detail': 'FRA files are not supported.'},
+                status=HTTP_400_BAD_REQUEST
+            )
+
         response = super().create(request, *args, **kwargs)
 
         # only if file is passed the virus scan and created successfully will we perform side-effects:
