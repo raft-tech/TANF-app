@@ -120,6 +120,9 @@ resource "cloudfoundry_service_instance" "elasticsearch" {
   }
 }
 
+###
+# Applications
+###
 
 provider "zipper" {
   skip_ssl_validation = false
@@ -198,6 +201,39 @@ resource "cloudfoundry_app" "tdp-backend-fake" {
     service_binding {
       service_instance = cloudfoundry_service_instance.elasticsearch.id
     }
+}
+
+resource "cloudfoundry_app" "tdp_clamav_nginx" {
+  name       = "tdp-clamav-nginx"
+  space      = "your-space-id" # Replace with your space ID
+  memory     = 32  # 32M
+  disk_quota = 64  # 64M
+  instances  = 1
+  timeout    = 180
+
+  buildpacks = [
+    "https://github.com/cloudfoundry/nginx-buildpack.git#v1.2.6"
+  ]
+
+  environment = {
+    # Add any additional environment variables here if needed
+  }
+
+  routes = [
+    {
+      route = "tdp-clamav-nginx.apps.internal" # Replace with your route if necessary
+    }
+  ]
+
+  # Include nginx.conf as part of the app's source files
+  lifecycle {
+    ignore_changes = [source] # Optional, if updates to source should be ignored
+  }
+}
+
+resource "cloudfoundry_bits" "tdp_clamav_nginx" {
+  app_guid = cloudfoundry_app.tdp_clamav_nginx.id
+  path     = "${path.module}/nginx.conf" # Path to nginx.conf in the same directory
 }
 
 resource "cloudfoundry_network_policy" "backend_policy" {
