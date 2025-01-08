@@ -203,40 +203,31 @@ resource "cloudfoundry_app" "tdp-backend-fake" {
     }
 }
 
+resource "cloudfoundry_route" "clamav_nginx" {
+  hostname = "tdp-clamav-nginx"
+  domain = ".apps.internal" 
+  space = data.cloudfoundry_space.space.id
+}
+
+resource "zipper_file" "clamav-router" {
+  source = "../../tdrs-backend/clamav-router"
+  output_path = "../../clamav-router.zip"
+}
+
 resource "cloudfoundry_app" "tdp_clamav_nginx" {
-  name       = "tdp-clamav-nginx"
-  space      = "your-space-id" # Replace with your space ID
-  memory     = 32  # 32M
-  disk_quota = 64  # 64M
+  name       = "tdp-clamav-nginx-dev"
+  space      = data.cloudfoundry_space.space.id 
+  memory     = 32 
+  disk_quota = 64
   instances  = 1
   timeout    = 180
-
-  buildpacks = [
-    "https://github.com/cloudfoundry/nginx-buildpack.git#v1.2.6"
-  ]
-
-  environment = {
-    # Add any additional environment variables here if needed
-  }
-
-  routes = [
-    {
-      route = "tdp-clamav-nginx.apps.internal" # Replace with your route if necessary
-    }
-  ]
-
-  # Include nginx.conf as part of the app's source files
-  lifecycle {
-    ignore_changes = [source] # Optional, if updates to source should be ignored
-  }
+  buildpack  = "https://github.com/cloudfoundry/nginx-buildpack.git#v1.2.6"
+  path       = zipper_file.clamav-router.output_path
 }
 
-resource "cloudfoundry_bits" "tdp_clamav_nginx" {
-  app_guid = cloudfoundry_app.tdp_clamav_nginx.id
-  path     = "${path.module}/nginx.conf" # Path to nginx.conf in the same directory
-}
 
 resource "cloudfoundry_network_policy" "backend_policy" {
+  for_each = toset(var.test_app_names)
   policy {
     destination_app = cloudfoundry_app.tdp-frontend-fake[each.key].id
     port            = "8080"
@@ -244,7 +235,7 @@ resource "cloudfoundry_network_policy" "backend_policy" {
     source_app      = cloudfoundry_app.tdp-backend-fake[each.key].id
   }
   policy {
-    destination_app = tdp-clamav-nginx-dev.id
+    destination_app = cloudfoundry_app.tdp_clamav_nginx.id
     port            = "9000"
     protocol        = "tcp"
     source_app      = cloudfoundry_app.tdp-backend-fake[each.key].id
