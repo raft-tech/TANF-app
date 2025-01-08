@@ -131,7 +131,7 @@ class DataFile(FileRecord):
                 cls.FRA_SECONDRY_SCHOOL_ATTAINMENT,
                 cls.FRA_SUPPLEMENT_WORK_OUTCOMES
             ]
-        
+
         @classmethod
         def is_ssp(cls, section: str) -> bool:
             """Determine if the section is an SSP section."""
@@ -141,7 +141,7 @@ class DataFile(FileRecord):
                 cls.SSP_CLOSED_CASE_DATA,
                 cls.SSP_STRATUM_DATA
             ]
-        
+
         @classmethod
         def is_tribal(cls, section: str) -> bool:
             """Determine if the section is a Tribal section."""
@@ -151,7 +151,7 @@ class DataFile(FileRecord):
                 cls.TRIBAL_CLOSED_CASE_DATA,
                 cls.TRIBAL_STRATUM_DATA
             ]
-        
+
         @classmethod
         def is_tanf(cls, section: str) -> bool:
             """Determine if the section is a TANF section."""
@@ -161,7 +161,6 @@ class DataFile(FileRecord):
                 cls.AGGREGATE_DATA,
                 cls.STRATUM_DATA
             ]
-        
 
     class Quarter(models.TextChoices):
         """Enum for data file Quarter."""
