@@ -177,8 +177,6 @@ elif [ "$CF_SPACE" = "tanf-staging" ]; then
   echo DJANGO_CONFIGURATION=\"Staging\" >> $tf_path/env_vars.tfvars
 else
   echo DJANGO_CONFIGURATION=\"Development\" >> $tf_path/env_vars.tfvars
-  echo DJANGO_DEBUG=\"Yes\" >> $tf_path/env_vars.tfvars
-  echo CYPRESS_TOKEN=\"$CYPRESS_TOKEN\" >> $tf_path/env_vars.tfvars
 fi
 echo "" >> $tf_path/env_vars.tfvars
 
