@@ -196,7 +196,7 @@ resource "cloudfoundry_app" "tdp-backend-fake" {
       service_instance = cloudfoundry_service_instance.database.id
     }
     service_binding {
-      service_instance = cloudfoundry_service_instance.redis[${each.value}].id
+      service_instance = cloudfoundry_service_instance.redis["raft"].id
     }
     service_binding {
       service_instance = cloudfoundry_service_instance.elasticsearch.id
