@@ -89,15 +89,12 @@ function FileUpload({ section, setLocalAlertState }) {
     dispatch(clearError({ section }))
     dispatch(clearFile({ section }))
 
-    // Get the the first 4 bytes of the file with which to check file signatures
-    const blob = file.slice(0, 4)
-
     const input = inputRef.current
     const dropTarget = inputRef.current.parentNode
 
     const filereader = new FileReader()
     const types = ['png', 'gif', 'jpeg']
-    filereader.onload = () => {
+    filereader.onload = (e) => {
       const re = /(\.txt|\.ms\d{2}|\.ts\d{2,3})$/i
       if (!re.exec(file.name)) {
         dispatch({
@@ -112,16 +109,17 @@ function FileUpload({ section, setLocalAlertState }) {
 
       languageEncoding(file).then((fileInfo) => {
         console.log(fileInfo)
+        const file_bytes = new Uint8Array(e.target.result)
+        const bom = file_bytes.slice(0, 4)
         if (
           (fileInfo && fileInfo.encoding !== 'UTF-8') ||
-          (blob[0] !== 0xef && blob[1] !== 0xbb && blob[2] !== 0xbf)
+          (bom[0] === 0xef && bom[1] === 0xbb && bom[2] === 0xbf)
         ) {
           dispatch({
             type: SET_FILE_ERROR,
             payload: {
               error: {
-                message:
-                  'We can’t process that file format. Please provide a plain text UTF-8 encoded file.',
+                message: INVALID_FILE_ERROR,
               },
               section,
             },
@@ -152,7 +150,7 @@ function FileUpload({ section, setLocalAlertState }) {
       }
     }
 
-    filereader.readAsArrayBuffer(blob)
+    filereader.readAsArrayBuffer(file)
   }
 
   return (
