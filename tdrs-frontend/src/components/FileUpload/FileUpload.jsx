@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { useDispatch, useSelector } from 'react-redux'
 import fileTypeChecker from 'file-type-checker'
+import languageEncoding from 'detect-file-encoding-and-language'
 
 import {
   clearError,
@@ -108,6 +109,26 @@ function FileUpload({ section, setLocalAlertState }) {
         })
         return
       }
+
+      languageEncoding(file).then((fileInfo) => {
+        console.log(fileInfo)
+        if (
+          (fileInfo && fileInfo.encoding !== 'UTF-8') ||
+          (blob[0] !== 0xef && blob[1] !== 0xbb && blob[2] !== 0xbf)
+        ) {
+          dispatch({
+            type: SET_FILE_ERROR,
+            payload: {
+              error: {
+                message:
+                  'We can’t process that file format. Please provide a plain text UTF-8 encoded file.',
+              },
+              section,
+            },
+          })
+          return
+        }
+      })
 
       const isImg = fileTypeChecker.validateFileType(filereader.result, types)
 
