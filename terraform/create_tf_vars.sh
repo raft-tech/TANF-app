@@ -18,8 +18,8 @@ if [ -z "$KEYS_JSON" ]; then
 fi
 
 # Requires installation of jq - https://stedolan.github.io/jq/download/
-CF_USERNAME_DEV=$(echo "$KEYS_JSON" | jq -r '.credentials.username')
-CF_PASSWORD_DEV=$(echo "$KEYS_JSON" | jq -r '.credentials.password')
+CF_USERNAME_DEV=$(echo "$KEYS_JSON" | jq -r '.username')
+CF_PASSWORD_DEV=$(echo "$KEYS_JSON" | jq -r '.password')
 
 CF_SPACE="tanf-dev"
 strip() {
