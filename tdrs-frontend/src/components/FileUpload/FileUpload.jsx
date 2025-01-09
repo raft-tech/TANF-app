@@ -96,7 +96,7 @@ function FileUpload({ section, setLocalAlertState }) {
 
     const filereader = new FileReader()
     const types = ['png', 'gif', 'jpeg']
-    filereader.onload = () => {
+    filereader.onload = (e) => {
       const re = /(\.txt|\.ms\d{2}|\.ts\d{2,3})$/i
       if (!re.exec(file.name)) {
         dispatch({
@@ -109,7 +109,37 @@ function FileUpload({ section, setLocalAlertState }) {
         return
       }
 
-      const isImg = fileTypeChecker.validateFileType(filereader.result, types)
+      const file_bytes = new Uint8Array(e.target.result)
+      const bom = file_bytes.slice(0, 4)
+      if (bom[0] === 0xef && bom[1] === 0xbb && bom[2] === 0xbf) {
+        // UTF-8 with BOM
+        dispatch({
+          type: SET_FILE_ERROR,
+          payload: {
+            error: { message: INVALID_FILE_ERROR },
+            section,
+          },
+        })
+        return
+      } else {
+        // Check for potential UTF-8 without BOM. This will NOT catch if a
+        // file is encoded as any other unicode encoding; e.g UTF-16, UTF-32.
+        try {
+          new TextDecoder('utf-8').decode(file_bytes)
+        } catch (err) {
+          console.log('Not UTF-8')
+          dispatch({
+            type: SET_FILE_ERROR,
+            payload: {
+              error: { message: INVALID_FILE_ERROR },
+              section,
+            },
+          })
+          return
+        }
+      }
+
+      const isImg = fileTypeChecker.validateFileType(e.target.result, types)
 
       if (isImg) {
         createFileInputErrorState(input, dropTarget)
