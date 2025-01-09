@@ -22,9 +22,16 @@ CF_USERNAME_DEV=$(echo "$KEYS_JSON" | jq -r '.credentials.username')
 CF_PASSWORD_DEV=$(echo "$KEYS_JSON" | jq -r '.credentials.password')
 
 CF_SPACE="tanf-dev"
+strip() {
+    # Usage: strip "string" "pattern"
+    printf '%s\n' "${1##$2}"
+}
+# The cloud.gov space defined via environment variable (e.g., "tanf-dev", "tanf-staging")
+env=$(strip $CF_SPACE "tanf-")
 
 {
   echo "cf_password = \"$CF_PASSWORD_DEV\""
   echo "cf_user = \"$CF_USERNAME_DEV\""
   echo "cf_space_name = \"$CF_SPACE\""
+  echo "cf_app_name = \"$env\""
 } > ./$1/variables.tfvars
