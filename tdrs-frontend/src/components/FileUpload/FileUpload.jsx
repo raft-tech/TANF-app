@@ -124,7 +124,6 @@ function FileUpload({ section, setLocalAlertState }) {
         try {
           new TextDecoder('utf-8').decode(file_bytes)
         } catch (err) {
-          console.log('Not UTF-8')
           dispatch({
             type: SET_FILE_ERROR,
             payload: {
