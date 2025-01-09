@@ -98,6 +98,12 @@ resource "cloudfoundry_service_instance" "redis" {
   service_plan = data.cloudfoundry_service.redis.service_plans["redis-dev"]
 }
 
+resource "cloudfoundry_service_instance" "redis-fake" {
+  for_each     = toset(var.test_app_names)
+  name         = "tdp-redis-${each.value}"
+  space        = data.cloudfoundry_space.space.id
+  service_plan = data.cloudfoundry_service.redis.service_plans["redis-dev"]
+}
 
 ###
 # Provision elasticsearch
