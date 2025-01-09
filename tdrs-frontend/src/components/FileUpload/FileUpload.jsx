@@ -160,8 +160,7 @@ function FileUpload({ section, setLocalAlertState }) {
         )
       }
     }
-
-    filereader.readAsArrayBuffer(blob)
+    filereader.readAsArrayBuffer(file)
   }
 
   return (
