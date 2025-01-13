@@ -110,6 +110,16 @@ class User(AbstractUser):
 
     access_requested_date = models.DateTimeField(default=datetime.datetime(year=1, month=1, day=1, hour=0, minute=0,
                                                                            second=0))
+    
+    # Feature flag for the user to enable or disable FRA access
+    feature_flags = models.JSONField(
+        default={},
+        help_text="Feature flags for this data file."
+    )
+
+    @property
+    def has_fra_access(self):
+        return self.feature_flags.get('fra_access', False)
 
     _loaded_values = None
     _adding = True
