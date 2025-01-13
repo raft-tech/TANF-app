@@ -21,6 +21,9 @@ const INVALID_FILE_ERROR =
 const INVALID_EXT_ERROR =
   'Invalid extension. Accepted file types are: .txt, .ms##, .ts##, or .ts###.'
 
+const INVALID_ENCODING_ERROR = 
+  'Invalid encoding. Please provide a UTF-8 encoded text file.'
+
 function FileUpload({ section, setLocalAlertState }) {
   // e.g. 'Aggregate Case Data' => 'aggregate-case-data'
   // The set of uploaded files in our Redux state
@@ -113,21 +116,20 @@ function FileUpload({ section, setLocalAlertState }) {
         dispatch({
           type: SET_FILE_ERROR,
           payload: {
-            error: { message: INVALID_FILE_ERROR },
+            error: { message: INVALID_ENCODING_ERROR },
             section,
           },
         })
         return
       } else {
-        // Check for potential UTF-8 without BOM. This will NOT catch if a
-        // file is encoded as any other unicode encoding; e.g UTF-16, UTF-32.
+        // If the file can be decoded as UTF-8 we consider it valid even though we can't guarantee it's valid UTF-8.
         try {
           new TextDecoder('utf-8').decode(file_bytes)
         } catch (err) {
           dispatch({
             type: SET_FILE_ERROR,
             payload: {
-              error: { message: INVALID_FILE_ERROR },
+              error: { message: INVALID_ENCODING_ERROR },
               section,
             },
           })
