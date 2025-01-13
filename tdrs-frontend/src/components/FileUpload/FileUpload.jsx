@@ -21,7 +21,7 @@ const INVALID_FILE_ERROR =
 const INVALID_EXT_ERROR =
   'Invalid extension. Accepted file types are: .txt, .ms##, .ts##, or .ts###.'
 
-const INVALID_ENCODING_ERROR = 
+const INVALID_ENCODING_ERROR =
   'Invalid encoding. Please provide a UTF-8 encoded text file.'
 
 function FileUpload({ section, setLocalAlertState }) {
