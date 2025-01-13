@@ -7,6 +7,8 @@ from django.core.exceptions import ValidationError
 from rest_framework.authtoken.models import TokenProxy
 
 from .models import User
+import logging
+logger = logging.getLogger(__name__)
 
 
 class UserForm(forms.ModelForm):
@@ -44,6 +46,25 @@ class UserAdmin(admin.ModelAdmin):
         "account_approval_status",
     ]
     autocomplete_fields = ['stt']
+
+    def get_form(self, request, obj=None, **kwargs):
+        """Customize the form based on the user role."""
+        user = request.user
+        if user.is_ofa_sys_admin and 'user_permissions' in self.exclude:
+            self.exclude.remove('user_permissions')  # Remove field for non-staff users
+        form = super().get_form(request, obj, **kwargs)
+        return form
+
+    def __init__(self, *args, **kwargs):
+        import logging
+        logger = logging.getLogger(__name__)
+        user = kwargs.pop('user', None)
+        logger.debug(f"-----------User: {user}")
+        
+        super().__init__(*args, **kwargs)
+
+        if user and not user.is_ofa_sys_admin:
+            self.exclude.pop('user_permissions')  # Remove field for non-staff users
 
     def has_add_permission(self, request):
         """Disable User object creation through Django Admin."""

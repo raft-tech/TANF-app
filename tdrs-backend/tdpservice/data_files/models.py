@@ -137,6 +137,12 @@ class DataFile(FileRecord):
             )
         ]
 
+        permissions = [
+            ("can_view_FRA", "Can view FRA datafiles"),
+            ("can_change_FRA", "Can change FRA datafiles"),
+            ("can_delete_FRA", "Can delete FRA datafiles"),
+        ]
+
     created_at = models.DateTimeField(auto_now_add=True)
     quarter = models.CharField(max_length=16,
                                blank=False,
