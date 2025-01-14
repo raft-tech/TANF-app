@@ -22,6 +22,34 @@ const INVALID_FILE_ERROR =
 const INVALID_EXT_ERROR =
   'Invalid extension. Accepted file types are: .txt, .ms##, .ts##, or .ts###.'
 
+const getEncodedFile = async function (fileBytes, file) {
+  // Create a small view of the file to determine the encoding.
+  // Saves a lot of time when a user uploads a large file.
+  const btyesView = new Uint8Array(fileBytes.slice(0, 500))
+  const blobView = new Blob([btyesView], { type: 'text/plain' })
+  try {
+    const fileInfo = await languageEncoding(blobView)
+    const bom = btyesView.slice(0, 3)
+    const hasBom = bom[0] === 0xef && bom[1] === 0xbb && bom[2] === 0xbf
+    if ((fileInfo && fileInfo.encoding !== 'UTF-8') || hasBom) {
+      const utf8Encoder = new TextEncoder()
+      const decoder = new TextDecoder(fileInfo.encoding)
+      const decodedString = decoder.decode(
+        hasBom ? fileBytes.slice(3) : fileBytes
+      )
+      const utf8Bytes = utf8Encoder.encode(decodedString)
+      return new File([utf8Bytes], file.name, file.options)
+    }
+    return file
+  } catch (error) {
+    // This also allows the unit tests to work in the same way they did before this change and is a last ditch fallback
+    // to ensure consistenct functionality. Because the unit tests expect a Buffer object, but the browser expects a
+    // Blob/File. Thus, when the tests run the call to `languageEncoding` raises an exception, and we return the file
+    // as is which is then dispatched as it would have been before this change.
+    return file
+  }
+}
+
 function FileUpload({ section, setLocalAlertState }) {
   // e.g. 'Aggregate Case Data' => 'aggregate-case-data'
   // The set of uploaded files in our Redux state
@@ -74,7 +102,7 @@ function FileUpload({ section, setLocalAlertState }) {
   }
   const inputRef = useRef(null)
 
-  const validateAndUploadFile = (event) => {
+  const validateAndUploadFile = async (event) => {
     setLocalAlertState({
       active: false,
       type: null,
@@ -83,7 +111,6 @@ function FileUpload({ section, setLocalAlertState }) {
 
     const { name: section } = event.target
     const file = event.target.files[0]
-    let fileToUpload = file
 
     // Clear existing errors and the current
     // file in the state if the user is re-uploading
@@ -95,7 +122,7 @@ function FileUpload({ section, setLocalAlertState }) {
 
     const filereader = new FileReader()
     const types = ['png', 'gif', 'jpeg']
-    filereader.onload = (e) => {
+    filereader.onload = async (e) => {
       const re = /(\.txt|\.ms\d{2}|\.ts\d{2,3})$/i
       if (!re.exec(file.name)) {
         dispatch({
@@ -122,36 +149,10 @@ function FileUpload({ section, setLocalAlertState }) {
         })
         return
       }
-      // Create a small view of the file to determine the encoding.
-      // Saves a lot of time when a user uploads a large file.
-      const fileSlice = new Uint8Array(e.target.result.slice(0, 500))
-      const blobSlice = new Blob([fileSlice], { type: 'text/plain' })
-      const fileView =
-        process.env.NODE_ENV !== 'test' ? blobSlice : blobSlice.stream()
-      try {
-        languageEncoding(fileView).then((fileInfo) => {
-          const bom = fileSlice.slice(0, 3)
-          const hasBom = bom[0] === 0xef && bom[1] === 0xbb && bom[2] === 0xbf
-          if ((fileInfo && fileInfo.encoding !== 'UTF-8') || hasBom) {
-            const utf8Encoder = new TextEncoder()
-            const decoder = new TextDecoder(fileInfo.encoding)
-            const decodedString = decoder.decode(
-              hasBom ? e.target.result.slice(3) : e.target.result
-            )
-            const utf8Bytes = utf8Encoder.encode(decodedString)
-            fileToUpload = new File([utf8Bytes], file.name, file.options)
-          }
-        })
-      } catch (error) {
-        console.log('Inside of error!', error)
-      } finally {
-        dispatch(
-          upload({
-            section,
-            file: fileToUpload,
-          })
-        )
-      }
+
+      // Get the correctly encoded file
+      const fileToUpload = await getEncodedFile(e.target.result, file)
+      dispatch(upload({ file: fileToUpload, section }))
     }
 
     filereader.readAsArrayBuffer(file)
