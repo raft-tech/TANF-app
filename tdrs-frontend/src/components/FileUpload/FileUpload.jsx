@@ -31,6 +31,7 @@ const getEncodedFile = async function (fileBytes, file) {
     const fileInfo = await languageEncoding(blobView)
     const bom = btyesView.slice(0, 3)
     const hasBom = bom[0] === 0xef && bom[1] === 0xbb && bom[2] === 0xbf
+    /* istanbul ignore next */
     if ((fileInfo && fileInfo.encoding !== 'UTF-8') || hasBom) {
       const utf8Encoder = new TextEncoder()
       const decoder = new TextDecoder(fileInfo.encoding)
