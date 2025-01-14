@@ -42,10 +42,12 @@ const getEncodedFile = async function (fileBytes, file) {
     }
     return file
   } catch (error) {
-    // This also allows the unit tests to work in the same way they did before this change and is a last ditch fallback
-    // to ensure consistenct functionality. Because the unit tests expect a Buffer object, but the browser expects a
-    // Blob/File. Thus, when the tests run the call to `languageEncoding` raises an exception, and we return the file
-    // as is which is then dispatched as it would have been before this change.
+    // This is a last ditch fallback to ensure consistent functionality and also allows the unit tests to work in the
+    // same way they did before this change. When the unit tests (i.e. Node environment) call `languageEncoding` it
+    // expects a Buffer/string/URL object. When the browser calls `languageEncoding`, it expects a Blob/File object.
+    // There is not a convenient way or universal object to handle both cases. Thus, when the tests run the call to
+    // `languageEncoding`, it raises an exception and we return the file as is which is then dispatched as it would
+    // have been before this change.
     return file
   }
 }
