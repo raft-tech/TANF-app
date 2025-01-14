@@ -107,27 +107,6 @@ function FileUpload({ section, setLocalAlertState }) {
         return
       }
 
-      languageEncoding(file).then((fileInfo) => {
-        console.log(fileInfo)
-        const file_bytes = new Uint8Array(e.target.result)
-        const bom = file_bytes.slice(0, 4)
-        if (
-          (fileInfo && fileInfo.encoding !== 'UTF-8') ||
-          (bom[0] === 0xef && bom[1] === 0xbb && bom[2] === 0xbf)
-        ) {
-          dispatch({
-            type: SET_FILE_ERROR,
-            payload: {
-              error: {
-                message: INVALID_FILE_ERROR,
-              },
-              section,
-            },
-          })
-          return
-        }
-      })
-
       const isImg = fileTypeChecker.validateFileType(filereader.result, types)
 
       if (isImg) {
@@ -140,14 +119,49 @@ function FileUpload({ section, setLocalAlertState }) {
             section,
           },
         })
-      } else {
-        dispatch(
-          upload({
-            section,
-            file,
-          })
-        )
+        return
       }
+      // Create a small view of the file to determine the encoding.
+      // Saves a lot of time when a user uploads a large file.
+      const fileSlice = new Uint8Array(e.target.result.slice(0, 500))
+      const tempFileView = new Blob(fileSlice, { type: 'text/plain' })
+      languageEncoding(tempFileView).then((fileInfo) => {
+        console.log(fileInfo)
+        const bom = fileSlice.slice(0, 3)
+        console.log('BOM', bom[0], bom[1], bom[2])
+        const hasBom = bom[0] === 0xef && bom[1] === 0xbb && bom[2] === 0xbf
+        if ((fileInfo && fileInfo.encoding !== 'UTF-8') || hasBom) {
+          console.log('Creating encoder and decoder')
+          const utf8Encoder = new TextEncoder()
+          const decoder = new TextDecoder(fileInfo.encoding)
+          console.log('Decoder encoding:', decoder.encoding)
+          console.log('Reencoding file')
+          const decodedString = decoder.decode(
+            hasBom ? e.target.result.slice(3) : e.target.result
+          )
+          const utf8Bytes = utf8Encoder.encode(decodedString)
+          const utf8File = new File([utf8Bytes], file.name, file.options)
+          console.log('Dispatching upload with utf8 file')
+          console.log('Original File:', file)
+          console.log('UTF8 File:', utf8File)
+          dispatch(
+            upload({
+              section,
+              file: utf8File,
+            })
+          )
+          console.log('Dispatched utf8File', utf8File)
+          return utf8File
+        } else {
+          console.log('File encoded correctly, uploading immediately.')
+          dispatch(
+            upload({
+              section,
+              file,
+            })
+          )
+        }
+      })
     }
 
     filereader.readAsArrayBuffer(file)
