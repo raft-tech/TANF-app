@@ -83,6 +83,7 @@ function FileUpload({ section, setLocalAlertState }) {
 
     const { name: section } = event.target
     const file = event.target.files[0]
+    let fileToUpload = file
 
     // Clear existing errors and the current
     // file in the state if the user is re-uploading
@@ -125,46 +126,32 @@ function FileUpload({ section, setLocalAlertState }) {
       // Saves a lot of time when a user uploads a large file.
       const fileSlice = new Uint8Array(e.target.result.slice(0, 500))
       const blobSlice = new Blob([fileSlice], { type: 'text/plain' })
-      console.log('Type of window: ', JSON.stringify(window))
       const fileView =
-        typeof window !== 'undefined' ? blobSlice : blobSlice.stream()
-      languageEncoding(fileView).then((fileInfo) => {
-        console.log(fileInfo)
-        const bom = fileSlice.slice(0, 3)
-        console.log('BOM', bom[0], bom[1], bom[2])
-        const hasBom = bom[0] === 0xef && bom[1] === 0xbb && bom[2] === 0xbf
-        if ((fileInfo && fileInfo.encoding !== 'UTF-8') || hasBom) {
-          console.log('Creating encoder and decoder')
-          const utf8Encoder = new TextEncoder()
-          const decoder = new TextDecoder(fileInfo.encoding)
-          console.log('Decoder encoding:', decoder.encoding)
-          console.log('Reencoding file')
-          const decodedString = decoder.decode(
-            hasBom ? e.target.result.slice(3) : e.target.result
-          )
-          const utf8Bytes = utf8Encoder.encode(decodedString)
-          const utf8File = new File([utf8Bytes], file.name, file.options)
-          console.log('Dispatching upload with utf8 file')
-          console.log('Original File:', file)
-          console.log('UTF8 File:', utf8File)
-          dispatch(
-            upload({
-              section,
-              file: utf8File,
-            })
-          )
-          console.log('Dispatched utf8File', utf8File)
-          return utf8File
-        } else {
-          console.log('File encoded correctly, uploading immediately.')
-          dispatch(
-            upload({
-              section,
-              file,
-            })
-          )
-        }
-      })
+        process.env.NODE_ENV !== 'test' ? blobSlice : blobSlice.stream()
+      try {
+        languageEncoding(fileView).then((fileInfo) => {
+          const bom = fileSlice.slice(0, 3)
+          const hasBom = bom[0] === 0xef && bom[1] === 0xbb && bom[2] === 0xbf
+          if ((fileInfo && fileInfo.encoding !== 'UTF-8') || hasBom) {
+            const utf8Encoder = new TextEncoder()
+            const decoder = new TextDecoder(fileInfo.encoding)
+            const decodedString = decoder.decode(
+              hasBom ? e.target.result.slice(3) : e.target.result
+            )
+            const utf8Bytes = utf8Encoder.encode(decodedString)
+            fileToUpload = new File([utf8Bytes], file.name, file.options)
+          }
+        })
+      } catch (error) {
+        console.log('Inside of error!', error)
+      } finally {
+        dispatch(
+          upload({
+            section,
+            file: fileToUpload,
+          })
+        )
+      }
     }
 
     filereader.readAsArrayBuffer(file)
