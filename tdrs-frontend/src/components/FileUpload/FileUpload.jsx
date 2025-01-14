@@ -124,8 +124,11 @@ function FileUpload({ section, setLocalAlertState }) {
       // Create a small view of the file to determine the encoding.
       // Saves a lot of time when a user uploads a large file.
       const fileSlice = new Uint8Array(e.target.result.slice(0, 500))
-      const tempFileView = new Blob(fileSlice, { type: 'text/plain' })
-      languageEncoding(tempFileView).then((fileInfo) => {
+      const blobSlice = new Blob([fileSlice], { type: 'text/plain' })
+      console.log('Type of window: ', JSON.stringify(window))
+      const fileView =
+        typeof window !== 'undefined' ? blobSlice : blobSlice.stream()
+      languageEncoding(fileView).then((fileInfo) => {
         console.log(fileInfo)
         const bom = fileSlice.slice(0, 3)
         console.log('BOM', bom[0], bom[1], bom[2])
