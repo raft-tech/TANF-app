@@ -239,6 +239,7 @@ services:
 
   mimir:
     image: grafana/mimir:latest
+    command: -config.file /etc/mimir/config.yaml -server.http-listen-port=9009 -log.format=json -log.level=debug
     ports:
       - 9009:9009
     volumes:
