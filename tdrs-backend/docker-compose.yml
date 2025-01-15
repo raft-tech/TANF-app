@@ -237,6 +237,11 @@ services:
     volumes:
       - .:/tdpapp
 
+  mimir:
+    image: grafana/mimir:latest
+    ports:
+      - 9009:9009
+
 volumes:
   localstack_data:
   postgres_data:
