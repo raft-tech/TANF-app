@@ -241,6 +241,10 @@ services:
     image: grafana/mimir:latest
     ports:
       - 9009:9009
+    volumes:
+      - ./plg/mimir/config.yml:/etc/mimir/config.yaml
+    depends_on:
+      - prometheus
 
 volumes:
   localstack_data:
@@ -249,6 +253,7 @@ volumes:
   elastic_data:
   prometheus_data:
   grafana_data:
+  mimir_data:
   loki_data:
   logs:
 
