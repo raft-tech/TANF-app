@@ -22,10 +22,13 @@ const INVALID_FILE_ERROR =
 const INVALID_EXT_ERROR =
   'Invalid extension. Accepted file types are: .txt, .ms##, .ts##, or .ts###.'
 
+// The package author suggests using a minimum of 500 words to determine the encoding. However, datafiles don't have
+// "words" so we're using bytes instead to determine the encoding. See: https://www.npmjs.com/package/detect-file-encoding-and-language
+const MIN_BYTES = 500
+
 const getEncodedFile = async function (fileBytes, file) {
   // Create a small view of the file to determine the encoding.
-  // Saves a lot of time when a user uploads a large file.
-  const btyesView = new Uint8Array(fileBytes.slice(0, 500))
+  const btyesView = new Uint8Array(fileBytes.slice(0, MIN_BYTES))
   const blobView = new Blob([btyesView], { type: 'text/plain' })
   try {
     const fileInfo = await languageEncoding(blobView)
@@ -49,6 +52,7 @@ const getEncodedFile = async function (fileBytes, file) {
     // There is not a convenient way or universal object to handle both cases. Thus, when the tests run the call to
     // `languageEncoding`, it raises an exception and we return the file as is which is then dispatched as it would
     // have been before this change.
+    console.error('Caught error while handling file encoding. Error:', error)
     return file
   }
 }
