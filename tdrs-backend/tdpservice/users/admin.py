@@ -8,6 +8,8 @@ from rest_framework.authtoken.models import TokenProxy
 
 from .models import User
 
+import logging
+logger = logging.getLogger()
 
 class UserForm(forms.ModelForm):
     """Customize the user admin form."""
@@ -18,6 +20,9 @@ class UserForm(forms.ModelForm):
         model = User
         exclude = ['password', 'user_permissions']
         readonly_fields = ['last_login', 'date_joined', 'login_gov_uuid', 'hhs_id', 'access_request']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def clean(self):
         """Add extra validation for locations based on roles."""

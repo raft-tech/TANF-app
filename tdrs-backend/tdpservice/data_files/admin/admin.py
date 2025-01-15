@@ -37,6 +37,21 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
     actions = ['reparse']
 
+    def get_queryset(self, request):
+        """Return the queryset."""
+        qs = super().get_queryset(request)
+        # return data files based on user's section
+        FRA_SECTION_LIST = [
+                DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+                DataFile.Section.FRA_SECONDRY_SCHOOL_ATTAINMENT,
+                DataFile.Section.FRA_SUPPLEMENT_WORK_OUTCOMES
+                ]
+        if not request.user.has_fra_access:
+            filtered_for_fra = qs.exclude(section__in=FRA_SECTION_LIST)
+            return filtered_for_fra
+        else:
+            return qs.filter(section__in=FRA_SECTION_LIST)
+
     def reparse(self, request, queryset):
         """Reparse the selected data files."""
         files = queryset.values_list("id", flat=True)

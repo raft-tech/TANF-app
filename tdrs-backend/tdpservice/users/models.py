@@ -114,6 +114,16 @@ class User(AbstractUser):
     _loaded_values = None
     _adding = True
 
+    # Feature flag for the user to enable or disable FRA access
+    feature_flags = models.JSONField(
+        default={},
+        help_text="Feature flags for this data file."
+    )
+
+    @property
+    def has_fra_access(self):
+        return self.feature_flags.get('fra_access', False)
+
     def __str__(self):
         """Return the username as the string representation of the object."""
         return self.username
