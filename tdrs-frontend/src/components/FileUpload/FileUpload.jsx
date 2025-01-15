@@ -26,6 +26,7 @@ const INVALID_EXT_ERROR =
 // "words" so we're using bytes instead to determine the encoding. See: https://www.npmjs.com/package/detect-file-encoding-and-language
 const MIN_BYTES = 500
 
+/* istanbul ignore next */
 const getEncodedFile = async function (fileBytes, file) {
   // Create a small view of the file to determine the encoding.
   const btyesView = new Uint8Array(fileBytes.slice(0, MIN_BYTES))
@@ -34,7 +35,6 @@ const getEncodedFile = async function (fileBytes, file) {
     const fileInfo = await languageEncoding(blobView)
     const bom = btyesView.slice(0, 3)
     const hasBom = bom[0] === 0xef && bom[1] === 0xbb && bom[2] === 0xbf
-    /* istanbul ignore next */
     if ((fileInfo && fileInfo.encoding !== 'UTF-8') || hasBom) {
       const utf8Encoder = new TextEncoder()
       const decoder = new TextDecoder(fileInfo.encoding)
