@@ -4,6 +4,10 @@ from django.core.exceptions import ValidationError
 import pytest
 
 from tdpservice.stts.models import STT, Region
+from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.test.factories import DataFileFactory
+from tdpservice.users.models import User
+from django.test import Client
 
 
 @pytest.mark.django_db
@@ -70,3 +74,32 @@ def test_user_can_only_have_stt_or_region(user, stt, region):
 
         user.clean()
         user.save()
+
+@pytest.mark.django_db
+def test_user_with_fra_access(client, user, stt):
+    """Test that a user with FRA access can only have an STT."""
+    user.stt = stt
+    user.is_superuser = True
+    user.feature_flags = {"fra_access": False}
+
+    user.clean()
+    user.save()
+
+    user = User.objects.create_superuser('admin', 'admin@example.com', 'password')
+    client = Client()
+    client.force_login(user)
+
+    # Need a datafile, with a section that is not in the FRA_SECTION_LIST
+    datafile = DataFileFactory()
+    datafile.section = DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS
+    datafile.save()
+
+    response = client.get(f"/admin/data_files/datafile/{datafile.id}/change/")
+    assert response.status_code != 200
+    assert f'Data file with ID “{datafile.id}” doesn’t exist. Perhaps it was deleted?'
+
+    user.feature_flags = {"fra_access": True}
+    user.save()
+
+    response = client.get(f"/admin/data_files/datafile/{datafile.id}/change/")
+    assert response.status_code == 200

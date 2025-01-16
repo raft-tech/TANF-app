@@ -122,6 +122,7 @@ class User(AbstractUser):
 
     @property
     def has_fra_access(self):
+        """Return whether or not the user has FRA access."""
         return self.feature_flags.get('fra_access', False)
 
     def __str__(self):
