@@ -224,21 +224,21 @@ tasks:
     desc: Run frontend tests
     dir: tdrs-frontend
     cmds:
-      - docker compose -f docker compose.local.yml up tdp-frontend-test -d
-      - docker compose -f docker compose.local.yml exec tdp-frontend-test sh -c "npm run test"
+      - docker compose -f docker-compose.local.yml up tdp-frontend-test -d
+      - docker compose -f docker-compose.local.yml exec tdp-frontend-test sh -c "npm run test"
 
   frontend-test-cov:
     desc: Run frontend tests with coverage
     dir: tdrs-frontend
     cmds:
-      - docker compose -f docker compose.local.yml up tdp-frontend-test -d
-      - docker compose -f docker compose.local.yml exec tdp-frontend-test sh -c "npm run test:cov"
+      - docker compose -f docker-compose.local.yml up tdp-frontend-test -d
+      - docker compose -f docker-compose.local.yml exec tdp-frontend-test sh -c "npm run test:cov"
 
   cypress:
     desc: Run cypress tests
     dir: tdrs-frontend
     cmds:
-      - docker compose -f docker compose.local.yml up --build tdp-frontend-test -d
+      - docker compose -f docker-compose.local.yml up --build tdp-frontend-test -d
       - npm run test:e2e
 
   k6:
@@ -257,7 +257,7 @@ tasks:
     desc: Run eslint in the frontend container
     dir: tdrs-frontend
     cmds:
-      - docker compose -f docker compose.local.yml up -d tdp-frontend-test --quiet-pull
+      - docker compose -f docker-compose.local.yml up -d tdp-frontend-test --quiet-pull
       - docker compose -f docker-compose.yml exec -T tdp-frontend-test sh -c "npm run lint"
 
   frontend-logs:
