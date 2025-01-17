@@ -279,5 +279,5 @@ def get_number_of_records(files):
     """Get the number of records in the files."""
     total_number_of_records = 0
     for file in files:
-        total_number_of_records += DataFileSummary.objects.filter(file=file).total_number_of_records_in_file
+        total_number_of_records += DataFileSummary.objects.filter(datafile=file).total_number_of_records_in_file
     return total_number_of_records
