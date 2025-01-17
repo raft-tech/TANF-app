@@ -28,6 +28,7 @@ When(
         email: username,
         stt: '6',
         groups: '2',
+        feature_flags: '{}',
         account_approval_status: status,
         access_requested_date_0: '0001-01-01',
         access_requested_date_1: '00:00:00',
