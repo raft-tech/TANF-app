@@ -116,8 +116,10 @@ class User(AbstractUser):
 
     # Feature flag for the user to enable or disable FRA access
     feature_flags = models.JSONField(
-        default={},
-        help_text="Feature flags for this data file."
+        default=dict,
+        help_text="Feature flags for this data file.",
+        null=True,
+        blank=True,
     )
 
     @property
