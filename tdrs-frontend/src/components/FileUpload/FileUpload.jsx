@@ -19,8 +19,21 @@ import { handlePreview, getTargetClassName } from './utils'
 const INVALID_FILE_ERROR =
   'We can’t process that file format. Please provide a plain text file.'
 
-const INVALID_EXT_ERROR =
-  'Invalid extension. Accepted file types are: .txt, .ms##, .ts##, or .ts###.'
+const INVALID_EXT_ERROR = (
+  <>
+    Invalid extension. Accepted file types are: .txt, .ms##, .ts##, or
+    .ts###.&nbsp;
+    <a
+      className="usa-link"
+      href="https://tdp-project-updates.app.cloud.gov/knowledge-center/file-extension-guide.html"
+      target="_blank"
+      aria-label="Need help? Read file extension guidance"
+      rel="noreferrer"
+    >
+      Need help?
+    </a>
+  </>
+)
 
 // The package author suggests using a minimum of 500 words to determine the encoding. However, datafiles don't have
 // "words" so we're using bytes instead to determine the encoding. See: https://www.npmjs.com/package/detect-file-encoding-and-language
@@ -128,6 +141,7 @@ function FileUpload({ section, setLocalAlertState }) {
     const dropTarget = inputRef.current.parentNode
 
     const filereader = new FileReader()
+
     const types = ['png', 'gif', 'jpeg']
     filereader.onload = async (e) => {
       const re = /(\.txt|\.ms\d{2}|\.ts\d{2,3})$/i
