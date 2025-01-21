@@ -40,7 +40,7 @@ const INVALID_EXT_ERROR = (
 const MIN_BYTES = 500
 
 /* istanbul ignore next */
-const getEncodedFile = async function (fileBytes, file) {
+const tryGetUTF8EncodedFile = async function (fileBytes, file) {
   // Create a small view of the file to determine the encoding.
   const btyesView = new Uint8Array(fileBytes.slice(0, MIN_BYTES))
   const blobView = new Blob([btyesView], { type: 'text/plain' })
@@ -68,6 +68,52 @@ const getEncodedFile = async function (fileBytes, file) {
     console.error('Caught error while handling file encoding. Error:', error)
     return file
   }
+}
+
+const load = (file, section, input, dropTarget, dispatch) => {
+  const filereader = new FileReader()
+  const types = ['png', 'gif', 'jpeg']
+
+  return new Promise((resolve, reject) => {
+    filereader.onerror = () => {
+      filereader.abort()
+      reject()
+    }
+
+    filereader.onload = () => {
+      const re = /(\.txt|\.ms\d{2}|\.ts\d{2,3})$/i
+      if (!re.exec(file.name)) {
+        dispatch({
+          type: FILE_EXT_ERROR,
+          payload: {
+            error: { message: INVALID_EXT_ERROR },
+            section,
+          },
+        })
+        reject()
+        return
+      }
+
+      const isImg = fileTypeChecker.validateFileType(filereader.result, types)
+
+      if (isImg) {
+        createFileInputErrorState(input, dropTarget)
+
+        dispatch({
+          type: SET_FILE_ERROR,
+          payload: {
+            error: { message: INVALID_FILE_ERROR },
+            section,
+          },
+        })
+        reject()
+        return
+      }
+
+      resolve({ result: filereader.result })
+    }
+    filereader.readAsArrayBuffer(file)
+  })
 }
 
 function FileUpload({ section, setLocalAlertState }) {
@@ -140,43 +186,11 @@ function FileUpload({ section, setLocalAlertState }) {
     const input = inputRef.current
     const dropTarget = inputRef.current.parentNode
 
-    const filereader = new FileReader()
+    const { result } = await load(file, section, input, dropTarget, dispatch)
 
-    const types = ['png', 'gif', 'jpeg']
-    filereader.onload = async (e) => {
-      const re = /(\.txt|\.ms\d{2}|\.ts\d{2,3})$/i
-      if (!re.exec(file.name)) {
-        dispatch({
-          type: FILE_EXT_ERROR,
-          payload: {
-            error: { message: INVALID_EXT_ERROR },
-            section,
-          },
-        })
-        return
-      }
-
-      const isImg = fileTypeChecker.validateFileType(filereader.result, types)
-
-      if (isImg) {
-        createFileInputErrorState(input, dropTarget)
-
-        dispatch({
-          type: SET_FILE_ERROR,
-          payload: {
-            error: { message: INVALID_FILE_ERROR },
-            section,
-          },
-        })
-        return
-      }
-
-      // Get the correctly encoded file
-      const fileToUpload = await getEncodedFile(e.target.result, file)
-      dispatch(upload({ file: fileToUpload, section }))
-    }
-
-    filereader.readAsArrayBuffer(file)
+    // Get the correctly encoded file
+    const encodedFile = await tryGetUTF8EncodedFile(result, file)
+    dispatch(upload({ file: encodedFile, section }))
   }
 
   return (
