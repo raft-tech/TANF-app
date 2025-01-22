@@ -11,7 +11,7 @@ description: December 18, 2024 - December 31, 2024
 In this sprint, our team successfully completed several initiatives aimed at improving system security, user experience, and operational efficiency, while also advancing design efforts to better meet stakeholder needs. Key highlights included:
 
 * Regional Staff Access to TDP:
-  * Provided regional staff with improved access to submission statuses and error reports, streamlining their workflows.
+  * Developed designs to provide regional staff with improved access to submission statuses and error reports, streamlining their workflows.
 * Operations & Maintenance:
   * Upgraded critical dependencies, enhancing platform performance and security.
   * Updated release notes and Knowledge Center content for better user guidance and documentation.
