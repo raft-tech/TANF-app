@@ -11,7 +11,7 @@ description: November 6, 2024 - November 19, 2024
 In this sprint, our team successfully completed a variety of tasks focused on improving stability, user experience, and operational efficiency, as well as advancing research and design efforts to ensure alignment with stakeholder needs. Key highlights included:
 
 * User Experience Improvements:
-  * Contextual info banners for outdated submission history results.
+  * Added column to submission history pages to specify date in which data is reprocessed.
 * Improved Developer Tooling:
   * Automated environment variable management for staging and production environments.
 * FRA Reporting Requirements MVP:
