@@ -21,9 +21,6 @@ class UserForm(forms.ModelForm):
         exclude = ['password', 'user_permissions']
         readonly_fields = ['last_login', 'date_joined', 'login_gov_uuid', 'hhs_id', 'access_request']
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def clean(self):
         """Add extra validation for locations based on roles."""
         cleaned_data = super().clean()
