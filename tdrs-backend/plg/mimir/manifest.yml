@@ -1,0 +1,8 @@
+version: 1
+applications:
+  - name: {{ name }}
+    memory: 24M
+    disk_quota: 24M
+    instances: 1
+    docker:
+      image: grafana/mimir:latest
