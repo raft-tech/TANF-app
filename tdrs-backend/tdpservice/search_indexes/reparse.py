@@ -82,7 +82,7 @@ def clean_reparse(selected_file_ids):
     all_reparse = False
     new_indices = False
 
-    meta_model = ReparseMeta.objects.create(
+    meta_model = ReparseMeta(
         fiscal_quarter=fiscal_quarter,
         fiscal_year=fiscal_year,
         all=all_reparse,
@@ -135,10 +135,8 @@ def clean_reparse(selected_file_ids):
 
     delete_associated_models(meta_model, file_ids, new_indices, log_context)
 
-    meta_model.save()
-
     meta_model.timeout_at = meta_model.created_at + calculated_timeout_at
-
+    meta_model.save()
     logger.info(
         f"Deleted a total of {meta_model.num_records_deleted} records across {num_files} files."
     )
