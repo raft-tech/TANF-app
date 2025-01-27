@@ -91,6 +91,13 @@ deploy_alertmanager() {
     popd
 }
 
+deploy_mimir() {
+    pushd mimir
+    cf push --no-route -f manifest.yml -t 180  --strategy rolling
+    cf map-route mimir apps.internal --hostname mimir
+    popd
+}
+
 setup_prod_net_pols() {
     # Target prod environment just in case
     cf target -o hhs-acf-ofa -s tanf-prod
@@ -207,6 +214,7 @@ if [ "$DEPLOY" == "plg" ]; then
     deploy_loki
     deploy_grafana $DB_SERVICE_NAME
     deploy_alertmanager
+    deploy_mimir
     setup_prod_net_pols
     setup_dev_staging_net_pols
 fi
