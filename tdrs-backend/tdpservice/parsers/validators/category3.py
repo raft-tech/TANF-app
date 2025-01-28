@@ -266,7 +266,7 @@ def validate__FAM_AFF__SSN():
     """
     Validate social security number provided.
 
-    Since item FAMILY_AFFILIATION ==2 and item CITIZENSHIP_STATUS ==1 or 2,
+    Since item FAMILY_AFFILIATION ==2 and item CITIZENSHIP_STATUS ==1 or 2 or 3,
     then item SSN != 000000000 -- 999999999.
     """
     # value is instance
@@ -299,13 +299,13 @@ def validate__FAM_AFF__SSN():
         )
 
         if FAMILY_AFFILIATION == 2 and (
-            CITIZENSHIP_STATUS == 1 or CITIZENSHIP_STATUS == 2
+            CITIZENSHIP_STATUS == 1 or CITIZENSHIP_STATUS == 2 or CITIZENSHIP_STATUS == 3
         ):
             if SSN in [str(i) * 9 for i in range(10)]:
                 return Result(
                     valid=False,
                     error=(f"{row_schema.record_type}: Since {format_error_context(fam_affil_eargs)} is 2 "
-                           f"and {format_error_context(cit_stat_eargs)} is 1 or 2, "
+                           f"and {format_error_context(cit_stat_eargs)} is 1 or 2 or 3, "
                            f"then {format_error_context(ssn_eargs)} must not be in 000000000 -- 999999999."),
                     field_names=["FAMILY_AFFILIATION", "CITIZENSHIP_STATUS", "SSN"],
                 )
