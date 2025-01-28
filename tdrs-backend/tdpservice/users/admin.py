@@ -28,8 +28,12 @@ class UserForm(forms.ModelForm):
         if len(groups) > 1:
             raise ValidationError("User should not have multiple groups")
 
-        return cleaned_data
+        feature_flags = cleaned_data.get('feature_flags', {})
+        if not feature_flags:
+            feature_flags = {}
+        cleaned_data['feature_flags'] = feature_flags
 
+        return cleaned_data
 
 class UserAdmin(admin.ModelAdmin):
     """Customize the user admin functions."""

@@ -118,7 +118,6 @@ class User(AbstractUser):
     feature_flags = models.JSONField(
         default=dict,
         help_text="Feature flags for this data file.",
-        null=True,
         blank=True,
     )
 
