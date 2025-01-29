@@ -537,7 +537,7 @@ def test_validate__FAM_AFF__SSN():
     }
     result = category3.validate__FAM_AFF__SSN()(instance, schema)
     assert result.valid is False
-    assert result.error == ('T1: Since Item 1 (family affiliation) is 2 and Item 2 (citizenship status) is 1 or 2 or 3, '
+    assert result.error == ('T1: Since Item 1 (family affiliation) is 2 and Item 2 (citizenship status) is 1 or 2 or 3,'
                             'then Item 3 (social security number) must not be in 000000000 -- 999999999.')
     assert result.field_names == ['FAMILY_AFFILIATION', 'CITIZENSHIP_STATUS', 'SSN']
 
