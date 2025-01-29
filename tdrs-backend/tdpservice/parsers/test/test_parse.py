@@ -20,9 +20,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-es_logger = logging.getLogger('elasticsearch')
-es_logger.setLevel(logging.WARNING)
-
 settings.GENERATE_TRAILER_ERRORS = True
 
 

@@ -53,8 +53,6 @@ class Common(Configuration):
         "drf_yasg",
         "django_celery_beat",
         "storages",
-        "django_elasticsearch_dsl",
-        "django_elasticsearch_dsl_drf",
         "django_prometheus",
         # Local apps
         "tdpservice.core.apps.CoreConfig",
@@ -268,8 +266,6 @@ class Common(Configuration):
             "django.db.backends": {"handlers": ["console", "file"], "level": "INFO"},
         },
     }
-    es_logger = logging.getLogger('elasticsearch')
-    es_logger.setLevel(getattr(logging, LOGGING_LEVEL))
 
     # Custom user app
     AUTH_USER_MODEL = "users.User"

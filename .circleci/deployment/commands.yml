@@ -105,9 +105,6 @@
       frontend-appname:
         default: tdp-frontend
         type: string
-      proxy-appname:
-        default: tdp-elastic-proxy
-        type: string
       cf-space:
         default: tanf-dev
         type: string

@@ -171,17 +171,6 @@ services:
       - SENDGRID_API_KEY
       - GENERATE_TRAILER_ERRORS=True
       - BYPASS_OFA_AUTH
-      - ELASTICSEARCH_REINDEX_THREAD_COUNT
-      - ELASTICSEARCH_REINDEX_CHUNK_SIZE
-      - ELASTICSEARCH_REINDEX_REQUEST_TIMEOUT
-      - ELASTICSEARCH_LOG_SEARCH_SLOW_THRESHOLD_WARN
-      - ELASTICSEARCH_LOG_SEARCH_SLOW_THRESHOLD_INFO
-      - ELASTICSEARCH_LOG_SEARCH_SLOW_THRESHOLD_TRACE
-      - ELASTICSEARCH_LOG_SEARCH_SLOW_LEVEL
-      - ELASTICSEARCH_LOG_INDEX_SLOW_THRESHOLD_WARN
-      - ELASTICSEARCH_LOG_INDEX_SLOW_THRESHOLD_INFO
-      - ELASTICSEARCH_LOG_INDEX_SLOW_THRESHOLD_TRACE
-      - ELASTICSEARCH_LOG_INDEX_SLOW_LEVEL
     volumes:
       - .:/tdpapp
       - logs:/tmp
@@ -201,7 +190,6 @@ services:
       - localstack
       - postgres
       - redis-server
-      - elastic
 
   redis-server:
     image: tdp-docker.dev.raftlabs.tech/dependencies/redis:alpine
@@ -215,7 +203,6 @@ volumes:
   localstack_data:
   postgres_data:
   grafana_pg_data:
-  elastic_data:
   prometheus_data:
   grafana_data:
   loki_data:
