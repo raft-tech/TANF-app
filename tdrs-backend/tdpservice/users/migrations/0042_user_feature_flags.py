@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='feature_flags',
-            field=models.JSONField(blank=True, default=dict, help_text='Feature flags for this data file.'),
+            field=models.JSONField(blank=True, default=dict, help_text='Feature flags for this user. This is a JSON field that can be used to store key-value pairs. E.g: {"fra_access": true}'),
         ),
     ]
