@@ -5,11 +5,9 @@ from tdpservice.parsers.transforms import calendar_quarter_to_rpt_month_year
 from tdpservice.parsers.fields import Field, TransformField
 from tdpservice.parsers.row_schema import RowSchema, SchemaManager
 from tdpservice.parsers.validators import category1, category2, category3
-from tdpservice.search_indexes.documents.ssp import SSP_M6DataSubmissionDocument
 
 s1 = RowSchema(
     record_type="M6",
-    document=SSP_M6DataSubmissionDocument(),
     preparsing_validators=[
         category1.recordHasLength(259),
         category1.validate_fieldYearMonth_with_headerYearQuarter(),
@@ -173,7 +171,6 @@ s1 = RowSchema(
 
 s2 = RowSchema(
     record_type="M6",
-    document=SSP_M6DataSubmissionDocument(),
     quiet_preparser_errors=True,
     preparsing_validators=[
         category1.recordHasLength(259),
@@ -338,7 +335,6 @@ s2 = RowSchema(
 
 s3 = RowSchema(
     record_type="M6",
-    document=SSP_M6DataSubmissionDocument(),
     quiet_preparser_errors=True,
     preparsing_validators=[
         category1.recordHasLength(259),

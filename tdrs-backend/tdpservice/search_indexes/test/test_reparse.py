@@ -14,8 +14,6 @@ from django.conf import settings
 from django.contrib.admin.models import LogEntry, ADDITION
 from django.db.utils import DatabaseError
 from django.utils import timezone
-from elasticsearch.exceptions import ElasticsearchException
-
 from datetime import timedelta
 import os
 import time
@@ -171,8 +169,6 @@ def test_delete_summaries_exceptions(mocker, log_context, exc_msg, exception_typ
         assert exception_msg == exc_msg
 
 @pytest.mark.parametrize(("exc_msg, exception_type"), [
-    (('Elastic index creation FAILED. Clean and reparse NOT executed. '
-      'Database is CONSISTENT, Elastic is INCONSISTENT!'), ElasticsearchException),
     (('Caught generic exception in _handle_elastic. Clean and reparse NOT executed. '
       'Database is CONSISTENT, Elastic is INCONSISTENT!'), Exception)
 ])
@@ -190,8 +186,6 @@ def test_handle_elastic_exceptions(mocker, log_context, exc_msg, exception_type)
         assert exception_msg == exc_msg
 
 @pytest.mark.parametrize(("exc_msg, exception_type"), [
-    (('Elastic document delete failed for type {model}. The database and Elastic are INCONSISTENT! '
-      'Restore the DB from the backup as soon as possible!'), ElasticsearchException),
     (('Encountered a DatabaseError while deleting records of type {model} from Postgres. The database '
       'and Elastic are INCONSISTENT! Restore the DB from the backup as soon as possible!'), DatabaseError),
     (('Caught generic exception while deleting records of type {model}. The database and Elastic are '

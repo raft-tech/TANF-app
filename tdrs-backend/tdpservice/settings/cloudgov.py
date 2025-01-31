@@ -3,7 +3,6 @@
 import json
 import os
 from requests_aws4auth import AWS4Auth
-from elasticsearch import RequestsHttpConnection
 
 from tdpservice.settings.common import Common
 import logging

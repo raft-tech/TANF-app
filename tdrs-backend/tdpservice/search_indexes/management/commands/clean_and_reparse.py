@@ -4,7 +4,6 @@ from django.core.management.base import BaseCommand
 from django.core.management import call_command
 from django.core.paginator import Paginator
 from django.db.utils import DatabaseError
-from elasticsearch.exceptions import ElasticsearchException
 from tdpservice.data_files.models import DataFile
 from tdpservice.parsers.models import DataFileSummary, ParserError
 from tdpservice.scheduling import parser_task
@@ -58,28 +57,6 @@ class Command(BaseCommand):
                 logger_context=log_context,
                 level='error')
             raise e
-
-    def _handle_elastic(self, new_indices, log_context):
-        """Create new Elastic indices and delete old ones."""
-        if new_indices:
-            try:
-                logger.info("Creating new elastic indexes.")
-                call_command('tdp_search_index', '--create', '-f', '--use-alias')
-                log("Index creation complete.",
-                    logger_context=log_context,
-                    level='info')
-            except ElasticsearchException as e:
-                log("Elastic index creation FAILED. Clean and reparse NOT executed. "
-                    "Database is CONSISTENT, Elastic is INCONSISTENT!",
-                    logger_context=log_context,
-                    level='error')
-                raise e
-            except Exception as e:
-                log("Caught generic exception in _handle_elastic. Clean and reparse NOT executed. "
-                    "Database is CONSISTENT, Elastic is INCONSISTENT!",
-                    logger_context=log_context,
-                    level='error')
-                raise e
 
     def _delete_summaries(self, file_ids, log_context):
         """Raw delete all DataFileSummary objects."""

@@ -15,7 +15,6 @@ from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3, SSP_M4,
 from tdpservice.search_indexes import documents
 from tdpservice.data_files.models import DataFile
 from .. import schema_defs, aggregates
-from elasticsearch.helpers.errors import BulkIndexError
 import logging
 logger = logging.getLogger(__name__)
 
@@ -1444,11 +1443,6 @@ def test_parse_t2_invalid_dob(t2_invalid_dob_file, dfs):
 @pytest.mark.django_db
 def test_bulk_create_returns_rollback_response_on_bulk_index_exception(small_correct_file, mocker, dfs):
     """Test bulk_create_records returns (False, [unsaved_records]) on BulkIndexException."""
-    mocker.patch(
-        'tdpservice.search_indexes.documents.tanf.TANF_T1DataSubmissionDocument.update',
-        side_effect=BulkIndexError('indexing exception')
-    )
-
     # create some records, don't save them
     records = {
         documents.tanf.TANF_T1DataSubmissionDocument(): [TANF_T1()],

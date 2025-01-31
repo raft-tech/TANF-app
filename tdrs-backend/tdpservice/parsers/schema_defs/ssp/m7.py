@@ -4,7 +4,6 @@ from tdpservice.parsers.transforms import calendar_quarter_to_rpt_month_year
 from tdpservice.parsers.fields import Field, TransformField
 from tdpservice.parsers.row_schema import RowSchema, SchemaManager
 from tdpservice.parsers.validators import category1, category2
-from tdpservice.search_indexes.documents.ssp import SSP_M7DataSubmissionDocument
 
 schemas = []
 
@@ -20,7 +19,6 @@ for i in range(1, 31):
     schemas.append(
         RowSchema(
             record_type="M7",
-            document=SSP_M7DataSubmissionDocument(),
             quiet_preparser_errors=i > 1,
             preparsing_validators=[
                 category1.recordHasLength(247),
