@@ -138,17 +138,6 @@ class CloudGov(Common):
         'es'
     )
 
-    # Elastic
-    ELASTICSEARCH_DSL = {
-        'default': {
-            'hosts': es_host,
-            'http_auth': awsauth,
-            'use_ssl': True,
-            'connection_class': RequestsHttpConnection,
-        },
-    }
-    ELASTIC_INDEX_PREFIX = f'{APP_NAME}_'
-
 
 class Development(CloudGov):
     """Settings for applications deployed in the Cloud.gov dev space."""

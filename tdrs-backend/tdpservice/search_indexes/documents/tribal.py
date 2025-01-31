@@ -14,7 +14,7 @@ class Tribal_TANF_T1DataSubmissionDocument(DocumentBase, Document):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tribal_tanf_t1_submissions'
+        name = f'tribal_tanf_t1_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
@@ -80,7 +80,7 @@ class Tribal_TANF_T2DataSubmissionDocument(DocumentBase, Document):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tribal_tanf_t2_submissions'
+        name = f'tribal_tanf_t2_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
@@ -153,7 +153,7 @@ class Tribal_TANF_T3DataSubmissionDocument(DocumentBase, Document):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tribal_tanf_t3_submissions'
+        name = f'tribal_tanf_t3_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
@@ -194,7 +194,7 @@ class Tribal_TANF_T4DataSubmissionDocument(DocumentBase, Document):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tribal_tanf_t4_submissions'
+        name = f'tribal_tanf_t4_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
@@ -225,7 +225,7 @@ class Tribal_TANF_T5DataSubmissionDocument(DocumentBase, Document):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tribal_tanf_t5_submissions'
+        name = f'tribal_tanf_t5_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
@@ -274,7 +274,7 @@ class Tribal_TANF_T6DataSubmissionDocument(DocumentBase, Document):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tribal_tanf_t6_submissions'
+        name = f'tribal_tanf_t6_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
@@ -312,7 +312,7 @@ class Tribal_TANF_T7DataSubmissionDocument(DocumentBase, Document):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tribal_tanf_t7_submissions'
+        name = f'tribal_tanf_t7_submissions'
         settings = {
             'number_of_shards': 1,
             'number_of_replicas': 0,
