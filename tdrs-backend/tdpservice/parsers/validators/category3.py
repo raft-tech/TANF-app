@@ -305,7 +305,7 @@ def validate__FAM_AFF__SSN():
                 return Result(
                     valid=False,
                     error=(f"{row_schema.record_type}: Since {format_error_context(fam_affil_eargs)} is 2 "
-                           f"and {format_error_context(cit_stat_eargs)} is 1 or 2 or 3, "
+                           f"and {format_error_context(cit_stat_eargs)} is 1 - 3, "
                            f"then {format_error_context(ssn_eargs)} must not be in 000000000 -- 999999999."),
                     field_names=["FAMILY_AFFILIATION", "CITIZENSHIP_STATUS", "SSN"],
                 )
