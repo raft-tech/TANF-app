@@ -126,6 +126,7 @@ services:
       - celery-exporter
       - postgres-exporter
       - alertmanager
+      - mimir
 
   promtail:
     restart: always
@@ -228,6 +229,7 @@ services:
       - postgres
       - redis-server
       - elastic
+      - mimir
 
   redis-server:
     image: tdp-docker.dev.raftlabs.tech/dependencies/redis:alpine
@@ -240,12 +242,14 @@ services:
   mimir:
     image: grafana/mimir:latest
     command: -config.file /etc/mimir/config.yaml -server.http-listen-port=9009 -log.format=json -log.level=debug
+    environment:
+      - LOCALSTACK_HOST=localstack:6456
     ports:
       - 9009:9009
     volumes:
       - ./plg/mimir/config.yml:/etc/mimir/config.yaml
     depends_on:
-      - prometheus
+      - localstack
 
 volumes:
   localstack_data:

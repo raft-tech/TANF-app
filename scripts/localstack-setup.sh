@@ -9,3 +9,7 @@ awslocal s3api put-bucket-versioning --bucket $AWS_BUCKET --versioning-configura
 # Add bucket for Loki to store logs
 awslocal s3api create-bucket --bucket loki-logs --region $AWS_REGION_NAME
 awslocal s3api put-bucket-versioning --bucket loki-logs --versioning-configuration Status=Enabled
+
+
+awslocal s3api create-bucket --bucket mimir-tsdb --region $AWS_REGION_NAME
+awslocal s3api put-bucket-versioning --bucket mimir-tsdb --versioning-configuration Status=Enabled
