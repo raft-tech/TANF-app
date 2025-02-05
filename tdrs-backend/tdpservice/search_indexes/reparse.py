@@ -84,7 +84,7 @@ def clean_reparse(selected_file_ids):
 
     if num_files == 1:
         log(
-            f"Reparsing {num_files} file: {files.first().file_name}",
+            f"Reparsing {num_files} file: {files.first()}",
             level="info",
         )
         fiscal_quarter = files.first().quarter
