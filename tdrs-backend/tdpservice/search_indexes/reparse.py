@@ -1,5 +1,6 @@
 """Reparsing command for selected files."""
 # should include all the steps in the management command
+import datetime
 from django.core.management import call_command
 from elasticsearch.exceptions import ElasticsearchException
 from tdpservice.data_files.models import DataFile
@@ -76,11 +77,18 @@ def clean_reparse(selected_file_ids):
     files = DataFile.objects.filter(id__in=selected_files)
     num_files = files.count()
 
-    # TODO: need to clean up the following fields since these can be deduced from the selected files
     fiscal_quarter = None
     fiscal_year = None
     all_reparse = False
     new_indices = False
+
+    if num_files == 1:
+        log(
+            f"Reparsing {num_files} file: {files.first().file_name}",
+            level="info",
+        )
+        fiscal_quarter = files.first().quarter
+        fiscal_year = files.first().year
 
     meta_model = ReparseMeta(
         fiscal_quarter=fiscal_quarter,
@@ -118,9 +126,9 @@ def clean_reparse(selected_file_ids):
     is_sequential = assert_sequential_execution(log_context)
     if not is_sequential:
         raise Exception(f"Sequential execution required for selected file ids: {selected_file_ids}")
-
+    meta_model.save()
     # Backup the Postgres DB
-    backup_file_name += f"_rpv{meta_model.pk}.pg"
+    backup_file_name += f"_rpv{meta_model.pk}_{datetime.datetime.now().strftime('%d-%M-%Y-%H%M%s')}.pg"
     backup(backup_file_name, log_context)
 
     meta_model.db_backup_location = backup_file_name
