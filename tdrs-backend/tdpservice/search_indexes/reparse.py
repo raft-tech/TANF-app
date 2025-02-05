@@ -128,7 +128,7 @@ def clean_reparse(selected_file_ids):
         raise Exception(f"Sequential execution required for selected file ids: {selected_file_ids}")
     meta_model.save()
     # Backup the Postgres DB
-    backup_file_name += f"_rpv{meta_model.pk}_{datetime.datetime.now().strftime('%d-%M-%Y-%H%M%s')}.pg"
+    backup_file_name += f"_rpv{meta_model.pk}_{datetime.datetime.now().strftime('%d-%m-%Y-%H-%M-%S')}.pg"
     backup(backup_file_name, log_context)
 
     meta_model.db_backup_location = backup_file_name
