@@ -17,13 +17,20 @@ rule_files:
   - "django-rules.yml"
   - "alerts.yml"
 
+
+# https://grafana.com/docs/mimir/latest/references/http-api/#distributor
+# https://grafana.com/docs/mimir/latest/references/http-api/#remote-write
+# https://prometheus.io/docs/prometheus/latest/configuration/configuration/#remote_write
 remote_write:
-  - url: http://mimir:9009/api/v1/push
-    queue_config:
-      batch_send_deadline: 5s
-      max_shards: 10
-      max_samples_per_send: 500
-      capacity: 10000
+ - url: http://mimir:9009/api/v1/push
+   name: mimir-push
+  # headers: 
+  #  "X-Prometheus-Remote-Write-Version": "0.1.0"
+
+
+remote_read:
+  - url: http://mimir:9009/api/v1/read
+    name: mimir-read
 
 #TODO: https://prometheus.io/docs/prometheus/latest/configuration/configuration/#remote_read
 

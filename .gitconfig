@@ -19,3 +19,4 @@
 	patterns = (\"|')?(AWS|aws|Aws)?_?(ACCOUNT|account|Account)_?(ID|id|Id)?(\"|')?\\s*(:|=>|=)\\s*(\"|')?[0-9]{4}\\-?[0-9]{4}\\-?[0-9]{4}(\"|')?
 	patterns = .+_KEY=.+
 	patterns = .+smtp_auth_password: .[^{]+
+	allowed = tdrs-backend/docker-compose.yml:248:      - AWS_SECRET_ACCESS_KEY=test

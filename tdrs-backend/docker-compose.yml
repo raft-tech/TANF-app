@@ -241,9 +241,11 @@ services:
 
   mimir:
     image: grafana/mimir:latest
-    command: -config.file /etc/mimir/config.yaml -server.http-listen-port=9009 -log.format=json -log.level=debug
+    command: -config.file /etc/mimir/config.yaml -server.http-listen-port=9009 -log.format=json -log.level=info
     environment:
       - LOCALSTACK_HOST=localstack:6456
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
     ports:
       - 9009:9009
     volumes:
