@@ -113,19 +113,13 @@ def bulk_create_records(unsaved_records, line_number, header_count, datafile, df
         logger.debug("Bulk creating records.")
         num_db_records_created = 0
         num_expected_db_records = 0
-        num_elastic_records_created = 0
+        #num_elastic_records_created = 0
         for document, records in unsaved_records.items():
             try:
                 num_expected_db_records += len(records)
                 created_objs = document.Django.model.objects.bulk_create(records)
                 num_db_records_created += len(created_objs)
-                num_elastic_records_created += document.update(created_objs)[0]
-            except ElasticsearchException as e:
-                log_parser_exception(datafile,
-                                     f"Encountered error while indexing datafile documents: \n{e}",
-                                     "error"
-                                     )
-                continue
+                #num_elastic_records_created += document.update(created_objs)[0]
             except DatabaseError as e:
                 log_parser_exception(datafile,
                                      f"Encountered error while creating database records: \n{e}",
@@ -143,9 +137,9 @@ def bulk_create_records(unsaved_records, line_number, header_count, datafile, df
         if num_db_records_created != num_expected_db_records:
             logger.error(f"Bulk Django record creation only created {num_db_records_created}/" +
                          f"{num_expected_db_records}!")
-        elif num_elastic_records_created != num_expected_db_records:
-            logger.error(f"Bulk Elastic document creation only created {num_elastic_records_created}/" +
-                         f"{num_expected_db_records}!")
+        #elif num_elastic_records_created != num_expected_db_records:
+        #    logger.error(f"Bulk Elastic document creation only created {num_elastic_records_created}/" +
+        #                 f"{num_expected_db_records}!")
         else:
             logger.info(f"Created {num_db_records_created}/{num_expected_db_records} records.")
         return num_db_records_created == num_expected_db_records

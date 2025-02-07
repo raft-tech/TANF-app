@@ -1,24 +1,16 @@
 """Elasticsearch document mappings for TRIBAL submission models."""
 
-from django_elasticsearch_dsl import Document
-from django_elasticsearch_dsl.registries import registry
 from ..models.tribal import Tribal_TANF_T1, Tribal_TANF_T2, Tribal_TANF_T3, Tribal_TANF_T4, Tribal_TANF_T5
 from ..models.tribal import Tribal_TANF_T6, Tribal_TANF_T7
-from .document_base import DocumentBase
-from django.conf import settings
+from django.db import models
 
-@registry.register_document
-class Tribal_TANF_T1DataSubmissionDocument(DocumentBase, Document):
+class Tribal_TANF_T1DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed TANF T1 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tribal_tanf_t1_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'tribal_tanf_t1_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -73,18 +65,13 @@ class Tribal_TANF_T1DataSubmissionDocument(DocumentBase, Document):
         ]
 
 
-@registry.register_document
-class Tribal_TANF_T2DataSubmissionDocument(DocumentBase, Document):
+class Tribal_TANF_T2DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed TANF T2 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tribal_tanf_t2_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'tribal_tanf_t2_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -146,18 +133,13 @@ class Tribal_TANF_T2DataSubmissionDocument(DocumentBase, Document):
         ]
 
 
-@registry.register_document
-class Tribal_TANF_T3DataSubmissionDocument(DocumentBase, Document):
+class Tribal_TANF_T3DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed TANF T3 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tribal_tanf_t3_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'tribal_tanf_t3_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -187,18 +169,13 @@ class Tribal_TANF_T3DataSubmissionDocument(DocumentBase, Document):
             'OTHER_UNEARNED_INCOME',
         ]
 
-@registry.register_document
-class Tribal_TANF_T4DataSubmissionDocument(DocumentBase, Document):
+class Tribal_TANF_T4DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed Tribal TANF T4 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tribal_tanf_t4_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'tribal_tanf_t4_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -218,18 +195,13 @@ class Tribal_TANF_T4DataSubmissionDocument(DocumentBase, Document):
             'REC_SUB_CC'
         ]
 
-@registry.register_document
-class Tribal_TANF_T5DataSubmissionDocument(DocumentBase, Document):
+class Tribal_TANF_T5DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed Tribal TANF T5 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tribal_tanf_t5_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'tribal_tanf_t5_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -267,18 +239,13 @@ class Tribal_TANF_T5DataSubmissionDocument(DocumentBase, Document):
             'AMOUNT_UNEARNED_INCOME'
         ]
 
-@registry.register_document
-class Tribal_TANF_T6DataSubmissionDocument(DocumentBase, Document):
+class Tribal_TANF_T6DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed Tribal TANF T6 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tribal_tanf_t6_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'tribal_tanf_t6_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -305,18 +272,13 @@ class Tribal_TANF_T6DataSubmissionDocument(DocumentBase, Document):
             'NUM_CLOSED_CASES'
         ]
 
-@registry.register_document
-class Tribal_TANF_T7DataSubmissionDocument(DocumentBase, Document):
+class Tribal_TANF_T7DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed Tribal TANF T7 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tribal_tanf_t7_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'tribal_tanf_t7_submissions'
 
     class Django:
         """Django model reference and field mapping."""

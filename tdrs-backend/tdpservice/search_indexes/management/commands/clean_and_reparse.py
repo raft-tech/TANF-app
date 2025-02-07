@@ -80,7 +80,8 @@ class Command(BaseCommand):
             raise e
 
     def __handle_elastic_doc_delete(self, doc, qset, model, elastic_exceptions, new_indices):
-        """Delete documents from Elastic and handle exceptions."""
+        pass
+        """Delete documents from Elastic and handle exceptions.
         if not new_indices:
             # If we aren't creating new indices, then we don't want duplicate data in the existing indices.
             # We alos use a Paginator here because it allows us to slice querysets based on a batch size. This
@@ -92,7 +93,7 @@ class Command(BaseCommand):
                     doc().update(page.object_list, refresh=True, action='delete')
                 except ElasticsearchException:
                     elastic_exceptions[model] = elastic_exceptions.get(model, 0) + 1
-                    continue
+                    continue"""
 
     def _delete_records(self, file_ids, new_indices, log_context):
         """Delete records, errors, and documents from Postgres and Elastic."""
@@ -105,7 +106,8 @@ class Command(BaseCommand):
                 count = qset.count()
                 total_deleted += count
                 logger.info(f"Deleting {count} records of type: {model}.")
-                self.__handle_elastic_doc_delete(doc, qset, model, elastic_exceptions, new_indices)
+                #self.__handle_elastic_doc_delete(doc, qset, model, elastic_exceptions, new_indices)
+                # TODO: have to delete from the new wrapper model
                 qset._raw_delete(qset.db)
             except DatabaseError as e:
                 log(f'Encountered a DatabaseError while deleting records of type {model} from Postgres. The database '
@@ -356,7 +358,7 @@ class Command(BaseCommand):
         meta_model.save()
 
         # Create and delete Elastic indices if necessary
-        self._handle_elastic(new_indices, log_context)
+        #self._handle_elastic(new_indices, log_context)
 
         # Delete records from Postgres and Elastic if necessary
         file_ids = files.values_list('id', flat=True).distinct()

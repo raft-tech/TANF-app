@@ -1,23 +1,14 @@
 """Elasticsearch document mappings for SSP submission models."""
-
-from django_elasticsearch_dsl.registries import registry
 from ..models.ssp import SSP_M1, SSP_M2, SSP_M3, SSP_M4, SSP_M5, SSP_M6, SSP_M7
-from .document_base import DocumentBase
-from django.conf import settings
+from django.db import models
 
-
-@registry.register_document
-class SSP_M1DataSubmissionDocument(DocumentBase):
+class SSP_M1DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed SSP M1 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}ssp_m1_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'ssp_m1_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -70,18 +61,13 @@ class SSP_M1DataSubmissionDocument(DocumentBase):
         ]
 
 
-@registry.register_document
-class SSP_M2DataSubmissionDocument(DocumentBase):
+class SSP_M2DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed SSP M2 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}ssp_m2_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'ssp_m2_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -158,18 +144,13 @@ class SSP_M2DataSubmissionDocument(DocumentBase):
         ]
 
 
-@registry.register_document
-class SSP_M3DataSubmissionDocument(DocumentBase):
+class SSP_M3DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed SSP M3 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}ssp_m3_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'ssp_m3_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -200,18 +181,13 @@ class SSP_M3DataSubmissionDocument(DocumentBase):
             'OTHER_UNEARNED_INCOME',
         ]
 
-@registry.register_document
-class SSP_M4DataSubmissionDocument(DocumentBase):
+class SSP_M4DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed SSP M4 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}ssp_m4_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'ssp_m4_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -232,18 +208,13 @@ class SSP_M4DataSubmissionDocument(DocumentBase):
             'REC_SUB_CC',
         ]
 
-@registry.register_document
-class SSP_M5DataSubmissionDocument(DocumentBase):
+class SSP_M5DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed SSP M5 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}ssp_m5_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'ssp_m5_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -279,18 +250,13 @@ class SSP_M5DataSubmissionDocument(DocumentBase):
             'AMOUNT_UNEARNED_INCOME',
         ]
 
-@registry.register_document
-class SSP_M6DataSubmissionDocument(DocumentBase):
+class SSP_M6DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed SSP M6 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}ssp_m6_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'ssp_m6_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -312,18 +278,13 @@ class SSP_M6DataSubmissionDocument(DocumentBase):
             'CLOSED_CASES',
         ]
 
-@registry.register_document
-class SSP_M7DataSubmissionDocument(DocumentBase):
+class SSP_M7DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed SSP M7 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}ssp_m7_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'ssp_m7_submissions'
 
     class Django:
         """Django model reference and field mapping."""

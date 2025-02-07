@@ -168,22 +168,6 @@ def test_delete_summaries_exceptions(mocker, log_context, exc_msg, exception_typ
         exception_msg = LogEntry.objects.latest('pk').change_message
         assert exception_msg == exc_msg
 
-@pytest.mark.parametrize(("exc_msg, exception_type"), [
-    (('Caught generic exception in _handle_elastic. Clean and reparse NOT executed. '
-      'Database is CONSISTENT, Elastic is INCONSISTENT!'), Exception)
-])
-@pytest.mark.django_db
-def test_handle_elastic_exceptions(mocker, log_context, exc_msg, exception_type):
-    """Test summary exception handling."""
-    mocker.patch(
-        'tdpservice.search_indexes.management.commands.clean_and_reparse.Command._handle_elastic',
-        side_effect=exception_type('Summary delete exception')
-    )
-    cmd = clean_and_reparse.Command()
-    with pytest.raises(exception_type):
-        cmd._handle_elastic([], True, log_context)
-        exception_msg = LogEntry.objects.latest('pk').change_message
-        assert exception_msg == exc_msg
 
 @pytest.mark.parametrize(("exc_msg, exception_type"), [
     (('Encountered a DatabaseError while deleting records of type {model} from Postgres. The database '

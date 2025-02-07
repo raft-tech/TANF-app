@@ -1,22 +1,14 @@
 """Elasticsearch document mappings for TANF submission models."""
-
-from django_elasticsearch_dsl.registries import registry
 from ..models.tanf import TANF_T1, TANF_T2, TANF_T3, TANF_T4, TANF_T5, TANF_T6, TANF_T7
-from .document_base import DocumentBase
-from django.conf import settings
+from django.db import models
 
-@registry.register_document
-class TANF_T1DataSubmissionDocument(DocumentBase):
+class TANF_T1DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed TANF T1 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tanf_t1_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'tanf_t1_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -71,18 +63,13 @@ class TANF_T1DataSubmissionDocument(DocumentBase):
         ]
 
 
-@registry.register_document
-class TANF_T2DataSubmissionDocument(DocumentBase):
+class TANF_T2DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed TANF T2 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tanf_t2_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'tanf_t2_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -161,18 +148,13 @@ class TANF_T2DataSubmissionDocument(DocumentBase):
         ]
 
 
-@registry.register_document
-class TANF_T3DataSubmissionDocument(DocumentBase):
+class TANF_T3DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed TANF T3 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tanf_t3_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'tanf_t3_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -203,18 +185,13 @@ class TANF_T3DataSubmissionDocument(DocumentBase):
         ]
 
 
-@registry.register_document
-class TANF_T4DataSubmissionDocument(DocumentBase):
+class TANF_T4DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed TANF T4 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tanf_t4_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'tanf_t4_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -236,18 +213,13 @@ class TANF_T4DataSubmissionDocument(DocumentBase):
         ]
 
 
-@registry.register_document
-class TANF_T5DataSubmissionDocument(DocumentBase):
+class TANF_T5DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed TANF T5 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tanf_t5_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'tanf_t5_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -286,18 +258,13 @@ class TANF_T5DataSubmissionDocument(DocumentBase):
         ]
 
 
-@registry.register_document
-class TANF_T6DataSubmissionDocument(DocumentBase):
+class TANF_T6DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed TANF T6 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tanf_t6_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'tanf_t6_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -325,18 +292,13 @@ class TANF_T6DataSubmissionDocument(DocumentBase):
         ]
 
 
-@registry.register_document
-class TANF_T7DataSubmissionDocument(DocumentBase):
+class TANF_T7DataSubmissionDocument(models.Model):
     """Elastic search model mapping for a parsed TANF T7 data file."""
 
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'{settings.ELASTIC_INDEX_PREFIX}tanf_t7_submissions'
-        settings = {
-            'number_of_shards': 1,
-            'number_of_replicas': 0,
-        }
+        name = f'tanf_t7_submissions'
 
     class Django:
         """Django model reference and field mapping."""
