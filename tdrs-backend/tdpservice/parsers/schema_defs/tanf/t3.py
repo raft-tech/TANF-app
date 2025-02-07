@@ -6,6 +6,7 @@ from tdpservice.parsers.fields import TransformField, Field
 from tdpservice.parsers.row_schema import RowSchema, SchemaManager
 from tdpservice.parsers.validators import category1, category2, category3
 from tdpservice.parsers.validators.util import is_quiet_preparser_errors
+from tdpservice.search_indexes.documents.tanf import TANF_T3DataSubmissionDocument
 from tdpservice.parsers.util import generate_t2_t3_t5_hashes, get_t2_t3_t5_partial_hash_members
 
 FIRST_CHILD = 1
@@ -13,6 +14,7 @@ SECOND_CHILD = 2
 
 child_one = RowSchema(
     record_type="T3",
+    document=TANF_T3DataSubmissionDocument(),
     generate_hashes_func=generate_t2_t3_t5_hashes,
     should_skip_partial_dup_func=lambda record: record.FAMILY_AFFILIATION in {2, 4, 5},
     get_partial_hash_members_func=get_t2_t3_t5_partial_hash_members,
@@ -89,13 +91,13 @@ child_one = RowSchema(
             condition_field_name="FAMILY_AFFILIATION",
             condition_function=category3.isEqual(1),
             result_field_name="CITIZENSHIP_STATUS",
-            result_function=category3.isOneOf((1, 2)),
+            result_function=category3.isOneOf((1, 2, 3)),
         ),
         category3.ifThenAlso(
             condition_field_name="FAMILY_AFFILIATION",
             condition_function=category3.isEqual(2),
             result_field_name="CITIZENSHIP_STATUS",
-            result_function=category3.isOneOf((1, 2, 9)),
+            result_function=category3.isOneOf((1, 2, 3, 9)),
         ),
     ],
     fields=[
@@ -298,7 +300,7 @@ child_one = RowSchema(
             startIndex=51,
             endIndex=52,
             required=False,
-            validators=[category2.isOneOf([1, 2, 9])],
+            validators=[category2.isOneOf([1, 2, 3, 9])],
         ),
         Field(
             item="77A",
@@ -326,6 +328,7 @@ child_one = RowSchema(
 
 child_two = RowSchema(
     record_type="T3",
+    document=TANF_T3DataSubmissionDocument(),
     generate_hashes_func=generate_t2_t3_t5_hashes,
     should_skip_partial_dup_func=lambda record: record.FAMILY_AFFILIATION in {2, 4, 5},
     get_partial_hash_members_func=get_t2_t3_t5_partial_hash_members,
@@ -404,13 +407,13 @@ child_two = RowSchema(
             condition_field_name="FAMILY_AFFILIATION",
             condition_function=category3.isEqual(1),
             result_field_name="CITIZENSHIP_STATUS",
-            result_function=category3.isOneOf((1, 2)),
+            result_function=category3.isOneOf((1, 2, 3)),
         ),
         category3.ifThenAlso(
             condition_field_name="FAMILY_AFFILIATION",
             condition_function=category3.isEqual(2),
             result_field_name="CITIZENSHIP_STATUS",
-            result_function=category3.isOneOf((1, 2, 9)),
+            result_function=category3.isOneOf((1, 2, 3, 9)),
         ),
     ],
     fields=[
@@ -613,7 +616,7 @@ child_two = RowSchema(
             startIndex=92,
             endIndex=93,
             required=False,
-            validators=[category2.isOneOf([1, 2, 9])],
+            validators=[category2.isOneOf([1, 2, 3, 9])],
         ),
         Field(
             item="77A",

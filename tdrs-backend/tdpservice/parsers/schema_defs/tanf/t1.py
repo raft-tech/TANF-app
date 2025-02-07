@@ -4,6 +4,7 @@ from tdpservice.parsers.transforms import zero_pad
 from tdpservice.parsers.fields import Field, TransformField
 from tdpservice.parsers.row_schema import RowSchema, SchemaManager
 from tdpservice.parsers.validators import category1, category2, category3
+from tdpservice.search_indexes.documents.tanf import TANF_T1DataSubmissionDocument
 from tdpservice.parsers.util import generate_t1_t4_hashes, get_t1_t4_partial_hash_members
 
 
@@ -11,6 +12,7 @@ t1 = SchemaManager(
     schemas=[
         RowSchema(
             record_type="T1",
+            document=TANF_T1DataSubmissionDocument(),
             generate_hashes_func=generate_t1_t4_hashes,
             get_partial_hash_members_func=get_t1_t4_partial_hash_members,
             preparsing_validators=[

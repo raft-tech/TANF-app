@@ -5,6 +5,7 @@ from tdpservice.parsers.transforms import tanf_ssn_decryption_func
 from tdpservice.parsers.fields import TransformField, Field
 from tdpservice.parsers.row_schema import RowSchema, SchemaManager
 from tdpservice.parsers.validators import category1, category2, category3
+from tdpservice.search_indexes.documents.tanf import TANF_T5DataSubmissionDocument
 from tdpservice.parsers.util import generate_t2_t3_t5_hashes, get_t2_t3_t5_partial_hash_members
 
 
@@ -12,6 +13,7 @@ t5 = SchemaManager(
     schemas=[
         RowSchema(
             record_type="T5",
+            document=TANF_T5DataSubmissionDocument(),
             generate_hashes_func=generate_t2_t3_t5_hashes,
             should_skip_partial_dup_func=lambda record: record.FAMILY_AFFILIATION in {3, 4, 5},
             get_partial_hash_members_func=get_t2_t3_t5_partial_hash_members,
@@ -92,7 +94,7 @@ t5 = SchemaManager(
                     condition_field_name="FAMILY_AFFILIATION",
                     condition_function=category3.isEqual(1),
                     result_field_name="CITIZENSHIP_STATUS",
-                    result_function=category3.isBetween(1, 2, inclusive=True),
+                    result_function=category3.isBetween(1, 3, inclusive=True),
                 ),
                 category3.ifThenAlso(
                     condition_field_name="DATE_OF_BIRTH",
@@ -362,7 +364,7 @@ t5 = SchemaManager(
                     required=False,
                     validators=[
                         category3.orValidators([
-                            category3.isBetween(0, 2, inclusive=True),
+                            category3.isBetween(0, 3, inclusive=True),
                             category3.isEqual(9)
                         ])
                     ],
