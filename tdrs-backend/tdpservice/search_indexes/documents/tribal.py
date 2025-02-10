@@ -10,7 +10,7 @@ class Tribal_TANF_T1DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'tribal_tanf_t1_submissions'
+        name = 'tribal_tanf_t1_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -71,7 +71,7 @@ class Tribal_TANF_T2DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'tribal_tanf_t2_submissions'
+        name = 'tribal_tanf_t2_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -139,7 +139,7 @@ class Tribal_TANF_T3DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'tribal_tanf_t3_submissions'
+        name = 'tribal_tanf_t3_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -175,7 +175,7 @@ class Tribal_TANF_T4DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'tribal_tanf_t4_submissions'
+        name = 'tribal_tanf_t4_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -201,7 +201,7 @@ class Tribal_TANF_T5DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'tribal_tanf_t5_submissions'
+        name = 'tribal_tanf_t5_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -245,7 +245,7 @@ class Tribal_TANF_T6DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'tribal_tanf_t6_submissions'
+        name = 'tribal_tanf_t6_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -278,7 +278,7 @@ class Tribal_TANF_T7DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'tribal_tanf_t7_submissions'
+        name = 'tribal_tanf_t7_submissions'
 
     class Django:
         """Django model reference and field mapping."""

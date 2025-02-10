@@ -3,7 +3,6 @@
 import pytest
 from faker import Faker
 from tdpservice.search_indexes import models
-from tdpservice.search_indexes import documents
 from tdpservice.parsers.util import create_test_datafile
 
 
@@ -776,7 +775,6 @@ def test_can_create_and_index_tribal_tanf_t4_submission(test_datafile):
     assert submission.id is not None
 
 
-
 @pytest.mark.django_db
 def test_can_create_and_index_tribal_tanf_t5_submission(test_datafile):
     """Tribal TANF T5 submissions can be created and mapped."""
@@ -867,4 +865,3 @@ def test_can_create_and_index_tribal_tanf_t7_submission(test_datafile):
     submission.save()
 
     assert submission.id is not None
-

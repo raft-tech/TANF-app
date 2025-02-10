@@ -8,7 +8,7 @@ class TANF_T1DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'tanf_t1_submissions'
+        name = 'tanf_t1_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -69,7 +69,7 @@ class TANF_T2DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'tanf_t2_submissions'
+        name = 'tanf_t2_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -154,7 +154,7 @@ class TANF_T3DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'tanf_t3_submissions'
+        name = 'tanf_t3_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -191,7 +191,7 @@ class TANF_T4DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'tanf_t4_submissions'
+        name = 'tanf_t4_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -219,7 +219,7 @@ class TANF_T5DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'tanf_t5_submissions'
+        name = 'tanf_t5_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -264,7 +264,7 @@ class TANF_T6DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'tanf_t6_submissions'
+        name = 'tanf_t6_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -298,7 +298,7 @@ class TANF_T7DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'tanf_t7_submissions'
+        name = 'tanf_t7_submissions'
 
     class Django:
         """Django model reference and field mapping."""

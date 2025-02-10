@@ -2,7 +2,6 @@
 
 from django.core.management.base import BaseCommand
 from django.core.management import call_command
-from django.core.paginator import Paginator
 from django.db.utils import DatabaseError
 from tdpservice.data_files.models import DataFile
 from tdpservice.parsers.models import DataFileSummary, ParserError
@@ -106,8 +105,6 @@ class Command(BaseCommand):
                 count = qset.count()
                 total_deleted += count
                 logger.info(f"Deleting {count} records of type: {model}.")
-                #self.__handle_elastic_doc_delete(doc, qset, model, elastic_exceptions, new_indices)
-                # TODO: have to delete from the new wrapper model
                 qset._raw_delete(qset.db)
             except DatabaseError as e:
                 log(f'Encountered a DatabaseError while deleting records of type {model} from Postgres. The database '
@@ -354,9 +351,6 @@ class Command(BaseCommand):
 
         meta_model.db_backup_location = backup_file_name
         meta_model.save()
-
-        # Create and delete Elastic indices if necessary
-        #self._handle_elastic(new_indices, log_context)
 
         # Delete records from Postgres and Elastic if necessary
         file_ids = files.values_list('id', flat=True).distinct()

@@ -8,7 +8,7 @@ class SSP_M1DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'ssp_m1_submissions'
+        name = 'ssp_m1_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -67,7 +67,7 @@ class SSP_M2DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'ssp_m2_submissions'
+        name = 'ssp_m2_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -150,7 +150,7 @@ class SSP_M3DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'ssp_m3_submissions'
+        name = 'ssp_m3_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -187,7 +187,7 @@ class SSP_M4DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'ssp_m4_submissions'
+        name = 'ssp_m4_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -214,7 +214,7 @@ class SSP_M5DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'ssp_m5_submissions'
+        name = 'ssp_m5_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -256,7 +256,7 @@ class SSP_M6DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'ssp_m6_submissions'
+        name = 'ssp_m6_submissions'
 
     class Django:
         """Django model reference and field mapping."""
@@ -284,7 +284,7 @@ class SSP_M7DataSubmissionDocument(models.Model):
     class Index:
         """ElasticSearch index generation settings."""
 
-        name = f'ssp_m7_submissions'
+        name = 'ssp_m7_submissions'
 
     class Django:
         """Django model reference and field mapping."""

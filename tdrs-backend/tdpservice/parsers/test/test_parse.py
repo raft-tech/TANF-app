@@ -3,7 +3,6 @@
 
 import pytest
 import os
-from django.contrib.admin.models import LogEntry
 from django.conf import settings
 from django.db.models import Q as Query
 from .. import parse
@@ -12,7 +11,6 @@ from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TAN
 from tdpservice.search_indexes.models.tribal import Tribal_TANF_T1, Tribal_TANF_T2, Tribal_TANF_T3, Tribal_TANF_T4
 from tdpservice.search_indexes.models.tribal import Tribal_TANF_T5, Tribal_TANF_T6, Tribal_TANF_T7
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3, SSP_M4, SSP_M5, SSP_M6, SSP_M7
-from tdpservice.search_indexes import documents
 from tdpservice.data_files.models import DataFile
 from .. import schema_defs, aggregates
 import logging
@@ -1382,36 +1380,6 @@ def test_parse_t2_invalid_dob(t2_invalid_dob_file, dfs):
     assert year_error.error_message == "T2 Item 32 (Date of Birth): Year Q897 must be larger than 1900."
     assert digits_error.error_message == "T2 Item 32 (Date of Birth): Q897$9 3 does not have exactly 8 digits."
 
-'''   This is test for ES indexing, which is removed. TODO: DELETE
-@pytest.mark.django_db
-def test_bulk_create_returns_rollback_response_on_bulk_index_exception(small_correct_file, mocker, dfs):
-    """Test bulk_create_records returns (False, [unsaved_records]) on BulkIndexException."""
-    # create some records, don't save them
-    records = {
-        documents.tanf.TANF_T1DataSubmissionDocument(): [TANF_T1()],
-        documents.tanf.TANF_T2DataSubmissionDocument(): [TANF_T2()],
-        documents.tanf.TANF_T3DataSubmissionDocument(): [TANF_T3()]
-    }
-
-    all_created = parse.bulk_create_records(
-        records,
-        line_number=1,
-        header_count=1,
-        datafile=small_correct_file,
-        dfs=dfs,
-        flush=True
-    )
-
-    assert LogEntry.objects.all().count() == 1
-
-    log = LogEntry.objects.get()
-    assert log.change_message == "Encountered error while indexing datafile documents: \nindexing exception"
-
-    assert all_created is True
-    assert TANF_T1.objects.all().count() == 1
-    assert TANF_T2.objects.all().count() == 1
-    assert TANF_T3.objects.all().count() == 1
-'''
 
 @pytest.mark.django_db()
 def test_parse_tanf_section4_file_with_errors(tanf_section_4_file_with_errors, dfs):
