@@ -281,10 +281,8 @@ class Command(BaseCommand):
         fiscal_year = options.get('fiscal_year', None)
         fiscal_quarter = options.get('fiscal_quarter', None)
         reparse_all = options.get('all', False)
-        print(f'************** reparse all {reparse_all}')
         selected_files = options.get('files', None)
         selected_files = [int(file) for file in selected_files[0].split(',')] if selected_files else None
-        print(f'************** selected files {selected_files}')
         new_indices = reparse_all is True
 
         # Option that can only be specified by calling `handle` directly and passing it.

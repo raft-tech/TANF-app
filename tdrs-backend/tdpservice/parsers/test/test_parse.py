@@ -147,27 +147,6 @@ def test_parse_big_file(big_file, dfs):
     assert TANF_T2.objects.count() == expected_t2_record_count
     assert TANF_T3.objects.count() == expected_t3_record_count
 
-    search = documents.tanf.TANF_T1DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=big_file.id
-    )
-    assert search.count() == expected_t1_record_count
-    search.delete()
-
-    search = documents.tanf.TANF_T2DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=big_file.id
-    )
-    assert search.count() == expected_t2_record_count
-    search.delete()
-
-    search = documents.tanf.TANF_T3DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=big_file.id
-    )
-    assert search.count() == expected_t3_record_count
-    search.delete()
-
 
 @pytest.mark.django_db
 def test_parse_bad_test_file(bad_test_file, dfs):
@@ -602,27 +581,6 @@ def test_parse_super_big_s1_file(super_big_s1_file, dfs):
     assert TANF_T2.objects.count() == expected_t2_record_count
     assert TANF_T3.objects.count() == expected_t3_record_count
 
-    search = documents.tanf.TANF_T1DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=super_big_s1_file.id
-    )
-    assert search.count() == expected_t1_record_count
-    search.delete()
-
-    search = documents.tanf.TANF_T2DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=super_big_s1_file.id
-    )
-    assert search.count() == expected_t2_record_count
-    search.delete()
-
-    search = documents.tanf.TANF_T3DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=super_big_s1_file.id
-    )
-    assert search.count() == expected_t3_record_count
-    search.delete()
-
 
 @pytest.mark.django_db()
 def test_parse_big_s1_file_with_rollback(big_s1_rollback_file, dfs):
@@ -653,24 +611,6 @@ def test_parse_big_s1_file_with_rollback(big_s1_rollback_file, dfs):
     assert TANF_T1.objects.count() == 0
     assert TANF_T2.objects.count() == 0
     assert TANF_T3.objects.count() == 0
-
-    search = documents.tanf.TANF_T1DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=big_s1_rollback_file.id
-    )
-    assert search.count() == 0
-
-    search = documents.tanf.TANF_T2DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=big_s1_rollback_file.id
-    )
-    assert search.count() == 0
-
-    search = documents.tanf.TANF_T3DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=big_s1_rollback_file.id
-    )
-    assert search.count() == 0
 
 
 @pytest.mark.django_db
@@ -1108,6 +1048,7 @@ def test_parse_ssp_section2_file(ssp_section2_file, dfs):
     assert SSP_M4.objects.count() == expected_m4_count
     assert SSP_M5.objects.count() == expected_m5_count
 
+    """
     search = documents.ssp.SSP_M4DataSubmissionDocument.search().query(
         'match',
         datafile__id=ssp_section2_file.id
@@ -1121,6 +1062,7 @@ def test_parse_ssp_section2_file(ssp_section2_file, dfs):
     )
     assert search.count() == expected_m5_count
     search.delete()
+    """
 
     m4 = m4_objs.first()
     assert m4.DISPOSITION == 1
@@ -1440,6 +1382,7 @@ def test_parse_t2_invalid_dob(t2_invalid_dob_file, dfs):
     assert year_error.error_message == "T2 Item 32 (Date of Birth): Year Q897 must be larger than 1900."
     assert digits_error.error_message == "T2 Item 32 (Date of Birth): Q897$9 3 does not have exactly 8 digits."
 
+'''   This is test for ES indexing, which is removed. TODO: DELETE
 @pytest.mark.django_db
 def test_bulk_create_returns_rollback_response_on_bulk_index_exception(small_correct_file, mocker, dfs):
     """Test bulk_create_records returns (False, [unsaved_records]) on BulkIndexException."""
@@ -1468,7 +1411,7 @@ def test_bulk_create_returns_rollback_response_on_bulk_index_exception(small_cor
     assert TANF_T1.objects.all().count() == 1
     assert TANF_T2.objects.all().count() == 1
     assert TANF_T3.objects.all().count() == 1
-
+'''
 
 @pytest.mark.django_db()
 def test_parse_tanf_section4_file_with_errors(tanf_section_4_file_with_errors, dfs):
@@ -1610,7 +1553,7 @@ def test_parse_t3_cat2_invalid_citizenship(t3_cat2_invalid_citizenship_file, dfs
     assert parser_errors.count() == 2
 
     for e in parser_errors:
-        assert e.error_message == "T3 Item 76 (Citizenship/Immigration Status): 0 is not in [1, 2, 9]."
+        assert e.error_message == "T3 Item 76 (Citizenship/Immigration Status): 0 is not in [1, 2, 3, 9]."
 
 
 @pytest.mark.django_db()
