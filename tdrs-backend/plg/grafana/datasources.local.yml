@@ -4,7 +4,7 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://prometheus:9090
+    url: http://mimir:9009/prometheus
     jsonData:
       httpMethod: POST
     isDefault: false
@@ -18,11 +18,3 @@ datasources:
       maxLines: 1000
     isDefault: false
     uid: "L8E80F9AEF21F6940"
-  - name: Mimir
-    type: prometheus
-    access: proxy
-    url: "http://mimir:9009/prometheus"
-    jsonData:
-      httpMethod: POST
-    isDefault: false
-    uid: "MBFA97CFE80F9AEF2"
