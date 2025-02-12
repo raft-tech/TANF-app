@@ -241,7 +241,7 @@ services:
 
   mimir:
     image: grafana/mimir:latest
-    command: -config.file /etc/mimir/config.yaml -server.http-listen-port=9009 -log.format=json -log.level=info
+    command: -config.file /etc/mimir/config.yaml
     environment:
       - LOCALSTACK_HOST=localstack:6456
       - AWS_ACCESS_KEY_ID=test
