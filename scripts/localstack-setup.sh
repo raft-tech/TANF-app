@@ -11,5 +11,5 @@ awslocal s3api create-bucket --bucket loki-logs --region $AWS_REGION_NAME
 awslocal s3api put-bucket-versioning --bucket loki-logs --versioning-configuration Status=Enabled
 
 
-awslocal s3api create-bucket --bucket mimir-tsdb --region $AWS_REGION_NAME
-awslocal s3api put-bucket-versioning --bucket mimir-tsdb --versioning-configuration Status=Enabled
+awslocal s3api create-bucket --bucket mimir --region $AWS_REGION_NAME
+awslocal s3api put-bucket-versioning --bucket mimir --versioning-configuration Status=Enabled

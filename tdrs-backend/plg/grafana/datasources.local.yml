@@ -21,8 +21,8 @@ datasources:
   - name: Mimir
     type: prometheus
     access: proxy
-    url: "http://mimir:9009"
+    url: "http://mimir:9009/prometheus"
     jsonData:
       httpMethod: POST
     isDefault: false
-    uid: "M000000000000000"
+    uid: "MBFA97CFE80F9AEF2"

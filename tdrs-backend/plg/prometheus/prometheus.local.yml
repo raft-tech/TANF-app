@@ -24,9 +24,6 @@ rule_files:
 remote_write:
  - url: http://mimir:9009/api/v1/push
    name: mimir-push
-  # headers: 
-  #  "X-Prometheus-Remote-Write-Version": "0.1.0"
-
 
 remote_read:
   - url: http://mimir:9009/api/v1/read
