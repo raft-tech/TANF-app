@@ -175,7 +175,6 @@ def rollback_records(unsaved_records, datafile):
         try:
             model = document.Django.model
             qset = model.objects.filter(datafile=datafile)
-            model.objects.filter(id=document.id).delete()
 
             # WARNING: we can use `_raw_delete` in this case because our record models don't have cascading
             # dependencies. If that ever changes, we should NOT use `_raw_delete`.
@@ -252,7 +251,6 @@ def delete_serialized_records(duplicate_manager, dfs):
         try:
             model = document.Django.model
             qset = model.objects.filter(id__in=ids)
-            model.objects.filter(id=document.id).delete()
 
             # WARNING: we can use `_raw_delete` in this case because our record models don't have cascading
             # dependencies. If that ever changes, we should NOT use `_raw_delete`.

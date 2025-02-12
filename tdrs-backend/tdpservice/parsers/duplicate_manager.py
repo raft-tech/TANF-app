@@ -127,7 +127,6 @@ class CaseDuplicateDetector:
         """
         # Add all records detector receives to id dictionary. That way if a line that has more than one record created
         # from it will have all of it's records appropriately marked for deletion if need be.
-        schema.document.save()
         self.record_ids.setdefault(schema.document, []).append(record.id)
 
         # We do not run duplicate detection for records that have been generated on the same line: T3, M3, T6, M6, T7,
