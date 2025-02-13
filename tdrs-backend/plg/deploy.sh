@@ -105,14 +105,14 @@ setup_prod_net_pols() {
     # Let grafana talk to prometheus and loki
     cf add-network-policy grafana prometheus --protocol tcp --port 8080
     cf add-network-policy grafana loki --protocol tcp --port 8080
-    cf add-network-policy grafana mimir --protocol tcp --port 9009
+    cf add-network-policy grafana mimir -s tanf-dev --protocol tcp --port 8080
 
     # Let prometheus talk to alertmanager/grafana/loki/prod backend
     cf add-network-policy prometheus alertmanager --protocol tcp --port 8080
     cf add-network-policy prometheus $PROD_BACKEND --protocol tcp --port 8080
     cf add-network-policy prometheus grafana --protocol tcp --port 8080
     cf add-network-policy prometheus loki --protocol tcp --port 8080
-    cf add-network-policy prometheus mimir --protocol tcp --port 9009
+    cf add-network-policy prometheus mimir -s tanf-dev --protocol tcp --port 8080
 
     # Let alertmanager/grafana talk to the prod frontend and vice versa
     cf add-network-policy alertmanager $PROD_FRONTEND --protocol tcp --port 80

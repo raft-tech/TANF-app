@@ -20,3 +20,4 @@
 	patterns = .+_KEY=.+
 	patterns = .+smtp_auth_password: .[^{]+
 	allowed = tdrs-backend/docker-compose.yml:248:      - AWS_SECRET_ACCESS_KEY=test
+	allowed = tdrs-backend/plg/mimir/manifest.yml: S3_URI=$(echo $VCAP_SERVICES | jq -r .*

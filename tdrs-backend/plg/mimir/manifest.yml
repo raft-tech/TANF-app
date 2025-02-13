@@ -1,8 +1,31 @@
 version: 1
 applications:
-  - name: {{ name }}
-    memory: 24M
-    disk_quota: 24M
+  - name: mimir
+    memory: 128M
+    disk_quota: 7G
     instances: 1
-    docker:
-      image: grafana/mimir:latest
+    command: |
+      S3_URI=$(echo $VCAP_SERVICES | jq -r .s3[0].credentials.uri)
+      S3_ENDPOINT=$(echo $VCAP_SERVICES | jq -r .s3[0].credentials.endpoint)
+      S3_REGION=$(echo $VCAP_SERVICES | jq -r .s3[0].credentials.region)
+      S3_ACCESS_KEY=$(echo $VCAP_SERVICES | jq -r .s3[0].credentials.access_key_id)
+      S3_SECRET_KEY=$(echo $VCAP_SERVICES | jq -r .s3[0].credentials.secret_access_key)
+      S3_BUCKET=$(echo $VCAP_SERVICES | jq -r .s3[0].credentials.bucket)
+      wget https://tdp-nexus.dev.raftlabs.tech/repository/tdp-bin/linux/bin/yq_linux_amd64.tar.gz
+      tar -zxvf yq_linux_amd64.tar.gz
+      rm yq_linux_amd64.tar.gz && rm yq.1 && rm install-man-page.sh
+      ./yq_linux_amd64 eval -i ".common.storage.s3.endpoint = \"$S3_ENDPOINT\"" mimir.yml
+      ./yq_linux_amd64 eval -i ".common.storage.s3.region = \"$S3_REGION\"" mimir.yml
+      ./yq_linux_amd64 eval -i ".common.storage.s3.access_key_id = \"$S3_ACCESS_KEY\"" mimir.yml
+      ./yq_linux_amd64 eval -i ".common.storage.s3.secret_access_key = \"$S3_SECRET_KEY\"" mimir.yml
+      ./yq_linux_amd64 eval -i ".common.storage.s3.bucket_name = \"$S3_BUCKET\"" mimir.yml
+      export bin_name="mimir-linux-amd64"
+      mkdir /home/vcap/app/mimir
+      cd /home/vcap/app/mimir
+      wget https://github.com/grafana/mimir/releases/download/mimir-2.15.0/$bin_name
+      chmod +x $bin_name
+      ./$bin_name -config.file ../mimir.yml
+    buildpacks:
+    - https://github.com/cloudfoundry/binary-buildpack
+    services:
+      - mimir
