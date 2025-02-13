@@ -20,7 +20,7 @@ for i in range(1, 31):
     schemas.append(
         RowSchema(
             record_type="M7",
-            document=SSP_M7DataSubmissionDocument(),
+            model=SSP_M7DataSubmissionDocument(),
             quiet_preparser_errors=i > 1,
             preparsing_validators=[
                 category1.recordHasLength(247),

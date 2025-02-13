@@ -14,7 +14,7 @@ SECOND_CHILD = 2
 
 first_part_schema = RowSchema(
     record_type="M3",
-    document=SSP_M3DataSubmissionDocument(),
+    model=SSP_M3DataSubmissionDocument(),
     generate_hashes_func=generate_t2_t3_t5_hashes,
     should_skip_partial_dup_func=lambda record: record.FAMILY_AFFILIATION in {2, 4, 5},
     get_partial_hash_members_func=get_t2_t3_t5_partial_hash_members,
@@ -331,7 +331,7 @@ first_part_schema = RowSchema(
 
 second_part_schema = RowSchema(
     record_type="M3",
-    document=SSP_M3DataSubmissionDocument(),
+    model=SSP_M3DataSubmissionDocument(),
     generate_hashes_func=generate_t2_t3_t5_hashes,
     should_skip_partial_dup_func=lambda record: record.FAMILY_AFFILIATION in {2, 4, 5},
     get_partial_hash_members_func=get_t2_t3_t5_partial_hash_members,

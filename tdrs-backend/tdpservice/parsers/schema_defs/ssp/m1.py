@@ -11,7 +11,7 @@ m1 = SchemaManager(
     schemas=[
         RowSchema(
             record_type="M1",
-            document=SSP_M1DataSubmissionDocument(),
+            model=SSP_M1DataSubmissionDocument(),
             generate_hashes_func=generate_t1_t4_hashes,
             get_partial_hash_members_func=get_t1_t4_partial_hash_members,
             preparsing_validators=[

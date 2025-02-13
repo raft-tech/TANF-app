@@ -12,7 +12,7 @@ t1 = SchemaManager(
     schemas=[
         RowSchema(
             record_type="T1",
-            document=TANF_T1DataSubmissionDocument(),
+            model=TANF_T1DataSubmissionDocument(),
             generate_hashes_func=generate_t1_t4_hashes,
             get_partial_hash_members_func=get_t1_t4_partial_hash_members,
             preparsing_validators=[

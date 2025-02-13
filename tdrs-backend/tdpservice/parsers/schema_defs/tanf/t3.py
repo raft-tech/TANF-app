@@ -14,7 +14,7 @@ SECOND_CHILD = 2
 
 child_one = RowSchema(
     record_type="T3",
-    document=TANF_T3DataSubmissionDocument(),
+    model=TANF_T3DataSubmissionDocument(),
     generate_hashes_func=generate_t2_t3_t5_hashes,
     should_skip_partial_dup_func=lambda record: record.FAMILY_AFFILIATION in {2, 4, 5},
     get_partial_hash_members_func=get_t2_t3_t5_partial_hash_members,
@@ -328,7 +328,7 @@ child_one = RowSchema(
 
 child_two = RowSchema(
     record_type="T3",
-    document=TANF_T3DataSubmissionDocument(),
+    model=TANF_T3DataSubmissionDocument(),
     generate_hashes_func=generate_t2_t3_t5_hashes,
     should_skip_partial_dup_func=lambda record: record.FAMILY_AFFILIATION in {2, 4, 5},
     get_partial_hash_members_func=get_t2_t3_t5_partial_hash_members,

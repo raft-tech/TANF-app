@@ -8,7 +8,7 @@ from tdpservice.parsers.validators import category1, category2
 
 trailer = RowSchema(
     record_type="TRAILER",
-    document=None,
+    model=None,
     preparsing_validators=[
         category1.recordHasLength(23),
         category1.recordStartsWith(

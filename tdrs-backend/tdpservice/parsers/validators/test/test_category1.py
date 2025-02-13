@@ -8,7 +8,7 @@ from ...row_schema import RowSchema
 
 test_schema = RowSchema(
     record_type="Test",
-    document=None,
+    model=None,
     preparsing_validators=[],
     postparsing_validators=[],
     fields=[],

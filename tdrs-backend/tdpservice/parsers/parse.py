@@ -363,7 +363,7 @@ def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted, cas
                                                                                                       line,
                                                                                                       line_number,
                                                                                                       record_has_errors)
-                unsaved_records.add_record(case_hash, (record, s.document), line_number)
+                unsaved_records.add_record(case_hash, (record, s.model), line_number)
                 was_removed = unsaved_records.remove_case_due_to_errors(should_remove, case_hash_to_remove)
                 case_consistency_validator.update_removed(case_hash_to_remove, should_remove, was_removed)
                 dfs.total_number_of_records_in_file += 1

@@ -13,7 +13,7 @@ t5 = SchemaManager(
     schemas=[
         RowSchema(
             record_type="T5",
-            document=Tribal_TANF_T5DataSubmissionDocument(),
+            model=Tribal_TANF_T5DataSubmissionDocument(),
             generate_hashes_func=generate_t2_t3_t5_hashes,
             should_skip_partial_dup_func=lambda record: record.FAMILY_AFFILIATION in {3, 4, 5},
             get_partial_hash_members_func=get_t2_t3_t5_partial_hash_members,

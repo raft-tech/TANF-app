@@ -9,7 +9,7 @@ from tdpservice.search_indexes.documents.tribal import Tribal_TANF_T6DataSubmiss
 
 s1 = RowSchema(
     record_type="T6",
-    document=Tribal_TANF_T6DataSubmissionDocument(),
+    model=Tribal_TANF_T6DataSubmissionDocument(),
     preparsing_validators=[
         category1.recordHasLength(379),
         category1.validate_fieldYearMonth_with_headerYearQuarter(),
@@ -217,7 +217,7 @@ s1 = RowSchema(
 
 s2 = RowSchema(
     record_type="T6",
-    document=Tribal_TANF_T6DataSubmissionDocument(),
+    model=Tribal_TANF_T6DataSubmissionDocument(),
     quiet_preparser_errors=True,
     preparsing_validators=[
         category1.recordHasLength(379),
@@ -423,7 +423,7 @@ s2 = RowSchema(
 
 s3 = RowSchema(
     record_type="T6",
-    document=Tribal_TANF_T6DataSubmissionDocument(),
+    model=Tribal_TANF_T6DataSubmissionDocument(),
     quiet_preparser_errors=True,
     preparsing_validators=[
         category1.recordHasLength(379),

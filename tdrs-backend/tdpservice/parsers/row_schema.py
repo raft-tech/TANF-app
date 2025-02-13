@@ -14,7 +14,7 @@ class RowSchema:
     def __init__(
             self,
             record_type="T1",
-            document=None,
+            model=None,
             # The default hash function covers all program types with record types ending in a 6 or 7.
             generate_hashes_func=lambda line, record: (hash(line),
                                                        hash(record.RecordType)),
@@ -25,7 +25,7 @@ class RowSchema:
             fields=[],
             quiet_preparser_errors=False,
             ):
-        self.document = document
+        self.model = model
         self.generate_hashes_func = generate_hashes_func
         self.should_skip_partial_dup_func = should_skip_partial_dup_func
         self.get_partial_hash_members_func = get_partial_hash_members_func
@@ -122,7 +122,7 @@ class RowSchema:
 
     def parse_line(self, line):
         """Create a model for the line based on the schema."""
-        record = self.document.Django.model() if self.document is not None else dict()
+        record = self.model.Django.model() if self.model is not None else dict()
 
         for field in self.fields:
             value = field.parse_value(line)

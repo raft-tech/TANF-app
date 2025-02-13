@@ -13,7 +13,7 @@ m5 = SchemaManager(
     schemas=[
         RowSchema(
             record_type="M5",
-            document=SSP_M5DataSubmissionDocument(),
+            model=SSP_M5DataSubmissionDocument(),
             generate_hashes_func=generate_t2_t3_t5_hashes,
             should_skip_partial_dup_func=lambda record: record.FAMILY_AFFILIATION in {3, 4, 5},
             get_partial_hash_members_func=get_t2_t3_t5_partial_hash_members,
