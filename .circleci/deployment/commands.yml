@@ -128,7 +128,6 @@
               $DEPLOY_STRATEGY \
               <<parameters.frontend-appname>> \
               <<parameters.backend-appname>> \
-              <<parameters.proxy-appname>> \
               <<parameters.cf-space>>
 
   deploy-clamav:

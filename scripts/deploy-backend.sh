@@ -10,8 +10,7 @@ DEPLOY_STRATEGY=${1}
 #The application name  defined via the manifest yml for the frontend
 CGAPPNAME_FRONTEND=${2}
 CGAPPNAME_BACKEND=${3}
-CGAPPNAME_PROXY=${5}
-CF_SPACE=${6}
+CF_SPACE=${4}
 
 strip() {
     # Usage: strip "string" "pattern"
