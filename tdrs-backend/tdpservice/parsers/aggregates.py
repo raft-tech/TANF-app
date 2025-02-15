@@ -42,7 +42,7 @@ def case_aggregates_by_month(df, dfs_status):
                 schema_model = schema_model.schemas[0]
 
             curr_case_numbers = set(schema_model.model.objects.filter(datafile=df,
-                                                                                   RPT_MONTH_YEAR=rpt_month_year)
+                                                                      RPT_MONTH_YEAR=rpt_month_year)
                                     .distinct("CASE_NUMBER").values_list("CASE_NUMBER", flat=True))
             case_numbers = case_numbers.union(curr_case_numbers)
 

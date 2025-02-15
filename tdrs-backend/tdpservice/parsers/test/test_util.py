@@ -147,7 +147,6 @@ def test_parse_line_parses_line_from_schema_to_object():
         fourth = None
         fifth = None
 
-
     line = '12345001'
     schema = RowSchema(
         model=TestModel,
