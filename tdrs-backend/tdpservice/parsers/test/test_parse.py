@@ -91,7 +91,7 @@ def test_parse_section_mismatch(small_correct_file, dfs):
     assert err.content_type is None
     assert err.object_id is None
     assert errors == {
-        'document': [err]
+        'model': [err]
     }
 
 
@@ -117,7 +117,7 @@ def test_parse_wrong_program_type(small_correct_file, dfs):
     assert err.content_type is None
     assert err.object_id is None
     assert errors == {
-        'document': [err]
+        'model': [err]
     }
 
 @pytest.mark.django_db
@@ -209,7 +209,7 @@ def test_parse_bad_file_multiple_headers(bad_file_multiple_headers, dfs):
     assert err.error_message == "Multiple headers found."
     assert err.content_type is None
     assert err.object_id is None
-    assert errors['document'] == ['Multiple headers found.']
+    assert errors['model'] == ['Multiple headers found.']
 
 
 @pytest.mark.django_db
@@ -1045,22 +1045,6 @@ def test_parse_ssp_section2_file(ssp_section2_file, dfs):
 
     assert SSP_M4.objects.count() == expected_m4_count
     assert SSP_M5.objects.count() == expected_m5_count
-
-    """
-    search = documents.ssp.SSP_M4DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=ssp_section2_file.id
-    )
-    assert search.count() == expected_m4_count
-    search.delete()
-
-    search = documents.ssp.SSP_M5DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=ssp_section2_file.id
-    )
-    assert search.count() == expected_m5_count
-    search.delete()
-    """
 
     m4 = m4_objs.first()
     assert m4.DISPOSITION == 1

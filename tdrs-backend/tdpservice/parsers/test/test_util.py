@@ -147,13 +147,10 @@ def test_parse_line_parses_line_from_schema_to_object():
         fourth = None
         fifth = None
 
-    class TestDocument:
-        class Django:
-            model = TestModel
 
     line = '12345001'
     schema = RowSchema(
-        model=TestDocument(),
+        model=TestModel,
         fields=[
             Field(item=1, name='first', friendly_name='first', type='string', startIndex=0, endIndex=3),
             Field(item=2, name='second', friendly_name='second', type='string', startIndex=3, endIndex=4),
@@ -206,17 +203,12 @@ def test_run_field_validators_returns_valid_with_object():
         second = None
         third = None
 
-    class TestDocument:
-        class Django:
-            model = TestModel
-
     instance = TestModel()
     instance.first = '123'
     instance.second = '4'
     instance.third = '5'
 
-    model = TestDocument()
-    model.Django.model = instance
+    model = instance
 
     schema = RowSchema(
         model=model,
@@ -273,17 +265,12 @@ def test_run_field_validators_returns_invalid_with_object():
         second = None
         third = None
 
-    class TestDocument:
-        class Django:
-            model = TestModel
-
     instance = TestModel()
     instance.first = '123'
     instance.second = '4'
     instance.third = '5'
 
-    model = TestDocument()
-    model.Django.model = instance
+    model = instance
 
     schema = RowSchema(
         model=model,

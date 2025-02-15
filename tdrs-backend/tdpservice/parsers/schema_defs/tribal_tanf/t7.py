@@ -4,7 +4,7 @@ from tdpservice.parsers.fields import Field, TransformField
 from tdpservice.parsers.row_schema import RowSchema, SchemaManager
 from tdpservice.parsers.transforms import calendar_quarter_to_rpt_month_year
 from tdpservice.parsers.validators import category1, category2
-from tdpservice.search_indexes.documents.tribal import Tribal_TANF_T7DataSubmissionDocument
+from tdpservice.search_indexes.models.tribal import Tribal_TANF_T7
 
 schemas = []
 
@@ -20,7 +20,7 @@ for i in range(1, 31):
     schemas.append(
         RowSchema(
             record_type="T7",
-            model=Tribal_TANF_T7DataSubmissionDocument(),
+            model=Tribal_TANF_T7,
             quiet_preparser_errors=i > 1,
             preparsing_validators=[
                 category1.recordHasLength(247),

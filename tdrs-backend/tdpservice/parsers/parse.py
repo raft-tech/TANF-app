@@ -83,7 +83,7 @@ def parse_datafile(datafile, dfs):
 
     if not section_result.valid:
         logger.info(f"Preparser Error -> Section is not valid: {section_result.error}")
-        errors['document'] = [section_result.error]
+        errors['model'] = [section_result.error]
         unsaved_parser_errors = {1: [section_result.error]}
         bulk_create_errors(unsaved_parser_errors, 1, flush=True)
         return errors
@@ -95,7 +95,7 @@ def parse_datafile(datafile, dfs):
     )
     if not rpt_month_year_result.valid:
         logger.info(f"Preparser Error -> Rpt Month Year is not valid: {rpt_month_year_result.error}")
-        errors['document'] = [rpt_month_year_result.error]
+        errors['model'] = [rpt_month_year_result.error]
         unsaved_parser_errors = {1: [rpt_month_year_result.error]}
         bulk_create_errors(unsaved_parser_errors, 1, flush=True)
         return errors
@@ -113,10 +113,10 @@ def bulk_create_records(unsaved_records, line_number, header_count, datafile, df
         logger.debug("Bulk creating records.")
         num_db_records_created = 0
         num_expected_db_records = 0
-        for document, records in unsaved_records.items():
+        for model, records in unsaved_records.items():
             try:
                 num_expected_db_records += len(records)
-                created_objs = document.Django.model.objects.bulk_create(records)
+                created_objs = model.objects.bulk_create(records)
                 num_db_records_created += len(created_objs)
             except DatabaseError as e:
                 log_parser_exception(datafile,
@@ -171,9 +171,8 @@ def evaluate_trailer(datafile, trailer_count, multiple_trailer_errors, is_last_l
 def rollback_records(unsaved_records, datafile):
     """Delete created records in the event of a failure."""
     logger.info("Rolling back created records.")
-    for document in unsaved_records:
+    for model in unsaved_records:
         try:
-            model = document.Django.model
             qset = model.objects.filter(datafile=datafile)
 
             # WARNING: we can use `_raw_delete` in this case because our record models don't have cascading
@@ -247,9 +246,8 @@ def create_no_records_created_pre_check_error(datafile, dfs):
 def delete_serialized_records(duplicate_manager, dfs):
     """Delete all records that have already been serialized to the DB that have cat4 errors."""
     total_deleted = 0
-    for document, ids in duplicate_manager.get_records_to_remove().items():
+    for model, ids in duplicate_manager.get_records_to_remove().items():
         try:
-            model = document.Django.model
             qset = model.objects.filter(id__in=ids)
 
             # WARNING: we can use `_raw_delete` in this case because our record models don't have cascading
@@ -318,7 +316,7 @@ def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted, cas
 
         if header_count > 1:
             logger.info(f"Preparser Error -> Multiple headers found for file: {datafile.id} on line: {line_number}.")
-            errors.update({'document': ['Multiple headers found.']})
+            errors.update({'model': ['Multiple headers found.']})
             err_obj = generate_error(
                 schema=None,
                 error_category=ParserErrorCategoryChoices.PRE_CHECK,
@@ -381,7 +379,7 @@ def parse_datafile_lines(datafile, dfs, program_type, section, is_encrypted, cas
 
     if header_count == 0:
         logger.info(f"Preparser Error -> No headers found for file: {datafile.id}.")
-        errors.update({'document': ['No headers found.']})
+        errors.update({'model': ['No headers found.']})
         err_obj = generate_error(
             schema=None,
             error_category=ParserErrorCategoryChoices.PRE_CHECK,

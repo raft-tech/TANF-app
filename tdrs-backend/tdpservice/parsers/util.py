@@ -51,7 +51,7 @@ def generate_parser_error(datafile, line_number, schema, error_category, error_m
         error_message=error_message,
         error_type=error_category,
         content_type=ContentType.objects.get_for_model(
-            model=schema.model.Django.model if schema else None
+            model=schema.model if schema else None
         ) if record and not isinstance(record, dict) else None,
         object_id=getattr(record, 'id', None) if record and not isinstance(record, dict) else None,
         fields_json=fields_json,
@@ -229,7 +229,7 @@ class SortedRecords:
 
     def add_record(self, case_hash, record_doc_pair, line_num):
         """Add a record_doc_pair to the sorted object if the case hasn't been removed already."""
-        record, document = record_doc_pair
+        record, model = record_doc_pair
         rpt_month_year = str(getattr(record, 'RPT_MONTH_YEAR'))
 
         if case_hash in self.cases_already_removed:
@@ -239,19 +239,19 @@ class SortedRecords:
 
         if case_hash is not None:
             hashed_case = self.hash_sorted_cases.get(case_hash, {})
-            records = hashed_case.get(document, [])
+            records = hashed_case.get(model, [])
             records.append(record)
 
-            hashed_case[document] = records
+            hashed_case[model] = records
             self.hash_sorted_cases[case_hash] = hashed_case
             # We treat the nested dictionary here as a set because dictionaries are sorted while sets aren't. If we
             # don't have a sorted container we have test failures.
-            self.cases.setdefault(document, dict())[record] = None
+            self.cases.setdefault(model, dict())[record] = None
         else:
             logger.error(f"Error: Case hash for record at line #{line_num} was None!")
 
     def get_bulk_create_struct(self):
-        """Return dict of form {document: {record: None}} for bulk_create_records to consume."""
+        """Return dict of form {model: {record: None}} for bulk_create_records to consume."""
         return self.cases
 
     def clear(self, all_created):

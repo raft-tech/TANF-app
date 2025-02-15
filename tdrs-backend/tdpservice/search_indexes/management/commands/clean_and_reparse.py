@@ -6,7 +6,7 @@ from django.db.utils import DatabaseError
 from tdpservice.data_files.models import DataFile
 from tdpservice.parsers.models import DataFileSummary, ParserError
 from tdpservice.scheduling import parser_task
-from tdpservice.search_indexes.util import DOCUMENTS, count_all_records
+from tdpservice.search_indexes.util import MODELS, count_all_records
 from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 from tdpservice.core.utils import log
 from django.contrib.admin.models import ADDITION
@@ -98,9 +98,8 @@ class Command(BaseCommand):
         """Delete records, errors, and documents from Postgres and Elastic."""
         total_deleted = 0
         elastic_exceptions = dict()
-        for doc in DOCUMENTS:
+        for model in MODELS:
             try:
-                model = doc.Django.model
                 qset = model.objects.filter(datafile_id__in=file_ids).order_by('id')
                 count = qset.count()
                 total_deleted += count

@@ -5,15 +5,15 @@ from tdpservice.parsers.transforms import ssp_ssn_decryption_func
 from tdpservice.parsers.fields import TransformField, Field
 from tdpservice.parsers.row_schema import RowSchema, SchemaManager
 from tdpservice.parsers.validators import category1, category2, category3
-from tdpservice.search_indexes.documents.ssp import SSP_M5DataSubmissionDocument
 from tdpservice.parsers.util import generate_t2_t3_t5_hashes, get_t2_t3_t5_partial_hash_members
+from tdpservice.search_indexes.models.ssp import SSP_M5
 
 
 m5 = SchemaManager(
     schemas=[
         RowSchema(
             record_type="M5",
-            model=SSP_M5DataSubmissionDocument(),
+            model=SSP_M5,
             generate_hashes_func=generate_t2_t3_t5_hashes,
             should_skip_partial_dup_func=lambda record: record.FAMILY_AFFILIATION in {3, 4, 5},
             get_partial_hash_members_func=get_t2_t3_t5_partial_hash_members,

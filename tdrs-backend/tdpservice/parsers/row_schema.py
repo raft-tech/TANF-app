@@ -122,7 +122,7 @@ class RowSchema:
 
     def parse_line(self, line):
         """Create a model for the line based on the schema."""
-        record = self.model.Django.model() if self.model is not None else dict()
+        record = self.model() if self.model is not None else dict()
 
         for field in self.fields:
             value = field.parse_value(line)

@@ -207,8 +207,8 @@ class DuplicateManager:
         """Return dictionary of document:[errors]."""
         records_to_remove = dict()
         for case_duplicate_detector in self.case_duplicate_detectors.values():
-            for document, ids in case_duplicate_detector.get_records_for_post_parse_deletion().items():
-                records_to_remove.setdefault(document, []).extend(ids)
+            for model, ids in case_duplicate_detector.get_records_for_post_parse_deletion().items():
+                records_to_remove.setdefault(model, []).extend(ids)
 
         return records_to_remove
 
