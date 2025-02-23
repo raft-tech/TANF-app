@@ -235,6 +235,11 @@ class Common(Configuration):
                 "class": "logging.StreamHandler",
                 "formatter": "color",
             },
+            "s3":{
+                "class": "tdpservice.log_handler.S3FileHandler",
+                'filename': "/tmp/s3.log",
+                "formatter": "verbose",
+            },
             "file": {
                 "class": "logging.handlers.RotatingFileHandler",
                 "formatter": "verbose",
@@ -250,7 +255,7 @@ class Common(Configuration):
                "level": LOGGING_LEVEL
             },
             "tdpservice.parsers": {
-               "handlers": ["application", "file"],
+               "handlers": ["s3"],
                "propagate": False,
                "level": LOGGING_LEVEL
             },
@@ -270,6 +275,14 @@ class Common(Configuration):
     }
     es_logger = logging.getLogger('elasticsearch')
     es_logger.setLevel(getattr(logging, LOGGING_LEVEL))
+
+    PARSER_LOGGER = logging.getLogger('tdpservice.parsers')
+
+    AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+    AWS_REGION = os.getenv("AWS_REGION", "us-gov-west-1")
+    AWS_S3_BUCKET_NAME = os.getenv("AWS_S3_BUCKET_NAME")
+    AWS_S3_LOGS_PREFIX = os.getenv("AWS_S3_LOGS_PREFIX", "logs")
 
     # Custom user app
     AUTH_USER_MODEL = "users.User"

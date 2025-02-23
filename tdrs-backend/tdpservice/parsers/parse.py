@@ -5,7 +5,6 @@ from django.conf import settings
 from django.db.utils import DatabaseError
 from elasticsearch.exceptions import ElasticsearchException
 import itertools
-import logging
 from tdpservice.parsers.models import ParserErrorCategoryChoices, ParserError
 from tdpservice.parsers import row_schema, schema_defs, util
 from tdpservice.parsers.validators import category1
@@ -14,8 +13,7 @@ from tdpservice.parsers.schema_defs.utils import get_section_reference, get_prog
 from tdpservice.parsers.case_consistency_validator import CaseConsistencyValidator
 from tdpservice.parsers.util import log_parser_exception
 
-logger = logging.getLogger(__name__)
-
+logger = settings.PARSER_LOGGER
 
 def parse_datafile(datafile, dfs):
     """Parse and validate Datafile header/trailer, then select appropriate schema and parse/validate all lines."""
