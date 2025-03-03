@@ -103,4 +103,4 @@ def parse(data_file_id, reparse_id=None):
             set_reparse_file_meta_model_failed_state(file_meta)
     finally:
         logger.info(f"DataFile parsing finished for file {data_file.filename}")
-        logger.handlers[0].doRollover()
+        logger.handlers[0].doRollover(data_file)

@@ -6,8 +6,6 @@ import logging
 from botocore.exceptions import ClientError
 from django.conf import settings
 
-import logging
-
 logger = logging.getLogger(__name__)
 
 # SET TO GET THESE FROM ENV VARS IN SETTINGS
@@ -23,7 +21,7 @@ BOTO3_CLIENT_CONFIG = {
     "aws_secret_access_key": AWS_SECRET_ACCESS_KEY,
     "region_name": AWS_REGION,
 }
-if settings.USE_LOCALSTACK: # this is needed for local stack testing
+if settings.USE_LOCALSTACK:
     BOTO3_CLIENT_CONFIG["endpoint_url"] = "http://host.docker.internal:4566"
 
 def change_log_filename(logger, new_filename):
@@ -56,10 +54,11 @@ class S3FileHandler(logging.FileHandler):
         if not self.logs_prefix.endswith("/"):
             self.logs_prefix += "/"
 
-    def doRollover(self):
+    def doRollover(self, datafile):
         """Rollover happens before closing the file."""
         try:
-            key = f"{AWS_S3_LOGS_PREFIX}/{self.filename}"
+            key = f"{AWS_S3_LOGS_PREFIX}/{datafile.id}/{datafile.year}/{datafile.quarter}/" \
+                  f"{datafile.stt}/{datafile.section}/{datafile.filename}"
             self.s3_client.upload_file(
                 Filename=self.filename,
                 Bucket=AWS_S3_BUCKET_NAME,
