@@ -40,6 +40,7 @@ const INVALID_EXT_ERROR = (
   </>
 )
 
+// We should check the file first line of the file to determine submitted data/quarter is correct 
 const load = (file, section, input, dropTarget, dispatch) => {
   const filereader = new FileReader()
   const types = ['png', 'gif', 'jpeg']
