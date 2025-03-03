@@ -6,12 +6,25 @@ import logging
 from botocore.exceptions import ClientError
 from django.conf import settings
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # SET TO GET THESE FROM ENV VARS IN SETTINGS
 AWS_ACCESS_KEY_ID = settings.AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY = settings.AWS_SECRET_ACCESS_KEY
 AWS_REGION = settings.AWS_REGION
 AWS_S3_BUCKET_NAME = settings.AWS_S3_BUCKET_NAME
 AWS_S3_LOGS_PREFIX = settings.AWS_S3_LOGS_PREFIX
+
+BOTO3_CLIENT_CONFIG = {
+    "service_name": "s3",
+    "aws_access_key_id": AWS_ACCESS_KEY_ID,
+    "aws_secret_access_key": AWS_SECRET_ACCESS_KEY,
+    "region_name": AWS_REGION,
+}
+if settings.USE_LOCALSTACK: # this is needed for local stack testing
+    BOTO3_CLIENT_CONFIG["endpoint_url"] = "http://host.docker.internal:4566"
 
 def change_log_filename(logger, new_filename):
     """Change the filename of the log file handler."""
@@ -37,12 +50,7 @@ class S3FileHandler(logging.FileHandler):
         super().__init__(
             filename, mode='a', encoding=None, delay=False, errors=None
         )
-        self.s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-            region_name=AWS_REGION,
-        )
+        self.s3_client = boto3.client(**BOTO3_CLIENT_CONFIG)
         self.bucket_name = AWS_S3_BUCKET_NAME
         self.logs_prefix = AWS_S3_LOGS_PREFIX
         if not self.logs_prefix.endswith("/"):
@@ -56,6 +64,7 @@ class S3FileHandler(logging.FileHandler):
                 Filename=self.filename,
                 Bucket=AWS_S3_BUCKET_NAME,
                 Key=key)
+            logger.info(f"Log file {self.filename} uploaded to S3.")
         except ClientError as e:
-            print(f"Error sending log to S3: {e}")
+            logger.info(f"Error sending log to S3: {e}")
         self.close()
