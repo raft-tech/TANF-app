@@ -6,9 +6,6 @@ from django.utils import timezone
 from django.contrib.auth.models import Group
 from django.db.utils import DatabaseError
 from django.conf import settings
-from django.contrib.auth.models import Group
-from django.db.utils import DatabaseError
-from django.utils import timezone
 
 from tdpservice.data_files.models import DataFile, ReparseFileMeta
 from tdpservice.email.helpers.data_file import send_data_submitted_email
@@ -111,4 +108,4 @@ def parse(data_file_id, reparse_id=None):
             set_reparse_file_meta_model_failed_state(file_meta)
     finally:
         logger.info(f"DataFile parsing finished for file {data_file.filename}")
-        logger.handlers[0].doRollover(data_file)
+        logger.handlers[2].doRollover(data_file)
