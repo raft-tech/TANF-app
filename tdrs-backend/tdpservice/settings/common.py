@@ -255,7 +255,7 @@ class Common(Configuration):
                "level": LOGGING_LEVEL
             },
             "tdpservice.parsers": {
-               "handlers": ["s3"],
+               "handlers": ["application", "file", "s3"],
                "propagate": False,
                "level": LOGGING_LEVEL
             },
