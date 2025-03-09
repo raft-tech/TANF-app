@@ -17,6 +17,7 @@ import {
   handlePreview,
   getTargetClassName,
   tryGetUTF8EncodedFile,
+  checkHeaderFile,
   checkPreviewDependencies,
   removeOldPreviews,
 } from './utils'
@@ -40,7 +41,6 @@ const INVALID_EXT_ERROR = (
   </>
 )
 
-// We should check the file first line of the file to determine submitted data/quarter is correct 
 const load = (file, section, input, dropTarget, dispatch) => {
   const filereader = new FileReader()
   const types = ['png', 'gif', 'jpeg']
@@ -175,6 +175,8 @@ function FileUpload({ section, setLocalAlertState }) {
     if (!error) {
       // Get the correctly encoded file
       const encodedFile = await tryGetUTF8EncodedFile(result, file)
+      const checkedFile = await checkHeaderFile(result, file)
+      console.log(checkedFile)
       dispatch(upload({ file: encodedFile, section }))
     }
   }
