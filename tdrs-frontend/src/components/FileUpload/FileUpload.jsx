@@ -92,6 +92,8 @@ function FileUpload({ section, setLocalAlertState }) {
   // e.g. 'Aggregate Case Data' => 'aggregate-case-data'
   // The set of uploaded files in our Redux state
   const files = useSelector((state) => state.reports.submittedFiles)
+  const selectedYear = useSelector((state) => state.reports.year)
+  const selectedQuarter = useSelector((state) => state.reports.quarter)
 
   const dispatch = useDispatch()
 
@@ -175,9 +177,25 @@ function FileUpload({ section, setLocalAlertState }) {
     if (!error) {
       // Get the correctly encoded file
       const encodedFile = await tryGetUTF8EncodedFile(result, file)
-      const checkedFile = await checkHeaderFile(result, file)
-      console.log(checkedFile)
-      dispatch(upload({ file: encodedFile, section }))
+      const isCorrectQuarterYear = await checkHeaderFile(
+        result,
+        file,
+        selectedYear,
+        selectedQuarter
+      )
+      if (isCorrectQuarterYear) {
+        dispatch(upload({ file: encodedFile, section }))
+      } else {
+        dispatch({
+          type: SET_FILE_ERROR,
+          payload: {
+            error: {
+              message: `File header does not match selected year and quarter.`,
+            },
+            section,
+          },
+        })
+      }
     }
   }
 

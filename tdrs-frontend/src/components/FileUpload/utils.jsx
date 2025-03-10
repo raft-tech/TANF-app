@@ -144,14 +144,24 @@ export const tryGetUTF8EncodedFile = async function (fileBytes, file) {
 // import SET_SELECTED_YEAR
 // import SET_SELECTED_QUARTER
 
-export const checkHeaderFile = async function (result, file) {
+export const checkHeaderFile = async function (
+  result,
+  file,
+  selectedYear,
+  selectedQuarter
+) {
   // reads the first line of file formatted as UTF8Encoded
   const decoder = new TextDecoder('utf-8') // Or another encoding if needed
   const textResult = decoder.decode(result)
   const lines = textResult.split('\n')
   const firstLine = lines[0]
-  const yearqRegex = '[0-9]{4}[1-4]'
-  console.log(firstLine.match(yearqRegex))
-  const yearq = firstLine.match(yearqRegex)
-  return firstLine
+  const yearQuarterRegex = '[0-9]{4}[1-4]'
+  const yearQuarter = firstLine.match(yearQuarterRegex)
+  const year = yearQuarter?.[0]?.slice(0, 4)
+  const quarter = 'Q' + yearQuarter?.[0]?.slice(4, 5)
+  if (yearQuarter && (year !== selectedYear || quarter !== selectedQuarter)) {
+    return false
+  } else {
+    return true
+  }
 }
