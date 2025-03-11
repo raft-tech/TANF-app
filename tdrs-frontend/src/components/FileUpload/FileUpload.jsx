@@ -195,7 +195,7 @@ function FileUpload({ section, setLocalAlertState }) {
                 selectedYear +
                 ` and quarter: ` +
                 selectedQuarter +
-                ` .`,
+                `.`,
             },
             section,
           },
