@@ -150,6 +150,17 @@ export const checkHeaderFile = async function (
   selectedYear,
   selectedQuarter
 ) {
+  const fiscalToCalendarYear = (fiscalYear, fiscalQuarter) => {
+    let quarter = parseInt(fiscalQuarter?.slice(1, 2))
+    let year = parseInt(fiscalYear)
+    if (quarter === 1) {
+      year = year - 1
+    }
+    quarter = quarter === 1 ? 4 : quarter - 1
+    return { year, quarter }
+  }
+  const { selectedCalendarYear, selectedCalendarQuarter } =
+    fiscalToCalendarYear(selectedYear, selectedQuarter)
   // reads the first line of file formatted as UTF8Encoded
   const decoder = new TextDecoder('utf-8') // Or another encoding if needed
   const textResult = decoder.decode(result)
@@ -159,7 +170,10 @@ export const checkHeaderFile = async function (
   const yearQuarter = firstLine.match(yearQuarterRegex)
   const year = yearQuarter?.[0]?.slice(0, 4)
   const quarter = 'Q' + yearQuarter?.[0]?.slice(4, 5)
-  if (yearQuarter && (year !== selectedYear || quarter !== selectedQuarter)) {
+  if (
+    yearQuarter &&
+    (year !== selectedCalendarYear || quarter !== selectedCalendarQuarter)
+  ) {
     return false
   } else {
     return true
