@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 import { Provider } from 'react-redux'
 import { thunk } from 'redux-thunk'
@@ -209,6 +209,53 @@ describe('Reports', () => {
       expect(getByText('Section 2 - Closed Case Data')).toBeInTheDocument()
       expect(getByText('Section 3 - Aggregate Data')).toBeInTheDocument()
       expect(getByText('Section 4 - Stratum Data')).toBeInTheDocument()
+    })
+  })
+
+  it("should skip the file upload step when submitted files header doesn't match submitted year and quarter", async () => {
+    const store = appConfigureStore({
+      ...initialState,
+      reports: {
+        ...initialState.reports,
+        year: '2021',
+        stt: 'Florida',
+        quarter: 'Q3',
+      },
+    })
+
+    const origDispatch = store.dispatch
+    store.dispatch = jest.fn(origDispatch)
+
+    window.HTMLElement.prototype.scrollIntoView = jest.fn(() => null)
+
+    const { getByText, getByLabelText } = render(
+      <Provider store={store}>
+        <Reports />
+      </Provider>
+    )
+
+    fireEvent.click(getByText(/Search/, { selector: 'button' }))
+
+    await waitFor(() => {
+      expect(getByText('Section 1 - Active Case Data')).toBeInTheDocument()
+    })
+
+    const makeTestFile = (name, contents = ['test'], type = 'text/plain') =>
+      new File(contents, name, { type })
+
+    fireEvent.change(getByLabelText('Section 1 - Active Case Data'), {
+      target: {
+        files: [makeTestFile('test2.txt', ['20214'])],
+      },
+    })
+    await waitFor(() => {
+      expect(getByText('test2.txt')).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      const divElement = screen.getByText(
+        'File header does not match selected year and quarter.'
+      )
+      expect(divElement).toBeInTheDocument()
     })
   })
 
