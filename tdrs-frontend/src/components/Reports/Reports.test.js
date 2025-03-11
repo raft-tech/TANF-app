@@ -260,7 +260,7 @@ describe('Reports', () => {
           (currentYear - 1).toString() +
           ` and quarter: ` +
           'Q3' +
-          ` .`
+          `.`
       )
       expect(divElement).toBeInTheDocument()
     })
