@@ -190,7 +190,12 @@ function FileUpload({ section, setLocalAlertState }) {
           type: SET_FILE_ERROR,
           payload: {
             error: {
-              message: `File header does not match selected year and quarter.`,
+              message:
+                `File header does not match selected year: ` +
+                selectedYear +
+                ` and quarter: ` +
+                selectedQuarter +
+                ` .`,
             },
             section,
           },

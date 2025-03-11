@@ -256,7 +256,11 @@ describe('Reports', () => {
     })
     await waitFor(() => {
       const divElement = screen.getByText(
-        'File header does not match selected year and quarter.'
+        `File header does not match selected year: ` +
+          (currentYear - 1).toString() +
+          ` and quarter: ` +
+          'Q3' +
+          ` .`
       )
       expect(divElement).toBeInTheDocument()
     })
