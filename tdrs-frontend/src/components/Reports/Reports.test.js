@@ -213,11 +213,12 @@ describe('Reports', () => {
   })
 
   it("should skip the file upload step when submitted files header doesn't match submitted year and quarter", async () => {
+    const currentYear = new Date().getFullYear()
     const store = appConfigureStore({
       ...initialState,
       reports: {
         ...initialState.reports,
-        year: '2021',
+        year: (currentYear - 1).toString(),
         stt: 'Florida',
         quarter: 'Q3',
       },
@@ -245,7 +246,9 @@ describe('Reports', () => {
 
     fireEvent.change(getByLabelText('Section 1 - Active Case Data'), {
       target: {
-        files: [makeTestFile('test2.txt', ['20214'])],
+        files: [
+          makeTestFile('test2.txt', [(currentYear - 2).toString() + '4']),
+        ],
       },
     })
     await waitFor(() => {
