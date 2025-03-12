@@ -2,7 +2,6 @@
 from django.core.management import call_command
 from django.core.paginator import Paginator
 from django.db.utils import DatabaseError
-from elasticsearch.exceptions import ElasticsearchException
 from tdpservice.parsers.models import DataFileSummary, ParserError
 from tdpservice.search_indexes.util import DOCUMENTS, count_all_records
 from tdpservice.search_indexes.models.reparse_meta import ReparseMeta

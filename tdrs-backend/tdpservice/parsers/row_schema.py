@@ -30,7 +30,7 @@ class RowSchema(ABC):
 
     def parse_row(self, row: RawRow):
         """Create a model for the row based on the schema."""
-        record = self.document.Django.model() if self.document is not None else dict()
+        record = self.model() if self.document is not None else dict()
 
         for field in self.fields:
             value = field.parse_value(row)

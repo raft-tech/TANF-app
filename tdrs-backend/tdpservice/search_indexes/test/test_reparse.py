@@ -15,7 +15,6 @@ from django.conf import settings
 from django.contrib.admin.models import LogEntry, ADDITION
 from django.db.utils import DatabaseError
 from django.utils import timezone
-from elasticsearch.exceptions import ElasticsearchException
 
 from datetime import timedelta
 import os

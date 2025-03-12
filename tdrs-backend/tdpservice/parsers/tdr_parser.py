@@ -2,7 +2,6 @@
 
 from django.conf import settings
 from django.db.utils import DatabaseError
-from elasticsearch.exceptions import ElasticsearchException
 import logging
 from tdpservice.parsers import schema_defs
 from tdpservice.parsers.base_parser import BaseParser
@@ -242,7 +241,7 @@ class TanfDataReportParser(BaseParser):
 
         if not section_result.valid:
             logger.info(f"Preparser Error -> Section is not valid: {section_result.error}")
-            self.errors['document'] = [section_result.error]
+            self.errors['model'] = [section_result.error]
             self.num_errors += 1
             self.unsaved_parser_errors.update({1: [section_result.error]})
             self.bulk_create_errors(flush=True)
@@ -255,7 +254,7 @@ class TanfDataReportParser(BaseParser):
         )
         if not rpt_month_year_result.valid:
             logger.info(f"Preparser Error -> Rpt Month Year is not valid: {rpt_month_year_result.error}")
-            self.errors['document'] = [rpt_month_year_result.error]
+            self.errors['model'] = [rpt_month_year_result.error]
             self.num_errors += 1
             self.unsaved_parser_errors.update({1: [rpt_month_year_result.error]})
             self.bulk_create_errors(flush=True)
@@ -300,7 +299,7 @@ class TanfDataReportParser(BaseParser):
         duplicate_manager = self.case_consistency_validator.duplicate_manager
         for document, ids in duplicate_manager.get_records_to_remove().items():
             try:
-                model = document.Django.model
+                model = model
                 qset = model.objects.filter(id__in=ids)
                 # We must tell elastic to delete the documents first because after we call `_raw_delete`
                 # the queryset will be empty which will tell elastic that nothing needs updated.

@@ -2,7 +2,6 @@
 # should include all the steps in the management command
 import datetime
 from django.core.management import call_command
-from elasticsearch.exceptions import ElasticsearchException
 from tdpservice.data_files.models import DataFile
 from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 from tdpservice.core.utils import log

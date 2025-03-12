@@ -234,7 +234,7 @@ def test_run_field_validators_returns_valid_with_object():
     instance.third = '5'
 
     document = TestDocument()
-    document.Django.model = instance
+    model = instance
 
     schema = TanfDataReportSchema(
         document=document,
@@ -307,7 +307,7 @@ def test_run_field_validators_returns_invalid_with_object():
     instance.third = '5'
 
     document = TestDocument()
-    document.Django.model = instance
+    model = instance
 
     schema = TanfDataReportSchema(
         document=document,

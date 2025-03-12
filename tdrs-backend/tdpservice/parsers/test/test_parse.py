@@ -255,7 +255,7 @@ def test_parse_bad_file_multiple_headers(bad_file_multiple_headers, dfs):
     assert err.error_message == "Multiple headers found."
     assert err.content_type is None
     assert err.object_id is None
-    assert errors['document'] == ['Multiple headers found.']
+    assert errors['model'] == ['Multiple headers found.']
 
 
 @pytest.mark.django_db

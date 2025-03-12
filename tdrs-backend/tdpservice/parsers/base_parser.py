@@ -3,7 +3,6 @@
 from abc import ABC, abstractmethod
 from django.conf import settings
 from django.db.utils import DatabaseError
-from elasticsearch.exceptions import ElasticsearchException
 import itertools
 import logging
 from tdpservice.parsers import util
@@ -58,18 +57,11 @@ class BaseParser(ABC):
             num_db_records_created = 0
             num_expected_db_records = 0
             num_elastic_records_created = 0
-            for document, records in self.unsaved_records.get_bulk_create_struct().items():
+            for model, records in self.unsaved_records.get_bulk_create_struct().items():
                 try:
                     num_expected_db_records += len(records)
-                    created_objs = document.Django.model.objects.bulk_create(records)
+                    created_objs = model.objects.bulk_create(records)
                     num_db_records_created += len(created_objs)
-                    num_elastic_records_created += document.update(created_objs)[0]
-                except ElasticsearchException as e:
-                    log_parser_exception(self.datafile,
-                                         f"Encountered error while indexing datafile documents: \n{e}",
-                                         "error"
-                                         )
-                    continue
                 except DatabaseError as e:
                     log_parser_exception(self.datafile,
                                          f"Encountered error while creating database records: \n{e}",
@@ -86,9 +78,6 @@ class BaseParser(ABC):
             self.dfs.total_number_of_records_created += num_db_records_created
             if num_db_records_created != num_expected_db_records:
                 logger.error(f"Bulk Django record creation only created {num_db_records_created}/" +
-                             f"{num_expected_db_records}!")
-            elif num_elastic_records_created != num_expected_db_records:
-                logger.error(f"Bulk Elastic document creation only created {num_elastic_records_created}/" +
                              f"{num_expected_db_records}!")
             else:
                 logger.info(f"Created {num_db_records_created}/{num_expected_db_records} records.")
@@ -112,7 +101,7 @@ class BaseParser(ABC):
         logger.info("Rolling back created records.")
         for document in self.unsaved_records.get_bulk_create_struct():
             try:
-                model = document.Django.model
+                model = model
                 qset = model.objects.filter(datafile=self.datafile)
                 # We must tell elastic to delete the documents first because after we call `_raw_delete` the
                 # queryset will be empty which will tell elastic that nothing needs updated.
