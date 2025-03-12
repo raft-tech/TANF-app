@@ -99,30 +99,14 @@ class BaseParser(ABC):
     def rollback_records(self):
         """Delete created records in the event of a failure."""
         logger.info("Rolling back created records.")
-        for document in self.unsaved_records.get_bulk_create_struct():
+        for model in self.unsaved_records.get_bulk_create_struct():
             try:
                 model = model
                 qset = model.objects.filter(datafile=self.datafile)
-                # We must tell elastic to delete the documents first because after we call `_raw_delete` the
-                # queryset will be empty which will tell elastic that nothing needs updated.
-                document.update(qset, refresh=True, action="delete")
                 # WARNING: we can use `_raw_delete` in this case because our record models don't have cascading
                 # dependencies. If that ever changes, we should NOT use `_raw_delete`.
                 num_deleted = qset._raw_delete(qset.db)
                 logger.debug(f"Deleted {num_deleted} records of type: {model}.")
-            except ElasticsearchException as e:
-                # Caught an Elastic exception, to ensure the quality of the DB, we will force the DB deletion and let
-                # Elastic clean up later.
-                log_parser_exception(self.datafile,
-                                     f"Encountered error while indexing datafile documents: \n{e}",
-                                     "error"
-                                     )
-                logger.warning("Encountered an Elastic exception, enforcing DB cleanup.")
-                num_deleted, models = qset.delete()
-                log_parser_exception(self.datafile,
-                                     "Succesfully performed DB cleanup after elastic failure in rollback_records.",
-                                     "info"
-                                     )
             except DatabaseError as e:
                 log_parser_exception(self.datafile,
                                      (f"Encountered error while deleting database records for model: {model}. "

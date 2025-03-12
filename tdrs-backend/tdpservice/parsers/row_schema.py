@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 class RowSchema(ABC):
     """Base schema class for tabular data."""
 
-    def __init__(self, record_type, document, fields=None):
+    def __init__(self, record_type, model, fields=None):
         super().__init__()
         self.record_type = record_type
-        self.document = document
+        self.model = model
         self.fields = list() if not fields else fields
         self.datafile = None
 
@@ -30,7 +30,7 @@ class RowSchema(ABC):
 
     def parse_row(self, row: RawRow):
         """Create a model for the row based on the schema."""
-        record = self.model() if self.document is not None else dict()
+        record = self.model() if self.model is not None else dict()
 
         for field in self.fields:
             value = field.parse_value(row)
@@ -131,7 +131,7 @@ class TanfDataReportSchema(RowSchema):
     def __init__(
             self,
             record_type="T1",
-            document=None,
+            model=None,
             fields=None,
             # The default hash function covers all program types with record types ending in a 6 or 7.
             generate_hashes_func=lambda row, record: (hash(row),
