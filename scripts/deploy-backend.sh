@@ -159,9 +159,6 @@ bind_backend_to_services() {
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-datafiles-${env}"
     cf bind-service "$CGAPPNAME_BACKEND" "tdp-db-${env}"
 
-    # Setting up the ElasticSearch service
-    cf bind-service "$CGAPPNAME_BACKEND" "es-${env}"
-
     set_cf_envs
 
     echo "Restarting app: $CGAPPNAME_BACKEND"
