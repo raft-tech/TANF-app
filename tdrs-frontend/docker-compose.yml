@@ -1,4 +1,3 @@
-version: "3.4"
 services:
   zaproxy:
     image: elipe17/zap-stable:2.14.0
