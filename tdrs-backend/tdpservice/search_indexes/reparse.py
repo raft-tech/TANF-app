@@ -45,29 +45,6 @@ def handle_datafiles(files, meta_model, log_context):
             )
             raise e
 
-def handle_elastic(new_indices, log_context):
-    """Create new Elastic indices and delete old ones."""
-    if new_indices:
-        try:
-            logger.info("Creating new elastic indexes.")
-            call_command("tdp_search_index", "--create", "-f", "--use-alias")
-            log("Index creation complete.", logger_context=log_context, level="info")
-        except ElasticsearchException as e:
-            log(
-                "Elastic index creation FAILED. Clean and reparse NOT executed. "
-                "Database is CONSISTENT, Elastic is INCONSISTENT!",
-                logger_context=log_context,
-                level="error",
-            )
-            raise e
-        except Exception as e:
-            log(
-                "Caught generic exception in _handle_elastic. Clean and reparse NOT executed. "
-                "Database is CONSISTENT, Elastic is INCONSISTENT!",
-                logger_context=log_context,
-                level="error",
-            )
-            raise e
 
 def clean_reparse(selected_file_ids):
     """Reparse selected files."""

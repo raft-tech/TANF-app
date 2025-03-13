@@ -161,27 +161,6 @@ def test_parse_big_file(big_file, dfs):
     assert TANF_T2.objects.count() == expected_t2_record_count
     assert TANF_T3.objects.count() == expected_t3_record_count
 
-    search = documents.tanf.TANF_T1DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=big_file.id
-    )
-    assert search.count() == expected_t1_record_count
-    search.delete()
-
-    search = documents.tanf.TANF_T2DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=big_file.id
-    )
-    assert search.count() == expected_t2_record_count
-    search.delete()
-
-    search = documents.tanf.TANF_T3DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=big_file.id
-    )
-    assert search.count() == expected_t3_record_count
-    search.delete()
-
 
 @pytest.mark.django_db
 def test_parse_bad_test_file(bad_test_file, dfs):
@@ -655,27 +634,6 @@ def test_parse_super_big_s1_file(super_big_s1_file, dfs):
     assert TANF_T2.objects.count() == expected_t2_record_count
     assert TANF_T3.objects.count() == expected_t3_record_count
 
-    search = documents.tanf.TANF_T1DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=super_big_s1_file.id
-    )
-    assert search.count() == expected_t1_record_count
-    search.delete()
-
-    search = documents.tanf.TANF_T2DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=super_big_s1_file.id
-    )
-    assert search.count() == expected_t2_record_count
-    search.delete()
-
-    search = documents.tanf.TANF_T3DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=super_big_s1_file.id
-    )
-    assert search.count() == expected_t3_record_count
-    search.delete()
-
 
 @pytest.mark.django_db()
 def test_parse_big_s1_file_with_rollback(big_s1_rollback_file, dfs):
@@ -709,24 +667,6 @@ def test_parse_big_s1_file_with_rollback(big_s1_rollback_file, dfs):
     assert TANF_T1.objects.count() == 0
     assert TANF_T2.objects.count() == 0
     assert TANF_T3.objects.count() == 0
-
-    search = documents.tanf.TANF_T1DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=big_s1_rollback_file.id
-    )
-    assert search.count() == 0
-
-    search = documents.tanf.TANF_T2DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=big_s1_rollback_file.id
-    )
-    assert search.count() == 0
-
-    search = documents.tanf.TANF_T3DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=big_s1_rollback_file.id
-    )
-    assert search.count() == 0
 
 
 @pytest.mark.django_db
@@ -1154,20 +1094,6 @@ def test_parse_ssp_section2_file(ssp_section2_file, dfs):
 
     assert SSP_M4.objects.count() == expected_m4_count
     assert SSP_M5.objects.count() == expected_m5_count
-
-    search = documents.ssp.SSP_M4DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=ssp_section2_file.id
-    )
-    assert search.count() == expected_m4_count
-    search.delete()
-
-    search = documents.ssp.SSP_M5DataSubmissionDocument.search().query(
-        'match',
-        datafile__id=ssp_section2_file.id
-    )
-    assert search.count() == expected_m5_count
-    search.delete()
 
     m4 = m4_objs.first()
     assert m4.DISPOSITION == 1

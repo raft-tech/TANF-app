@@ -56,7 +56,6 @@ class BaseParser(ABC):
             logger.debug("Bulk creating records.")
             num_db_records_created = 0
             num_expected_db_records = 0
-            num_elastic_records_created = 0
             for model, records in self.unsaved_records.get_bulk_create_struct().items():
                 try:
                     num_expected_db_records += len(records)
@@ -101,7 +100,6 @@ class BaseParser(ABC):
         logger.info("Rolling back created records.")
         for model in self.unsaved_records.get_bulk_create_struct():
             try:
-                model = model
                 qset = model.objects.filter(datafile=self.datafile)
                 # WARNING: we can use `_raw_delete` in this case because our record models don't have cascading
                 # dependencies. If that ever changes, we should NOT use `_raw_delete`.

@@ -162,22 +162,6 @@ def delete_errors(file_ids, log_context):
         raise e
 
 
-def handle_elastic_doc_delete(doc, qset, model, elastic_exceptions, new_indices):
-    """Delete documents from Elastic and handle exceptions."""
-    if not new_indices:
-        # If we aren't creating new indices, then we don't want duplicate data in the existing indices.
-        # We alos use a Paginator here because it allows us to slice querysets based on a batch size. This
-        # prevents a very large queryset from being brought into main memory when `doc().update(...)`
-        # evaluates it by iterating over the queryset and deleting the models from ES.
-        paginator = Paginator(qset, settings.BULK_CREATE_BATCH_SIZE)
-        for page in paginator:
-            try:
-                doc().update(page.object_list, refresh=True, action="delete")
-            except ElasticsearchException:
-                elastic_exceptions[model] = elastic_exceptions.get(model, 0) + 1
-                continue
-
-
 def delete_records(file_ids, new_indices, log_context):
     """Delete records, errors, and documents from Postgres and Elastic."""
     total_deleted = 0

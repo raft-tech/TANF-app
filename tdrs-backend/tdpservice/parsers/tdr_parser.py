@@ -117,7 +117,6 @@ class TanfDataReportParser(BaseParser):
                         self.current_row_num,
                         record_has_errors
                     )
-                    # TODO: update schema.document when document is removed.
                     self.unsaved_records.add_record(case_hash, (record, schema.model), self.current_row_num)
                     was_removed = self.unsaved_records.remove_case_due_to_errors(should_remove, case_hash_to_remove)
                     self.case_consistency_validator.update_removed(case_hash_to_remove, should_remove, was_removed)
