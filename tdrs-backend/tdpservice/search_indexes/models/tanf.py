@@ -6,9 +6,7 @@ from tdpservice.data_files.models import DataFile
 
 
 class TANF_T1(models.Model):
-    """
-    Parsed record representing a T1 data submission.
-    """
+    """Parsed record representing a T1 data submission."""
 
     class Meta:
         """Meta class for the model."""
@@ -78,9 +76,7 @@ class TANF_T1(models.Model):
 
 
 class TANF_T2(models.Model):
-    """
-    Parsed record representing a T2 data submission.
-    """
+    """Parsed record representing a T2 data submission."""
 
     class Meta:
         """Meta class for the model."""
@@ -170,9 +166,7 @@ class TANF_T2(models.Model):
 
 
 class TANF_T3(models.Model):
-    """
-    Parsed record representing a T3 data submission.
-    """
+    """Parsed record representing a T3 data submission."""
 
     class Meta:
         """Meta class for the model."""
@@ -214,9 +208,7 @@ class TANF_T3(models.Model):
 
 
 class TANF_T4(models.Model):
-    """
-    Parsed record representing a T4 data submission.
-    """
+    """Parsed record representing a T4 data submission."""
 
     class Meta:
         """Meta class for the model."""
@@ -249,9 +241,7 @@ class TANF_T4(models.Model):
 
 
 class TANF_T5(models.Model):
-    """
-    Parsed record representing a T5 data submission.
-    """
+    """Parsed record representing a T5 data submission."""
 
     class Meta:
         """Meta class for the model."""
@@ -301,9 +291,7 @@ class TANF_T5(models.Model):
 
 
 class TANF_T6(models.Model):
-    """
-    Parsed record representing a T6 data submission.
-    """
+    """Parsed record representing a T6 data submission."""
 
     class Meta:
         """Meta class for the model."""
@@ -341,9 +329,7 @@ class TANF_T6(models.Model):
 
 
 class TANF_T7(models.Model):
-    """
-    Parsed record representing a T7 data submission.
-    """
+    """Parsed record representing a T7 data submission."""
 
     class Meta:
         """Meta class for the model."""

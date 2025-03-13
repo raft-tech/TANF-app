@@ -1,14 +1,12 @@
 """Shared celery search_indexes tasks for beat."""
 
 from __future__ import absolute_import
-import time
 import gzip
 import os
 from tdpservice.users.models import User
 from celery import shared_task
 from botocore.exceptions import ClientError
 from tdpservice.core.utils import log
-import subprocess
 from tdpservice.data_files.s3_client import S3Client
 from django.conf import settings
 from django.apps import apps

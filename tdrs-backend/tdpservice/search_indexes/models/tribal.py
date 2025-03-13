@@ -8,9 +8,7 @@ from tdpservice.parsers.models import ParserError
 
 
 class Tribal_TANF_T1(models.Model):
-    """
-    Parsed record representing a T1 data submission.
-    """
+    """Parsed record representing a T1 data submission."""
 
     class Meta:
         """Meta class for the model."""
@@ -80,9 +78,7 @@ class Tribal_TANF_T1(models.Model):
 
 
 class Tribal_TANF_T2(models.Model):
-    """
-    Parsed record representing a T2 data submission.
-    """
+    """Parsed record representing a T2 data submission."""
 
     class Meta:
         """Meta class for the model."""
@@ -155,9 +151,7 @@ class Tribal_TANF_T2(models.Model):
 
 
 class Tribal_TANF_T3(models.Model):
-    """
-    Parsed record representing a T3 data submission.
-    """
+    """Parsed record representing a T3 data submission."""
 
     class Meta:
         """Meta class for the model."""
@@ -198,9 +192,7 @@ class Tribal_TANF_T3(models.Model):
     OTHER_UNEARNED_INCOME = models.CharField(max_length=4, null=True, blank=False)
 
 class Tribal_TANF_T4(models.Model):
-    """
-    Parsed record representing a T4 data submission.
-    """
+    """Parsed record representing a T4 data submission."""
 
     class Meta:
         """Meta class for the model."""
@@ -232,9 +224,7 @@ class Tribal_TANF_T4(models.Model):
     REC_SUB_CC = models.IntegerField(null=True, blank=False)
 
 class Tribal_TANF_T5(models.Model):
-    """
-    Parsed record representing a T5 data submission.
-    """
+    """Parsed record representing a T5 data submission."""
 
     class Meta:
         """Meta class for the model."""
@@ -283,9 +273,7 @@ class Tribal_TANF_T5(models.Model):
     AMOUNT_UNEARNED_INCOME = models.CharField(max_length=4, null=True, blank=False)
 
 class Tribal_TANF_T6(models.Model):
-    """
-    Parsed record representing a Tribal T6 data submission.
-    """
+    """Parsed record representing a Tribal T6 data submission."""
 
     class Meta:
         """Meta class for the model."""
@@ -322,9 +310,7 @@ class Tribal_TANF_T6(models.Model):
     NUM_CLOSED_CASES = models.IntegerField(null=True, blank=True)
 
 class Tribal_TANF_T7(models.Model):
-    """
-    Parsed record representing a Tribal T7 data submission.
-    """
+    """Parsed record representing a Tribal T7 data submission."""
 
     class Meta:
         """Meta class for the model."""

@@ -225,7 +225,6 @@ def test_run_field_validators_returns_valid_with_object():
     instance.second = '4'
     instance.third = '5'
 
-    document = TestModel
     model = instance
 
     schema = TanfDataReportSchema(
