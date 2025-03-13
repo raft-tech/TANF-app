@@ -11,14 +11,9 @@ from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T2, TANF_T3, TAN
 from tdpservice.search_indexes.models.tribal import Tribal_TANF_T1, Tribal_TANF_T2, Tribal_TANF_T3, Tribal_TANF_T4
 from tdpservice.search_indexes.models.tribal import Tribal_TANF_T5, Tribal_TANF_T6, Tribal_TANF_T7
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3, SSP_M4, SSP_M5, SSP_M6, SSP_M7
-from tdpservice.search_indexes import documents
-from .. import aggregates
+from tdpservice.parsers import aggregates
 import logging
 logger = logging.getLogger(__name__)
-
-
-es_logger = logging.getLogger('elasticsearch')
-es_logger.setLevel(logging.WARNING)
 
 settings.GENERATE_TRAILER_ERRORS = True
 

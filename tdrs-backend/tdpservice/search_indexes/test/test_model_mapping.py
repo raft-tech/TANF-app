@@ -1,9 +1,8 @@
-"""Tests for elasticsearch model mapping."""
+"""Tests for model mapping."""
 
 import pytest
 from faker import Faker
 from tdpservice.search_indexes import models
-from tdpservice.search_indexes import documents
 from tdpservice.parsers.util import create_test_datafile
 
 
