@@ -142,7 +142,7 @@ class TanfDataReportSchema(RowSchema):
             postparsing_validators=[],
             quiet_preparser_errors=False,
             ):
-        super().__init__(record_type, document, fields)
+        super().__init__(record_type, model, fields)
 
         self.generate_hashes_func = generate_hashes_func
         self.should_skip_partial_dup_func = should_skip_partial_dup_func

@@ -157,7 +157,7 @@ def test_parse_line_parses_line_from_schema_to_object():
 
     line = '12345001'
     schema = TanfDataReportSchema(
-        model=TestModel(),
+        model=TestModel,
         fields=[
             Field(item=1, name='first', friendly_name='first', type=FieldType.ALPHA_NUMERIC,
                   startIndex=0, endIndex=3),
@@ -220,12 +220,12 @@ def test_run_field_validators_returns_valid_with_object():
         second = None
         third = None
 
-    instance = TestModel()
+    instance = TestModel
     instance.first = '123'
     instance.second = '4'
     instance.third = '5'
 
-    document = TestModel()
+    document = TestModel
     model = instance
 
     schema = TanfDataReportSchema(
@@ -289,12 +289,11 @@ def test_run_field_validators_returns_invalid_with_object():
         second = None
         third = None
 
-    instance = TestModel()
+    instance = TestModel
     instance.first = '123'
     instance.second = '4'
     instance.third = '5'
 
-    document = TestModel()
     model = instance
 
     schema = TanfDataReportSchema(

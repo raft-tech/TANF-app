@@ -205,7 +205,6 @@ def test_reparse_backup_fail(
         )
 
 
-@pytest.mark.parametrize(("new_indexes"), [(True), (False)])
 @pytest.mark.django_db
 def test_delete_associated_models(
     log_context,

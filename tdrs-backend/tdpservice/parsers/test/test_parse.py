@@ -96,7 +96,7 @@ def test_parse_section_mismatch(small_correct_file, dfs):
     assert err.content_type is None
     assert err.object_id is None
     assert errors == {
-        'document': [err]
+        'model': [err]
     }
 
 
@@ -125,7 +125,7 @@ def test_parse_wrong_program_type(small_correct_file, dfs):
     assert err.content_type is None
     assert err.object_id is None
     assert errors == {
-        'document': [err]
+        'model': [err]
     }
 
 @pytest.mark.django_db
