@@ -31,14 +31,14 @@ def handle_datafiles(files, meta_model, log_context):
         except DatabaseError as e:
             log(
                 "Encountered a DatabaseError while re-creating datafiles. The database "
-                "and Elastic are INCONSISTENT! Restore the DB from the backup as soon as possible!",
+                "is INCONSISTENT! Restore the DB from the backup as soon as possible!",
                 logger_context=log_context,
                 level="critical",
             )
             raise e
         except Exception as e:
             log(
-                "Caught generic exception in _handle_datafiles. Database and Elastic are INCONSISTENT! "
+                "Caught generic exception in _handle_datafiles. Database is INCONSISTENT! "
                 "Restore the DB from the backup as soon as possible!",
                 logger_context=log_context,
                 level="critical",
@@ -110,14 +110,11 @@ def clean_reparse(selected_file_ids):
     meta_model.db_backup_location = backup_file_name
     meta_model.save()
 
-    # Create and delete Elastic indices if necessary
-    handle_elastic(new_indices, log_context)
-
     file_ids = files.values_list("id", flat=True).distinct()
     meta_model.total_num_records_initial = count_total_num_records(log_context)
     meta_model.save()
 
-    delete_associated_models(meta_model, file_ids, new_indices, log_context)
+    delete_associated_models(meta_model, file_ids, log_context)
 
     meta_model.timeout_at = meta_model.created_at + calculated_timeout_at
     meta_model.save()

@@ -155,13 +155,9 @@ def test_parse_line_parses_line_from_schema_to_object():
         fourth = None
         fifth = None
 
-    class TestDocument:
-        class Django:
-            model = TestModel
-
     line = '12345001'
     schema = TanfDataReportSchema(
-        document=TestDocument(),
+        model=TestModel(),
         fields=[
             Field(item=1, name='first', friendly_name='first', type=FieldType.ALPHA_NUMERIC,
                   startIndex=0, endIndex=3),
@@ -224,20 +220,16 @@ def test_run_field_validators_returns_valid_with_object():
         second = None
         third = None
 
-    class TestDocument:
-        class Django:
-            model = TestModel
-
     instance = TestModel()
     instance.first = '123'
     instance.second = '4'
     instance.third = '5'
 
-    document = TestDocument()
+    document = TestModel()
     model = instance
 
     schema = TanfDataReportSchema(
-        document=document,
+        model=model,
         fields=[
             Field(item=1, name='first', friendly_name='first', type=FieldType.ALPHA_NUMERIC,
                   startIndex=0, endIndex=3, validators=[
@@ -297,20 +289,16 @@ def test_run_field_validators_returns_invalid_with_object():
         second = None
         third = None
 
-    class TestDocument:
-        class Django:
-            model = TestModel
-
     instance = TestModel()
     instance.first = '123'
     instance.second = '4'
     instance.third = '5'
 
-    document = TestDocument()
+    document = TestModel()
     model = instance
 
     schema = TanfDataReportSchema(
-        document=document,
+        model=model,
         fields=[
             Field(item=1, name='first', friendly_name='first', type=FieldType.ALPHA_NUMERIC,
                   startIndex=0, endIndex=3, validators=[

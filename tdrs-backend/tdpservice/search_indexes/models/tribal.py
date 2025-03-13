@@ -10,8 +10,6 @@ from tdpservice.parsers.models import ParserError
 class Tribal_TANF_T1(models.Model):
     """
     Parsed record representing a T1 data submission.
-
-    Mapped to an elastic search index.
     """
 
     class Meta:
@@ -84,8 +82,6 @@ class Tribal_TANF_T1(models.Model):
 class Tribal_TANF_T2(models.Model):
     """
     Parsed record representing a T2 data submission.
-
-    Mapped to an elastic search index.
     """
 
     class Meta:
@@ -161,8 +157,6 @@ class Tribal_TANF_T2(models.Model):
 class Tribal_TANF_T3(models.Model):
     """
     Parsed record representing a T3 data submission.
-
-    Mapped to an elastic search index.
     """
 
     class Meta:
@@ -206,8 +200,6 @@ class Tribal_TANF_T3(models.Model):
 class Tribal_TANF_T4(models.Model):
     """
     Parsed record representing a T4 data submission.
-
-    Mapped to an elastic search index.
     """
 
     class Meta:
@@ -242,8 +234,6 @@ class Tribal_TANF_T4(models.Model):
 class Tribal_TANF_T5(models.Model):
     """
     Parsed record representing a T5 data submission.
-
-    Mapped to an elastic search index.
     """
 
     class Meta:
@@ -295,8 +285,6 @@ class Tribal_TANF_T5(models.Model):
 class Tribal_TANF_T6(models.Model):
     """
     Parsed record representing a Tribal T6 data submission.
-
-    Mapped to an elastic search index.
     """
 
     class Meta:
@@ -336,8 +324,6 @@ class Tribal_TANF_T6(models.Model):
 class Tribal_TANF_T7(models.Model):
     """
     Parsed record representing a Tribal T7 data submission.
-
-    Mapped to an elastic search index.
     """
 
     class Meta:

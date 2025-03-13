@@ -8,8 +8,6 @@ from tdpservice.data_files.models import DataFile
 class SSP_M1(models.Model):
     """
     Parsed record representing an SSP M1 data submission.
-
-    Mapped to an elastic search index.
     """
 
     class Meta:
@@ -79,8 +77,6 @@ class SSP_M1(models.Model):
 class SSP_M2(models.Model):
     """
     Parsed record representing an SSP M2 data submission.
-
-    Mapped to an elastic search index.
     """
 
     class Meta:
@@ -171,8 +167,6 @@ class SSP_M2(models.Model):
 class SSP_M3(models.Model):
     """
     Parsed record representing an SSP M3 data submission.
-
-    Mapped to an elastic search index.
     """
 
     class Meta:
@@ -217,8 +211,6 @@ class SSP_M3(models.Model):
 class SSP_M4(models.Model):
     """
     Parsed record representing an SSP M1 data submission.
-
-    Mapped to an elastic search index.
     """
 
     class Meta:
@@ -256,8 +248,6 @@ class SSP_M4(models.Model):
 class SSP_M5(models.Model):
     """
     Parsed record representing an SSP M1 data submission.
-
-    Mapped to an elastic search index.
     """
 
     class Meta:
@@ -307,8 +297,6 @@ class SSP_M5(models.Model):
 class SSP_M6(models.Model):
     """
     Parsed record representing an M6 data submission.
-
-    Mapped to an elastic search index.
     """
 
     class Meta:
@@ -344,8 +332,6 @@ class SSP_M6(models.Model):
 class SSP_M7(models.Model):
     """
     Parsed record representing an SSP M3 data submission.
-
-    Mapped to an elastic search index.
     """
 
     class Meta:

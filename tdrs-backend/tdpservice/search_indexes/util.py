@@ -1,4 +1,4 @@
-"""Utility functions and definitions for models and documents."""
+"""Utility functions and definitions for models."""
 from tdpservice.search_indexes.models import tanf, ssp, tribal
 
 MODELS = [

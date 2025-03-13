@@ -201,7 +201,7 @@ def test_reparse_backup_fail(
         exception_msg = LogEntry.objects.latest("pk").change_message
         assert exception_msg == (
             "Database backup FAILED. Clean and reparse NOT executed. Database "
-            "and Elastic are CONSISTENT!"
+            "is CONSISTENT!"
         )
 
 
@@ -209,7 +209,6 @@ def test_reparse_backup_fail(
 @pytest.mark.django_db
 def test_delete_associated_models(
     log_context,
-    new_indexes,
     dfs,
     cat4_edge_case_file,
     big_file,
@@ -231,7 +230,7 @@ def test_delete_associated_models(
         pass
 
     fake_meta = Fake()
-    delete_associated_models(fake_meta, ids, new_indexes, log_context)
+    delete_associated_models(fake_meta, ids, log_context)
 
     assert count_total_num_records(log_context) == 0
 
@@ -242,13 +241,13 @@ def test_delete_associated_models(
         (
             (
                 "Encountered a DatabaseError while deleting DataFileSummary from Postgres. The database "
-                "and Elastic are INCONSISTENT! Restore the DB from the backup as soon as possible!"
+                "is INCONSISTENT! Restore the DB from the backup as soon as possible!"
             ),
             DatabaseError,
         ),
         (
             (
-                "Caught generic exception while deleting DataFileSummary. The database and Elastic are INCONSISTENT! "
+                "Caught generic exception while deleting DataFileSummary. The database is INCONSISTENT! "
                 "Restore the DB from the backup as soon as possible!"
             ),
             Exception,
@@ -274,13 +273,13 @@ def test_delete_summaries_exceptions(mocker, log_context, exc_msg, exception_typ
         (
             (
                 "Encountered a DatabaseError while deleting ParserErrors from Postgres. The database "
-                "and Elastic are INCONSISTENT! Restore the DB from the backup as soon as possible!"
+                "is INCONSISTENT! Restore the DB from the backup as soon as possible!"
             ),
             DatabaseError,
         ),
         (
             (
-                "Caught generic exception while deleting ParserErrors. The database and Elastic are INCONSISTENT! "
+                "Caught generic exception while deleting ParserErrors. The database is INCONSISTENT! "
                 "Restore the DB from the backup as soon as possible!"
             ),
             Exception,
@@ -306,13 +305,13 @@ def test_delete_errors_exceptions(mocker, log_context, exc_msg, exception_type):
         (
             (
                 "Encountered a DatabaseError while re-creating datafiles. The database "
-                "and Elastic are INCONSISTENT! Restore the DB from the backup as soon as possible!"
+                "is INCONSISTENT! Restore the DB from the backup as soon as possible!"
             ),
             DatabaseError,
         ),
         (
             (
-                "Caught generic exception in _handle_datafiles. Database and Elastic are INCONSISTENT! "
+                "Caught generic exception in _handle_datafiles. Database is INCONSISTENT! "
                 "Restore the DB from the backup as soon as possible!"
             ),
             Exception,

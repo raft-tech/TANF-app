@@ -189,4 +189,3 @@ class Production(CloudGov):
         "PATCH",
         "POST",
     )
-    ELASTIC_INDEX_PREFIX = ''
