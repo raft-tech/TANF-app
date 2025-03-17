@@ -208,6 +208,7 @@ function FileUpload({ section, setLocalAlertState }) {
           default:
             error_period = ''
         }
+        createFileInputErrorState(input, dropTarget)
         dispatch({
           type: SET_FILE_ERROR,
           payload: {
