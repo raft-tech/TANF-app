@@ -36,7 +36,7 @@ class TanfDataReportParser(BaseParser):
         """Parse and validate the datafile."""
         header_result = self._validate_header()
         if not header_result.is_valid:
-            return self.errors
+            return
 
         self._init_schema_manager(header_result.program_type)
         self.schema_manager.update_encrypted_fields(header_result.is_encrypted)
@@ -83,7 +83,7 @@ class TanfDataReportParser(BaseParser):
                 self.rollback_records()
                 self.rollback_parser_errors()
                 self.bulk_create_errors(flush=True)
-                return self.errors
+                return
 
             if prev_sum != self.header_count + self.trailer_count:
                 prev_sum = self.header_count + self.trailer_count
@@ -101,9 +101,6 @@ class TanfDataReportParser(BaseParser):
                 record, record_is_valid, record_errors = r
                 if not record_is_valid:
                     logger.debug(f"Record #{i} from line {self.current_row_num} is invalid.")
-                    line_errors = self.errors.get(f"{self.current_row_num}_{i}", {})
-                    line_errors.update({record_number: record_errors})
-                    self.errors.update({f"{self.current_row_num}_{i}": record_errors})
                     self.unsaved_parser_errors.update({f"{self.current_row_num}_{i}": record_errors})
                     self.num_errors += len(record_errors)
                 if record:
@@ -145,7 +142,7 @@ class TanfDataReportParser(BaseParser):
             self.rollback_parser_errors()
             preparse_error = {self.current_row_num: [err_obj]}
             self.bulk_create_errors(flush=True)
-            return self.errors
+            return
 
         should_remove = self.validate_case_consistency()
         was_removed = self.unsaved_records.remove_case_due_to_errors(should_remove, case_hash)
@@ -162,7 +159,7 @@ class TanfDataReportParser(BaseParser):
             logger.error(f"Not all parsed records created for file: {self.datafile.id}!")
             self.rollback_records()
             self.bulk_create_errors(flush=True)
-            return self.errors
+            return
 
         # Add any generated cat4 errors to our error data structure & clear our caches errors list
         cat4_errors = self.case_consistency_validator.get_generated_errors()
@@ -176,7 +173,7 @@ class TanfDataReportParser(BaseParser):
                      f"validated {self.case_consistency_validator.total_cases_validated} of them.")
         self.dfs.save()
 
-        return self.errors
+        return
 
     def _validate_header(self):
         """Validate header and header fields."""
@@ -188,14 +185,12 @@ class TanfDataReportParser(BaseParser):
         )
         if not header_is_valid:
             logger.info(f"Preparser Error: {len(header_errors)} header errors encountered.")
-            self.errors['header'] = header_errors
             self.num_errors += 1
             self.unsaved_parser_errors.update({1: header_errors})
             self.bulk_create_errors(flush=True)
             return HeaderResult(is_valid=False)
         elif header_is_valid and len(header_errors) > 0:
             logger.info(f"Preparser Warning: {len(header_errors)} header warnings encountered.")
-            self.errors['header'] = header_errors
             self.num_errors += 1
             self.unsaved_parser_errors.update({1: header_errors})
             self.bulk_create_errors(flush=True)
@@ -225,7 +220,6 @@ class TanfDataReportParser(BaseParser):
         if not tribe_result.valid:
             logger.info(f"Tribe Code ({field_values['tribe_code']}) inconsistency with Program Type " +
                         f"({header['program_type']}) and FIPS Code ({field_values['state_fips']}).",)
-            self.errors['header'] = [tribe_result.error]
             self.num_errors += 1
             self.unsaved_parser_errors.update({1: [tribe_result.error]})
             self.bulk_create_errors(flush=True)
@@ -288,7 +282,6 @@ class TanfDataReportParser(BaseParser):
     def _generate_trailer_errors(self, trailer_errors):
         """Generate trailer errors if we care to see them."""
         if settings.GENERATE_TRAILER_ERRORS:
-            self.errors['trailer'] = trailer_errors
             self.unsaved_parser_errors.update({"trailer": trailer_errors})
             self.num_errors += len(trailer_errors)
 
@@ -299,7 +292,6 @@ class TanfDataReportParser(BaseParser):
         for model, ids in duplicate_manager.get_records_to_remove().items():
             try:
                 qset = model.objects.filter(id__in=ids)
-
                 # WARNING: we can use `_raw_delete` in this case because our record models don't have cascading
                 # dependencies. If that ever changes, we should NOT use `_raw_delete`.
                 num_deleted = qset._raw_delete(qset.db)

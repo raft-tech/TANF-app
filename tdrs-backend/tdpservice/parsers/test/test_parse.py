@@ -12,6 +12,8 @@ from tdpservice.search_indexes.models.tribal import Tribal_TANF_T1, Tribal_TANF_
 from tdpservice.search_indexes.models.tribal import Tribal_TANF_T5, Tribal_TANF_T6, Tribal_TANF_T7
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M2, SSP_M3, SSP_M4, SSP_M5, SSP_M6, SSP_M7
 from tdpservice.parsers import aggregates
+from tdpservice.search_indexes.models.fra import TANF_Exiter1
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -67,7 +69,7 @@ def test_parse_section_mismatch(small_correct_file, dfs):
     parser = ParserFactory.get_instance(datafile=small_correct_file, dfs=dfs,
                                         section=small_correct_file.section,
                                         program_type=small_correct_file.prog_type)
-    errors = parser.parse_and_validate()
+    parser.parse_and_validate()
 
     dfs.status = dfs.get_status()
     assert dfs.status == DataFileSummary.Status.REJECTED
@@ -111,7 +113,7 @@ def test_parse_wrong_program_type(small_correct_file, dfs):
     parser = ParserFactory.get_instance(datafile=small_correct_file, dfs=dfs,
                                         section=small_correct_file.section,
                                         program_type=small_correct_file.prog_type)
-    errors = parser.parse_and_validate()
+    parser.parse_and_validate()
     assert dfs.get_status() == DataFileSummary.Status.REJECTED
 
     parser_errors = ParserError.objects.filter(file=small_correct_file)
@@ -127,6 +129,7 @@ def test_parse_wrong_program_type(small_correct_file, dfs):
     assert errors == {
         'model': [err]
     }
+
 
 @pytest.mark.django_db
 def test_parse_big_file(big_file, dfs):
@@ -163,7 +166,7 @@ def test_parse_bad_test_file(bad_test_file, dfs):
     parser = ParserFactory.get_instance(datafile=bad_test_file, dfs=dfs,
                                         section=bad_test_file.section,
                                         program_type=bad_test_file.prog_type)
-    errors = parser.parse_and_validate()
+    parser.parse_and_validate()
 
     parser_errors = ParserError.objects.filter(file=bad_test_file)
     assert parser_errors.count() == 1
@@ -175,9 +178,6 @@ def test_parse_bad_test_file(bad_test_file, dfs):
     assert err.error_message == 'HEADER: record length is 24 characters but must be 23.'
     assert err.content_type is None
     assert err.object_id is None
-    assert errors == {
-        'header': [err]
-    }
 
 
 @pytest.mark.django_db
@@ -186,7 +186,7 @@ def test_parse_bad_file_missing_header(bad_file_missing_header, dfs):
     parser = ParserFactory.get_instance(datafile=bad_file_missing_header, dfs=dfs,
                                         section=bad_file_missing_header.section,
                                         program_type=bad_file_missing_header.prog_type)
-    errors = parser.parse_and_validate()
+    parser.parse_and_validate()
     dfs.datafile = bad_file_missing_header
     assert dfs.get_status() == DataFileSummary.Status.REJECTED
 
@@ -201,9 +201,6 @@ def test_parse_bad_file_missing_header(bad_file_missing_header, dfs):
     assert err.error_message == 'HEADER: record length is 14 characters but must be 23.'
     assert err.content_type is None
     assert err.object_id is None
-    assert errors == {
-        'header': list(parser_errors)
-    }
 
 
 @pytest.mark.django_db
@@ -215,7 +212,7 @@ def test_parse_bad_file_multiple_headers(bad_file_multiple_headers, dfs):
     parser = ParserFactory.get_instance(datafile=bad_file_multiple_headers, dfs=dfs,
                                         section=bad_file_multiple_headers.section,
                                         program_type=bad_file_multiple_headers.prog_type)
-    errors = parser.parse_and_validate()
+    parser.parse_and_validate()
     dfs.datafile = bad_file_multiple_headers
     assert dfs.get_status() == DataFileSummary.Status.REJECTED
 
@@ -264,7 +261,7 @@ def test_parse_bad_trailer_file(bad_trailer_file, dfs):
     parser = ParserFactory.get_instance(datafile=bad_trailer_file, dfs=dfs,
                                         section=bad_trailer_file.section,
                                         program_type=bad_trailer_file.prog_type)
-    errors = parser.parse_and_validate()
+    parser.parse_and_validate()
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file)
     assert parser_errors.count() == 5
@@ -287,22 +284,12 @@ def test_parse_bad_trailer_file(bad_trailer_file, dfs):
         assert row_error.content_type is None
         assert row_error.object_id is None
 
-    assert errors['trailer'] == [trailer_error]
-
-    # case number validators
-    for error_2_0 in errors["2_0"]:
-        assert error_2_0 in row_errors_list
-
     row_errors = list(parser_errors.filter(row_number=2).order_by("id"))
     length_error = row_errors[0]
     assert length_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
     assert length_error.error_message == "T1: record length of 7 characters is not in the range [117, 156]."
     assert length_error.content_type is None
     assert length_error.object_id is None
-    assert errors == {
-        'trailer': [trailer_error],
-        "2_0": row_errors
-    }
 
 
 @pytest.mark.django_db()
@@ -316,7 +303,7 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2, dfs):
     parser = ParserFactory.get_instance(datafile=bad_trailer_file_2, dfs=dfs,
                                         section=bad_trailer_file_2.section,
                                         program_type=bad_trailer_file_2.prog_type)
-    errors = parser.parse_and_validate()
+    parser.parse_and_validate()
 
     parser_errors = ParserError.objects.filter(file=bad_trailer_file_2)
     assert parser_errors.count() == 9
@@ -359,16 +346,6 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2, dfs):
         assert row_3_error.content_type is None
         assert row_3_error.object_id is None
 
-    errors_2_0 = errors["2_0"]
-    errors_3_0 = errors["3_0"]
-    error_trailer = errors["trailer"]
-    row_2_error_set = set(row_2_errors)
-    for error_2_0 in errors_2_0:
-        assert error_2_0 in row_2_error_set
-    for error_3_0 in errors_3_0:
-        assert error_3_0 in row_3_error_list
-    assert error_trailer == [trailer_error_1, trailer_error_2]
-
     # case number validators
     row_3_errors = [trailer_errors[2], trailer_errors[3]]
     length_error = row_3_errors[0]
@@ -399,7 +376,7 @@ def test_parse_empty_file(empty_file, dfs):
     parser = ParserFactory.get_instance(datafile=empty_file, dfs=dfs,
                                         section=empty_file.section,
                                         program_type=empty_file.prog_type)
-    errors = parser.parse_and_validate()
+    parser.parse_and_validate()
 
     dfs.status = dfs.get_status()
     dfs.case_aggregates = aggregates.case_aggregates_by_month(empty_file, dfs.status)
@@ -429,9 +406,6 @@ def test_parse_empty_file(empty_file, dfs):
     assert err.error_message == 'HEADER: record length is 0 characters but must be 23.'
     assert err.content_type is None
     assert err.object_id is None
-    assert errors == {
-        'header': list(parser_errors)
-    }
 
 
 @pytest.mark.django_db
@@ -1830,3 +1804,114 @@ def test_parse_cat_4_edge_case_file(cat4_edge_case_file, dfs):
     err = parser_errors.first()
     assert err.error_message == ("Every T1 record should have at least one corresponding T2 or T3 record with the "
                                  "same Item 4 (Reporting Year and Month) and Item 6 (Case Number).")
+
+@pytest.mark.parametrize("file", [
+    ('fra_work_outcome_exiter_csv_file'),
+    ('fra_work_outcome_exiter_xlsx_file'),
+])
+@pytest.mark.django_db()
+def test_parse_fra_work_outcome_exiters(request, file, dfs):
+    """Test parsing FRA Work Outcome Exiters files."""
+    datafile = request.getfixturevalue(file)
+    datafile.year = 2024
+    datafile.quarter = 'Q2'
+
+    dfs.datafile = datafile
+    dfs.save()
+
+    parser = ParserFactory.get_instance(datafile=datafile, dfs=dfs,
+                                        section=datafile.section,
+                                        program_type=datafile.prog_type)
+    parser.parse_and_validate()
+
+    assert TANF_Exiter1.objects.all().count() == 7
+
+    errors = ParserError.objects.filter(file=datafile).order_by("id")
+    assert errors.count() == 14
+    for e in errors:
+        assert e.error_type == ParserErrorCategoryChoices.PRE_CHECK
+    assert dfs.total_number_of_records_in_file == 7
+    assert dfs.total_number_of_records_created == 7
+    assert dfs.get_status() == DataFileSummary.Status.REJECTED
+
+@pytest.mark.parametrize("file", [
+    ('fra_bad_header_csv'),
+    ('fra_bad_header_xlsx'),
+])
+@pytest.mark.django_db()
+def test_parse_fra_bad_header(request, file, dfs):
+    """Test parsing FRA files with bad header data."""
+    datafile = request.getfixturevalue(file)
+    datafile.year = 2024
+    datafile.quarter = 'Q1'
+
+    dfs.datafile = datafile
+    dfs.save()
+
+    parser = ParserFactory.get_instance(datafile=datafile, dfs=dfs,
+                                        section=datafile.section,
+                                        program_type=datafile.prog_type)
+    parser.parse_and_validate()
+
+    assert TANF_Exiter1.objects.all().count() == 0
+
+    errors = ParserError.objects.filter(file=datafile).order_by("id")
+    assert len(errors) == 1
+    for e in errors:
+        assert e.error_message == "File does not begin with FRA data."
+        assert e.error_type == ParserErrorCategoryChoices.PRE_CHECK
+
+@pytest.mark.parametrize("file", [
+    ('fra_empty_first_row_csv'),
+    ('fra_empty_first_row_xlsx'),
+])
+@pytest.mark.django_db()
+def test_parse_fra_empty_first_row(request, file, dfs):
+    """Test parsing FRA files with an empty first row/no header data."""
+    datafile = request.getfixturevalue(file)
+    datafile.year = 2024
+    datafile.quarter = 'Q1'
+
+    dfs.datafile = datafile
+    dfs.save()
+
+    parser = ParserFactory.get_instance(datafile=datafile, dfs=dfs,
+                                        section=datafile.section,
+                                        program_type=datafile.prog_type)
+    parser.parse_and_validate()
+
+    assert TANF_Exiter1.objects.all().count() == 0
+
+    errors = ParserError.objects.filter(file=datafile).order_by("id")
+    assert len(errors) == 1
+    for e in errors:
+        assert e.error_message == "File does not begin with FRA data."
+        assert e.error_type == ParserErrorCategoryChoices.PRE_CHECK
+
+
+@pytest.mark.parametrize("file", [
+    ('fra_ofa_test_csv'),
+    ('fra_ofa_test_xlsx'),
+])
+@pytest.mark.django_db()
+def test_parse_fra_ofa_test_cases(request, file, dfs):
+    """Test parsing FRA files with an empty first row/no header data."""
+    datafile = request.getfixturevalue(file)
+    datafile.year = 2025
+    datafile.quarter = 'Q3'
+
+    dfs.datafile = datafile
+    dfs.save()
+
+    parser = ParserFactory.get_instance(datafile=datafile, dfs=dfs,
+                                        section=datafile.section,
+                                        program_type=datafile.prog_type)
+    parser.parse_and_validate()
+
+    errors = ParserError.objects.filter(file=datafile).order_by("id")
+    for e in errors:
+        assert e.error_type == ParserErrorCategoryChoices.PRE_CHECK
+        print(e.row_number, e.error_message)
+
+    assert errors.count() == 26
+    assert TANF_Exiter1.objects.all().count() == 12
