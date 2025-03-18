@@ -255,12 +255,12 @@ class FRASchema(RowSchema):
     def __init__(
             self,
             record_type="FRA_RECORD",
-            document=None,
+            model=None,
             fields=None,
             preparsing_validators=None,
             quiet_preparser_errors=False
             ):
-        super().__init__(record_type, document, fields, preparsing_validators, quiet_preparser_errors)
+        super().__init__(record_type, model, fields, preparsing_validators, quiet_preparser_errors)
 
     def parse_and_validate(self, row: RawRow, generate_error):
         """Run all validation steps in order, and parse the given row into a record."""

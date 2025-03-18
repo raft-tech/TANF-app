@@ -69,7 +69,6 @@ class TanfDataReportParser(BaseParser):
             if self.header_count > 1:
                 logger.info("Preparser Error -> Multiple headers found for file: "
                             f"{self.datafile.id} on line: {self.current_row_num}.")
-                self.errors.update({'model': ['Multiple headers found.']})
                 err_obj = generate_error(
                     schema=None,
                     error_category=ParserErrorCategoryChoices.PRE_CHECK,
@@ -234,7 +233,6 @@ class TanfDataReportParser(BaseParser):
 
         if not section_result.valid:
             logger.info(f"Preparser Error -> Section is not valid: {section_result.error}")
-            self.errors['model'] = [section_result.error]
             self.num_errors += 1
             self.unsaved_parser_errors.update({1: [section_result.error]})
             self.bulk_create_errors(flush=True)

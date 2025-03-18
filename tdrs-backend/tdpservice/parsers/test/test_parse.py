@@ -97,9 +97,6 @@ def test_parse_section_mismatch(small_correct_file, dfs):
     assert err.error_message == 'Data does not match the expected layout for Closed Case Data.'
     assert err.content_type is None
     assert err.object_id is None
-    assert errors == {
-        'model': [err]
-    }
 
 
 @pytest.mark.django_db
@@ -126,9 +123,6 @@ def test_parse_wrong_program_type(small_correct_file, dfs):
     assert err.error_message == 'Data does not match the expected layout for SSP Active Case Data.'
     assert err.content_type is None
     assert err.object_id is None
-    assert errors == {
-        'model': [err]
-    }
 
 
 @pytest.mark.django_db
@@ -226,7 +220,6 @@ def test_parse_bad_file_multiple_headers(bad_file_multiple_headers, dfs):
     assert err.error_message == "Multiple headers found."
     assert err.content_type is None
     assert err.object_id is None
-    assert errors['model'] == ['Multiple headers found.']
 
 
 @pytest.mark.django_db
@@ -1818,7 +1811,8 @@ def test_parse_fra_work_outcome_exiters(request, file, dfs):
 
     dfs.datafile = datafile
     dfs.save()
-
+    print('_______ dfs:', dfs.__dict__)
+    print('_______ datafile:', datafile.__dict__)
     parser = ParserFactory.get_instance(datafile=datafile, dfs=dfs,
                                         section=datafile.section,
                                         program_type=datafile.prog_type)
