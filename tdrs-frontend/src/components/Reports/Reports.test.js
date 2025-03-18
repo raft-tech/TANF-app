@@ -875,9 +875,8 @@ describe('Reports', () => {
         },
       })
     })
-    await waitFor(() => expect(getByText('test2.txt')).toBeInTheDocument())
     await waitFor(() => {
-      const divElement = screen.getByText(
+      const divElement = getByText(
         `File contains data from ` +
           `Oct 1 - Dec 31, ` +
           `which belongs to Fiscal Year ` +

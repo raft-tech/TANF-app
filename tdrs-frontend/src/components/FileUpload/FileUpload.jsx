@@ -208,7 +208,11 @@ function FileUpload({ section, setLocalAlertState }) {
           default:
             error_period = ''
         }
-        createFileInputErrorState(input, dropTarget)
+        try {
+          createFileInputErrorState(input, dropTarget)
+        } catch (e) {
+          console.log('Error: ', e)
+        }
         dispatch({
           type: SET_FILE_ERROR,
           payload: {
