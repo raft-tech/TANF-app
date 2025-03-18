@@ -245,7 +245,6 @@ class TanfDataReportParser(BaseParser):
         )
         if not rpt_month_year_result.valid:
             logger.info(f"Preparser Error -> Rpt Month Year is not valid: {rpt_month_year_result.error}")
-            self.errors['model'] = [rpt_month_year_result.error]
             self.num_errors += 1
             self.unsaved_parser_errors.update({1: [rpt_month_year_result.error]})
             self.bulk_create_errors(flush=True)
