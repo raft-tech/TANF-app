@@ -875,6 +875,7 @@ describe('Reports', () => {
         },
       })
     })
+    await waitFor(() => expect(getByText('test2.txt')).toBeInTheDocument())
     await waitFor(() => {
       const divElement = screen.getByText(
         `File contains data from ` +
