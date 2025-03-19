@@ -16,7 +16,6 @@ This document outlines the comprehensive testing requirements that must be met b
 
 - [ ] Component rendering tests
 - [ ] Event handling tests
-- [ ] State management tests (Redux/Context)
 - [ ] Component integration tests
 
 ## Integration Testing Requirements
