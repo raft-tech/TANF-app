@@ -120,7 +120,7 @@ def test_parse_line_parses_line_from_schema_to_dict():
     """Test that parse_line parses a string into a dict given start and end indices for all fields."""
     line = '12345001'
     schema = TanfDataReportSchema(
-        model=None,
+        model=dict,
         fields=[
             Field(item=1, name='first', friendly_name='first', type=FieldType.ALPHA_NUMERIC,
                   startIndex=0, endIndex=3),
