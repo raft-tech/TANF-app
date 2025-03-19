@@ -34,7 +34,7 @@ class RowSchema(ABC):
 
     def parse_row(self, row: RawRow):
         """Create a model for the row based on the schema."""
-        record = self.model() if self.model is not None else dict()
+        record = self.model() or dict()
 
         for field in self.fields:
             value = field.parse_value(row)
