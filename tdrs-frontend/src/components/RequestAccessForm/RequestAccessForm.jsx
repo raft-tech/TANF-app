@@ -37,7 +37,7 @@ function RequestAccessForm({ user, sttList }) {
     const field = {
       firstName: 'First Name',
       lastName: 'Last Name',
-      stt: !isAMSUser && 'A state, tribe, or territory',
+      stt: isAMSUser && 'A state, tribe, or territory',
     }[fieldName]
 
     if (
@@ -158,10 +158,10 @@ function RequestAccessForm({ user, sttList }) {
           handleChange={handleChange}
           handleBlur={handleBlur}
         />
-        {!isAMSUser && (
+        {isAMSUser && (
           <JurisdictionSelector setJurisdictionType={setJurisdictionType} />
         )}
-        {jurisdictionType && !isAMSUser && (
+        {jurisdictionType && isAMSUser && (
           <div
             className={`usa-form-group ${
               errors.stt ? 'usa-form-group--error' : ''
@@ -176,7 +176,7 @@ function RequestAccessForm({ user, sttList }) {
             />
           </div>
         )}
-        {isAMSUser && (
+        {!isAMSUser && (
           <RegionSelector
             setErrors={setErrors}
             errors={errors}
