@@ -89,7 +89,6 @@ class Common(Configuration):
     ROOT_URLCONF = "tdpservice.urls"
     SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
     WSGI_APPLICATION = "tdpservice.wsgi.application"
-    CORS_ORIGIN_ALLOW_ALL = True
 
     # Application URLs
     BASE_URL = os.getenv('BASE_URL', 'http://localhost:8080/v1')
@@ -232,6 +231,11 @@ class Common(Configuration):
                 "class": "logging.StreamHandler",
                 "formatter": "color",
             },
+            "s3":{
+                "class": "tdpservice.log_handler.S3FileHandler",
+                'filename': "/tmp/s3.log",
+                "formatter": "verbose",
+            },
             "file": {
                 "class": "logging.handlers.RotatingFileHandler",
                 "formatter": "verbose",
@@ -247,7 +251,7 @@ class Common(Configuration):
                "level": LOGGING_LEVEL
             },
             "tdpservice.parsers": {
-               "handlers": ["application", "file"],
+               "handlers": ["application", "file", "s3"],
                "propagate": False,
                "level": LOGGING_LEVEL
             },
@@ -265,6 +269,8 @@ class Common(Configuration):
             "django.db.backends": {"handlers": ["console", "file"], "level": "INFO"},
         },
     }
+
+    PARSER_LOGGER = logging.getLogger('tdpservice.parsers')
 
     # Custom user app
     AUTH_USER_MODEL = "users.User"
@@ -323,7 +329,10 @@ class Common(Configuration):
     TOKEN_EXPIRATION_HOURS = int(os.getenv("TOKEN_EXPIRATION_HOURS", 24))
 
     # CORS
+    CORS_ORIGIN_ALLOW_ALL = True
     CORS_ALLOW_CREDENTIALS = True
+    CORS_PREFLIGHT_MAX_AGE = 1800
+
 
     # Capture all logging statements across the service in the root handler
     logger = logging.getLogger()
@@ -524,6 +533,7 @@ class Common(Configuration):
     }
 
     CYPRESS_TOKEN = os.getenv('CYPRESS_TOKEN', None)
+    FIXTURE_DIRS = [os.path.join(BASE_DIR, "fixtures")]
 
     GENERATE_TRAILER_ERRORS = os.getenv("GENERATE_TRAILER_ERRORS", False)
     IGNORE_DUPLICATE_ERROR_PRECEDENCE = os.getenv("IGNORE_DUPLICATE_ERROR_PRECEDENCE", False)
