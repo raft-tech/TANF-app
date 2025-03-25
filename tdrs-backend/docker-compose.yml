@@ -169,6 +169,10 @@ services:
       - SENDGRID_API_KEY
       - GENERATE_TRAILER_ERRORS=True
       - BYPASS_OFA_AUTH
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_S3_BUCKET_NAME
+      - AWS_S3_LOGS_PREFIX
     volumes:
       - .:/tdpapp
       - logs:/tmp

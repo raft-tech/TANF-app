@@ -116,6 +116,13 @@ class CloudGov(Common):
     MEDIA_URL = \
         f'{AWS_S3_STATICFILES_ENDPOINT}/{AWS_S3_STATICFILES_BUCKET_NAME}/{APP_NAME}/'
 
+    # HSTS settings
+    SESSION_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = True
+
 class Development(CloudGov):
     """Settings for applications deployed in the Cloud.gov dev space."""
 
