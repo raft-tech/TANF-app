@@ -64,6 +64,22 @@ class ParserError(models.Model):
     def _get_error_message(self):
         """Return the error message."""
         return self.error_message
+    
+    @property
+    def log_file_s3_path(self):
+        """
+        Get the S3 path for the log file associated with this parser error.
+        This is a placeholder method, actual implementation will depend on your S3 setup.
+        """
+        LOG_PRE_FIX = "LOGS"
+        if self.file:
+            datafile = self.file
+            key = f"{LOG_PRE_FIX}/{datafile.id}/{datafile.year}/{datafile.quarter}/" \
+                  f"{datafile.stt}/{datafile.section}/{datafile.filename}"
+            return key
+        else:
+            logger.warning("No file associated with this parser error.")
+            return None
 
 class DataFileSummary(models.Model):
     """Aggregates information about a parsed file."""
