@@ -24,6 +24,22 @@ from tdpservice.parsers.models import ParserError
 
 logger = logging.getLogger(__name__)
 
+
+def get_log_file(request, pk):
+    """Get log file."""
+    datafile = DataFile.objects.get(id=pk)
+    file_path = datafile.file.name
+    version_id = datafile.s3_versioning_id
+
+    print('______ request.url:', request.url)
+
+    s3 = S3Client()
+    response = FileResponse(
+        FileWrapper(s3.file_download(file_path, datafile.original_filename, version_id)),
+        filename=datafile.original_filename
+    )
+    return response
+
 class DataFileFilter(filters.FilterSet):
     """Filters that can be applied to GET requests as query parameters."""
 

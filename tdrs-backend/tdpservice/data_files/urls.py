@@ -19,6 +19,11 @@ urlpatterns = [
         "years/<int:stt>",
         views.GetYearList.as_view(),
         name="get-year-list-admin",
+    ),
+    path(
+        r"logs/$",
+        views.get_log_file,
+        name="get-log-file",
     )
 ]
 
