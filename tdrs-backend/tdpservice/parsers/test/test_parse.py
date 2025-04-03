@@ -1636,7 +1636,7 @@ def test_parse_m5_cat2_invalid_23_24_file(m5_cat2_invalid_23_24_file, dfs):
 
     parser_errors = ParserError.objects.filter(file=m5_cat2_invalid_23_24_file).exclude(exclusion).order_by("pk")
 
-    assert parser_errors.count() == 0 # No errors expected as fields are not required
+    assert parser_errors.count() == 0
 
 @pytest.mark.django_db()
 def test_zero_filled_fips_code_file(test_file_zero_filled_fips_code, dfs):

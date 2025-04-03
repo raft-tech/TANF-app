@@ -50,9 +50,9 @@ def test_header_cleanup(test_datafile):
     ("HEADER20204E06   TAN1ED", False, "HEADER Item 6 (type): E is not in [A, C, G, S]."),
     # Fips error
     ("HEADER20204A07   TAN1ED", True, ("HEADER Item 1 (state fips): 07 is not in [00, 01, 02, 04, 05, 06, 08, 09, "
-                                        "10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, "
-                                        "30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 44, 45, 46, 47, 48, 49, "
-                                        "50, 51, 53, 54, 55, 56, 66, 72, 78].")),
+                                       "10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, "
+                                       "30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 44, 45, 46, 47, 48, 49, "
+                                       "50, 51, 53, 54, 55, 56, 66, 72, 78].")),
     # Tribe error
     ("HEADER20204A00 -1TAN1ED", True, "HEADER Item 3 (tribe code):  -1 is not in range [0, 999]."),
     # Program type error
@@ -73,12 +73,6 @@ def test_header_fields(test_datafile, header_line, is_valid, error):
     row = RawRow(data=header_line, raw_len=length, decoded_len=length, row_num=1, record_type="HEADER")
     header, header_is_valid, header_errors = schema_defs.header.parse_and_validate(row,
                                                                                    generate_error)
-    print('_____ header_errors', header_errors)
-    print('_____ header_is_valid', header_is_valid)
-    print('_____ header', header)
-    print('_____ header_line', header_line)
-    print('_____ is_valid', is_valid)
-    print('_____ error', error)
 
     assert is_valid == header_is_valid
     if header_errors:
