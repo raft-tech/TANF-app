@@ -27,7 +27,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/:rw
       - ./init.sql:/init_template.sql
-      #- ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
   grafana-pg:
     image: postgres:15.7
