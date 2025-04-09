@@ -37,7 +37,7 @@ def change_log_filename(logger, new_filename):
 class S3FileHandler(logging.FileHandler):
     """Custom logging handler that sends logs to an S3 bucket."""
 
-    def __init__(self, filename, mode='a', encoding=None, delay=False, errors=None):
+    def __init__(self, filename="temp.txt", mode='a', encoding=None, delay=False, errors=None):
         self.filename = filename
         try:
             with open(filename, "x") as file: # noqa
@@ -67,3 +67,25 @@ class S3FileHandler(logging.FileHandler):
         except ClientError as e:
             logger.info(f"Error sending log to S3: {e}")
         self.close()
+
+    @staticmethod
+    def download_file(key):
+        """Download a file from s3. Specify the path, file name, and version id."""
+        try:
+            s3_client = boto3.client(**BOTO3_CLIENT_CONFIG)
+            logs_prefix = AWS_S3_LOGS_PREFIX
+            if not logs_prefix.endswith("/"):
+                logs_prefix += "/"
+            key = logs_prefix + key
+            logger.debug(f"+++++++++++++++download_file: {key}")
+            s3_client.download_file(
+                Bucket=AWS_S3_BUCKET_NAME,
+                Key= key,
+                Filename="temp.logs"
+            )
+        except ClientError as e:
+            logger.error(e)
+        response = open("temp.logs", 'r')
+        import os
+        os.remove("temp.logs")
+        return response
