@@ -1,5 +1,6 @@
 """Model representing parsed FRA data file records submitted to TDP."""
 
+
 import uuid
 from django.db import models
 from tdpservice.data_files.models import DataFile
