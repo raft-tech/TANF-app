@@ -40,6 +40,13 @@ scrape_configs:
           service: "node"
           env: "dev"
 
+  - job_name: "celery-raft"
+    static_configs:
+      - targets: ["tdp-backend-raft.apps.internal:9808"]
+        labels:
+          service: "celery"
+          env: "dev"
+
   - job_name: "tdp-backend-qasp"
     metrics_path: "/prometheus/metrics"
     static_configs:
@@ -50,6 +57,13 @@ scrape_configs:
       - targets: ["tdp-backend-qasp.apps.internal:9100"]
         labels:
           service: "node"
+          env: "qasp"
+          
+  - job_name: "celery-qasp"
+    static_configs:
+      - targets: ["tdp-backend-qasp.apps.internal:9808"]
+        labels:
+          service: "celery"
           env: "qasp"
 
   - job_name: "tdp-backend-develop"
@@ -67,6 +81,13 @@ scrape_configs:
           service: "node"
           env: "dev"
 
+  - job_name: "celery-develop"
+    static_configs:
+      - targets: ["tdp-backend-develop.apps.internal:9808"]
+        labels:
+          service: "celery"
+          env: "dev"
+
   - job_name: "tdp-backend-staging"
     metrics_path: "/prometheus/metrics"
     static_configs:
@@ -82,6 +103,13 @@ scrape_configs:
           service: "node"
           env: "staging"
 
+  - job_name: "celery-staging"
+    static_configs:
+      - targets: ["tdp-backend-staging.apps.internal:9808"]
+        labels:
+          service: "celery"
+          env: "staging"
+
   - job_name: "tdp-backend-prod"
     metrics_path: "/prometheus/metrics"
     static_configs:
@@ -95,6 +123,13 @@ scrape_configs:
       - targets: ["tdp-backend-prod.apps.internal:9100"]
         labels:
           service: "node"
+          env: "production"
+
+  - job_name: "celery-prod"
+    static_configs:
+      - targets: ["tdp-backend-prod.apps.internal:9808"]
+        labels:
+          service: "celery"
           env: "production"
 
   - job_name: postgres-dev

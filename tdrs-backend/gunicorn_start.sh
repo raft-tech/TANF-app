@@ -47,6 +47,11 @@ if [[ $1 == "cloud" ]]; then
     tar --strip-components=1 -xzvf node_exporter-1.9.0.linux-amd64.tar.gz node_exporter-1.9.0.linux-amd64/node_exporter
     rm node_exporter-1.9.0.linux-amd64.tar.gz
     ./node_exporter &
+
+    echo "Starting the Celery Exporter"
+    curl -L https://github.com/danihodovic/celery-exporter/releases/download/latest/celery-exporter -o ./celery-exporter
+    chmod +x ./celery-exporter
+    ./celery-exporter --broker-url=$REDIS_URI --port 9808 &
 fi
 
 exec $gunicorn_cmd
