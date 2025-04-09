@@ -151,7 +151,7 @@ services:
     network_mode: host
     pid: host
     volumes:
-      - '/:/host:ro,rslave'
+      - '/:/host:ro'
     depends_on:
       - web
 
