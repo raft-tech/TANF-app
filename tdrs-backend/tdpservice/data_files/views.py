@@ -25,13 +25,13 @@ from tdpservice.parsers.models import ParserError
 logger = logging.getLogger(__name__)
 
 
-def get_log_file(request, pk):
+def get_log_file(request, remaining_path):
     """Get log file."""
-    datafile = DataFile.objects.get(id=pk)
+    print('______ remaining_path:', remaining_path)
+    s3_file_paths = remaining_path.split('/')
+    datafile = DataFile.objects.get(id=1)
     file_path = datafile.file.name
     version_id = datafile.s3_versioning_id
-
-    print('______ request.url:', request.url)
 
     s3 = S3Client()
     response = FileResponse(

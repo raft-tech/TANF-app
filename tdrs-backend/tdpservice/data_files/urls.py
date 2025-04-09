@@ -2,7 +2,7 @@
 
 from rest_framework.routers import DefaultRouter
 from . import views
-from django.urls import path
+from django.urls import path, re_path
 
 router = DefaultRouter()
 
@@ -20,8 +20,8 @@ urlpatterns = [
         views.GetYearList.as_view(),
         name="get-year-list-admin",
     ),
-    path(
-        r"logs/$",
+    re_path(
+        r"^logs/(?P<remaining_path>.+)$",
         views.get_log_file,
         name="get-log-file",
     )
