@@ -148,7 +148,6 @@ services:
       - 9100:9100
     command: 
       - '--path.rootfs=/host'
-    network_mode: host
     pid: host
     volumes:
       - '/:/host:ro'
