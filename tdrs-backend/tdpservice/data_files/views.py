@@ -3,6 +3,7 @@ import logging
 from django.http import FileResponse
 from django_filters import rest_framework as filters
 from django.conf import settings
+from django.http import HttpResponse
 from drf_yasg.openapi import Parameter
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.parsers import MultiPartParser
@@ -20,42 +21,20 @@ from tdpservice.users.permissions import DataFilePermissions, IsApprovedPermissi
 from tdpservice.scheduling import parser_task
 from tdpservice.data_files.s3_client import S3Client
 from tdpservice.data_files.error_reports import ErrorReportFactory
+from tdpservice.log_handler import S3FileHandler
 
 logger = logging.getLogger(__name__)
 
 
 def get_log_file(request, remaining_path):
     """Get log file."""
-    """
-    s3 = S3Client()
-    #file = s3.file_download(file_path, s3_file_paths, version_id)
-    file_path= "LOGS/" + remaining_path
-    try:
-        s3.client.download_file(
-            settings.AWS_S3_DATAFILES_BUCKET_NAME,
-            file_path,
-            "test.txt"
-        )
-    except Exception as e:
-        logger.error(f"Error downloading file: {e}")
-        return Response({"error": "File not found"}, status=404)
-    
-    response = FileResponse(
-        FileWrapper(
-            open("test.txt", 'rb')
-        ),
-    )
-    return response
-    """
-    from tdpservice.log_handler import S3FileHandler
-    logger.debug(f"+++++++++++++++get_log_file: {remaining_path}")
     response = FileResponse(
         FileWrapper(
             S3FileHandler.download_file(key=remaining_path)
         )
     )
-    return response
-    
+    return HttpResponse(response, content_type='text/plain')
+
 
 class DataFileFilter(filters.FilterSet):
     """Filters that can be applied to GET requests as query parameters."""

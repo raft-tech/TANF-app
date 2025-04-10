@@ -37,6 +37,25 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
     actions = ['reparse']
 
+    fieldsets = (
+            ('File properties', {
+                'fields': (
+                    'created_at',
+                    'quarter',
+                    'year',
+                    'section',
+                    'stt',
+                    'version',
+                    'file',
+                    's3_versioning_id',),
+                'classes': ('wide', 'extrapretty'),
+            }),
+            ('Related fields', {
+                'fields': ('prog_type', 'filename', 'log_file_s3_path', ),
+            }),
+        )
+    readonly_fields = ('year',)
+
     def get_queryset(self, request):
         """Return the queryset."""
         qs = super().get_queryset(request)

@@ -276,6 +276,25 @@ class DataFile(FileRecord):
         """Return the author as a string for this data file."""
         return self.user.get_full_name()
 
+    @property
+    def log_file_s3_path(self):
+        """Generate S3 path for the log file."""
+        datafile = self
+        if not datafile:
+            return None
+        LOG_PRE_FIX = "v1/data_files/logs"
+        DOMAIN = settings.FRONTEND_BASE_URL
+        if datafile:
+            link = f"{LOG_PRE_FIX}/{datafile.id}/{datafile.year}/{datafile.quarter}/" \
+                  f"{datafile.stt}/{datafile.section}/{datafile.filename}"
+            url = f"{DOMAIN}/{link}"  # Replace with your actual S3 URL
+            from django.utils.html import format_html
+            return format_html("<a href='{url}'>{field}</a>",
+                               field="Parser Errors",
+                               url=url)
+        else:
+            return None
+
     def admin_link(self):
         """Return a link to the admin console for this file."""
         return f"{settings.FRONTEND_BASE_URL}/admin/data_files/datafile/?id={self.pk}"

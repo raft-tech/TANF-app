@@ -2,6 +2,7 @@
 
 import logging.handlers
 import boto3
+import os
 import logging
 from botocore.exceptions import ClientError
 from django.conf import settings
@@ -77,15 +78,13 @@ class S3FileHandler(logging.FileHandler):
             if not logs_prefix.endswith("/"):
                 logs_prefix += "/"
             key = logs_prefix + key
-            logger.debug(f"+++++++++++++++download_file: {key}")
             s3_client.download_file(
                 Bucket=AWS_S3_BUCKET_NAME,
-                Key= key,
+                Key=key,
                 Filename="temp.logs"
             )
         except ClientError as e:
             logger.error(e)
         response = open("temp.logs", 'r')
-        import os
         os.remove("temp.logs")
         return response
