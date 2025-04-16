@@ -115,11 +115,13 @@ services:
     image: grafana/alloy:v1.8.0
     ports:
       - 12345:12345
+      - 514:514
+      - 601:601
     volumes: 
       # - ./plg/alloy/config.local.alloy:/etc/alloy/config.alloy
       - ./plg/alloy:/etc/alloy
-      - ~/tdp-logs/nginx:/var/log/nginx
-      - logs:/logs
+      # - ~/tdp-logs/nginx:/var/log/nginx
+      # - logs:/logs
     command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/alloy-promtail.local.config
 
   loki:
@@ -210,11 +212,18 @@ services:
     ports:
       - "5555:5555"
     tty: true
+    logging:
+      driver: syslog
+      options:
+        syslog-address: tcp://localhost:601
+        syslog-format: rfc5424
+        tag: "tdp-backend-local"
     depends_on:
       - clamav-rest
       - localstack
       - postgres
       - redis-server
+      - alloy
 
   redis-server:
     image: redis:alpine
