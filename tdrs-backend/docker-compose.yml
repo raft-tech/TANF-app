@@ -118,10 +118,7 @@ services:
       - 514:514
       - 601:601
     volumes: 
-      # - ./plg/alloy/config.local.alloy:/etc/alloy/config.alloy
       - ./plg/alloy:/etc/alloy
-      # - ~/tdp-logs/nginx:/var/log/nginx
-      # - logs:/logs
     command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/alloy-promtail.local.config
 
   loki:
@@ -201,7 +198,6 @@ services:
       - AWS_S3_LOGS_PREFIX
     volumes:
       - .:/tdpapp
-      - logs:/tmp
     build: .
     command: >
       bash -c "./wait_for_services.sh &&
