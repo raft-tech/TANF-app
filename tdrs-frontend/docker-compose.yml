@@ -13,6 +13,12 @@ services:
   tdp-frontend:
     stdin_open: true # docker run -i
     tty: true        # docker run -t
+    logging:
+      driver: syslog
+      options:
+        syslog-address: tcp://localhost:601
+        syslog-format: rfc5424
+        tag: "tdp-frontend-local"
     build:
       context: .
       target: nginx
