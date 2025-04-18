@@ -1,0 +1,1 @@
+cf env tdp-backend-prod | grep SENDGRID | cut -d " " -f2-

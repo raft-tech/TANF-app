@@ -85,6 +85,19 @@ deploy_loki() {
     popd
 }
 
+deploy_alloy() {
+    pushd alloy
+    cf push --no-route -f manifest.yml -t 180 --strategy rolling
+    cf map-route alloy apps.internal --hostname alloy
+    popd
+}
+
+deploy_logdrain() {
+    cf create-user-provided-service tdp-log-drain -l syslog-tls://alloy.apps.internal
+    cf bind-service tdp-backend-${env} tdp-log-drain
+    cf bind-service tdp-frontend-${env} tdp-log-drain
+}
+
 deploy_alertmanager() {
     pushd alertmanager
     CONFIG=alertmanager.prod.yml
@@ -218,6 +231,8 @@ if [ "$DEPLOY" == "plg" ]; then
     deploy_loki
     deploy_grafana $DB_SERVICE_NAME
     deploy_alertmanager
+    deploy_alloy
+    deploy_logdrain
     setup_prod_net_pols
     setup_dev_staging_net_pols
 fi

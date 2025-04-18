@@ -1,0 +1,13 @@
+version: 1
+applications:
+  - name: alloy
+    memory: 1G
+    disk_quota: 7G
+    instances: 1
+    command: |
+      wget https://github.com/grafana/alloy/releases/download/v1.8.1/alloy-boringcrypto-linux-amd64.zip
+      unzip -a alloy-boringcrypto-linux-amd64.zip && rm -rf alloy-boringcrypto-linux-amd64.zip
+      chmod +x alloy-boringcrypto-linux-amd64
+      ./alloy-boringcrypto-linux-amd64 run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/alloy.config
+    buildpacks:
+    - https://github.com/cloudfoundry/binary-buildpack

@@ -87,15 +87,15 @@ generate_jwt_cert()
     cf set-env "$CGAPPNAME_BACKEND" JWT_KEY "$(cat key.pem)"
 }
 
-prepare_promtail() {
-  pushd tdrs-backend/plg/promtail
-  CONFIG=config.yml
-  yq eval -i ".scrape_configs[0].job_name = \"system-$backend_app_name\""  $CONFIG
-  yq eval -i ".scrape_configs[0].static_configs[0].labels.job = \"system-$backend_app_name\""  $CONFIG
-  yq eval -i ".scrape_configs[1].job_name = \"backend-$backend_app_name\""  $CONFIG
-  yq eval -i ".scrape_configs[1].static_configs[0].labels.job = \"backend-$backend_app_name\""  $CONFIG
-  popd
-}
+# prepare_promtail() {
+#   pushd tdrs-backend/plg/promtail
+#   CONFIG=config.yml
+#   yq eval -i ".scrape_configs[0].job_name = \"system-$backend_app_name\""  $CONFIG
+#   yq eval -i ".scrape_configs[0].static_configs[0].labels.job = \"system-$backend_app_name\""  $CONFIG
+#   yq eval -i ".scrape_configs[1].job_name = \"backend-$backend_app_name\""  $CONFIG
+#   yq eval -i ".scrape_configs[1].static_configs[0].labels.job = \"backend-$backend_app_name\""  $CONFIG
+#   popd
+# }
 
 update_backend()
 {
@@ -216,7 +216,7 @@ else
   CYPRESS_TOKEN=$CYPRESS_TOKEN
 fi
 
-prepare_promtail
+# prepare_promtail
 if [ "$DEPLOY_STRATEGY" = "rolling" ] ; then
     # Perform a rolling update for the backend and frontend deployments if
     # specified, otherwise perform a normal deployment
