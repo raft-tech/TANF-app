@@ -119,7 +119,7 @@ services:
       - 601:601
     volumes: 
       - ./plg/alloy:/etc/alloy
-    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/alloy-promtail.local.config
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/alloy.local.config
 
   loki:
     restart: always
