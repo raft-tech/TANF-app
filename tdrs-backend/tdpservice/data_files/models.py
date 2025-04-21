@@ -277,7 +277,7 @@ class DataFile(FileRecord):
         return self.user.get_full_name()
 
     @property
-    def log_file_s3_path(self):
+    def log_file(self):
         """Generate S3 path for the log file."""
         datafile = self
         if not datafile:
@@ -290,7 +290,7 @@ class DataFile(FileRecord):
             url = f"{DOMAIN}/{link}"  # Replace with your actual S3 URL
             from django.utils.html import format_html
             return format_html("<a href='{url}'>{field}</a>",
-                               field="Parser Errors",
+                               field="Parser logs",
                                url=url)
         else:
             return None

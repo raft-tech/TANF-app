@@ -38,21 +38,27 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     actions = ['reparse']
 
     fieldsets = (
-            ('File properties', {
+            ('Properties', {
                 'fields': (
                     'created_at',
                     'quarter',
                     'year',
                     'section',
+                    'prog_type',
                     'stt',
-                    'version',
-                    'file',
-                    's3_versioning_id',),
+                    'version',),
                 'classes': ('wide', 'extrapretty'),
             }),
-            ('Related fields', {
-                'fields': ('prog_type', 'filename', 'log_file_s3_path', ),
+            ('File', {
+                'fields': (
+                    'file',
+                    's3_versioning_id',
+                    'filename',),
             }),
+            ('Logs', {
+                'fields': (
+                    'log_file',),
+                })
         )
     readonly_fields = ('year',)
 
