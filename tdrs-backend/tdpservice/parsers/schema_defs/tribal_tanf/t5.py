@@ -17,7 +17,7 @@ t5 = [
         should_skip_partial_dup_func=lambda record: record.FAMILY_AFFILIATION in {3, 4, 5},
         get_partial_hash_members_func=get_t2_t3_t5_partial_hash_members,
         preparsing_validators=[
-            category1.recordHasLength(71),
+            category1.recordHasLengthOfAtLeast(71),
             category1.caseNumberNotEmpty(8, 19),
             category1.or_priority_validators([
                 category1.validate_fieldYearMonth_with_headerYearQuarter(),
@@ -25,13 +25,13 @@ t5 = [
             ]),
         ],
         postparsing_validators=[
+            category3.validate__FAM_AFF__SSN(),
             category3.ifThenAlso(
                 condition_field_name="FAMILY_AFFILIATION",
                 condition_function=category3.isEqual(1),
                 result_field_name="SSN",
                 result_function=category3.validateSSN(),
             ),
-            category3.validate__FAM_AFF__SSN(),
             category3.ifThenAlso(
                 condition_field_name="FAMILY_AFFILIATION",
                 condition_function=category3.isBetween(1, 3, inclusive=True),

@@ -280,7 +280,7 @@ def test_parse_bad_trailer_file(bad_trailer_file, dfs):
     row_errors = list(parser_errors.filter(row_number=2).order_by("id"))
     length_error = row_errors[0]
     assert length_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
-    assert length_error.error_message == "T1: record length of 7 characters is not in the range [117, 156]."
+    assert length_error.error_message == "T1: record length should be at least 117 characters but it is 7 characters."
     assert length_error.content_type is None
     assert length_error.object_id is None
 
@@ -331,7 +331,7 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2, dfs):
         row_3_error_list.append(row_3_error)
         assert row_3_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
         assert row_3_error.error_message in {
-            'T1: record length of 7 characters is not in the range [117, 156].',
+            'T1: record length should be at least 117 characters but it is 7 characters.',
             'T1: Reporting month year None does not match file reporting year:2021, quarter:Q1.',
             'TRAILER: record length is 7 characters but must be 23.',
             'T1: Case number T1trash cannot contain blanks.',
@@ -343,7 +343,7 @@ def test_parse_bad_trailer_file2(bad_trailer_file_2, dfs):
     row_3_errors = [trailer_errors[2], trailer_errors[3]]
     length_error = row_3_errors[0]
     assert length_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
-    assert length_error.error_message == 'T1: record length of 7 characters is not in the range [117, 156].'
+    assert length_error.error_message == 'T1: record length should be at least 117 characters but it is 7 characters.'
     assert length_error.content_type is None
     assert length_error.object_id is None
 
@@ -1916,3 +1916,25 @@ def test_parse_fra_ofa_test_cases(request, file, dfs):
     assert dfs.total_number_of_records_in_file == 28
     assert dfs.total_number_of_records_created == 10
     assert dfs.get_status() == DataFileSummary.Status.PARTIALLY_ACCEPTED
+
+@pytest.mark.django_db()
+def test_parse_fra_formula_fields(fra_formula_fields_test_xlsx, dfs):
+    """Test parsing a correct FRA file with formula fields."""
+    datafile = fra_formula_fields_test_xlsx
+    datafile.year = 2025
+    datafile.quarter = 'Q3'
+
+    dfs.datafile = datafile
+    dfs.save()
+
+    parser = ParserFactory.get_instance(datafile=datafile, dfs=dfs,
+                                        section=datafile.section,
+                                        program_type=datafile.prog_type)
+    parser.parse_and_validate()
+
+    errors = ParserError.objects.filter(file=datafile).order_by("id")
+    assert errors.count() == 0
+    assert TANF_Exiter1.objects.all().count() == 8
+    assert dfs.total_number_of_records_in_file == 8
+    assert dfs.total_number_of_records_created == 8
+    assert dfs.get_status() == DataFileSummary.Status.ACCEPTED
