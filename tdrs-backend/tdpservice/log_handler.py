@@ -57,6 +57,8 @@ class S3FileHandler(logging.FileHandler):
 
     def doRollover(self, datafile):
         """Rollover happens before closing the file."""
+        with open(self.filename, "a") as file:
+            file.write("\n ____________________ END OF LOG _________________________ \n\n\n")
         try:
             key = f"{AWS_S3_LOGS_PREFIX}/{datafile.id}/{datafile.year}/{datafile.quarter}/" \
                   f"{datafile.stt}/{datafile.section}/{datafile.filename}"
@@ -83,8 +85,9 @@ class S3FileHandler(logging.FileHandler):
                 Key=key,
                 Filename="temp.logs"
             )
-        except ClientError as e:
-            logger.error(e)
-        response = open("temp.logs", 'r')
-        os.remove("temp.logs")
-        return response
+            response = open("temp.logs", 'r')
+            os.remove("temp.logs")
+            return response
+        except Exception as e:
+            logger.error(f"Error downloading file from S3: {e}")
+            return None

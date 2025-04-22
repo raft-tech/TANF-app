@@ -1,6 +1,7 @@
 """Check if user is authorized."""
 import logging
 from django.http import FileResponse
+from django.http import Http404
 from django_filters import rest_framework as filters
 from django.conf import settings
 from django.http import HttpResponse
@@ -28,12 +29,16 @@ logger = logging.getLogger(__name__)
 
 def get_log_file(request, remaining_path):
     """Get log file."""
-    response = FileResponse(
-        FileWrapper(
-            S3FileHandler.download_file(key=remaining_path)
+    try:
+        response = FileResponse(
+            FileWrapper(
+                S3FileHandler.download_file(key=remaining_path)
+            )
         )
-    )
-    return HttpResponse(response, content_type='text/plain')
+        return HttpResponse(response, content_type='text/plain')
+    except Exception as e:
+        logger.error(f"Error retrieving log file: {e}")
+        raise Http404("Log file not found.")
 
 
 class DataFileFilter(filters.FilterSet):
