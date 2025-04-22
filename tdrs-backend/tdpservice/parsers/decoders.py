@@ -94,7 +94,7 @@ class CsvDecoder(BaseDecoder):
         name = self.raw_file.name.split('/')[-1]
         with open(f'/tmp/{name}', 'wb') as file:
             for line in self.raw_file:
-                file.write(line)
+                file.write(line.strip(b'\r'))
 
         self.local_file = open(f'/tmp/{name}', 'rt')
         self.csv_file = csv.reader(self.local_file)
