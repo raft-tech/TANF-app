@@ -2,7 +2,7 @@
 
 import json
 import logging
-import logging.handlers
+from logging.handlers import SysLogHandler
 import os
 from distutils.util import strtobool
 from os.path import join
@@ -243,31 +243,37 @@ class Common(Configuration):
                 "filename": "/tmp/django.log",
                 "maxBytes": 1024*1024*10, # 10 MiB
                 "backupCount": 5,
+            },
+            "syslog": {
+                "level": 'DEBUG',
+                "class": "logging.handlers.SysLogHandler",
+                "formatter": "verbose",
+                "facility": SysLogHandler.LOG_LOCAL2,
             }
         },
         "loggers": {
             "tdpservice": {
-               "handlers": ["application", "file"],
+               "handlers": ["application", "file", "syslog"],
                "propagate": True,
                "level": LOGGING_LEVEL
             },
             "tdpservice.parsers": {
-               "handlers": ["application", "file", "s3"],
+               "handlers": ["application", "file", "s3", "syslog"],
                "propagate": False,
                "level": LOGGING_LEVEL
             },
-            "django": {"handlers": ["console", "file"], "propagate": True},
+            "django": {"handlers": ["console", "file", "syslog"], "propagate": True},
             "django.server": {
-                "handlers": ["django.server", "file"],
+                "handlers": ["django.server", "file", "syslog"],
                 "propagate": False,
                 "level": LOGGING_LEVEL
             },
             "django.request": {
-                "handlers": ["console", "file"],
+                "handlers": ["console", "file", "syslog"],
                 "propagate": False,
                 "level": LOGGING_LEVEL
             },
-            "django.db.backends": {"handlers": ["console", "file"], "level": "INFO"},
+            "django.db.backends": {"handlers": ["console", "file", "syslog"], "level": "INFO"},
         },
     }
 

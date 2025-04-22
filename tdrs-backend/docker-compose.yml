@@ -110,16 +110,16 @@ services:
       - alertmanager
       - mimir
 
-  promtail:
+  alloy:
     restart: always
-    image: grafana/promtail:3.1.1
+    image: grafana/alloy:v1.8.0
     ports:
-      - 9080:9080
-    volumes:
-      - ./plg/promtail/config.local.yml:/etc/promtail/config.yml
-      - ~/tdp-logs/nginx:/var/log/nginx
-      - logs:/logs
-    command: -config.file=/etc/promtail/config.yml
+      - 12345:12345
+      - 514:514
+      - 601:601
+    volumes: 
+      - ./plg/alloy:/etc/alloy
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/alloy.local.config
 
   loki:
     restart: always
@@ -198,11 +198,18 @@ services:
     ports:
       - "5555:5555"
     tty: true
+    logging:
+      driver: syslog
+      options:
+        syslog-address: tcp://localhost:601
+        syslog-format: rfc5424
+        tag: "tdp-backend-local"
     depends_on:
       - clamav-rest
       - localstack
       - postgres
       - redis-server
+      - alloy
 
   redis-server:
     image: redis:alpine
