@@ -10,6 +10,7 @@ from django.contrib.admin.models import ADDITION, ContentType, LogEntry
 from django.core.files.base import File
 from django.db import models
 from django.db.models import Max
+from django.utils.html import format_html
 
 from tdpservice.backends import DataFilesS3Storage
 from tdpservice.stts.models import STT
@@ -288,7 +289,6 @@ class DataFile(FileRecord):
             link = f"{LOG_PRE_FIX}/{datafile.id}/{datafile.year}/{datafile.quarter}/" \
                   f"{datafile.stt}/{datafile.section}/{datafile.filename}"
             url = f"{DOMAIN}/{link}"  # Replace with your actual S3 URL
-            from django.utils.html import format_html
             return format_html("<a href='{url}'>{field}</a>",
                                field="Parser logs",
                                url=url)

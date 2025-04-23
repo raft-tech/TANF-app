@@ -1,4 +1,5 @@
 """Admin class for DataFile objects."""
+import requests
 from django.contrib import admin
 from tdpservice.core.utils import ReadOnlyAdminMixin
 from tdpservice.data_files.models import DataFile, LegacyFileTransfer
@@ -11,6 +12,7 @@ from django.shortcuts import redirect
 from django.utils.translation import ngettext
 from django.contrib import messages
 from tdpservice.data_files.tasks import reparse_files
+from tdpservice.log_handler import S3FileHandler
 
 DOMAIN = settings.FRONTEND_BASE_URL
 
@@ -61,6 +63,26 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
                 })
         )
     readonly_fields = ('year',)
+
+    def get_fieldsets(self, request, obj = ...):
+        field_sets =  super().get_fieldsets(request, obj)
+
+        # Remove the 'Logs' fieldset if the file doesn't exist
+        datafile = obj
+        if datafile:
+            link = f"{datafile.id}/{datafile.year}/{datafile.quarter}/" \
+                  f"{datafile.stt}/{datafile.section}/{datafile.filename}"
+            response = S3FileHandler.download_file(key=link)
+            if response is not None:
+                return field_sets
+            else:
+                # If the log file is not available, remove the field from the fieldsets
+                for field_set in field_sets:
+                    if field_set[0] == 'Logs' and response is None:
+                        field_sets_list = list(field_sets)
+                        field_sets_list.remove(field_set)
+                        return tuple(field_sets_list)
+        return field_sets
 
     def get_queryset(self, request):
         """Return the queryset."""
