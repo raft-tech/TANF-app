@@ -8,6 +8,7 @@ on:
       - opened
       - synchronize
       - reopened
+  workflow_dispatch:
 
 env:
   BACKEND_DIR: tdrs-backend
