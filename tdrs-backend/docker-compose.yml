@@ -73,6 +73,10 @@ services:
     command: --config /usr/share/grafana/conf/custom.ini
     depends_on:
       - grafana-pg
+    deploy:
+      resources:
+        limits:
+          memory: 264m
 
   alertmanager:
     restart: always
