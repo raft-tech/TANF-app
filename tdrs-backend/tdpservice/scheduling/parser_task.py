@@ -37,6 +37,7 @@ def parse(data_file_id, reparse_id=None):
     # passing the data file FileField across redis was rendering non-serializable failures, doing the below lookup
     # to avoid those. I suppose good practice to not store/serializer large file contents in memory when stored in redis
     # for undetermined amount of time.
+    logger.info(f"---------------Parsing data file with ID: {data_file_id}")
     try:
         data_file = DataFile.objects.get(id=data_file_id)
         change_log_filename(logger, str(data_file.filename))

@@ -56,6 +56,7 @@ class S3FileHandler(logging.FileHandler):
 
     def doRollover(self, datafile):
         """Rollover happens before closing the file."""
+        logger.info('____________ this is the file: ' + str(datafile.__dict__))
         try:
             key = f"{AWS_S3_LOGS_PREFIX}/{datafile.id}/{datafile.year}/{datafile.quarter}/" \
                   f"{datafile.stt}/{datafile.section}/{datafile.filename}"
