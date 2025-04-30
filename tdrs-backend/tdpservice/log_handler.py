@@ -25,9 +25,11 @@ BOTO3_CLIENT_CONFIG = {
 if settings.USE_LOCALSTACK:
     BOTO3_CLIENT_CONFIG["endpoint_url"] = "http://host.docker.internal:4566"
 
-def change_log_filename(logger, new_filename):
+def change_log_filename(logger, datafile):
     """Change the filename of the log file handler."""
     handlers = getattr(logger, 'handlers', [])
+    new_filename = f"{datafile.year}_{datafile.quarter}_" \
+                   f"{datafile.stt}_{datafile.section}"
     for handler in handlers:
         if isinstance(handler, S3FileHandler):
             handler.close()
@@ -47,7 +49,7 @@ class S3FileHandler(logging.FileHandler):
         except FileExistsError:
             print("File already exists.")
         super().__init__(
-            filename, mode='a', encoding=None, delay=False, errors=None
+            filename, mode=mode, encoding=None, delay=False, errors=None
         )
         self.s3_client = boto3.client(**BOTO3_CLIENT_CONFIG)
         self.bucket_name = AWS_S3_BUCKET_NAME
@@ -60,8 +62,8 @@ class S3FileHandler(logging.FileHandler):
         with open(self.filename, "a") as file:
             file.write("\n ____________________ END OF LOG _________________________ \n\n\n")
         try:
-            key = f"{AWS_S3_LOGS_PREFIX}/{datafile.id}/{datafile.year}/{datafile.quarter}/" \
-                  f"{datafile.stt}/{datafile.section}/{datafile.filename}"
+            key = f"{AWS_S3_LOGS_PREFIX}/{datafile.year}/{datafile.quarter}/" \
+                  f"{datafile.stt}/{datafile.section}"
             self.s3_client.upload_file(
                 Filename=self.filename,
                 Bucket=AWS_S3_BUCKET_NAME,

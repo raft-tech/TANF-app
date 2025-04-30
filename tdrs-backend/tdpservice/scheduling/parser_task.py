@@ -39,9 +39,8 @@ def parse(data_file_id, reparse_id=None):
     # for undetermined amount of time.
     try:
         data_file = DataFile.objects.get(id=data_file_id)
-        change_log_filename(logger, str(data_file.filename))
-        logger.info(f" ____________________ STARTING LOG FOR FILE {data_file.filename} "
-                    f"____________________ \n\n\n")
+        change_log_filename(logger, data_file)
+        logger.info(" ____________________ STARTING LOG _______________________ \n\n\n")
 
         file_meta = None
         if reparse_id:
@@ -115,5 +114,5 @@ def parse(data_file_id, reparse_id=None):
         if reparse_id:
             set_reparse_file_meta_model_failed_state(file_meta)
     finally:
-        logger.info(f"DataFile parsing finished for file {data_file.filename}")
+        logger.info(f"DataFile parsing finished for file -> {repr(data_file)}.")
         logger.handlers[2].doRollover(data_file)
