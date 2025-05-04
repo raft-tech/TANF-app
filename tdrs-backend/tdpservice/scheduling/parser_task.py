@@ -55,7 +55,7 @@ def parse(data_file_id, reparse_id=None):
     try:
         data_file = DataFile.objects.get(id=data_file_id)
         change_log_filename(logger, data_file)
-        logger.info(" ____________________ STARTING LOG _______________________ \n\n\n")
+        logger.info("\n\n\n ____________________ STARTING LOG _______________________ \n\n\n")
 
         file_meta = None
         if reparse_id:
