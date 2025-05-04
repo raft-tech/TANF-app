@@ -28,8 +28,8 @@ if settings.USE_LOCALSTACK:
 def change_log_filename(logger, datafile):
     """Change the filename of the log file handler."""
     handlers = getattr(logger, 'handlers', [])
-    new_filename = f"{datafile.year}_{datafile.quarter}_" \
-                   f"{datafile.stt}_{datafile.section}"
+    new_filename = f"/tmp/{datafile.year}_{datafile.quarter}_" \
+                   f"{datafile.stt}_{datafile.section}.log"
     for handler in handlers:
         if isinstance(handler, S3FileHandler):
             handler.close()
