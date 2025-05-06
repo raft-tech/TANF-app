@@ -11,7 +11,12 @@ import {
   accountCanSelectStt,
   accountIsRegionalStaff,
 } from '../../selectors/auth'
-import { handlePreview, tryGetUTF8EncodedFile } from '../FileUpload/utils'
+import {
+  checkPreviewDependencies,
+  handlePreview,
+  removeOldPreviews,
+  tryGetUTF8EncodedFile,
+} from '../FileUpload/utils'
 import createFileInputErrorState from '../../utils/createFileInputErrorState'
 import Modal from '../Modal'
 import {
@@ -258,15 +263,22 @@ const UploadForm = ({
   }, [])
 
   useEffect(() => {
+    // file.name -> the name of the locally selected file
+    // file.fileName -> the name of the submitted file
+    const fileName = file?.name || file?.fileName
+    const targetClassName = '.usa-file-input__target input#fra-file-upload'
     const trySettingPreview = () => {
-      const targetClassName = '.usa-file-input__target input#fra-file-upload'
-      const previewState = handlePreview(file?.fileName, targetClassName)
+      const previewState = handlePreview(fileName, targetClassName)
       if (!previewState) {
         setTimeout(trySettingPreview, 100)
       }
     }
-    if (file?.id) {
+    if (fileName) {
       trySettingPreview()
+    } else {
+      // When the file upload modal is cancelled we need to remove our hiding logic
+      const deps = checkPreviewDependencies(targetClassName)
+      if (deps.rendered) removeOldPreviews(deps.dropTarget, deps.instructions)
     }
   }, [file])
 
@@ -279,6 +291,12 @@ const UploadForm = ({
     })
 
     const fileInputValue = e.target.files[0]
+
+    if (!fileInputValue) {
+      setSelectedFile(null)
+      return
+    }
+
     const input = inputRef.current
     const dropTarget = inputRef.current.parentNode
 
@@ -325,7 +343,6 @@ const UploadForm = ({
     }
 
     setSelectedFile(encodedFile)
-    inputRef.current.value = null
   }
 
   const onSubmit = (e) => {
@@ -739,7 +756,6 @@ const FRAReports = () => {
 
   const handleUpload = ({ file: selectedFile }) => {
     const onFileUploadSuccess = (datafile) => {
-      setSelectedFile(null)
       setLocalAlertState({
         active: true,
         type: 'success',
@@ -906,9 +922,7 @@ const FRAReports = () => {
                 }}
                 handleDownload={handleDownload}
                 setLocalAlertState={setLocalAlertState}
-                file={
-                  selectedFile || uploadError ? selectedFile : latestSubmission
-                }
+                file={selectedFile}
                 setSelectedFile={setSelectedFile}
                 section={getReportTypeLabel()}
                 error={uploadError}
