@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import classNames from 'classnames'
 import { fileInput } from '@uswds/uswds/src/js/components'
-import fileTypeChecker from 'file-type-checker'
 
 import Button from '../Button'
 import STTComboBox from '../STTComboBox'
@@ -17,7 +16,6 @@ import {
   removeOldPreviews,
   tryGetUTF8EncodedFile,
 } from '../FileUpload/utils'
-import createFileInputErrorState from '../../utils/createFileInputErrorState'
 import Modal from '../Modal'
 import {
   formatDate,
@@ -297,11 +295,7 @@ const UploadForm = ({
       return
     }
 
-    const input = inputRef.current
-    const dropTarget = inputRef.current.parentNode
-
     const filereader = new FileReader()
-    const imgFileTypes = ['png', 'gif', 'jpeg']
     const csvExtension = /(\.csv)$/i
     const xlsxExtension = /(\.xlsx)$/i
 
@@ -326,13 +320,6 @@ const UploadForm = ({
     }
 
     const { result } = await loadFile()
-
-    const isImg = fileTypeChecker.validateFileType(result, imgFileTypes)
-    if (isImg) {
-      createFileInputErrorState(input, dropTarget)
-      setError(INVALID_FILE_ERROR)
-      return
-    }
 
     let encodedFile = null
 

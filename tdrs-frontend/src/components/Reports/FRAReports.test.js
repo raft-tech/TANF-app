@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, waitFor, render, within } from '@testing-library/react'
+import { fireEvent, waitFor, render, within, queryByText } from '@testing-library/react'
 import axios from 'axios'
 import { Provider } from 'react-redux'
 import { FRAReports } from '.'
@@ -443,6 +443,45 @@ describe('FRA Reports Page', () => {
         ).toBeInTheDocument()
       )
       await waitFor(() => expect(dispatch).toHaveBeenCalledTimes(3))
+    })
+
+    it('Set selected file to null if file is deselected', async () => {
+      const { queryByText, getByText, container } = await setup()
+
+      // Select a File
+      const uploadForm = container.querySelector('#fra-file-upload')
+      fireEvent.change(uploadForm, {
+        target: {
+          files: [
+            makeTestFile('report.xlsx', ['asdfad'], 'application/vnd.ms-excel'),
+          ],
+        },
+      })
+      await waitFor(() =>
+        expect(
+          getByText(
+            'Selected File report.xlsx. To change the selected file, click this button.'
+          )
+        ).toBeInTheDocument()
+      )
+
+      // Deselect File
+      fireEvent.change(uploadForm, { target: { files: [] } })
+      await waitFor(() =>
+        expect(
+          queryByText(/Drag file here or choose from folder/i)
+        ).toBeInTheDocument()
+      )
+
+      // Submit File
+      const submitButton = getByText('Submit Report')
+      fireEvent.click(submitButton)
+
+      await waitFor(() => {
+        expect(
+          getByText('No changes have been made to data files')
+        ).toBeInTheDocument()
+      })
     })
 
     it('Shows a spinner until submission history updates', async () => {
