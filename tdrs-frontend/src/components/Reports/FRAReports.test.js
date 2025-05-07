@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, waitFor, render, within, queryByText } from '@testing-library/react'
+import { fireEvent, waitFor, render, within } from '@testing-library/react'
 import axios from 'axios'
 import { Provider } from 'react-redux'
 import { FRAReports } from '.'
