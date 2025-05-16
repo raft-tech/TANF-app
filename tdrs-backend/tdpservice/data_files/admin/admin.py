@@ -37,6 +37,20 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
     actions = ['reparse']
 
+    readonly_fields = ('custom_file_download_link',)
+
+    def custom_file_download_link(self, obj):
+        # Modify the display logic here
+        from django.utils.html import format_html
+        return format_html("<a href='{0}'>{0}</a>".replace("localstack", "localhost"), obj.file.url)
+        if obj.file:
+            return f"{obj.file}"
+        return "No Value"
+
+    custom_file_download_link.short_description = 'File' # Optional: Renames the field in the admin
+
+    exclude = ('file',)
+
     def get_queryset(self, request):
         """Return the queryset."""
         qs = super().get_queryset(request)

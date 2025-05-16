@@ -51,6 +51,7 @@ services:
       - AWS_REGION_NAME=us-gov-west-1
     ports:
       - "4566:4566"
+      - "127.0.0.1:53:53" # Expose DNS server to the host
     volumes:
       - localstack_data:/tmp/localstack
       # Copy in the Localstack setup script to configure any buckets needed
