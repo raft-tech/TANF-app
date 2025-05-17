@@ -41,9 +41,9 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
     actions = ["reparse"]
 
-    readonly_fields = ("custom_file_download_link",)
+    readonly_fields = ("versioned_file_download_link",)
 
-    def custom_file_download_link(self, obj):
+    def versioned_file_download_link(self, obj):
         """Generate a custom download link for the file."""
         s3 = S3Client()
         version = obj.s3_versioning_id
@@ -60,7 +60,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         # url = url.replace("localstack", "localhost")
         return format_html("<a href='{0}'>{1}</a>", url, key)
 
-    custom_file_download_link.short_description = (
+    versioned_file_download_link.short_description = (
         "File"  # Optional: Renames the field in the admin
     )
 
@@ -80,7 +80,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
             }),
             ('File', {
                 'fields': (
-                    'file',
+                    'versioned_file_download_link',
                     's3_versioning_id',
                     'filename',),
             }),
