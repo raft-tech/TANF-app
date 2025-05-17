@@ -42,10 +42,27 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     def custom_file_download_link(self, obj):
         # Modify the display logic here
         from django.utils.html import format_html
-        return format_html("<a href='{0}'>{0}</a>".replace("localstack", "localhost"), obj.file.url)
-        if obj.file:
-            return f"{obj.file}"
-        return "No Value"
+        from tdpservice.data_files.s3_client import S3Client
+        import logging
+        logger = logging.getLogger(__name__)
+        s3 = S3Client()
+        version = obj.s3_versioning_id
+        bucket = settings.AWS_S3_DATAFILES_BUCKET_NAME
+        key = obj.s3_location
+        app_name = settings.APP_NAME + '/'
+        key = app_name + key
+
+        url = s3.client.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                'Bucket': bucket,
+                'Key': key,
+                'VersionId': version
+            },
+            ExpiresIn=3600 # one hour in seconds, increase if needed
+        )
+        #url = url.replace("localstack", "localhost")
+        return format_html("<a href='{0}'>{0}</a>", url)
 
     custom_file_download_link.short_description = 'File' # Optional: Renames the field in the admin
 
