@@ -17,16 +17,10 @@ services:
       - POSTGRES_PASSWORD=something_secure
       - POSTGRES_PORT=5432
       - POSTGRES_USER=tdpuser
-      - GRAFANA_USER=readgrafanauser
-      - GRAFANA_PASSWORD=somethingsecure
-    command: >
-      bash -c "apt-get update && apt-get install -y gettext && envsubst < init_template.sql > /docker-entrypoint-initdb.d/init.sql && chmod 755 /docker-entrypoint-initdb.d/init.sql
-      && docker-entrypoint.sh postgres"
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data/:rw
-      - ./init.sql:/init_template.sql
 
   grafana-pg:
     image: postgres:15.7
