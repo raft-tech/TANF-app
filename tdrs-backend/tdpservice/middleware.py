@@ -1,7 +1,11 @@
 """Generic middleware for use across the TDP platform."""
+
+from typing import Callable
 from django.utils.cache import add_never_cache_headers
 from django.conf import settings
 from django.contrib.sessions.middleware import SessionMiddleware
+from django.http import HttpRequest, HttpResponse
+
 
 class NoCacheMiddleware(object):
     """Disable client caching with a Cache-Control header."""
@@ -13,6 +17,18 @@ class NoCacheMiddleware(object):
         """Add appropriate headers to the response before sending it out."""
         response = self.get_response(request)
         add_never_cache_headers(response)
+        return response
+
+
+class RemoveXSSProtectionHeaderMiddleware:
+    """Strip X-XSS-Protection header."""
+
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
+        self.get_response: Callable[[HttpRequest], HttpResponse] = get_response
+
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        response: HttpResponse = self.get_response(request)
+        response.headers.pop("X-XSS-Protection", None)
         return response
 
 

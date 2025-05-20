@@ -80,6 +80,7 @@ class Common(Configuration):
         "tdpservice.users.api.middleware.AuthUpdateMiddleware",
         "csp.middleware.CSPMiddleware",
         "tdpservice.middleware.NoCacheMiddleware",
+        "tdpservice.middleware.RemoveXSSProtectionHeaderMiddleware",
         "django_prometheus.middleware.PrometheusAfterMiddleware",
     )
     PROMETHEUS_LATENCY_BUCKETS = (.1, .2, .5, .6, .8, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.5, 9.0, 12.0, 15.0, 20.0, 30.0, float("inf"))
@@ -295,11 +296,6 @@ class Common(Configuration):
     # https://docs.djangoproject.com/en/2.2/ref/settings/#csrf-cookie-httponly
     CSRF_COOKIE_HTTPONLY = False
     CSRF_TRUSTED_ORIGINS = ['.app.cloud.gov', '.acf.hhs.gov']
-
-    # Disable the deprecated X-XSS-Protection header
-    # header is put in ever request by the SecurityMiddleware by default
-    SECURE_BROWSER_XSS_FILTER = False
-
 
     # Django Rest Framework
     DEFAULT_RENDERER_CLASSES = ['rest_framework.renderers.JSONRenderer']
