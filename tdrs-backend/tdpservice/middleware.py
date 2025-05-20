@@ -27,6 +27,7 @@ class RemoveXSSProtectionHeaderMiddleware:
         self.get_response: Callable[[HttpRequest], HttpResponse] = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
+        """Remove the X-XSS-Protection header if present."""
         response: HttpResponse = self.get_response(request)
         response.headers.pop("X-XSS-Protection", None)
         return response
