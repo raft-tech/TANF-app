@@ -132,3 +132,47 @@ data_prepper.user_set.add(user)
 2.) Admins with access will have to ssh into the environment and assign permissions. Instructions for how to do this are included [here](../Security-Compliance/Incidence-Response/Sys-Admin-Acct-Mgmt.md#example-mitigation-steps) under **CF CLI Commands**.
 
  
+# Postgres DB users/roles and permissions
+
+## Permissions
+
+### PRIVILEGES
+1. CONNECT
+2. READ (SELECT)
+3. WRITE
+4. UPDATE
+5. INSERT
+6. 
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA myschema GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO readwrite;
+
+## Users and Roles
+Users, groups and roles are same concept in Postgres. 
+
+Roles:
+
+1. ofa_db_admin
+2. ofa_admin :table (create views, ALTER tables, query SELECT, etc.)
+3. fra_privileged
+4. fra_non_privileged (readonly)
+5. readonly
+
+
+Questions:
+1. Should readaccess be able to read all tables?
+2. What table should FRA_NON_PRIV user be able to read?
+3. Should we limit access to 
+
+IDEAS:
+1. Not all users need access to Django system tables (even the privileged users).
+2. Not all readonly users should have access to all tables
+3. 
+
+
+`SELECT rolname FROM pg_roles;`
+
+`SELECT *
+  FROM information_schema.role_table_grants 
+ WHERE grantee = 'readaccess';`
+
+`https://aws.amazon.com/blogs/database/managing-postgresql-users-and-roles/#:~:text=Users%2C%20groups%2C%20and%20roles%20are,for%20the%20CREATE%20ROLE%20statement.`
