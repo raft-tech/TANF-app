@@ -1,7 +1,8 @@
 ARG REGISTRY_OWNER=hhs
 ARG BASE_TAG=v0.0.2
 
-FROM ghcr.io/${REGISTRY_OWNER}/tdp-backend-base:${BASE_TAG}
+# FROM ghcr.io/${REGISTRY_OWNER}/tdp-backend-base:${BASE_TAG}
+FROM elipe17/tdp-backend-base:keycloak
 
 # Adds our application code to the image
 COPY . /tdpapp
