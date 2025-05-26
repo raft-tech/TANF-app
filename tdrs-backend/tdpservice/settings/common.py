@@ -368,18 +368,6 @@ class Common(Configuration):
 
     OIDC_CREATE_USER = True
     OIDC_STORE_ID_TOKEN = True  # Useful for debugging and potentially for logout
-    # Create Django users based on 'email' claim from Keycloak
-    @staticmethod
-    def _oidc_get_username_from_claims(claims_dict):
-        """Helper function to extract username from OIDC claims."""
-        return claims_dict.get('email')
-
-    def OIDC_USERNAME_ALGO(self):
-        """
-        Provides the callable for mozilla-django-oidc to get the username.
-        Ensures compatibility with django-configurations.
-        """
-        return self._oidc_get_username_from_claims
 
     OIDC_CLAIMS_MAP = {
         'email': {'key': 'email', 'required': True},
