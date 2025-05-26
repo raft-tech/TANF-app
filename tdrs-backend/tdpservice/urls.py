@@ -18,6 +18,8 @@ from .users.api.login_redirect_oidc import LoginRedirectAMS, LoginRedirectLoginD
 from .users.api.logout import LogoutUser
 from .users.api.logout_redirect_oidc import LogoutRedirectOIDC
 from django.contrib.auth.decorators import login_required
+from mozilla_django_oidc.views import OIDCAuthenticationRequestView, OIDCLogoutView
+from tdpservice.users.oidc_views import LoginGovHintView, AcfAmsHintView
 from .core.views import write_logs
 
 admin.autodiscover()
@@ -39,6 +41,11 @@ urlpatterns = [
     path("data_files/", include("tdpservice.data_files.urls")),
     path("logs/", write_logs),
     path("security/", include("tdpservice.security.urls")),
+    # New Keycloak OIDC login/logout URLs
+    path("keycloak/login/", OIDCAuthenticationRequestView.as_view(), name="keycloak_login"),
+    path("keycloak/login/login-gov/", LoginGovHintView.as_view(), name="keycloak_login_gov"),
+    path("keycloak/login/acf-ams/", AcfAmsHintView.as_view(), name="keycloak_login_ams"),
+    path("keycloak/logout/", OIDCLogoutView.as_view(), name="keycloak_logout"),
 ]
 
 if settings.DEBUG:
@@ -53,6 +60,7 @@ urlpatterns = [
     path("v1/", include(urlpatterns)),
     path("admin/", admin.site.urls, name="admin"),
     path("prometheus/", include("django_prometheus.urls")),
+    path('oidc/', include('mozilla_django_oidc.urls')),
     path("plg_auth_check/", PlgAuthorizationCheck.as_view(), name="plg-authorization-check"),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 

@@ -54,6 +54,7 @@ class Common(Configuration):
         "django_celery_beat",
         "storages",
         "django_prometheus",
+        "mozilla_django_oidc",
         # Local apps
         "tdpservice.core.apps.CoreConfig",
         "tdpservice.users",
@@ -75,6 +76,7 @@ class Common(Configuration):
         "django.middleware.csrf.CsrfViewMiddleware",
         "django.contrib.auth.middleware.AuthenticationMiddleware",
         "django.contrib.messages.middleware.MessageMiddleware",
+        "mozilla_django_oidc.middleware.SessionRefresh",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
         "corsheaders.middleware.CorsMiddleware",
         "tdpservice.users.api.middleware.AuthUpdateMiddleware",
@@ -323,9 +325,79 @@ class Common(Configuration):
     }
 
     AUTHENTICATION_BACKENDS = (
+        "mozilla_django_oidc.auth.OIDCAuthenticationBackend",
         "tdpservice.users.authentication.CustomAuthentication",
         "django.contrib.auth.backends.ModelBackend",
     )
+
+    # --- Keycloak OIDC Settings --- #
+    # Ensure 'os' is imported at the top of this file: import os
+
+    # KC_BASE_URL is for INTERNAL server-to-server communication (Django to Keycloak)
+    # It uses the Docker service name and Keycloak's internal port (8081).
+    # The user has already updated the default for the KC_BASE_URL environment variable.
+    KC_INTERNAL_SERVICE_URL = os.getenv("KC_BASE_URL", "http://keycloak:8081")
+
+    # KC_EXTERNAL_BROWSER_URL is for EXTERNAL browser-to-Keycloak communication.
+    # It uses localhost and Keycloak's host-mapped port (8081).
+    KC_EXTERNAL_BROWSER_URL = os.getenv("KC_EXTERNAL_BROWSER_URL", "http://localhost:8081")
+    
+    KC_REALM = os.getenv("KC_REALM", "tdp-realm")
+
+    OIDC_RP_CLIENT_ID = os.getenv("OIDC_RP_CLIENT_ID", "tdp-backend-local")
+    OIDC_RP_CLIENT_SECRET = os.getenv("OIDC_RP_CLIENT_SECRET")
+
+    # For browser redirects, use the externally accessible Keycloak URL
+    OIDC_OP_AUTHORIZATION_ENDPOINT = f"{KC_EXTERNAL_BROWSER_URL}/realms/{KC_REALM}/protocol/openid-connect/auth"
+    
+    # For direct server-to-server communication, use the internal Keycloak service URL
+    OIDC_OP_TOKEN_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/token"
+    OIDC_OP_USER_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/userinfo"
+    OIDC_OP_JWKS_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/certs"
+    OIDC_OP_ISSUER_ENDPOINT = f"{KC_EXTERNAL_BROWSER_URL}/realms/{KC_REALM}"
+    # If RP-Initiated Logout is needed for server-to-server communication:
+    # OIDC_OP_LOGOUT_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/logout"
+
+    OIDC_RP_SIGN_ALGO = "RS256"  # Default for Keycloak realm keys
+    OIDC_RP_SCOPES = os.getenv("OIDC_RP_SCOPES", "openid profile email")
+
+    # LOGIN_URL variable is used by @login_required decorator to redirect users
+    LOGIN_URL = "oidc_authentication_init"
+    LOGIN_REDIRECT_URL = os.getenv("LOGIN_REDIRECT_URL", "/")
+    LOGOUT_REDIRECT_URL = os.getenv("LOGOUT_REDIRECT_URL", "/")
+
+    OIDC_CREATE_USER = True
+    OIDC_STORE_ID_TOKEN = True  # Useful for debugging and potentially for logout
+    # Create Django users based on 'email' claim from Keycloak
+    @staticmethod
+    def _oidc_get_username_from_claims(claims_dict):
+        """Helper function to extract username from OIDC claims."""
+        return claims_dict.get('email')
+
+    def OIDC_USERNAME_ALGO(self):
+        """
+        Provides the callable for mozilla-django-oidc to get the username.
+        Ensures compatibility with django-configurations.
+        """
+        return self._oidc_get_username_from_claims
+
+    OIDC_CLAIMS_MAP = {
+        'email': {'key': 'email', 'required': True},
+        'login_gov_uuid': {'key': 'sub', 'required': False},
+        'hhs_id': {'key': 'hhs_id', 'required': False} # TODO: this claim is likely wrong and we need to figure it out for AMS
+    }
+
+    # Optional: If you need to perform custom actions on user creation/update
+    # OIDC_NEW_USER_CALLBACK = 'path.to.your.new_user_callback_function'
+    # OIDC_USER_UPDATED_CALLBACK = 'path.to.your.user_updated_callback_function'
+
+    OIDC_EXEMPT_URLS = [
+        '/prometheus/metrics',
+        # Add other paths here if they also don't need OIDC protection
+        # e.g., health checks, static files if not handled by webserver, etc.
+    ]
+
+    # --- End Keycloak OIDC Settings --- #
 
     TOKEN_EXPIRATION_HOURS = int(os.getenv("TOKEN_EXPIRATION_HOURS", 24))
 
