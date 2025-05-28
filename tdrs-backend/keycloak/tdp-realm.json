@@ -707,6 +707,7 @@
         "client.introspection.response.allow.jwt.claim.enabled": "false",
         "standard.token.exchange.enabled": "false",
         "frontchannel.logout.session.required": "true",
+        "post.logout.redirect.uris": "http://localhost:9400/grafana/*",
         "oauth2.device.authorization.grant.enabled": "false",
         "use.jwks.url": "false",
         "backchannel.logout.revoke.offline.tokens": "false",
@@ -1879,8 +1880,8 @@
         "forwardParameters": "acr_values",
         "authorizationUrl": "https://idp.int.identitysandbox.gov/openid_connect/authorize",
         "disableUserInfo": "false",
-        "logoutUrl": "https://idp.int.identitysandbox.gov/openid_connect/logout",
-        "sendIdTokenOnLogout": "true",
+        "logoutUrl": "https://idp.int.identitysandbox.gov/openid_connect/logout?client_id=urn:gov:gsa:openidconnect.profiles:sp:sso:hhs:tanf-proto-dev",
+        "sendIdTokenOnLogout": "false",
         "passMaxAge": "false",
         "disableTypeClaimCheck": "false",
         "prompt": "select_account"
