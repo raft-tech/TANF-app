@@ -218,6 +218,8 @@ services:
       - AWS_S3_BUCKET_NAME
       - AWS_S3_LOGS_PREFIX
       - OIDC_RP_CLIENT_SECRET
+      - GRAFANA_PASSWORD
+      - GRAFANA_USER
     volumes:
       - .:/tdpapp
       - logs:/tmp
