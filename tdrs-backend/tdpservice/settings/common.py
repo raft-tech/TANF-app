@@ -331,15 +331,10 @@ class Common(Configuration):
     )
 
     # --- Keycloak OIDC Settings --- #
-    # Ensure 'os' is imported at the top of this file: import os
-
     # KC_BASE_URL is for INTERNAL server-to-server communication (Django to Keycloak)
-    # It uses the Docker service name and Keycloak's internal port (8081).
-    # The user has already updated the default for the KC_BASE_URL environment variable.
     KC_INTERNAL_SERVICE_URL = os.getenv("KC_BASE_URL", "http://keycloak:8081")
 
     # KC_EXTERNAL_BROWSER_URL is for EXTERNAL browser-to-Keycloak communication.
-    # It uses localhost and Keycloak's host-mapped port (8081).
     KC_EXTERNAL_BROWSER_URL = os.getenv("KC_EXTERNAL_BROWSER_URL", "http://localhost:8081")
     
     KC_REALM = os.getenv("KC_REALM", "tdp-realm")
@@ -355,10 +350,9 @@ class Common(Configuration):
     OIDC_OP_USER_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/userinfo"
     OIDC_OP_JWKS_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/certs"
     OIDC_OP_ISSUER_ENDPOINT = f"{KC_EXTERNAL_BROWSER_URL}/realms/{KC_REALM}"
-    # If RP-Initiated Logout is needed for server-to-server communication:
-    # OIDC_OP_LOGOUT_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/logout"
+    OIDC_OP_LOGOUT_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/logout"
 
-    OIDC_RP_SIGN_ALGO = "RS256"  # Default for Keycloak realm keys
+    OIDC_RP_SIGN_ALGO = "RS256"
     OIDC_RP_SCOPES = os.getenv("OIDC_RP_SCOPES", "openid profile email")
 
     # LOGIN_URL variable is used by @login_required decorator to redirect users
@@ -367,7 +361,7 @@ class Common(Configuration):
     LOGOUT_REDIRECT_URL = os.getenv("LOGOUT_REDIRECT_URL", "/")
 
     OIDC_CREATE_USER = True
-    OIDC_STORE_ID_TOKEN = True  # Useful for debugging and potentially for logout
+    OIDC_STORE_ID_TOKEN = True
 
     OIDC_CLAIMS_MAP = {
         'email': {'key': 'email', 'required': True},
@@ -375,14 +369,12 @@ class Common(Configuration):
         'hhs_id': {'key': 'hhs_id', 'required': False} # TODO: this claim is likely wrong and we need to figure it out for AMS
     }
 
-    # Optional: If you need to perform custom actions on user creation/update
+    # Optional: If we need to perform custom actions on user creation/update
     # OIDC_NEW_USER_CALLBACK = 'path.to.your.new_user_callback_function'
     # OIDC_USER_UPDATED_CALLBACK = 'path.to.your.user_updated_callback_function'
 
     OIDC_EXEMPT_URLS = [
         '/prometheus/metrics',
-        # Add other paths here if they also don't need OIDC protection
-        # e.g., health checks, static files if not handled by webserver, etc.
     ]
 
     # --- End Keycloak OIDC Settings --- #

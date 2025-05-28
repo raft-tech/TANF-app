@@ -19,7 +19,7 @@ from .users.api.logout import LogoutUser
 from .users.api.logout_redirect_oidc import LogoutRedirectOIDC
 from django.contrib.auth.decorators import login_required
 from mozilla_django_oidc.views import OIDCAuthenticationRequestView, OIDCLogoutView
-from tdpservice.users.oidc_views import LoginGovHintView, AcfAmsHintView
+from tdpservice.users.keycloak_views import LoginGovKeycloakAuthView, AcfAmsKeycloakAuthView
 from .core.views import write_logs
 
 admin.autodiscover()
@@ -43,8 +43,8 @@ urlpatterns = [
     path("security/", include("tdpservice.security.urls")),
     # New Keycloak OIDC login/logout URLs
     path("keycloak/login/", OIDCAuthenticationRequestView.as_view(), name="keycloak_login"),
-    path("keycloak/login/login-gov/", LoginGovHintView.as_view(), name="keycloak_login_gov"),
-    path("keycloak/login/acf-ams/", AcfAmsHintView.as_view(), name="keycloak_login_ams"),
+    path("keycloak/login/login-gov/", LoginGovKeycloakAuthView.as_view(), name="keycloak_login_gov"),
+    path("keycloak/login/acf-ams/", AcfAmsKeycloakAuthView.as_view(), name="keycloak_login_ams"),
     path("keycloak/logout/", OIDCLogoutView.as_view(), name="keycloak_logout"),
 ]
 

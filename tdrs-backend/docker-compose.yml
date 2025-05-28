@@ -11,13 +11,8 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_HOSTNAME: localhost
       KC_HOSTNAME_PORT: 8081
-      # KC_HOSTNAME_URL is the primary way to set the public-facing URL
-      # KC_HOSTNAME_URL: http://localhost:8081
-      # KC_HOSTNAME and KC_HOSTNAME_PORT are often redundant if KC_HOSTNAME_URL is set
-      # Removing them to avoid potential conflicts.
-      # KC_PROXY_ADDRESS_FORWARDING: true # Essential when behind a reverse proxy (Nginx)
-      KC_HTTP_ENABLED: true             # Keycloak's internal HTTP listener
-      KC_HTTP_PORT: 8081                # Keycloak's internal HTTP port
+      KC_HTTP_ENABLED: true
+      KC_HTTP_PORT: 8081
     ports:
       - "8081:8081"
     depends_on:
