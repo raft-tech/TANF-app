@@ -147,8 +147,6 @@ Despite higher initial complexity, Vault Agent provides:
 ## Files Modified for Implementation
 
 - `Pipfile` - Added hvac dependency
-- `Dockerfile.base` - Added hvac library installation  
-- `Dockerfile` - Updated base image reference
 - `docker-compose.yml` - Added Vault services and volumes  
 - `vault/vault.hcl` - Vault server configuration
 - `vault-agent/config/agent.hcl` - Vault Agent configuration
