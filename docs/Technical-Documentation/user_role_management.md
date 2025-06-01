@@ -131,4 +131,4 @@ data_prepper.user_set.add(user)
 
 2.) Admins with access will have to ssh into the environment and assign permissions. Instructions for how to do this are included [here](../Security-Compliance/Incidence-Response/Sys-Admin-Acct-Mgmt.md#example-mitigation-steps) under **CF CLI Commands**.
 
-
+ 
