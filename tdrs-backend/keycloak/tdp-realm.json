@@ -678,13 +678,14 @@
       "description": "",
       "rootUrl": "http://localhost:9400",
       "adminUrl": "",
-      "baseUrl": "http://localhost:9400/grafana/home",
+      "baseUrl": "http://localhost:9400/grafana",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "secret": "**********",
       "redirectUris": [
+        "http://localhost:3000/*",
         "http://localhost:9400/grafana/*"
       ],
       "webOrigins": [
@@ -707,7 +708,7 @@
         "client.introspection.response.allow.jwt.claim.enabled": "false",
         "standard.token.exchange.enabled": "false",
         "frontchannel.logout.session.required": "true",
-        "post.logout.redirect.uris": "http://localhost:9400/grafana/*",
+        "post.logout.redirect.uris": "http://localhost:9400/grafana/*##http://localhost:3000/*",
         "oauth2.device.authorization.grant.enabled": "false",
         "use.jwks.url": "false",
         "backchannel.logout.revoke.offline.tokens": "false",
