@@ -151,7 +151,7 @@ function Reports() {
       fileTypeInputValue,
     ].filter(Boolean)
 
-    if (form.length === 3) {
+    if (form.length === 4) {
       // Hide upload sections while submitting search
       if (isUploadReportToggled) {
         setIsToggled(false)
