@@ -94,6 +94,7 @@ function FileUpload({ section, setLocalAlertState }) {
   const files = useSelector((state) => state.reports.submittedFiles)
   const selectedYear = useSelector((state) => state.reports.year)
   const selectedQuarter = useSelector((state) => state.reports.quarter)
+  const selectedFileType = useSelector((state) => state.reports.fileType)
 
   const dispatch = useDispatch()
 
@@ -242,7 +243,8 @@ function FileUpload({ section, setLocalAlertState }) {
       }`}
     >
       <label className="usa-label text-bold" htmlFor={formattedSectionName}>
-        Section {sectionNumber} - {sectionName}
+        Section {sectionNumber}- {selectedFileType.toUpperCase()} -{' '}
+        {sectionName}
       </label>
       <div>
         {selectedFile?.error && (

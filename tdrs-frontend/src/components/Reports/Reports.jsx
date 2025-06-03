@@ -136,7 +136,7 @@ function Reports() {
     setQuarterInputValue(selectedQuarter || '')
     setYearInputValue(selectedYear || '')
     setSttInputValue(selectedStt || '')
-    setFileTypeInputValue(selectedFileType || 'tanf')
+    setFileTypeInputValue(selectedFileType || '')
   }
 
   const handleSearch = () => {
@@ -182,13 +182,15 @@ function Reports() {
       setFormValidationState({
         year: !selectedYear,
         stt: !(sttInputValue || currentStt),
+        fileType: !selectedFileType,
         quarter: !selectedQuarter,
-        errors: 3 - form.length,
+        errors: 4 - form.length,
       })
       setTouched({
         year: true,
         stt: true,
         quarter: true,
+        fileType: true,
       })
       // Focus on the newly rendered error message.
       setTimeout(() => errorsRef.current.focus(), 0)
@@ -228,12 +230,13 @@ function Reports() {
       const expected_fields =
         isOFAAdmin || isDIGITTeam || isSystemAdmin || isRegionalStaff ? 3 : 2
 
-      const errors = touchedFields === 3 ? expected_fields - form.length : 0
+      const errors = touchedFields === 4 ? expected_fields - form.length : 0
 
       setFormValidationState((currentState) => ({
         ...currentState,
         year: touched.year && !yearInputValue,
         stt: touched.stt && !sttInputValue,
+        fileType: touched.fileType && !fileTypeInputValue,
         quarter: touched.quarter && !quarterInputValue,
         errors,
       }))
@@ -244,6 +247,7 @@ function Reports() {
     yearInputValue,
     selectedStt,
     quarterInputValue,
+    fileTypeInputValue,
     setFormValidationState,
     touched,
     isOFAAdmin,
@@ -267,6 +271,8 @@ function Reports() {
             ref={errorsRef}
             tabIndex="-1"
           >
+            {selectedFileType} {fileTypeInputValue}
+            {JSON.stringify(formValidation)}
             There {errorsCount === 1 ? 'is' : 'are'} {formValidation.errors}{' '}
             error(s) in this form
           </div>
@@ -298,36 +304,47 @@ function Reports() {
               )}
               {(stt?.ssp ? stt.ssp : false) && (
                 <div className="usa-form-group margin-top-4">
-                  <fieldset className="usa-fieldset">
-                    <legend className="usa-label text-bold">File Type*</legend>
-                    <div className="usa-radio">
-                      <input
-                        className="usa-radio__input"
-                        id="tanf"
-                        type="radio"
-                        name="reportType"
-                        value="tanf"
-                        defaultChecked
-                        onChange={() => setFileTypeInputValue('tanf')}
-                      />
-                      <label className="usa-radio__label" htmlFor="tanf">
-                        TANF
-                      </label>
-                    </div>
-                    <div className="usa-radio">
-                      <input
-                        className="usa-radio__input"
-                        id="ssp-moe"
-                        type="radio"
-                        name="reportType"
-                        value="ssp-moe"
-                        onChange={() => setFileTypeInputValue('ssp-moe')}
-                      />
-                      <label className="usa-radio__label" htmlFor="ssp-moe">
-                        SSP-MOE
-                      </label>
-                    </div>
-                  </fieldset>
+                  <label className="usa-label text-bold" htmlFor="reportType">
+                    {formValidation.fileType && (
+                      <div
+                        className="usa-error-message"
+                        id="reportType-error-alert"
+                      >
+                        A file type selection is required
+                      </div>
+                    )}
+                    <fieldset className="usa-fieldset">
+                      <legend className="usa-label text-bold">
+                        File Type*
+                      </legend>
+                      <div className="usa-radio">
+                        <input
+                          className="usa-radio__input"
+                          id="tanf"
+                          type="radio"
+                          name="reportType"
+                          value="tanf"
+                          onChange={() => setFileTypeInputValue('tanf')}
+                        />
+                        <label className="usa-radio__label" htmlFor="tanf">
+                          TANF
+                        </label>
+                      </div>
+                      <div className="usa-radio">
+                        <input
+                          className="usa-radio__input"
+                          id="ssp-moe"
+                          type="radio"
+                          name="reportType"
+                          value="ssp-moe"
+                          onChange={() => setFileTypeInputValue('ssp-moe')}
+                        />
+                        <label className="usa-radio__label" htmlFor="ssp-moe">
+                          SSP-MOE
+                        </label>
+                      </div>
+                    </fieldset>
+                  </label>
                 </div>
               )}
             </div>
