@@ -6,6 +6,7 @@ import { ComboBox } from '../Form'
 import Modal from '../Modal'
 import { toTitleCase } from '../../utils/stringUtils'
 import { availableStts } from '../../selectors/stts'
+import signOut from '../../utils/signOut'
 
 /**
  * @param {function} selectStt - Function to reference and change the
@@ -40,7 +41,7 @@ function STTComboBox({ selectStt, selectedStt, handleBlur, error, sttType }) {
   ])
 
   const onSignOut = () => {
-    window.location.href = `${process.env.REACT_APP_BACKEND_URL}/logout/oidc`
+    signOut()
   }
 
   return (

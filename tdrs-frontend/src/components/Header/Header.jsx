@@ -12,6 +12,7 @@ import {
 
 import NavItem from '../NavItem/NavItem'
 import PermissionGuard from '../PermissionGuard'
+import signOut from '../../utils/signOut'
 
 /**
  * This component is rendered on every page and contains the navigation bar.
@@ -188,7 +189,11 @@ function Header() {
                   <li className="usa-nav__secondary-item">
                     <a
                       className="sign-out-link"
-                      href={`${process.env.REACT_APP_BACKEND_URL}/logout/oidc`}
+                      href={`${process.env.REACT_APP_BACKEND_URL}/keycloak/logout`}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        signOut()
+                      }}
                     >
                       <FontAwesomeIcon
                         className="margin-right-1"

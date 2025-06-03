@@ -3,6 +3,7 @@ import { useIdleTimer } from 'react-idle-timer'
 import { useDispatch } from 'react-redux'
 import Button from '../Button'
 import { fetchAuth } from '../../actions/auth'
+import { signOut } from '../../actions/auth'
 
 /**
  * IdleTimer uses the `react-idle-timer` package to watch for user inactivity.
@@ -52,7 +53,7 @@ function IdleTimer() {
   })
 
   const onSignOut = () => {
-    window.location.href = `${process.env.REACT_APP_BACKEND_URL}/logout/oidc`
+    signOut()
   }
 
   const onRenewSession = () => {

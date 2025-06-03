@@ -31,13 +31,14 @@ function SplashPage() {
       dispatch(setMockLoginState())
     } else {
       event.preventDefault()
-      window.location.href = `${process.env.REACT_APP_BACKEND_URL}/login/dotgov`
+      window.location.href = `${process.env.REACT_APP_BACKEND_URL}/keycloak/login/login-gov/`
     }
   }
 
   const signInWithAMS = (event) => {
     event.preventDefault()
-    window.location.href = `${process.env.REACT_APP_BACKEND_URL}/login/ams`
+    // TODO: Validate when we can test keycloak with ACF AMS
+    window.location.href = `${process.env.REACT_APP_BACKEND_URL}/keycloak/login/acf-ams/`
   }
 
   useEffect(() => {

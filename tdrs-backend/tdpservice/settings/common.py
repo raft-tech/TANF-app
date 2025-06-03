@@ -344,21 +344,22 @@ class Common(Configuration):
 
     # For browser redirects, use the externally accessible Keycloak URL
     OIDC_OP_AUTHORIZATION_ENDPOINT = f"{KC_EXTERNAL_BROWSER_URL}/realms/{KC_REALM}/protocol/openid-connect/auth"
+    OIDC_OP_LOGOUT_ENDPOINT = f"{KC_EXTERNAL_BROWSER_URL}/realms/{KC_REALM}/protocol/openid-connect/logout"
     
     # For direct server-to-server communication, use the internal Keycloak service URL
     OIDC_OP_TOKEN_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/token"
     OIDC_OP_USER_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/userinfo"
     OIDC_OP_JWKS_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/certs"
     OIDC_OP_ISSUER_ENDPOINT = f"{KC_EXTERNAL_BROWSER_URL}/realms/{KC_REALM}"
-    OIDC_OP_LOGOUT_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/logout"
 
     OIDC_RP_SIGN_ALGO = "RS256"
     OIDC_RP_SCOPES = os.getenv("OIDC_RP_SCOPES", "openid profile email")
 
     # LOGIN_URL variable is used by @login_required decorator to redirect users
     LOGIN_URL = "oidc_authentication_init"
-    LOGIN_REDIRECT_URL = os.getenv("LOGIN_REDIRECT_URL", "/")
+    LOGIN_REDIRECT_URL = os.getenv("LOGIN_REDIRECT_URL", "/home")
     LOGOUT_REDIRECT_URL = os.getenv("LOGOUT_REDIRECT_URL", "/")
+    OIDC_OP_LOGOUT_URL_METHOD = "tdpservice.users.keycloak_views.logout_url"
 
     OIDC_CREATE_USER = True
     OIDC_STORE_ID_TOKEN = True
