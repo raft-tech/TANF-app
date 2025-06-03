@@ -85,7 +85,7 @@ const initialState = {
   year: '',
   stt: '',
   quarter: '',
-  fileType: 'tanf',
+  fileType: '',
 }
 
 const reports = (state = initialState, action) => {

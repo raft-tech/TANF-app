@@ -148,6 +148,7 @@ function Reports() {
       yearInputValue,
       sttInputValue || currentStt,
       quarterInputValue,
+      fileTypeInputValue,
     ].filter(Boolean)
 
     if (form.length === 3) {
@@ -222,13 +223,16 @@ function Reports() {
 
   useEffect(() => {
     if (!isUploadReportToggled) {
-      const form = [yearInputValue, sttInputValue, quarterInputValue].filter(
-        Boolean
-      )
+      const form = [
+        yearInputValue,
+        sttInputValue,
+        quarterInputValue,
+        fileTypeInputValue,
+      ].filter(Boolean)
       const touchedFields = Object.keys(touched).length
 
       const expected_fields =
-        isOFAAdmin || isDIGITTeam || isSystemAdmin || isRegionalStaff ? 3 : 2
+        isOFAAdmin || isDIGITTeam || isSystemAdmin || isRegionalStaff ? 4 : 3
 
       const errors = touchedFields === 4 ? expected_fields - form.length : 0
 
@@ -271,8 +275,6 @@ function Reports() {
             ref={errorsRef}
             tabIndex="-1"
           >
-            {selectedFileType} {fileTypeInputValue}
-            {JSON.stringify(formValidation)}
             There {errorsCount === 1 ? 'is' : 'are'} {formValidation.errors}{' '}
             error(s) in this form
           </div>
