@@ -28,13 +28,6 @@ admin.site.site_header = "Django administration"
 
 # http://www.django-rest-framework.org/api-guide/routers/#defaultrouter
 urlpatterns = [
-    # TODO: Update redirect path in login.gov to standardize all the login urls.
-    path("login/", TokenAuthorizationLoginDotGov.as_view(), name="oidc-dotgov"),
-    path("oidc/ams", TokenAuthorizationAMS.as_view(), name="oidc-ams"),
-    path("login/dotgov", LoginRedirectLoginDotGov.as_view(), name="login-dotgov"),
-    path("login/ams", LoginRedirectAMS.as_view(), name="login-ams"),
-    path("logout", LogoutUser.as_view(), name="logout"),
-    path("logout/oidc", LogoutRedirectOIDC.as_view(), name="oidc-logout"),
     path("auth_check", AuthorizationCheck.as_view(), name="authorization-check"),
     path("", include("tdpservice.users.urls")),
     path("stts/", include("tdpservice.stts.urls")),
