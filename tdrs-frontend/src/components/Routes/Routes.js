@@ -4,7 +4,6 @@ import NoMatch from '../NoMatch'
 import SplashPage from '../SplashPage'
 import Profile from '../Profile'
 import PrivateRoute from '../PrivateRoute'
-import LoginCallback from '../LoginCallback'
 import Reports, { FRAReports } from '../Reports'
 import { useSelector } from 'react-redux'
 import { accountIsInReview } from '../../selectors/auth'
@@ -27,7 +26,6 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route exact path="/" element={<SplashPage />} />
-      <Route exact path="/login" element={<LoginCallback />} />
       <Route
         exact
         path="/home"
