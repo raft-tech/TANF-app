@@ -888,7 +888,8 @@
       "clientAuthenticatorType": "client-secret",
       "secret": "**********",
       "redirectUris": [
-        "http://localhost:3000/oidc/callback/*"
+        "http://localhost:3000/*",
+        "http://localhost:3000/grafana/*"
       ],
       "webOrigins": [
         ""
@@ -907,6 +908,7 @@
         "request.object.signature.alg": "any",
         "token.endpoint.auth.signing.alg": "RS256",
         "frontchannel.logout.session.required": "true",
+        "post.logout.redirect.uris": "http://localhost:3000/*",
         "oauth2.device.authorization.grant.enabled": "false",
         "use.jwks.url": "false",
         "backchannel.logout.revoke.offline.tokens": "false",
