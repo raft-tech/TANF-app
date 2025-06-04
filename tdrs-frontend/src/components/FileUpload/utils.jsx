@@ -172,13 +172,16 @@ export const checkHeaderFile = async function (
     fileYear,
     fileQuarter
   )
+  const progTypeRegex = '(TAN|tan|SSP|ssp)'
+  const progType = firstLine.match(progTypeRegex)
   if (
     yearQuarter &&
+    progType &&
     (fiscalFileYear !== fiscalSelectedYear ||
       fiscalFileQuarter !== fiscalSelectedQuarter.slice(1, 2))
   ) {
-    return [false, fiscalFileYear, fiscalFileQuarter]
+    return [true, fiscalFileYear, fiscalFileQuarter, progType[0]]
   } else {
-    return [true, null, null]
+    return [false, null, null, null]
   }
 }
