@@ -184,7 +184,11 @@ function FileUpload({ section, setLocalAlertState }) {
         fiscalFileQuarter,
         progType,
       ] = await checkHeaderFile(result, file, selectedYear, selectedQuarter)
-      if (isInCorrectQuarterYearProgramType) {
+      if (
+        isInCorrectQuarterYearProgramType &&
+        progType !== null &&
+        selectedFileType.includes(progType?.toLowerCase())
+      ) {
         dispatch(upload({ file: encodedFile, section }))
       } else if (
         progType !== null &&

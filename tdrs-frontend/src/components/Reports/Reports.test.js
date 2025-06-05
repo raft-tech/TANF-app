@@ -675,10 +675,11 @@ describe('Reports', () => {
         fireEvent.change(
           getByLabelText('Section 1 - TANF - Active Case Data'),
           {
-          target: {
-            files: [makeTestFile('section1.txt')],
-          },
-        })
+            target: {
+              files: [makeTestFile('section1.txt')],
+            },
+          }
+        )
       })
 
       await waitFor(() => expect(getByText('section1.txt')).toBeInTheDocument())
@@ -738,9 +739,7 @@ describe('Reports', () => {
       fireEvent.click(getByText('Submission History'))
 
       await waitFor(() => {
-        expect(
-          getByText('Section 1 - TANF - Active Case Data')
-        ).toBeInTheDocument()
+        expect(getByText('Section 1 - Active Case Data')).toBeInTheDocument()
         expect(queryAllByText('No data available.')).toHaveLength(4)
       })
     })

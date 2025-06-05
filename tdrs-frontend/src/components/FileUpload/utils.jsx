@@ -180,9 +180,8 @@ export const checkHeaderFile = async function (
     (fiscalFileYear !== fiscalSelectedYear ||
       fiscalFileQuarter !== fiscalSelectedQuarter.slice(1, 2))
   ) {
-    return [false, fiscalFileYear, fiscalFileQuarter, progType[0]]
+    return [false, fiscalFileYear, fiscalFileQuarter, null]
   } else {
-    // if they match, but
-    return [true, null, null, progType[0]]
+    return [true, null, null, progType ? progType[0] : null]
   }
 }
