@@ -176,14 +176,13 @@ export const checkHeaderFile = async function (
   const progType = firstLine.match(progTypeRegex)
   // Check if the fiscal year and quarter match the selected values
   if (
-    yearQuarter &&
-    progType &&
+    yearQuarter !== null &&
     (fiscalFileYear !== fiscalSelectedYear ||
       fiscalFileQuarter !== fiscalSelectedQuarter.slice(1, 2))
   ) {
-    return [true, fiscalFileYear, fiscalFileQuarter, progType[0]]
+    return [false, fiscalFileYear, fiscalFileQuarter, progType[0]]
   } else {
     // if they match, but
-    return [false, null, null, null]
+    return [true, null, null, progType[0]]
   }
 }

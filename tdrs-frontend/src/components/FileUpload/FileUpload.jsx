@@ -179,14 +179,17 @@ function FileUpload({ section, setLocalAlertState }) {
       // Get the correctly encoded file
       const encodedFile = await tryGetUTF8EncodedFile(result, file)
       const [
-        isCorrectQuarterYearProgramType,
+        isInCorrectQuarterYearProgramType,
         fiscalFileYear,
         fiscalFileQuarter,
         progType,
       ] = await checkHeaderFile(result, file, selectedYear, selectedQuarter)
-      if (isCorrectQuarterYearProgramType) {
+      if (isInCorrectQuarterYearProgramType) {
         dispatch(upload({ file: encodedFile, section }))
-      } else if (!selectedFileType.includes(progType?.toLowerCase())) {
+      } else if (
+        progType !== null &&
+        !selectedFileType.includes(progType?.toLowerCase())
+      ) {
         // Handle specific program type cases
         dispatch({
           type: SET_FILE_ERROR,
@@ -194,7 +197,7 @@ function FileUpload({ section, setLocalAlertState }) {
             error: {
               message:
                 `File may correspond to ` +
-                progType.toUpperCase() +
+                progType?.toUpperCase() +
                 ` instead of ` +
                 selectedFileType.toUpperCase() +
                 `. Please verify the file type.`,
@@ -202,7 +205,8 @@ function FileUpload({ section, setLocalAlertState }) {
             section,
           },
         })
-      } else {
+      } else if (!isInCorrectQuarterYearProgramType) {
+        // Handle fiscal year and quarter mismatch
         let error_period
         var link = (
           <a
