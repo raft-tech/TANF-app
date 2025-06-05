@@ -2014,32 +2014,6 @@
     ],
     "org.keycloak.keys.KeyProvider": [
       {
-        "id": "ddd18a4a-83fb-44be-b477-6104167c8372",
-        "name": "rsa",
-        "providerId": "rsa",
-        "subComponents": {},
-        "config": {
-          "privateKey": [
-            "**********"
-          ],
-          "certificate": [
-            "MIICoTCCAYkCBgGW/x5UvTANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAl0ZHAtcmVhbG0wHhcNMjUwNTIzMjE0NjQwWhcNMzUwNTIzMjE0ODIwWjAUMRIwEAYDVQQDDAl0ZHAtcmVhbG0wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCpQ64No0JrUZiUZGx7w4Ne72/hxWh4oRl8mtGSCrB2DccK8LOcqyCgqKResSLBlJC2lHbCsBCp+FFW4by8jDE65OPZYHc5volVL/wGvUR/56mXstujV/7ghHpAOw68JDwRJTcJmvThK2DXvpa+GNov0nVl7NKHMefBiRfc8ckAF4CKJXIaIAcdRY3fw5B3BF6+hYpyVH/xXs9Y+JH13DV3FNMotORm5TKnYQctVVIy6RSGBKbnCSgEt6dfB4Aw0W8zl0tQyOMJl4c1BtOAHQmHNoi1kGDCuDYvJTF2Hvyw7+qReRBX+YMhHhMIvnesk2VQDp2iQ4j8N7CrCAKyGSQNAgMBAAEwDQYJKoZIhvcNAQELBQADggEBAHjpdub7u5fFznnUNboqDqin0qT2u4qD+pYeXR4WmWACmIQC0kRYbu4K4iDHK/q1j3RfBuFtMzK+sdkUJGt5hvbKf+IxermgHfuls1NH6UvNon6wFpQESCkHRGo9h5HNkJF6ydXr+FqPaC0anJ9oQzKYJhteF5JwcglYdFwJ66uUoWUDVDCGXKiO3qoVISVcMiW2vYv9JU9AVcwEt1yjUDPFZXNRpRoKvmmfgWGxscK70MRdN+wsXLcVbU2G5n3G56CNf4F+eBITiR7ubfMVJqsaIQwzlyXESRM8FIxEOVrkyQBBSJkvrUrynLukulAWe75VbFt05tmaZRe7CkCOo7g="
-          ],
-          "active": [
-            "true"
-          ],
-          "priority": [
-            "0"
-          ],
-          "enabled": [
-            "true"
-          ],
-          "algorithm": [
-            "RS256"
-          ]
-        }
-      },
-      {
         "id": "8f99d0f2-b590-4e10-844f-77e067729095",
         "name": "fallback-AES",
         "providerId": "aes-generated",
