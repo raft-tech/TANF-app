@@ -50,7 +50,7 @@ const initialState = {
   year: '',
   stt: '',
   quarter: '',
-  fileType: 'tanf',
+  fileType: '',
 }
 
 describe('reducers/reports', () => {
@@ -97,7 +97,7 @@ describe('reducers/reports', () => {
       quarter: '',
       stt: '',
       year: '',
-      fileType: 'tanf',
+      fileType: '',
     })
   })
 
@@ -153,7 +153,7 @@ describe('reducers/reports', () => {
       stt: '',
       year: '',
       quarter: '',
-      fileType: 'tanf',
+      fileType: '',
     })
   })
 
@@ -213,7 +213,7 @@ describe('reducers/reports', () => {
       stt: '',
       year: '',
       quarter: '',
-      fileType: 'tanf',
+      fileType: '',
     })
   })
 
@@ -264,7 +264,7 @@ describe('reducers/reports', () => {
       stt: '',
       year: '',
       quarter: '',
-      fileType: 'tanf',
+      fileType: '',
     })
   })
 
@@ -363,7 +363,7 @@ describe('reducers/reports', () => {
       stt: '',
       year: '',
       quarter: '',
-      fileType: 'tanf',
+      fileType: '',
     })
   })
 
@@ -468,7 +468,7 @@ describe('reducers/reports', () => {
       year: '',
       stt: 'florida',
       quarter: '',
-      fileType: 'tanf',
+      fileType: '',
     })
   })
 
@@ -488,7 +488,7 @@ describe('reducers/reports', () => {
       year: '',
       stt: '',
       quarter: 'Q1',
-      fileType: 'tanf',
+      fileType: '',
     })
 
     expect(
@@ -506,7 +506,7 @@ describe('reducers/reports', () => {
       year: '',
       stt: '',
       quarter: 'Q2',
-      fileType: 'tanf',
+      fileType: '',
     })
 
     expect(
@@ -524,7 +524,7 @@ describe('reducers/reports', () => {
       year: '',
       stt: '',
       quarter: 'Q3',
-      fileType: 'tanf',
+      fileType: '',
     })
     expect(
       reducer(undefined, {
@@ -541,7 +541,7 @@ describe('reducers/reports', () => {
       year: '',
       stt: '',
       quarter: 'Q4',
-      fileType: 'tanf',
+      fileType: '',
     })
   })
 
@@ -561,7 +561,7 @@ describe('reducers/reports', () => {
       year: '2021',
       stt: '',
       quarter: '',
-      fileType: 'tanf',
+      fileType: '',
     })
   })
 

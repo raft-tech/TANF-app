@@ -184,14 +184,10 @@ function FileUpload({ section, setLocalAlertState }) {
         fiscalFileQuarter,
         progType,
       ] = await checkHeaderFile(result, file, selectedYear, selectedQuarter)
-      console.log('selectedFileType: ', selectedFileType)
-      console.log('progType: ', progType?.toLowerCase())
-      if (!isCorrectQuarterYearProgramType) {
+      if (isCorrectQuarterYearProgramType) {
         dispatch(upload({ file: encodedFile, section }))
-      } else if (!selectedFileType.includes(progType.toLowerCase())) {
+      } else if (!selectedFileType.includes(progType?.toLowerCase())) {
         // Handle specific program type cases
-        console.log('selectedFileType--: ', selectedFileType)
-        console.log('progType--: ', progType.toLowerCase())
         dispatch({
           type: SET_FILE_ERROR,
           payload: {
@@ -267,7 +263,7 @@ function FileUpload({ section, setLocalAlertState }) {
       }`}
     >
       <label className="usa-label text-bold" htmlFor={formattedSectionName}>
-        Section {sectionNumber}- {selectedFileType.toUpperCase()} -{' '}
+        Section {sectionNumber} - {selectedFileType?.toUpperCase()} - {''}
         {sectionName}
       </label>
       <div>

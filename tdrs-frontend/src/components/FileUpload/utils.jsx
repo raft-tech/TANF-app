@@ -174,6 +174,7 @@ export const checkHeaderFile = async function (
   )
   const progTypeRegex = '(TAN|tan|SSP|ssp)'
   const progType = firstLine.match(progTypeRegex)
+  // Check if the fiscal year and quarter match the selected values
   if (
     yearQuarter &&
     progType &&
@@ -182,6 +183,7 @@ export const checkHeaderFile = async function (
   ) {
     return [true, fiscalFileYear, fiscalFileQuarter, progType[0]]
   } else {
+    // if they match, but
     return [false, null, null, null]
   }
 }

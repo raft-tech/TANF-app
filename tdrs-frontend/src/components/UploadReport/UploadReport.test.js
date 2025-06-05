@@ -15,30 +15,35 @@ describe('UploadReport', () => {
   const initialState = {
     auth: { user: { email: 'test@test.com' }, authenticated: true },
     reports: {
+      fileType: 'tanf',
       submittedFiles: [
         {
           fileName: 'test.txt',
           id: 1,
           section: 'Active Case Data',
           uuid: uuidv4(),
+          progType: 'tanf',
         },
         {
           fileName: 'testb.txt',
           id: 2,
           section: 'Closed Case Data',
           uuid: uuidv4(),
+          progType: 'tanf',
         },
         {
           section: 'Aggregate Data',
           fileType: null,
           fileName: null,
           error: null,
+          progType: 'tanf',
         },
         {
           section: 'Stratum Data',
           fileType: null,
           fileName: null,
           error: null,
+          progType: 'tanf',
         },
       ],
     },
@@ -70,7 +75,7 @@ describe('UploadReport', () => {
       </Provider>
     )
 
-    const fileInput = getByLabelText('Section 1 - Active Case Data')
+    const fileInput = getByLabelText('Section 1 - TANF - Active Case Data')
 
     const newFile = new File(['test'], 'test.txt', { type: 'text/plain' })
 
@@ -98,7 +103,7 @@ describe('UploadReport', () => {
       </Provider>
     )
 
-    const fileInput = getByLabelText('Section 1 - Active Case Data')
+    const fileInput = getByLabelText('Section 1 - TANF - Active Case Data')
 
     const newFile = new File(['<div>test</div>'], 'test.html', {
       type: 'text/html',
@@ -244,7 +249,7 @@ describe('UploadReport', () => {
       </Provider>
     )
 
-    const fileInput = getByLabelText('Section 1 - Active Case Data')
+    const fileInput = getByLabelText('Section 1 - TANF - Active Case Data')
 
     const newFile = new File(['test'], 'test.txt', { type: 'text/plain' })
     const fileList = [newFile]
