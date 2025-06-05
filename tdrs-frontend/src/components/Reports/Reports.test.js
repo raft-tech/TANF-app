@@ -89,8 +89,8 @@ describe('Reports', () => {
   }
   const mockStore = configureStore([thunk])
 
-  const makeTestFile = (name) =>
-    new File(['test'], name, {
+  const makeTestFile = (name, contents = ['test']) =>
+    new File(contents, name, {
       type: 'text/plain',
     })
 
@@ -460,6 +460,7 @@ describe('Reports', () => {
           year: '2021',
           stt: 'Alaska',
           quarter: 'Q3',
+          fileType: 'tanf',
         },
       })
 
@@ -676,13 +677,16 @@ describe('Reports', () => {
           getByLabelText('Section 1 - TANF - Active Case Data'),
           {
             target: {
-              files: [makeTestFile('section1.txt')],
+              files: [
+                makeTestFile('section1.txt', ['HEADER20214A53000TAN1ED']),
+              ],
             },
           }
         )
       })
 
       await waitFor(() => expect(getByText('section1.txt')).toBeInTheDocument())
+      fireEvent.click(getByLabelText(/TANF/))
 
       // make a change to the search selections and click search
       fireEvent.change(getByLabelText(/Fiscal Year/), {
