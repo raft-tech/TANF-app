@@ -47,13 +47,13 @@ def run(*args):
                 sql_query = sql_query.replace("$OFA_PASSWORD", OFA_PASSWORD)
             elif "$OFA_PASSWORD" in sql_query and not OFA_PASSWORD:
                 continue
-            if "$OFA_ADMIN_USER" in sql_query and OFA_ADMIN_USER:
-                sql_query = sql_query.replace("$OFA_ADMIN_USER", OFA_ADMIN_USER)
-            elif "$OFA_ADMIN_USER" in sql_query and not OFA_ADMIN_USER:
+            if "$OFA_DB_USER" in sql_query and OFA_ADMIN_USER:
+                sql_query = sql_query.replace("$OFA_DB_USER", OFA_ADMIN_USER)
+            elif "$OFA_DB_USER" in sql_query and not OFA_ADMIN_USER:
                 continue
-            if "$OFA_ADMIN_PASSWORD" in sql_query and OFA_ADMIN_PASSWORD:
-                sql_query = sql_query.replace("$OFA_ADMIN_PASSWORD", OFA_ADMIN_PASSWORD)
-            elif "$OFA_ADMIN_PASSWORD" in sql_query and not OFA_ADMIN_PASSWORD:
+            if "$OFA_DB_PASSWORD" in sql_query and OFA_ADMIN_PASSWORD:
+                sql_query = sql_query.replace("$OFA_DB_PASSWORD", OFA_ADMIN_PASSWORD)
+            elif "$OFA_DB_PASSWORD" in sql_query and not OFA_ADMIN_PASSWORD:
                 continue
             print(f"--Executing SQL query: {sql_query.strip()}")
             try:
