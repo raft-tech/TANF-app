@@ -566,7 +566,8 @@ describe('Reports', () => {
             target: {
               files: [makeTestFile('section1.txt')],
             },
-        })
+          }
+        )
       })
 
       await waitFor(() => expect(getByText('section1.txt')).toBeInTheDocument())
@@ -616,9 +617,13 @@ describe('Reports', () => {
           getByLabelText('Section 1 - TANF - Active Case Data'),
           {
             target: {
-              files: [makeTestFile('section1.txt')],
+              files: [
+                makeTestFile('section1.txt'),
+                ['HEADER20212A53000TAN1ED\n'],
+              ],
             },
-        })
+          }
+        )
       })
 
       await waitFor(() => expect(getByText('section1.txt')).toBeInTheDocument())
@@ -678,7 +683,7 @@ describe('Reports', () => {
           {
             target: {
               files: [
-                makeTestFile('section1.txt', ['HEADER20214A53000TAN1ED']),
+                makeTestFile('section1.txt', ['HEADER20212A53000TAN1ED']),
               ],
             },
           }
@@ -686,7 +691,8 @@ describe('Reports', () => {
       })
 
       await waitFor(() => expect(getByText('section1.txt')).toBeInTheDocument())
-      fireEvent.click(getByLabelText(/TANF/))
+
+      //fireEvent.click(getByLabelText(/TANF/))
 
       // make a change to the search selections and click search
       fireEvent.change(getByLabelText(/Fiscal Year/), {
