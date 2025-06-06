@@ -248,7 +248,7 @@ describe('SubmissionHistory', () => {
     setup(store)
 
     const section = screen
-      .getByText('Section 1 - TANF - Active Case Data')
+      .getByText('Section 1 - Active Case Data')
       .closest('div')
 
     fireEvent.click(within(section).getByText('Next').closest('button'))

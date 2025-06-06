@@ -618,8 +618,7 @@ describe('Reports', () => {
           {
             target: {
               files: [
-                makeTestFile('section1.txt'),
-                ['HEADER20212A53000TAN1ED\n'],
+                makeTestFile('section1.txt', ['HEADER20212A53000TAN1ED\n']),
               ],
             },
           }
