@@ -26,7 +26,7 @@ def run(*args):
                 sql_query = sql_query.replace("$GRAFANA_PASSWORD", GRAFANA_PASSWORD)
             if "$DB_NAME" in sql_query:
                 sql_query = sql_query.replace("$DB_NAME", DB_NAME)
-
+            print("Creating Readonly Grafana user...")
             print(f"--Executing SQL query: {sql_query.strip()}")
             try:
                 with connection.cursor() as cursor:

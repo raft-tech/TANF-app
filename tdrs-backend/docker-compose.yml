@@ -188,7 +188,6 @@ services:
       - AWS_S3_LOGS_PREFIX
       - GRAFANA_PASSWORD
       - GRAFANA_USER
-
     volumes:
       - .:/tdpapp
       - logs:/tmp
