@@ -63,12 +63,11 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
             )
             # url = url.replace("localstack", "localhost")
             return format_html("<a href='{0}'>{1}</a>", url, key)
-        except:
+        except (ClientError, KeyError, Exception) as e:
             # If the file is not available, return a placeholder
             logger.info(
-                f"File version not available for DataFile ID: {obj.id}"
+                f"File version not available for DataFile ID: {obj.id}. Error: {e}"
             )
-            #self.fieldsets
             return None
 
     versioned_file_download_link.short_description = (
