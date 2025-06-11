@@ -188,10 +188,6 @@ services:
       - AWS_S3_LOGS_PREFIX
       - GRAFANA_PASSWORD
       - GRAFANA_USER
-      - OFA_PASSWORD
-      - OFA_USER
-      - OFA_DB_PASSWORD
-      - OFA_DB_USER
 
     volumes:
       - .:/tdpapp
