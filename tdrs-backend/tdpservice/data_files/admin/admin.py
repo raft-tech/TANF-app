@@ -14,6 +14,8 @@ from django.contrib import messages
 from tdpservice.data_files.tasks import reparse_files
 from tdpservice.data_files.s3_client import S3Client
 from tdpservice.log_handler import S3FileHandler
+from botocore.exceptions import ClientError
+
 import logging
 
 logger = logging.getLogger(__name__)
