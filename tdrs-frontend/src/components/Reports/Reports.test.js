@@ -323,25 +323,25 @@ describe('Reports', () => {
     await waitFor(() => {
       fireEvent.change(getByLabelText('Section 1 - TANF - Active Case Data'), {
         target: {
-          files: [makeTestFile('section1.txt')],
+          files: [makeTestFile('section1.txt', ['HEADER20212A53000TAN1ED\n'])],
         },
       })
 
       fireEvent.change(getByLabelText('Section 2 - TANF - Closed Case Data'), {
         target: {
-          files: [makeTestFile('section2.txt')],
+          files: [makeTestFile('section2.txt', ['HEADER20212C53000TAN1ED\n'])],
         },
       })
 
       fireEvent.change(getByLabelText('Section 3 - TANF - Aggregate Data'), {
         target: {
-          files: [makeTestFile('section3.txt')],
+          files: [makeTestFile('section3.txt', ['HEADER20212G53000TAN1ED\n'])],
         },
       })
 
       fireEvent.change(getByLabelText('Section 4 - TANF - Stratum Data'), {
         target: {
-          files: [makeTestFile('section4.txt')],
+          files: [makeTestFile('section4.txt', ['HEADER20212S53000TAN1ED\n'])],
         },
       })
     })
@@ -564,7 +564,9 @@ describe('Reports', () => {
           getByLabelText('Section 1 - TANF - Active Case Data'),
           {
             target: {
-              files: [makeTestFile('section1.txt')],
+              files: [
+                makeTestFile('section1.txt', ['HEADER20212A53000TAN1ED\n']),
+              ],
             },
           }
         )
@@ -586,6 +588,7 @@ describe('Reports', () => {
       fireEvent.click(getByText(/Search/, { selector: 'button' }))
 
       // the modal should display
+
       await waitFor(() =>
         expect(queryByText('Files Not Submitted')).toBeInTheDocument()
       )

@@ -15,6 +15,9 @@ describe('UploadReport', () => {
   const initialState = {
     auth: { user: { email: 'test@test.com' }, authenticated: true },
     reports: {
+      year: '2021',
+      stt: 'Florida',
+      quarter: 'Q3',
       fileType: 'tanf',
       submittedFiles: [
         {
@@ -77,7 +80,9 @@ describe('UploadReport', () => {
 
     const fileInput = getByLabelText('Section 1 - TANF - Active Case Data')
 
-    const newFile = new File(['test'], 'test.txt', { type: 'text/plain' })
+    const newFile = new File(['HEADER20212A53000TAN1ED\n'], 'test.txt', {
+      type: 'text/plain',
+    })
 
     await waitFor(() => {
       fireEvent.change(fileInput, {
