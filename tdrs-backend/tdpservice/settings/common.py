@@ -325,9 +325,9 @@ class Common(Configuration):
     }
 
     AUTHENTICATION_BACKENDS = (
-        "mozilla_django_oidc.auth.OIDCAuthenticationBackend",
-        "tdpservice.users.authentication.CustomAuthentication",
         "django.contrib.auth.backends.ModelBackend",
+        "tdpservice.users.oidc_backend.CustomOIDCAuthenticationBackend",
+        "tdpservice.users.authentication.CustomAuthentication",
     )
 
     # --- Keycloak OIDC Settings --- #
@@ -365,6 +365,7 @@ class Common(Configuration):
     OIDC_STORE_ID_TOKEN = True
 
     OIDC_CLAIMS_MAP = {
+        'username': {'key': 'email', 'required': True},
         'email': {'key': 'email', 'required': True},
         'login_gov_uuid': {'key': 'sub', 'required': False},
         'hhs_id': {'key': 'hhs_id', 'required': False} # TODO: this claim is likely wrong and we need to figure it out for AMS
