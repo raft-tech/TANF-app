@@ -364,17 +364,6 @@ class Common(Configuration):
     OIDC_CREATE_USER = True
     OIDC_STORE_ID_TOKEN = True
 
-    OIDC_CLAIMS_MAP = {
-        'username': {'key': 'email', 'required': True},
-        'email': {'key': 'email', 'required': True},
-        'login_gov_uuid': {'key': 'sub', 'required': False},
-        'hhs_id': {'key': 'hhs_id', 'required': False} # TODO: this claim is likely wrong and we need to figure it out for AMS
-    }
-
-    # Optional: If we need to perform custom actions on user creation/update
-    # OIDC_NEW_USER_CALLBACK = 'path.to.your.new_user_callback_function'
-    # OIDC_USER_UPDATED_CALLBACK = 'path.to.your.user_updated_callback_function'
-
     OIDC_EXEMPT_URLS = [
         '/prometheus/metrics',
     ]
