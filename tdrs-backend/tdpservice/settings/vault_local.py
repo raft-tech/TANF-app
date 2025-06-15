@@ -1,13 +1,14 @@
+"""VaultLocal settings module for local development with Vault integration."""
 from .local import Local
 import os
-import sys
+from tdpservice.vault.vault_client import get_vault_database_config
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 # Django settings module that integrates Vault credentials into database configuration
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-from tdpservice.vault.vault_client import get_vault_database_config
 
 class VaultLocal(Local):
     """Define class for local configuration settings with Vault integration."""
@@ -16,32 +17,31 @@ class VaultLocal(Local):
     def __init__(self):
         super().__init__()
 
-    logger.info("----------- Initializing VaultLocal settings...")
     VAULT_INTEGRATION_ENABLED = False
-    VAULT_TOKEN = os.environ.get('VAULT_TOKEN')
+    VAULT_TOKEN = os.environ.get("VAULT_TOKEN")
 
     if VAULT_TOKEN:
         print("Retrieving database credentials from Vault...")
-        
+
         try:
             vault_db_config = get_vault_database_config(VAULT_TOKEN)
-            
+
             if vault_db_config:
                 # Override database settings with Vault credentials
-                DATABASES = {'default': vault_db_config}
+                DATABASES = {"default": vault_db_config}
                 VAULT_INTEGRATION_ENABLED = True
                 print("Using Vault database credentials")
             else:
                 print("Failed to retrieve from Vault, using local config")
-                
+
         except Exception as e:
             print(f"Vault error: {e}, using local config")
-            
+
     else:
         print("VAULT_TOKEN not found, using local config")
 
     # Configuration for monitoring Vault integration status
     VAULT_SETTINGS = {
-        'INTEGRATION_ENABLED': VAULT_INTEGRATION_ENABLED,
-        'SECRET_PATHS': {'DATABASE': 'kv/database'}
-    }        # Initialize the base class
+        "INTEGRATION_ENABLED": VAULT_INTEGRATION_ENABLED,
+        "SECRET_PATHS": {"DATABASE": "kv/database"},
+    }  # Initialize the base class
