@@ -137,6 +137,7 @@ function Reports() {
     setSttInputValue(selectedStt || '')
     setFileTypeInputValue(selectedFileType || '')
   }
+  const sttCombpBoxRequired = stt?.ssp ? 1 : 0
 
   const handleSearch = () => {
     // Clear previous errors
@@ -150,7 +151,7 @@ function Reports() {
       fileTypeInputValue,
     ].filter(Boolean)
 
-    if (form.length === 4) {
+    if (form.length === 3 + sttCombpBoxRequired) {
       // Hide upload sections while submitting search
       if (isUploadReportToggled) {
         setIsToggled(false)
@@ -221,7 +222,9 @@ function Reports() {
       const touchedFields = Object.keys(touched).length
 
       const expected_fields =
-        isOFAAdmin || isDIGITTeam || isSystemAdmin || isRegionalStaff ? 4 : 3
+        isOFAAdmin || isDIGITTeam || isSystemAdmin || isRegionalStaff
+          ? 3 + sttCombpBoxRequired
+          : 2 + sttCombpBoxRequired
 
       const errors = touchedFields === 4 ? expected_fields - form.length : 0
 
