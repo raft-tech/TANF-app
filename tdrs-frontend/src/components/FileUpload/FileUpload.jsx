@@ -265,7 +265,8 @@ function FileUpload({ section, setLocalAlertState }) {
       }`}
     >
       <label className="usa-label text-bold" htmlFor={formattedSectionName}>
-        Section {sectionNumber} - {selectedFileType?.toUpperCase()} - {''}
+        Section {sectionNumber} {'-' && selectedFileType}{' '}
+        {selectedFileType?.toUpperCase()} - {''}
         {sectionName}
       </label>
       <div>

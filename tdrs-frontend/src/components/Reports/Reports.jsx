@@ -137,10 +137,11 @@ function Reports() {
     setSttInputValue(selectedStt || '')
     setFileTypeInputValue(selectedFileType || '')
   }
-  const sttCombpBoxRequired = stt?.ssp ? 1 : 0
+  const sttComboBoxRequired = stt?.ssp ? 1 : 0
 
   const handleSearch = () => {
     // Clear previous errors
+    setIsToggled(false)
     setFormValidationState({})
 
     // Filter out non-truthy values]
@@ -151,7 +152,7 @@ function Reports() {
       fileTypeInputValue,
     ].filter(Boolean)
 
-    if (form.length === 3 + sttCombpBoxRequired) {
+    if (form.length === 3 + sttComboBoxRequired) {
       // Hide upload sections while submitting search
       if (isUploadReportToggled) {
         setIsToggled(false)
@@ -169,13 +170,14 @@ function Reports() {
       // Restore upload sections to the page
       setTimeout(() => setIsToggled(true), 0)
     } else {
+      setIsToggled(false)
       // create error state
       setFormValidationState({
         year: !selectedYear,
         stt: !(sttInputValue || currentStt),
-        fileType: !selectedFileType,
+        fileType: !selectedFileType || !stt?.ssp === false,
         quarter: !selectedQuarter,
-        errors: 4 - form.length,
+        errors: 4 - form.length - sttComboBoxRequired,
       })
       setTouched({
         year: true,
@@ -223,8 +225,8 @@ function Reports() {
 
       const expected_fields =
         isOFAAdmin || isDIGITTeam || isSystemAdmin || isRegionalStaff
-          ? 3 + sttCombpBoxRequired
-          : 2 + sttCombpBoxRequired
+          ? 3 + sttComboBoxRequired
+          : 2 + sttComboBoxRequired
 
       const errors = touchedFields === 4 ? expected_fields - form.length : 0
 
