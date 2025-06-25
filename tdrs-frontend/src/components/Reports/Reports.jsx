@@ -137,7 +137,7 @@ function Reports() {
     setSttInputValue(selectedStt || '')
     setFileTypeInputValue(selectedFileType || '')
   }
-  const sttComboBoxRequired = stt?.ssp ? 1 : 0
+  const filTypeComboBoxRequired = stt?.ssp ? stt.ssp : false
 
   const handleSearch = () => {
     // Clear previous errors
@@ -151,8 +151,7 @@ function Reports() {
       quarterInputValue,
       fileTypeInputValue,
     ].filter(Boolean)
-
-    if (form.length === 3 + sttComboBoxRequired) {
+    if (form.length === 3 + filTypeComboBoxRequired ? 1 : 0) {
       // Hide upload sections while submitting search
       if (isUploadReportToggled) {
         setIsToggled(false)
@@ -177,7 +176,7 @@ function Reports() {
         stt: !(sttInputValue || currentStt),
         fileType: !selectedFileType || !stt?.ssp === false,
         quarter: !selectedQuarter,
-        errors: 4 - form.length - sttComboBoxRequired,
+        errors: 4 - form.length - (filTypeComboBoxRequired ? 0 : 1),
       })
       setTouched({
         year: true,
@@ -225,15 +224,15 @@ function Reports() {
 
       const expected_fields =
         isOFAAdmin || isDIGITTeam || isSystemAdmin || isRegionalStaff
-          ? 3 + sttComboBoxRequired
-          : 2 + sttComboBoxRequired
+          ? 3 + (filTypeComboBoxRequired ? 1 : 0)
+          : 2 + (filTypeComboBoxRequired ? 1 : 0)
 
       const errors = touchedFields === 4 ? expected_fields - form.length : 0
 
       setFormValidationState((currentState) => ({
         ...currentState,
         year: touched.year && !yearInputValue,
-        stt: touched.stt && !sttInputValue,
+        stt: touched.stt && !(sttInputValue || currentStt),
         fileType: touched.fileType && !fileTypeInputValue,
         quarter: touched.quarter && !quarterInputValue,
         errors,
@@ -252,11 +251,17 @@ function Reports() {
     isDIGITTeam,
     isSystemAdmin,
     isRegionalStaff,
+    filTypeComboBoxRequired,
+    currentStt,
   ])
 
   return (
     <>
-      <div className={classNames({ 'border-bottom': isUploadReportToggled })}>
+      <div
+        className={classNames({
+          'border-bottom': isUploadReportToggled && errorsCount === 0,
+        })}
+      >
         {missingStt && (
           <div className="margin-top-4 usa-error-message" role="alert">
             An STT is not set for this user.
@@ -445,8 +450,7 @@ function Reports() {
           </div>
         </form>
       </div>
-
-      {isUploadReportToggled && (
+      {isUploadReportToggled && errorsCount === 0 && (
         <>
           <h2
             ref={headerRef}
