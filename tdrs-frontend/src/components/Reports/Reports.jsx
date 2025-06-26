@@ -74,6 +74,10 @@ function Reports() {
   // The selected quarter in the dropdown tied to our redux `reports` state
   const selectedQuarter = useSelector((state) => state.reports.quarter)
   const [quarterInputValue, setQuarterInputValue] = useState(selectedQuarter)
+  // The selected file type in the dropdown tied to our redux `reports` state
+  const selectedFileType = useSelector((state) => state.reports.fileType)
+  const [fileTypeInputValue, setFileTypeInputValue] = useState(selectedFileType)
+
   // The logged in user saved in our redux `auth` state object
   const user = useSelector((state) => state.auth.user)
   const isOFAAdmin = useSelector(selectPrimaryUserRole)?.name === 'OFA Admin'
@@ -105,10 +109,7 @@ function Reports() {
 
   const stt = sttList?.find((stt) => stt?.name === currentStt)
 
-  const selectedFileType = useSelector((state) => state.reports.fileType)
-  const [fileTypeInputValue, setFileTypeInputValue] = useState(selectedFileType)
-
-  const errorsCount = formValidation.errors
+  const errorsCount = formValidation.errors ? formValidation.errors : 0
 
   const missingStt =
     (!isOFAAdmin &&
@@ -131,27 +132,31 @@ function Reports() {
 
   const [selectedSubmissionTab, setSelectedSubmissionTab] = useState(1)
 
+  const fileTypeComboBoxRequired = stt?.ssp ? stt.ssp : false
+
   const resetPreviousValues = () => {
     setQuarterInputValue(selectedQuarter || '')
     setYearInputValue(selectedYear || '')
     setSttInputValue(selectedStt || '')
-    setFileTypeInputValue(selectedFileType || '')
+    setFileTypeInputValue(
+      fileTypeComboBoxRequired ? selectedFileType || '' : 'tanf'
+    )
   }
-  const filTypeComboBoxRequired = stt?.ssp ? stt.ssp : false
 
   const handleSearch = () => {
     // Clear previous errors
     setIsToggled(false)
     setFormValidationState({})
-
     // Filter out non-truthy values]
     const form = [
       yearInputValue,
-      sttInputValue || currentStt,
+      isOFAAdmin || isDIGITTeam || isSystemAdmin || isRegionalStaff
+        ? sttInputValue
+        : currentStt,
       quarterInputValue,
       fileTypeInputValue,
     ].filter(Boolean)
-    if (form.length === 3 + filTypeComboBoxRequired ? 1 : 0) {
+    if (form.length === 3 + fileTypeComboBoxRequired ? 1 : 0) {
       // Hide upload sections while submitting search
       if (isUploadReportToggled) {
         setIsToggled(false)
@@ -174,10 +179,11 @@ function Reports() {
       setFormValidationState({
         year: !selectedYear,
         stt: !(sttInputValue || currentStt),
-        fileType: !selectedFileType || !stt?.ssp === false,
+        fileType: !selectedFileType,
         quarter: !selectedQuarter,
-        errors: 4 - form.length - (filTypeComboBoxRequired ? 0 : 1),
+        errors: 4 - form.length - (fileTypeComboBoxRequired ? 0 : 1),
       })
+
       setTouched({
         year: true,
         stt: true,
@@ -224,15 +230,15 @@ function Reports() {
 
       const expected_fields =
         isOFAAdmin || isDIGITTeam || isSystemAdmin || isRegionalStaff
-          ? 3 + (filTypeComboBoxRequired ? 1 : 0)
-          : 2 + (filTypeComboBoxRequired ? 1 : 0)
+          ? 3 + (fileTypeComboBoxRequired ? 1 : 0)
+          : 2 + (fileTypeComboBoxRequired ? 1 : 0)
 
       const errors = touchedFields === 4 ? expected_fields - form.length : 0
 
       setFormValidationState((currentState) => ({
         ...currentState,
         year: touched.year && !yearInputValue,
-        stt: touched.stt && !(sttInputValue || currentStt),
+        stt: touched.stt && !sttInputValue,
         fileType: touched.fileType && !fileTypeInputValue,
         quarter: touched.quarter && !quarterInputValue,
         errors,
@@ -251,7 +257,7 @@ function Reports() {
     isDIGITTeam,
     isSystemAdmin,
     isRegionalStaff,
-    filTypeComboBoxRequired,
+    fileTypeComboBoxRequired,
     currentStt,
   ])
 
