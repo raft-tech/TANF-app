@@ -1,7 +1,7 @@
 # Base Docker compose for all environments
 services:
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:26.2
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
@@ -218,7 +218,7 @@ services:
     volumes:
       - .:/tdpapp
       - logs:/tmp
-    build: 
+    build:
       context: .
       args:
         REGISTRY_OWNER: ${REGISTRY_OWNER:-hhs}
