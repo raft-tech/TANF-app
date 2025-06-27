@@ -154,9 +154,10 @@ function Reports() {
         ? sttInputValue
         : currentStt,
       quarterInputValue,
-      fileTypeInputValue,
+      fileTypeComboBoxRequired ? fileTypeInputValue : 'tanf',
     ].filter(Boolean)
-    if (form.length === 3 + fileTypeComboBoxRequired ? 1 : 0) {
+
+    if (form.length === 4) {
       // Hide upload sections while submitting search
       if (isUploadReportToggled) {
         setIsToggled(false)
@@ -169,7 +170,9 @@ function Reports() {
       dispatch(setYear(yearInputValue))
       dispatch(setQuarter(quarterInputValue))
       dispatch(setStt(sttInputValue))
-      dispatch(setFileType(fileTypeInputValue))
+      dispatch(
+        setFileType(fileTypeComboBoxRequired ? fileTypeInputValue : 'tanf')
+      )
 
       // Restore upload sections to the page
       setTimeout(() => setIsToggled(true), 0)
@@ -181,7 +184,7 @@ function Reports() {
         stt: !(sttInputValue || currentStt),
         fileType: !selectedFileType,
         quarter: !selectedQuarter,
-        errors: 4 - form.length - (fileTypeComboBoxRequired ? 0 : 1),
+        errors: 4 - form.length,
       })
 
       setTouched({
@@ -224,17 +227,14 @@ function Reports() {
         yearInputValue,
         sttInputValue,
         quarterInputValue,
-        fileTypeInputValue,
+        fileTypeComboBoxRequired ? fileTypeInputValue : 'tanf',
       ].filter(Boolean)
       const touchedFields = Object.keys(touched).length
 
       const expected_fields =
-        isOFAAdmin || isDIGITTeam || isSystemAdmin || isRegionalStaff
-          ? 3 + (fileTypeComboBoxRequired ? 1 : 0)
-          : 2 + (fileTypeComboBoxRequired ? 1 : 0)
+        isOFAAdmin || isDIGITTeam || isSystemAdmin || isRegionalStaff ? 4 : 3
 
       const errors = touchedFields === 4 ? expected_fields - form.length : 0
-
       setFormValidationState((currentState) => ({
         ...currentState,
         year: touched.year && !yearInputValue,
