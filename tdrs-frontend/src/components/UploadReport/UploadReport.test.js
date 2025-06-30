@@ -242,9 +242,8 @@ describe('UploadReport', () => {
 
   it('should show an error message when the file program type does not match the report program type', async () => {
     const store = mockStore({
-      ...initialState,
+      auth: { user: { email: 'test@test.com' }, authenticated: true },
       reports: {
-        ...initialState.reports,
         fileType: 'SSP',
         year: '2021',
         stt: 'Florida',
@@ -270,7 +269,7 @@ describe('UploadReport', () => {
     await waitFor(() => {
       fireEvent.change(fileInput, {
         target: {
-          name: 'Section 1 - SSP - Active Case Data',
+          name: 'Active Case Data',
           files: [makeTestFile('section1.txt', ['HEADER20212A53000TAN1ED\n'])],
         },
       })
@@ -287,7 +286,9 @@ describe('UploadReport', () => {
     fireEvent.click(submitButton)
 
     expect(
-      getByText('File program type does not match report program type.')
+      getByText(
+        'File may correspond to TANF instead of SSP. Please verify the file type.'
+      )
     ).toBeInTheDocument()
   })
 })
