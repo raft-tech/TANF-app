@@ -145,11 +145,18 @@ function Header() {
                     />
                   )}
                   {userIsAdmin && (
-                    <NavItem
-                      pathname={pathname}
-                      tabTitle="Admin"
-                      href={`${process.env.REACT_APP_BACKEND_HOST}/admin/`}
-                    />
+                    <>
+                      <NavItem
+                        pathname={pathname}
+                        tabTitle="Admin"
+                        href={`${process.env.REACT_APP_BACKEND_HOST}/admin/`}
+                      />
+                      <NavItem
+                        pathname={pathname}
+                        tabTitle="Keycloak"
+                        href={'/keycloak/'}
+                      />
+                    </>
                   )}
                   {userViewPlg && (
                     <>

@@ -2,6 +2,8 @@
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.2
+    ports:
+      - "8081:8081"
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
@@ -9,12 +11,12 @@ services:
       KC_DB_PASSWORD: keycloak
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: 8081
+      # Basic configuration
+      KC_HOSTNAME: http://localhost:3000
       KC_HTTP_ENABLED: true
       KC_HTTP_PORT: 8081
-    ports:
-      - "8081:8081"
+      KC_HTTP_RELATIVE_PATH: /keycloak
+      KC_PROXY: edge
     depends_on:
       - keycloak-db
     command: start-dev

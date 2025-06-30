@@ -85,7 +85,7 @@ class Common(Configuration):
         "tdpservice.middleware.NoCacheMiddleware",
         "django_prometheus.middleware.PrometheusAfterMiddleware",
     )
-    
+
     # OpenTelemetry Tracing Configuration
     OTEL_ENABLED = bool(strtobool(os.getenv("OTEL_ENABLED", "yes")))
     OTEL_SERVICE_NAME = "tdp-backend"
@@ -343,8 +343,8 @@ class Common(Configuration):
     KC_INTERNAL_SERVICE_URL = os.getenv("KC_BASE_URL", "http://keycloak:8081")
 
     # KC_EXTERNAL_BROWSER_URL is for EXTERNAL browser-to-Keycloak communication.
-    KC_EXTERNAL_BROWSER_URL = os.getenv("KC_EXTERNAL_BROWSER_URL", "http://localhost:8081")
-    
+    KC_EXTERNAL_BROWSER_URL = os.getenv("KC_EXTERNAL_BROWSER_URL", "http://localhost:3000/keycloak")
+
     KC_REALM = os.getenv("KC_REALM", "tdp-realm")
 
     OIDC_RP_CLIENT_ID = os.getenv("OIDC_RP_CLIENT_ID", "tdp-backend-local")
@@ -353,11 +353,13 @@ class Common(Configuration):
     # For browser redirects, use the externally accessible Keycloak URL
     OIDC_OP_AUTHORIZATION_ENDPOINT = f"{KC_EXTERNAL_BROWSER_URL}/realms/{KC_REALM}/protocol/openid-connect/auth"
     OIDC_OP_LOGOUT_ENDPOINT = f"{KC_EXTERNAL_BROWSER_URL}/realms/{KC_REALM}/protocol/openid-connect/logout"
-    
+
     # For direct server-to-server communication, use the internal Keycloak service URL
     OIDC_OP_TOKEN_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/token"
     OIDC_OP_USER_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/userinfo"
     OIDC_OP_JWKS_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/certs"
+
+    # Use the external URL for the issuer
     OIDC_OP_ISSUER_ENDPOINT = f"{KC_EXTERNAL_BROWSER_URL}/realms/{KC_REALM}"
 
     OIDC_RP_SIGN_ALGO = "RS256"
