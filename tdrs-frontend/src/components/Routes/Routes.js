@@ -7,10 +7,20 @@ import PrivateRoute from '../PrivateRoute'
 import Reports, { FRAReports } from '../Reports'
 import { useSelector } from 'react-redux'
 import { accountIsInReview } from '../../selectors/auth'
+import { faro, FaroRoutes } from '@grafana/faro-react'
 
 import SiteMap from '../SiteMap'
 
 import Home from '../Home'
+
+/* istanbul ignore next */
+const RouteProvider = ({ children }) => {
+  return !faro || !faro.api ? (
+    <Routes>{children}</Routes>
+  ) : (
+    <FaroRoutes>{children}</FaroRoutes>
+  )
+}
 
 /**
  * This component renders the routes for the app.
@@ -24,7 +34,7 @@ const AppRoutes = () => {
   const homeTitle = userAccountInReview ? 'Request Submitted' : 'Welcome to TDP'
 
   return (
-    <Routes>
+    <RouteProvider>
       <Route exact path="/" element={<SplashPage />} />
       <Route
         exact
@@ -84,7 +94,7 @@ const AppRoutes = () => {
         }
       />
       <Route path="*" element={<NoMatch />} />
-    </Routes>
+    </RouteProvider>
   )
 }
 
