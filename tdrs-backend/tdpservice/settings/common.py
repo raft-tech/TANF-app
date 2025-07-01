@@ -339,11 +339,11 @@ class Common(Configuration):
     )
 
     # --- Keycloak OIDC Settings --- #
-    # KC_BASE_URL is for INTERNAL server-to-server communication (Django to Keycloak)
-    KC_INTERNAL_SERVICE_URL = os.getenv("KC_BASE_URL", "http://keycloak:8081")
+    # KC_INTERNAL_URL is for INTERNAL server-to-server communication (Django to Keycloak)
+    KC_INTERNAL_URL = os.getenv("KC_INTERNAL_URL", "http://keycloak:8081")
 
-    # KC_EXTERNAL_BROWSER_URL is for EXTERNAL browser-to-Keycloak communication.
-    KC_EXTERNAL_BROWSER_URL = os.getenv("KC_EXTERNAL_BROWSER_URL", "http://localhost:8081")
+    # KC_EXTERNAL_URL is for EXTERNAL browser-to-Keycloak communication.
+    KC_EXTERNAL_URL = os.getenv("KC_EXTERNAL_URL", "http://localhost:8081")
 
     KC_REALM = os.getenv("KC_REALM", "tdp-realm")
 
@@ -351,16 +351,16 @@ class Common(Configuration):
     OIDC_RP_CLIENT_SECRET = os.getenv("OIDC_RP_CLIENT_SECRET")
 
     # For browser redirects, use the externally accessible Keycloak URL
-    OIDC_OP_AUTHORIZATION_ENDPOINT = f"{KC_EXTERNAL_BROWSER_URL}/realms/{KC_REALM}/protocol/openid-connect/auth"
-    OIDC_OP_LOGOUT_ENDPOINT = f"{KC_EXTERNAL_BROWSER_URL}/realms/{KC_REALM}/protocol/openid-connect/logout"
+    OIDC_OP_AUTHORIZATION_ENDPOINT = f"{KC_EXTERNAL_URL}/realms/{KC_REALM}/protocol/openid-connect/auth"
+    OIDC_OP_LOGOUT_ENDPOINT = f"{KC_EXTERNAL_URL}/realms/{KC_REALM}/protocol/openid-connect/logout"
 
     # For direct server-to-server communication, use the internal Keycloak service URL
-    OIDC_OP_TOKEN_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/token"
-    OIDC_OP_USER_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/userinfo"
-    OIDC_OP_JWKS_ENDPOINT = f"{KC_INTERNAL_SERVICE_URL}/realms/{KC_REALM}/protocol/openid-connect/certs"
+    OIDC_OP_TOKEN_ENDPOINT = f"{KC_INTERNAL_URL}/realms/{KC_REALM}/protocol/openid-connect/token"
+    OIDC_OP_USER_ENDPOINT = f"{KC_INTERNAL_URL}/realms/{KC_REALM}/protocol/openid-connect/userinfo"
+    OIDC_OP_JWKS_ENDPOINT = f"{KC_INTERNAL_URL}/realms/{KC_REALM}/protocol/openid-connect/certs"
 
     # Use the external URL for the issuer
-    OIDC_OP_ISSUER_ENDPOINT = f"{KC_EXTERNAL_BROWSER_URL}/realms/{KC_REALM}"
+    OIDC_OP_ISSUER_ENDPOINT = f"{KC_EXTERNAL_URL}/realms/{KC_REALM}"
 
     OIDC_RP_SIGN_ALGO = "RS256"
     OIDC_RP_SCOPES = os.getenv("OIDC_RP_SCOPES", "openid profile email")
