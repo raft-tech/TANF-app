@@ -35,10 +35,10 @@ deploy_keycloak() {
     yq eval -i ".applications[0].env.KC_DB_PASSWORD = \"$DB_PASSWORD\""  $MANIFEST
     yq eval -i ".applications[0].services[0] = \"$1\""  $MANIFEST
 
-    # cf push --no-route -f $MANIFEST -t 180  --strategy rolling
-    # cf map-route $2 $3 --hostname $KC_HOSTNAME
+    cf push --no-route -f $MANIFEST -t 180  --strategy rolling
+    cf map-route $2 apps.internal --hostname $KC_HOSTNAME
 
-    # rm $MANIFEST
+    rm $MANIFEST
 }
 
 err_help_exit() {
@@ -93,6 +93,6 @@ if [ "$HELPER_APP_NAME" == "" ]; then
     err_help_exit "Error: you must include the name of a helper app to get database credentials from for Keycloak."
 fi
 
+pushd app
 deploy_keycloak $DB_SERVICE_NAME $KC_HOSTNAME $KC_ADMIN $KC_ADMIN_PASSWORD $HELPER_APP_NAME
-
 popd

@@ -7,7 +7,7 @@ services:
     networks:
       - default
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/local/conf.d:/etc/nginx/conf.d
       - ~/tdp-logs/keycloak-proxy:/var/log/nginx
     depends_on:
       - keycloak

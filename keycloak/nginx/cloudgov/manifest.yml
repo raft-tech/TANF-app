@@ -1,0 +1,10 @@
+---
+version: 1
+applications:
+- name: keycloak-proxy
+  buildpacks:
+    - https://github.com/cloudfoundry/nginx-buildpack.git#v1.2.6
+  memory: 128M
+  instances: 1
+  disk_quota: 256M
+  timeout: 180
