@@ -1,0 +1,40 @@
+services:
+  keycloak-proxy:
+    build:
+      context: .
+    ports:
+      - "8081:80"
+    networks:
+      - default
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ~/tdp-logs/keycloak-proxy:/var/log/nginx
+    depends_on:
+      - keycloak
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      # Basic configuration
+      KC_HOSTNAME: localhost
+      KC_HTTP_ENABLED: true
+      KC_HTTP_PORT: 8081
+      KC_PROXY: edge
+    depends_on:
+      - keycloak-db
+    command: start-dev
+  keycloak-db:
+    image: postgres:15.7
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+    volumes:
+      - keycloak-data:/var/lib/postgresql/data
+volumes:
+  keycloak-data:

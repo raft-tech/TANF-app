@@ -1,0 +1,11 @@
+name: TANF Data Portal
+
+include:
+  - ./tdrs-backend/docker-compose.yml
+  - ./tdrs-frontend/docker-compose.yml
+  - ./keycloak/docker-compose.yml
+
+networks:
+  default:
+    external:
+      name: external-net

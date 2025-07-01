@@ -343,7 +343,7 @@ class Common(Configuration):
     KC_INTERNAL_SERVICE_URL = os.getenv("KC_BASE_URL", "http://keycloak:8081")
 
     # KC_EXTERNAL_BROWSER_URL is for EXTERNAL browser-to-Keycloak communication.
-    KC_EXTERNAL_BROWSER_URL = os.getenv("KC_EXTERNAL_BROWSER_URL", "http://localhost:3000/keycloak")
+    KC_EXTERNAL_BROWSER_URL = os.getenv("KC_EXTERNAL_BROWSER_URL", "http://localhost:8081")
 
     KC_REALM = os.getenv("KC_REALM", "tdp-realm")
 

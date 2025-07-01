@@ -1,20 +1,8 @@
 services:
-  zaproxy:
-    platform: linux/amd64
-    image: ghcr.io/${REGISTRY_OWNER:-hhs}/zap-stable:2.14.0
-    container_name: zap-scan
-    command: sleep 3600
-    ports:
-      - 8090:8090
-    networks:
-      - default
-    volumes:
-      - ./reports:/zap/wrk/:rw
-      - ../scripts/zap-hook.py:/zap/scripts/zap-hook.py:ro
   tdp-frontend:
     stdin_open: true # docker run -i
     tty: true        # docker run -t
-    build: 
+    build:
       context: .
       args:
         REGISTRY_OWNER: ${REGISTRY_OWNER:-hhs}
@@ -46,8 +34,5 @@ services:
       '< /etc/nginx/default.conf.template
       > /etc/nginx/nginx.conf &&
       nginx -g 'daemon off;'"
-
-networks:
-  default:
-    external:
-      name: external-net
+    depends_on:
+     - web
