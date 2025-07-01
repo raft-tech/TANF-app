@@ -1,18 +1,18 @@
 version: 1
 applications:
-  - name: {name}
-    memory: 640M
+  - name: keycloak
+    memory: 768M
     disk_quota: 7G
     instances: 1
     health-check-type: process
     env:
       KC_DB: postgres
-      KC_HOSTNAME_PORT: 8080
       KC_HTTP_ENABLED: true
       KC_HTTP_PORT: 8080
+      KC_PROXY: edge
       KC_BOOTSTRAP_ADMIN_USERNAME: {kc_admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: {kc_admin_password}
-      KC_HOSTNAME: {kc_uri}
+      KC_HOSTNAME: {kc_hostname}
       KC_DB_URL: {kc_db_url}
       KC_DB_USERNAME: {kc_db_username}
       KC_DB_PASSWORD: {kc_db_password}
