@@ -10,7 +10,7 @@ from django.utils.safestring import mark_safe
 
 from rest_framework.authtoken.models import TokenProxy
 
-from .models import User, UserChangeRequest, ChangeRequestAuditLog
+from tdpservice.users.models import User, UserChangeRequest, ChangeRequestAuditLog
 
 import logging
 logger = logging.getLogger()
