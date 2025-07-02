@@ -3,7 +3,8 @@
 from django.db import connection
 from django.conf import settings
 
-def run(*args):
+
+def run(*args):  # noqa: C901
     """Create a read-only user for the PLG database."""
     # ./manage.py runscript create_readonly_grafana_user --script-args "test" "test2"
     GRAFANA_USER = args[0]
@@ -11,7 +12,7 @@ def run(*args):
     if not GRAFANA_PASSWORD or not GRAFANA_USER:
         print("Grafana user and password must be provided.")
         return
-    
+
     OFA_USER = args[2] if len(args) > 2 else None
     OFA_PASSWORD = args[3] if len(args) > 3 else None
 
@@ -23,7 +24,7 @@ def run(*args):
 
     print("Creating Grafana user...")
 
-    DB_NAME = settings.DATABASES['default']['NAME']
+    DB_NAME = settings.DATABASES["default"]["NAME"]
     print("Creating Grafana user...")
     if not GRAFANA_PASSWORD or not GRAFANA_USER:
         print("Grafana user and password must be provided.")
@@ -59,12 +60,18 @@ def run(*args):
             elif "$OFA_DB_PASSWORD" in sql_query and not OFA_ADMIN_PASSWORD:
                 continue
             if "$DIGIT_READONLY_USER" in sql_query and OFA_DIGIT_TEAM_USER:
-                sql_query = sql_query.replace("$DIGIT_READONLY_USER", OFA_DIGIT_TEAM_USER)
+                sql_query = sql_query.replace(
+                    "$DIGIT_READONLY_USER", OFA_DIGIT_TEAM_USER
+                )
             elif "$DIGIT_READONLY_USER" in sql_query and not OFA_DIGIT_TEAM_USER:
                 continue
             if "$DIGIT_READONLY_PASSWORD" in sql_query and OFA_DIGIT_TEAM_PASSWORD:
-                sql_query = sql_query.replace("$DIGIT_READONLY_PASSWORD", OFA_DIGIT_TEAM_PASSWORD)
-            elif "$DIGIT_READONLY_PASSWORD" in sql_query and not OFA_DIGIT_TEAM_PASSWORD:
+                sql_query = sql_query.replace(
+                    "$DIGIT_READONLY_PASSWORD", OFA_DIGIT_TEAM_PASSWORD
+                )
+            elif (
+                "$DIGIT_READONLY_PASSWORD" in sql_query and not OFA_DIGIT_TEAM_PASSWORD
+            ):
                 continue
             print(f"--Executing SQL query: {sql_query.strip()}")
             try:
@@ -87,24 +94,32 @@ def run(*args):
             TANF_SEARCH_INDEX,
             TANF_SEARCH_TRIBAL,
             TANF_SEARCH_SSP,
-            TANF_SEARCH_FRA
+            TANF_SEARCH_FRA,
         ]
 
         with connection.cursor() as cursor:
             cursor.execute("SELECT * FROM information_schema.views")
             views = cursor.fetchall()
-        
+
         for view in views:
             view_name = view[2]
             print(f"Checking view: {view_name}")
-            if any([TANF_DIGIT_TEAM_VIEW in view_name for TANF_DIGIT_TEAM_VIEW in TANF_DIGIT_TEAM_VIEWS]):
+            if any(
+                [
+                    TANF_DIGIT_TEAM_VIEW in view_name
+                    for TANF_DIGIT_TEAM_VIEW in TANF_DIGIT_TEAM_VIEWS
+                ]
+            ):
                 try:
                     print(f"Granting SELECT on {view_name} to {OFA_DIGIT_TEAM_USER}...")
                     with connection.cursor() as cursor:
-                        cursor.execute(f"GRANT SELECT ON {view_name} TO {OFA_DIGIT_TEAM_USER};")
+                        cursor.execute(
+                            f"GRANT SELECT ON {view_name} TO {OFA_DIGIT_TEAM_USER};"
+                        )
                 except Exception as e:
-                    print(f"An error occurred while granting SELECT on {view_name}: {e}")
-            
+                    print(
+                        f"An error occurred while granting SELECT on {view_name}: {e}"
+                    )
 
         return
     print("Grafana readonly user created successfully.")
