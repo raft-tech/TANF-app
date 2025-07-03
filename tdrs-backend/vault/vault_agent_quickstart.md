@@ -14,8 +14,6 @@ docker-compose up -d vault postgres
 
 
 ## Initialize Vault
-
-
 docker-compose exec vault sh
 
 # Initialize and record the root token and unseal key
@@ -30,6 +28,7 @@ export VAULT_TOKEN=s.your-actual-root-token-here
 # Verify you're authenticated
 vault token lookup
 
+Note: if you are on dev environment, then you will need to export the local vault address: "export VAULT_ADDR='http://0.0.0.0:8200'"
 
 ## Configure Database Secrets
 
