@@ -26,9 +26,6 @@ def run(*args):  # noqa: C901
 
     DB_NAME = settings.DATABASES["default"]["NAME"]
     print("Creating Grafana user...")
-    if not GRAFANA_PASSWORD or not GRAFANA_USER:
-        print("Grafana user and password must be provided.")
-        return
 
     with open("init.sql", "r") as file:
         print("Reading init.sql file...")
