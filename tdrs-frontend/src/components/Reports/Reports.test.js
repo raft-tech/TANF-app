@@ -986,4 +986,116 @@ describe('Reports', () => {
       expect(divElement).toBeInTheDocument()
     })
   })
+
+  it("should skip the file upload step when submitted files header doesn't match submitted year and quarter", async () => {
+    const currentYear = new Date().getFullYear()
+    const store = appConfigureStore({
+      ...initialState,
+      reports: {
+        ...initialState.reports,
+        year: (currentYear - 1).toString(),
+        stt: 'Florida',
+        quarter: 'Q3',
+        fileType: 'tanf',
+      },
+    })
+
+    const origDispatch = store.dispatch
+    store.dispatch = jest.fn(origDispatch)
+
+    window.HTMLElement.prototype.scrollIntoView = jest.fn(() => null)
+
+    const { getByText, getByLabelText } = render(
+      <Provider store={store}>
+        <Reports />
+      </Provider>
+    )
+
+    fireEvent.click(getByText(/Search/, { selector: 'button' }))
+
+    await waitFor(() => {
+      expect(
+        getByText('Section 1 - TANF - Active Case Data')
+      ).toBeInTheDocument()
+    })
+
+    const makeTestFile = (name, contents = ['test'], type = 'text/plain') =>
+      new File(contents, name, { type })
+
+    // add a file to be uploaded
+    await waitFor(() => {
+      fireEvent.change(getByLabelText('Section 1 - TANF - Active Case Data'), {
+        target: {
+          files: [
+            makeTestFile('test2.txt', [(currentYear - 2).toString() + '4']),
+          ],
+        },
+      })
+    })
+    await waitFor(() => {
+      const divElement = screen.getByText(
+        `File contains data from ` +
+          `Oct 1 - Dec 31, ` +
+          `which belongs to Fiscal Year ` +
+          (currentYear - 1).toString() +
+          ', Quarter 1' +
+          `. Adjust your search parameters or upload a different file.`
+      )
+      expect(divElement).toBeInTheDocument()
+    })
+  })
+
+  it('should show an error message when the file program type does not match the report program type', async () => {
+    const store = appConfigureStore({
+      ...initialState,
+      reports: {
+        ...initialState.reports,
+        fileType: 'tanf',
+        year: '2021',
+        stt: 'Florida',
+        quarter: 'Q3',
+      },
+    })
+    const origDispatch = store.dispatch
+    store.dispatch = jest.fn(origDispatch)
+
+    window.HTMLElement.prototype.scrollIntoView = jest.fn(() => null)
+
+    const { getByText, getByLabelText } = render(
+      <Provider store={store}>
+        <Reports />
+      </Provider>
+    )
+
+    fireEvent.click(getByText(/Search/, { selector: 'button' }))
+
+    await waitFor(() => {
+      expect(
+        getByText('Section 1 - TANF - Active Case Data')
+      ).toBeInTheDocument()
+    })
+
+    const makeTestFile = (name, contents = ['test']) =>
+      new File(contents, name, {
+        type: 'text/plain',
+      })
+
+    const fileInput = getByLabelText('Section 1 - TANF - Active Case Data')
+    await waitFor(() => {
+      fireEvent.change(fileInput, {
+        target: {
+          //name: 'Active Case Data',
+          files: [makeTestFile('section2.txt', ['HEADER20212A53000SSP1ED\n'])],
+        },
+      })
+    })
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'File may correspond to SSP instead of TANF. Please verify the file type.'
+        )
+      ).toBeInTheDocument()
+    })
+  })
 })

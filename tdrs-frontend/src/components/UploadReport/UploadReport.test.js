@@ -4,6 +4,7 @@ import { Provider } from 'react-redux'
 import configureStore from 'redux-mock-store'
 import { fireEvent, render, waitFor } from '@testing-library/react'
 import axios from 'axios'
+import Reports from '../Reports/Reports'
 
 import { v4 as uuidv4 } from 'uuid'
 
@@ -238,57 +239,5 @@ describe('UploadReport', () => {
 
     await waitFor(() => expect(getByText('test.txt')).toBeInTheDocument())
     expect(fileInput.value).toStrictEqual('')
-  })
-
-  it('should show an error message when the file program type does not match the report program type', async () => {
-    const store = mockStore({
-      auth: { user: { email: 'test@test.com' }, authenticated: true },
-      reports: {
-        fileType: 'SSP',
-        year: '2021',
-        stt: 'Florida',
-        quarter: 'Q3',
-      },
-    })
-    const origDispatch = store.dispatch
-    store.dispatch = jest.fn(origDispatch)
-
-    window.HTMLElement.prototype.scrollIntoView = jest.fn(() => null)
-
-    const { getByLabelText, getByText } = render(
-      <Provider store={store}>
-        <UploadReport handleCancel={handleCancel} header="Some header" />
-      </Provider>
-    )
-
-    const fileInput = getByLabelText('Section 1 - SSP - Active Case Data')
-    const makeTestFile = (name, contents = ['test']) =>
-      new File(contents, name, {
-        type: 'text/plain',
-      })
-    await waitFor(() => {
-      fireEvent.change(fileInput, {
-        target: {
-          name: 'Active Case Data',
-          files: [makeTestFile('section1.txt', ['HEADER20212A53000TAN1ED\n'])],
-        },
-      })
-    })
-
-    await waitFor(() => expect(getByText('section1.txt')).toBeInTheDocument())
-    expect(store.dispatch).toHaveBeenCalledTimes(3)
-
-    // click on Submit Data Files
-    await waitFor(() =>
-      expect(getByText('Submit Data Files')).toBeInTheDocument()
-    )
-    const submitButton = getByText('Submit Data Files')
-    fireEvent.click(submitButton)
-
-    expect(
-      getByText(
-        'File may correspond to TANF instead of SSP. Please verify the file type.'
-      )
-    ).toBeInTheDocument()
   })
 })

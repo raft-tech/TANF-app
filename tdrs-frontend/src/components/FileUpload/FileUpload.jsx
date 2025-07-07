@@ -99,6 +99,14 @@ function FileUpload({ section, setLocalAlertState }) {
   // e.g. "1 - Active Case Data" => ["1", "Active Case Data"]
   const [sectionNumber, sectionName] = section.split(' - ')
 
+  const formattedSectionNameLabel =
+    'Section ' +
+    sectionNumber +
+    ' - ' +
+    selectedFileType?.toUpperCase() +
+    ' - ' +
+    sectionName
+
   const hasFile = files?.some(
     (file) => file.section.includes(sectionName) && file.uuid
   )
@@ -265,9 +273,7 @@ function FileUpload({ section, setLocalAlertState }) {
       }`}
     >
       <label className="usa-label text-bold" htmlFor={formattedSectionName}>
-        Section {sectionNumber} {selectedFileType?.trim() !== '' ? '-' : ''}{' '}
-        {selectedFileType?.toUpperCase()} - {''}
-        {sectionName}
+        {formattedSectionNameLabel}
       </label>
       <div>
         {selectedFile?.error && (
