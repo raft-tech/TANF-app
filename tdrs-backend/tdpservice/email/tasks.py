@@ -17,6 +17,7 @@ from tdpservice.email.email import automated_email, log
 from tdpservice.email.email_enums import EmailType
 from tdpservice.parsers.util import calendar_to_fiscal
 from tdpservice.email.helpers.admin_notifications import email_admin_deactivated_user
+from tdpservice.users.models import UserChangeRequest, UserChangeRequestStatus
 
 
 logger = logging.getLogger(__name__)
@@ -91,11 +92,28 @@ def get_num_access_requests():
         account_approval_status=AccountApprovalStatusChoices.ACCESS_REQUEST,
     ).count()
 
+def get_num_permission_change_requests():
+    """Return the number of users requesting permission changes."""
+    number_of_user_change_requests = UserChangeRequest.objects.filter(
+        status=UserChangeRequestStatus.PENDING,
+        ).exclude(field_name='regions').count()
+    return number_of_user_change_requests
+
+def get_num_regional_change_requests():
+    """Return the number of users requesting regional changes."""
+    number_of_regional_change_requests = UserChangeRequest.objects.filter(
+        status=UserChangeRequestStatus.PENDING,
+        field_name='regions',
+    ).count()
+    return number_of_regional_change_requests
+
 @shared_task
 def email_admin_num_access_requests():
     """Send all OFA System Admins an email with how many users have requested access."""
     recipient_email = get_ofa_admin_user_emails()
     num_access_requests = get_num_access_requests()
+    num_permission_change_requests = get_num_permission_change_requests()
+    num_regional_change_requests = get_num_regional_change_requests()
     text_message = 'This is an automated email. Please do not reply.\n' + \
                    'This email is to notify you of the number of users' + \
                    ' who have requested access to the TANF Data Portal.\n' + \
@@ -107,6 +125,8 @@ def email_admin_num_access_requests():
     email_context = {
         'date': datetime.today(),
         'num_requests': num_access_requests,
+        'num_permission_change_requests' : num_permission_change_requests,
+        'num_regional_change_requests': num_regional_change_requests,
         'admin_user_pg': url,
     }
 

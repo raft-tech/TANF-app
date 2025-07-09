@@ -66,6 +66,7 @@ class UserSerializer(serializers.ModelSerializer):
             'last_login',
             'date_joined',
             'access_requested_date',
+            'feature_flags',
         )
         read_only_fields = (
             'id',
@@ -133,7 +134,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'access_request',
             'access_requested_date',
             'account_approval_status',
-            'feature_flags',
+            #'feature_flags',
         )
 
         """Enforce first and last name to be in API call and not empty"""
@@ -193,6 +194,7 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
     has_pending_first_name_change = serializers.SerializerMethodField()
     has_pending_last_name_change = serializers.SerializerMethodField()
     has_pending_regions_change = serializers.SerializerMethodField()
+    has_pending_feature_flags_change = serializers.SerializerMethodField()
 
     class Meta(UserProfileSerializer.Meta):
         """Metadata."""
@@ -203,6 +205,7 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
             'has_pending_first_name_change',
             'has_pending_last_name_change',
             'has_pending_regions_change',
+            'has_pending_feature_flags_change',
         ]
 
     def get_has_pending_first_name_change(self, obj):
@@ -216,6 +219,10 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
     def get_has_pending_regions_change(self, obj):
         """Check if there's a pending change request for regions."""
         return obj.has_pending_change_for_field('regions')
+
+    def get_has_pending_feature_flags_change(self, obj):
+        """Check if there's a pending change request for feature flags."""
+        return obj.has_pending_change_for_field('feature_flags')
 
     def update(self, instance, validated_data):
         """Handle updates by either creating change requests or updating directly."""
@@ -262,6 +269,20 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
                 change_request = instance.request_change(
                     field_name='regions',
                     requested_value=list(new_region_ids),
+                    requested_by=self.context['request'].user
+                )
+                change_requests.append(change_request)
+
+        elif 'feature_flags' in validated_data:
+            new_feature_flags = validated_data['feature_flags']
+            current_feature_flags = set(instance.feature_flags.all().values_list('id', flat=True))
+            new_feature_flag_ids = set(flag.id for flag in new_feature_flags)
+
+            if current_feature_flags != new_feature_flag_ids:
+                # Store as a list of IDs
+                change_request = instance.request_change(
+                    field_name='feature_flags',
+                    requested_value=list(new_feature_flag_ids),
                     requested_by=self.context['request'].user
                 )
                 change_requests.append(change_request)
@@ -327,7 +348,7 @@ class UserChangeRequestSerializer(serializers.ModelSerializer):
 
         # Check if the field is in the list of allowed fields for change requests
         allowed_fields = [
-            'first_name', 'last_name', 'regions'
+            'first_name', 'last_name', 'regions', 'feature_flags',
         ]
         if field_name not in allowed_fields:
             raise serializers.ValidationError({

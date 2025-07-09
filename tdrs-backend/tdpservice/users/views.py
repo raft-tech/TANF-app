@@ -99,7 +99,6 @@ class UserViewSet(
     @action(methods=["PATCH"], detail=False)
     def update_profile(self, request):
         """Update the current user's profile through change requests."""
-        print("\n\nIn update_profile\n\n")
         serializer = self.get_serializer(self.request.user, request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
