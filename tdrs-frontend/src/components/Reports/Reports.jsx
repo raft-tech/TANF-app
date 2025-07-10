@@ -109,6 +109,10 @@ function Reports() {
 
   const stt = sttList?.find((stt) => stt?.name === currentStt)
 
+  const fileTypeStt = stt
+    ? stt
+    : sttList?.find((fileTypeStt) => fileTypeStt?.name === sttInputValue)
+
   const errorsCount = formValidation.errors ? formValidation.errors : 0
 
   const missingStt =
@@ -132,7 +136,7 @@ function Reports() {
 
   const [selectedSubmissionTab, setSelectedSubmissionTab] = useState(1)
 
-  const fileTypeComboBoxRequired = stt?.ssp ? stt.ssp : false
+  const fileTypeComboBoxRequired = fileTypeStt?.ssp ? fileTypeStt.ssp : false
 
   const resetPreviousValues = () => {
     setQuarterInputValue(selectedQuarter || '')
@@ -309,7 +313,7 @@ function Reports() {
                   />
                 </div>
               )}
-              {(stt?.ssp ? stt.ssp : false) && (
+              {(fileTypeStt?.ssp ? fileTypeStt.ssp : false) && (
                 <div className="usa-form-group margin-top-4">
                   <label className="usa-label text-bold" htmlFor="reportType">
                     {formValidation.fileType && (
