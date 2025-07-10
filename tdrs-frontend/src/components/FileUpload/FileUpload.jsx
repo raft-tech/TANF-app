@@ -203,9 +203,9 @@ function FileUpload({ section, setLocalAlertState }) {
             error: {
               message:
                 `File may correspond to ` +
-                progType?.toUpperCase() +
+                progType?.slice(0, 3).toUpperCase() +
                 ` instead of ` +
-                selectedFileType.toUpperCase() +
+                selectedFileType.slice(0, 3).toUpperCase() +
                 `. Please verify the file type.`,
             },
             section,
