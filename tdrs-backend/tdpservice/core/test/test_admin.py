@@ -59,7 +59,7 @@ class TestAdminTemplates(TestCase):
         self.assertContains(response=response, text='Approve</a>')
         self.assertContains(response=response, text='Reject</a>')
 
-    def test_user_change_approval(self):
+    def test_user_change_using_api(self):
         """Test the user change request approval."""
         client = Client()
         client.login(username='admin', password='adminpassword')
@@ -77,3 +77,22 @@ class TestAdminTemplates(TestCase):
         self.assertContains(response=response, text='NewAdminAPI')
         self.assertContains(response=response, text='Approve</a>')
         self.assertContains(response=response, text='Reject</a>')
+
+    def test_user_change_request_approve(self):
+        """Test the user change request approval."""
+        client = Client()
+        client.login(username='admin', password='adminpassword')
+
+        # Create a change request
+        change_request = UserChangeRequest.objects.create(
+            user=self.admin_user,
+            requested_by=self.admin_user,
+            field_name='first_name',
+            current_value='Admin',
+            requested_value='NewAdmin',
+            status=UserChangeRequestStatus.PENDING,
+        )
+
+        # Approve the change request
+        response = client.post(reverse('admin:users_userchangerequest_changelist', args=[change_request.id]))
+        self.assertEqual(response.status_code, 302)
