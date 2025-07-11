@@ -58,3 +58,22 @@ class TestAdminTemplates(TestCase):
         response = client.get(reverse('admin:users_userchangerequest_changelist'))
         self.assertContains(response=response, text='Approve</a>')
         self.assertContains(response=response, text='Reject</a>')
+
+    def test_user_change_approval(self):
+        """Test the user change request approval."""
+        client = Client()
+        client.login(username='admin', password='adminpassword')
+
+        # Approve the change request using DRF API
+        response = client.post('/v1/change-requests/', 
+                               {
+                                   'user': self.admin_user.id,
+                                    'field_name': 'first_name',
+                                    'requested_value': 'NewAdminAPI',
+                               })
+        self.assertEqual(response.status_code, 201)
+        print(response.content)
+        response = client.get(reverse('admin:users_userchangerequest_changelist'))
+        self.assertContains(response=response, text='NewAdminAPI')
+        self.assertContains(response=response, text='Approve</a>')
+        self.assertContains(response=response, text='Reject</a>')
