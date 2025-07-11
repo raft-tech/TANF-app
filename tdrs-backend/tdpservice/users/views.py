@@ -2,7 +2,8 @@
 import datetime
 import logging
 
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import AnonymousUser, Group
+from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -13,20 +14,21 @@ from rest_framework.response import Response
 from rest_framework.generics import ListAPIView
 
 from tdpservice.users.models import User, AccountApprovalStatusChoices, UserChangeRequest, ChangeRequestAuditLog
+from tdpservice.users.models import User, Feedback, AccountApprovalStatusChoices
 from tdpservice.users.permissions import (
     DjangoModelCRUDPermissions,
     IsApprovedPermission,
     UserPermissions,
-    IsOwnerOrAdmin
+    IsOwnerOrAdmin,
+    FeedbackPermissions
 )
 from tdpservice.users.serializers import (
     GroupSerializer,
     UserProfileSerializer,
     UserSerializer,
-    UserChangeRequestSerializer,
-    ChangeRequestAuditLogSerializer
+    FeedbackSerializer,
 )
-from tdpservice.users.serializers import UserProfileChangeRequestSerializer
+from tdpservice.users.serializers import UserProfileChangeRequestSerializer, UserChangeRequestSerializer, ChangeRequestAuditLogSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -163,3 +165,34 @@ class ChangeRequestAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
         if not user.is_ofa_sys_admin:
             return ChangeRequestAuditLog.objects.none()
         return ChangeRequestAuditLog.objects.all()
+class FeedbackViewSet(mixins.CreateModelMixin,
+                      mixins.RetrieveModelMixin,
+                      mixins.ListModelMixin,
+                      viewsets.GenericViewSet):
+    """Feedback viewset."""
+
+    queryset = Feedback.objects.all()
+    serializer_class = FeedbackSerializer
+    permission_classes = (FeedbackPermissions,)
+
+    def create(self, request, *args, **kwargs):
+        """Create feedback with user."""
+        response = super().create(request, *args, **kwargs)
+        if response.status_code != status.HTTP_201_CREATED:
+            return response
+
+        try:
+            feedback_id = response.data['id']
+            feedback = Feedback.objects.get(id=feedback_id)
+
+            # Force anonymity if user is None to prevent us from know if authenticated users chose to remain anonymous
+            if request.user is None or isinstance(request.user, AnonymousUser):
+                feedback.anonymous = True
+
+            if not feedback.anonymous:
+                feedback.user = request.user
+            feedback.save()
+        except ObjectDoesNotExist:
+            logger.exception("Failed to update the user field on the Feedback model because it does not exist.")
+        finally:
+            return response

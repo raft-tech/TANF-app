@@ -9,6 +9,7 @@ router = DefaultRouter()
 # User and role endpoints
 router.register("users", views.UserViewSet)
 router.register("roles", views.GroupViewSet)
+router.register("feedback", views.FeedbackViewSet)
 
 # User change request endpoints
 router.register("change-requests", views.UserChangeRequestViewSet, basename="change-request")

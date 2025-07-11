@@ -8,6 +8,8 @@ from rest_framework import serializers, utils
 
 from tdpservice.stts.serializers import STTPrimaryKeyRelatedField, RegionPrimaryKeyRelatedField
 from tdpservice.users.models import User, UserChangeRequest, ChangeRequestAuditLog
+from django.utils import timezone
+from tdpservice.users.models import User, Feedback
 
 
 logger = logging.getLogger(__name__)
@@ -422,3 +424,27 @@ class ChangeRequestAuditLogSerializer(serializers.ModelSerializer):
         model = ChangeRequestAuditLog
         fields = ['id', 'change_request', 'action', 'performed_by', 'timestamp', 'details']
         read_only_fields = fields
+class FeedbackSerializer(serializers.ModelSerializer):
+    """Serializer for user feedback."""
+
+    class Meta:
+        """Serializer metadata."""
+
+        model = Feedback
+        fields = (
+            'id',
+            'rating',
+            'feedback',
+            'anonymous',
+        )
+        read_only_fields = (
+            'id',
+            'user',
+            'acked',
+            'reviewed_at',
+            'reviewed_by',
+        )
+
+    def create(self, validated_data):
+        """Create a new feedback instance."""
+        return Feedback.objects.create(**validated_data, created_at=timezone.now())

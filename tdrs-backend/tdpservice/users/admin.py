@@ -7,10 +7,11 @@ from django.http import HttpResponseRedirect
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
-
 from rest_framework.authtoken.models import TokenProxy
-
 from tdpservice.users.models import User, UserChangeRequest, ChangeRequestAuditLog
+from rest_framework.authtoken.models import TokenProxy
+from tdpservice.users.models import User, Feedback
+from tdpservice.core.utils import ReadOnlyAdminMixin
 
 import logging
 logger = logging.getLogger()
@@ -86,7 +87,6 @@ class ChangeRequestAuditLogInline(admin.TabularInline):
     def has_add_permission(self, request, obj=None):
         """Disable adding audit logs through admin."""
         return False
-
 
 class UserChangeRequestAdmin(admin.ModelAdmin):
     """Admin interface for user change requests."""
@@ -166,9 +166,10 @@ class UserChangeRequestAdmin(admin.ModelAdmin):
                 '<path:object_id>/reject/',
                 self.admin_site.admin_view(self.reject_view),
                 name='reject_change_request',
-            ),
+            )
         ]
         return custom_urls + urls
+
 
     def approve_view(self, request, object_id):
         """Handle approval of a change request."""
@@ -329,8 +330,91 @@ class ChangeRequestAuditLogAdmin(admin.ModelAdmin):
         """Disable deleting audit logs."""
         return False
 
+class FeedbackAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
+    """Customize the feedback admin functions."""
+
+    list_display = [
+        "user_list_display",
+        "created_at",
+        "rating",
+        "feedback_list_display",
+        "acked",
+        "quick_ack",
+    ]
+    list_filter = ["created_at", "rating", "acked"]
+    change_form_template = 'feedback_admin_template.html'
+    actions = ['ack_selected_feedback']
+
+    class Meta:
+        """Meta for admin view."""
+
+        verbose_name = "Feedback"
+        verbose_name_plural = "Feedback"
+
+    def get_urls(self):
+        """Add custom URLs for acknowledge action."""
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                '<path:object_id>/acknowledge/',
+                self.admin_site.admin_view(self.acknowledge_feedback),
+                name='acknowledge_feedback',
+            ),
+        ]
+        return custom_urls + urls
+
+    def acknowledge_feedback(self, request, object_id):
+        """Acknowledge the feedback."""
+        feedback = self.get_object(request, object_id)
+        feedback.acknowledge(request.user)
+        return HttpResponseRedirect(
+            reverse('admin:users_feedback_changelist')
+        )
+
+    def user_list_display(self, obj):
+        """Handle user display."""
+        return obj.user.username if not obj.anonymous and obj.user is not None else "Anonymous"
+    user_list_display.short_description = "User"
+
+    def feedback_list_display(self, obj):
+        """Display truncated version of feedback."""
+        return obj.feedback[:50] + "..." if len(obj.feedback) > 50 else obj.feedback
+    feedback_list_display.short_description = 'Feedback'
+
+    def quick_ack(self, obj):
+        """Display quick action button for unacknowledged feedback."""
+        if not obj.acked:
+            return mark_safe(
+                f'<a href="{reverse("admin:acknowledge_feedback", args=[obj.pk])}" '
+                f'class="button" style="background-color: #28a745; color: white; padding: 5px; '
+                f'margin-right: 5px; text-decoration: none;">Acknowledge</a>'
+            )
+        return '-'
+    quick_ack.short_description = 'Acknowledge'
+
+    def ack_selected_feedback(self, request, queryset):
+        """Bulk approve selected change requests."""
+        updated = 0
+        feedback = queryset.filter(acked=False)
+
+        for f in feedback:
+            f.acked = True
+            f.reviewed_at = timezone.now()
+            f.reviewed_by = request.user
+            updated += 1
+
+        Feedback.objects.bulk_update(feedback, ['acked', 'reviewed_at', 'reviewed_by'])
+
+        self.message_user(
+            request,
+            f"{updated} feedback(s) were successfully acknowledged.",
+            messages.SUCCESS if updated > 0 else messages.WARNING
+        )
+    ack_selected_feedback.short_description = "Acknowledge selected feedback"
+
 
 admin.site.register(User, UserAdmin)
+admin.site.register(Feedback, FeedbackAdmin)
+admin.site.unregister(TokenProxy)
 admin.site.register(UserChangeRequest, UserChangeRequestAdmin)
 admin.site.register(ChangeRequestAuditLog, ChangeRequestAuditLogAdmin)
-admin.site.unregister(TokenProxy)
