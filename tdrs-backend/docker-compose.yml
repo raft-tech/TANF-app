@@ -275,6 +275,7 @@ services:
       - vault_logs:/tmp
       - vault_secrets:/vault/secrets
 
+    build:
       context: .
       args:
         REGISTRY_OWNER: ${REGISTRY_OWNER:-hhs}
