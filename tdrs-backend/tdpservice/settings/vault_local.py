@@ -21,7 +21,7 @@ class VaultLocal(Local):
     VAULT_TOKEN = os.environ.get("VAULT_TOKEN")
 
     if VAULT_TOKEN:
-        print("Retrieving database credentials from Vault...")
+        logger.info("Retrieving database credentials from Vault...")
 
         try:
             vault_db_config = get_vault_database_config(VAULT_TOKEN)
@@ -30,15 +30,15 @@ class VaultLocal(Local):
                 # Override database settings with Vault credentials
                 DATABASES = {"default": vault_db_config}
                 VAULT_INTEGRATION_ENABLED = True
-                print("Using Vault database credentials")
+                logger.info("Using Vault database credentials")
             else:
-                print("Failed to retrieve from Vault, using local config")
+                logger.warning("Failed to retrieve from Vault, using local config")
 
         except Exception as e:
-            print(f"Vault error: {e}, using local config")
+            logger.error(f"Vault error: {e}, using local config")
 
     else:
-        print("VAULT_TOKEN not found, using local config")
+        logger.warning("VAULT_TOKEN not found, using local config")
 
     # Configuration for monitoring Vault integration status
     VAULT_SETTINGS = {
