@@ -265,6 +265,9 @@ services:
       - GRAFANA_PASSWORD
       - VAULT_TOKEN=${VAULT_TOKEN}
       - GRAFANA_USER
+      - OFA_DB_PASSWORD
+      - OFA_DB_USER
+
       - OTEL_PYTHON_DJANGO_EXCLUDED_URLS
     volumes:
       - .:/tdpapp
@@ -272,7 +275,6 @@ services:
       - vault_logs:/tmp
       - vault_secrets:/vault/secrets
 
-    build: 
       context: .
       args:
         REGISTRY_OWNER: ${REGISTRY_OWNER:-hhs}
@@ -281,6 +283,8 @@ services:
       ./manage.py makemigrations &&
       ./manage.py migrate &&
       ./manage.py populate_stts &&
+      python ./plg/grafana_views/generate_views.py --all &&
+      ./manage.py runscript apply_grafana_views &&
       ./gunicorn_start.sh"
     ports:
       - "5555:5555"
