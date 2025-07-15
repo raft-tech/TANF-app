@@ -26,6 +26,7 @@ template {
 }
 
 listener "tcp" {
-  address = "127.0.0.1:8200"
+  # TODO: Update this to the listener addresses such as backend/frontend/etc
+  address = "0.0.0.0:8200"
   tls_disable = true
 }
