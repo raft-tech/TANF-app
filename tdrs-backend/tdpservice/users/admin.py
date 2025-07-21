@@ -313,7 +313,7 @@ class UserChangeRequestAdmin(admin.ModelAdmin):
 class ChangeRequestAuditLogAdmin(admin.ModelAdmin):
     """Admin interface for change request audit logs."""
 
-    list_display = ['id', 'change_request', 'action', 'performed_by', 'timestamp']
+    list_display = ['id', 'action', 'performed_by', 'timestamp']
     list_filter = ['action', 'timestamp']
     search_fields = ['change_request__user__username', 'performed_by__username', 'action']
     readonly_fields = ['change_request', 'action', 'performed_by', 'timestamp', 'details']
