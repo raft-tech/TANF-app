@@ -1,7 +1,8 @@
 """Custom OIDC Authentication Backend."""
 
-from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 import logging
+
+from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 
 logger = logging.getLogger(__name__)
 
@@ -12,18 +13,18 @@ class CustomOIDCAuthenticationBackend(OIDCAuthenticationBackend):
     def create_user(self, claims):
         """Create a new user from claims."""
         user = super().create_user(claims)
-        user.username = claims.get('preferred_username', '')
-        user.email = claims.get('email', '')
-        user.login_gov_uuid = claims.get('sub', '')
-        user.hhs_id = claims.get('hhs_id', '')
+        user.username = claims.get("preferred_username", "")
+        user.email = claims.get("email", "")
+        user.login_gov_uuid = claims.get("sub", "")
+        user.hhs_id = claims.get("hhs_id", "")
         user.save()
-        
+
         return user
 
     def update_user(self, user, claims):
         """Update existing user with new claims."""
-        user.username = claims.get('preferred_username', '')
-        user.email = claims.get('email', '')
+        user.username = claims.get("preferred_username", "")
+        user.email = claims.get("email", "")
         user.save()
-        
+
         return user
