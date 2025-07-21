@@ -20,14 +20,7 @@ from tdpservice.users.keycloak_views import (
 
 from .core.views import write_logs
 from .users.api.authorization_check import AuthorizationCheck, PlgAuthorizationCheck
-from .users.api.login import (
-    CypressLoginDotGovAuthenticationOverride,
-    TokenAuthorizationAMS,
-    TokenAuthorizationLoginDotGov,
-)
-from .users.api.login_redirect_oidc import LoginRedirectAMS, LoginRedirectLoginDotGov
-from .users.api.logout import LogoutUser
-from .users.api.logout_redirect_oidc import LogoutRedirectOIDC
+from .users.api.login import CypressLoginDotGovAuthenticationOverride
 
 admin.autodiscover()
 admin.site.login = login_required(admin.site.login)
