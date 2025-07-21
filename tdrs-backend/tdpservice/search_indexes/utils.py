@@ -253,6 +253,9 @@ def get_number_of_records(files):
     """Get the number of records in the files."""
     total_number_of_records = 0
     for file in files:
-        datafile_summary = DataFileSummary.objects.get(datafile=file)
-        total_number_of_records += datafile_summary.total_number_of_records_in_file
+        try:
+            datafile_summary = DataFileSummary.objects.get(datafile=file)
+            total_number_of_records += datafile_summary.total_number_of_records_in_file
+        except DataFileSummary.DoesNotExist:
+            logger.warning(f"No summary found for datafile: {file.id}. Skipping.")
     return total_number_of_records
