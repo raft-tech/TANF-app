@@ -143,7 +143,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'access_request',
             'access_requested_date',
             'account_approval_status',
-            #'feature_flags',
+            'feature_flags',
         )
 
         """Enforce first and last name to be in API call and not empty"""
@@ -252,15 +252,19 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
         # Extract and remove the create_change_requests flag
         create_change_requests = validated_data.pop('create_change_requests', True)
 
+        user = self.context['request'].user
         # If not creating change requests, use the parent update method
         if not create_change_requests:
             # Only admins can bypass change requests
-            user = self.context['request'].user
             if not (user.is_an_admin or user.is_ofa_sys_admin):
                 raise serializers.ValidationError({
                     'create_change_requests': _('Only administrators can update user profiles directly.')
                 })
             return super().update(instance, validated_data)
+        elif user.get_pending_change_requests().exists():
+            raise serializers.ValidationError({
+                'create_change_requests': _('You have pending change requests. Please resolve them before making another request.')
+            })
 
         # Otherwise, create change requests for each field
         change_requests = []
@@ -296,6 +300,7 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
                 )
                 change_requests.append(change_request)
 
+        # THIS NEEDS TO BE REVISED WITH THE GROUP SETTINGS
         elif 'feature_flags' in validated_data:
             new_feature_flags = validated_data['feature_flags']
             current_feature_flags = set(instance.feature_flags.all().values_list('id', flat=True))

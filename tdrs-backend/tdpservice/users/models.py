@@ -3,6 +3,7 @@
 import datetime
 import logging
 import uuid
+import ast
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
@@ -49,8 +50,7 @@ class UserChangeRequestStatus(models.TextChoices):
     APPROVED = "approved", _('Approved')
     REJECTED = "rejected", _('Rejected')
 
-
-class UserChangeRequest(models.Model):
+class UserChangeRequest(Reviewable):
     """Model to track user information change requests."""
 
     class Meta:
@@ -73,7 +73,7 @@ class UserChangeRequest(models.Model):
     )
     field_name = models.CharField(
         max_length=100,
-        help_text=_('The name of the field being changed')
+        help_text=_('The name of the field being changed, possible values include: first_name, last_name, regions')
     )
     current_value = models.TextField(
         blank=True,
@@ -125,7 +125,15 @@ class UserChangeRequest(models.Model):
         new_value = self.requested_value
 
         # Apply the change to the user
-        setattr(user, field_name, new_value)
+        try:
+            if field_name == 'regions':
+                region = Region.objects.get(id__in=ast.literal_eval(new_value))
+                user.regions.add(region)
+            else:
+                setattr(user, field_name, new_value)
+        except Region.DoesNotExist:
+            logger.error("Region not found: %s", new_value)
+            return False
         user.save()
 
         # Update the change request
