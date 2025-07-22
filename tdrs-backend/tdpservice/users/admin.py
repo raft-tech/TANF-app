@@ -26,14 +26,8 @@ class UserForm(forms.ModelForm):
         """Define customizations."""
 
         model = User
-        exclude = ["password", "user_permissions"]
-        readonly_fields = [
-            "last_login",
-            "date_joined",
-            "login_gov_uuid",
-            "hhs_id",
-            "access_request",
-        ]
+        exclude = ['password']
+        readonly_fields = ['last_login', 'date_joined', 'login_gov_uuid', 'hhs_id', 'access_request']
 
     def clean(self):
         """Add extra validation for locations based on roles."""
@@ -63,15 +57,9 @@ class RegionInline(admin.TabularInline):
 class UserAdmin(admin.ModelAdmin):
     """Customize the user admin functions."""
 
-    exclude = ["password", "user_permissions", "is_active"]
-    readonly_fields = [
-        "last_login",
-        "date_joined",
-        "login_gov_uuid",
-        "hhs_id",
-        "access_request",
-        "deactivated",
-    ]
+    exclude = ['password', 'is_active']
+    readonly_fields = ['last_login', 'date_joined', 'login_gov_uuid', 'hhs_id', 'access_request', 'deactivated']
+
     form = UserForm
     list_filter = ("account_approval_status", "stt")
     list_display = [
