@@ -96,7 +96,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     email = serializers.CharField(read_only=True, source="username")
     roles = GroupSerializer(many=True, read_only=True, source="groups")
-    stt = STTPrimaryKeyRelatedField(required=False)
+    stt = STTPrimaryKeyRelatedField(required=False, allow_null=True)
     regions = RegionPrimaryKeyRelatedField(many=True, required=False)
 
     class Meta:
@@ -302,7 +302,7 @@ class UserChangeRequestSerializer(serializers.ModelSerializer):
 
         model = UserChangeRequest
         fields = [
-            'id', 'user', 'field_name', 'current_value',
+            'id', 'user', 'field_name',
             'requested_value', 'status', 'requested_at'
         ]
         read_only_fields = ['status', 'requested_at']
@@ -314,7 +314,7 @@ class UserChangeRequestSerializer(serializers.ModelSerializer):
 
         # Get the current value from the user object
         try:
-            current_value = str(getattr(user, field_name, ''))
+            current_value = getattr(user, field_name, '')
         except (AttributeError, TypeError):
             current_value = ''
 
