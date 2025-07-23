@@ -1,6 +1,9 @@
 """Core Admin class tests."""
 from django.contrib.admin.models import ADDITION, LogEntry
 from django.contrib.contenttypes.models import ContentType
+from django.test import TestCase, Client
+from django.urls import reverse
+from tdpservice.users.models import UserChangeRequest, UserChangeRequestStatus
 
 import pytest
 
@@ -19,12 +22,11 @@ def test_log_entry_admin(admin_user, admin):
     assert "OBJ_REPR" in admin.object_link(log_entry)
     assert '<a href="' in admin.object_link(log_entry)
 
-from django.test import TestCase, Client
-from django.urls import reverse
-from tdpservice.users.models import UserChangeRequest, UserChangeRequestStatus
 class TestAdminTemplates(TestCase):
+    """Test the admin templates for user change requests."""
+
     def setUp(self):
-        # create a couple of users for testing
+        """Create a couple of users for testing."""
         self.admin_user = User.objects.create_superuser(
             username='admin',
             password='adminpassword',
@@ -35,7 +37,7 @@ class TestAdminTemplates(TestCase):
         self.admin_user.save()
 
         return super().setUp()
-    
+
     def test_user_change_request_form(self):
         """Test the user change request form template."""
         client = Client()
@@ -43,7 +45,7 @@ class TestAdminTemplates(TestCase):
         client.login(username='admin', password='adminpassword')
         response = client.get(reverse('admin:users_userchangerequest_changelist'))
         self.assertEqual(response.status_code, 200)
-        
+
         self.assertNotContains(response=response, text='Approve</a>')
         self.assertNotContains(response=response, text='Reject</a>')
 
@@ -66,11 +68,11 @@ class TestAdminTemplates(TestCase):
         client.login(username='admin', password='adminpassword')
 
         # Approve the change request using DRF API
-        response = client.post('/v1/change-requests/', 
+        response = client.post('/v1/change-requests/',
                                {
-                                   'user': self.admin_user.id,
-                                    'field_name': 'first_name',
-                                    'requested_value': 'NewAdminAPI',
+                                'user': self.admin_user.id,
+                                'field_name': 'first_name',
+                                'requested_value': 'NewAdminAPI',
                                })
         self.assertEqual(response.status_code, 201)
         print(response.content)
@@ -79,6 +81,7 @@ class TestAdminTemplates(TestCase):
         self.assertContains(response=response, text='Approve</a>')
         self.assertContains(response=response, text='Reject</a>')
 
+    @pytest.mark.django_db
     def test_user_change_request_approve(self):
         """Test the user change request approval."""
         client = Client()
@@ -93,7 +96,7 @@ class TestAdminTemplates(TestCase):
             requested_value='NewAdmin',
             status=UserChangeRequestStatus.PENDING,
         )
-
+        print(f"Change Request ID: {change_request.id}")
         # Approve the change request
-        response = client.post(reverse('admin:users_userchangerequest_changelist', args=[change_request.id]))
+        response = client.post(f'/admin/users/userchangerequest/{change_request.id}/approve/')
         self.assertEqual(response.status_code, 302)

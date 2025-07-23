@@ -10,10 +10,7 @@ from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from rest_framework.authtoken.models import TokenProxy
-from tdpservice.users.models import User, UserChangeRequest, ChangeRequestAuditLog
-from rest_framework.authtoken.models import TokenProxy
-from tdpservice.users.models import User, Feedback
-
+from tdpservice.users.models import User, UserChangeRequest, ChangeRequestAuditLog, Feedback
 from tdpservice.core.utils import ReadOnlyAdminMixin
 
 logger = logging.getLogger()
@@ -172,7 +169,6 @@ class UserChangeRequestAdmin(admin.ModelAdmin):
             )
         ]
         return custom_urls + urls
-
 
     def approve_view(self, request, object_id):
         """Handle approval of a change request."""

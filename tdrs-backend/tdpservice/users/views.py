@@ -13,17 +13,20 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from tdpservice.users.models import User, AccountApprovalStatusChoices, UserChangeRequest, ChangeRequestAuditLog
-from tdpservice.users.models import User, Feedback, AccountApprovalStatusChoices
-from tdpservice.users.models import AccountApprovalStatusChoices, Feedback, User
+from tdpservice.users.models import (
+    User,
+    AccountApprovalStatusChoices,
+    UserChangeRequest,
+    ChangeRequestAuditLog,
+    Feedback,
+)
 from tdpservice.users.permissions import (
     DjangoModelCRUDPermissions,
     FeedbackPermissions,
     IsApprovedPermission,
     UserPermissions,
-    IsOwnerOrAdmin,
-    FeedbackPermissions
-)
+    IsOwnerOrAdmin
+    )
 from tdpservice.users.serializers import (
     FeedbackSerializer,
     GroupSerializer,

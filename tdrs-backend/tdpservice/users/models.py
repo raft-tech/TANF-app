@@ -6,7 +6,7 @@ import uuid
 import ast
 
 from django.conf import settings
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Permission
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
@@ -129,6 +129,16 @@ class UserChangeRequest(Reviewable):
             if field_name == 'regions':
                 region = Region.objects.get(id__in=ast.literal_eval(new_value))
                 user.regions.add(region)
+            elif field_name == 'has_fra_access':
+                try:
+                    fra_permission = Permission.objects.get(codename='has_fra_access')
+                    if new_value:
+                        user.user_permissions.add(fra_permission)
+                    else:
+                        user.user_permissions.remove(fra_permission)
+                except Permission.DoesNotExist:
+                    logger.error("Permission not found: %s", new_value)
+                    return False
             else:
                 setattr(user, field_name, new_value)
         except Region.DoesNotExist:

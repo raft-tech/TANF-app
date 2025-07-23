@@ -5,10 +5,8 @@ import logging
 from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
-from tdpservice.stts.serializers import STTPrimaryKeyRelatedField, RegionPrimaryKeyRelatedField
-from tdpservice.users.models import User, UserChangeRequest, ChangeRequestAuditLog
+from tdpservice.users.models import User, UserChangeRequest, ChangeRequestAuditLog, Feedback
 from django.utils import timezone
-from tdpservice.users.models import User, Feedback
 from rest_framework import serializers
 from rest_framework.utils import model_meta
 
@@ -247,6 +245,34 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
         """Check if there's a pending change request for feature flags."""
         return obj.has_pending_change_for_field('feature_flags')
 
+    def handle_regions(self, validated_data, instance):
+        """Handle the regions field specifically for change requests."""
+        change_requests = []
+        new_regions = validated_data['regions']
+        current_regions = set(instance.regions.all().values_list('id', flat=True))
+        new_region_ids = set(region.id for region in new_regions)
+
+        if current_regions != new_region_ids:
+            # Store as a list of IDs
+            change_request = instance.request_change(
+                field_name='regions',
+                requested_value=list(new_region_ids),
+                requested_by=self.context['request'].user
+            )
+            change_requests.append(change_request)
+        return change_requests
+
+    def handle_has_fra_access(self, validated_data, instance):
+        """Handle the has_fra_access field."""
+        has_fra_access = validated_data.get('has_fra_access', None)
+        if has_fra_access is not None:
+            change_request = instance.request_change(
+                field_name='has_fra_access',
+                requested_value=has_fra_access,
+                requested_by=self.context['request'].user
+            )
+        return change_request
+
     def update(self, instance, validated_data):
         """Handle updates by either creating change requests or updating directly."""
         # Extract and remove the create_change_requests flag
@@ -266,9 +292,6 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
                 'create_change_requests': _('You have pending change requests. Please resolve them before making another request.')
             })
 
-        # Otherwise, create change requests for each field
-        change_requests = []
-
         # Process simple fields
         for field_name in ['first_name', 'last_name']:
             if field_name in validated_data:
@@ -278,42 +301,19 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
 
                 if new_value != current_value:
                     # Create a change request
-                    change_request = instance.request_change(
+                    instance.request_change(
                         field_name=field_name,
                         requested_value=new_value,
                         requested_by=self.context['request'].user
                     )
-                    change_requests.append(change_request)
 
         # Process regions field (many-to-many)
         if 'regions' in validated_data:
-            new_regions = validated_data['regions']
-            current_regions = set(instance.regions.all().values_list('id', flat=True))
-            new_region_ids = set(region.id for region in new_regions)
+            self.handle_regions(validated_data, instance)
 
-            if current_regions != new_region_ids:
-                # Store as a list of IDs
-                change_request = instance.request_change(
-                    field_name='regions',
-                    requested_value=list(new_region_ids),
-                    requested_by=self.context['request'].user
-                )
-                change_requests.append(change_request)
-
-        # THIS NEEDS TO BE REVISED WITH THE GROUP SETTINGS
-        elif 'feature_flags' in validated_data:
-            new_feature_flags = validated_data['feature_flags']
-            current_feature_flags = set(instance.feature_flags.all().values_list('id', flat=True))
-            new_feature_flag_ids = set(flag.id for flag in new_feature_flags)
-
-            if current_feature_flags != new_feature_flag_ids:
-                # Store as a list of IDs
-                change_request = instance.request_change(
-                    field_name='feature_flags',
-                    requested_value=list(new_feature_flag_ids),
-                    requested_by=self.context['request'].user
-                )
-                change_requests.append(change_request)
+        if 'has_fra_access' in validated_data:
+            # Handle the has_fra_access field
+            self.handle_has_fra_access(validated_data, instance)
 
         # Return the instance without changes
         return instance
