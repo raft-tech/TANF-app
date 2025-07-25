@@ -73,7 +73,7 @@ class UserChangeRequest(Reviewable):
     )
     field_name = models.CharField(
         max_length=100,
-        help_text=_('The name of the field being changed, possible values include: first_name, last_name, regions')
+        help_text=_('The name of the field being changed, possible values include: first_name, last_name, regions and has_fra_access')
     )
     current_value = models.TextField(
         blank=True,
@@ -92,11 +92,6 @@ class UserChangeRequest(Reviewable):
     requested_at = models.DateTimeField(
         auto_now_add=True,
         help_text=_('When this change was requested')
-    )
-    reviewed_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text=_('When this change request was reviewed')
     )
     reviewed_by = models.ForeignKey(
         'users.User',

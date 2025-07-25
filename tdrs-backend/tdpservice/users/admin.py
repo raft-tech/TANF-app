@@ -309,7 +309,7 @@ class UserChangeRequestAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
-class ChangeRequestAuditLogAdmin(admin.ModelAdmin):
+class ChangeRequestAuditLogAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Admin interface for change request audit logs."""
 
     list_display = ['id', 'action', 'performed_by', 'timestamp']
@@ -317,17 +317,6 @@ class ChangeRequestAuditLogAdmin(admin.ModelAdmin):
     search_fields = ['change_request__user__username', 'performed_by__username', 'action']
     readonly_fields = ['change_request', 'action', 'performed_by', 'timestamp', 'details']
 
-    def has_add_permission(self, request):
-        """Disable adding audit logs through admin."""
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        """Disable changing audit logs."""
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        """Disable deleting audit logs."""
-        return False
 
 class FeedbackAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Customize the feedback admin functions."""

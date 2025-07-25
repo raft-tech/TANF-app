@@ -369,14 +369,14 @@ class UserChangeRequestSerializer(serializers.ModelSerializer):
         user = data.get('user')
 
         # Check if the field exists on the User model
-        if not hasattr(User, field_name):
+        if not hasattr(User, field_name) and field_name not in ['has_fra_access']:
             raise serializers.ValidationError({
                 'field_name': _('This field does not exist on the User model.')
             })
 
         # Check if the field is in the list of allowed fields for change requests
         allowed_fields = [
-            'first_name', 'last_name', 'regions', 'feature_flags',
+            'first_name', 'last_name', 'regions', 'has_fra_access',
         ]
         if field_name not in allowed_fields:
             raise serializers.ValidationError({
