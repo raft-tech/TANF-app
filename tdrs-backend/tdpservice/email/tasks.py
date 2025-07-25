@@ -117,7 +117,9 @@ def get_num_permission_change_requests():
     """Return the number of users requesting permission changes."""
     number_of_user_change_requests = UserChangeRequest.objects.filter(
         status=UserChangeRequestStatus.PENDING,
-        ).exclude(field_name='regions').count()
+        field_name__in=[
+            'has_fra_access',
+        ]).count()
     return number_of_user_change_requests
 
 def get_num_regional_change_requests():
