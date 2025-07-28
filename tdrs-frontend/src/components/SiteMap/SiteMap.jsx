@@ -37,13 +37,10 @@ const SiteMap = ({ user }) => {
       <SiteMap.Link text="Profile" link="/profile" />
 
       {userIsAdmin && (
-        <>
-          <SiteMap.Link
-            text="Admin"
-            link={`${process.env.REACT_APP_BACKEND_HOST}/admin/`}
-          />
-          <SiteMap.Link text="Keycloak" link={'/keycloak/'} />
-        </>
+        <SiteMap.Link
+          text="Admin"
+          link={`${process.env.REACT_APP_BACKEND_HOST}/admin/`}
+        />
       )}
 
       {userViewPlg && (

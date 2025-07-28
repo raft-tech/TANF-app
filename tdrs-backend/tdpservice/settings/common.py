@@ -361,10 +361,10 @@ class Common(Configuration):
 
     # --- Keycloak OIDC Settings --- #
     # KC_INTERNAL_URL is for INTERNAL server-to-server communication (Django to Keycloak)
-    KC_INTERNAL_URL = os.getenv("KC_INTERNAL_URL", "http://keycloak:8081")
+    KC_INTERNAL_URL = os.getenv("KC_INTERNAL_URL", "https://keycloak-dev.app.cloud.gov")
 
     # KC_EXTERNAL_URL is for EXTERNAL browser-to-Keycloak communication.
-    KC_EXTERNAL_URL = os.getenv("KC_EXTERNAL_URL", "http://localhost:8081")
+    KC_EXTERNAL_URL = os.getenv("KC_EXTERNAL_URL", "https://keycloak-dev.app.cloud.gov")
 
     KC_REALM = os.getenv("KC_REALM", "tdp-realm")
 
