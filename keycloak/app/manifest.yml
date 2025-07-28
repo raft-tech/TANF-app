@@ -10,6 +10,7 @@ applications:
       KC_HTTP_ENABLED: true
       KC_HTTP_PORT: 8080
       KC_PROXY: edge
+      KC_PROXY_HEADERS: xforwarded
       KC_BOOTSTRAP_ADMIN_USERNAME: {kc_admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: {kc_admin_password}
       KC_HOSTNAME: {kc_hostname}
