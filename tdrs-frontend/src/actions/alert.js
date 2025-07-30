@@ -16,6 +16,7 @@ export const setAlert = (alert) => (dispatch) => {
 }
 
 /**
+ * TESTING
  * Clears the alert object from the store
  */
 export const clearAlert = () => (dispatch) => {
