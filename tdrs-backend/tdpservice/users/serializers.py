@@ -210,6 +210,7 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
 
     # Add a field to indicate whether to create change requests or update directly
     create_change_requests = serializers.BooleanField(default=True, write_only=True)
+    has_fra_access = serializers.BooleanField(default=False, write_only=True)
 
     # Add fields to track pending change requests
     has_pending_first_name_change = serializers.SerializerMethodField()
@@ -227,7 +228,17 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
             'has_pending_last_name_change',
             'has_pending_regions_change',
             'has_pending_feature_flags_change',
+            'has_fra_access',
         ]
+
+    def validate_regions(self, value):
+        """Validate regions field."""
+        """Ensure that the regions are valid."""
+        if not value:
+            raise serializers.ValidationError(_('Regions cannot be empty.'))
+        if not isinstance(value, list):
+            raise serializers.ValidationError(_('Regions must be a list of IDs.'))
+        return value
 
     def get_has_pending_first_name_change(self, obj):
         """Check if there's a pending change request for first_name."""
@@ -245,52 +256,83 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
         """Check if there's a pending change request for feature flags."""
         return obj.has_pending_change_for_field('feature_flags')
 
-    def _handle_regions(self, validated_data, instance):
+    def _handle_regions(self, validated_data, instance, pending_request=None):
         """Handle the regions field specifically for change requests."""
         change_requests = []
         new_regions = validated_data['regions']
         current_regions = set(instance.regions.all().values_list('id', flat=True))
         new_region_ids = set(region.id for region in new_regions)
 
-        if current_regions != new_region_ids:
+        if pending_request:
+            if current_regions != new_region_ids:
+                # Update the existing pending request
+                pending_request.requested_value = list(new_region_ids)
+                pending_request.save()
+            change_requests.append(pending_request)
+
+        # New request
+        elif current_regions != new_region_ids:
             # Store as a list of IDs
             change_request = instance.request_change(
                 field_name='regions',
                 requested_value=list(new_region_ids),
+                current_value=list(current_regions),
                 requested_by=self.context['request'].user
             )
             change_requests.append(change_request)
+
         return change_requests
 
-    def _handle_has_fra_access(self, validated_data, instance):
+    def _handle_has_fra_access(self, validated_data, instance, pending_request=None):
         """Handle the has_fra_access field."""
         has_fra_access = validated_data.get('has_fra_access', None)
-        if has_fra_access is not None:
+        try:
+            existing_permission = instance.user_permissions.get(codename='has_fra_access')
+        except Permission.DoesNotExist:
+            existing_permission = None
+
+        if pending_request:
+            if pending_request.requested_value != has_fra_access:
+                # Update the existing pending request
+                pending_request.requested_value = has_fra_access
+                pending_request.save()
+            return pending_request
+        # New request
+        elif has_fra_access != existing_permission:
             change_request = instance.request_change(
                 field_name='has_fra_access',
                 requested_value=has_fra_access,
                 requested_by=self.context['request'].user
             )
-        return change_request
+            return change_request
 
-    def _handle_pending_request(self, pending_requests, validated_data, instance):
+    def _handle_pending_request(self, validated_data, instance, pending_requests):
         """Handle existing pending requests by updating them with new data."""
-        for request in pending_requests:
-            if request.field_name in validated_data:
+        for pending_request in pending_requests:
+            # handle existing pending requests
+            if pending_request.field_name in validated_data:
                 # Update the requested value
-                request.requested_value = validated_data[request.field_name]
-                request.save()
+
+                if pending_request.field_name == 'regions':
+                    self._handle_regions(validated_data, instance, pending_request=pending_request)
+                elif pending_request.field_name == 'has_fra_access':
+                    self._handle_has_fra_access(validated_data, instance, pending_request=pending_request)
+                else:
+                    # For other fields, just update the requested value
+                    pending_request.requested_value = validated_data[pending_request.field_name]
+                    pending_request.save()
+
                 # Log the update in the audit log
                 ChangeRequestAuditLog.objects.create(
-                    change_request=request,
+                    change_request=pending_request,
                     action='updated',
                     performed_by=self.context['request'].user,
                     details={
-                        'field': request.field_name,
-                        'requested_value': request.requested_value
+                        'field': pending_request.field_name,
+                        'requested_value': str(pending_request.requested_value)
                     }
                 )
-                validated_data.pop(request.field_name, None)
+                validated_data.pop(pending_request.field_name, None)
 
     def _handle_new_request(self, validated_data, instance):
         """Handle creating a new change request for the user."""
@@ -312,23 +354,20 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
                     change_requests.append(change_request)
 
         if 'regions' in validated_data:
-            change_requests.extend(self._handle_regions(validated_data, instance))
+            self._handle_regions(validated_data, instance)
 
         if 'has_fra_access' in validated_data:
-            change_request = self._handle_has_fra_access(validated_data, instance)
-            if change_request:
-                change_requests.append(change_request)
-
-        return change_requests
+            self._handle_has_fra_access(validated_data, instance)
 
     def update(self, instance, validated_data):
         """Handle updates by either creating change requests or updating directly."""
         # Extract and remove the create_change_requests flag
-        create_change_requests = validated_data.pop('create_change_requests', True)
+        create_change_requests = validated_data.pop('create_change_requests', False)
 
         user = self.context['request'].user
         pending_requests = user.get_pending_change_requests()
         # If not creating change requests, use the parent update method
+        # This is for direct updates, bypassing change requests
         if not create_change_requests:
             # Only admins can bypass change requests
             if not (user.is_an_admin or user.is_ofa_sys_admin):
@@ -336,10 +375,11 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
                     'create_change_requests': _('Only administrators can update user profiles directly.')
                 })
             return super().update(instance, validated_data)
-        elif pending_requests.exists():
+        # If there are pending requests, handle them first
+        if pending_requests.exists():
             # update the request with new one
-            self._handle_pending_request(pending_requests, validated_data, instance)
-
+            self._handle_pending_request(validated_data, instance, pending_requests)
+        # After handling pending requests, create new change requests
         self._handle_new_request(validated_data, instance)
 
         return instance

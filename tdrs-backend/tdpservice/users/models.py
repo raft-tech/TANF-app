@@ -122,22 +122,23 @@ class UserChangeRequest(Reviewable):
         # Apply the change to the user
         try:
             if field_name == 'regions':
-                region = Region.objects.get(id__in=ast.literal_eval(new_value))
-                user.regions.add(region)
+                user.regions.remove(*user.regions.all())  # Clear existing regions
+                regions = ast.literal_eval(new_value)
+                for region in regions:
+                    user.regions.add(region)
             elif field_name == 'has_fra_access':
-                try:
-                    fra_permission = Permission.objects.get(codename='has_fra_access')
-                    if new_value:
-                        user.user_permissions.add(fra_permission)
-                    else:
-                        user.user_permissions.remove(fra_permission)
-                except Permission.DoesNotExist:
-                    logger.error("Permission not found: %s", new_value)
-                    return False
+                fra_permission = Permission.objects.get(codename='has_fra_access')
+                if new_value:
+                    user.user_permissions.add(fra_permission)
+                else:
+                    user.user_permissions.remove(fra_permission)
             else:
                 setattr(user, field_name, new_value)
         except Region.DoesNotExist:
             logger.error("Region not found: %s", new_value)
+            return False
+        except Permission.DoesNotExist:
+            logger.error("Permission not found: %s", new_value)
             return False
         user.save()
 
@@ -210,7 +211,7 @@ class ChangeRequestAuditLog(models.Model):
 class UserChangeRequestMixin:
     """Mixin to add change request functionality to the User model."""
 
-    def request_change(self, field_name, requested_value, requested_by=None):
+    def request_change(self, field_name, requested_value, requested_by=None, current_value=None):
         """Create a change request for this user."""
         # Default to self if no requester specified
         if requested_by is None:
@@ -218,7 +219,10 @@ class UserChangeRequestMixin:
 
         # Get the current value
         try:
-            current_value = str(getattr(self, field_name, ''))
+            if current_value is not None:
+                current_value = str(current_value)
+            else:
+                current_value = str(getattr(self, field_name, ''))
         except (AttributeError, TypeError):
             current_value = ''
 
