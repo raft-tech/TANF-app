@@ -128,7 +128,7 @@ class UserChangeRequest(Reviewable):
                     user.regions.add(region)
             elif field_name == 'has_fra_access':
                 fra_permission = Permission.objects.get(codename='has_fra_access')
-                if new_value:
+                if new_value == 'True':
                     user.user_permissions.add(fra_permission)
                 else:
                     user.user_permissions.remove(fra_permission)
