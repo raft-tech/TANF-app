@@ -93,7 +93,6 @@ class UserChangeRequestAdmin(admin.ModelAdmin):
 
     """
     def get_actions(self, request):
-        
         actions = super().get_actions(request)
         user = request.user
         if user.is_an_admin or user.is_developer:
@@ -131,6 +130,13 @@ class UserChangeRequestAdmin(admin.ModelAdmin):
             'fields': ('status', 'reviewed_by', 'reviewed_at', 'notes')
         }),
     )
+
+    def get_actions(self, request):
+        """Override get_action to remove delete action."""
+        actions = super().get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
 
     def display_current_value(self, obj):
         """Display truncated current value."""
