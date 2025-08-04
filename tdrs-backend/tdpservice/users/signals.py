@@ -1,8 +1,7 @@
 """Signals for the users app."""
 import logging
 
-from django.contrib.auth.models import Group
-from django.db.models.signals import m2m_changed, post_save, pre_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from tdpservice.email.helpers.admin_notifications import (
@@ -11,30 +10,6 @@ from tdpservice.email.helpers.admin_notifications import (
 from tdpservice.users.models import User
 
 logger = logging.getLogger()
-
-
-@receiver(m2m_changed, sender=User.groups.through)
-def user_group_changed(sender, instance, action, pk_set, **kwargs):
-    """Send an email to the System Owner when a user is assigned or removed from the OFA System Admin role."""
-    ACTIONS = {
-        "PRE_REMOVE": "pre_remove",
-        "PRE_ADD": "pre_add",
-        "PRE_CLEAR": "pre_clear",
-    }
-    if pk_set:
-        ADMIN_GROUP_PK = Group.objects.get(name="OFA System Admin").pk
-        group_change_list = [pk for pk in pk_set]
-        if ADMIN_GROUP_PK in group_change_list and action == ACTIONS["PRE_ADD"]:
-            # EMAIL ADMIN GROUP ADDED to OFA ADMIN
-            email_system_owner_system_admin_role_change(instance, "added")
-        elif ADMIN_GROUP_PK in group_change_list and action == ACTIONS["PRE_REMOVE"]:
-            # EMAIL ADMIN GROUP REMOVED from OFA ADMIN
-            email_system_owner_system_admin_role_change(instance, "removed")
-    elif pk_set is None and action == ACTIONS["PRE_CLEAR"]:
-        # EMAIL ADMIN GROUP REMOVED from OFA ADMIN
-        user = User.objects.get(pk=instance.pk)
-        if user.is_ofa_sys_admin:
-            email_system_owner_system_admin_role_change(instance, "removed")
 
 
 @receiver(pre_save, sender=User)
