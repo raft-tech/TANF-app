@@ -91,15 +91,9 @@ class ChangeRequestAuditLogInline(admin.TabularInline):
 class UserChangeRequestAdmin(admin.ModelAdmin):
     """Admin interface for user change requests."""
 
-    class Media:
-        """Define custom media for the admin interface."""
-
-        js = (
-            'admin/js/hide_actions.js',  # Path to your custom JS file
-        )
-
+    """
     def get_actions(self, request):
-        """Return custom actions for the admin interface."""
+        
         actions = super().get_actions(request)
         user = request.user
         if user.is_an_admin or user.is_developer:
@@ -108,6 +102,9 @@ class UserChangeRequestAdmin(admin.ModelAdmin):
             return actions
         else:
             return []
+
+
+    """
 
     list_display = [
         'id', 'user', 'field_name', 'display_current_value',
