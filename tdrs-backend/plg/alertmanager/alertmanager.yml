@@ -71,7 +71,7 @@ inhibit_rules:
     equal: [alertname, env, service]
 
   - source_match:
-      alertname: 'LocalBackendDown'
+      alertname: ['LocalBackendDown', 'DevEnvironmentBackendDown']
     target_match:
       alertname: 'UpTime'
     equal: ['environment', 'service']
