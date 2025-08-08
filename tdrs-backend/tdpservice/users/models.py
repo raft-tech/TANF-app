@@ -120,6 +120,7 @@ class UserChangeRequest(Reviewable):
         new_value = self.requested_value
 
         # Apply the change to the user
+        updated_fields = None
         try:
             if field_name == 'regions':
                 user.regions.remove(*user.regions.all())  # Clear existing regions
@@ -134,13 +135,14 @@ class UserChangeRequest(Reviewable):
                     user.user_permissions.remove(fra_permission)
             else:
                 setattr(user, field_name, new_value)
+                updated_fields = [field_name]
         except Region.DoesNotExist:
             logger.error("Region not found: %s", new_value)
             return False
         except Permission.DoesNotExist:
             logger.error("Permission not found: %s", new_value)
             return False
-        user.save()
+        user.save(updated_fields=updated_fields)
 
         # Update the change request
         self.status = UserChangeRequestStatus.APPROVED
@@ -518,6 +520,7 @@ class User(AbstractUser, UserChangeRequestMixin):
         # kwargs are passed via the serializer. Kwargs that do not exist in the base model must be removed befor the
         # call to super(User, self).save(*args, **kwargs) below.
         regions = kwargs.pop("regions", [])
+        updated_fields = kwargs.pop('updated_fields', None)
 
         if not self._adding:
             if self._loaded_values is None:
@@ -549,5 +552,8 @@ class User(AbstractUser, UserChangeRequestMixin):
                 )
 
                 return
-
-        super(User, self).save(*args, **kwargs)
+        
+        if updated_fields and isinstance(updated_fields, list):
+            super(User, self).save(update_fields=updated_fields, *args, **kwargs)
+        else:
+            super(User, self).save(*args, **kwargs)
