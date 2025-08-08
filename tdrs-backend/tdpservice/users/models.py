@@ -398,8 +398,8 @@ class User(AbstractUser, UserChangeRequestMixin):
 
     feature_flags = models.JSONField(
         default=dict,
-        help_text='Feature flags for this user. This is a JSON field that can be used to store key-value pairs. ' +
-        'E.g: {"some_feature": true}',
+        help_text="Feature flags for this user. This is a JSON field that can be used to store key-value pairs. "
+        + 'E.g: {"some_feature": true}',
         blank=True,
     )
 
@@ -449,7 +449,7 @@ class User(AbstractUser, UserChangeRequestMixin):
     @property
     def has_fra_access(self) -> bool:
         """Return whether or not the user has FRA access."""
-        return self.has_perm('user.has_fra_access')
+        return self.has_perm("users.has_fra_access")
 
     @property
     def is_developer(self) -> bool:
