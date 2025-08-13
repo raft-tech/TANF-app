@@ -91,20 +91,6 @@ class ChangeRequestAuditLogInline(admin.TabularInline):
 class UserChangeRequestAdmin(admin.ModelAdmin):
     """Admin interface for user change requests."""
 
-    """
-    def get_actions(self, request):
-        actions = super().get_actions(request)
-        user = request.user
-        if user.is_an_admin or user.is_developer:
-            if "delete_selected" in actions:
-                del actions["delete_selected"]
-            return actions
-        else:
-            return []
-
-
-    """
-
     list_display = [
         'id', 'user', 'field_name', 'display_current_value',
         'display_requested_value', 'status_with_indicator',

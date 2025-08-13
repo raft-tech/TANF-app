@@ -3,7 +3,6 @@ from tdpservice.email.email_enums import EmailType
 from tdpservice.email.email import log, prepare_email, send_email
 
 
-# TODO: we don't need this anymore. We only need the daily email that is sent to OFA System Admins
 def send_change_request_email(recipient_email, text_message, subject, email_context, logger_context=None):
     """Send an email to OFA System Admins notifying them how many access requests there are.
 

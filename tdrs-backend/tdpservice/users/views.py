@@ -145,7 +145,7 @@ class GroupViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     serializer_class = GroupSerializer
 
 
-class UserChangeRequestViewSet(viewsets.ModelViewSet):
+class UserChangeRequestViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for user change requests."""
 
     serializer_class = UserChangeRequestSerializer
