@@ -552,7 +552,7 @@ class User(AbstractUser, UserChangeRequestMixin):
                 )
 
                 return
-        
+
         if updated_fields and isinstance(updated_fields, list):
             super(User, self).save(update_fields=updated_fields, *args, **kwargs)
         else:
