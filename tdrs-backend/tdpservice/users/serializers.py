@@ -283,25 +283,27 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
 
         return change_requests
 
-    def _handle_has_fra_access(self, validated_data, instance, pending_request=None):
+    def _handle_change_permissions(self, validated_data, instance, permission, pending_request=None):
         """Handle the has_fra_access field."""
-        has_fra_access = validated_data.get('has_fra_access', None)
+        changing_permission = validated_data.get(permission, None)
         try:
-            existing_permission = instance.user_permissions.get(codename='has_fra_access')
+            existing_permission = instance.user_permissions.get(codename=permission)
         except Permission.DoesNotExist:
             existing_permission = None
 
+        logger.debug("---- changing_permission ----", changing_permission, existing_permission)
         if pending_request:
-            if pending_request.requested_value != has_fra_access:
+            if pending_request.requested_value != changing_permission:
                 # Update the existing pending request
-                pending_request.requested_value = has_fra_access
+                pending_request.requested_value = changing_permission
                 pending_request.save()
             return pending_request
         # New request
-        elif has_fra_access != existing_permission:
+
+        elif changing_permission != existing_permission:
             change_request = instance.request_change(
-                field_name='has_fra_access',
-                requested_value=has_fra_access,
+                field_name=permission,
+                requested_value=changing_permission,
                 requested_by=self.context['request'].user
             )
             return change_request
@@ -316,7 +318,7 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
                 if pending_request.field_name == 'regions':
                     self._handle_regions(validated_data, instance, pending_request=pending_request)
                 elif pending_request.field_name == 'has_fra_access':
-                    self._handle_has_fra_access(validated_data, instance, pending_request=pending_request)
+                    self._handle_change_permissions(validated_data, instance, "has_fra_access", pending_request=pending_request)
                 else:
                     # For other fields, just update the requested value
                     pending_request.requested_value = validated_data[pending_request.field_name]
@@ -357,7 +359,7 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
             self._handle_regions(validated_data, instance)
 
         if 'has_fra_access' in validated_data:
-            self._handle_has_fra_access(validated_data, instance)
+            self._handle_change_permissions(validated_data, instance, "has_fra_access")
 
     def update(self, instance, validated_data):
         """Handle updates by either creating change requests or updating directly."""

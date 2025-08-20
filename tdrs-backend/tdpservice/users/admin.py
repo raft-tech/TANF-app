@@ -9,6 +9,7 @@ from django.http import HttpResponseRedirect
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 from rest_framework.authtoken.models import TokenProxy
 from tdpservice.users.models import User, UserChangeRequest, ChangeRequestAuditLog, Feedback
 from tdpservice.core.utils import ReadOnlyAdminMixin
@@ -92,7 +93,7 @@ class UserChangeRequestAdmin(admin.ModelAdmin):
     """Admin interface for user change requests."""
 
     list_display = [
-        'id', 'user', 'field_name', 'display_current_value',
+        'id', 'get_user_url', 'field_name', 'display_current_value',
         'display_requested_value', 'status_with_indicator',
         'requested_at', 'quick_actions'
     ]
@@ -116,6 +117,13 @@ class UserChangeRequestAdmin(admin.ModelAdmin):
             'fields': ('status', 'reviewed_by', 'reviewed_at', 'notes')
         }),
     )
+
+    @admin.display(description="User URL")
+    def get_user_url(self, obj):
+        """Generate URL to the user detail page."""
+        if obj.user:
+            return format_html('<a href="{}">{}</a>', reverse('admin:users_user_change', args=[obj.user.pk]), obj.user)
+        return '#'
 
     def get_actions(self, request):
         """Override get_action to remove delete action."""
