@@ -291,7 +291,6 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
         except Permission.DoesNotExist:
             existing_permission = None
 
-        logger.debug("---- changing_permission ----", changing_permission, existing_permission)
         if pending_request:
             if pending_request.requested_value != changing_permission:
                 # Update the existing pending request
