@@ -6,6 +6,7 @@ from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from tdpservice.users.models import User, UserChangeRequest, ChangeRequestAuditLog, Feedback
+from tdpservice.stts.models import STT
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.utils import model_meta
@@ -195,8 +196,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         for attr, value in m2m_fields:
             field = getattr(instance, attr)
             field.set(value)
-        ###############################################################################################################
-
         try:
             instance.validate_location()
         except ValidationError as e:
@@ -251,7 +250,7 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
     def get_has_pending_regions_change(self, obj):
         """Check if there's a pending change request for regions."""
         return obj.has_pending_change_for_field('regions')
-
+    
     def get_has_pending_feature_flags_change(self, obj):
         """Check if there's a pending change request for feature flags."""
         return obj.has_pending_change_for_field('feature_flags')
@@ -313,14 +312,17 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
             # handle existing pending requests
             if pending_request.field_name in validated_data:
                 # Update the requested value
-
                 if pending_request.field_name == 'regions':
                     self._handle_regions(validated_data, instance, pending_request=pending_request)
                 elif pending_request.field_name == 'has_fra_access':
                     self._handle_change_permissions(validated_data, instance, "has_fra_access", pending_request=pending_request)
                 else:
                     # For other fields, just update the requested value
-                    pending_request.requested_value = validated_data[pending_request.field_name]
+                    # if field is not string, get the field value from instance
+                    if isinstance(validated_data[pending_request.field_name], STT):
+                        pending_request.requested_value = validated_data[pending_request.field_name].id
+                    else:
+                        pending_request.requested_value = validated_data[pending_request.field_name]
                     pending_request.save()
 
                 # Log the update in the audit log
@@ -340,12 +342,14 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
         user = self.context['request'].user
         change_requests = []
 
-        for field_name in ['first_name', 'last_name']:
+        for field_name in ['first_name', 'last_name', 'stt']:
             if field_name in validated_data:
                 new_value = validated_data[field_name]
                 current_value = getattr(instance, field_name)
 
-                if new_value != current_value:
+                if field_name == 'stt' and current_value is not None:
+                    return
+                elif new_value != current_value:
                     # Create a change request
                     change_request = instance.request_change(
                         field_name=field_name,

@@ -127,6 +127,8 @@ class UserChangeRequest(Reviewable):
                 regions = ast.literal_eval(new_value)
                 for region in regions:
                     user.regions.add(region)
+            elif field_name == 'stt':
+                user.stt = STT.objects.get(id=new_value) if new_value else None
             elif field_name == 'has_fra_access':
                 fra_permission = Permission.objects.get(codename='has_fra_access')
                 if new_value == 'True':
