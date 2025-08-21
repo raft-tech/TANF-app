@@ -112,16 +112,9 @@ class UserChangeRequest(Reviewable):
 
     def approve(self, admin_user, notes=None):
         """Approve the change request and apply changes to the user."""
-        if self.status != UserChangeRequestStatus.PENDING:
-            return False
 
-        user = self.user
-        field_name = self.field_name
-        new_value = self.requested_value
-
-        # Apply the change to the user
-        updated_fields = None
-        try:
+        def _apply_change(user, field_name, new_value):
+            """Helper function to apply the change to the user."""
             if field_name == 'regions':
                 user.regions.remove(*user.regions.all())  # Clear existing regions
                 regions = ast.literal_eval(new_value)
@@ -137,7 +130,19 @@ class UserChangeRequest(Reviewable):
                     user.user_permissions.remove(fra_permission)
             else:
                 setattr(user, field_name, new_value)
-                updated_fields = [field_name]
+            return [field_name]
+
+        if self.status != UserChangeRequestStatus.PENDING:
+            return False
+
+        user = self.user
+        field_name = self.field_name
+        new_value = self.requested_value
+
+        # Apply the change to the user
+        updated_fields = None
+        try:
+            updated_fields = _apply_change(user, field_name, new_value)
         except Region.DoesNotExist:
             logger.error("Region not found: %s", new_value)
             return False
