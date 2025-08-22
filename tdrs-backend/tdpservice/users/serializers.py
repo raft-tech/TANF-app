@@ -250,7 +250,7 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
     def get_has_pending_regions_change(self, obj):
         """Check if there's a pending change request for regions."""
         return obj.has_pending_change_for_field('regions')
-    
+
     def get_has_pending_feature_flags_change(self, obj):
         """Check if there's a pending change request for feature flags."""
         return obj.has_pending_change_for_field('feature_flags')

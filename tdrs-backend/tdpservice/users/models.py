@@ -110,28 +110,27 @@ class UserChangeRequest(Reviewable):
         """Return string representation."""
         return f"{self.user.username} - {self.field_name} - {self.get_status_display()}"
 
+    def __apply_change(user, field_name, new_value):
+        """Apply the change to the user."""
+        if field_name == 'regions':
+            user.regions.remove(*user.regions.all())  # Clear existing regions
+            regions = ast.literal_eval(new_value)
+            for region in regions:
+                user.regions.add(region)
+        elif field_name == 'stt':
+            user.stt = STT.objects.get(id=new_value) if new_value else None
+        elif field_name == 'has_fra_access':
+            fra_permission = Permission.objects.get(codename='has_fra_access')
+            if new_value == 'True':
+                user.user_permissions.add(fra_permission)
+            else:
+                user.user_permissions.remove(fra_permission)
+        else:
+            setattr(user, field_name, new_value)
+        return [field_name]
+
     def approve(self, admin_user, notes=None):
         """Approve the change request and apply changes to the user."""
-
-        def _apply_change(user, field_name, new_value):
-            """Helper function to apply the change to the user."""
-            if field_name == 'regions':
-                user.regions.remove(*user.regions.all())  # Clear existing regions
-                regions = ast.literal_eval(new_value)
-                for region in regions:
-                    user.regions.add(region)
-            elif field_name == 'stt':
-                user.stt = STT.objects.get(id=new_value) if new_value else None
-            elif field_name == 'has_fra_access':
-                fra_permission = Permission.objects.get(codename='has_fra_access')
-                if new_value == 'True':
-                    user.user_permissions.add(fra_permission)
-                else:
-                    user.user_permissions.remove(fra_permission)
-            else:
-                setattr(user, field_name, new_value)
-            return [field_name]
-
         if self.status != UserChangeRequestStatus.PENDING:
             return False
 
@@ -142,7 +141,7 @@ class UserChangeRequest(Reviewable):
         # Apply the change to the user
         updated_fields = None
         try:
-            updated_fields = _apply_change(user, field_name, new_value)
+            updated_fields = self.__apply_change(user, field_name, new_value)
         except Region.DoesNotExist:
             logger.error("Region not found: %s", new_value)
             return False
