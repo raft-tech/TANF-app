@@ -43,6 +43,20 @@ class UserForm(forms.ModelForm):
         return cleaned_data
 
 
+class RegionsInlineFormSet(forms.models.BaseInlineFormSet):
+    """Custom formset for region inlines."""
+
+    def clean(self):
+        """Custom validation for region inlines."""
+        super().clean()
+        cleaned_data = self.cleaned_data
+        user = cleaned_data.get("user")
+        """
+        Have to validate regions against existing and new user roles.
+        Currently, if form request includes a new region and user roles, then changes
+        are validated against only the existing user roles.
+        """
+
 class RegionInline(admin.TabularInline):
     """Inline model for many to many relationship."""
 
@@ -51,6 +65,7 @@ class RegionInline(admin.TabularInline):
     verbose_name_plural = "Regions"
     can_delete = True
     ordering = ["-pk"]
+    formset = RegionsInlineFormSet
 
 
 class UserAdmin(admin.ModelAdmin):
