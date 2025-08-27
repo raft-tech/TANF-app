@@ -56,6 +56,18 @@ class RegionsInlineFormSet(forms.models.BaseInlineFormSet):
         Currently, if form request includes a new region and user roles, then changes
         are validated against only the existing user roles.
         """
+        regional = user.regions.count() + cleaned_data.get("regions", []).count()
+        existing_roles_not_regional = not user.is_regional_staff and not user.is_data_analyst and not user.is_developer
+        coming_roles = cleaned_data.get("roles", [])
+        coming_roles_not_regional = not any(role in coming_roles for role in ["Regional Staff", "Data Analyst", "Developer"])
+        if regional and user.stt:
+            raise ValidationError(
+                _("A user may only have a Region or STT assigned, not both.")
+            )
+        elif existing_roles_not_regional or coming_roles_not_regional:
+            raise ValidationError(
+                _("Users other than Regional Staff, Developers, Data Analysts do not get assigned a location.")
+            )
 
 class RegionInline(admin.TabularInline):
     """Inline model for many to many relationship."""
