@@ -110,7 +110,7 @@ class UserChangeRequest(Reviewable):
         """Return string representation."""
         return f"{self.user.username} - {self.field_name} - {self.get_status_display()}"
 
-    def __apply_change(user, field_name, new_value):
+    def __apply_change(self, user, field_name, new_value):
         """Apply the change to the user."""
         if field_name == 'regions':
             user.regions.remove(*user.regions.all())  # Clear existing regions

@@ -348,7 +348,7 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
                 current_value = getattr(instance, field_name)
 
                 if field_name == 'stt' and current_value is not None:
-                    return
+                    continue
                 elif new_value != current_value:
                     # Create a change request
                     change_request = instance.request_change(
