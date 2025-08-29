@@ -47,11 +47,11 @@ class RegionsInlineFormSet(forms.models.BaseInlineFormSet):
     """Custom formset for region inlines."""
 
     def clean(self):
-        """Custom validation for region inlines."""
+        """Validate region inlines."""
         super().clean()
         cleaned_data = self.cleaned_data[0]
         user = cleaned_data.get("user")
-        
+
         """
         Have to validate regions against existing and new user roles.
         Currently, if form request includes a new region and user roles, then changes
