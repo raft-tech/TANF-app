@@ -4,6 +4,7 @@ const preprocessor = require('@badeball/cypress-cucumber-preprocessor')
 const fs = require('fs')
 
 module.exports = defineConfig({
+  video: true,
   e2e: {
     baseUrl: 'http://localhost:3000',
     specPattern: '**/*.feature',
