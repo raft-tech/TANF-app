@@ -17,27 +17,30 @@ class CustomJUnitReporter extends MochaJUnitReporter {
     });
   }
 
+  // TODO: FIX ME: this loop recreates the customAttribute mutiple times to the files
+
   generateCustomXml() {
-    // Call the original generateXml function from MochaJUnitReporter
-    // This will create the standard JUnit XML file
+    const reportsDir = path.dirname(this.options.mochaFile || './');
+    const filePattern = /^custom-report-.*\.xml$/;
 
-    // Now, you can load the generated XML and modify it or add custom data
-    const xmlFilePath = this.options.mochaFile || path.join(process.cwd(), 'test-results.xml'); // Default path
+    const files = fs.readdirSync(reportsDir);
+    const matchingFiles = files.filter((file) => filePattern.test(file));
 
-    if (fs.existsSync(xmlFilePath)) {
-      let xmlContent = fs.readFileSync(xmlFilePath, 'utf8');
-
-      // Example: Add a custom attribute to the <testsuite> tag
-      xmlContent = xmlContent.replace('<testsuite ', '<testsuite customAttribute="yourValue" ');
-
-      // Example: You could also parse the XML, modify specific elements, and then re-serialize it.
-      // For more complex XML manipulation, consider using a library like 'xml2js' or 'fast-xml-parser'.
-
-      fs.writeFileSync(xmlFilePath, xmlContent, 'utf8');
-      console.log(`Custom XML generated at: ${xmlFilePath}`);
-    } else {
-      console.warn(`Could not find JUnit XML file at ${xmlFilePath} to customize.`);
+    if (matchingFiles.length === 0) {
+      console.warn(`No JUnit XML files matching pattern found in: ${reportsDir}`);
+      return;
     }
+
+    matchingFiles.forEach((file) => {
+        const fullPath = path.join(reportsDir, file);
+        let xmlContent = fs.readFileSync(fullPath, 'utf8');
+
+        // Modify the XML content: Add a custom attribute to <testsuite>
+        xmlContent = xmlContent.replace('<testsuite ', '<testsuite customAttribute="yourValue" ');
+
+        fs.writeFileSync(fullPath, xmlContent, 'utf8');
+        console.log(`Custom XML modified at: ${fullPath}`);
+    });
   }
 }
 
