@@ -5,14 +5,14 @@ const fs = require('fs')
 
 module.exports = defineConfig({
   video: true,
+  reporter: 'cypress/reporters/custom.js',
   reporterOptions: {
-    mochaFile: './results/my-test-output.xml',
-    toConsole: true,
+    mochaFile: 'cypress/results/custom-report-[hash].xml', // Output path for the XML
+    // Add other options as needed for mocha-junit-reporter
   },
   e2e: {
     baseUrl: 'http://localhost:3000',
     specPattern: '**/*.feature',
-    reporter: './reporters/custom.js',
     env: {
       apiUrl: 'http://localhost:3000/v1',
       adminUrl: 'http://localhost:3000/admin',

@@ -16,6 +16,8 @@ services:
     tty: true        # docker run -t
     build: 
       context: .
+      args:
+        REGISTRY_OWNER: ${REGISTRY_OWNER:-hhs}
       target: nginx
     ports:
       - 3000:80
