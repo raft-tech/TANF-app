@@ -112,6 +112,8 @@ class UserChangeRequest(Reviewable):
 
     def __apply_change(self, user, field_name, new_value):
         """Apply the change to the user."""
+        logger.debug("--------Applying change: %s -> %s", field_name, new_value)
+        logger.debug("--------User before change:" + str(user))
         if field_name == 'regions':
             user.regions.remove(*user.regions.all())  # Clear existing regions
             regions = ast.literal_eval(new_value)
@@ -123,6 +125,9 @@ class UserChangeRequest(Reviewable):
                 user.user_permissions.add(fra_permission)
             else:
                 user.user_permissions.remove(fra_permission)
+        elif field_name == 'stt' and not user.region:
+            stt = STT.objects.get(id=new_value)
+            user.stt = stt
         else:
             setattr(user, field_name, new_value)
         return [field_name]

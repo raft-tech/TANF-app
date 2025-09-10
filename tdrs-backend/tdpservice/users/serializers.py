@@ -10,6 +10,7 @@ from tdpservice.stts.models import STT
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.utils import model_meta
+from tdpservice.users.models import AccountApprovalStatusChoices
 
 from tdpservice.stts.serializers import (
     RegionPrimaryKeyRelatedField,
@@ -237,6 +238,12 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
             raise serializers.ValidationError(_('Regions cannot be empty.'))
         if not isinstance(value, list):
             raise serializers.ValidationError(_('Regions must be a list of IDs.'))
+        return value
+
+    def validate_stt(self, value):
+        """Validate STT field."""
+        if self.instance.account_approval_status == AccountApprovalStatusChoices.APPROVED:
+            raise serializers.ValidationError(_('STT cannot be changed once the account is approved.'))
         return value
 
     def get_has_pending_first_name_change(self, obj):
