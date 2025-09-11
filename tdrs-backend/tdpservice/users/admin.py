@@ -51,25 +51,24 @@ class RegionsInlineFormSet(forms.models.BaseInlineFormSet):
         super().clean()
         cleaned_data = self.cleaned_data[0]
         user = cleaned_data.get("user")
-        if user == None:
-            raise ValidationError("User must be specified.")
         """
         Have to validate regions against existing and new user roles.
         Currently, if form request includes a new region and user roles, then changes
         are validated against only the existing user roles.
         """
-        regional = user.regions.all().count() + len(cleaned_data.get("regions", []))
-        existing_roles_not_regional = not user.is_regional_staff and not user.is_data_analyst and not user.is_developer
-        coming_roles = cleaned_data.get("roles", [])
-        coming_roles_not_regional = not any(role in coming_roles for role in ["Regional Staff", "Data Analyst", "Developer"])
-        if regional and user.stt:
-            raise ValidationError(
-                "A user may only have a Region or STT assigned, not both."
-            )
-        elif existing_roles_not_regional or coming_roles_not_regional:
-            raise ValidationError(
-                "Users other than Regional Staff, Developers, Data Analysts do not get assigned a location."
-            )
+        if user:
+            regional = user.regions.all().count() + len(cleaned_data.get("regions", []))
+            existing_roles_not_regional = not user.is_regional_staff and not user.is_data_analyst and not user.is_developer
+            coming_roles = cleaned_data.get("roles", [])
+            coming_roles_not_regional = any(role in coming_roles for role in ["Regional Staff", "Data Analyst", "Developer"])
+            if regional and user.stt:
+                raise ValidationError(
+                    "A user may only have a Region or STT assigned, not both."
+                )
+            elif existing_roles_not_regional or coming_roles_not_regional:
+                raise ValidationError(
+                    "Users other than Regional Staff, Developers, Data Analysts do not get assigned a location."
+                )
 
 class RegionInline(admin.TabularInline):
     """Inline model for many to many relationship."""
