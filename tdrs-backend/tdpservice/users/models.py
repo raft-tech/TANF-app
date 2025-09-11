@@ -112,25 +112,25 @@ class UserChangeRequest(Reviewable):
 
     def __apply_change(self, user, field_name, new_value):
         """Apply the change to the user."""
-        logger.debug("--------Applying change: %s -> %s", field_name, new_value)
-        logger.debug("--------User before change:" + str(user))
         if field_name == 'regions':
+            field_name = None
             user.regions.remove(*user.regions.all())  # Clear existing regions
             regions = ast.literal_eval(new_value)
             for region in regions:
                 user.regions.add(region)
         elif field_name == 'has_fra_access':
+            field_name = None
             fra_permission = Permission.objects.get(codename='has_fra_access')
             if new_value == 'True':
                 user.user_permissions.add(fra_permission)
             else:
                 user.user_permissions.remove(fra_permission)
-        elif field_name == 'stt' and not user.region:
+        elif field_name == 'stt':
             stt = STT.objects.get(id=new_value)
             user.stt = stt
         else:
             setattr(user, field_name, new_value)
-        return [field_name]
+        return field_name
 
     def approve(self, admin_user, notes=None):
         """Approve the change request and apply changes to the user."""
@@ -142,16 +142,19 @@ class UserChangeRequest(Reviewable):
         new_value = self.requested_value
 
         # Apply the change to the user
-        updated_fields = None
+        updated_fields = []
         try:
-            updated_fields = self.__apply_change(user, field_name, new_value)
+            updated_field = self.__apply_change(user, field_name, new_value)
+            if updated_field:
+                updated_fields.append(updated_field)
         except Region.DoesNotExist:
             logger.error("Region not found: %s", new_value)
             return False
         except Permission.DoesNotExist:
             logger.error("Permission not found: %s", new_value)
             return False
-        user.save(updated_fields=updated_fields)
+        if updated_fields:
+            user.save(updated_fields=updated_fields)
 
         # Update the change request
         self.status = UserChangeRequestStatus.APPROVED
@@ -562,6 +565,7 @@ class User(AbstractUser, UserChangeRequestMixin):
 
                 return
 
+        logger.debug("------------ updated_fields: %s", updated_fields)
         if updated_fields and isinstance(updated_fields, list):
             super(User, self).save(update_fields=updated_fields, *args, **kwargs)
         else:
