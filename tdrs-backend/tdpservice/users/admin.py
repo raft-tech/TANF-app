@@ -51,7 +51,8 @@ class RegionsInlineFormSet(forms.models.BaseInlineFormSet):
         super().clean()
         cleaned_data = self.cleaned_data[0]
         user = cleaned_data.get("user")
-
+        if user == None:
+            raise ValidationError("User must be specified.")
         """
         Have to validate regions against existing and new user roles.
         Currently, if form request includes a new region and user roles, then changes
