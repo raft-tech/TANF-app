@@ -353,14 +353,19 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
             if field_name in validated_data:
                 new_value = validated_data[field_name]
                 current_value = getattr(instance, field_name)
+                if isinstance(new_value, STT):
+                    new_value = new_value.id
+                if isinstance(current_value, STT):
+                    current_value = current_value.id
 
-                if field_name == 'stt' and current_value is not None:
+                if field_name == 'stt' and user.account_approval_status == AccountApprovalStatusChoices.APPROVED:
                     continue
                 elif new_value != current_value:
                     # Create a change request
                     change_request = instance.request_change(
                         field_name=field_name,
                         requested_value=new_value,
+                        current_value=current_value,
                         requested_by=user
                     )
                     change_requests.append(change_request)
