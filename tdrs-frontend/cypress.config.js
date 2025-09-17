@@ -11,7 +11,7 @@ module.exports = defineConfig({
     mochaFile: 'cypress/results/custom-report-[hash].xml', // Output path for the XML
     // Add other options as needed for mocha-junit-reporter
     json: true,
-    html: true,
+    //html: true,
     messages: {
       enabled: true,
       output: 'cypress/reports/cucumber-messages.ndjson', // Important

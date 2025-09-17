@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Mocha Tests" time="11.198" tests="5" failures="0">
+  <testsuite name="Root Suite" timestamp="2025-09-17T14:44:43" tests="0" file="cypress/e2e/data-files/submission_history.feature" time="0.000" failures="0">
+  </testsuite>
+  <testsuite name="Data file submission history" timestamp="2025-09-17T14:44:43" tests="5" time="11.189" failures="0">
+    <testcase name="Data file submission history Admin Alex can view TANF submissions" time="1.687" classname="Admin Alex can view TANF submissions">
+    </testcase>
+    <testcase name="Data file submission history Admin Alex can view SSP submissions" time="1.233" classname="Admin Alex can view SSP submissions">
+    </testcase>
+    <testcase name="Data file submission history Admin Alex can view FRA submissions" time="1.016" classname="Admin Alex can view FRA submissions">
+    </testcase>
+    <testcase name="Data file submission history Regional Randy only has view access to submission historys for assigned locations" time="5.728" classname="Regional Randy only has view access to submission historys for assigned locations">
+    </testcase>
+    <testcase name="Data file submission history A user can upload a file" time="1.406" classname="A user can upload a file">
+    </testcase>
+  </testsuite>
+</testsuites>
