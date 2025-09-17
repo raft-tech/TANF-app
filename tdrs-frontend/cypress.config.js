@@ -5,10 +5,17 @@ const fs = require('fs')
 
 module.exports = defineConfig({
   video: true,
-  reporter: 'cypress/reporters/custom.js',
+  reporter: 'mocha-multi-reporters',
   reporterOptions: {
+    configFile: 'cypress/reporters/multi-reporters-config.json',
     mochaFile: 'cypress/results/custom-report-[hash].xml', // Output path for the XML
     // Add other options as needed for mocha-junit-reporter
+    json: true,
+    html: true,
+    messages: {
+      enabled: true,
+      output: 'cypress/reports/cucumber-messages.ndjson', // Important
+    },
   },
   e2e: {
     baseUrl: 'http://localhost:3000',
@@ -24,7 +31,13 @@ module.exports = defineConfig({
 
     async setupNodeEvents(on, config) {
       // implement node event listeners here
-      await preprocessor.addCucumberPreprocessorPlugin(on, config)
+
+      await preprocessor.addCucumberPreprocessorPlugin(on, config, {
+        messages: {
+          enabled: true,
+          output: 'cypress/reports/cucumber-messages.ndjson', // Important
+        },
+      })
 
       const webpackOptions = {
         resolve: {
