@@ -60,6 +60,16 @@ module.exports = defineConfig({
 
       // Register custom task to execute JS in Node Environment
       on('task', {
+        log(message) {
+          console.log(message)
+
+          return null
+        },
+        table(message) {
+          console.table(message)
+
+          return null
+        },
         deleteDownloadFile(fileName) {
           const filePath = `${config.downloadsFolder}/${fileName}`
 
