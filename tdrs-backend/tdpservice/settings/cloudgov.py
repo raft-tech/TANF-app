@@ -186,9 +186,10 @@ class Development(CloudGov):
         "PATCH",
         "POST",
     )
+    APP_NAME = os.getenv("CGAPPNAME_BACKEND", "Development")
     sentry_sdk.init(
             dsn=os.getenv("SENTRY_DSN"),
-            environment='development',
+            environment=APP_NAME,
             # Set traces_sample_rate to 1.0 to capture 100%
             # of transactions for performance monitoring.
             integrations=[
@@ -231,9 +232,10 @@ class Staging(CloudGov):
         "OIDC_RP_CLIENT_ID",
         "urn:gov:gsa:openidconnect.profiles:sp:sso:hhs:tanf-proto-staging",
     )
+    APP_NAME = os.getenv("CGAPPNAME_BACKEND", "Staging")
     sentry_sdk.init(
             dsn=os.getenv("SENTRY_DSN"),
-            environment='staging',
+            environment=APP_NAME,
             # Set traces_sample_rate to 1.0 to capture 100%
             # of transactions for performance monitoring.
             integrations=[

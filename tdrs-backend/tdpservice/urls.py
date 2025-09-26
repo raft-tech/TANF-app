@@ -27,6 +27,9 @@ admin.autodiscover()
 admin.site.login = login_required(admin.site.login)
 admin.site.site_header = "Django administration"
 
+def trigger_error(request):
+    division_by_zero = 1 / 0
+
 # http://www.django-rest-framework.org/api-guide/routers/#defaultrouter
 urlpatterns = [
     # TODO: Update redirect path in login.gov to standardize all the login urls.
@@ -42,6 +45,7 @@ urlpatterns = [
     path("data_files/", include("tdpservice.data_files.urls")),
     path("logs/", write_logs),
     path("security/", include("tdpservice.security.urls")),
+    path('sentry-debug/', trigger_error),
 ]
 
 if settings.DEBUG:
