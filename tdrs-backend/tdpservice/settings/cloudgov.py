@@ -206,6 +206,7 @@ class Development(CloudGov):
                 LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
             ],
             traces_sample_rate=1.0,
+            enable_logs=True,
         )
 
 
@@ -252,6 +253,7 @@ class Staging(CloudGov):
                 LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
             ],
             traces_sample_rate=1.0,
+            enable_logs=True,
         )
 
 
@@ -309,4 +311,5 @@ class Production(CloudGov):
                 LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
             ],
             traces_sample_rate=1.0,
+            enable_logs=True,
         )

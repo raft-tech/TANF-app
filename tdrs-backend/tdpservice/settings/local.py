@@ -67,6 +67,7 @@ class Local(Common):
                 LoggingIntegration(level=logging.DEBUG, event_level=logging.DEBUG),
             ],
             traces_sample_rate=1.0,
+            enable_logs=True,
         )
 
     OTEL_ENABLED = bool(strtobool(os.getenv("OTEL_ENABLED", "yes")))
