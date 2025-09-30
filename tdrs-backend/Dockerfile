@@ -1,5 +1,5 @@
-ARG REGISTRY_OWNER=hhs
-ARG BASE_TAG=v0.0.4
+ARG REGISTRY_OWNER=raft-tech
+ARG BASE_TAG=dev-01
 
 FROM ghcr.io/${REGISTRY_OWNER}/tdp-backend-base:${BASE_TAG}
 
