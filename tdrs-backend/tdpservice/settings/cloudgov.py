@@ -189,7 +189,7 @@ class Development(CloudGov):
     APP_NAME = os.getenv("CGAPPNAME_BACKEND", "Development")
     sentry_sdk.init(
             dsn=os.getenv("SENTRY_DSN"),
-            environment=APP_NAME.replace("-", "").lower(),
+            environment=os.getenv("SENTRY_ENVIRONMENT"),
             # Set traces_sample_rate to 1.0 to capture 100%
             # of transactions for performance monitoring.
             integrations=[
@@ -236,7 +236,7 @@ class Staging(CloudGov):
     APP_NAME = os.getenv("CGAPPNAME_BACKEND", "Staging")
     sentry_sdk.init(
             dsn=os.getenv("SENTRY_DSN"),
-            environment=APP_NAME.replace("-", "").lower(),
+            environment=os.getenv("SENTRY_ENVIRONMENT"),
             # Set traces_sample_rate to 1.0 to capture 100%
             # of transactions for performance monitoring.
             integrations=[
@@ -294,7 +294,7 @@ class Production(CloudGov):
 
     sentry_sdk.init(
             dsn=os.getenv("SENTRY_DSN"),
-            environment='production',
+            environment=os.getenv("SENTRY_ENVIRONMENT"),
             # Set traces_sample_rate to 1.0 to capture 100%
             # of transactions for performance monitoring.
             integrations=[
