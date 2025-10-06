@@ -1,8 +1,6 @@
 """Define configuration settings for local environment."""
-import logging
 import os
 from distutils.util import strtobool
-import django
 
 from .common import Common
 

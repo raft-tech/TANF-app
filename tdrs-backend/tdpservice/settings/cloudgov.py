@@ -5,8 +5,6 @@ import logging
 import os
 from distutils.util import strtobool
 
-import django
-
 from tdpservice.settings.common import Common
 
 logger = logging.getLogger(__name__)
