@@ -2,9 +2,6 @@
 import logging
 import os
 from distutils.util import strtobool
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
-from sentry_sdk.integrations.logging import LoggingIntegration
 import django
 
 from .common import Common
@@ -45,30 +42,6 @@ class Local(Common):
     Common.LOGGING["loggers"]["root"] = {"level": "DEBUG", "handlers": ["console"]}
 
     REDIS_SERVER_LOCAL = bool(strtobool(os.getenv("REDIS_SERVER_LOCAL", "TRUE")))
-
-    if os.getenv("ENABLE_SENTRY", "no") == "yes":
-        # SENTRY
-        sentry_sdk.init(
-            dsn=os.getenv("SENTRY_DSN"),
-            environment='local',
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            integrations=[
-                DjangoIntegration(
-                    transaction_style="url",
-                    middleware_spans=True,
-                    signals_spans=True,
-                    signals_denylist=[
-                        django.db.models.signals.pre_init,
-                        django.db.models.signals.post_init,
-                    ],
-                    cache_spans=False,
-                ),
-                LoggingIntegration(level=logging.DEBUG, event_level=logging.DEBUG),
-            ],
-            traces_sample_rate=1.0,
-            enable_logs=True,
-        )
 
     OTEL_ENABLED = bool(strtobool(os.getenv("OTEL_ENABLED", "yes")))
     OTEL_EXPORTER_OTLP_ENDPOINT = os.getenv(

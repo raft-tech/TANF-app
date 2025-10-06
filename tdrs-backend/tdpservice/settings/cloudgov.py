@@ -4,9 +4,7 @@ import json
 import logging
 import os
 from distutils.util import strtobool
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
-from sentry_sdk.integrations.logging import LoggingIntegration
+
 import django
 
 from tdpservice.settings.common import Common
@@ -186,28 +184,6 @@ class Development(CloudGov):
         "PATCH",
         "POST",
     )
-    APP_NAME = os.getenv("CGAPPNAME_BACKEND", "Development")
-    sentry_sdk.init(
-            dsn=os.getenv("SENTRY_DSN"),
-            environment=os.getenv("SENTRY_ENVIRONMENT"),
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            integrations=[
-                DjangoIntegration(
-                    transaction_style="url",
-                    middleware_spans=True,
-                    signals_spans=True,
-                    signals_denylist=[
-                        django.db.models.signals.pre_init,
-                        django.db.models.signals.post_init,
-                    ],
-                    cache_spans=False,
-                ),
-                LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
-            ],
-            traces_sample_rate=1.0,
-            enable_logs=True,
-        )
 
 
 class Staging(CloudGov):
@@ -233,28 +209,6 @@ class Staging(CloudGov):
         "OIDC_RP_CLIENT_ID",
         "urn:gov:gsa:openidconnect.profiles:sp:sso:hhs:tanf-proto-staging",
     )
-    APP_NAME = os.getenv("CGAPPNAME_BACKEND", "Staging")
-    sentry_sdk.init(
-            dsn=os.getenv("SENTRY_DSN"),
-            environment=os.getenv("SENTRY_ENVIRONMENT"),
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            integrations=[
-                DjangoIntegration(
-                    transaction_style="url",
-                    middleware_spans=True,
-                    signals_spans=True,
-                    signals_denylist=[
-                        django.db.models.signals.pre_init,
-                        django.db.models.signals.post_init,
-                    ],
-                    cache_spans=False,
-                ),
-                LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
-            ],
-            traces_sample_rate=1.0,
-            enable_logs=True,
-        )
 
 
 class Production(CloudGov):
@@ -291,25 +245,3 @@ class Production(CloudGov):
     OTEL_EXPORTER_OTLP_ENDPOINT = os.getenv(
         "OTEL_EXPORTER_OTLP_ENDPOINT", "http://tempo.apps.internal:4317"
     )
-
-    sentry_sdk.init(
-            dsn=os.getenv("SENTRY_DSN"),
-            environment=os.getenv("SENTRY_ENVIRONMENT"),
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            integrations=[
-                DjangoIntegration(
-                    transaction_style="url",
-                    middleware_spans=True,
-                    signals_spans=True,
-                    signals_denylist=[
-                        django.db.models.signals.pre_init,
-                        django.db.models.signals.post_init,
-                    ],
-                    cache_spans=False,
-                ),
-                LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
-            ],
-            traces_sample_rate=1.0,
-            enable_logs=True,
-        )

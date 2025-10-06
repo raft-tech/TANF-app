@@ -7,12 +7,17 @@ import os
 from distutils.util import strtobool
 from os.path import join
 from typing import Any, Optional
+import sentry_sdk
 
 from django.core.exceptions import ImproperlyConfigured
 
 from celery.schedules import crontab
 from configurations import Configuration
 from corsheaders.defaults import default_headers
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration
+
+import django
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -580,3 +585,25 @@ class Common(Configuration):
     CELERY_TASK_SEND_SENT_EVENT = True
 
     FRA_PILOT_STATES = json.loads(os.getenv("FRA_PILOT_STATES", "[]"))
+
+    sentry_sdk.init(
+            dsn=os.getenv("SENTRY_DSN"),
+            environment=os.getenv("CGAPPNAME_BACKEND", "ERROR"),
+            # Set traces_sample_rate to 1.0 to capture 100%
+            # of transactions for performance monitoring.
+            integrations=[
+                DjangoIntegration(
+                    transaction_style="url",
+                    middleware_spans=True,
+                    signals_spans=True,
+                    signals_denylist=[
+                        django.db.models.signals.pre_init,
+                        django.db.models.signals.post_init,
+                    ],
+                    cache_spans=False,
+                ),
+                LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
+            ],
+            traces_sample_rate=1.0,
+            enable_logs=True,
+        )
