@@ -35,6 +35,31 @@ def get_required_env_var_setting(
 
     return env_var
 
+def init_sentry(sentry_dsn, environment: str = "ERROR") -> None:
+    """Initialize Sentry for error tracking."""
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        environment=environment,
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        integrations=[
+            DjangoIntegration(
+                transaction_style="url",
+                middleware_spans=True,
+                signals_spans=True,
+                signals_denylist=[
+                    django.db.models.signals.pre_init,
+                    django.db.models.signals.post_init,
+                ],
+                cache_spans=False,
+            ),
+            LoggingIntegration(
+                level=logging.ERROR, event_level=logging.ERROR
+            ),
+        ],
+        traces_sample_rate=1.0,
+        enable_logs=True,
+    )
 
 class Common(Configuration):
     """Define configuration class."""
@@ -585,25 +610,9 @@ class Common(Configuration):
     CELERY_TASK_SEND_SENT_EVENT = True
 
     FRA_PILOT_STATES = json.loads(os.getenv("FRA_PILOT_STATES", "[]"))
+    
+    SENTRY_DSN = os.getenv("SENTRY_DSN", None)
+    SENTRY_ENVIRONMENT = os.getenv("CGAPPNAME_BACKEND", "ERROR")
 
-    sentry_sdk.init(
-            dsn=os.getenv("SENTRY_DSN"),
-            environment=os.getenv("CGAPPNAME_BACKEND", "ERROR"),
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            integrations=[
-                DjangoIntegration(
-                    transaction_style="url",
-                    middleware_spans=True,
-                    signals_spans=True,
-                    signals_denylist=[
-                        django.db.models.signals.pre_init,
-                        django.db.models.signals.post_init,
-                    ],
-                    cache_spans=False,
-                ),
-                LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
-            ],
-            traces_sample_rate=1.0,
-            enable_logs=True,
-        )
+    if SENTRY_DSN:
+        init_sentry(sentry_dsn = SENTRY_DSN, environment = SENTRY_ENVIRONMENT)
