@@ -268,8 +268,6 @@ services:
       - OFA_DB_PASSWORD
       - OFA_DB_USER
       - OTEL_PYTHON_DJANGO_EXCLUDED_URLS
-      - SENTRY_DSN
-      - ENABLE_SENTRY
       - CGAPPNAME_BACKEND
     volumes:
       - .:/tdpapp
