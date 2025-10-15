@@ -56,6 +56,7 @@ class UserViewSet(
 
     def get_serializer_class(self):
         """Return the serializer class."""
+        logger.debug("---------- get_serializer_class action: %s", self.action)
         return {
             "request_access": UserProfileSerializer,
             "profile": UserProfileSerializer,
