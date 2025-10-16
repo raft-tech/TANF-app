@@ -584,7 +584,6 @@ class User(AbstractUser, UserChangeRequestMixin):
 
                 return
 
-        logger.debug("------------ updated_fields: %s", updated_fields)
         if updated_fields and isinstance(updated_fields, list):
             super(User, self).save(update_fields=updated_fields, *args, **kwargs)
         else:
