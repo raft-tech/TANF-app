@@ -31,6 +31,7 @@ class UserForm(forms.ModelForm):
 
     class Media:
         """Include custom js for toggling regions based on roles."""
+
         js = ("admin/js/user_form_region_toggle.js",)
 
     def clean(self):
