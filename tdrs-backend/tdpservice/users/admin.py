@@ -98,6 +98,23 @@ class UserAdmin(admin.ModelAdmin):
 
     inlines = [RegionInline]
 
+    actions = ['soft_delete_users']
+
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deletes through admin."""
+        return True # TODO: Let's revisit this later
+
+    @admin.action(description='Soft delete selected users (keep related data)')
+    def soft_delete_users(self, request, queryset):
+        """Soft delete selected users using deactivated flag."""
+        updated = 0
+        for user in queryset:
+            if not user.is_deactivated:
+                user.is_deactivated = True
+                user.save()
+                updated += 1
+        self.message_user(request, f"Soft-deleted {updated} user(s).")
+
     def has_add_permission(self, request):
         """Disable User object creation through Django Admin."""
         return False
