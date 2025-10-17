@@ -26,6 +26,7 @@ admin.autodiscover()
 admin.site.login = login_required(admin.site.login)
 admin.site.site_header = "Django administration"
 
+
 # http://www.django-rest-framework.org/api-guide/routers/#defaultrouter
 urlpatterns = [
     path("auth_check", AuthorizationCheck.as_view(), name="authorization-check"),
