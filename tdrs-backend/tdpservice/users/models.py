@@ -339,7 +339,6 @@ class Feedback(Reviewable):
         self.save()
         return True
 
-
 class User(AbstractUser, UserChangeRequestMixin):
     """Define user fields and methods."""
 
@@ -347,6 +346,15 @@ class User(AbstractUser, UserChangeRequestMixin):
         """Define meta user model attributes."""
 
         ordering = ["pk"]
+
+    class ActiveUserManager(models.Manager):
+        """Manager to filter out deactivated users."""
+
+        def get_queryset(self):
+            return super().get_queryset().filter(deactivated=False)
+
+    objects = ActiveUserManager()
+    all_objects = models.Manager()  # includes deactivated users
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
@@ -387,9 +395,7 @@ class User(AbstractUser, UserChangeRequestMixin):
         _("deactivated"),
         default=False,
         help_text=_(
-            "Deprecated: use Account Approval Status instead - "
-            "Designates whether this user should be treated as active. "
-            "Unselect this instead of deleting accounts."
+            "Is used as flag for deleted accounts."
         ),
     )
 

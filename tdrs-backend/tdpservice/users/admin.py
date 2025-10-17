@@ -109,8 +109,8 @@ class UserAdmin(admin.ModelAdmin):
         """Soft delete selected users using deactivated flag."""
         updated = 0
         for user in queryset:
-            if not user.is_deactivated:
-                user.is_deactivated = True
+            if not user.is_deactivated and user.deactivated:
+                user.deactivated = True
                 user.save()
                 updated += 1
         self.message_user(request, f"Soft-deleted {updated} user(s).")
