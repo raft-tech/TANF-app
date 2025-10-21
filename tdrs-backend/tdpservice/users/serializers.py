@@ -11,6 +11,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.utils import model_meta
 from tdpservice.users.models import AccountApprovalStatusChoices
+from tdpservice.users.constants import REGIONAL_ROLES
 
 from tdpservice.stts.serializers import (
     RegionPrimaryKeyRelatedField,
@@ -237,9 +238,29 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
             'has_fra_access',
         ]
 
+    def validate(self, data):
+        """Perform object-level validation."""
+        validated_data = super().validate(data)
+
+        groups = self.instance.groups.all()
+        # Check if the user belongs to any regional group
+        has_regional_role = any(g.name in REGIONAL_ROLES for g in groups)
+        regions = [i.name for i in validated_data.get('regions')]
+
+        if has_regional_role and not regions:
+            raise serializers.ValidationError(
+                "Users in regional roles must have at least one region assigned."
+            )
+        
+        if not has_regional_role and regions:
+            raise serializers.ValidationError(
+                "Users without regional roles should not be assigned regions."
+            )
+
+        return validated_data
+
     def validate_regions(self, value):
         """Validate regions field."""
-        """Ensure that the regions are valid."""
         if not value:
             raise serializers.ValidationError(_('Regions cannot be empty.'))
         if not isinstance(value, list):
