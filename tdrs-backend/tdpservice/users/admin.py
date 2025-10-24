@@ -13,6 +13,12 @@ from rest_framework.authtoken.models import TokenProxy
 
 from tdpservice.core.utils import ReadOnlyAdminMixin
 from tdpservice.users.forms import UserForm
+from tdpservice.users.models import (
+    ChangeRequestAuditLog,
+    Feedback,
+    User,
+    UserChangeRequest,
+)
 
 logger = logging.getLogger()
 class UserAdmin(admin.ModelAdmin):
