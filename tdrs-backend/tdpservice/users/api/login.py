@@ -28,6 +28,7 @@ from .utils import (
     response_redirect,
     validate_nonce_and_state,
 )
+from tdpservice.users.models import AccountApprovalStatusChoices
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +217,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
         # corresponding emails externally.
         user = CustomAuthentication.authenticate(**auth_options)
         logging.debug("user obj:{}".format(user))
-        if user and not user.is_active:
+        if user and (not user.is_active or user.account_approval_status == AccountApprovalStatusChoices.DEACTIVATED):
             raise InactiveUser(
                 f"Login failed, user account is inactive: {user.username}"
             )
@@ -430,7 +431,6 @@ class TokenAuthorizationAMS(TokenAuthorizationOIDC):
             userinfo_response = requests.post(
                 ams_configuration["userinfo_endpoint"], {"access_token": access_token}
             )
-            logger.debug("------------- userinfo_response: {}".format(userinfo_response))
             user_info = userinfo_response.json()
             logging.debug(user_info)
 
