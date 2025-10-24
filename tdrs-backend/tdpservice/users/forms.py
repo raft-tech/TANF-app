@@ -16,6 +16,14 @@ class UserForm(forms.ModelForm):
         widget=admin.widgets.FilteredSelectMultiple("Regions", is_stacked=False),
     )
 
+    delete_regions = forms.BooleanField(
+        label="Delete Regions?",
+        required=False,
+        help_text="Check this box to trigger region deletion. This action is useful when changing user groups."
+        + " It ensures that regions are reset according to the new group assignments. Uncheck to retain existing regions."
+        + " If group is regional staff, then this button is not shown and region manupulation has to be done through the regions field."
+    )
+
     class Meta:
         """Define customizations."""
 
@@ -36,6 +44,7 @@ class UserForm(forms.ModelForm):
 
     def clean(self):
         """Add extra validation for locations based on roles."""
+
         cleaned_data = super().clean()
 
         groups = cleaned_data.get("groups", [])
