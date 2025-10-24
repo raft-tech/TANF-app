@@ -37,7 +37,6 @@ class UserForm(forms.ModelForm):
             "date_joined",
             "login_gov_uuid",
             "hhs_id",
-            "access_request",
         ]
 
     def clean(self):
@@ -110,8 +109,6 @@ class UserAdmin(admin.ModelAdmin):
         "date_joined",
         "login_gov_uuid",
         "hhs_id",
-        "access_request",
-        "deactivated",
     ]
 
     form = UserForm
@@ -137,8 +134,7 @@ class UserAdmin(admin.ModelAdmin):
         """Soft delete selected users using deactivated flag."""
         updated = 0
         for user in queryset:
-            if not user.is_deactivated and user.deactivated:
-                user.deactivated = True
+            if not user.is_deactivated:
                 user.save()
                 updated += 1
         self.message_user(request, f"Soft-deleted {updated} user(s).")

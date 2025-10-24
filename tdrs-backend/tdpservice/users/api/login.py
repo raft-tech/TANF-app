@@ -216,18 +216,14 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
         # corresponding emails externally.
         user = CustomAuthentication.authenticate(**auth_options)
         logging.debug("user obj:{}".format(user))
-
-        if user and user.is_active:
-            if user.deactivated:
-                login_msg = "Inactive User Found"
-
-        elif user and not user.is_active:
+        if user and not user.is_active:
             raise InactiveUser(
                 f"Login failed, user account is inactive: {user.username}"
             )
-        else:
+        elif not user:
             user, login_msg = self._handle_user(email, sub, auth_options)
 
+        logger.debug("Verifying email for user: {}".format(user.__dict__))
         self.verify_email(user)
         self.login_user(request, user, login_msg)
         return user
@@ -354,6 +350,8 @@ class TokenAuthorizationLoginDotGov(TokenAuthorizationOIDC):
 
     def verify_email(self, user):
         """Handle user email exception to disallow ACF staff to utilize non-AMS authentication."""
+
+        logger.debug("Verifying email for user: {}".format(user.__dict__))
         if "@acf.hhs.gov" in user.email:
             user_groups = list(user.groups.values_list("name", flat=True))
             raise ACFUserLoginDotGov(
@@ -432,6 +430,7 @@ class TokenAuthorizationAMS(TokenAuthorizationOIDC):
             userinfo_response = requests.post(
                 ams_configuration["userinfo_endpoint"], {"access_token": access_token}
             )
+            logger.debug("------------- userinfo_response: {}".format(userinfo_response))
             user_info = userinfo_response.json()
             logging.debug(user_info)
 
