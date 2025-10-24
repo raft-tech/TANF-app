@@ -350,6 +350,21 @@ class User(AbstractUser, UserChangeRequestMixin):
     class ActiveUserManager(models.Manager):
         """Manager to filter out deactivated users."""
 
+        def get_by_natural_key(self, username):
+            # Example: if USERNAME_FIELD is 'email'
+            return self.get(**{self.model.USERNAME_FIELD: username})
+        
+        def normalize_email(self, email):
+            """Normalize the email address by lowercasing the domain part of it."""
+            email = email or ''
+            try:
+                email_name, domain_part = email.strip().rsplit('@', 1)
+            except ValueError:
+                pass
+            else:
+                email = f'{email_name}@{domain_part.lower()}'
+            return email
+
         def get_queryset(self):
             return super().get_queryset().filter(deactivated=False)
 
