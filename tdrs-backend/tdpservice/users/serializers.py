@@ -10,7 +10,6 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
 from rest_framework.utils import model_meta
-from tdpservice.users.models import AccountApprovalStatusChoices
 from tdpservice.users.constants import REGIONAL_ROLES
 
 from tdpservice.stts.models import STT
@@ -292,7 +291,7 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
             raise serializers.ValidationError(
                 "Users in regional roles must have at least one region assigned."
             )
-        
+
         if not has_regional_role and regions:
             raise serializers.ValidationError(
                 "Users without regional roles should not be assigned regions."
