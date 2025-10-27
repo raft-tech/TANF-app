@@ -18,6 +18,7 @@ from tdpservice.email.helpers.account_status import send_approval_status_update_
 from tdpservice.email.helpers.profile_change_request import send_change_request_status_email
 from tdpservice.stts.models import STT, Region
 from tdpservice.users.mixins import ReviewerMixin as Reviewable
+from django.contrib.auth.models import BaseUserManager
 
 logger = logging.getLogger()
 
@@ -370,6 +371,37 @@ class Feedback(Reviewable):
         self.save()
         return True
 
+class ActiveUserManager(BaseUserManager):
+    """Manager to filter out deactivated users."""
+
+    def create_user(self, email, password=None, **extra_fields):
+        """Create and return a user with the given email and password."""
+        if not email:
+            raise ValueError('Users must have an email address')
+
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        """Create and return a superuser with the given email and password."""
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self.create_user(email, password, **extra_fields)
+
+    def get_queryset(self):
+        """Return only active users."""
+        return super().get_queryset().filter(is_active=True)
+
 class User(AbstractUser, UserChangeRequestMixin):
     """Define user fields and methods."""
 
@@ -377,27 +409,6 @@ class User(AbstractUser, UserChangeRequestMixin):
         """Define meta user model attributes."""
 
         ordering = ["pk"]
-
-    class ActiveUserManager(models.Manager):
-        """Manager to filter out deactivated users."""
-
-        def get_by_natural_key(self, username):
-            # Example: if USERNAME_FIELD is 'email'
-            return self.get(**{self.model.USERNAME_FIELD: username})
-        
-        def normalize_email(self, email):
-            """Normalize the email address by lowercasing the domain part of it."""
-            email = email or ''
-            try:
-                email_name, domain_part = email.strip().rsplit('@', 1)
-            except ValueError:
-                pass
-            else:
-                email = f'{email_name}@{domain_part.lower()}'
-            return email
-
-        def get_queryset(self):
-            return super().get_queryset().all()
 
     objects = ActiveUserManager()
     all_objects = models.Manager()  # includes deactivated users

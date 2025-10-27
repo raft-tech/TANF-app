@@ -28,7 +28,6 @@ class BaseUserFactory(factory.django.DjangoModelFactory):
     is_superuser = False
 
     login_gov_uuid = factory.Faker("uuid4")
-    deactivated = False
     account_approval_status = "Initial"
     # For testing convenience, though most users won't have both a login_gov_uuid and hhs_id
 

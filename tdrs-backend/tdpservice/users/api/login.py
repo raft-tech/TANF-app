@@ -168,7 +168,7 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
             # of `create_user`.
             auth_options.pop("username", None)
 
-            user = User.objects.create_user(email, email=email, **auth_options)
+            user = User.objects.create_user(username=email, email=email, **auth_options)
             user.set_unusable_password()
             user.save()
             login_msg = "User Created"

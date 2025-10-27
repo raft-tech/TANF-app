@@ -125,10 +125,6 @@ class UserAdmin(admin.ModelAdmin):
 
     actions = ['soft_delete_users']
 
-    def has_delete_permission(self, request, obj=None):
-        """Prevent deletes through admin."""
-        return True # TODO: Let's revisit this later
-
     @admin.action(description='Soft delete selected users (keep related data)')
     def soft_delete_users(self, request, queryset):
         """Soft delete selected users using deactivated flag."""

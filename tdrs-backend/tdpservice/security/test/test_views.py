@@ -50,7 +50,7 @@ def test_generate_new_token(client):
     assert response.status_code == 302
 
     # assert if user is not ofa_sys_admin
-    user = User.objects.create_user(username="testuser", password="testpassword")
+    user = User.objects.create_user(email="testuser@example.com", username="testuser", password="testpassword")
     user.save()
     client.login(username="testuser", password="testpassword")
     response = client.get(url)
