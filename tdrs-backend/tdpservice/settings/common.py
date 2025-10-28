@@ -16,7 +16,6 @@ from celery.schedules import crontab
 from configurations import Configuration
 from corsheaders.defaults import default_headers
 from sentry_sdk.integrations.django import DjangoIntegration
-from sentry_sdk.integrations.logging import LoggingIntegration
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -53,7 +52,6 @@ def init_sentry(sentry_dsn, environment: str = "ERROR") -> None:
                 ],
                 cache_spans=False,
             ),
-            LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
         ],
         traces_sample_rate=1.0,
         enable_logs=True,
