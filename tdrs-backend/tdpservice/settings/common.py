@@ -665,6 +665,16 @@ class Common(Configuration):
 
     FRA_PILOT_STATES = json.loads(os.getenv("FRA_PILOT_STATES", "[]"))
 
+    # Cloud.gov SET integration settings
+    LOGIN_GOV_SET_AUDIENCE = os.getenv(
+        "LOGIN_GOV_SET_AUDIENCE",
+        "https://tdp-frontend-raft.apps.cloud.gov/v1/security/event-token/",
+    )
+    LOGIN_GOV_WELL_KNOWN_CONFIG = os.getenv(
+        "LOGIN_GOV_WELL_KNOWN_CONFIG",
+        "https://idp.int.identitysandbox.gov/.well-known/openid-configuration",
+    )
+
     # Sentry config
     SENTRY_DSN = os.getenv("SENTRY_DSN", None)
     SENTRY_ENVIRONMENT = os.getenv("CGAPPNAME_BACKEND", "ERROR")
