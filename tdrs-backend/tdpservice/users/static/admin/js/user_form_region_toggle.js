@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const hasRegionalRole = selectedOptions.some(role => regionalRoles.includes(role));
 
-        regionFieldRow.style.display = hasRegionalRole ? '' : 'none';
+        regionFieldRow.style.pointerEvents = hasRegionalRole ? 'auto' : 'none';
+        regionFieldRow.style.opacity = hasRegionalRole ? '1.0' : '0.3';
     }
 
     if (groupSelect) {
