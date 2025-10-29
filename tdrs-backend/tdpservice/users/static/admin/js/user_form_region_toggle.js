@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!groupSelect || !regionFieldRow) return;
 
         const selectedOptions = Array.from(groupSelect.selectedOptions).map(opt => opt.textContent.trim());
-        const regionalRoles = ["OFA Regional Staff", "Developer", "Data Analyst"];
+        const regionalRoles = ["OFA Regional Staff", "Developer"];
 
         const hasRegionalRole = selectedOptions.some(role => regionalRoles.includes(role));
 
