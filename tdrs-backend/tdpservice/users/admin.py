@@ -15,6 +15,7 @@ from rest_framework.authtoken.models import TokenProxy
 
 from tdpservice.core.utils import ReadOnlyAdminMixin
 from tdpservice.users.models import (
+    AccountApprovalStatusChoices,
     ChangeRequestAuditLog,
     Feedback,
     User,
@@ -125,12 +126,20 @@ class UserAdmin(admin.ModelAdmin):
 
     actions = ['soft_delete_users']
 
+    def get_actions(self, request):
+        """Override get_action to remove delete action."""
+        actions = super().get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
+
     @admin.action(description='Soft delete selected users (keep related data)')
     def soft_delete_users(self, request, queryset):
         """Soft delete selected users using deactivated flag."""
         updated = 0
         for user in queryset:
             if not user.is_deactivated:
+                user.account_approval_status = AccountApprovalStatusChoices.DEACTIVATED
                 user.save()
                 updated += 1
         self.message_user(request, f"Soft-deleted {updated} user(s).")

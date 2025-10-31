@@ -5,7 +5,7 @@ from django.utils import timezone
 import factory
 import factory.fuzzy
 
-from tdpservice.users.models import Rating
+from tdpservice.users.models import AccountApprovalStatusChoices, Rating
 
 
 class BaseUserFactory(factory.django.DjangoModelFactory):
@@ -95,7 +95,7 @@ class InactiveUserFactory(UserFactory):
 class DeactivatedUserFactory(UserFactory):
     """Generate user with account deemed `inactive`."""
 
-    account_approval_status = "Deactivated"
+    account_approval_status = AccountApprovalStatusChoices.DEACTIVATED
 
 
 class FeedbackFactory(factory.django.DjangoModelFactory):

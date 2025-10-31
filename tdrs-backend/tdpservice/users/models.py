@@ -400,7 +400,7 @@ class ActiveUserManager(BaseUserManager):
 
     def get_queryset(self):
         """Return only active users."""
-        return super().get_queryset().filter(is_active=True)
+        return super().get_queryset().exclude(account_approval_status=AccountApprovalStatusChoices.DEACTIVATED)
 
 class User(AbstractUser, UserChangeRequestMixin):
     """Define user fields and methods."""
