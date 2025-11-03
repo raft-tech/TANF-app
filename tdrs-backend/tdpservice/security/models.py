@@ -66,8 +66,19 @@ class ClamAVFileScanManager(models.Manager):
         return av_scan
 
 
+class ActiveUserClamAVFileScanManager(models.Manager):
+    """Extends object manager functionality for ClamAVFileScan model."""
+
+    def get_queryset(self):
+        """Return only AV scans for active users."""
+        return super().get_queryset().exclude(
+            uploaded_by__account_approval_status=User.AccountApprovalStatusChoices.DEACTIVATED
+        )
+
 class ClamAVFileScan(models.Model):
     """Represents a ClamAV virus scan performed for an uploaded file."""
+
+    objects = ActiveUserClamAVFileScanManager()
 
     class Meta:
         """Model Meta options."""

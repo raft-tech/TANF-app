@@ -16,7 +16,7 @@ from django.utils.html import format_html
 
 from tdpservice.backends import DataFilesS3Storage
 from tdpservice.stts.models import STT
-from tdpservice.users.models import User
+from tdpservice.users.models import AccountApprovalStatusChoices, User
 
 logger = logging.getLogger(__name__)
 
@@ -106,8 +106,17 @@ class ReparseFileMeta(models.Model):
     cat_4_errors_generated = models.PositiveIntegerField(default=0)
 
 
+class ActiveUserDataFileManager(models.Manager):
+    """Extends object manager functionality for DataFile model."""
+
+    def get_queryset(self):
+        """Return only data files for active users."""
+        return super().get_queryset().exclude(user__account_approval_status=AccountApprovalStatusChoices.DEACTIVATED)
+
 class DataFile(FileRecord):
     """Represents a version of a data file."""
+
+    objects = ActiveUserDataFileManager()
 
     class ProgramType(models.TextChoices):
         """Enum for data file program type."""

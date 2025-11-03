@@ -37,8 +37,17 @@ class File(models.Model):
     extension = models.CharField(max_length=8, default="txt")
 
 
+class ActiveUserReportFileManager(models.Manager):
+    """Extends object manager functionality for ReportFile model."""
+
+    def get_queryset(self):
+        """Return only report files for active users."""
+        return super().get_queryset().exclude(user__account_approval_status=User.AccountApprovalStatusChoices.DEACTIVATED)
+
 class ReportFile(File):
     """Represents a version of a report file."""
+
+    objects = ActiveUserReportFileManager()
 
     class Section(models.TextChoices):
         """Enum for report section."""
