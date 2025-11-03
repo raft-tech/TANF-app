@@ -26,7 +26,7 @@ describe('Accessibility checks', () => {
   }
 
   // TODO: Enable this test after fixing the a11y issues
-  //it('Has no detectable a11y violations on load', () => {
-  //cy.checkA11y(null, null, terminalLog); // ✅ Run axe check
-  //})
+  it('Has no detectable a11y violations on load', () => {
+    cy.checkA11y(null, null, terminalLog); // ✅ Run axe check
+  })
 })
