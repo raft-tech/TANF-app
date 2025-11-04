@@ -90,6 +90,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
                     "year",
                     "section",
                     "program_type",
+                    "is_program_audit",
                     "stt",
                     "version",
                 ),
