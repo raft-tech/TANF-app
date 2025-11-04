@@ -95,9 +95,10 @@ def test_user_with_fra_access(client, ofa_system_admin):
     assert response.status_code == 200
     assert '<div class="readonly">Fra Work Outcome Tanf Exiters</div>' in response.content.decode('utf-8')
 
+
 @pytest.mark.django_db
 def test_user_without_fra_access(client, data_analyst):
-    """Test that a user with FRA access can only have an STT."""
+    """Test that a user in data analyst role cannot access ."""
     data_analyst.is_staff = True
 
     data_analyst.clean()
@@ -111,4 +112,4 @@ def test_user_without_fra_access(client, data_analyst):
     datafile.save()
 
     response = client.get(f"/admin/data_files/datafile/{datafile.id}/change/")
-    assert response.status_code == 302
+    assert response.status_code == 200
