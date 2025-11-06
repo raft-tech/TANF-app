@@ -5,6 +5,7 @@ import logging
 from django.contrib.auth import get_user_model
 
 from rest_framework.authentication import BaseAuthentication
+from tdpservice.users.models import AccountApprovalStatusChoices
 
 logger = logging.getLogger(__name__)
 
@@ -27,21 +28,20 @@ class CustomAuthentication(BaseAuthentication):
         try:
             if hhs_id:
                 try:
-                    return User.objects.get(hhs_id=hhs_id)
+                    return User.objects.get(hhs_id=hhs_id).exclude(account_approval_status=AccountApprovalStatusChoices.DEACTIVATED)
                 except User.DoesNotExist:
                     # If below line also fails with User.DNE, will bubble up and return None
                     user = User.objects.filter(username=username)
-                    logger.info('__________ user: {}'.format(user.__dict__))
                     user.update(hhs_id=hhs_id)
                     logging.debug(
                         "Updated user {} with hhs_id {}.".format(username, hhs_id)
                     )
-                return User.objects.get(hhs_id=hhs_id)
+                return User.objects.get(hhs_id=hhs_id).exclude(account_approval_status=AccountApprovalStatusChoices.DEACTIVATED)
 
             elif login_gov_uuid:
-                return User.objects.get(login_gov_uuid=login_gov_uuid)
+                return User.objects.get(login_gov_uuid=login_gov_uuid).exclude(account_approval_status=AccountApprovalStatusChoices.DEACTIVATED)
             else:
-                return User.objects.get(username=username)
+                return User.objects.get(username=username).exclude(account_approval_status=AccountApprovalStatusChoices.DEACTIVATED)
         except User.DoesNotExist:
             return None
 
@@ -50,6 +50,6 @@ class CustomAuthentication(BaseAuthentication):
         """Get user by the user id."""
         User = get_user_model()
         try:
-            return User.objects.get(pk=user_id)
+            return User.objects.get(pk=user_id).exclude(account_approval_status=AccountApprovalStatusChoices.DEACTIVATED)
         except User.DoesNotExist:
             return None

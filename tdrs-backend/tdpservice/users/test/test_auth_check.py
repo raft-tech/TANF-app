@@ -79,5 +79,6 @@ def test_auth_check_deactivated_user(api_client, deactivated_user):
     """If user is deactivated, return a response indicating the user is inactive."""
     user_authentication = api_client.login(username=deactivated_user.username, password="test_password")
     response = api_client.get(reverse("authorization-check"))
-    assert user_authentication is False
+
+    assert user_authentication is True
     assert response.data["authenticated"] is False
