@@ -48,6 +48,9 @@ class UserAdmin(admin.ModelAdmin):
         """Disable User object creation through Django Admin."""
         return False
 
+    def save_form(self, request, form, change):
+        """Override save_form to prevent saving the form when not changing."""
+        return form.save(commit=False)
 
 class HasAttachmentFilter(admin.SimpleListFilter):
     """Filter feedback based if it has datafiles associated or not."""

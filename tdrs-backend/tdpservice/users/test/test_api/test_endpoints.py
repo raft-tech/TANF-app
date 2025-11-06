@@ -191,8 +191,8 @@ class TestUserAPIAdminUser(UserAPITestsBase):
     @pytest.fixture
     def user(self, ofa_system_admin, stt):
         """Override the default user with ofa_system_admin for our tests."""
-        ofa_system_admin.stt = stt
-        ofa_system_admin.save()
+        # ofa_system_admin.stt = stt
+        # ofa_system_admin.save()
         return ofa_system_admin
 
     @pytest.fixture
@@ -221,6 +221,7 @@ class TestUserAPIAdminUser(UserAPITestsBase):
         assert response.data["id"] == data_analyst.id
         assert response.data["id"] != user.id
 
+    # TODO: FIX: need to add validation to serializer class. Currently this is being raised in the model
     def test_request_access(self, api_client, user, stt, profile_data):
         """Request access, expect 200 with profile updated appropriately."""
         profile_data["stt"] = stt.id

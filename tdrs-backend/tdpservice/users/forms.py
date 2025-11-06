@@ -16,14 +16,6 @@ class UserForm(forms.ModelForm):
         widget=admin.widgets.FilteredSelectMultiple("Regions", is_stacked=False),
     )
 
-    delete_regions = forms.BooleanField(
-        label="Delete Regions?",
-        required=False,
-        help_text="Check this box to trigger region deletion. This action is useful when changing user groups."
-        + " It ensures that regions are reset according to the new group assignments. Uncheck to retain existing regions."
-        + " If group is regional staff, then this button is not shown and region manupulation has to be done through the regions field."
-    )
-
     class Meta:
         """Define customizations."""
 
@@ -49,6 +41,7 @@ class UserForm(forms.ModelForm):
 
         groups = cleaned_data.get("groups", [])
         regions = cleaned_data.get("regions", [])
+        stt = cleaned_data.get("stt")
 
         if len(groups) > 1:
             raise ValidationError("User should not have multiple groups.")
@@ -56,9 +49,14 @@ class UserForm(forms.ModelForm):
         # Check if the user belongs to any regional group
         has_regional_role = any(g.name in REGIONAL_ROLES for g in groups)
 
-        if has_regional_role and not regions:
+        if has_regional_role and not (regions or stt):
             raise ValidationError(
-                "Users in regional roles must have at least one region assigned."
+                "Users in regional roles must have at least one region or location assigned."
+            )
+
+        if regions and stt:
+            raise ValidationError(
+                "A user may only have a Region or STT assigned, not both."
             )
 
         if not has_regional_role and regions:
