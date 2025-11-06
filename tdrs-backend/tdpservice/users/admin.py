@@ -14,6 +14,7 @@ from django.utils.safestring import mark_safe
 from rest_framework.authtoken.models import TokenProxy
 
 from tdpservice.core.utils import ReadOnlyAdminMixin
+from tdpservice.users.filters import ActiveStatusListFilter
 from tdpservice.users.models import (
     AccountApprovalStatusChoices,
     ChangeRequestAuditLog,
@@ -113,7 +114,7 @@ class UserAdmin(admin.ModelAdmin):
     ]
 
     form = UserForm
-    list_filter = ("account_approval_status", "stt")
+    list_filter = ("account_approval_status", "stt", ActiveStatusListFilter)
     list_display = [
         "username",
         "access_requested_date",
@@ -147,6 +148,14 @@ class UserAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         """Disable User object creation through Django Admin."""
         return False
+
+    def get_queryset(self, request):
+        """Customize queryset to hide inactive users by default."""
+        qs = super().get_queryset(request)
+        # Hide inactive by default unless filter is applied
+        if "active_status" not in request.GET:
+            qs = qs.exclude(account_approval_status=AccountApprovalStatusChoices.DEACTIVATED)
+        return qs
 
 
 class HasAttachmentFilter(admin.SimpleListFilter):

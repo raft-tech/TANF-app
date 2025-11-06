@@ -27,20 +27,21 @@ class CustomAuthentication(BaseAuthentication):
         try:
             if hhs_id:
                 try:
-                    return User.all_objects.get(hhs_id=hhs_id)
+                    return User.objects.get(hhs_id=hhs_id)
                 except User.DoesNotExist:
                     # If below line also fails with User.DNE, will bubble up and return None
-                    user = User.all_objects.filter(username=username)
+                    user = User.objects.filter(username=username)
+                    logger.info('__________ user: {}'.format(user.__dict__))
                     user.update(hhs_id=hhs_id)
                     logging.debug(
                         "Updated user {} with hhs_id {}.".format(username, hhs_id)
                     )
-                return User.all_objects.get(hhs_id=hhs_id)
+                return User.objects.get(hhs_id=hhs_id)
 
             elif login_gov_uuid:
-                return User.all_objects.get(login_gov_uuid=login_gov_uuid)
+                return User.objects.get(login_gov_uuid=login_gov_uuid)
             else:
-                return User.all_objects.get(username=username)
+                return User.objects.get(username=username)
         except User.DoesNotExist:
             return None
 
