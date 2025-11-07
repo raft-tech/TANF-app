@@ -5,7 +5,6 @@ import logging
 from django.contrib.auth import get_user_model
 
 from rest_framework.authentication import BaseAuthentication
-from tdpservice.users.models import AccountApprovalStatusChoices
 
 logger = logging.getLogger(__name__)
 
