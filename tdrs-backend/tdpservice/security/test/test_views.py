@@ -34,7 +34,6 @@ def token():
 @pytest.mark.django_db
 def test_token_is_valid(token):
     """Test token_is_valid function."""
-    logger.info(token.__dict__)
     assert token_is_valid(token) is True
     token.created = token.created.replace(year=2000)
     # token.save()

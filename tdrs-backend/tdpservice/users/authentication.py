@@ -28,7 +28,7 @@ class CustomAuthentication(BaseAuthentication):
         try:
             if hhs_id:
                 try:
-                    return User.objects.get(hhs_id=hhs_id).exclude(account_approval_status=AccountApprovalStatusChoices.DEACTIVATED)
+                    return User.objects.get(hhs_id=hhs_id)
                 except User.DoesNotExist:
                     # If below line also fails with User.DNE, will bubble up and return None
                     user = User.objects.filter(username=username)
@@ -36,12 +36,12 @@ class CustomAuthentication(BaseAuthentication):
                     logging.debug(
                         "Updated user {} with hhs_id {}.".format(username, hhs_id)
                     )
-                return User.objects.get(hhs_id=hhs_id).exclude(account_approval_status=AccountApprovalStatusChoices.DEACTIVATED)
+                return User.objects.get(hhs_id=hhs_id)
 
             elif login_gov_uuid:
-                return User.objects.get(login_gov_uuid=login_gov_uuid).exclude(account_approval_status=AccountApprovalStatusChoices.DEACTIVATED)
+                return User.objects.get(login_gov_uuid=login_gov_uuid)
             else:
-                return User.objects.get(username=username).exclude(account_approval_status=AccountApprovalStatusChoices.DEACTIVATED)
+                return User.objects.get(username=username)
         except User.DoesNotExist:
             return None
 
@@ -50,6 +50,6 @@ class CustomAuthentication(BaseAuthentication):
         """Get user by the user id."""
         User = get_user_model()
         try:
-            return User.objects.get(pk=user_id).exclude(account_approval_status=AccountApprovalStatusChoices.DEACTIVATED)
+            return User.objects.get(pk=user_id)
         except User.DoesNotExist:
             return None
