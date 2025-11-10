@@ -122,7 +122,6 @@ class TestUserAPIAuthenticatedUserNoRole(UserAPITestsBase):
 
     def test_request_access(self, api_client, user, stt, profile_data):
         """Request access, expect 200 with profile updated appropriately."""
-        profile_data["stt"] = stt.id
         response = self.request_access(api_client, profile_data)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["id"] == user.id
@@ -171,7 +170,6 @@ class TestUserAPIDataAnalystUser(UserAPITestsBase):
 
     def test_request_access(self, api_client, user, profile_data):
         """Request access, expect 200 with profile updated appropriately."""
-        profile_data["stt"] = user.stt.id
         response = self.request_access(api_client, profile_data)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["id"] == user.id
@@ -221,13 +219,12 @@ class TestUserAPIAdminUser(UserAPITestsBase):
         assert response.data["id"] == data_analyst.id
         assert response.data["id"] != user.id
 
-    # TODO: FIX: need to add validation to serializer class. Currently this is being raised in the model
-    def test_request_access(self, api_client, user, stt, profile_data):
+    def test_request_access(self, api_client, stt, profile_data):
         """Request access, expect 200 with profile updated appropriately."""
         profile_data["stt"] = stt.id
         response = self.request_access(api_client, profile_data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data[0] == (
+        assert response.data["non_field_errors"][0] == (
             "Users other than Regional Staff, Developers, "
             "Data Analysts do not get assigned a location"
         )
