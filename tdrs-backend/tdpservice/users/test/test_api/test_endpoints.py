@@ -189,8 +189,6 @@ class TestUserAPIAdminUser(UserAPITestsBase):
     @pytest.fixture
     def user(self, ofa_system_admin, stt):
         """Override the default user with ofa_system_admin for our tests."""
-        # ofa_system_admin.stt = stt
-        # ofa_system_admin.save()
         return ofa_system_admin
 
     @pytest.fixture

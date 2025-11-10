@@ -473,10 +473,6 @@ class User(AbstractUser, UserChangeRequestMixin):
             group_names = [group_names]
         return self.groups.filter(name__in=group_names).exists()
 
-    # This is not the correct way to do validation
-    # To validate before saving, create clean_fieldname method in the form
-    # Then same method has to be created in the DRF serializer
-    # See https://docs.djangoproject.com/en/4.1/ref/models/instances/#validation
     def validate_location(self):
         """Throw a validation error if a user has a location type incompatable with their role."""
         regional = self.regions.count()
