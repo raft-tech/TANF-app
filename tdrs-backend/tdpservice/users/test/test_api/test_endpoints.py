@@ -170,6 +170,7 @@ class TestUserAPIDataAnalystUser(UserAPITestsBase):
 
     def test_request_access(self, api_client, user, profile_data):
         """Request access, expect 200 with profile updated appropriately."""
+        profile_data["stt"] = 1 # Data Analyst user is regional so must have location
         response = self.request_access(api_client, profile_data)
         assert response.status_code == status.HTTP_200_OK
         assert response.data["id"] == user.id

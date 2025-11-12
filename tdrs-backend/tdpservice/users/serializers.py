@@ -171,7 +171,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         """Perform object-level validation."""
         validated_data = super().validate(data)
 
-        groups = validated_data.get('groups')
+        groups = self.instance.groups.all()
         regions = validated_data.get('regions')
         stts = validated_data.get('stt')
         # Check if the user belongs to any regional group
@@ -180,7 +180,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         else:
             has_regional_role = False
 
-        if has_regional_role and not regions:
+        if has_regional_role and not (regions or stts):
             raise serializers.ValidationError(
                 "Users in regional roles must have at least one region assigned."
             )
