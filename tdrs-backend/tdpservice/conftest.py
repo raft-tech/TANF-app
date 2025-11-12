@@ -162,7 +162,6 @@ def digit_team(stt):
     user = UserFactory.create(
         groups=(Group.objects.get(name="DIGIT Team"),),
     )
-    # user.stt = stt # TODO: FIX: Digit team users should not have an stt assigned
     user.account_approval_status = AccountApprovalStatusChoices.APPROVED
     user.save()
     return user
