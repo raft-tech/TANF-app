@@ -185,7 +185,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 "Users in regional roles must have at least one region assigned."
             )
 
-        if not has_regional_role and (regions or stts):
+        if not has_regional_role and (regions):
             raise serializers.ValidationError(
                 "Users other than Regional Staff, Developers, Data Analysts do not get assigned a location"
             )
