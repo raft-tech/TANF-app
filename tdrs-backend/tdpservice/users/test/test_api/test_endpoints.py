@@ -228,7 +228,6 @@ class TestUserAPIAdminUser(UserAPITestsBase):
         assert response.data["first_name"] == "Test"
         assert response.data["last_name"] == "Test"
 
-
     def test_get_roles(self, api_client):
         """Get roles, expect 200."""
         response = self.get_roles(api_client)
