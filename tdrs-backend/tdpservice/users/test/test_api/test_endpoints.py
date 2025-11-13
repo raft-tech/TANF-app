@@ -3,6 +3,7 @@
 import pytest
 from rest_framework import status
 from tdpservice.users.models import STT
+from django.core.exceptions import ValidationError
 
 
 @pytest.mark.usefixtures("db")
@@ -223,10 +224,10 @@ class TestUserAPIAdminUser(UserAPITestsBase):
     def test_request_access(self, api_client, stt, profile_data):
         """Request access, expect 200 with profile updated appropriately."""
         profile_data["stt"] = stt.id
-        response = self.request_access(api_client, profile_data)
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data["first_name"] == "Test"
-        assert response.data["last_name"] == "Test"
+        with pytest.raises(ValidationError):
+            response = self.request_access(api_client, profile_data)
+            assert response.status_code == status.HTTP_200_OK
+            assert response.data[0] == "Users other than Regional Staff, Developers, Data Analysts do not get assigned a location"
 
     def test_get_roles(self, api_client):
         """Get roles, expect 200."""

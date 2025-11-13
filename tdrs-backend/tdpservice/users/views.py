@@ -111,6 +111,15 @@ class UserViewSet(
             account_approval_status=AccountApprovalStatusChoices.ACCESS_REQUEST,
             access_requested_date=datetime.datetime.now(),
         )  # DRF ignores commit, but semantically clearer
+        for field, value in serializer.validated_data.items():
+            try:
+                if not field == "regions":  # M2M handled separately
+                    setattr(instance, field, value)
+            except AttributeError as e:
+                logger.error(
+                    "Failed to set attribute %s on user %s: %s", field, user.id, e
+                )
+        instance.save()
 
         # Handle FRA permission logic here
         has_fra_access = request.data.get("has_fra_access")
