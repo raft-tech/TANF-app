@@ -106,7 +106,9 @@ class UserViewSet(
         )
 
         serializer = self.get_serializer(user, data=request.data, partial=True)
+        logger.info("________ In UserViewSet.request_access _________ ")
         serializer.is_valid(raise_exception=True)
+        logger.info("________ After is_valid in UserViewSet.request_access _________ ")
         instance = serializer.save(
             account_approval_status=AccountApprovalStatusChoices.ACCESS_REQUEST,
             access_requested_date=datetime.datetime.now(),

@@ -170,24 +170,26 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def validate(self, data):
         """Perform object-level validation."""
         validated_data = super().validate(data)
+        try:
 
-        groups = self.instance.groups.all()
-        regions = validated_data.get('regions')
-        stts = validated_data.get('stt')
-        # Check if the user belongs to any regional group
-        if groups:
-            has_regional_role = any(g.name in REGIONAL_ROLES for g in groups)
-        else:
-            has_regional_role = False
+            groups = self.instance.groups.all()
+            regions = validated_data.get('regions')
+            stts = validated_data.get('stt')
+            # Check if the user belongs to any regional group
+            if groups:
+                has_regional_role = any(g.name in REGIONAL_ROLES for g in groups)
+            else:
+                has_regional_role = False
 
-        if has_regional_role and not (regions or stts):
+            if has_regional_role and not (regions or stts):
+                raise serializers.ValidationError(
+                    "Users in regional roles must have at least one region assigned."
+                )
+
+        except Exception as e:
+            logger.error("Validation error in UserProfileSerializer: %s", e)
             raise serializers.ValidationError(
-                "Users in regional roles must have at least one region assigned."
-            )
-
-        if not has_regional_role and (regions):
-            raise serializers.ValidationError(
-                "Users other than Regional Staff, Developers, Data Analysts do not get assigned a location"
+                _("An error occurred during validation. Please check your input.")
             )
 
         return validated_data
