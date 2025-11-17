@@ -127,6 +127,11 @@ class UserAdmin(admin.ModelAdmin):
 
     actions = ['soft_delete_users']
 
+    def get_object(self, request, object_id, from_field=None):
+        """Get the user object, allowing for None if not found."""
+        queryset = self.model._base_manager.all()
+        return queryset.filter(pk=object_id).first()
+
     def get_actions(self, request):
         """Override get_action to remove delete action."""
         actions = super().get_actions(request)

@@ -130,7 +130,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "is_staff",
             "last_login",
             "date_joined",
-            "access_request",
             "access_requested_date",
             "account_approval_status",
             "feature_flags",
