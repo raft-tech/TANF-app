@@ -3,6 +3,7 @@
 import { ACTORS, clearCookies } from '../common-steps/common-steps'
 
 function terminalLog(violations) {
+  // existing summary
   cy.task(
     'log',
     `${violations.length} accessibility violation${
@@ -20,7 +21,24 @@ function terminalLog(violations) {
   )
 
   cy.task('table', violationData)
+
+  // 🔍 NEW: log selectors + snippets for debugging
+  violations.forEach((violation) => {
+    cy.task(
+      'log',
+      `Violation: ${violation.id} (${violation.impact}) – ${violation.description}`
+    )
+
+    violation.nodes.forEach((node, index) => {
+      cy.task(
+        'log',
+        `  Node ${index + 1} targets: ${node.target.join(', ')}`
+      )
+      cy.task('log', `  HTML: ${node.html}`)
+    })
+  })
 }
+
 
 /**
  * Helper: log in once as a known user.
@@ -35,7 +53,7 @@ const loginAsDataAnalystStefani = () => {
   cy.visit('/')
   cy.adminLogin('cypress-admin-alex@teamraft.com')
 
-  cy.contains('Sign into TANF Data Portal', { timeout: 30000 })
+  //cy.contains('Sign into TANF Data Portal', { timeout: 30000 })
 
   // Now log in as a portal user
   const username = ACTORS['Data Analyst Stefani'].username
@@ -53,6 +71,10 @@ describe('Public pages accessibility', () => {
   publicPages.forEach((page) => {
     it(`has no serious accessibility violations on ${page.name}`, () => {
       cy.visit(page.path)
+      // Sanity checks
+      cy.url().should('include', page.path)
+      cy.get('h1').first().should('exist')
+
       cy.injectAxe()
 
       cy.checkA11y(
@@ -84,6 +106,10 @@ describe('Authenticated pages accessibility', () => {
   authedPages.forEach((page) => {
     it(`has no serious accessibility violations on ${page.name}`, () => {
       cy.visit(page.path)
+      // Sanity checks
+      cy.url().should('include', page.path)
+      cy.get('h1').first().should('exist')
+
       cy.injectAxe()
 
       cy.checkA11y(

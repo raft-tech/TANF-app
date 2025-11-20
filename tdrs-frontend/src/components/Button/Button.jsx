@@ -37,6 +37,7 @@ function Button({
     className
   )
   if (href === undefined) {
+    // Regular button
     return (
       <button
         type={type} // eslint-disable-line
@@ -50,29 +51,22 @@ function Button({
         {children}
       </button>
     )
-  } else {
-    return (
-      <a
-        className="button-anchor"
-        href={href}
-        target={target}
-        rel="noopener noreferrer"
-        tabIndex="-1"
-      >
-        <button
-          type={type} // eslint-disable-line
-          className={classes}
-          onClick={onClick}
-          data-testid="button"
-          aria-disabled={disabled}
-          disabled={disabled}
-          buttonkey={buttonKey}
-        >
-          {children}
-        </button>
-      </a>
-    )
   }
+
+  // Link styled as button (no nested <button>, no .button-anchor)
+  return (
+    <a
+      href={href}
+      target={target}
+      rel="noopener noreferrer"
+      className={classes}
+      data-testid="button"
+      aria-disabled={disabled}
+      onClick={onClick}
+    >
+      {children}
+    </a>
+  )
 }
 
 Button.propTypes = {

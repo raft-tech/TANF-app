@@ -11,9 +11,6 @@ const loginGovRequestAccessFlow = (
   cy.intercept('/v1/stts/alpha').as('getSttSearchList')
   cy.visit('/')
 
-  cy.injectAxe() // <-- added
-  cy.checkA11y(null, null, terminalLog) // initial page load check
-
   cy.get('#firstName').type(firstName)
   cy.get('#lastName').type(lastName)
 
