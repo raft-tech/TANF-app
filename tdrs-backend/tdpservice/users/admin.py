@@ -2,19 +2,20 @@
 
 import logging
 
-from django import forms
 from django.contrib import admin, messages
-from django.core.exceptions import ValidationError
 from django.http import HttpResponseRedirect
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from django import forms
+from django.core.exceptions import ValidationError
 
 from rest_framework.authtoken.models import TokenProxy
 
 from tdpservice.core.utils import ReadOnlyAdminMixin
 from tdpservice.users.filters import ActiveStatusListFilter
+from tdpservice.users.forms import UserForm
 from tdpservice.users.models import (
     AccountApprovalStatusChoices,
     ChangeRequestAuditLog,
@@ -162,6 +163,9 @@ class UserAdmin(admin.ModelAdmin):
             qs = qs.exclude(account_approval_status=AccountApprovalStatusChoices.DEACTIVATED)
         return qs
 
+    def save_form(self, request, form, change):
+        """Override save_form to prevent saving the form when not changing."""
+        return form.save(commit=False)
 
 class HasAttachmentFilter(admin.SimpleListFilter):
     """Filter feedback based if it has datafiles associated or not."""
