@@ -26,37 +26,6 @@ from tdpservice.users.models import (
 
 logger = logging.getLogger()
 
-
-class UserForm(forms.ModelForm):
-    """Customize the user admin form."""
-
-    class Meta:
-        """Define customizations."""
-
-        model = User
-        exclude = ["password"]
-        readonly_fields = [
-            "last_login",
-            "date_joined",
-            "login_gov_uuid",
-            "hhs_id",
-        ]
-
-    def clean(self):
-        """Add extra validation for locations based on roles."""
-        cleaned_data = super().clean()
-        groups = cleaned_data["groups"]
-        if len(groups) > 1:
-            raise ValidationError("User should not have multiple groups")
-
-        feature_flags = cleaned_data.get("feature_flags", {})
-        if not feature_flags:
-            feature_flags = {}
-        cleaned_data["feature_flags"] = feature_flags
-
-        return cleaned_data
-
-
 class RegionsInlineFormSet(forms.models.BaseInlineFormSet):
     """Custom formset for region inlines."""
 

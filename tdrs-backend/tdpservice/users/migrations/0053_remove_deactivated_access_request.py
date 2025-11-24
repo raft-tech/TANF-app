@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0051_rename_acked_feedback_read'),
+        ('users', '0052_add_report_permissions'),
     ]
 
     operations = [
