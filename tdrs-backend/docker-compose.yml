@@ -270,7 +270,6 @@ services:
       - OFA_DB_USER
       - OTEL_PYTHON_DJANGO_EXCLUDED_URLS
       - CGAPPNAME_BACKEND
-      - REGISTRY_OWNER=raft-tech
       - SENTRY_DSN
     volumes:
       - .:/tdpapp
