@@ -1,6 +1,5 @@
 name: Development issue template
 description: Template for development issues
-title: ''
 labels: ["dev"]
 assignees: []
 

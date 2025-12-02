@@ -1,9 +1,7 @@
-name: Bug Report template
-description: Template for bug reporting
-title: ""
-labels:
-  - bug
-  - dev
+name: Bug Report
+description: Report a bug in the application
+title: "[Bug]: "
+labels: ["bug", "dev"]
 assignees: []
 type: bug
 body:
@@ -11,14 +9,12 @@ body:
     attributes:
       value: |
         Thank you for taking the time to let us know about the issue you found. The basic rule for bug reporting is that something isn't working the way one would expect it to work. Please provide us with the information requested below and we will look at it as soon as we are able.
-
-        ## Bug Report
-
   - type: textarea
     id: description
     attributes:
       label: Description
       description: Please provide a short description of the bug
+      placeholder: ""
     validations:
       required: true
 
@@ -27,6 +23,7 @@ body:
     attributes:
       label: Action Taken
       description: In what way were you interacting with the application when you discovered the issue? Please be specific. Did it happen after you made a selection or clicked a button? Which page and which button? This information really helps us get to the bottom of an issue more quickly.
+      placeholder: ""
     validations:
       required: true
 
@@ -35,6 +32,7 @@ body:
     attributes:
       label: What I expected to see
       description: Please provide a short description of what you expected to see
+      placeholder: ""
     validations:
       required: true
 
@@ -43,6 +41,7 @@ body:
     attributes:
       label: What I did see
       description: Please provide a short description of what you did see. Screenshots are helpful, but please block out any personally identifying information before posting.
+      placeholder: ""
     validations:
       required: true
 
@@ -50,6 +49,7 @@ body:
     id: url
     attributes:
       label: URL of the page I was on
+      placeholder: ""
     validations:
       required: false
 
@@ -57,6 +57,7 @@ body:
     id: browser
     attributes:
       label: Browser and version
+      placeholder: ""
     validations:
       required: false
 
@@ -77,9 +78,9 @@ body:
     attributes:
       label: Is the issue repeatable?
       options:
-        - yes
-        - no
-        - don't know
+        - "yes"
+        - "no"
+        - "don't know"
     validations:
       required: false
 
@@ -87,6 +88,7 @@ body:
     id: frequency
     attributes:
       label: Has the issue occurred more than once?
+      placeholder: ""
     validations:
       required: false
 

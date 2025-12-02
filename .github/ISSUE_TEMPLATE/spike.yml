@@ -1,6 +1,5 @@
 name: Spike issue template
 description: Template for spike issues
-title: ''
 labels: ["dev", "spike"]
 assignees: []
 
