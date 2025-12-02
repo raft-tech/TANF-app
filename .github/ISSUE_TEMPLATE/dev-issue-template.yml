@@ -1,0 +1,93 @@
+name: Development issue template
+description: Template for development issues
+title: ''
+labels: ["dev"]
+assignees: []
+
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: Background
+      description: Provide a brief background and justification for this issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-it-matters
+    attributes:
+      label: Why It Matters
+      description: PM/UX/OFA Only: How does this support user needs, compliance, or team goals? What value does this bring?
+    validations:
+      required: false
+
+  - type: textarea
+    id: whats-changing
+    attributes:
+      label: What's Changing
+      description: PM/UX/OFA Only: Briefly highlight key updates for users, stakeholders, or external partners that should be captured in release notes
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Development & Testing
+
+  - type: checkboxes
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Create a list of functional outcomes that must be achieved to complete this issue
+      options:
+        - label: _Outcome 1_
+        - label: _Outcome 2_
+        - label: _Outcome 3_
+        - label: Testing Checklist has been run and all tests pass
+        - label: README is updated, if necessary
+        - label: Release digest has been updated with testing steps & relevant media
+
+  - type: checkboxes
+    id: usability-testing-criteria
+    attributes:
+      label: Usability Testing Criteria
+      description: PM/UX/OFA Only: Create a list of expected user behaviors that should be confirmed when UX and/or PM is testing this ticket
+      options:
+        - label: _Outcome 1_
+        - label: _Outcome 2_
+        - label: _Outcome 3_
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Add additional useful information, such as related issues and functionality that isn't covered by this specific issue, and other considerations that will be helpful for anyone reading this
+      placeholder: |
+        - _Note 1_
+        - _Note 2_
+        - _Note 3_
+    validations:
+      required: false
+
+  - type: textarea
+    id: supporting-documentation
+    attributes:
+      label: Supporting Documentation
+      description: Please include any relevant log snippets/files/screen shots. This should also include files needed to adequately test the successful completion of this ticket.
+      placeholder: |
+        - _Doc 1_
+        - _Doc 2_
+    validations:
+      required: false
+
+  - type: textarea
+    id: open-questions
+    attributes:
+      label: Open Questions
+      description: Please include any questions or decisions that must be made before beginning work or to confidently call this issue complete
+      placeholder: |
+        - _Open Question 1_
+        - _Open Question 2_
+    validations:
+      required: false
+

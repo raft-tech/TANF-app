@@ -1,0 +1,82 @@
+name: Design Deliverable issue template
+description: Template for dev-ready design issues
+title: ''
+labels: ["Design Deliverable", "Research & Design"]
+assignees: []
+
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: Background
+      description: Describe the problem, user needs, or design scope. Reference relevant tickets or context.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-it-matters
+    attributes:
+      label: Why It Matters
+      description: Explain the value of this design work for users, product goals, or compliance.
+    validations:
+      required: true
+
+  - type: textarea
+    id: whats-changing
+    attributes:
+      label: What's Changing
+      description: Summarize what the user experience or interface change will be and any stakeholder impact.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Design & Testing
+
+  - type: checkboxes
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      options:
+        - label: User stories are documented
+        - label: Accessibility and pa11y test cases are defined
+        - label: Figma design is dev-ready and shared in the correct folder
+        - label: Updates to UX documentation (Flows, Personas, Service Blueprint)
+        - label: Internal Raft review for DoD and QA
+        - label: Dev/Design sync occurred and tickets created
+        - label: Design meets usability and accessibility standards
+
+  - type: textarea
+    id: usability-testing-criteria
+    attributes:
+      label: Usability Testing Criteria
+      description: List behaviors or user flows that must be validated during testing or design review.
+      placeholder: Example: User can easily locate the error message in the new UI
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Links to earlier explorations or related issues, potential design trade-offs or risks
+    validations:
+      required: false
+
+  - type: textarea
+    id: supporting-documentation
+    attributes:
+      label: Supporting Documentation
+      description: Figma files, dev-ready design folder, Service Blueprint update link
+    validations:
+      required: false
+
+  - type: textarea
+    id: open-questions
+    attributes:
+      label: Open Questions
+      description: Are there any unresolved design decisions or trade-offs
+    validations:
+      required: false
+

@@ -1,0 +1,79 @@
+name: Research facilitation issue template
+description: Template for research facilitation issues (1 per research session)
+title: ''
+labels: ["Research & Design", "Research Facilitation"]
+assignees: []
+
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: Background
+      description: Describe the research sessions being facilitated, including goals, participant details, and context. Link to the Research Plan.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-it-matters
+    attributes:
+      label: Why It Matters
+      description: Explain how the sessions support user needs, compliance, or team goals. What decisions will this help inform?
+    validations:
+      required: true
+
+  - type: textarea
+    id: whats-changing
+    attributes:
+      label: What's Changing
+      description: Summarize any expected insights or updates the facilitation may generate for product direction or stakeholder alignment.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Research & Testing
+
+  - type: checkboxes
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      options:
+        - label: Research sessions have been completed.
+        - label: Anonymized notes or top-line synthesis has been documented.
+        - label: Changes to recruitment criteria are documented (if the participant pool was expanded or adjusted).
+        - label: Internal Raft review has occurred to confirm research plan was followed.
+
+  - type: textarea
+    id: usability-testing-criteria
+    attributes:
+      label: Usability Testing Criteria
+      description: PM/UX Only: Identify any user behaviors or reactions observed during facilitation that should inform usability recommendations.
+      placeholder: Example: Users struggled with form labels during task completion
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Related research plan or supporting tickets, risks, barriers, or changes encountered during facilitation
+    validations:
+      required: false
+
+  - type: textarea
+    id: supporting-documentation
+    attributes:
+      label: Supporting Documentation
+      description: Link to session notes, screenshots or recordings (if applicable and anonymized), consent forms or participant communication (as needed)
+    validations:
+      required: false
+
+  - type: textarea
+    id: open-questions
+    attributes:
+      label: Open Questions
+      description: Were there questions or unexpected findings that require further investigation? Did participant feedback suggest new research angles?
+    validations:
+      required: false
+

@@ -1,0 +1,85 @@
+name: Spike issue template
+description: Template for spike issues
+title: ''
+labels: ["dev", "spike"]
+assignees: []
+
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: Background
+      description: Provide a brief background and justification for this spike. What problem or unknowns are being explored? Why does this work matter?
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-it-matters
+    attributes:
+      label: Why It Matters
+      description: PM/UX/OFA Only: Explain how this exploration supports user needs, compliance, technical goals, or decision-making. What value does resolving this uncertainty bring?
+    validations:
+      required: false
+
+  - type: textarea
+    id: whats-being-explored
+    attributes:
+      label: What's Being Explored
+      description: PM/UX/OFA Only: Briefly describe key areas of exploration or decision points. What are the big questions this spike aims to answer?
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Research & Exploration
+
+  - type: textarea
+    id: open-questions
+    attributes:
+      label: Open Questions
+      description: Include specific research questions, technical unknowns, or possible solutions to be explored during this spike.
+      placeholder: |
+        - _Open Question 1_
+        - _Open Question 2_
+        - _Open Question 3_
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Usability Testing Criteria
+        _PM/UX/OFA Only: (Optional) List any user research or usability evaluation tasks that might be part of this spike or recommended next steps._
+
+  - type: checkboxes
+    id: usability-testing-criteria
+    attributes:
+      label: Usability Testing Criteria
+      options:
+        - label: _Outcome 1_
+        - label: _Outcome 2_
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Add any relevant context, risks, or considerations uncovered during this spike.
+      placeholder: |
+        - _Note 1_
+        - _Note 2_
+        - _Note 3_
+    validations:
+      required: false
+
+  - type: textarea
+    id: supporting-documentation
+    attributes:
+      label: Supporting Documentation
+      description: Include any research materials, logs, screenshots, diagrams, or references used or created during the spike.
+      placeholder: |
+        - _Doc 1_
+        - _Doc 2_
+    validations:
+      required: false
+

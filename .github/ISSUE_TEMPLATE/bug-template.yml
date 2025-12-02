@@ -1,0 +1,108 @@
+name: Bug Report template
+description: Template for bug reporting
+title: ""
+labels:
+  - bug
+  - dev
+assignees: []
+type: bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to let us know about the issue you found. The basic rule for bug reporting is that something isn't working the way one would expect it to work. Please provide us with the information requested below and we will look at it as soon as we are able.
+
+        ## Bug Report
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Please provide a short description of the bug
+    validations:
+      required: true
+
+  - type: textarea
+    id: action-taken
+    attributes:
+      label: Action Taken
+      description: In what way were you interacting with the application when you discovered the issue? Please be specific. Did it happen after you made a selection or clicked a button? Which page and which button? This information really helps us get to the bottom of an issue more quickly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What I expected to see
+      description: Please provide a short description of what you expected to see
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What I did see
+      description: Please provide a short description of what you did see. Screenshots are helpful, but please block out any personally identifying information before posting.
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: URL of the page I was on
+    validations:
+      required: false
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+    validations:
+      required: false
+
+  - type: dropdown
+    id: operating-system
+    attributes:
+      label: Operating System
+      options:
+        - Windows
+        - MacOS X
+        - Linux
+        - Other
+    validations:
+      required: false
+
+  - type: dropdown
+    id: repeatable
+    attributes:
+      label: Is the issue repeatable?
+      options:
+        - yes
+        - no
+        - don't know
+    validations:
+      required: false
+
+  - type: input
+    id: frequency
+    attributes:
+      label: Has the issue occurred more than once?
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Testing
+
+        ### Usability Testing Criteria 
+        _PM/UX/OFA Only: Create a list of expected user behaviors that should be confirmed when UX and/or PM is testing this ticket_
+
+  - type: checkboxes
+    id: usability-criteria
+    attributes:
+      label: Usability Testing Criteria
+      options:
+        - label: _Outcome 1_
+        - label: _Outcome 2_
+        - label: _Outcome 3_

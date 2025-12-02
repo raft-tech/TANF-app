@@ -1,0 +1,80 @@
+name: Research synthesis issue template
+description: Template for research synthesis issues
+title: ''
+labels: ["Research & Design", "Research Synthesis"]
+assignees: []
+
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: Background
+      description: Link to research planning and facilitation tickets. Describe the synthesis scope.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-it-matters
+    attributes:
+      label: Why It Matters
+      description: Explain what insights will be delivered and how they support the team, users, or product goals.
+    validations:
+      required: true
+
+  - type: textarea
+    id: whats-changing
+    attributes:
+      label: What's Changing
+      description: Summarize key updates or deliverables produced from this synthesis.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Synthesis & Review
+
+  - type: checkboxes
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      options:
+        - label: Gitbook draft reviewed
+        - label: Service Blueprint updated (if applicable)
+        - label: PR submitted for final synthesis draft
+        - label: Internal Raft review completed
+        - label: Final deliverable meets usability and accessibility standards
+
+  - type: textarea
+    id: usability-testing-criteria
+    attributes:
+      label: Usability Testing Criteria
+      description: List any high-level insights that should inform usability testing or product changes.
+      placeholder: Example: Users struggled with submission flow validation
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Open questions for future research, additional patterns or unknowns surfaced
+    validations:
+      required: false
+
+  - type: textarea
+    id: supporting-documentation
+    attributes:
+      label: Supporting Documentation
+      description: Link to Gitbook, Updated Service Blueprint
+    validations:
+      required: false
+
+  - type: textarea
+    id: open-questions
+    attributes:
+      label: Open Questions
+      description: What research gaps or follow-ups were identified?
+    validations:
+      required: false
+

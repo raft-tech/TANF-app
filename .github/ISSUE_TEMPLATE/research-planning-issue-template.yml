@@ -1,0 +1,80 @@
+name: Research planning issue template
+description: Template for research planning issues
+title: ''
+labels: ["Research & Design", "Research Planning"]
+assignees: []
+
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: Background
+      description: Provide context, goals, and justification for the research.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why-it-matters
+    attributes:
+      label: Why It Matters
+      description: Explain how this research supports user needs, compliance, or team goals. What value will it bring?
+    validations:
+      required: true
+
+  - type: textarea
+    id: whats-changing
+    attributes:
+      label: What's Changing
+      description: Summarize key outcomes of the research that could impact users, product direction, or stakeholders.
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Research & Testing
+
+  - type: checkboxes
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      options:
+        - label: A detailed research plan is created and reviewed
+        - label: Research goals and questions are defined
+        - label: Recruitment criteria and participant profiles are documented
+        - label: Ethics and privacy considerations are addressed
+        - label: Timeline and facilitation plans are outlined
+
+  - type: textarea
+    id: usability-testing-criteria
+    attributes:
+      label: Usability Testing Criteria
+      description: List any expected testable hypotheses or user behaviors to observe during research.
+      placeholder: Example: Users understand the difference between X and Y tasks
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Related tickets or references, known risks or constraints
+    validations:
+      required: false
+
+  - type: textarea
+    id: supporting-documentation
+    attributes:
+      label: Supporting Documentation
+      description: Link to research plan, Mural/Figma/Docs relevant to research
+    validations:
+      required: false
+
+  - type: textarea
+    id: open-questions
+    attributes:
+      label: Open Questions
+      description: Any pending decisions or areas needing stakeholder input?
+    validations:
+      required: false
+
