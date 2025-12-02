@@ -14,7 +14,6 @@ body:
     attributes:
       label: Description
       description: Please provide a short description of the bug
-      placeholder: ""
     validations:
       required: true
 
@@ -23,7 +22,6 @@ body:
     attributes:
       label: Action Taken
       description: In what way were you interacting with the application when you discovered the issue? Please be specific. Did it happen after you made a selection or clicked a button? Which page and which button? This information really helps us get to the bottom of an issue more quickly.
-      placeholder: ""
     validations:
       required: true
 
@@ -32,7 +30,6 @@ body:
     attributes:
       label: What I expected to see
       description: Please provide a short description of what you expected to see
-      placeholder: ""
     validations:
       required: true
 
@@ -41,7 +38,6 @@ body:
     attributes:
       label: What I did see
       description: Please provide a short description of what you did see. Screenshots are helpful, but please block out any personally identifying information before posting.
-      placeholder: ""
     validations:
       required: true
 
@@ -49,7 +45,6 @@ body:
     id: url
     attributes:
       label: URL of the page I was on
-      placeholder: ""
     validations:
       required: false
 
@@ -57,7 +52,6 @@ body:
     id: browser
     attributes:
       label: Browser and version
-      placeholder: ""
     validations:
       required: false
 
@@ -88,7 +82,6 @@ body:
     id: frequency
     attributes:
       label: Has the issue occurred more than once?
-      placeholder: ""
     validations:
       required: false
 
