@@ -36,13 +36,27 @@ function Button({
     },
     className
   )
+
+  const handleClick = (event) => {
+    if (disabled) {
+      // Prevent interaction when "disabled", especially for <a> tags
+      event.preventDefault()
+      event.stopPropagation()
+      return
+    }
+
+    if (onClick) {
+      onClick(event)
+    }
+  }
+
+  // No href: render a real <button>
   if (href === undefined) {
-    // Regular button
     return (
       <button
         type={type} // eslint-disable-line
         className={classes}
-        onClick={onClick}
+        onClick={handleClick}
         data-testid="button"
         disabled={disabled}
         aria-disabled={disabled}
@@ -53,16 +67,17 @@ function Button({
     )
   }
 
-  // Link styled as button (no nested <button>, no .button-anchor)
+  // With href: render an <a> styled like a button (no nested interactive elements)
   return (
     <a
       href={href}
       target={target}
       rel="noopener noreferrer"
-      className={classes}
+      className={`${classes} button-anchor`}
       data-testid="button"
-      aria-disabled={disabled}
-      onClick={onClick}
+      aria-disabled={disabled || undefined}
+      onClick={handleClick}
+      buttonkey={buttonKey}
     >
       {children}
     </a>
@@ -84,7 +99,7 @@ Button.propTypes = {
   disabled: PropTypes.bool,
   target: PropTypes.string,
   href: PropTypes.string,
-  buttonkey: PropTypes.string,
+  buttonKey: PropTypes.string,
 }
 
 export default Button
