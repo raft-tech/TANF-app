@@ -8,6 +8,15 @@ This memo proposes a refactor of the **parsing** and **reparsing** pipelines in 
 - Make parsing behavior easier to reason about, test, and extend
 - Improve performance and observability for large-scale reparsing operations
 - Clearly separate “what to parse” (selection) from “how to parse” (pipeline)
+- Establish a stable contract (service + state machine) so new file types and policy changes do not require touching Celery tasks or ad hoc utilities.
+
+### Why this refactor is beneficial
+- **Single source of truth for parsing logic:** Today, behavior is split across parser classes, the Celery task, and reparse utilities. Moving to a `ParsingService` collapses side effects (status updates, summaries, error reports) into one place, reducing drift and regression risk.
+- **Testability:** A service with clear inputs/outputs can be unit-tested without Celery, making it easier to cover both happy paths and failure modes. Reparsing can reuse the same entry point with explicit context.
+- **Extensibility:** A factory-driven, class-based parser plus decoder abstraction makes it straightforward to add file types (e.g., new CSV/XLSX variants) or program types without rewriting orchestration. SchemaManager and decoders become the main extension points.
+- **Operational clarity:** With the submission state machine and centralized transitions, operators and users see consistent states (e.g., `parsing`, `parsed_with_errors`, `ingest_failed`) instead of implicit flags scattered across models.
+- **Safer reparsing:** Consolidating reparse behavior (backups, deletions, status updates) through the same service and state transitions improves idempotency, makes resume/rollback safer, and keeps `ReparseMeta`/`ReparseFileMeta` in sync.
+- **Observability:** Centralized logging and optional metrics around a single service boundary make it easier to trace a file’s journey, correlate errors, and measure performance (parse durations, error counts).
 
 The recommendations are based on the current implementation in:
 
@@ -318,6 +327,30 @@ To de-risk the refactor, implement in small, incremental steps:
 
 ---
 
+## Ticket 0 – Implement submission state machine before parser refactor
+
+### Title
+Add submission state machine with enforced transitions and auditability
+
+### Description
+Add a first-class submission lifecycle state machine to `DataFile` (or a companion model) to capture file status across upload, scanning, validation, parsing, ingest, and completion. This should land before the parser refactor to avoid churn and to give downstream changes a consistent contract for status/triage.
+
+### Scope
+- Define allowed states/transitions (uploaded → virus_scanning → validated/scan_failed → parsing → parsed_clean/parsed_with_errors → ingesting → completed/ingest_failed; cancel from any active state).
+- Add a small transition helper (service or model mixin) that validates transitions and logs/audits them.
+- Persist current state on `DataFile` (or a dedicated lifecycle table) and provide a migration with defaults for existing rows.
+- Update existing code paths (upload, AV scan callback, header validation, parser entry, ingest completion, cancel) to call the transition helper.
+- Wire logs with correlation IDs (data_file_id, reparse_id) and optional audit entries per transition.
+- Provide a dry-run/guard-rail mode initially (feature flag) to enforce transitions without breaking current flows.
+
+### Acceptance Criteria
+- Illegal transitions are rejected in code (server-side), and the allowed transition map is tested.
+- Existing flows update state via the helper; direct state writes are removed.
+- Migration sets a sensible initial state for existing `DataFile` rows.
+- Logs or audit records show each transition with who/what triggered it.
+- Feature flag exists to disable enforcement if rollout needs a fallback.
+- See `docs/Technical-Documentation/tech-memos/submission-state-machine.md` for the detailed state/transition map and code sketch.
+
 ## Ticket 1 – Document current parsing & reparsing flows
 
 ### Title
@@ -338,16 +371,21 @@ We need clear documentation of how parsing and reparsing currently work in `tdrs
     - `ProgramAuditParser`
   - `SchemaManager`, `ParserError`, `DataFileSummary`
   - `ErrorReportFactory`, emails, logging
+  - Where state is stored (`DataFile.status`, summaries, error counts)
+  - How retries/rollbacks are handled today (if at all)
 
 **Capture the current reparsing flow:**
 
 - `search_indexes/reparse.py` and `search_indexes/utils.py`
 - Use of `ReparseMeta` and `ReparseFileMeta`
 - Backup, deletion, re-scheduling of Celery tasks
+- How timeouts/sequential execution checks are enforced
+- What data is destroyed vs. recreated during a reparse run
 
 **Also:**
 
 - Summarize which tables are touched and in which order (high level).
+- Note any implicit contracts (e.g., parser expects certain `DataFile` fields to be set).
 
 ### Deliverables
 
@@ -356,11 +394,13 @@ We need clear documentation of how parsing and reparsing currently work in `tdrs
     - Initial parse of a single `DataFile`
     - A “clean and reparse” run
   - Pointers to key modules/classes involved.
+  - An explicit list of current side effects (created/updated/deleted models) for both flows.
 
 ### Acceptance Criteria
 
 - Doc is checked into the repo and linked from the new parsing/reparsing memo.
 - At least one other engineer has reviewed and confirmed it matches real behavior.
+- Known gaps/assumptions (if any) are called out for follow-up.
 
 ---
 
@@ -377,6 +417,8 @@ Create a dedicated service class (`ParsingService`) that encapsulates the full l
 **Add a new module**, e.g. `tdpservice/parsers/service.py`, with a class:
 
 - `ParsingService.parse_data_file(data_file_id: int, reparse_meta: ReparseMeta | None = None)`
+  - Accept optional hooks for logging/metrics injection.
+  - Return a simple result DTO (statuses, counts) for testing.
 
 **Move logic from** `tdpservice/scheduling/parser_task.parse_data_file` **into the service:**
 
@@ -386,6 +428,8 @@ Create a dedicated service class (`ParsingService`) that encapsulates the full l
 - Generating error reports via `ErrorReportFactory`
 - Handling `ReparseFileMeta` when `reparse_meta` is present
 - Logging relevant events
+- Preserve retry behavior / error handling semantics (exceptions vs. swallowed errors).
+- Keep email/notification behavior intact.
 
 **Refactor `parse_data_file` Celery task to:**
 
@@ -403,6 +447,8 @@ Create a dedicated service class (`ParsingService`) that encapsulates the full l
   - Argument parsing
   - Logging setup
   - Calling the service.
+- Service returns a structured result object used by tests (no reliance on logs).
+- No regression in emails/notifications or `DataFileSummary` population.
 
 ---
 
@@ -431,6 +477,8 @@ In `tdpservice/search_indexes/reparse.py` and `search_indexes/utils.py`:
 - **Remove or consolidate** any parsing-like logic from reparse utilities that overlaps with what `ParsingService` now does.
 
 - Make sure `ReparseFileMeta` transitions (finished/success, counts) are driven from the service or a single helper, not scattered.
+- Add guardrails: skip/mark failed if backup or deletion fails; do not silently continue.
+- Add optional dry-run flag to reparse orchestration to list candidate files without executing.
 
 ### Acceptance Criteria
 
@@ -440,6 +488,8 @@ In `tdpservice/search_indexes/reparse.py` and `search_indexes/utils.py`:
   - backup + deletion steps,
   - scheduling of files,
   - completion status via `ParsingService`.
+- Dry-run mode (if added) lists files and planned actions without side effects.
+- Failure of backup/deletion prevents scheduling and surfaces an explicit error state.
 
 ---
 
@@ -477,6 +527,8 @@ Move all logic that mutates `ReparseMeta` and `ReparseFileMeta` into one cohesiv
 **Ensure all existing callers** (Celery task, reparse utilities) use these helpers instead of mutating models directly.
 
 Make sure state transitions support “resume” semantics where possible (e.g., if a reparse run is partially complete).
+- Add simple transition validation (e.g., prevent finishing twice) and log when transitions are no-ops due to current state.
+- Optionally add an audit trail table or log line per transition for observability.
 
 ### Acceptance Criteria
 
@@ -486,6 +538,8 @@ Make sure state transitions support “resume” semantics where possible (e.g.,
   - Simulate a successful file parse and confirm `ReparseFileMeta` fields are updated correctly.
   - Simulate a failed file parse and confirm failure state.
 - Code that directly writes to `ReparseMeta` / `ReparseFileMeta` fields has been removed or replaced by the helpers.
+- Transition validation prevents illegal state changes and is covered by tests.
+- Optional audit logging demonstrates at least one recorded transition per parse in tests/logs.
 
 ---
 
@@ -505,10 +559,12 @@ After consolidating parsing and reparsing into `ParsingService`, we need coverag
   - Initial parsing of a valid file (happy path).
   - Parsing of an invalid file (error generation, statuses).
   - Reparsing a file in the context of a `ReparseMeta` / `ReparseFileMeta`.
+  - State machine transitions (if implemented) for submission lifecycle.
 
 - Add at least one integration test (possibly Django test + Celery eager mode) that:
   - Runs a mini “clean and reparse” on a small fixture dataset.
   - Asserts that `ReparseMeta.is_finished` and `ReparseMeta.is_success` behave as expected.
+  - Confirms `DataFileSummary` and `ParserError` counts match expectations.
 
 **Observability:**
 
@@ -517,6 +573,8 @@ After consolidating parsing and reparsing into `ParsingService`, we need coverag
   - Whether the run is an initial parse or associated with a specific `ReparseMeta` ID.
   - Summary of record counts and error counts for each file.
 - (Optional) Add a simple metric or log line summarizing a full reparse run (total files, successes, failures).
+- Add correlation IDs per parse (data_file_id, reparse_id) to all logs.
+- Consider a lightweight counter/metric (Django logging or StatsD if available) for parse duration and error count.
 
 ### Acceptance Criteria
 
@@ -525,3 +583,174 @@ After consolidating parsing and reparsing into `ParsingService`, we need coverag
   - Start and end of the run
   - File-level outcomes
 - On failure, the system surfaces enough info (via logs and `ReparseMeta`) to debug which file(s) failed and why.
+- Metrics/logs include correlation IDs and basic duration/error counts (if metrics implemented).
+
+## Submission State Machine — Implementation Notes and Examples
+
+### States
+`uploaded` → `virus_scanning` → (`scan_failed` | `validated`) → `parsing` → (`parsed_with_errors` | `parsed_clean`) → `ingesting` → (`ingest_failed` | `completed`). Any active state can transition to `canceled`.
+
+### Minimal implementation sketch
+
+```python
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Dict, Iterable
+
+class SubmissionState(str, Enum):
+    UPLOADED = "uploaded"
+    VIRUS_SCANNING = "virus_scanning"
+    SCAN_FAILED = "scan_failed"
+    VALIDATED = "validated"
+    PARSING = "parsing"
+    PARSED_WITH_ERRORS = "parsed_with_errors"
+    PARSED_CLEAN = "parsed_clean"
+    INGESTING = "ingesting"
+    INGEST_FAILED = "ingest_failed"
+    COMPLETED = "completed"
+    CANCELED = "canceled"
+
+ALLOWED_TRANSITIONS: Dict[SubmissionState, Iterable[SubmissionState]] = {
+    SubmissionState.UPLOADED: {SubmissionState.VIRUS_SCANNING, SubmissionState.CANCELED},
+    SubmissionState.VIRUS_SCANNING: {
+        SubmissionState.SCAN_FAILED,
+        SubmissionState.VALIDATED,
+        SubmissionState.CANCELED,
+    },
+    SubmissionState.SCAN_FAILED: {SubmissionState.CANCELED},
+    SubmissionState.VALIDATED: {SubmissionState.PARSING, SubmissionState.CANCELED},
+    SubmissionState.PARSING: {
+        SubmissionState.PARSED_WITH_ERRORS,
+        SubmissionState.PARSED_CLEAN,
+        SubmissionState.CANCELED,
+    },
+    SubmissionState.PARSED_WITH_ERRORS: {SubmissionState.INGESTING, SubmissionState.CANCELED},
+    SubmissionState.PARSED_CLEAN: {SubmissionState.INGESTING, SubmissionState.CANCELED},
+    SubmissionState.INGESTING: {
+        SubmissionState.INGEST_FAILED,
+        SubmissionState.COMPLETED,
+        SubmissionState.CANCELED,
+    },
+    SubmissionState.INGEST_FAILED: {SubmissionState.CANCELED},
+    SubmissionState.COMPLETED: set(),
+    SubmissionState.CANCELED: set(),
+}
+
+class InvalidTransition(Exception):
+    ...
+
+@dataclass
+class SubmissionLifecycle:
+    state: SubmissionState
+    history: list[str] = field(default_factory=list)
+
+    def transition(self, next_state: SubmissionState, note: str = "") -> None:
+        if next_state not in ALLOWED_TRANSITIONS[self.state]:
+            raise InvalidTransition(f"{self.state} → {next_state} not allowed")
+        self.history.append(f"{self.state} -> {next_state}: {note}")
+        self.state = next_state
+```
+
+### Transition helpers (examples for each step)
+
+```python
+def on_upload(lifecycle: SubmissionLifecycle):
+    lifecycle.transition(SubmissionState.VIRUS_SCANNING, "file accepted; queued for AV")
+
+def on_scan_complete(lifecycle: SubmissionLifecycle, clean: bool):
+    lifecycle.transition(
+        SubmissionState.VALIDATED if clean else SubmissionState.SCAN_FAILED,
+        "scan pass" if clean else "scan flagged",
+    )
+
+def on_header_validated(lifecycle: SubmissionLifecycle):
+    lifecycle.transition(SubmissionState.PARSING, "header/pre-parse checks passed")
+
+def on_parsing_finished(lifecycle: SubmissionLifecycle, has_errors: bool):
+    lifecycle.transition(
+        SubmissionState.PARSED_WITH_ERRORS if has_errors else SubmissionState.PARSED_CLEAN,
+        "parse finished with errors" if has_errors else "parse finished clean",
+    )
+
+def on_ingest_start(lifecycle: SubmissionLifecycle):
+    lifecycle.transition(SubmissionState.INGESTING, "begin persisting records/errors")
+
+def on_ingest_finish(lifecycle: SubmissionLifecycle, ok: bool):
+    lifecycle.transition(
+        SubmissionState.COMPLETED if ok else SubmissionState.INGEST_FAILED,
+        "ingest success" if ok else "ingest failure",
+    )
+
+def on_cancel(lifecycle: SubmissionLifecycle, reason: str = ""):
+    # Allow cancel from any non-terminal state
+    if lifecycle.state not in {SubmissionState.COMPLETED, SubmissionState.CANCELED}:
+        lifecycle.state = SubmissionState.CANCELED
+        lifecycle.history.append(f"canceled from {lifecycle.state}: {reason}")
+```
+
+### Integrating with Django models
+
+```python
+from django.db import transaction
+from tdpservice.data_files.models import DataFile
+
+def transition_datafile(data_file: DataFile, next_state: SubmissionState, note: str = ""):
+    with transaction.atomic():
+        lifecycle = SubmissionLifecycle(SubmissionState(data_file.state))
+        lifecycle.transition(next_state, note)
+        data_file.state = lifecycle.state.value
+        data_file.save(update_fields=["state"])
+        # Optionally persist history to an audit table
+```
+
+### Guardrails
+- Enforce transitions server-side (do not trust client-side state).
+- Use atomic transactions when persisting state changes plus side effects (e.g., enqueue parsing).
+- Log state changes with correlation IDs (data file ID, reparse ID) for triage.
+- Consider feature-flagging transition enforcement initially to ease rollout.
+
+---
+
+## Appendix: Class-Based Parser Restructure Notes (from original memo)
+
+### Summary and Goals
+- Refactor the parsing engine from functional to class-based to improve adherence to SOLID principles and extensibility.
+- Decouple parsing from file formats via decoder abstraction and a parser factory.
+- Keep the parser-task interface stable while enabling FRA and future file types.
+- Out of scope: FRA concrete parsing logic (lives in `RowSchema`/`Field`), multi-row records, FRA-specific schema migrations.
+
+### SchemaManager responsibilities
+- Initialize and cache all `RowSchema`s for the file’s program type/section.
+- Provide a single `parse_and_validate` entry that routes to schemas by record type.
+- Manage encryption flags per file up front.
+- Offer setup/teardown hooks to avoid mid-parse mutation.
+
+### Decoder considerations
+- Stream rows (don’t load whole files); normalize newlines once.
+- Surface decoding failures with row/file context; fail fast on unknown extensions.
+- Proposed decoders: UTF-8, CSV, XLSX with `RawRow`/`Position` helpers and `DecoderFactory` detection (e.g., `puremagic`, `chardet`).
+
+### Parser interface templates
+- `BaseParser` encapsulates shared parsing utilities and initializes `SchemaManager` and decoder.
+- Concrete parsers (TANF/SSP/Tribal, FRA) implement `parse_and_validate`, header/trailer checks, and category validations while reusing base utilities.
+- `ParserFactory` selects the correct parser class/instance by program type for use in `parser_task.py`.
+
+### Implementation Plan (class-based parser work)
+1. Rewrite `SchemaManager` to be context-aware (program type/section) with cached schemas and encryption updates; add routing tests.
+2. Add decoder layer (`RawRow`, decoders, `DecoderFactory`) and gate into current TANF/SSP/Tribal path behind a feature flag; verify streaming on large samples.
+3. Introduce `BaseParser` and port shared functions from `parse.py`; keep external task signature unchanged.
+4. Move remaining TANF/SSP/Tribal logic into `TanfSspTribalParser`; ensure header/trailer parity; migrate tests to the class API.
+5. Adopt `ParserFactory` in `parser_task.py`; add factory tests and end-to-end smoke tests.
+6. Enable FRA by stubbing `FRAParser` with decoders and schemas; add fixtures and contract tests.
+
+### Risks and decisions
+- Confirm single-row-per-record assumption for FRA; adjust decoder/`RawRow` contract if not.
+- Approve dependencies (`puremagic`, `chardet`, `openpyxl`) or choose alternatives.
+- Assess XLSX performance (streaming vs in-memory).
+- Decide on feature flag/rollback strategy during rollout.
+
+### Validator improvement tickets
+1. Fix `isOneOf` mutation/range handling; build immutable option sets and add reuse/range tests.
+2. Improve validator logging/telemetry with validator name, value, and field context; test exception paths.
+3. Wrap legacy pre-parse validators with decorator plumbing for deprecation/flagging; update call sites and add tests.
+4. Normalize composite validators (`Result` usage, SSN helpers) to short-circuit cleanly with predictable messages; add tests and avoid double-logging.
