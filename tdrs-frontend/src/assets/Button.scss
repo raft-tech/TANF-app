@@ -36,6 +36,8 @@ a.button-anchor:hover,
 a.button-anchor:focus {
   display: inline-block;   // not block
   width: auto;             // not 100%
+  text-decoration: underline;
+  font-weight: 600;
+  text-underline-offset: 0.08em;
 }
-
 

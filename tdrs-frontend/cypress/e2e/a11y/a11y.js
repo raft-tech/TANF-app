@@ -60,6 +60,16 @@ const loginAsDataAnalystStefani = () => {
   cy.login(username)
 }
 
+const loginAsFRADataAnalystFred = () => {
+  clearCookies()
+
+  cy.visit('/')
+  cy.adminLogin('cypress-admin-alex@teamraft.com')
+
+  const username = ACTORS['FRA Data Analyst Fred'].username
+  cy.login(username)
+}
+
 /* ───────────── PUBLIC PAGES ───────────── */
 
 describe('Public pages accessibility', () => {
@@ -72,6 +82,32 @@ describe('Public pages accessibility', () => {
     it(`has no serious accessibility violations on ${page.name}`, () => {
       cy.visit(page.path)
       // Sanity checks
+      cy.url().should('include', page.path)
+      cy.get('h1').first().should('exist')
+
+      cy.injectAxe()
+
+      cy.checkA11y(
+        null,
+        {
+          includedImpacts: ['critical', 'serious'],
+        },
+        terminalLog
+      )
+    })
+  })
+})
+
+describe('FRA pages accessibility', () => {
+  const fraPages = [{ name: 'FRA Data Files', path: '/fra-data-files' }]
+
+  before(() => {
+    loginAsFRADataAnalystFred()
+  })
+
+  fraPages.forEach((page) => {
+    it(`has no serious accessibility violations on ${page.name}`, () => {
+      cy.visit(page.path)
       cy.url().should('include', page.path)
       cy.get('h1').first().should('exist')
 

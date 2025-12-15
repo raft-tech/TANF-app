@@ -20,6 +20,22 @@ function terminalLog(violations) {
   )
 
   cy.task('table', violationData)
+
+  // Log selectors + snippets for debugging when failures occur
+  violations.forEach((violation) => {
+    cy.task(
+      'log',
+      `Violation: ${violation.id} (${violation.impact}) – ${violation.description}`
+    )
+
+    violation.nodes.forEach((node, index) => {
+      cy.task(
+        'log',
+        `  Node ${index + 1} targets: ${node.target.join(', ')}`
+      )
+      cy.task('log', `  HTML: ${node.html}`)
+    })
+  })
 }
 
 /**
