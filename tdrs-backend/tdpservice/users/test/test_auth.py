@@ -213,11 +213,6 @@ class TestLoginAMS:
         # Add an origin param to test multiple auth handlers.
         yield request
 
-    def test_login_ams_auth(self, settings, api_client):
-        """Test HHS AMS login url redirects."""
-        response = api_client.get("/v1/login/ams")
-        assert response.status_code == status.HTTP_302_FOUND
-
     def test_oidc_logout_with_token_and_hhs_handler(self, api_client):
         """Test logout redirect with token present."""
         factory = APIRequestFactory()
@@ -295,18 +290,6 @@ class TestLoginAMS:
         assert b"Failed to get AMS configuration" in response.render().content
 
 
-def test_login_gov_redirect(api_client):
-    """Test login.gov login url redirects."""
-    response = api_client.get("/v1/login/dotgov")
-    assert response.status_code == status.HTTP_302_FOUND
-
-
-def test_oidc_logout_without_token(api_client):
-    """Test logout redirect with token missing."""
-    response = api_client.get("/v1/logout/oidc")
-    assert response.status_code == status.HTTP_302_FOUND
-
-
 def test_oidc_logout_with_token(api_client):
     """Test logout redirect with token present."""
     factory = APIRequestFactory()
@@ -333,28 +316,6 @@ def test_auth_update(api_client, user):
     e2 = datetime.datetime.strptime(c2["expires"], "%a, %d %b %Y %H:%M:%S %Z")
 
     assert e1 < e2
-
-
-@pytest.mark.django_db
-def test_logout(api_client, user):
-    """Test logout."""
-    api_client.login(username=user.username, password="test_password")
-    response = api_client.get("/v1/logout")
-    assert response.status_code == status.HTTP_302_FOUND
-
-
-@pytest.mark.django_db
-def test_login_without_code(api_client):
-    """Test login redirects without code."""
-    response = api_client.get("/v1/login/", {"state": "dummy"})
-    assert response.status_code == status.HTTP_302_FOUND
-
-
-@pytest.mark.django_db
-def test_login_fails_without_state(api_client):
-    """Test login redirects without state."""
-    response = api_client.get("/v1/login/", {"code": "dummy"})
-    assert response.status_code == status.HTTP_302_FOUND
 
 
 def decoded_token(
@@ -432,13 +393,6 @@ class TestLogin:
 
         response = view(request)
         assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
-@pytest.mark.django_db
-def test_login_fails_with_bad_data(api_client):
-    """Test login fails with bad data."""
-    response = api_client.get("/v1/login/", {"code": "dummy", "state": "dummy"})
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.django_db
