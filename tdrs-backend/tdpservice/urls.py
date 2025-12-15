@@ -5,7 +5,7 @@ import os
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseRedirect
 from django.urls import include, path, re_path
 
 from drf_yasg import openapi
@@ -22,8 +22,18 @@ from .core.views import write_logs
 from .users.api.authorization_check import AuthorizationCheck, PlgAuthorizationCheck
 from .users.api.login import CypressLoginDotGovAuthenticationOverride
 
+
+def admin_login_redirect(request, extra_context=None):
+    """Redirect unauthenticated or unauthorized admin users to frontend home page."""
+    if request.user.is_authenticated and request.user.is_staff:
+        # User is authenticated and has admin access
+        return HttpResponseRedirect("/admin/")
+    # Redirect to frontend home page (unauthenticated or lacks admin access)
+    return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
+
+
 admin.autodiscover()
-admin.site.login = login_required(admin.site.login)
+admin.site.login = admin_login_redirect
 admin.site.site_header = "Django administration"
 
 
