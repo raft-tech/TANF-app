@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
 
-import { ACTORS, clearCookies } from '../common-steps/common-steps'
+import { loginAsDataAnalystStefani } from './login-helpers'
 
 function terminalLog(violations) {
   cy.task(
@@ -36,20 +36,6 @@ function terminalLog(violations) {
       cy.task('log', `  HTML: ${node.html}`)
     })
   })
-}
-
-/**
- * Log in once as Data Analyst Stefani, like the Cucumber `{string} logs in` step.
- */
-const loginAsDataAnalystStefani = () => {
-  clearCookies()
-
-  cy.visit('/')
-  cy.adminLogin('cypress-admin-alex@teamraft.com')
-
-  const username = ACTORS['Data Analyst Stefani'].username
-  cy.contains('Sign into TANF Data Portal', { timeout: 30000 })
-  cy.login(username)
 }
 
 /* ───────────── Profile flow accessibility ───────────── */

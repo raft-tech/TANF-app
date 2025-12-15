@@ -1,6 +1,7 @@
 /// <reference types="cypress" />
 
 import { ACTORS, clearCookies } from '../common-steps/common-steps'
+import { loginAsDataAnalystStefani } from './login-helpers'
 
 function terminalLog(violations) {
   // existing summary
@@ -39,26 +40,6 @@ function terminalLog(violations) {
   })
 }
 
-
-/**
- * Helper: log in once as a known user.
- * This is essentially what the Cucumber step `{string} logs in` does,
- * but hard-coded to "Data Analyst Tim".
- */
-const loginAsDataAnalystStefani = () => {
-  clearCookies()
-
-  // Prepare admin context (like the Given step does),
-  // so account status is in a good state if needed.
-  cy.visit('/')
-  cy.adminLogin('cypress-admin-alex@teamraft.com')
-
-  //cy.contains('Sign into TANF Data Portal', { timeout: 30000 })
-
-  // Now log in as a portal user
-  const username = ACTORS['Data Analyst Stefani'].username
-  cy.login(username)
-}
 
 const loginAsFRADataAnalystFred = () => {
   clearCookies()
