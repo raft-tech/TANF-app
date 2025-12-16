@@ -15,7 +15,7 @@ This memo proposes a refactor of the **parsing** and **reparsing** pipelines in 
 - **Testability:** A service with clear inputs/outputs can be unit-tested without Celery, making it easier to cover both happy paths and failure modes. Reparsing can reuse the same entry point with explicit context.
 - **Extensibility:** A factory-driven, class-based parser plus decoder abstraction makes it straightforward to add file types (e.g., new CSV/XLSX variants) or program types without rewriting orchestration. SchemaManager and decoders become the main extension points.
 - **Operational clarity:** With the submission state machine and centralized transitions, operators and users see consistent states (e.g., `parsing`, `parsed_with_errors`, `ingest_failed`) instead of implicit flags scattered across models.
-- **Safer reparsing:** Consolidating reparse behavior (backups, deletions, status updates) through the same service and state transitions improves idempotency, makes resume/rollback safer, and keeps `ReparseMeta`/`ReparseFileMeta` in sync.
+- **Safer reparsing:** Consolidating reparse behavior (backups, deletions, status updates) through a dedicated reparse service and shared state transitions improves idempotency, makes resume/rollback safer, and keeps `ReparseMeta`/`ReparseFileMeta` in sync.
 - **Observability:** Centralized logging and optional metrics around a single service boundary make it easier to trace a file’s journey, correlate errors, and measure performance (parse durations, error counts).
 
 The recommendations are based on the current implementation in:
@@ -133,18 +133,16 @@ From a maintainability and performance perspective, several issues stand out:
 - Today, these concerns are embedded in the reparse utilities and Celery task without a single place to tune or monitor the pipeline behavior.
 
 
-## 4. Proposed Refactor: Parsing & Reparsing as a Unified Service
+## 4. Proposed Refactor: Single-File Parsing Service + Reparse Orchestration Service
 
-The core idea is to **centralize parsing behavior** in a small, well-defined service layer and let:
+The core idea is to have a **single-file parsing service** that owns all parsing side effects for one `DataFile`, and a **reparse orchestration service** that manages reparse runs and delegates per-file work to the parsing service. This keeps SRP and makes the hierarchy explicit:
 
-- The Celery task (`parse_data_file`)
-- The reparse orchestration (`clean_and_reparse` command / function)
-- Any future “parse this file now” triggers
-
-…all call the **same service** with different context (e.g., initial parse vs reparse run).
+- The Celery task (`parse_data_file`) only wires arguments/logging and calls the parsing service.
+- The reparse service manages `ReparseMeta` / `ReparseFileMeta` lifecycle and calls the parsing service for each file in a reparse run.
+- No other caller should reach directly into parser classes or touch reparse metadata.
 
 
-### 4.1 Introduce a `ParsingService`
+### 4.1 Introduce a `ParsingService` (single file only)
 
 Create a new module, for example:
 
@@ -159,7 +157,7 @@ class ParsingService:
         self.logger = logger
         self.now_fn = now_fn
 
-    def parse_data_file(self, data_file_id: int, *, reparse_meta: ReparseMeta | None = None) -> None:
+    def parse_data_file(self, data_file_id: int) -> DataFileSummary:
         """
         Orchestrate the full lifecycle for parsing a single DataFile.
 
@@ -168,8 +166,7 @@ class ParsingService:
         - Invoke parser.parse_and_validate()
         - Update DataFileSummary / DataFile status
         - Generate error report
-        - If reparse_meta is provided, update/attach ReparseFileMeta
-        - Log outcome
+        - Return the refreshed DataFileSummary (no awareness of reparse metadata)
         """
 ```
 
@@ -190,55 +187,23 @@ Example (conceptually):
 def parse_data_file(self, data_file_id: int, reparse_id: int | None = None):
     logger = get_task_logger(__name__)
     service = ParsingService(logger=logger)
-
-    reparse_meta = None
-    if reparse_id is not None:
-        reparse_meta = ReparseMeta.objects.get(pk=reparse_id)
-
-    service.parse_data_file(data_file_id, reparse_meta=reparse_meta)
+    service.parse_data_file(data_file_id)
 ```
 
 This keeps Celery wiring and logging but moves domain logic into the service.
 
 
-### 4.3 Refactor reparsing orchestration to call the same service
+### 4.3 Introduce a `ReparseService` (orchestration + metadata)
 
 Refactor `tdpservice/search_indexes/reparse.py` and `search_indexes/utils.py` so that they:
 
-1. Determine **which DataFiles** should be reparsed (by fiscal year, quarter, program type, STT, etc.)
-2. Perform backup operations (if needed)
-3. Clean out associated records (ParserError, summaries, index rows) in a coherent, batched way
-4. For each file, create/update `ReparseFileMeta`
-5. Schedule the Celery task **without duplicating parsing logic**
+1. Determine **which DataFiles** should be reparsed (by fiscal year, quarter, program type, STT, etc.).
+2. Perform backup operations (if needed).
+3. Clean out associated records (ParserError, summaries, index rows) in a coherent, batched way.
+4. For each file, create/update `ReparseFileMeta`, then invoke `ParsingService.parse_data_file(...)`.
+5. Aggregate per-file outcomes back into `ReparseMeta` (finished, success, counts).
 
-The Celery task, in turn, always calls `ParsingService`. This ensures:
-
-- All parsing behavior (record counts, error report generation, DataFile status transitions) is implemented in one place.
-- Changes to parser behavior automatically apply to both initial parsing and reparsing.
-
-
-### 4.4 Centralize ReparseMeta / ReparseFileMeta state transitions
-
-Move logic that mutates `ReparseMeta` / `ReparseFileMeta` into:
-
-- Methods on `ParsingService`, or
-- Small helper functions that are **only** called by `ParsingService` and the reparse orchestration.
-
-For example:
-
-```python
-class ParsingService:
-    ...
-
-    def _start_reparse_file(self, data_file: DataFile, reparse_meta: ReparseMeta) -> ReparseFileMeta:
-        ...
-
-    def _finish_reparse_file_success(self, file_meta: ReparseFileMeta, dfs: DataFileSummary) -> None:
-        ...
-
-    def _finish_reparse_file_failure(self, file_meta: ReparseFileMeta, exc: Exception) -> None:
-        ...
-```
+`ReparseService` owns all `ReparseMeta` / `ReparseFileMeta` transitions; `ParsingService` stays focused on parsing a single file.
 
 This makes state transitions explicit and easier to test, and avoids scattering them between the Celery task and reparse utilities.
 
@@ -280,7 +245,7 @@ To de-risk the refactor, implement in small, incremental steps:
 - Refactor `search_indexes/reparse.py` and `search_indexes/utils.py` so that they:
   - Only perform backup + selection + deletion + Celey scheduling
   - Never run parsing logic directly
-- Ensure that `ReparseMeta` / `ReparseFileMeta` updates are driven by `ParsingService` and not by ad-hoc logic outside the service.
+- Ensure that `ReparseMeta` / `ReparseFileMeta` updates are driven by `ReparseService` and not by ad-hoc logic outside the service.
 
 
 ### Phase 4 – Clean up and harden
@@ -316,7 +281,7 @@ To de-risk the refactor, implement in small, incremental steps:
 
 1. Create tickets for:
    - Introducing `ParsingService` and refactoring the Celery task to use it
-   - Refactoring reparse orchestration to depend on `ParsingService`
+   - Adding `ReparseService` and refactoring reparse orchestration to depend on it (while delegating per-file parsing to `ParsingService`)
    - Adding tests and observability around the unified parsing pipeline
 2. Implement Phase 2 first (service extraction) with strict “no behavior change” to build confidence.
 3. Once stable in staging, implement the reparse refactor and validate on a controlled subset of files.
@@ -416,7 +381,7 @@ Create a dedicated service class (`ParsingService`) that encapsulates the full l
 
 **Add a new module**, e.g. `tdpservice/parsers/service.py`, with a class:
 
-- `ParsingService.parse_data_file(data_file_id: int, reparse_meta: ReparseMeta | None = None)`
+- `ParsingService.parse_data_file(data_file_id: int)`
   - Accept optional hooks for logging/metrics injection.
   - Return a simple result DTO (statuses, counts) for testing.
 
@@ -426,14 +391,12 @@ Create a dedicated service class (`ParsingService`) that encapsulates the full l
 - Creating `ParserFactory` instance and invoking `parser.parse_and_validate()`
 - Updating `DataFileSummary` and `DataFile` status
 - Generating error reports via `ErrorReportFactory`
-- Handling `ReparseFileMeta` when `reparse_meta` is present
 - Logging relevant events
 - Preserve retry behavior / error handling semantics (exceptions vs. swallowed errors).
 - Keep email/notification behavior intact.
 
 **Refactor `parse_data_file` Celery task to:**
 
-- Resolve `ReparseMeta` from `reparse_id` (if provided)
 - Instantiate `ParsingService` and call `parse_data_file(...)`
 - Not make intentional behavior changes (same side effects, same status transitions).
 
@@ -452,13 +415,13 @@ Create a dedicated service class (`ParsingService`) that encapsulates the full l
 
 ---
 
-## Ticket 3 – Refactor reparse orchestration to depend on `ParsingService`
+## Ticket 3 – Add `ReparseService` and refactor orchestration to use it
 
 ### Title
-Refactor reparse orchestration to use ParsingService for all reparses
+Add ReparseService that owns reparse orchestration and delegates to ParsingService
 
 ### Description
-Update the reparsing pipeline so that all actual parsing work for reparsed files goes through the new `ParsingService`. Reparse orchestration should focus on which files to process and on backup/cleanup, not on parsing internals.
+Introduce a dedicated `ReparseService` that owns `ReparseMeta` / `ReparseFileMeta` lifecycle, backup/cleanup, and file selection, and delegates the actual parsing of each file to `ParsingService`. Reparse orchestration should focus on “which files and with what metadata”, not on parsing internals.
 
 ### Scope
 
@@ -468,22 +431,22 @@ In `tdpservice/search_indexes/reparse.py` and `search_indexes/utils.py`:
   - Computes which `DataFile` instances to reparse (FY, quarter, STT, program type, etc.).
   - Performs backup (`backup(...)`).
   - Deletes associated records (`delete_associated_models(...)`).
-  - Creates or updates `ReparseMeta`.
+  - Creates or updates `ReparseMeta` (inside `ReparseService`).
 
 - **Ensure that for each selected `DataFile`:**
-  - A `ReparseFileMeta` is created or updated as appropriate.
-  - The Celery `parse_data_file` task is scheduled without any duplicated parsing logic.
+  - A `ReparseFileMeta` is created or updated inside `ReparseService`.
+  - `ReparseService` invokes `ParsingService.parse_data_file(...)` (or schedules the Celery task to do so) without duplicating parsing logic.
 
 - **Remove or consolidate** any parsing-like logic from reparse utilities that overlaps with what `ParsingService` now does.
 
-- Make sure `ReparseFileMeta` transitions (finished/success, counts) are driven from the service or a single helper, not scattered.
+- Make sure `ReparseFileMeta` transitions (finished/success, counts) are driven from `ReparseService` or a single helper, not scattered.
 - Add guardrails: skip/mark failed if backup or deletion fails; do not silently continue.
 - Add optional dry-run flag to reparse orchestration to list candidate files without executing.
 
 ### Acceptance Criteria
 
 - Reparsing a small set of files (in a test or local environment) produces the same `ReparseMeta` / `ReparseFileMeta` outcomes as before.
-- No module outside of `ParsingService` and the Celery task directly invokes parser classes for reparsing.
+- No module outside of `ReparseService`, `ParsingService`, and the Celery task directly invokes parser classes for reparsing.
 - Logs for a reparse run clearly show:
   - backup + deletion steps,
   - scheduling of files,
@@ -499,7 +462,7 @@ In `tdpservice/search_indexes/reparse.py` and `search_indexes/utils.py`:
 Centralize state transitions for ReparseMeta and ReparseFileMeta
 
 ### Description
-Move all logic that mutates `ReparseMeta` and `ReparseFileMeta` into one cohesive place (inside `ParsingService` or dedicated helpers) so their lifecycle is explicit, testable, and easier to reason about.
+Move all logic that mutates `ReparseMeta` and `ReparseFileMeta` into one cohesive place (inside `ReparseService` or dedicated helpers it owns) so their lifecycle is explicit, testable, and easier to reason about.
 
 ### Scope
 
@@ -520,11 +483,11 @@ Move all logic that mutates `ReparseMeta` and `ReparseFileMeta` into one cohesiv
 
 **Introduce helper methods, e.g.:**
 
-- `ParsingService._start_reparse_file(...)`
-- `ParsingService._finish_reparse_file_success(...)`
-- `ParsingService._finish_reparse_file_failure(...)`
+- `ReparseService._start_reparse_file(...)`
+- `ReparseService._finish_reparse_file_success(...)`
+- `ReparseService._finish_reparse_file_failure(...)`
 
-**Ensure all existing callers** (Celery task, reparse utilities) use these helpers instead of mutating models directly.
+**Ensure all existing callers** (Celery task, reparse utilities, ParsingService callbacks) use these helpers instead of mutating models directly.
 
 Make sure state transitions support “resume” semantics where possible (e.g., if a reparse run is partially complete).
 - Add simple transition validation (e.g., prevent finishing twice) and log when transitions are no-ops due to current state.

@@ -3,8 +3,13 @@
 ## Purpose
 Define and enforce a clear lifecycle for uploaded files so parsing, ingest, and triage share a consistent contract. This is a precursor to the parser refactor to avoid churn and make status handling predictable.
 
+## Why a state machine (and what it adds)
+- **Guardrails for future changes:** Even though end users cannot alter parsing, developers can. An explicit transition map prevents drift when we add steps (AV scan, ingest retries, change requests) or touch the parser/reparser code paths. Instead of silently landing in an inconsistent state, we fail fast on illegal transitions.
+- **Durable, user-visible lifecycle:** `DataFileSummary` is per-parse and can be deleted/recreated during reparses. `DataFile.state` is a durable record of the submission lifecycle (upload → scan → parse → ingest) that survives reparses and exists even before a summary is created.
+- **Better triage and alerts:** Granular states (e.g., virus_scanning vs parsing vs ingesting) make it obvious where a file stalled without scraping logs. They enable targeted alerts (e.g., “stuck in parsing > 15m”) and safer retries (restart ingest only).
+
 ## States
-`uploaded` → `virus_scanning` → (`scan_failed` | `validated`) → `parsing` → (`parsed_with_errors` | `parsed_clean`) → `ingesting` → (`ingest_failed` | `completed`). Any active state can transition to `canceled`.
+`uploaded` → `virus_scanning` → (`scan_failed` | `validated`) → `parsing` → (`parsed_with_errors` | `parsed_clean`) → `ingesting` → (`ingest_failed` | `completed`). Any active state can transition to `canceled`. A file that exceeds time thresholds in an active state is marked `stuck` (and may later be escalated to `failed` by policy).
 
 ## Allowed transitions (code sketch)
 ```python
@@ -22,6 +27,7 @@ class SubmissionState(str, Enum):
     PARSED_CLEAN = "parsed_clean"
     INGESTING = "ingesting"
     INGEST_FAILED = "ingest_failed"
+    STUCK = "stuck"
     COMPLETED = "completed"
     CANCELED = "canceled"
 
@@ -46,7 +52,8 @@ ALLOWED_TRANSITIONS: Dict[SubmissionState, Iterable[SubmissionState]] = {
         SubmissionState.COMPLETED,
         SubmissionState.CANCELED,
     },
-    SubmissionState.INGEST_FAILED: {SubmissionState.CANCELED},
+    SubmissionState.INGEST_FAILED: {SubmissionState.CANCELED, SubmissionState.STUCK},
+    SubmissionState.STUCK: {SubmissionState.CANCELED},
     SubmissionState.COMPLETED: set(),
     SubmissionState.CANCELED: set(),
 }
@@ -113,6 +120,23 @@ def transition_datafile(data_file: DataFile, next_state: SubmissionState, note: 
         data_file.state = lifecycle.state.value
         data_file.save(update_fields=["state"])
         # Optionally persist history to an audit table
+
+def mark_stuck_if_overdue(data_file: DataFile, thresholds: dict[SubmissionState, int]):
+    """
+    thresholds: map of state -> seconds before we consider it stuck
+    Uses data_file.state_last_updated (or updated_at if we reuse that field).
+    """
+    current_state = SubmissionState(data_file.state)
+    if current_state in {SubmissionState.COMPLETED, SubmissionState.CANCELED, SubmissionState.STUCK}:
+        return False
+    limit = thresholds.get(current_state)
+    if not limit:
+        return False
+    elapsed = (timezone.now() - data_file.state_last_updated).total_seconds()
+    if elapsed > limit:
+        transition_datafile(data_file, SubmissionState.STUCK, f"stuck in {current_state} for {elapsed}s")
+        return True
+    return False
 ```
 
 ## Guardrails and rollout
@@ -121,6 +145,7 @@ def transition_datafile(data_file: DataFile, next_state: SubmissionState, note: 
 - Log every transition with correlation IDs (data_file_id, reparse_id) and optional audit trail.
 - Feature flag initial enforcement to allow rollback.
 - Provide a migration to set a default state for existing `DataFile` rows.
+- Add a periodic watchdog (management command or Celery beat task) that checks active files against per-state SLA thresholds and moves them to `stuck` (or `ingest_failed` if policy dictates), emitting an alert/log when this happens.
 
 ## Implementation Tickets (small, incremental)
 1. **Add state enum + migration**  
