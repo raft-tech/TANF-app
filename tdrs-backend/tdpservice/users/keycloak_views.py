@@ -1,4 +1,4 @@
-"""Views for OIDC Keycloak integration"""
+"""Views for OIDC Keycloak integration."""
 
 from django.conf import settings
 
@@ -32,7 +32,7 @@ class AcfAmsKeycloakAuthView(OIDCAuthenticationRequestView):
 
 
 def logout_url(request):
-    """Returns the Keycloak logout URL with appropriate kc_idp_hint for the user."""
+    """Return the Keycloak logout URL with kc_idp_hint."""
     base_logout_url = settings.OIDC_OP_LOGOUT_ENDPOINT
 
     id_token = request.session.get("oidc_id_token", "")

@@ -1,3 +1,5 @@
+"""Test Keycloak Views."""
+
 from django.urls import reverse
 
 import pytest
@@ -5,6 +7,8 @@ import pytest
 
 @pytest.mark.django_db
 class TestKeycloakViews:
+    """Test Keycloak Views."""
+
     def test_login_gov_flow_initiation(self, client, settings):
         """Test that accessing the Login.gov Keycloak auth view initiates the OIDC flow correctly."""
         response = client.get(reverse("keycloak_login_gov"))
@@ -12,9 +16,9 @@ class TestKeycloakViews:
         assert response.status_code == 302
         redirect_location = response["Location"]
 
-        assert f"kc_idp_hint=login-gov" in redirect_location
+        assert "kc_idp_hint=login-gov" in redirect_location
         assert (
-            f"acr_values=http%3A%2F%2Fidmanagement.gov%2Fns%2Fassurance%2Fial%2F1"
+            "acr_values=http%3A%2F%2Fidmanagement.gov%2Fns%2Fassurance%2Fial%2F1"
             in redirect_location
         )
         assert f"client_id={settings.OIDC_RP_CLIENT_ID}" in redirect_location
@@ -34,9 +38,9 @@ class TestKeycloakViews:
         assert response.status_code == 302
         redirect_location = response["Location"]
 
-        assert f"kc_idp_hint=acf-ams" in redirect_location
-        assert f"acr_values=" not in redirect_location
-        assert f"client_id={settings.OIDC_RP_CLIENT_ID}" in redirect_location
+        assert "kc_idp_hint=acf-ams" in redirect_location
+        assert "acr_values=" not in redirect_location
+        assert "client_id={settings.OIDC_RP_CLIENT_ID}" in redirect_location
         assert "response_type=code" in redirect_location
         assert "scope=openid+profile+email" in redirect_location
         assert "state=" in redirect_location
