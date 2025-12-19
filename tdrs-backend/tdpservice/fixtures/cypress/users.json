@@ -29,6 +29,198 @@
     },
     {
         "model": "users.user",
+        "pk": "3c2d54c8-cc6c-4bf9-9d26-4d3f6c20f6a1",
+        "fields": {
+            "password": "",
+            "last_login": null,
+            "is_superuser": false,
+            "username": "cypress-data-analyst-dana@teamraft.com",
+            "first_name": "Data Analyst",
+            "last_name": "Dana",
+            "email": "cypress-data-analyst-dana@teamraft.com",
+            "is_staff": false,
+            "is_active": true,
+            "date_joined": "2025-08-05T20:54:21.381Z",
+            "stt": 6,
+            "login_gov_uuid": null,
+            "hhs_id": null,
+            "account_approval_status": "Access request",
+            "access_requested_date": "2025-08-05T21:06:10Z",
+            "feature_flags": {},
+            "groups": [
+                [
+                    "Data Analyst"
+                ]
+            ],
+            "user_permissions": []
+        }
+    },
+    {
+        "model": "users.user",
+        "pk": "af68bb5b-b7fc-42f6-8e0b-0b24a87e6f2c",
+        "fields": {
+            "password": "",
+            "last_login": null,
+            "is_superuser": false,
+            "username": "cypress-data-analyst-donna@teamraft.com",
+            "first_name": "Data Analyst",
+            "last_name": "Donna",
+            "email": "cypress-data-analyst-donna@teamraft.com",
+            "is_staff": false,
+            "is_active": true,
+            "date_joined": "2025-08-05T20:54:21.381Z",
+            "stt": 7,
+            "login_gov_uuid": null,
+            "hhs_id": null,
+            "account_approval_status": "Approved",
+            "access_requested_date": "2025-08-05T21:06:10Z",
+            "feature_flags": {},
+            "groups": [
+                [
+                    "Data Analyst"
+                ]
+            ],
+            "user_permissions": []
+        }
+    },
+    {
+        "model": "users.user",
+        "pk": "f3c7c3ab-3058-4dd5-8a3e-0f9d0a5b1d0f",
+        "fields": {
+            "password": "",
+            "last_login": null,
+            "is_superuser": false,
+            "username": "cypress-fra-data-analyst-derek@teamraft.com",
+            "first_name": "FRA Data Analyst",
+            "last_name": "Derek",
+            "email": "cypress-fra-data-analyst-derek@teamraft.com",
+            "is_staff": false,
+            "is_active": true,
+            "date_joined": "2025-08-05T20:54:21.381Z",
+            "stt": 5,
+            "login_gov_uuid": null,
+            "hhs_id": null,
+            "account_approval_status": "Access request",
+            "access_requested_date": "2025-08-05T21:06:10Z",
+            "feature_flags": {},
+            "groups": [
+                [
+                    "Data Analyst"
+                ]
+            ],
+            "user_permissions": [
+                [
+                    "has_fra_access",
+                    "users",
+                    "user"
+                ]
+            ]
+        }
+    },
+    {
+        "model": "users.user",
+        "pk": "e27f2700-9fa3-4e2c-8a5c-9c7f937df1d4",
+        "fields": {
+            "password": "",
+            "last_login": null,
+            "is_superuser": false,
+            "username": "cypress-fra-ofa-regional-staff-rachel@acf.hhs.gov",
+            "first_name": "FRA OFA Regional Staff",
+            "last_name": "Rachel",
+            "email": "cypress-fra-ofa-regional-staff-rachel@acf.hhs.gov",
+            "is_staff": false,
+            "is_active": true,
+            "date_joined": "2025-08-05T20:54:21.381Z",
+            "stt": null,
+            "login_gov_uuid": null,
+            "hhs_id": null,
+            "account_approval_status": "Access request",
+            "access_requested_date": "2025-08-05T21:06:10Z",
+            "feature_flags": {},
+            "groups": [
+                [
+                    "OFA Regional Staff"
+                ]
+            ],
+            "user_permissions": [
+                [
+                    "has_fra_access",
+                    "users",
+                    "user"
+                ]
+            ]
+        }
+    },
+    {
+        "model": "users.user",
+        "pk": "9cbb5a7b-4b1b-4fc5-a9b0-6a3d492c7f6d",
+        "fields": {
+            "password": "",
+            "last_login": null,
+            "is_superuser": false,
+            "username": "cypress-fra-ofa-regional-staff-robert@acf.hhs.gov",
+            "first_name": "FRA OFA Regional Staff",
+            "last_name": "Robert",
+            "email": "cypress-fra-ofa-regional-staff-robert@acf.hhs.gov",
+            "is_staff": false,
+            "is_active": true,
+            "date_joined": "2025-08-05T20:54:21.381Z",
+            "stt": null,
+            "login_gov_uuid": null,
+            "hhs_id": null,
+            "account_approval_status": "Approved",
+            "access_requested_date": "2025-08-05T21:06:10Z",
+            "feature_flags": {},
+            "groups": [
+                [
+                    "OFA Regional Staff"
+                ]
+            ],
+            "user_permissions": [
+                [
+                    "has_fra_access",
+                    "users",
+                    "user"
+                ]
+            ]
+        }
+    },
+    {
+        "model": "users.user",
+        "pk": "7b7c4778-17e4-49a1-83b8-0e6a962972f9",
+        "fields": {
+            "password": "",
+            "last_login": null,
+            "is_superuser": false,
+            "username": "cypress-fra-data-analyst-david@teamraft.com",
+            "first_name": "FRA Data Analyst",
+            "last_name": "David",
+            "email": "cypress-fra-data-analyst-david@teamraft.com",
+            "is_staff": false,
+            "is_active": true,
+            "date_joined": "2025-08-05T20:54:21.381Z",
+            "stt": 5,
+            "login_gov_uuid": null,
+            "hhs_id": null,
+            "account_approval_status": "Approved",
+            "access_requested_date": "2025-08-05T21:06:10Z",
+            "feature_flags": {},
+            "groups": [
+                [
+                    "Data Analyst"
+                ]
+            ],
+            "user_permissions": [
+                [
+                    "has_fra_access",
+                    "users",
+                    "user"
+                ]
+            ]
+        }
+    },
+    {
+        "model": "users.user",
         "pk": "4e386005-4ccc-47b2-ba78-fa4fa28a7f60",
         "fields": {
             "password": "",
@@ -559,6 +751,38 @@
                 ]
             ],
             "user_permissions": []
+        }
+    },
+    {
+        "model": "users.regionmeta",
+        "pk": 2001,
+        "fields": {
+            "user": "e27f2700-9fa3-4e2c-8a5c-9c7f937df1d4",
+            "region": 5
+        }
+    },
+    {
+        "model": "users.regionmeta",
+        "pk": 2002,
+        "fields": {
+            "user": "e27f2700-9fa3-4e2c-8a5c-9c7f937df1d4",
+            "region": 3
+        }
+    },
+    {
+        "model": "users.regionmeta",
+        "pk": 2003,
+        "fields": {
+            "user": "9cbb5a7b-4b1b-4fc5-a9b0-6a3d492c7f6d",
+            "region": 5
+        }
+    },
+    {
+        "model": "users.regionmeta",
+        "pk": 2004,
+        "fields": {
+            "user": "9cbb5a7b-4b1b-4fc5-a9b0-6a3d492c7f6d",
+            "region": 3
         }
     }
 ]
