@@ -560,37 +560,5 @@
             ],
             "user_permissions": []
         }
-    },
-    {
-        "model": "users.regionmeta",
-        "pk": 2001,
-        "fields": {
-            "user": "e27f2700-9fa3-4e2c-8a5c-9c7f937df1d4",
-            "region": 5
-        }
-    },
-    {
-        "model": "users.regionmeta",
-        "pk": 2002,
-        "fields": {
-            "user": "e27f2700-9fa3-4e2c-8a5c-9c7f937df1d4",
-            "region": 3
-        }
-    },
-    {
-        "model": "users.regionmeta",
-        "pk": 2003,
-        "fields": {
-            "user": "9cbb5a7b-4b1b-4fc5-a9b0-6a3d492c7f6d",
-            "region": 5
-        }
-    },
-    {
-        "model": "users.regionmeta",
-        "pk": 2004,
-        "fields": {
-            "user": "9cbb5a7b-4b1b-4fc5-a9b0-6a3d492c7f6d",
-            "region": 3
-        }
     }
 ]
