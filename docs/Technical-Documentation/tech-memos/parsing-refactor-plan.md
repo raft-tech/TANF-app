@@ -251,9 +251,37 @@ To de-risk the refactor, implement in small, incremental steps:
 ### Phase 4 – Clean up and harden
 
 - Remove now-dead code paths or duplicated logic.
-- Add better failure handling and idempotency guarantees for reparse runs:
-  - Safe retry behavior if a Celery worker crashes mid-run
-  - Clear reporting of which files succeeded/failed in `ReparseMeta`
+- Add better failure handling and idempotency guarantees for reparse runs.
+
+#### Phase 4 – Reparse hardening checklist (explicit requirements)
+
+- **Separate batch vs single-file logic**
+  - `ParsingService` owns exactly one `DataFile` parse end-to-end.
+  - `ReparseService` owns reparse orchestration for *N files* and is the only place that updates `ReparseMeta` / `ReparseFileMeta`.
+- **Idempotent reparse runs**
+  - Define what happens if the same reparse is triggered twice (default: skip finished files; optional: force-restart with a new attempt id).
+  - Ensure a reparse run does not double-create or double-count `DataFileSummary`, `ParserError`, or error reports.
+- **Explicit reparse attempt tracking**
+  - Record an `attempt` number (or `run_id`) per `DataFile` within a reparse so we can distinguish first-run vs retry outputs.
+  - Avoid overwriting debugging signals (timestamps, success/failure) without keeping attempt history.
+- **Batch progress aggregation**
+  - Store or compute counts by child state: `pending`, `in_progress`, `succeeded`, `failed`, `stuck`, `canceled`.
+  - Provide a derived overall reparse status for admin visibility and logs (with explicit precedence rules).
+- **Better failure handling**
+  - Decide policy for partial failures (recommended: continue processing remaining files; batch completes with failures).
+  - Persist failure context on file meta (stage, exception type/message) and surface a summarized view on the reparse meta.
+- **Stuck detection + recovery**
+  - Track `started_at` and a “last progress” timestamp per file (e.g., `last_state_change_at` / `heartbeat_at`).
+  - If a file remains in an active stage past a threshold, mark it `stuck` and provide a clear operator action (retry, fail, or cancel).
+- **Concurrency controls**
+  - Prevent two reparses from processing the same `DataFile` concurrently (DB guard/locking or explicit “in progress” ownership).
+  - Optional: chunk large reparses to avoid overwhelming workers and to improve progress reporting.
+- **Make side effects configurable**
+  - Allow `ReparseService` to control whether to send submission emails and whether/when to regenerate error reports.
+  - Default behavior: do not send “data submitted” emails for reparses unless explicitly requested.
+- **Transactional boundaries**
+  - Ensure per-file “start” and “finish” updates are atomic and durable even if a worker crashes mid-run.
+  - Prefer explicit transactions around metadata updates so reparse progress cannot end up partially written.
 - Add regression tests for:
   - Incremental reparsing (subset of files, STT-specific)
   - Large batches (e.g., dozens/hundreds of files)
