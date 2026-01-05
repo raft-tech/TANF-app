@@ -22,7 +22,6 @@ services:
       - GRAFANA=grafana
       - ALERTS=alertmanager
       - FARO_RECEIVER=alloy
-      - REACT_APP_DEVAUTH=${REACT_APP_DEVAUTH}
     command: >
       /bin/sh -c
       "echo 'starting nginx' &&
