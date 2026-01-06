@@ -170,6 +170,8 @@ Then(
       const programPrefix =
         program === 'TANF'
           ? 'TANF'
+          : program === 'FRA'
+          ? 'FRA'
           : program === 'SSP'
           ? 'SSP'
           : program === 'Tribal' || program === 'TRIBAL'
