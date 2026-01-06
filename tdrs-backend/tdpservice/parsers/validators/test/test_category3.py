@@ -509,8 +509,7 @@ def test_work_eligible_indicator_allows_five():
     """Ensure WORK_ELIGIBLE_INDICATOR validator accepts value 5 (SSP M2 change)."""
     _validator = category3.orValidators(
         [
-            category3.isBetween(1, 5, inclusive=True),
-            category3.isBetween(6, 9, inclusive=True),
+            category3.isBetween(1, 9, inclusive=True),
             category3.isBetween(11, 12, inclusive=True),
         ]
     )
