@@ -623,11 +623,10 @@ const FRAReportsContent = () => {
     onSubmitStart()
 
     const onFileUploadSuccess = (datafile) => {
-      setFraSelectedFile({
-        name: selectedFile.name,
-        fileName: selectedFile.name,
-        id: datafile.id,
-      })
+      // Clear the upload panel after a successful submission; the record will be
+      // visible/trackable in Submission History.
+      setFraSelectedFile(null)
+      setFraUploadError(null)
       setLocalAlertState({
         active: true,
         type: 'success',
