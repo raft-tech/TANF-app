@@ -46,6 +46,7 @@ function STTComboBox({
     sttListRequest.loading,
     numTries,
     reachedMaxTries,
+    sttListRequest,
   ])
 
   const onSignOut = () => {
