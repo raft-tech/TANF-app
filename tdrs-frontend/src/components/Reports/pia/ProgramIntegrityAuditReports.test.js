@@ -48,7 +48,9 @@ describe('ProgramIntegrityAuditReports', () => {
       <ProgramIntegrityAuditReports stt={stt} isRegionalStaff={false} />
     )
 
-    expect(getByText(/Program Integrity Audit - Fiscal Year 2024/i)).toBeInTheDocument()
+    expect(
+      getByText(/Program Integrity Audit - Fiscal Year 2024/i)
+    ).toBeInTheDocument()
     expect(getByTestId('quarter-upload-form')).toBeInTheDocument()
     expect(queryByTestId('quarter-submission-history')).not.toBeInTheDocument()
   })
