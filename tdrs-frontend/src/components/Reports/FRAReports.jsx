@@ -229,14 +229,16 @@ const UploadForm = ({
     const isXlsx = xlsxExtension.exec(fileInputValue.name)
 
     if (!isCsv && !isXlsx) {
-      createFileInputErrorState(input, dropTarget)
+      createFileInputErrorState(input, dropTarget, { preservePreview: true })
+      setSelectedFile(fileInputValue)
       setError(INVALID_EXT_ERROR)
       return
     }
 
     const isImg = fileTypeChecker.validateFileType(result, imgFileTypes)
     if (isImg) {
-      createFileInputErrorState(input, dropTarget)
+      createFileInputErrorState(input, dropTarget, { preservePreview: true })
+      setSelectedFile(fileInputValue)
       setError(INVALID_FILE_ERROR)
       return
     }
