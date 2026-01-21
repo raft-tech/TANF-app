@@ -5,6 +5,7 @@ import SplashPage from '../SplashPage'
 import Profile from '../Profile'
 import PrivateRoute from '../PrivateRoute'
 import Reports, { FRAReports } from '../Reports'
+import FeedbackReports from '../FeedbackReports/FeedbackReports'
 import { useSelector } from 'react-redux'
 import { accountIsInReview } from '../../selectors/auth'
 import { faro, FaroRoutes } from '@grafana/faro-react'
@@ -91,6 +92,21 @@ const AppRoutes = () => {
             requiresApproval
           >
             <FRAReports />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        exact
+        path="/feedback-reports"
+        element={
+          <PrivateRoute
+            title="Upload Feedback Reports"
+            subtitle="TANF WPR, SSP WPR, TANF & SSP Combined, and Time Limit Reports"
+            requiredPermissions={['view_reportsource', 'add_reportsource']}
+            requiresApproval
+          >
+            <FeedbackReports />
           </PrivateRoute>
         }
       />
