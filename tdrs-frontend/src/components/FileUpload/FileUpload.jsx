@@ -149,6 +149,15 @@ function FileUpload({
     ? `Selected File ${selectedFile?.fileName}. To change the selected file, click this button.`
     : `Drag file here or choose from folder.`
 
+  // Reset the underlying input and preview when fiscal params change
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.value = null
+    }
+    const deps = checkPreviewDependencies(targetClassName)
+    if (deps.rendered) removeOldPreviews(deps.dropTarget, deps.instructions)
+  }, [year, quarter, targetClassName])
+
   useEffect(() => {
     const trySettingPreview = () => {
       const previewState = handlePreview(fileName, targetClassName)
