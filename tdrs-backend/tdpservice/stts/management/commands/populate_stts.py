@@ -52,6 +52,34 @@ def _load_csv(filename, entity):
             stt.save()
 
 
+def _maybe_bool(value):
+    """Convert common string boolean values to actual booleans."""
+    if isinstance(value, str):
+        return value.lower() in ("1", "true", "t", "yes", "y")
+    return value
+
+
+def _get_override_path(overrides_path):
+    return Path(overrides_path) if overrides_path else DATA_DIR / "stt_overrides.json"
+
+
+def _find_stt_for_override(override):
+    """Find an STT to update using name or postal_code (optionally type)."""
+    name = override.get("name") or override.get("Name")
+    if name:
+        return STT.objects.filter(name=name).first()
+
+    postal_code = override.get("postal_code") or override.get("Code")
+    if not postal_code:
+        return None
+
+    lookup = {"postal_code": postal_code}
+    stt_type = override.get("type")
+    if stt_type:
+        lookup["type"] = stt_type
+    return STT.objects.filter(**lookup).first()
+
+
 def _apply_overrides(overrides_path=None):
     """
     Apply overrides from a JSON file.
@@ -60,13 +88,7 @@ def _apply_overrides(overrides_path=None):
     lookup key (`name` or `postal_code`) and any fields to override (e.g., `ssp`,
     `sample`, `filenames`, `region_id`, `stt_code`, `type`, `postal_code`).
     """
-
-    def _maybe_bool(value):
-        if isinstance(value, str):
-            return value.lower() in ("1", "true", "t", "yes", "y")
-        return value
-
-    path = Path(overrides_path) if overrides_path else DATA_DIR / "stt_overrides.json"
+    path = _get_override_path(overrides_path)
     if not path.exists():
         logger.info("No STT overrides found at %s; skipping.", path)
         return
@@ -75,28 +97,23 @@ def _apply_overrides(overrides_path=None):
         overrides = json.load(overrides_file)
 
     for override in overrides:
-        name = override.get("name") or override.get("Name")
-        postal_code = override.get("postal_code")
-        stt_type = override.get("type")
-
-        stt = None
-        if name:
-            stt = STT.objects.filter(name=name).first()
-        elif postal_code:
-            lookup = {"postal_code": postal_code}
-            if stt_type:
-                lookup["type"] = stt_type
-            stt = STT.objects.filter(**lookup).first()
-
+        stt = _find_stt_for_override(override)
         if not stt:
             logger.warning("No STT found for override: %s", override)
             continue
 
         # Only override fields explicitly provided
-        for field in ["ssp", "sample", "filenames", "region_id", "stt_code", "type", "postal_code"]:
+        for field in [
+            "ssp",
+            "sample",
+            "filenames",
+            "region_id",
+            "stt_code",
+            "type",
+            "postal_code",
+        ]:
             if field in override:
-                value = _maybe_bool(override[field])
-                setattr(stt, field, value)
+                setattr(stt, field, _maybe_bool(override[field]))
 
         stt.save()
         logger.info("Applied override for STT %s", stt.name)
@@ -108,6 +125,7 @@ class Command(BaseCommand):
     help = "Populate regions, states, territories, and tribes."
 
     def add_arguments(self, parser):
+        """Register command-line arguments for the populate_stts command."""
         parser.add_argument(
             "--apply-overrides",
             action="store_true",
