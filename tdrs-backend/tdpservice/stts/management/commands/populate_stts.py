@@ -52,10 +52,73 @@ def _load_csv(filename, entity):
             stt.save()
 
 
+def _apply_overrides(overrides_path=None):
+    """
+    Apply overrides from a JSON file.
+
+    The override file should be a list of objects. Each object must provide a
+    lookup key (`name` or `postal_code`) and any fields to override (e.g., `ssp`,
+    `sample`, `filenames`, `region_id`, `stt_code`, `type`, `postal_code`).
+    """
+
+    def _maybe_bool(value):
+        if isinstance(value, str):
+            return value.lower() in ("1", "true", "t", "yes", "y")
+        return value
+
+    path = Path(overrides_path) if overrides_path else DATA_DIR / "stt_overrides.json"
+    if not path.exists():
+        logger.info("No STT overrides found at %s; skipping.", path)
+        return
+
+    with open(path) as overrides_file:
+        overrides = json.load(overrides_file)
+
+    for override in overrides:
+        name = override.get("name") or override.get("Name")
+        postal_code = override.get("postal_code")
+        stt_type = override.get("type")
+
+        stt = None
+        if name:
+            stt = STT.objects.filter(name=name).first()
+        elif postal_code:
+            lookup = {"postal_code": postal_code}
+            if stt_type:
+                lookup["type"] = stt_type
+            stt = STT.objects.filter(**lookup).first()
+
+        if not stt:
+            logger.warning("No STT found for override: %s", override)
+            continue
+
+        # Only override fields explicitly provided
+        for field in ["ssp", "sample", "filenames", "region_id", "stt_code", "type", "postal_code"]:
+            if field in override:
+                value = _maybe_bool(override[field])
+                setattr(stt, field, value)
+
+        stt.save()
+        logger.info("Applied override for STT %s", stt.name)
+
+
 class Command(BaseCommand):
     """Command class."""
 
     help = "Populate regions, states, territories, and tribes."
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--apply-overrides",
+            action="store_true",
+            help="Apply overrides from stt_overrides.json (or --overrides path).",
+        )
+        parser.add_argument(
+            "--overrides",
+            type=str,
+            default=None,
+            help="Optional path to an overrides JSON file.",
+        )
 
     def handle(self, *args, **options):
         """Populate the various regions, states, territories, and tribes."""
@@ -69,5 +132,8 @@ class Command(BaseCommand):
 
         for datafile, entity in stt_map:
             _load_csv(datafile, entity)
+
+        if options.get("apply_overrides"):
+            _apply_overrides(options.get("overrides"))
 
         logger.info("STT import executed by Admin at %s", timezone.now())
