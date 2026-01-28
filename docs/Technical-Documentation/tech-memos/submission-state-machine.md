@@ -1,15 +1,17 @@
 # Submission State Machine for File Processing
 
 ## Purpose
-Define and enforce a clear lifecycle for uploaded files so parsing, ingest, and triage share a consistent contract. This is a precursor to the parser refactor to avoid churn and make status handling predictable.
+Define and enforce a clear lifecycle for uploaded files so parsing, ingest, and triage share a consistent contract. This is a precursor to the parser refactor to avoid churn and make status handling predictable. In this model, parsing may persist records in batches, while ingesting is a single, post-parse finalization step.
 
 ## Why a state machine (and what it adds)
 - **Guardrails for future changes:** Even though end users cannot alter parsing, developers can. An explicit transition map prevents drift when we add steps (AV scan, ingest retries, change requests) or touch the parser/reparser code paths. Instead of silently landing in an inconsistent state, we fail fast on illegal transitions.
-- **Durable, user-visible lifecycle:** `DataFileSummary` is per-parse and can be deleted/recreated during reparses. `DataFile.state` is a durable record of the submission lifecycle (upload → scan → parse → ingest) that survives reparses and exists even before a summary is created.
+- **Durable, user-visible lifecycle:** `DataFileSummary` is per-parse and can be deleted/recreated during reparses. `DataFile.state` is a durable record of the submission lifecycle (upload → scan → parse → ingest) that survives reparses and exists even before a summary is created. Ingesting here represents finalization work that happens once after parsing completes.
 - **Better triage and alerts:** Granular states (e.g., virus_scanning vs parsing vs ingesting) make it obvious where a file stalled without scraping logs. They enable targeted alerts (e.g., “stuck in parsing > 15m”) and safer retries (restart ingest only).
 
 ## States
 `uploaded` → `virus_scanning` → (`scan_failed` | `validated`) → `parsing` → (`parsed_with_errors` | `parsed_clean`) → `ingesting` → (`ingest_failed` | `completed`). Any active state can transition to `canceled`. A file that exceeds time thresholds in an active state is marked `stuck` (and may later be escalated to `failed` by policy).
+
+Note: parsing can write records in batches. The `ingesting` state is reserved for a single, post-parse finalization phase (e.g., aggregate calculations, index updates, summary/error report finalization) and is not entered per batch.
 
 ## Allowed transitions (code sketch)
 ```python
@@ -94,12 +96,12 @@ def on_parsing_finished(lifecycle: SubmissionLifecycle, has_errors: bool):
     )
 
 def on_ingest_start(lifecycle: SubmissionLifecycle):
-    lifecycle.transition(SubmissionState.INGESTING, "begin persisting records/errors")
+    lifecycle.transition(SubmissionState.INGESTING, "begin post-parse finalization (summaries/index/error report)")
 
 def on_ingest_finish(lifecycle: SubmissionLifecycle, ok: bool):
     lifecycle.transition(
         SubmissionState.COMPLETED if ok else SubmissionState.INGEST_FAILED,
-        "ingest success" if ok else "ingest failure",
+        "finalization success" if ok else "finalization failure",
     )
 
 def on_cancel(lifecycle: SubmissionLifecycle, reason: str = ""):
@@ -169,8 +171,8 @@ def mark_stuck_if_overdue(data_file: DataFile, thresholds: dict[SubmissionState,
    - Acceptance: parser tests assert resulting state; failures do not leave state stale.
 
 6. **Wire ingest start/finish**  
-   - Transition to `ingesting` before persistence and to `completed`/`ingest_failed` afterward.  
-   - Acceptance: ingest path updates state correctly; failure path covered.
+   - Transition to `ingesting` for a single post-parse finalization step and to `completed`/`ingest_failed` afterward.  
+   - Acceptance: finalization path updates state correctly; failure path covered.
 
 7. **Add cancel path**  
    - Expose a cancel hook that transitions to `canceled` from active states; ensure downstream work is halted.  
