@@ -38,7 +38,7 @@ logger = settings.PARSER_LOGGER
 
 def set_reparse_file_meta_model_failed_state(reparse_id, file_meta):
     """Set ReparseFileMeta fields to indicate a parse failure."""
-    if reparse_id:
+    if reparse_id and file_meta is not None:
         file_meta.finished = True
         file_meta.success = False
         file_meta.finished_at = timezone.now()
@@ -73,6 +73,9 @@ def parse(data_file_id, reparse_id=None):
     # passing the data file FileField across redis was rendering non-serializable failures, doing the below lookup
     # to avoid those. I suppose good practice to not store/serializer large file contents in memory when stored in redis
     # for undetermined amount of time.
+    data_file = None
+    dfs = None
+    file_meta = None
     try:
         data_file = DataFile.objects.get(id=data_file_id)
         change_log_filename(logger, data_file)
@@ -80,7 +83,6 @@ def parse(data_file_id, reparse_id=None):
             f"\n\n\n __ Starting to {'re-' if reparse_id else ''}parse datafile {data_file.filename}__ \n\n\n"
         )
 
-        file_meta = None
         if reparse_id:
             file_meta = ReparseFileMeta.objects.get(
                 data_file_id=data_file_id, reparse_meta_id=reparse_id
@@ -133,49 +135,55 @@ def parse(data_file_id, reparse_id=None):
             send_data_submitted_email(dfs, recipients)
 
     except DecoderUnknownException:
-        dfs.set_status(DataFileSummary.Status.REJECTED)
-        dfs.save()
+        if dfs is not None:
+            dfs.set_status(DataFileSummary.Status.REJECTED)
+            dfs.save()
         set_reparse_file_meta_model_failed_state(reparse_id, file_meta)
     except DatabaseError as e:
-        log_parser_exception(
-            data_file,
-            f"Encountered Database exception in parser_task.py: \n{e}",
-            "error",
-        )
+        if data_file is not None:
+            log_parser_exception(
+                data_file,
+                f"Encountered Database exception in parser_task.py: \n{e}",
+                "error",
+            )
         set_reparse_file_meta_model_failed_state(reparse_id, file_meta)
     except Exception:
-        generate_error = ErrorGeneratorFactory(data_file).get_generator(
-            ErrorGeneratorType.MSG_ONLY_PRECHECK,
-            None,
-        )
-        generator_args = ErrorGeneratorArgs(
-            record=None,
-            schema=None,
-            error_message=(
-                "We're sorry, an unexpected error has occurred and the file has been "
-                "rejected. Please contact the TDP support team at TANFData@acf.hhs.gov "
-                "for further assistance."
-            ),
-        )
-        error = generate_error(generator_args=generator_args)
-        error.save()
-        dfs.set_status(DataFileSummary.Status.REJECTED)
-        dfs.save()
-        log_parser_exception(
-            data_file,
-            (
-                f"Uncaught exception while parsing datafile: {data_file.pk}! Please review the logs to "
-                f"see if manual intervention is required."
-            ),
-            "exception",
-        )
+        if data_file is not None:
+            generate_error = ErrorGeneratorFactory(data_file).get_generator(
+                ErrorGeneratorType.MSG_ONLY_PRECHECK,
+                None,
+            )
+            generator_args = ErrorGeneratorArgs(
+                record=None,
+                schema=None,
+                error_message=(
+                    "We're sorry, an unexpected error has occurred and the file has been "
+                    "rejected. Please contact the TDP support team at TANFData@acf.hhs.gov "
+                    "for further assistance."
+                ),
+            )
+            error = generate_error(generator_args=generator_args)
+            error.save()
+            log_parser_exception(
+                data_file,
+                (
+                    f"Uncaught exception while parsing datafile: {data_file.pk}! Please review the logs to "
+                    f"see if manual intervention is required."
+                ),
+                "exception",
+            )
+        if dfs is not None:
+            dfs.set_status(DataFileSummary.Status.REJECTED)
+            dfs.save()
         set_reparse_file_meta_model_failed_state(reparse_id, file_meta)
     finally:
-        logger.info(f"DataFile parsing finished for file -> {repr(data_file)}.")
-        error_report_generator = ErrorReportFactory.get_error_report_generator(
-            data_file
-        )
-        error_report = error_report_generator.generate()
-        set_error_report(dfs, error_report)
-        logger.handlers[2].doRollover(data_file)
-        update_dfs(dfs, data_file)
+        if data_file is not None:
+            logger.info(f"DataFile parsing finished for file -> {repr(data_file)}.")
+        if data_file is not None and dfs is not None:
+            error_report_generator = ErrorReportFactory.get_error_report_generator(
+                data_file
+            )
+            error_report = error_report_generator.generate()
+            set_error_report(dfs, error_report)
+            logger.handlers[2].doRollover(data_file)
+            update_dfs(dfs, data_file)
