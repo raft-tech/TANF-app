@@ -23,11 +23,13 @@ const renderWithStore = (store, filterValues) => {
     return null
   }
 
-  return render(
+  const renderResult = render(
     <Provider store={store}>
       <TestComponent />
     </Provider>
   )
+
+  return { ...renderResult, TestComponent }
 }
 
 describe('useSubmissionHistory', () => {
@@ -74,6 +76,33 @@ describe('useSubmissionHistory', () => {
 
     await waitFor(() => {
       expect(mockContext.startPolling).not.toHaveBeenCalled()
+    })
+  })
+
+  it('does not restart polling when isPolling changes without new files', async () => {
+    const pendingFile = { id: 4, summary: { status: 'Pending' } }
+    const store = mockStore({
+      reports: {
+        files: [pendingFile],
+        loading: false,
+      },
+    })
+
+    const renderResult = renderWithStore(store, { quarter: 'Q1' })
+
+    await waitFor(() => {
+      expect(mockContext.startPolling).toHaveBeenCalledTimes(1)
+    })
+
+    mockContext.isPolling = { 4: true }
+    renderResult.rerender(
+      <Provider store={store}>
+        <renderResult.TestComponent />
+      </Provider>
+    )
+
+    await waitFor(() => {
+      expect(mockContext.startPolling).toHaveBeenCalledTimes(1)
     })
   })
 })

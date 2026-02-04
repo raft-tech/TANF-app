@@ -527,6 +527,8 @@ const FRAReportsContent = () => {
     getSttError,
     getFileTypeError,
   } = useReportsContext()
+  const isPollingRef = useRef(isPolling)
+  const startPollingRef = useRef(startPolling)
 
   // Use the form submission hook to prevent multiple submissions
   const { isSubmitting, executeSubmission, onSubmitStart, onSubmitComplete } =
@@ -543,6 +545,14 @@ const FRAReportsContent = () => {
   )
 
   const dispatch = useDispatch()
+
+  useEffect(() => {
+    isPollingRef.current = isPolling
+  }, [isPolling])
+
+  useEffect(() => {
+    startPollingRef.current = startPolling
+  }, [startPolling])
 
   const reportTypeOptions = [
     {
@@ -618,9 +628,9 @@ const FRAReportsContent = () => {
     fraSubmissionHistory
       ?.filter((file) => file?.summary?.status === 'Pending')
       ?.forEach((file) => {
-        if (isPolling[file.id]) return
+        if (isPollingRef.current?.[file.id]) return
 
-        startPolling(
+        startPollingRef.current(
           `${file.id}`,
           () => getFraSubmissionStatus(file.id),
           (response) => {
@@ -655,13 +665,7 @@ const FRAReportsContent = () => {
           }
         )
       })
-  }, [
-    dispatch,
-    fraSubmissionHistory,
-    isPolling,
-    setLocalAlertState,
-    startPolling,
-  ])
+  }, [dispatch, fraSubmissionHistory, setLocalAlertState])
 
   const handleUpload = ({ file: selectedFile }) => {
     // If already submitting, prevent multiple submissions

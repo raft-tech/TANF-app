@@ -19,6 +19,16 @@ export const useSubmissionHistory = (filterValues) => {
   const { files, loading } = useSelector((state) => state.reports)
   const prevFilterValuesRef = useRef()
   const { isPolling, startPolling } = useReportsContext()
+  const isPollingRef = useRef(isPolling)
+  const startPollingRef = useRef(startPolling)
+
+  useEffect(() => {
+    isPollingRef.current = isPolling
+  }, [isPolling])
+
+  useEffect(() => {
+    startPollingRef.current = startPolling
+  }, [startPolling])
 
   useEffect(() => {
     // Serialize filterValues for comparison
@@ -39,9 +49,9 @@ export const useSubmissionHistory = (filterValues) => {
     files
       ?.filter((file) => file?.summary?.status === 'Pending')
       ?.forEach((file) => {
-        if (isPolling[file.id]) return
+        if (isPollingRef.current?.[file.id]) return
 
-        startPolling(
+        startPollingRef.current(
           `${file.id}`,
           () => getTanfSubmissionStatus(file.id),
           (response) => {
@@ -65,7 +75,7 @@ export const useSubmissionHistory = (filterValues) => {
           }
         )
       })
-  }, [dispatch, files, isPolling, startPolling])
+  }, [dispatch, files])
 
   return {
     files,
