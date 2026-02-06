@@ -27,6 +27,8 @@ const mockContext = {
   selectFileType: jest.fn(),
   selectYear: jest.fn(),
   selectQuarter: jest.fn(),
+  handleYearBlur: jest.fn(),
+  handleQuarterBlur: jest.fn(),
   handleClearAll: jest.fn(),
   handleClearFilesOnly: jest.fn(),
   cancelPendingChange: jest.fn(),
@@ -34,6 +36,8 @@ const mockContext = {
   isPolling: {},
   getSttError: jest.fn(() => null),
   getFileTypeError: jest.fn(() => null),
+  getYearError: jest.fn(() => false),
+  getQuarterError: jest.fn(() => false),
 }
 
 jest.mock('./ReportsContext', () => ({
