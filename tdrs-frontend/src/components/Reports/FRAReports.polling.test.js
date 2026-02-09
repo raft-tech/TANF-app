@@ -65,9 +65,7 @@ describe('FRAReports polling restart', () => {
   })
 
   it('does not restart polling when only isPolling changes', async () => {
-    const submissionHistory = [
-      { id: 10, summary: { status: 'Pending' } },
-    ]
+    const submissionHistory = [{ id: 10, summary: { status: 'Pending' } }]
 
     const state = {
       auth: {

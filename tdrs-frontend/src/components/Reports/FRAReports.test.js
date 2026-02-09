@@ -361,8 +361,6 @@ describe('FRA Reports Page', () => {
       // jest.spyOn(global, 'setTimeout')
       const {
         getByText,
-        queryAllByTestId,
-        queryAllByText,
         dispatch,
         mockAxios,
         container,
@@ -468,7 +466,9 @@ describe('FRA Reports Page', () => {
       )
       await waitFor(() => expect(dispatch).toHaveBeenCalled())
 
-      const historySection = container.querySelector('.submission-history-section')
+      const historySection = container.querySelector(
+        '.submission-history-section'
+      )
       const firstTableBody = historySection.querySelector('tbody')
       const rows = within(firstTableBody).queryAllByRole('row').slice(0, 2)
       const rowSpinners = rows
