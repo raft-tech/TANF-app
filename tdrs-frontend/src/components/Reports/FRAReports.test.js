@@ -359,12 +359,7 @@ describe('FRA Reports Page', () => {
 
     it('Shows a spinner until submission history updates', async () => {
       // jest.spyOn(global, 'setTimeout')
-      const {
-        getByText,
-        dispatch,
-        mockAxios,
-        container,
-      } = await setup()
+      const { getByText, dispatch, mockAxios, container } = await setup()
 
       mockAxios.post.mockResolvedValue({
         data: {
