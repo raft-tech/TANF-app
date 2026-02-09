@@ -230,6 +230,24 @@ tasks:
     cmds:
       - npm install
 
+  frontend-test-local:
+    desc: Run frontend unit tests on host (watch-less)
+    dir: tdrs-frontend
+    cmds:
+      - CI=true npm run test
+
+  frontend-test-watch:
+    desc: Run frontend unit tests on host (watch)
+    dir: tdrs-frontend
+    cmds:
+      - npm run test
+
+  frontend-test-cov-local:
+    desc: Run frontend unit tests with coverage on host
+    dir: tdrs-frontend
+    cmds:
+      - npm run test:cov
+
   frontend-test:
     desc: Run frontend unit tests in docker (watch-less)
     dir: tdrs-frontend
