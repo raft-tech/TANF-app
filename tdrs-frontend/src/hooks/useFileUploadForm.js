@@ -9,6 +9,7 @@ import {
 } from '../actions/reports'
 import { useEventLogger } from '../utils/eventLogger'
 import { useFormSubmission } from './useFormSubmission'
+import { POLLING_TIMEOUT_MESSAGE } from '../components/Reports/constants'
 import { useReportsContext } from '../components/Reports/ReportsContext'
 
 /**
@@ -85,8 +86,7 @@ export const useFileUploadForm = ({
           },
           (onError) => {
             onError({
-              message:
-                'Exceeded max number of tries to update submission status.',
+              message: POLLING_TIMEOUT_MESSAGE,
               type: 'warning',
             })
           }

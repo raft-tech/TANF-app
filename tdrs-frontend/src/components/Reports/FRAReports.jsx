@@ -38,6 +38,7 @@ import { Spinner } from '../Spinner'
 import { openFeedbackWidget } from '../../reducers/feedbackWidget'
 import { ReportsProvider, useReportsContext } from './ReportsContext'
 import { accountCanSelectStt } from '../../selectors/auth'
+import { POLLING_TIMEOUT_MESSAGE } from './constants'
 import FiscalYearSelect from './components/FiscalYearSelect'
 import FiscalQuarterSelect from './components/FisclaQuarterSelect'
 
@@ -660,7 +661,7 @@ const FRAReportsContent = () => {
           },
           (onError) => {
             onError({
-              message: 'Exceeded max number of tries to update submission status.',
+              message: POLLING_TIMEOUT_MESSAGE,
             })
           }
         )
@@ -729,8 +730,7 @@ const FRAReportsContent = () => {
           },
           (onError) => {
             onError({
-              message:
-                'Exceeded max number of tries to update submission status.',
+              message: POLLING_TIMEOUT_MESSAGE,
             })
           }
         )

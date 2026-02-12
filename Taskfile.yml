@@ -112,6 +112,14 @@ tasks:
       - task: backend-up
       - docker compose -f docker-compose.yml exec web sh -c "python manage.py migrate"
 
+  backend-update:
+    desc: Rebuild backend image and apply migrations (no data wipe)
+    dir: tdrs-backend
+    cmds:
+      - task: create-network
+      - docker compose -f docker-compose.yml up -d --build
+      - docker compose -f docker-compose.yml exec web sh -c "python manage.py migrate"
+
   backend-pytest:
     desc: 'Run pytest in the backend container. E.g: task backend-pytest PYTEST_ARGS="tdpservice/test/ -s -vv"'
     dir: tdrs-backend
@@ -230,6 +238,13 @@ tasks:
     cmds:
       - npm install
 
+  frontend-update:
+    desc: Rebuild frontend localdev image and install dependencies (no data wipe)
+    dir: tdrs-frontend
+    cmds:
+      - docker compose -f docker-compose.local.yml up -d --build tdp-frontend
+      - docker compose -f docker-compose.local.yml exec tdp-frontend sh -c "npm install"
+
   frontend-test-local:
     desc: Run frontend unit tests on host (watch-less)
     dir: tdrs-frontend
@@ -306,6 +321,12 @@ tasks:
     cmds:
       - task: backend-up
       - task: frontend-up
+
+  update-deps:
+    desc: Rebuild backend/frontend and apply dependency updates (no data wipe)
+    cmds:
+      - task: backend-update
+      - task: frontend-update
 
   down:
     desc: Stop both frontend and backend web servers
