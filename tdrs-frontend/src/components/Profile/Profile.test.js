@@ -228,7 +228,7 @@ describe('Profile', () => {
     expect(screen.getByText('No one really knows')).toBeInTheDocument()
   })
 
-  it('redirects to /home if access request is missing', () => {
+  it('renders access request form if access request is missing', () => {
     const store = mockStore({
       auth: {
         authenticated: true,
@@ -247,6 +247,9 @@ describe('Profile', () => {
         </MemoryRouter>
       </Provider>
     )
+
+    expect(screen.getByLabelText(/first name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/last name/i)).toBeInTheDocument()
   })
 
   it('calls setInEditMode with correct arguments', () => {
