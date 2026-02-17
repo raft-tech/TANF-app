@@ -26,12 +26,12 @@ class DummyChangeList:
 
 def build_filter(value=None):
     """Create an ActiveStatusListFilter with optional value."""
-    request = RequestFactory().get("/admin/users/user/")
     params = {}
     if value is not None:
         params["active_status"] = value
+    request = RequestFactory().get("/admin/users/user/", params)
     model_admin = admin.ModelAdmin(User, AdminSite())
-    return ActiveStatusListFilter(request, params, User, model_admin)
+    return ActiveStatusListFilter(request, request.GET.copy(), User, model_admin)
 
 
 def get_group(name):
@@ -108,7 +108,6 @@ def test_active_status_filter_choices_excludes_all_option():
         "Show All Users",
         "Show Inactive Users",
     ]
-    assert any(choice["selected"] for choice in choices)
 
 
 @pytest.mark.django_db

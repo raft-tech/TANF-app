@@ -791,7 +791,7 @@ class TestParse:
     @pytest.mark.django_db()
     def test_parse_tanf_section2_file(self, tanf_section2_file, dfs):
         """Test parsing TANF Section 2 submission."""
-        tanf_section2_file.year = 2021
+        tanf_section2_file.year = 2022
         tanf_section2_file.quarter = "Q1"
 
         dfs.datafile = tanf_section2_file

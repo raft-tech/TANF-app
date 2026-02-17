@@ -18,6 +18,9 @@ class TestParseLargeFiles:
     @pytest.fixture
     def parsed_big_file(self, big_file, dfs):
         """Return parsed big_file and its DataFileSummary."""
+        big_file.year = 2022
+        big_file.quarter = "Q1"
+        big_file.save()
         parse_datafile(dfs, big_file)
         return big_file, dfs
 

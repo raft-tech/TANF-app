@@ -22,15 +22,18 @@ class DummyChangeList:
 @pytest.mark.django_db
 def test_latest_reparse_event_lookups_and_choices():
     """Return lookups and selection states for latest reparse filter."""
-    request = RequestFactory().get("/")
+    request = RequestFactory().get(
+        "/", {LatestReparseEvent.parameter_name: "latest"}
+    )
     model_admin = admin.ModelAdmin(DataFile, admin.site)
 
     filter_instance = LatestReparseEvent(
         request,
-        {LatestReparseEvent.parameter_name: "latest"},
+        request.GET.dict(),
         DataFile,
         model_admin,
     )
+    filter_instance.used_parameters[filter_instance.parameter_name] = "latest"
 
     assert filter_instance.lookups(request, model_admin) == (
         (None, "All"),

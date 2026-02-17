@@ -125,7 +125,7 @@ class TestSchemaManager:
             for schema in schemas:
                 for field in schema.fields:
                     if (
-                        type(field) == TransformField
+                        isinstance(field, TransformField)
                         and "is_encrypted" in field.kwargs
                     ):
                         transform_fields.append(field)
