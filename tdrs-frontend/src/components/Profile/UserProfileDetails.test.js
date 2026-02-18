@@ -189,9 +189,7 @@ describe('UserProfileDetails component', () => {
 
     const nameRow = screen.getByText('Name').closest('.grid-row')
     expect(nameRow).toBeInTheDocument()
-    expect(
-      within(nameRow).getByText(/requested change/i)
-    ).toBeInTheDocument()
+    expect(within(nameRow).getByText(/requested change/i)).toBeInTheDocument()
     expect(within(nameRow).getByText('Alicia')).toBeInTheDocument()
   })
 
@@ -229,12 +227,8 @@ describe('UserProfileDetails component', () => {
       .getByText('Regional Office(s)')
       .closest('.grid-row')
     expect(regionRow).toBeInTheDocument()
-    expect(
-      within(regionRow).getByText(/requested change/i)
-    ).toBeInTheDocument()
-    expect(
-      within(regionRow).getByText('Region 1 (Boston)')
-    ).toBeInTheDocument()
+    expect(within(regionRow).getByText(/requested change/i)).toBeInTheDocument()
+    expect(within(regionRow).getByText('Region 1 (Boston)')).toBeInTheDocument()
     expect(
       within(regionRow).getByText('Region 2 (New York)')
     ).toBeInTheDocument()
