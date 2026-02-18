@@ -43,6 +43,7 @@
             nvm alias default v20.19.0
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
             echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
+            node -v
 
   install-yarn-packages:
     description: Install frontend dependencies using Yarn.

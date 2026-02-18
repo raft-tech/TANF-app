@@ -138,6 +138,9 @@
     steps:
       - install-nodejs:
           node-version: "20.19.0"
+      - run:
+          name: Log Node version
+          command: node -v
       - install-yarn-packages:
           app-dir: tdrs-frontend
       - get-app-deploy-strategy:
