@@ -43,6 +43,7 @@
             nvm alias default v20.19.0
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
             echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
+            echo "nvm use v20.19.0" >> $BASH_ENV
             node -v
 
   install-yarn-packages:
@@ -56,4 +57,12 @@
           name: Install Yarn packages
           command: |
             cd <<parameters.app-dir>>
+            if [ -z "$NVM_DIR" ]; then
+              export NVM_DIR="/opt/circleci/.nvm"
+            fi
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              . "$NVM_DIR/nvm.sh"
+              nvm use v20.19.0
+            fi
+            node -v
             yarn install --frozen-lockfile --non-interactive
