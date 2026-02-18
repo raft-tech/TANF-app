@@ -1,11 +1,14 @@
 import React from 'react'
 import { thunk } from 'redux-thunk'
 import { Provider } from 'react-redux'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 import Profile from './Profile'
 import configureStore from 'redux-mock-store'
+import axiosInstance from '../../axios-instance'
+
+jest.mock('../../axios-instance')
 
 const baseUser = {
   email: 'test@example.com',
@@ -37,6 +40,7 @@ describe('Profile', () => {
     // location.reload = jest.fn();
     delete window.location
     window.location = mockLocation
+    axiosInstance.get.mockReset()
   })
 
   afterEach(() => {
@@ -526,5 +530,116 @@ describe('Profile', () => {
     )
 
     expect(screen.getByLabelText(/first name/i)).toBeInTheDocument()
+  })
+
+  it('loads pending change requests when profile changes are pending', async () => {
+    const userWithPending = {
+      ...baseUser,
+      id: 123,
+      pending_requests: 1,
+      account_approval_status: 'Approved',
+      roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
+    }
+
+    axiosInstance.get.mockResolvedValue({
+      data: {
+        results: [
+          {
+            user: 123,
+            status: 'pending',
+            field_name: 'first_name',
+            requested_value: 'Alicia',
+          },
+        ],
+      },
+    })
+
+    const store = mockStore({
+      auth: {
+        authenticated: true,
+        user: userWithPending,
+      },
+      stts: {
+        sttList: [],
+      },
+    })
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Profile />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(/Requested Change/i)).toBeInTheDocument()
+    })
+    expect(axiosInstance.get).toHaveBeenCalled()
+  })
+
+  it('skips pending change request lookup when type is not profile', () => {
+    const userWithPending = {
+      ...baseUser,
+      id: 123,
+      pending_requests: 1,
+      account_approval_status: 'Approved',
+      roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
+    }
+
+    const store = mockStore({
+      auth: {
+        authenticated: true,
+        user: userWithPending,
+      },
+      stts: {
+        sttList: [],
+      },
+    })
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Profile type="access request" />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    expect(axiosInstance.get).not.toHaveBeenCalled()
+  })
+
+  it('clears pending change requests when API fails', async () => {
+    const userWithPending = {
+      ...baseUser,
+      id: 123,
+      pending_requests: 1,
+      account_approval_status: 'Approved',
+      roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
+    }
+
+    axiosInstance.get.mockRejectedValue(new Error('API error'))
+
+    const store = mockStore({
+      auth: {
+        authenticated: true,
+        user: userWithPending,
+      },
+      stts: {
+        sttList: [],
+      },
+    })
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Profile />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    await waitFor(() => {
+      expect(axiosInstance.get).toHaveBeenCalled()
+    })
+    expect(screen.queryByText(/Requested Change/i)).not.toBeInTheDocument()
   })
 })
