@@ -10,7 +10,7 @@ COPY --chown=node:node . .
 # ---
 # Stage 1: Create a production build
 FROM localdev AS build
-RUN npm run build:development
+RUN yarn build:development
 
 # ---
 # Stage 2: Serve over nginx (minimal production image)

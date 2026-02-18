@@ -138,10 +138,9 @@
     steps:
       - install-nodejs:
           node-version: "16.13"
-      - disable-npm-audit
       - install-nodejs-packages:
           app-dir: tdrs-frontend
-          override-ci-command: npm ci --omit=dev --no-fund
+          override-ci-command: yarn install --frozen-lockfile --non-interactive
       - get-app-deploy-strategy:
           appname: <<parameters.frontend-appname>>
       - run:

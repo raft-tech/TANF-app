@@ -7,7 +7,7 @@ services:
     build:
       context: .
       target: localdev
-    command: npm run start
+    command: yarn start
     ports:
       - 3000:80
     volumes:

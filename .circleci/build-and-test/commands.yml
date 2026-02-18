@@ -44,11 +44,5 @@
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
             echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
 
-  disable-npm-audit:
-    steps:
-      - run:
-          name: Disable npm audit warnings in CI
-          command: npm set audit false
-
   # This allows us to use the node orb to install packages within other commands
   install-nodejs-packages: node/install-packages
