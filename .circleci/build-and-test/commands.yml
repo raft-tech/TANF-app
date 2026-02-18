@@ -44,7 +44,15 @@
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
             echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
             echo "nvm use v20.19.0" >> $BASH_ENV
+            nvm use v20.19.0
+            if command -v corepack >/dev/null 2>&1; then
+              corepack enable
+              corepack prepare yarn@1.22.22 --activate
+            else
+              npm install -g yarn@1.22.22
+            fi
             node -v
+            yarn -v
 
   install-yarn-packages:
     description: Install frontend dependencies using Yarn.
@@ -64,5 +72,14 @@
               . "$NVM_DIR/nvm.sh"
               nvm use v20.19.0
             fi
+            if ! command -v yarn >/dev/null 2>&1; then
+              if command -v corepack >/dev/null 2>&1; then
+                corepack enable
+                corepack prepare yarn@1.22.22 --activate
+              else
+                npm install -g yarn@1.22.22
+              fi
+            fi
             node -v
+            yarn -v
             yarn install --frozen-lockfile --non-interactive
