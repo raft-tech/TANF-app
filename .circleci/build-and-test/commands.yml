@@ -39,12 +39,12 @@
             sudo apt-get update
             sudo apt-get install -y libgbm-dev
             source /opt/circleci/.nvm/nvm.sh
-            nvm install v20.19.0
-            nvm alias default v20.19.0
+            nvm install v22.13.0
+            nvm alias default v22.13.0
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
             echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
-            echo "nvm use v20.19.0" >> $BASH_ENV
-            nvm use v20.19.0
+            echo "nvm use v22.13.0" >> $BASH_ENV
+            nvm use v22.13.0
             if command -v corepack >/dev/null 2>&1; then
               corepack enable
               corepack prepare yarn@1.22.22 --activate
@@ -70,7 +70,7 @@
             fi
             if [ -s "$NVM_DIR/nvm.sh" ]; then
               . "$NVM_DIR/nvm.sh"
-              nvm use v20.19.0
+              nvm use v22.13.0
             fi
             if ! command -v yarn >/dev/null 2>&1; then
               if command -v corepack >/dev/null 2>&1; then

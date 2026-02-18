@@ -69,7 +69,7 @@ These all have defaults set in their respective settings modules, but may be ove
 ### deploy-frontend
 * Called as a step in the `deploy-cloud-dot-gov` command
 * Runs directly on the machine executor
-* Installs Node.JS v20.19.0 and all project dependencies
+* Installs Node.JS v22.13.0 and all project dependencies
 * Calls script `/scripts/deploy-frontend.sh`, which does the following:
     * Using cloud.gov application name as an input (`CGHOSTNAME_BACKEND`) it sets the environment variables needed to communicate with the Django backend:
         * `REACT_APP_BACKEND_HOST`
