@@ -121,9 +121,8 @@
     steps:
       - checkout
       - install-nodejs-machine
-      - install-nodejs-packages:
+      - install-yarn-packages:
           app-dir: tdrs-frontend
-          override-ci-command: yarn install --frozen-lockfile --non-interactive
       - run:
           name: Run Cypress e2e tests
           command: cd tdrs-frontend; yarn test:e2e-ci -- --config baseUrl="https://tdp-frontend-develop.acf.hhs.gov" --env cypressToken=$CYPRESS_TOKEN,apiUrl="https://tdp-frontend-develop.acf.hhs.gov/v1",adminUrl="https://tdp-frontend-develop.acf.hhs.gov/admin"

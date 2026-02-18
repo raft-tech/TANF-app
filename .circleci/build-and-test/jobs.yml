@@ -25,9 +25,8 @@
     steps:
       - checkout
       - install-nodejs-machine
-      - install-nodejs-packages:
+      - install-yarn-packages:
           app-dir: tdrs-frontend
-          override-ci-command: yarn install --frozen-lockfile --non-interactive
       - run:
           name: Run ESLint
           command: cd tdrs-frontend; yarn lint
@@ -53,9 +52,8 @@
       - docker-compose-up-backend
       - docker-compose-up-frontend
       - install-nodejs-machine
-      - install-nodejs-packages:
+      - install-yarn-packages:
           app-dir: tdrs-frontend
-          override-ci-command: yarn install --frozen-lockfile --non-interactive
       - run:
           name: Wait for backend to become available
           command: |

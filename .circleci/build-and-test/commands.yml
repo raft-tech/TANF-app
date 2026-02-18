@@ -44,5 +44,15 @@
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
             echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
 
-  # This allows us to use the node orb to install packages within other commands
-  install-nodejs-packages: node/install-packages
+  install-yarn-packages:
+    description: Install frontend dependencies using Yarn.
+    parameters:
+      app-dir:
+        type: string
+        default: tdrs-frontend
+    steps:
+      - run:
+          name: Install Yarn packages
+          command: |
+            cd <<parameters.app-dir>>
+            yarn install --frozen-lockfile --non-interactive

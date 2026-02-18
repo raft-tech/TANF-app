@@ -138,9 +138,8 @@
     steps:
       - install-nodejs:
           node-version: "16.13"
-      - install-nodejs-packages:
+      - install-yarn-packages:
           app-dir: tdrs-frontend
-          override-ci-command: yarn install --frozen-lockfile --non-interactive
       - get-app-deploy-strategy:
           appname: <<parameters.frontend-appname>>
       - run:
