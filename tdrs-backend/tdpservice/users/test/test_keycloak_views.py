@@ -40,7 +40,7 @@ class TestKeycloakViews:
 
         assert "kc_idp_hint=acf-ams" in redirect_location
         assert "acr_values=" not in redirect_location
-        assert "client_id={settings.OIDC_RP_CLIENT_ID}" in redirect_location
+        assert f"client_id={settings.OIDC_RP_CLIENT_ID}" in redirect_location
         assert "response_type=code" in redirect_location
         assert "scope=openid+profile+email" in redirect_location
         assert "state=" in redirect_location
