@@ -12,12 +12,12 @@ import django
 from django.core.exceptions import ImproperlyConfigured
 
 import sentry_sdk
-from sentry_sdk.types import SamplingContext
 from celery.schedules import crontab
 from configurations import Configuration
 from corsheaders.defaults import default_headers
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.types import SamplingContext
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -35,7 +35,9 @@ def get_required_env_var_setting(
 
     return env_var
 
+
 SAMPLER_FILTER_URLS = ["/prometheus/metrics"]
+
 
 def traces_sampler(sampling_context: SamplingContext) -> float:
     # Examine provided sampling context along with anything in the
@@ -76,8 +78,8 @@ class Common(Configuration):
     """Define configuration class."""
 
     INSTALLED_APPS = (
-        "colorfield",
         "admin_interface",
+        "colorfield",
         "django.contrib.admin",
         "django.contrib.auth",
         "django.contrib.contenttypes",
@@ -96,6 +98,7 @@ class Common(Configuration):
         "storages",
         "django_prometheus",
         "mozilla_django_oidc",
+        "django_json_widget",
         # Local apps
         "tdpservice.core.apps.CoreConfig",
         "tdpservice.users",
@@ -161,6 +164,9 @@ class Common(Configuration):
     SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
     WSGI_APPLICATION = "tdpservice.wsgi.application"
 
+    # Required by django-admin-interface for related-modal popups
+    X_FRAME_OPTIONS = "SAMEORIGIN"
+
     # Application URLs
     BASE_URL = os.getenv("BASE_URL", "http://localhost:8080/v1")
     FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
@@ -220,7 +226,14 @@ class Common(Configuration):
 
     # Store uploaded files in S3
     # http://django-storages.readthedocs.org/en/latest/index.html
-    DEFAULT_FILE_STORAGE = "tdpservice.backends.DataFilesS3Storage"
+    STORAGES = {
+        "default": {
+            "BACKEND": "tdpservice.backends.DataFilesS3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
     AWS_S3_DATAFILES_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
     AWS_S3_DATAFILES_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
     AWS_S3_DATAFILES_BUCKET_NAME = os.getenv("AWS_BUCKET")
@@ -366,7 +379,7 @@ class Common(Configuration):
     # of API POST calls to prevent false negative authorization errors.
     # https://docs.djangoproject.com/en/2.2/ref/settings/#csrf-cookie-httponly
     CSRF_COOKIE_HTTPONLY = False
-    CSRF_TRUSTED_ORIGINS = [".app.cloud.gov", ".acf.hhs.gov"]
+    CSRF_TRUSTED_ORIGINS = ["https://*.app.cloud.gov", "https://*.acf.hhs.gov"]
 
     # Django Rest Framework
     DEFAULT_RENDERER_CLASSES = ["rest_framework.renderers.JSONRenderer"]
@@ -567,6 +580,8 @@ class Common(Configuration):
     CELERY_RESULT_SERIALIZER = "json"
     CELERY_TIMEZONE = "UTC"
     CELERYD_SEND_EVENTS = True
+    CELERY_ENABLE_UTC = True
+    CELERY_TASK_PROTOCOL = 1
 
     CELERY_BEAT_SCHEDULE = {
         "Database Backup": {
