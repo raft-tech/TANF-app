@@ -573,9 +573,7 @@ describe('Profile', () => {
     )
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/^Requested Change$/i)
-      ).toBeInTheDocument()
+      expect(screen.getByText(/^Requested Change$/i)).toBeInTheDocument()
     })
     expect(axiosInstance.get).toHaveBeenCalled()
   })
@@ -642,8 +640,6 @@ describe('Profile', () => {
     await waitFor(() => {
       expect(axiosInstance.get).toHaveBeenCalled()
     })
-    expect(
-      screen.queryByText(/^Requested Change$/i)
-    ).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Requested Change$/i)).not.toBeInTheDocument()
   })
 })
