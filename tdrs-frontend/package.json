@@ -39,7 +39,7 @@
   "scripts": {
     "start": "SASS_PATH=\"$(pwd)/src:$(pwd)/node_modules/@uswds:$(pwd)/node_modules/@uswds/uswds/packages\" react-scripts start",
     "start:ci": "CI=true HOST=localhost BROWSER=none yarn start",
-    "build": "sh -ac 'ENV_FILE=\".env.${REACT_APP_ENV}\"; if [ -f \"$ENV_FILE\" ]; then . \"$ENV_FILE\"; fi; DISABLE_ESLINT_PLUGIN=true SASS_PATH=\"$(pwd)/src:$(pwd)/node_modules/@uswds:$(pwd)/node_modules/@uswds/uswds/packages\" react-scripts build'",
+    "build": "sh -ac 'ENV_FILE=\"./.env.${REACT_APP_ENV}\"; if [ -f \"$ENV_FILE\" ]; then . \"$ENV_FILE\"; fi; DISABLE_ESLINT_PLUGIN=true SASS_PATH=\"$(pwd)/src:$(pwd)/node_modules/@uswds:$(pwd)/node_modules/@uswds/uswds/packages\" react-scripts build'",
     "build:development": "REACT_APP_ENV=development yarn build",
     "build:production": "REACT_APP_ENV=production yarn build",
     "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" react-scripts test",
