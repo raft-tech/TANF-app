@@ -298,7 +298,7 @@ describe('FRA Reports Page', () => {
     }
 
     it('Allows csv files to be selected and submitted', async () => {
-      const { getByText, dispatch, container } = await setup()
+      const { getByText, queryByText, dispatch, container } = await setup()
 
       const uploadForm = container.querySelector('#fra-file-upload')
       fireEvent.change(uploadForm, {
@@ -322,11 +322,16 @@ describe('FRA Reports Page', () => {
           )
         ).toBeInTheDocument()
       )
-      await waitFor(() => expect(dispatch).toHaveBeenCalled())
+      expect(
+        queryByText(
+          'Selected File report.csv. To change the selected file, click this button.'
+        )
+      ).not.toBeInTheDocument()
+      await waitFor(() => expect(dispatch).toHaveBeenCalledTimes(6))
     })
 
     it('Allows xlsx files to be selected and submitted', async () => {
-      const { getByText, dispatch, container } = await setup()
+      const { getByText, queryByText, dispatch, container } = await setup()
 
       const uploadForm = container.querySelector('#fra-file-upload')
       fireEvent.change(uploadForm, {
@@ -354,7 +359,12 @@ describe('FRA Reports Page', () => {
           )
         ).toBeInTheDocument()
       )
-      await waitFor(() => expect(dispatch).toHaveBeenCalled())
+      expect(
+        queryByText(
+          'Selected File report.xlsx. To change the selected file, click this button.'
+        )
+      ).not.toBeInTheDocument()
+      await waitFor(() => expect(dispatch).toHaveBeenCalledTimes(6))
     })
 
     it('Shows a spinner until submission history updates', async () => {
