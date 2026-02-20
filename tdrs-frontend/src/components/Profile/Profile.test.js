@@ -84,7 +84,7 @@ describe('Profile', () => {
     render(
       <Provider store={store}>
         <MemoryRouter>
-          <Profile />
+          <Profile type="profile" />
         </MemoryRouter>
       </Provider>
     )
@@ -120,7 +120,7 @@ describe('Profile', () => {
     render(
       <Provider store={store}>
         <MemoryRouter>
-          <Profile />
+          <Profile type="profile" />
         </MemoryRouter>
       </Provider>
     )
@@ -567,13 +567,15 @@ describe('Profile', () => {
     render(
       <Provider store={store}>
         <MemoryRouter>
-          <Profile />
+          <Profile type="profile" />
         </MemoryRouter>
       </Provider>
     )
 
     await waitFor(() => {
-      expect(screen.getByText(/Requested Change/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/^Requested Change$/i)
+      ).toBeInTheDocument()
     })
     expect(axiosInstance.get).toHaveBeenCalled()
   })
@@ -632,7 +634,7 @@ describe('Profile', () => {
     render(
       <Provider store={store}>
         <MemoryRouter>
-          <Profile />
+          <Profile type="profile" />
         </MemoryRouter>
       </Provider>
     )
@@ -640,6 +642,8 @@ describe('Profile', () => {
     await waitFor(() => {
       expect(axiosInstance.get).toHaveBeenCalled()
     })
-    expect(screen.queryByText(/Requested Change/i)).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/^Requested Change$/i)
+    ).not.toBeInTheDocument()
   })
 })

@@ -4,10 +4,16 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { thunk } from 'redux-thunk'
 import configureStore from 'redux-mock-store'
 import { Provider } from 'react-redux'
+import * as reactRedux from 'react-redux'
 import { MemoryRouter } from 'react-router'
 
 import App from './App'
 import { fetchSttList } from './actions/sttList'
+
+jest.mock('react-redux', () => {
+  const actual = jest.requireActual('react-redux')
+  return { ...actual, useDispatch: jest.fn() }
+})
 
 jest.mock('./actions/sttList', () => ({
   fetchSttList: jest.fn(() => ({ type: 'FETCH_STTS' })),
@@ -41,6 +47,7 @@ describe('App.js', () => {
       writable: true,
       value: { pathname: '/' },
     })
+    reactRedux.useDispatch.mockReturnValue(jest.fn())
     fetchSttList.mockClear()
   })
 
