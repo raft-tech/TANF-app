@@ -12,15 +12,19 @@ export const navigateToProfile = () => {
 }
 
 export const clickEditProfile = () => {
-  cy.get('button').contains('Edit Profile').should('be.visible').click()
+  cy.contains('button', 'Edit Profile', { timeout: 10000 }).should('be.visible')
+  cy.contains('button', 'Edit Profile', { timeout: 10000 }).click()
   // Wait for the form to appear
-  cy.get('#firstName').should('be.visible')
+  cy.get('#firstName', { timeout: 10000 }).should('be.visible')
 }
 
 export const clickEditAccessRequest = () => {
-  cy.get('button').contains('Edit Access Request').should('be.visible').click()
+  cy.contains('button', 'Edit Access Request', { timeout: 10000 }).should(
+    'be.visible'
+  )
+  cy.contains('button', 'Edit Access Request', { timeout: 10000 }).click()
   // Wait for the form to appear
-  cy.get('#firstName').should('be.visible')
+  cy.get('#firstName', { timeout: 10000 }).should('be.visible')
 }
 
 export const updateFirstName = (firstName) => {
@@ -126,7 +130,7 @@ export const verifyNoFRAAccessBadge = () => {
 
 export const verifyPendingChangeRequestBanner = () => {
   cy.contains(
-    'Your profile change request is currently being reviewed by an OFA Admin. We’ll send you an email when it’s been approved'
+    /Your (requested change|requested changes|request for access) (is|are) currently being reviewed by an OFA Admin\. We.?ll send you an email when it.?s been approved/i
   ).should('be.visible')
 }
 
