@@ -124,11 +124,12 @@ describe('App.js', () => {
 
   it('should redirect to #main-content when space bar is pressed on "skip links" element', () => {
     const url = '#main-content'
+    const initialUrl = '#before'
 
     global.window = Object.create(window)
     Object.defineProperty(window, 'location', {
       value: {
-        href: url,
+        href: initialUrl,
       },
     })
 
