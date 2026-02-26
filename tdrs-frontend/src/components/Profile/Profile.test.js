@@ -645,6 +645,68 @@ describe('Profile', () => {
     })
   })
 
+  it('prefills edit form with pending requested name values', async () => {
+    const userWithPending = {
+      ...baseUser,
+      id: 123,
+      pending_requests: 1,
+      account_approval_status: 'Approved',
+      roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
+    }
+
+    axiosInstance.get.mockResolvedValue({
+      data: {
+        results: [
+          {
+            user: 123,
+            status: 'pending',
+            field_name: 'first_name',
+            requested_value: 'Alicia',
+          },
+        ],
+      },
+    })
+
+    const store = mockStore({
+      auth: {
+        authenticated: true,
+        user: userWithPending,
+      },
+      stts: {
+        sttList: [],
+      },
+    })
+
+    const { rerender } = render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Profile type="profile" isEditing={false} user={userWithPending} />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    await waitFor(() => {
+      expect(axiosInstance.get).toHaveBeenCalledTimes(1)
+    })
+
+    rerender(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Profile
+            type="profile"
+            isEditing={true}
+            user={userWithPending}
+            sttList={[]}
+            onCancel={jest.fn()}
+          />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    expect(screen.getByLabelText(/first name/i)).toHaveValue('Alicia')
+    expect(screen.getByLabelText(/last name/i)).toHaveValue('Belcher')
+  })
+
   it('skips pending change request lookup when type is not profile', () => {
     const userWithPending = {
       ...baseUser,

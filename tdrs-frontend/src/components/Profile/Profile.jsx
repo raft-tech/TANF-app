@@ -33,6 +33,35 @@ function Profile({
   const isAccessRequestPending = useSelector(accountIsInReview)
   const isProfileChangePending = useSelector(accountHasPendingProfileChange)
   const [pendingChangeRequests, setPendingChangeRequests] = useState([])
+  const pendingChangesByField = Array.isArray(pendingChangeRequests)
+    ? pendingChangeRequests.reduce((acc, request) => {
+        if (
+          !request?.field_name ||
+          request?.status !== 'pending' ||
+          acc[request.field_name] !== undefined
+        ) {
+          return acc
+        }
+        acc[request.field_name] = request.requested_value
+        return acc
+      }, {})
+    : {}
+
+  const resolvePendingFRAAccess = (value) => {
+    if (typeof value === 'boolean') {
+      return value
+    }
+    if (typeof value === 'string') {
+      const normalized = value.toLowerCase()
+      if (normalized === 'true') {
+        return true
+      }
+      if (normalized === 'false') {
+        return false
+      }
+    }
+    return null
+  }
 
   useEffect(() => {
     if (setInEditMode) {
@@ -91,10 +120,15 @@ function Profile({
         sttList={sttList}
         editMode={isEditing}
         initialValues={{
-          firstName: resolvedUser?.first_name || '',
-          lastName: resolvedUser?.last_name || '',
+          firstName:
+            pendingChangesByField.first_name ?? resolvedUser?.first_name ?? '',
+          lastName:
+            pendingChangesByField.last_name ?? resolvedUser?.last_name ?? '',
           stt: resolvedUser?.stt?.name || '',
-          hasFRAAccess: hasFRAAccess ?? null,
+          hasFRAAccess:
+            resolvePendingFRAAccess(pendingChangesByField.has_fra_access) ??
+            hasFRAAccess ??
+            null,
           regions: resolvedUser?.regions || new Set(),
           jurisdictionType: resolvedUser?.stt?.type || JURISDICTION_TYPES.STATE,
         }}

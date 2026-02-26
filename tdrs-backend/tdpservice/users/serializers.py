@@ -306,10 +306,13 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
         new_region_ids = set(region.id for region in new_regions)
 
         if pending_request:
-            if current_regions != new_region_ids:
-                # Update the existing pending request
-                pending_request.requested_value = list(new_region_ids)
-                pending_request.save()
+            if current_regions == new_region_ids:
+                self._cancel_pending_request(pending_request, field_name="regions")
+                return change_requests
+
+            # Update the existing pending request
+            pending_request.requested_value = list(new_region_ids)
+            pending_request.save()
             change_requests.append(pending_request)
 
         # New request
@@ -341,8 +344,13 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
             existing_permission = None
 
         if pending_request:
+            if changing_permission == existing_permission:
+                self._cancel_pending_request(
+                    pending_request, field_name=permission
+                )
+                return None
+
             if pending_request.requested_value != str(changing_permission):
-                # Update the existing pending request
                 pending_request.requested_value = str(changing_permission)
                 pending_request.save()
             return pending_request
@@ -355,6 +363,19 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
                 requested_by=self.context["request"].user,
             )
             return change_request
+
+    def _cancel_pending_request(self, pending_request, field_name):
+        """Delete a pending request when the desired value matches current data."""
+        ChangeRequestAuditLog.objects.create(
+            change_request=pending_request,
+            action="cancelled",
+            performed_by=self.context["request"].user,
+            details={
+                "field": field_name,
+                "reason": "requested value matches current value",
+            },
+        )
+        pending_request.delete()
 
     def _handle_pending_request(self, validated_data, instance, pending_requests):
         """Handle existing pending requests by updating them with new data."""
@@ -376,26 +397,35 @@ class UserProfileChangeRequestSerializer(UserProfileSerializer):
                 else:
                     # For other fields, just update the requested value
                     # if field is not string, get the field value from instance
+                    new_requested_value = validated_data[pending_request.field_name]
                     if isinstance(validated_data[pending_request.field_name], STT):
-                        pending_request.requested_value = validated_data[
+                        new_requested_value = validated_data[
                             pending_request.field_name
                         ].id
+
+                    current_value = getattr(instance, pending_request.field_name, None)
+                    if isinstance(current_value, STT):
+                        current_value = current_value.id
+
+                    if str(new_requested_value) == str(current_value):
+                        self._cancel_pending_request(
+                            pending_request, field_name=pending_request.field_name
+                        )
                     else:
-                        pending_request.requested_value = validated_data[
-                            pending_request.field_name
-                        ]
-                    pending_request.save()
+                        pending_request.requested_value = new_requested_value
+                        pending_request.save()
 
                 # Log the update in the audit log
-                ChangeRequestAuditLog.objects.create(
-                    change_request=pending_request,
-                    action="updated",
-                    performed_by=self.context["request"].user,
-                    details={
-                        "field": pending_request.field_name,
-                        "requested_value": str(pending_request.requested_value),
-                    },
-                )
+                if pending_request.pk:
+                    ChangeRequestAuditLog.objects.create(
+                        change_request=pending_request,
+                        action="updated",
+                        performed_by=self.context["request"].user,
+                        details={
+                            "field": pending_request.field_name,
+                            "requested_value": str(pending_request.requested_value),
+                        },
+                    )
                 validated_data.pop(pending_request.field_name, None)
 
     def _handle_new_request(self, validated_data, instance):
