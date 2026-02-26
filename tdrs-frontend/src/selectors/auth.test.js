@@ -38,11 +38,11 @@ describe('selectors/auth', () => {
   })
 
   it('checks pending profile change count', () => {
-    expect(accountHasPendingProfileChange(makeState({ pending_requests: 0 }))).toBe(
-      false
-    )
-    expect(accountHasPendingProfileChange(makeState({ pending_requests: 2 }))).toBe(
-      true
-    )
+    expect(
+      accountHasPendingProfileChange(makeState({ pending_requests: 0 }))
+    ).toBe(false)
+    expect(
+      accountHasPendingProfileChange(makeState({ pending_requests: 2 }))
+    ).toBe(true)
   })
 })

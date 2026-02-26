@@ -143,15 +143,17 @@ describe('useSubmissionHistory', () => {
       mockContext.startPolling.mock.calls[0]
 
     expect(typeof fetchStatusAction()).toBe('object')
-    expect(shouldStopPolling({ data: { summary: { status: 'Pending' } } })).toBe(
-      false
-    )
-    expect(shouldStopPolling({ data: { summary: { status: 'Accepted' } } })).toBe(
-      true
-    )
+    expect(
+      shouldStopPolling({ data: { summary: { status: 'Pending' } } })
+    ).toBe(false)
+    expect(
+      shouldStopPolling({ data: { summary: { status: 'Accepted' } } })
+    ).toBe(true)
     expect(shouldStopPolling({ data: {} })).toBeUndefined()
 
-    const response = { data: { id: pendingFile.id, summary: { status: 'Accepted' } } }
+    const response = {
+      data: { id: pendingFile.id, summary: { status: 'Accepted' } },
+    }
     handleSuccess(response)
 
     expect(store.getActions()).toContainEqual({
