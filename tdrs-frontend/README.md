@@ -8,7 +8,7 @@ Frontend Service for TDP. Deployed to Cloud.gov at https://tdp-frontend.app.clou
 - [Login.gov Sandbox Account](https://idp.int.identitysandbox.gov/sign_up/enter_email)
 - [Cloud.gov Account](https://cloud.gov/)
 - [Cloud Foundry CLI](https://docs.cloudfoundry.org/cf-cli/install-go-cli.html)
-- [Yarn](https://yarnpkg.com/getting-started/install) (Homebrew: `brew install yarn`)
+- [Yarn 1.22.22](https://classic.yarnpkg.com/lang/en/docs/install/) (Homebrew: `brew install yarn@1 && brew link --overwrite yarn@1`; verify with `yarn -v`)
 
 # Contents
 
