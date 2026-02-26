@@ -44,6 +44,10 @@ function Profile({
     let isMounted = true
 
     const loadPendingChangeRequests = async () => {
+      if (isEditing) {
+        return
+      }
+
       if (!userId || type !== 'profile' || !isProfileChangePending) {
         if (isMounted) {
           setPendingChangeRequests([])
@@ -78,7 +82,7 @@ function Profile({
     return () => {
       isMounted = false
     }
-  }, [userId, type, isProfileChangePending])
+  }, [userId, type, isProfileChangePending, isEditing])
 
   if (isEditing) {
     return (

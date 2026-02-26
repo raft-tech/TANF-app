@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axiosInstance from '../axios-instance'
 import configureStore from 'redux-mock-store'
 import { thunk } from 'redux-thunk'
 import { SET_AUTH } from './auth'
@@ -32,7 +32,7 @@ describe('updateUserRequest', () => {
       has_fra_access: true,
       pending_requests: 1,
     }
-    axios.patch.mockResolvedValue({ data: apiUserResponse })
+    axiosInstance.patch.mockResolvedValue({ data: apiUserResponse })
 
     await store.dispatch(updateUserRequest(mockInput))
 
@@ -61,7 +61,7 @@ describe('updateUserRequest', () => {
       has_fra_access: false,
       pending_requests: 0,
     }
-    axios.patch.mockResolvedValue({ data: apiUserResponse })
+    axiosInstance.patch.mockResolvedValue({ data: apiUserResponse })
 
     await store.dispatch(updateUserRequest(mockInput))
 
@@ -83,7 +83,7 @@ describe('updateUserRequest', () => {
       hasFRAAccess: false,
     }
 
-    axios.patch.mockRejectedValue(new Error('threw and error'))
+    axiosInstance.patch.mockRejectedValue(new Error('threw and error'))
 
     await store.dispatch(updateUserRequest(mockInput))
 
@@ -102,7 +102,7 @@ describe('updateUserRequest', () => {
       hasFRAAccess: false,
     }
 
-    axios.patch.mockResolvedValue({})
+    axiosInstance.patch.mockResolvedValue({})
 
     await store.dispatch(updateUserRequest(mockInput))
 
@@ -111,3 +111,4 @@ describe('updateUserRequest', () => {
     expect(actions[1].type).toBe(CLEAR_REQUEST_USER_UPDATE)
   })
 })
+jest.mock('../axios-instance')

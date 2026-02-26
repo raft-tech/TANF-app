@@ -578,6 +578,73 @@ describe('Profile', () => {
     expect(axiosInstance.get).toHaveBeenCalled()
   })
 
+  it('reloads pending change requests when exiting edit mode', async () => {
+    const userWithPending = {
+      ...baseUser,
+      id: 123,
+      pending_requests: 1,
+      account_approval_status: 'Approved',
+      roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
+    }
+
+    axiosInstance.get.mockResolvedValue({
+      data: {
+        results: [
+          {
+            user: 123,
+            status: 'pending',
+            field_name: 'has_fra_access',
+            requested_value: 'true',
+          },
+        ],
+      },
+    })
+
+    const store = mockStore({
+      auth: {
+        authenticated: true,
+        user: userWithPending,
+      },
+      stts: {
+        sttList: [],
+      },
+    })
+
+    const { rerender } = render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Profile
+            type="profile"
+            isEditing={true}
+            user={userWithPending}
+            sttList={[]}
+            onCancel={jest.fn()}
+          />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    expect(axiosInstance.get).not.toHaveBeenCalled()
+
+    rerender(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Profile
+            type="profile"
+            isEditing={false}
+            user={userWithPending}
+            sttList={[]}
+            onCancel={jest.fn()}
+          />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    await waitFor(() => {
+      expect(axiosInstance.get).toHaveBeenCalledTimes(1)
+    })
+  })
+
   it('skips pending change request lookup when type is not profile', () => {
     const userWithPending = {
       ...baseUser,

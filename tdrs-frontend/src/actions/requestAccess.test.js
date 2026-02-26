@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axiosInstance from '../axios-instance'
 import { thunk } from 'redux-thunk'
 import configureStore from 'redux-mock-store'
 
@@ -14,7 +14,7 @@ describe('actions/requestAccess.js', () => {
   const mockStore = configureStore([thunk])
 
   it('sends a PATCH request when requestAccess is called', async () => {
-    axios.patch = jest.fn().mockResolvedValue({
+    axiosInstance.patch = jest.fn().mockResolvedValue({
       data: {
         first_name: 'harry',
         last_name: 'potter',
@@ -42,7 +42,7 @@ describe('actions/requestAccess.js', () => {
   })
 
   it('clears the request access state if there is no data returned from the API', async () => {
-    axios.patch = jest.fn().mockResolvedValue({})
+    axiosInstance.patch = jest.fn().mockResolvedValue({})
     const profileInfo = {
       firstName: 'harry',
       lastName: 'potter',
@@ -59,7 +59,7 @@ describe('actions/requestAccess.js', () => {
   })
 
   it('dispatches an error to the store if the API errors', async () => {
-    axios.patch = jest.fn().mockRejectedValue(new Error('threw an error'))
+    axiosInstance.patch = jest.fn().mockRejectedValue(new Error('threw an error'))
     const profileInfo = {
       firstName: 'harry',
       lastName: 'potter',
@@ -75,3 +75,4 @@ describe('actions/requestAccess.js', () => {
     expect(actions[1].type).toBe(SET_REQUEST_ACCESS_ERROR)
   })
 })
+jest.mock('../axios-instance')

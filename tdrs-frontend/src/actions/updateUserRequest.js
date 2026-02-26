@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axiosInstance from '../axios-instance'
 import { logErrorToServer } from '../utils/eventLogger'
 import { SET_AUTH } from './auth'
 
@@ -23,7 +23,7 @@ export const updateUserRequest =
         // this guards it so the key isn't present if value isn't
         ...(Array.isArray(regions) && regions.length > 0 ? { regions } : {}),
       }
-      const { data } = await axios.patch(URL, user, {
+      const { data } = await axiosInstance.patch(URL, user, {
         withCredentials: true,
       })
 
