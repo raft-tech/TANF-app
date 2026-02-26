@@ -59,7 +59,9 @@ describe('actions/requestAccess.js', () => {
   })
 
   it('dispatches an error to the store if the API errors', async () => {
-    axiosInstance.patch = jest.fn().mockRejectedValue(new Error('threw an error'))
+    axiosInstance.patch = jest
+      .fn()
+      .mockRejectedValue(new Error('threw an error'))
     const profileInfo = {
       firstName: 'harry',
       lastName: 'potter',
