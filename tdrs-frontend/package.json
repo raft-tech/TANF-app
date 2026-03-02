@@ -2,7 +2,7 @@
   "name": "tdrs-frontend",
   "version": "0.1.0",
   "license": "MIT",
-  "packageManager": "yarn@1.22.22",
+  "packageManager": "yarn@4.6.0",
   "dependencies": {
     "@babel/core": "^7.26.0",
     "@fortawesome/fontawesome-svg-core": "^6.7.0",

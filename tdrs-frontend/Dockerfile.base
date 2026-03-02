@@ -14,7 +14,9 @@ COPY --chown=node:node package.json yarn.lock ./
 
 # Install all dependencies (devDependencies needed because @redux-devtools/extension is imported in src/configureStore.js)
 # TODO: Move @redux-devtools/extension to dependencies in package.json, then use --omit=dev to save ~500MB
-RUN yarn install --frozen-lockfile --production --non-interactive && \
+RUN corepack enable && \
+    corepack prepare yarn@4.6.0 --activate && \
+    yarn install --immutable --mode=skip-build && \
     yarn cache clean
 
 ENV PORT=80

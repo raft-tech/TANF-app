@@ -47,9 +47,9 @@
             nvm use v22.13.0
             if command -v corepack >/dev/null 2>&1; then
               corepack enable
-              corepack prepare yarn@1.22.22 --activate
+              corepack prepare yarn@4.6.0 --activate
             else
-              npm install -g yarn@1.22.22
+              npm install -g yarn@4.6.0
             fi
             node -v
             yarn -v
@@ -72,14 +72,12 @@
               . "$NVM_DIR/nvm.sh"
               nvm use v22.13.0
             fi
-            if ! command -v yarn >/dev/null 2>&1; then
-              if command -v corepack >/dev/null 2>&1; then
-                corepack enable
-                corepack prepare yarn@1.22.22 --activate
-              else
-                npm install -g yarn@1.22.22
-              fi
+            if command -v corepack >/dev/null 2>&1; then
+              corepack enable
+              corepack prepare yarn@4.6.0 --activate
+            elif ! command -v yarn >/dev/null 2>&1; then
+              npm install -g yarn@4.6.0
             fi
             node -v
             yarn -v
-            yarn install --frozen-lockfile --non-interactive
+            yarn install --immutable
