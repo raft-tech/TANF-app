@@ -15,7 +15,6 @@
     "@lagunovsky/redux-react-router": "^4.3.2",
     "@redux-devtools/extension": "^3.3.0",
     "@uswds/uswds": "3.10.0",
-    "axios": "^1.7.7",
     "classnames": "^2.5.1",
     "detect-file-encoding-and-language": "^2.4.0",
     "file-type-checker": "^1.1.2",
@@ -98,7 +97,6 @@
     "collectCoverageFrom": [
       "src/**/*.{js,jsx}",
       "!src/**/index.js",
-      "!src/axios-instance.js",
       "!src/serviceWorker.js",
       "!src/configureStore.js",
       "!src/mirage.js",
@@ -118,7 +116,6 @@
       "node_modules/(?!(@grafana|web-vitals)/)"
     ],
     "moduleNameMapper": {
-      "^axios$": "axios/dist/node/axios.cjs",
       "@uswds/uswds/src/js/components": "@uswds/uswds/packages/uswds-core/src/js/index.js",
       "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "jest-transform-stub"
     }
