@@ -10,14 +10,13 @@ WORKDIR /home/node/app
 # Copy package.json and run yarn install before copying the rest of the app in
 # to allow Docker to cache the yarn layer to prevent unnecessary installations
 # when code changes occur
-COPY --chown=node:node package.json yarn.lock ./
+COPY --chown=node:node package.json yarn.lock .yarnrc.yml ./
 
 # Install all dependencies (devDependencies needed because @redux-devtools/extension is imported in src/configureStore.js)
 # TODO: Move @redux-devtools/extension to dependencies in package.json, then use --omit=dev to save ~500MB
-RUN corepack enable && \
-    corepack prepare yarn@4.6.0 --activate && \
-    yarn install --immutable --mode=skip-build && \
-    yarn cache clean
+RUN corepack prepare yarn@4.6.0 && \
+    corepack yarn install --immutable --mode=skip-build && \
+    corepack yarn cache clean
 
 ENV PORT=80
 EXPOSE 80
