@@ -41,7 +41,7 @@
     "build": "sh -ac 'ENV_FILE=\"./.env.${REACT_APP_ENV}\"; if [ -f \"$ENV_FILE\" ]; then . \"$ENV_FILE\"; fi; DISABLE_ESLINT_PLUGIN=true SASS_PATH=\"$(pwd)/src:$(pwd)/node_modules/@uswds:$(pwd)/node_modules/@uswds/uswds/packages\" react-scripts build'",
     "build:development": "REACT_APP_ENV=development yarn build",
     "build:production": "REACT_APP_ENV=production yarn build",
-    "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" react-scripts test",
+    "test": "react-scripts test",
     "test:cov": "react-scripts test --coverage --watchAll",
     "test:ci": "CI=1 react-scripts test --coverage",
     "test:accessibility": "concurrently -k -s first 'REACT_APP_PA11Y_TEST=true yarn start:ci' 'wait-on http://localhost:3000/ && yarn pa11y-ci'",
@@ -111,7 +111,6 @@
         "lines": 90
       }
     },
-    "transform": {},
     "transformIgnorePatterns": [
       "node_modules/(?!(@grafana|web-vitals)/)"
     ],
