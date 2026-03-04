@@ -105,6 +105,6 @@ Feature: User Profile Editing
         Given 'FRA OFA Regional Staff Robert' logs in
         When 'FRA OFA Regional Staff Robert' updates their name to 'FRA Regional Changed' 'Robert Changed'
         Then 'FRA OFA Regional Staff Robert' sees a pending change request
-        And 'FRA OFA Regional Staff Robert' profile shows name 'FRA Regional Changed Robert Changed'
+        And 'FRA OFA Regional Staff Robert' profile shows name 'FRA OFA Regional Staff Robert'
 
     # TODO: verify change requests exist in DB?
