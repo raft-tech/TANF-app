@@ -45,6 +45,17 @@ Feature: User Profile Editing
         Then 'FRA OFA Regional Staff Robert' sees a pending change request
         And 'FRA OFA Regional Staff Robert' profile shows regions 'Chicago, Philadelphia'
 
+    Scenario: FRA OFA Regional Staff Robert keeps pending region changes after submitting a name change
+        Given 'FRA OFA Regional Staff Robert' logs in
+        When 'FRA OFA Regional Staff Robert' updates their regions to add 'Seattle' and remove 'Chicago'
+        Then 'FRA OFA Regional Staff Robert' sees a pending change request
+        When 'FRA OFA Regional Staff Robert' opens profile editing
+        Then 'FRA OFA Regional Staff Robert' edit form shows regions 'Seattle' selected and 'Chicago' unselected
+        When 'FRA OFA Regional Staff Robert' updates their name to 'FRA Regional Pending' 'Robert Pending'
+        Then 'FRA OFA Regional Staff Robert' sees a pending change request
+        When 'FRA OFA Regional Staff Robert' opens profile editing
+        Then 'FRA OFA Regional Staff Robert' edit form shows regions 'Seattle' selected and 'Chicago' unselected
+
     # ============================================================================
     # Validation and Error Handling
     # ============================================================================

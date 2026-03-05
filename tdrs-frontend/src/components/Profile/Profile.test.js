@@ -6,9 +6,9 @@ import { MemoryRouter } from 'react-router-dom'
 
 import Profile from './Profile'
 import configureStore from 'redux-mock-store'
-import axiosInstance from '../../axios-instance'
+import { get } from '../../fetch-instance'
 
-jest.mock('../../axios-instance')
+jest.mock('../../fetch-instance')
 
 const baseUser = {
   email: 'test@example.com',
@@ -40,7 +40,15 @@ describe('Profile', () => {
     // location.reload = jest.fn();
     delete window.location
     window.location = mockLocation
-    axiosInstance.get.mockReset()
+    get.mockReset()
+    get.mockImplementation((url) =>
+      Promise.resolve({
+        data: url?.includes('/stts/alpha') ? [] : [],
+        ok: true,
+        status: 200,
+        error: null,
+      })
+    )
   })
 
   afterEach(() => {
@@ -541,17 +549,25 @@ describe('Profile', () => {
       roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
     }
 
-    axiosInstance.get.mockResolvedValue({
-      data: {
-        results: [
-          {
-            user: 123,
-            status: 'pending',
-            field_name: 'first_name',
-            requested_value: 'Alicia',
+    get.mockImplementation((url) => {
+      if (url?.includes('/change-requests/')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          error: null,
+          data: {
+            results: [
+              {
+                user: 123,
+                status: 'pending',
+                field_name: 'first_name',
+                requested_value: 'Alicia',
+              },
+            ],
           },
-        ],
-      },
+        })
+      }
+      return Promise.resolve({ data: [], ok: true, status: 200, error: null })
     })
 
     const store = mockStore({
@@ -575,7 +591,7 @@ describe('Profile', () => {
     await waitFor(() => {
       expect(screen.getByText(/^Requested Change$/i)).toBeInTheDocument()
     })
-    expect(axiosInstance.get).toHaveBeenCalled()
+    expect(get).toHaveBeenCalled()
   })
 
   it('reloads pending change requests when exiting edit mode', async () => {
@@ -587,17 +603,25 @@ describe('Profile', () => {
       roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
     }
 
-    axiosInstance.get.mockResolvedValue({
-      data: {
-        results: [
-          {
-            user: 123,
-            status: 'pending',
-            field_name: 'has_fra_access',
-            requested_value: 'true',
+    get.mockImplementation((url) => {
+      if (url?.includes('/change-requests/')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          error: null,
+          data: {
+            results: [
+              {
+                user: 123,
+                status: 'pending',
+                field_name: 'has_fra_access',
+                requested_value: 'true',
+              },
+            ],
           },
-        ],
-      },
+        })
+      }
+      return Promise.resolve({ data: [], ok: true, status: 200, error: null })
     })
 
     const store = mockStore({
@@ -624,7 +648,7 @@ describe('Profile', () => {
       </Provider>
     )
 
-    expect(axiosInstance.get).not.toHaveBeenCalled()
+    expect(get).not.toHaveBeenCalled()
 
     rerender(
       <Provider store={store}>
@@ -641,7 +665,7 @@ describe('Profile', () => {
     )
 
     await waitFor(() => {
-      expect(axiosInstance.get).toHaveBeenCalledTimes(1)
+      expect(get).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -654,17 +678,25 @@ describe('Profile', () => {
       roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
     }
 
-    axiosInstance.get.mockResolvedValue({
-      data: {
-        results: [
-          {
-            user: 123,
-            status: 'pending',
-            field_name: 'first_name',
-            requested_value: 'Alicia',
+    get.mockImplementation((url) => {
+      if (url?.includes('/change-requests/')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          error: null,
+          data: {
+            results: [
+              {
+                user: 123,
+                status: 'pending',
+                field_name: 'first_name',
+                requested_value: 'Alicia',
+              },
+            ],
           },
-        ],
-      },
+        })
+      }
+      return Promise.resolve({ data: [], ok: true, status: 200, error: null })
     })
 
     const store = mockStore({
@@ -686,7 +718,7 @@ describe('Profile', () => {
     )
 
     await waitFor(() => {
-      expect(axiosInstance.get).toHaveBeenCalledTimes(1)
+      expect(get).toHaveBeenCalledTimes(1)
     })
 
     rerender(
@@ -705,6 +737,79 @@ describe('Profile', () => {
 
     expect(screen.getByLabelText(/first name/i)).toHaveValue('Alicia')
     expect(screen.getByLabelText(/last name/i)).toHaveValue('Belcher')
+  })
+
+  it('prefills edit form with pending requested region values', async () => {
+    const userWithPending = {
+      ...baseUser,
+      id: 123,
+      pending_requests: 1,
+      account_approval_status: 'Approved',
+      roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
+      email: 'regional-user@acf.hhs.gov',
+      regions: [{ id: 5, name: 'Chicago' }],
+    }
+
+    get.mockImplementation((url) => {
+      if (url?.includes('/change-requests/')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          error: null,
+          data: {
+            results: [
+              {
+                user: 123,
+                status: 'pending',
+                field_name: 'regions',
+                requested_value: '[3,10]',
+              },
+            ],
+          },
+        })
+      }
+      return Promise.resolve({ data: [], ok: true, status: 200, error: null })
+    })
+
+    const store = mockStore({
+      auth: {
+        authenticated: true,
+        user: userWithPending,
+      },
+      stts: {
+        sttList: [],
+      },
+    })
+
+    const { rerender } = render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Profile type="profile" isEditing={false} user={userWithPending} />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    await waitFor(() => {
+      expect(get).toHaveBeenCalledTimes(1)
+    })
+
+    rerender(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Profile
+            type="profile"
+            isEditing={true}
+            user={userWithPending}
+            sttList={[]}
+            onCancel={jest.fn()}
+          />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    expect(screen.getByLabelText(/Region 3 \(Philadelphia\)/i)).toBeChecked()
+    expect(screen.getByLabelText(/Region 10 \(Seattle\)/i)).toBeChecked()
+    expect(screen.getByLabelText(/Region 5 \(Chicago\)/i)).not.toBeChecked()
   })
 
   it('skips pending change request lookup when type is not profile', () => {
@@ -734,7 +839,7 @@ describe('Profile', () => {
       </Provider>
     )
 
-    expect(axiosInstance.get).not.toHaveBeenCalled()
+    expect(get).not.toHaveBeenCalled()
   })
 
   it('clears pending change requests when API fails', async () => {
@@ -746,7 +851,17 @@ describe('Profile', () => {
       roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
     }
 
-    axiosInstance.get.mockRejectedValue(new Error('API error'))
+    get.mockImplementation((url) => {
+      if (url?.includes('/change-requests/')) {
+        return Promise.resolve({
+          data: null,
+          ok: false,
+          status: 500,
+          error: new Error('API error'),
+        })
+      }
+      return Promise.resolve({ data: [], ok: true, status: 200, error: null })
+    })
 
     const store = mockStore({
       auth: {
@@ -767,7 +882,7 @@ describe('Profile', () => {
     )
 
     await waitFor(() => {
-      expect(axiosInstance.get).toHaveBeenCalled()
+      expect(get).toHaveBeenCalled()
     })
     expect(screen.queryByText(/^Requested Change$/i)).not.toBeInTheDocument()
   })

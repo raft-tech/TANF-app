@@ -3,7 +3,8 @@ import { useSelector } from 'react-redux'
 
 import RequestAccessForm from '../RequestAccessForm/RequestAccessForm'
 import UserProfileView from './UserProfileView'
-import axiosInstance from '../../axios-instance'
+import { get } from '../../fetch-instance'
+import { getRegionNameById } from '../../utils/regions'
 import {
   accountHasPendingProfileChange,
   accountIsInReview,
@@ -63,6 +64,54 @@ function Profile({
     return null
   }
 
+  const parsePendingRegionIds = (value) => {
+    if (value === null || typeof value === 'undefined') {
+      return []
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .map((entry) => {
+          if (entry && typeof entry === 'object') {
+            return Number(entry.id)
+          }
+          return Number(entry)
+        })
+        .filter((entry) => Number.isFinite(entry))
+    }
+
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? [value] : []
+    }
+
+    if (typeof value !== 'string') {
+      return []
+    }
+
+    try {
+      const parsedValue = JSON.parse(value)
+      return parsePendingRegionIds(parsedValue)
+    } catch {
+      const cleaned = value.replace(/[\[\]\s'"]/g, '')
+      if (!cleaned) {
+        return []
+      }
+      return cleaned
+        .split(',')
+        .map((entry) => Number(entry))
+        .filter((entry) => Number.isFinite(entry))
+    }
+  }
+
+  const pendingRegionIds = parsePendingRegionIds(pendingChangesByField.regions)
+  const pendingRegions =
+    pendingRegionIds.length > 0
+      ? pendingRegionIds.map((regionId) => ({
+          id: regionId,
+          name: getRegionNameById(regionId),
+        }))
+      : null
+
   useEffect(() => {
     if (setInEditMode) {
       setInEditMode(isEditing, type)
@@ -85,10 +134,13 @@ function Profile({
       }
 
       try {
-        const response = await axiosInstance.get(
+        const response = await get(
           `${process.env.REACT_APP_BACKEND_URL}/change-requests/`,
           { withCredentials: true }
         )
+        if (!response?.ok) {
+          throw response?.error || new Error('Failed to load change requests')
+        }
         const data = response?.data?.results ?? response?.data ?? []
         const pendingRequests = Array.isArray(data)
           ? data.filter(
@@ -129,7 +181,7 @@ function Profile({
             resolvePendingFRAAccess(pendingChangesByField.has_fra_access) ??
             hasFRAAccess ??
             null,
-          regions: resolvedUser?.regions || new Set(),
+          regions: pendingRegions ?? resolvedUser?.regions ?? new Set(),
           jurisdictionType: resolvedUser?.stt?.type || JURISDICTION_TYPES.STATE,
         }}
         onCancel={onCancel}
