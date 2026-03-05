@@ -1,5 +1,14 @@
-import axios from 'axios'
-import { render } from '@testing-library/react'
+import React from 'react'
+import { render, screen, fireEvent } from '@testing-library/react'
+import {
+  faCheckCircle,
+  faClock,
+  faExclamationCircle,
+  faXmarkCircle,
+} from '@fortawesome/free-solid-svg-icons'
+
+import { get } from '../../fetch-instance'
+import { getParseErrors } from '../../actions/createXLSReport'
 import {
   SubmissionSummaryStatusIcon,
   downloadErrorReport,
@@ -10,21 +19,9 @@ import {
   getSummaryStatusLabel,
   hasReparsed,
 } from './helpers'
-import { getParseErrors } from '../../actions/createXLSReport'
-import {
-  faCheckCircle,
-  faClock,
-  faExclamationCircle,
-  faXmarkCircle,
-} from '@fortawesome/free-solid-svg-icons'
 
-jest.mock('axios')
-jest.mock('../../actions/reports', () => ({
-  download: jest.fn(),
-}))
-jest.mock('../../actions/createXLSReport', () => ({
-  getParseErrors: jest.fn(),
-}))
+jest.mock('../../fetch-instance')
+jest.mock('../../actions/createXLSReport')
 
 describe('formatProgramType', () => {
   it('returns a label for SSP', () => {
@@ -45,57 +42,96 @@ describe('formatProgramType', () => {
 })
 
 describe('downloadErrorReport', () => {
-  it('downloads and parses error report data', async () => {
-    axios.get.mockResolvedValue({ data: 'blob-data' })
-    const file = { id: 123 }
-
-    await downloadErrorReport(file, 'report-name')
-
-    expect(axios.get).toHaveBeenCalledWith(
-      `${process.env.REACT_APP_BACKEND_URL}/data_files/123/download_error_report/`,
-      { responseType: 'blob' }
-    )
-    expect(getParseErrors).toHaveBeenCalledWith('blob-data', 'report-name')
+  beforeEach(() => {
+    get.mockClear()
+    getParseErrors.mockClear()
   })
 
-  it('logs when download fails', async () => {
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
-    axios.get.mockRejectedValue(new Error('fail'))
+  it('downloads and parses the error report on success', async () => {
+    const blob = new Blob(['error-data'])
+    get.mockResolvedValue({ data: blob, ok: true, error: null })
 
-    await downloadErrorReport({ id: 456 }, 'report-name')
+    await downloadErrorReport({ id: 5 }, 'My Error Report')
 
-    expect(logSpy).toHaveBeenCalled()
-    logSpy.mockRestore()
+    expect(get).toHaveBeenCalledWith(
+      expect.stringContaining('/data_files/5/download_error_report/'),
+      { responseType: 'blob' }
+    )
+    expect(getParseErrors).toHaveBeenCalledWith(blob, 'My Error Report')
+  })
+
+  it('logs error when API returns non-ok response', async () => {
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+    get.mockResolvedValue({
+      data: null,
+      ok: false,
+      error: new Error('Server error'),
+    })
+
+    await downloadErrorReport({ id: 5 }, 'Report')
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error))
+    expect(getParseErrors).not.toHaveBeenCalled()
+    consoleSpy.mockRestore()
   })
 })
 
 describe('getErrorReportStatus', () => {
-  const baseFile = {
-    summary: { status: 'Accepted' },
-    program_type: 'TAN',
-    year: 2024,
-    quarter: 'Q1',
-    section: 'Active Case Data',
-  }
+  it('returns download button when file has errors', () => {
+    const file = {
+      summary: { status: 'Accepted with Errors' },
+      program_type: 'TAN',
+      year: '2025',
+      quarter: 'Q1',
+      section: 'Active Case Data',
+      hasError: true,
+      id: 10,
+    }
 
-  it('returns a download button when errors exist', () => {
-    const file = { ...baseFile, hasError: true }
-    const { container } = render(getErrorReportStatus(file))
-    const button = container.querySelector('button.section-download')
-    expect(button).toBeInTheDocument()
-    expect(button).toHaveTextContent(
-      '2024-Q1-TANF Active Case Data Error Report.xlsx'
-    )
+    const result = getErrorReportStatus(file)
+    render(result)
+
+    expect(
+      screen.getByText('2025-Q1-TANF Active Case Data Error Report.xlsx')
+    ).toBeInTheDocument()
   })
 
-  it('returns No Errors when completed without errors', () => {
-    const file = { ...baseFile, hasError: false }
-    expect(getErrorReportStatus(file)).toEqual('No Errors')
+  it('returns No Errors when file has no errors', () => {
+    const file = {
+      summary: { status: 'Accepted' },
+      program_type: 'TAN',
+      year: '2025',
+      quarter: 'Q1',
+      section: 'Active Case Data',
+      hasError: false,
+    }
+
+    expect(getErrorReportStatus(file)).toBe('No Errors')
   })
 
-  it('returns Pending for pending status', () => {
-    const file = { ...baseFile, summary: { status: 'Pending' } }
-    expect(getErrorReportStatus(file)).toEqual('Pending')
+  it('returns Pending when summary status is Pending', () => {
+    const file = { summary: { status: 'Pending' } }
+    expect(getErrorReportStatus(file)).toBe('Pending')
+  })
+
+  it('calls downloadErrorReport when button is clicked', () => {
+    get.mockResolvedValue({ data: new Blob(), ok: true, error: null })
+
+    const file = {
+      summary: { status: 'Rejected' },
+      program_type: 'SSP',
+      year: '2025',
+      quarter: 'Q2',
+      section: 'Closed Case Data',
+      hasError: true,
+      id: 42,
+    }
+
+    const result = getErrorReportStatus(file)
+    render(result)
+
+    fireEvent.click(screen.getByRole('button'))
+    expect(get).toHaveBeenCalled()
   })
 })
 

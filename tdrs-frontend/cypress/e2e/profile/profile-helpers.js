@@ -118,7 +118,9 @@ export const verifyProfileField = (fieldLabel, expectedValue) => {
         }
       } else {
         // Fallback: still assert text exists somewhere to surface a real failure
-        cy.wrap($body).contains(expectedValue, { timeout: 15000 }).should('exist')
+        cy.wrap($body)
+          .contains(expectedValue, { timeout: 15000 })
+          .should('exist')
       }
     }
   })

@@ -49,7 +49,12 @@ describe('useSubmissionHistory', () => {
       },
     })
 
-    renderWithStore(store, { quarter: 'Q1' })
+    renderWithStore(store, {
+      quarter: 'Q1',
+      stt: { id: 1 },
+      year: '2021',
+      file_type: 'test',
+    })
 
     await waitFor(() => {
       expect(mockContext.startPolling).toHaveBeenCalledWith(
@@ -73,7 +78,12 @@ describe('useSubmissionHistory', () => {
       },
     })
 
-    renderWithStore(store, { quarter: 'Q1' })
+    renderWithStore(store, {
+      quarter: 'Q1',
+      stt: { id: 1 },
+      year: '2021',
+      file_type: 'test',
+    })
 
     await waitFor(() => {
       expect(mockContext.startPolling).not.toHaveBeenCalled()
@@ -89,7 +99,12 @@ describe('useSubmissionHistory', () => {
       },
     })
 
-    const renderResult = renderWithStore(store, { quarter: 'Q1' })
+    const renderResult = renderWithStore(store, {
+      quarter: 'Q1',
+      stt: { id: 1 },
+      year: '2021',
+      file_type: 'test',
+    })
 
     await waitFor(() => {
       expect(mockContext.startPolling).toHaveBeenCalledTimes(1)
