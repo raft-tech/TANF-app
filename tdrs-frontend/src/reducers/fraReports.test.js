@@ -82,7 +82,10 @@ describe('reducers/fraReports', () => {
       },
     })
 
-    expect(result.submissionHistory[0]).toEqual({ id: 1, fileName: 'old-1.txt' })
+    expect(result.submissionHistory[0]).toEqual({
+      id: 1,
+      fileName: 'old-1.txt',
+    })
     expect(result.submissionHistory[1]).toEqual(
       expect.objectContaining({ id: 2, fileName: 'updated.txt' })
     )
