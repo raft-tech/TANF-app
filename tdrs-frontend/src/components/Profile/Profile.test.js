@@ -882,7 +882,9 @@ describe('Profile', () => {
       </Provider>
     )
 
-    expect(screen.queryByLabelText(/Region 10 \(Seattle\)/i)).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText(/Region 10 \(Seattle\)/i)
+    ).not.toBeInTheDocument()
 
     resolvePendingRequests()
 
