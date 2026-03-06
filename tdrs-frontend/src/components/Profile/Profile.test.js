@@ -594,7 +594,7 @@ describe('Profile', () => {
     expect(get).toHaveBeenCalled()
   })
 
-  it('reloads pending change requests when exiting edit mode', async () => {
+  it('loads pending change requests while editing and reuses them when exiting edit mode', async () => {
     const userWithPending = {
       ...baseUser,
       id: 123,
@@ -648,7 +648,9 @@ describe('Profile', () => {
       </Provider>
     )
 
-    expect(get).not.toHaveBeenCalled()
+    await waitFor(() => {
+      expect(get).toHaveBeenCalledTimes(1)
+    })
 
     rerender(
       <Provider store={store}>
@@ -809,6 +811,84 @@ describe('Profile', () => {
 
     expect(screen.getByLabelText(/Region 3 \(Philadelphia\)/i)).toBeChecked()
     expect(screen.getByLabelText(/Region 10 \(Seattle\)/i)).toBeChecked()
+    expect(screen.getByLabelText(/Region 5 \(Chicago\)/i)).not.toBeChecked()
+  })
+
+  it('waits for pending change requests before rendering edit form', async () => {
+    const userWithPending = {
+      ...baseUser,
+      id: 123,
+      pending_requests: 1,
+      account_approval_status: 'Approved',
+      roles: [{ id: 1, name: 'OFA System Admin', permissions: [] }],
+      email: 'regional-user@acf.hhs.gov',
+      regions: [{ id: 5, name: 'Chicago' }],
+    }
+
+    let resolvePendingRequests
+    get.mockImplementation((url) => {
+      if (url?.includes('/change-requests/')) {
+        return new Promise((resolve) => {
+          resolvePendingRequests = () =>
+            resolve({
+              ok: true,
+              status: 200,
+              error: null,
+              data: {
+                results: [
+                  {
+                    user: 123,
+                    status: 'pending',
+                    field_name: 'regions',
+                    requested_value: '[3,10]',
+                  },
+                ],
+              },
+            })
+        })
+      }
+      return Promise.resolve({ data: [], ok: true, status: 200, error: null })
+    })
+
+    const store = mockStore({
+      auth: {
+        authenticated: true,
+        user: userWithPending,
+      },
+      stts: {
+        sttList: [],
+      },
+    })
+
+    const { rerender } = render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Profile type="profile" isEditing={false} user={userWithPending} />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    rerender(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Profile
+            type="profile"
+            isEditing={true}
+            user={userWithPending}
+            sttList={[]}
+            onCancel={jest.fn()}
+          />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    expect(screen.queryByLabelText(/Region 10 \(Seattle\)/i)).not.toBeInTheDocument()
+
+    resolvePendingRequests()
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Region 10 \(Seattle\)/i)).toBeChecked()
+    })
     expect(screen.getByLabelText(/Region 5 \(Chicago\)/i)).not.toBeChecked()
   })
 

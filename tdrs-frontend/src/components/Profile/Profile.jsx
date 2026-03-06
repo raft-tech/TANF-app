@@ -29,11 +29,14 @@ function Profile({
     resolvedUser?.permissions?.map((p) => p.codename) || []
   const hasFRAAccess = userPermissions.includes('has_fra_access')
   const userId = resolvedUser?.id
+  const pendingRequestCount = resolvedUser?.pending_requests ?? 0
 
   const missingAccessRequest = useSelector(accountIsMissingAccessRequest)
   const isAccessRequestPending = useSelector(accountIsInReview)
   const isProfileChangePending = useSelector(accountHasPendingProfileChange)
   const [pendingChangeRequests, setPendingChangeRequests] = useState([])
+  const [pendingChangeRequestsLoaded, setPendingChangeRequestsLoaded] =
+    useState(false)
   const pendingChangesByField = Array.isArray(pendingChangeRequests)
     ? pendingChangeRequests.reduce((acc, request) => {
         if (
@@ -122,18 +125,18 @@ function Profile({
     let isMounted = true
 
     const loadPendingChangeRequests = async () => {
-      if (isEditing) {
-        return
-      }
-
-      if (!userId || type !== 'profile' || !isProfileChangePending) {
+      if (!userId || type !== 'profile' || pendingRequestCount === 0) {
         if (isMounted) {
           setPendingChangeRequests([])
+          setPendingChangeRequestsLoaded(true)
         }
         return
       }
 
       try {
+        if (isMounted) {
+          setPendingChangeRequestsLoaded(false)
+        }
         const response = await get(
           `${process.env.REACT_APP_BACKEND_URL}/change-requests/`,
           { withCredentials: true }
@@ -150,10 +153,12 @@ function Profile({
           : []
         if (isMounted) {
           setPendingChangeRequests(pendingRequests)
+          setPendingChangeRequestsLoaded(true)
         }
       } catch (error) {
         if (isMounted) {
           setPendingChangeRequests([])
+          setPendingChangeRequestsLoaded(true)
         }
       }
     }
@@ -163,9 +168,17 @@ function Profile({
     return () => {
       isMounted = false
     }
-  }, [userId, type, isProfileChangePending, isEditing])
+  }, [userId, type, pendingRequestCount])
 
   if (isEditing) {
+    if (
+      type === 'profile' &&
+      pendingRequestCount > 0 &&
+      !pendingChangeRequestsLoaded
+    ) {
+      return null
+    }
+
     return (
       <RequestAccessForm
         user={resolvedUser}
