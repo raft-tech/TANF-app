@@ -303,6 +303,13 @@ tasks:
       - docker compose -f docker-compose.local.yml up -d --build tdp-frontend
       - npm run test:e2e
 
+  frontend-e2e-cmd:
+    desc: Run Cypress E2E tests headlessly from the command line (app in docker)
+    dir: tdrs-frontend
+    cmds:
+      - docker compose -f docker-compose.local.yml up -d --build tdp-frontend
+      - CYPRESS_TOKEN=${CYPRESS_TOKEN:-local-cypress-token} npm run test:e2e-ci
+
   k6:
     desc: Run k6 performance tests
     dir: performance-tests

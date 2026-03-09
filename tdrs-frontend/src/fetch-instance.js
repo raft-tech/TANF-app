@@ -124,6 +124,4 @@ export async function patch(url, body, options = {}) {
   }
 }
 
-const fetchInstance = { get, post, patch }
-
-export default fetchInstance
+export default { get, post, patch }
