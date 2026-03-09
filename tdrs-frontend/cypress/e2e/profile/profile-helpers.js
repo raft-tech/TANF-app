@@ -57,7 +57,7 @@ export const selectRegions = (regionNames) => {
 
 export const deselectRegions = (regionNames) => {
   regionNames.forEach((regionName) => {
-    cy.get(`input[type="checkbox"][value="${regionName}"]`).click({
+    cy.get(`input[type="checkbox"][value="${regionName}"]`).uncheck({
       force: true,
     })
   })

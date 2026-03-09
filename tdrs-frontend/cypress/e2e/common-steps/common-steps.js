@@ -92,6 +92,10 @@ export const ACTORS = {
     role: 'OFA Regional Staff',
     username: 'cypress-fra-ofa-regional-staff-rita@acf.hhs.gov',
   },
+  'FRA OFA Regional Staff Ryan': {
+    role: 'OFA Regional Staff',
+    username: 'cypress-fra-ofa-regional-staff-ryan@acf.hhs.gov',
+  },
 }
 
 export const loginAsActor = (actor) => {
