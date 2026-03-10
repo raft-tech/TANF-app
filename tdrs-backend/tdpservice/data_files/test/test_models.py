@@ -2,6 +2,7 @@
 
 import pytest
 
+from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
 from tdpservice.stts.models import STT
 
@@ -167,3 +168,42 @@ def test_fiscal_year(data_file_instance):
     assert df.fiscal_year == "2020 - Q3 (Apr - Jun)"
     df.quarter = "Q4"
     assert df.fiscal_year == "2020 - Q4 (Jul - Sep)"
+
+
+@pytest.mark.django_db
+def test_data_file_defaults_to_uploaded_submission_state(data_file_instance):
+    """Test new data files default to the uploaded submission state."""
+    df = DataFile.create_new_version(
+        {
+            "year": data_file_instance.year,
+            "quarter": data_file_instance.quarter,
+            "section": data_file_instance.section,
+            "program_type": data_file_instance.program_type,
+            "stt": data_file_instance.stt,
+            "original_filename": data_file_instance.original_filename,
+            "slug": data_file_instance.slug,
+            "extension": data_file_instance.extension,
+            "user": data_file_instance.user,
+            "is_program_audit": data_file_instance.is_program_audit,
+        }
+    )
+
+    assert df.state == SubmissionState.UPLOADED
+
+
+def test_submission_state_enum_matches_parsing_refactor_writeup():
+    """Test the durable submission lifecycle states are defined on the enum."""
+    assert list(SubmissionState.values) == [
+        "uploaded",
+        "virus_scanning",
+        "scan_failed",
+        "validated",
+        "parsing",
+        "parsed_with_errors",
+        "parsed_clean",
+        "ingesting",
+        "ingest_failed",
+        "stuck",
+        "completed",
+        "canceled",
+    ]
