@@ -13,7 +13,6 @@ tdrs-frontend/vars-frontend.yml
 tdrs-frontend/pa11y-screenshots/*
 tdrs-frontend/cypress/reports*
 tdrs-frontend/test-results*.xml
-tdrs-frontend/.env
 .eslintcache
 downloads/
 
