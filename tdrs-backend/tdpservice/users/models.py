@@ -14,6 +14,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from simple_history.models import HistoricalRecords
+
 from tdpservice.email.helpers.account_status import send_approval_status_update_email
 from tdpservice.email.helpers.profile_change_request import (
     send_change_request_status_email,
@@ -386,6 +388,7 @@ class Feedback(Reviewable):
         self.save()
         return True
 
+
 class User(AbstractUser, UserChangeRequestMixin):
     """Define user fields and methods."""
 
@@ -451,13 +454,16 @@ class User(AbstractUser, UserChangeRequestMixin):
         blank=True,
     )
 
+    # Model versioning/change tracking
+    history = HistoricalRecords(m2m_fields=["groups", "regions", "user_permissions"])
+
     def __str__(self):
         """Return the username as the string representation of the object."""
         return self.username
 
     def is_in_group(self, group_names: str | list[str]) -> bool:
         """Return whether or not the user is a member of the specified Group(s)."""
-        if type(group_names) == str:
+        if type(group_names) is str:
             group_names = [group_names]
         return self.groups.filter(name__in=group_names).exists()
 
