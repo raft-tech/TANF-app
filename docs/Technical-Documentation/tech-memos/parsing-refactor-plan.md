@@ -11,13 +11,12 @@ This memo proposes a refactor of the **parsing** and **reparsing** pipelines in 
 - Establish a stable contract (service + state machine) so new file types and policy changes do not require touching Celery tasks or ad hoc utilities.
 
 ### Why this refactor is beneficial
-- **Single source of truth for parsing logic:** Today, behavior is split across parser classes, the Celery task, and reparse utilities. Moving to a `ParsingService` collapses side effects (status updates, summaries, error reports) into one place, reducing drift and regression risk.
+- **Single source of truth for parsing logic:** Today, behavior is split across parser classes, the Celery task, and reparse utilities. Moving to a ParsingService collapses side effects (status updates, summaries, error reports) into one place, reducing drift and regression risk.
 - **Testability:** A service with clear inputs/outputs can be unit-tested without Celery, making it easier to cover both happy paths and failure modes. Reparsing can reuse the same entry point with explicit context.
-- **Extensibility:** A factory-driven, class-based parser plus decoder abstraction makes it straightforward to add file types (e.g., new CSV/XLSX variants) or program types without rewriting orchestration. SchemaManager and decoders become the main extension points.
-- **Operational clarity:** With the submission state machine and centralized transitions, operators and users see consistent states (e.g., `parsing`, `parsed_with_errors`, `ingest_failed`) instead of implicit flags scattered across models.
-- **Safer reparsing:** Consolidating reparse behavior (backups, deletions, status updates) through a dedicated reparse service and shared state transitions improves idempotency, makes resume/rollback safer, and keeps `ReparseMeta`/`ReparseFileMeta` in sync.
-- **Observability:** Centralized logging and optional metrics around a single service boundary make it easier to trace a file’s journey, correlate errors, and measure performance (parse durations, error counts).
-
+- **Extensibility:** A factory-driven, class-based parser plus decoder abstraction makes it straightforward to add file types (for example, new CSV/XLSX variants) or program types without rewriting orchestration. SchemaManager and decoders become the main extension points.
+- **Operational clarity:** With the submission state machine and centralized transitions, operators and users see consistent states (for example, uploaded, virus_scan_started, parse_started, parsed_with_errors, parsed_completed, completed) instead of implicit flags scattered across models.
+- **Safer reparsing:** Consolidating reparse behavior (backups, deletions, status updates) through a dedicated reparse service and shared state transitions improves idempotency, makes resume/rollback safer, and keeps ReparseMeta/ReparseFileMeta in sync.
+- **Observability:** Centralized logging and optional metrics around a single service boundary make it easier to trace a file journey, correlate errors, and measure performance (parse durations, error counts).
 The recommendations are based on the current implementation in:
 
 - `tdpservice/parsers/…`
@@ -303,13 +302,3 @@ To de-risk the refactor, implement in small, incremental steps:
 
 5. **Lower operational risk**  
    A more explicit lifecycle for ReparseMeta / ReparseFileMeta, with a single place where their states are updated, makes it easier to detect and recover from partial failures.
-
-
-## 7. Next Steps
-
-1. Create tickets for:
-   - Introducing `ParsingService` and refactoring the Celery task to use it
-   - Adding `ReparseService` and refactoring reparse orchestration to depend on it (while delegating per-file parsing to `ParsingService`)
-   - Adding tests and observability around the unified parsing pipeline
-2. Implement Phase 2 first (service extraction) with strict “no behavior change” to build confidence.
-3. Once stable in staging, implement the reparse refactor and validate on a controlled subset of files.
