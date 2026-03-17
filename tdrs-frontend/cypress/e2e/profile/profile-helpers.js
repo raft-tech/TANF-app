@@ -161,12 +161,6 @@ export const verifyNoFRAAccessBadge = () => {
 export const verifyPendingChangeRequestBanner = () => {
   cy.get('body').then(($body) => {
     const bodyText = $body.text()
-    if (/profile change request.*reviewed by an OFA Admin/i.test(bodyText)) {
-      cy.contains(/profile change request.*reviewed by an OFA Admin/i).should(
-        'be.visible'
-      )
-      return
-    }
 
     // Some regional approved flows remain on edit with region validation.
     if (
@@ -177,9 +171,14 @@ export const verifyPendingChangeRequestBanner = () => {
       return
     }
 
-    cy.contains(/profile change request.*reviewed by an OFA Admin/i).should(
-      'be.visible'
-    )
+    cy.get('#page-alert', { timeout: 10000 })
+      .should('be.visible')
+      .invoke('text')
+      .then((text) => {
+        expect(text).to.match(
+          /(requested change(s)?|request for access).*\s+currently\s+being\s+reviewed\s+by\s+an\s+OFA\s+Admin/i
+        )
+      })
   })
 }
 
