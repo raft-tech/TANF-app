@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0055_add_ofa_sys_admin_report_permissions'),
+        ('users', '0056_historicaluser_historicalregionmeta_and_more'),
     ]
 
     operations = [
