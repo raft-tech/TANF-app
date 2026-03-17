@@ -13,6 +13,7 @@ from tdpservice.users.models import (
     Feedback,
     User,
     UserChangeRequest,
+    UserChangeRequestStatus,
 )
 from tdpservice.users.test.factories import FeedbackFactory
 from tdpservice.users.views import (
@@ -171,9 +172,14 @@ def test_update_profile_removes_pending_request_when_value_matches_current(
     )
 
     assert response.status_code == status.HTTP_200_OK
-    assert not UserChangeRequest.objects.filter(id=pending_request.id).exists()
+    pending_request.refresh_from_db()
+    assert pending_request.status == UserChangeRequestStatus.CANCELLED
     assert not data_analyst.get_pending_change_requests().filter(
         field_name="first_name"
+    ).exists()
+    assert ChangeRequestAuditLog.objects.filter(
+        change_request=pending_request,
+        action="cancelled",
     ).exists()
 
 
