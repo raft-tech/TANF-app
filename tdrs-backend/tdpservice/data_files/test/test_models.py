@@ -2,7 +2,6 @@
 
 import pytest
 
-from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
 from tdpservice.data_files.util import create_s3_log_file_path
 from tdpservice.stts.models import STT

@@ -15,8 +15,6 @@ class SubmissionState(models.TextChoices):
     PARSE_STARTED = "parse_started", "Parse started"
     PARSED_WITH_ERRORS = "parsed_with_errors", "Parsed with errors"
     PARSE_COMPLETED = "parse_completed", "Parse completed"
-    # Alias used in transition map naming for backward compatibility.
-    PARSED_COMPLETED = "parse_completed", "Parse completed"
     STUCK = "stuck", "Stuck"
     COMPLETED = "completed", "Completed"
     CANCELED = "canceled", "Canceled"
@@ -41,14 +39,14 @@ ALLOWED_TRANSITIONS: Dict[SubmissionState, Iterable[SubmissionState]] = {
     },
     SubmissionState.PARSE_STARTED: {
         SubmissionState.PARSED_WITH_ERRORS,
-        SubmissionState.PARSED_COMPLETED,
+        SubmissionState.PARSE_COMPLETED,
         SubmissionState.CANCELED,
     },
     SubmissionState.PARSED_WITH_ERRORS: {
         SubmissionState.COMPLETED,
         SubmissionState.CANCELED,
     },
-    SubmissionState.PARSED_COMPLETED: {
+    SubmissionState.PARSE_COMPLETED: {
         SubmissionState.COMPLETED,
         SubmissionState.CANCELED,
     },
