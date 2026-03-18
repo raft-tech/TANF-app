@@ -66,6 +66,14 @@ def test_created_at(data_file_data, data_analyst):
 
 
 @pytest.mark.django_db
+def test_state_not_exposed_by_serializer(data_file_instance):
+    """Test submission state remains schema-only for serializer output."""
+    serialized = DataFileSerializer(data_file_instance).data
+
+    assert "state" not in serialized
+
+
+@pytest.mark.django_db
 def test_data_file_still_created_if_av_scan_fails_to_create(
     data_file_data, mocker, data_analyst
 ):

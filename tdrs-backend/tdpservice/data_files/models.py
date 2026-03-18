@@ -171,6 +171,13 @@ class DataFile(FileRecord):
     is_program_audit = models.BooleanField(default=False)
 
     version = models.IntegerField()
+    state = models.CharField(
+        max_length=32,
+        blank=False,
+        null=False,
+        choices=SubmissionState.choices,
+        default=SubmissionState.UPLOADED,
+    )
 
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="user", blank=False, null=False
