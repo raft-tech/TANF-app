@@ -17,6 +17,7 @@ from django.utils.html import format_html
 from tdpservice.backends import DataFilesS3Storage
 from tdpservice.common.fields import S3VersionedFileField
 from tdpservice.common.models import FileRecord
+from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.util import (
     create_legacy_s3_log_file_path,
     create_s3_log_file_path,
