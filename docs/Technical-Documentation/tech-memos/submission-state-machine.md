@@ -29,7 +29,7 @@ class SubmissionState(str, Enum):
     VIRUS_SCAN_SUCCESSFUL = "virus_scan_successful"
     PARSE_STARTED = "parse_started"
     PARSED_WITH_ERRORS = "parsed_with_errors"
-    PARSED_COMPLETED = "parsed_completed"
+    PARSE_COMPLETED = "parse_completed"
     STUCK = "stuck"
     COMPLETED = "completed"
     CANCELED = "canceled"
