@@ -1,7 +1,5 @@
 """Enums for the data_files app."""
 
-from typing import Dict, Iterable
-
 from django.db import models
 
 
@@ -18,41 +16,3 @@ class SubmissionState(models.TextChoices):
     STUCK = "stuck", "Stuck"
     COMPLETED = "completed", "Completed"
     CANCELED = "canceled", "Canceled"
-
-
-ALLOWED_TRANSITIONS: Dict[SubmissionState, Iterable[SubmissionState]] = {
-    SubmissionState.UPLOADED: {
-        SubmissionState.VIRUS_SCAN_STARTED,
-        SubmissionState.CANCELED,
-    },
-    SubmissionState.VIRUS_SCAN_STARTED: {
-        SubmissionState.VIRUS_SCAN_FAILED,
-        SubmissionState.VIRUS_SCAN_SUCCESSFUL,
-        SubmissionState.CANCELED,
-    },
-    SubmissionState.VIRUS_SCAN_FAILED: {
-        SubmissionState.CANCELED,
-    },
-    SubmissionState.VIRUS_SCAN_SUCCESSFUL: {
-        SubmissionState.PARSE_STARTED,
-        SubmissionState.CANCELED,
-    },
-    SubmissionState.PARSE_STARTED: {
-        SubmissionState.PARSED_WITH_ERRORS,
-        SubmissionState.PARSE_COMPLETED,
-        SubmissionState.CANCELED,
-    },
-    SubmissionState.PARSED_WITH_ERRORS: {
-        SubmissionState.COMPLETED,
-        SubmissionState.CANCELED,
-    },
-    SubmissionState.PARSE_COMPLETED: {
-        SubmissionState.COMPLETED,
-        SubmissionState.CANCELED,
-    },
-    SubmissionState.STUCK: {
-        SubmissionState.CANCELED,
-    },
-    SubmissionState.COMPLETED: set(),
-    SubmissionState.CANCELED: set(),
-}
