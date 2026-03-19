@@ -66,6 +66,14 @@ def test_created_at(data_file_data, data_analyst):
 
 
 @pytest.mark.django_db
+def test_state_not_exposed_by_serializer(data_file_instance):
+    """Test submission state remains schema-only for serializer output."""
+    serialized = DataFileSerializer(data_file_instance).data
+
+    assert "state" not in serialized
+
+
+@pytest.mark.django_db
 def test_data_file_still_created_if_av_scan_fails_to_create(
     data_file_data, mocker, data_analyst
 ):
@@ -131,17 +139,19 @@ def test_rejects_invalid_file_extensions(file_name):
 
 
 @pytest.mark.django_db
-def test_rejects_infected_file(infected_file, fake_file_name, user):
+def test_rejects_infected_file(infected_file, fake_file_name, user, settings):
     """Test infected files are rejected by serializer validation."""
+    settings.CLAMAV_NEEDED = True
     with pytest.raises(ValidationError):
         validate_file_infection(infected_file, fake_file_name, user)
 
 
 @pytest.mark.django_db
 def test_rejects_uploads_on_clamav_connection_error(
-    fake_file, fake_file_name, mocker, user
+    fake_file, fake_file_name, mocker, user, settings
 ):
     """Test that DataFiles cannot pass validation if ClamAV is down."""
+    settings.CLAMAV_NEEDED = True
     mocker.patch(
         "tdpservice.security.clients.ClamAVClient.scan_file",
         side_effect=ClamAVClient.ServiceUnavailable(),
