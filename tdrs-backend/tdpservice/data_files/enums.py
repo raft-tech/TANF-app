@@ -9,7 +9,7 @@ class SubmissionState(models.TextChoices):
     UPLOADED = "uploaded", "Uploaded"
     VIRUS_SCAN_STARTED = "virus_scan_started", "Virus scan started"
     VIRUS_SCAN_FAILED = "virus_scan_failed", "Virus scan failed"
-    VIRUS_SCAN_SUCCESSFUL = "virus_scan_successful", "Virus scan successful"
+    VIRUS_SCAN_COMPLETED = "virus_scan_completed", "Virus scan completed"
     PARSE_STARTED = "parse_started", "Parse started"
     PARSED_WITH_ERRORS = "parsed_with_errors", "Parsed with errors"
     PARSE_COMPLETED = "parse_completed", "Parse completed"

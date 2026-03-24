@@ -19,17 +19,17 @@ def test_valid_transitions_succeed():
         SubmissionState.VIRUS_SCAN_STARTED, note="Virus scan kicked off"
     )
     second = lifecycle.transition(
-        SubmissionState.VIRUS_SCAN_SUCCESSFUL, note="Virus scan passed"
+        SubmissionState.VIRUS_SCAN_COMPLETED, note="Virus scan passed"
     )
 
     assert first.previous_state == SubmissionState.UPLOADED
     assert first.next_state == SubmissionState.VIRUS_SCAN_STARTED
     assert second.previous_state == SubmissionState.VIRUS_SCAN_STARTED
-    assert second.next_state == SubmissionState.VIRUS_SCAN_SUCCESSFUL
-    assert lifecycle.current_state == SubmissionState.VIRUS_SCAN_SUCCESSFUL
+    assert second.next_state == SubmissionState.VIRUS_SCAN_COMPLETED
+    assert lifecycle.current_state == SubmissionState.VIRUS_SCAN_COMPLETED
     assert [record.next_state for record in lifecycle.history] == [
         SubmissionState.VIRUS_SCAN_STARTED,
-        SubmissionState.VIRUS_SCAN_SUCCESSFUL,
+        SubmissionState.VIRUS_SCAN_COMPLETED,
     ]
     assert lifecycle.messages == ["Virus scan kicked off", "Virus scan passed"]
 
