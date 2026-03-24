@@ -89,6 +89,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
             {
                 "fields": (
                     "created_at",
+                    "state",
                     "quarter",
                     "year",
                     "section",
@@ -304,6 +305,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     list_display = [
         "id",
         "stt",
+        "state",
         "year",
         "quarter",
         "program_type",
