@@ -29,13 +29,13 @@ ALLOWED_TRANSITIONS: Dict[SubmissionState, Iterable[SubmissionState]] = {
     },
     SubmissionState.VIRUS_SCAN_STARTED: {
         SubmissionState.VIRUS_SCAN_FAILED,
-        SubmissionState.VIRUS_SCAN_SUCCESSFUL,
+        SubmissionState.VIRUS_SCAN_COMPLETED,
         SubmissionState.CANCELED,
     },
     SubmissionState.VIRUS_SCAN_FAILED: {
         SubmissionState.CANCELED,
     },
-    SubmissionState.VIRUS_SCAN_SUCCESSFUL: {
+    SubmissionState.VIRUS_SCAN_COMPLETED: {
         SubmissionState.PARSE_STARTED,
         SubmissionState.CANCELED,
     },
