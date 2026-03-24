@@ -10,6 +10,7 @@ from tdpservice.data_files.validators import (
     validate_file_infection,
 )
 from tdpservice.security.clients import ClamAVClient
+from tdpservice.security.models import ClamAVFileScan
 
 
 @pytest.mark.django_db
@@ -55,6 +56,14 @@ def test_immutability_of_data_file(data_file_instance):
 @pytest.mark.django_db
 def test_created_at(data_file_data, data_analyst):
     """If a serializer has valid data it will return a valid object."""
+    ClamAVFileScan.objects.record_scan(
+        data_file_data["file"],
+        data_file_data["file"].name,
+        f"File scan marked as CLEAN for file: {data_file_data['file'].name}",
+        ClamAVFileScan.Result.CLEAN,
+        data_analyst,
+    )
+
     create_serializer = DataFileSerializer(
         context={"user": data_analyst}, data=data_file_data
     )

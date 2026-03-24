@@ -5,41 +5,36 @@ import pytest
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.submission_lifecycle import (
     InvalidTransition,
-    SubmissionLifecycle,
+    allowed_next_states,
     transition_datafile,
+    validate_transition,
 )
 from tdpservice.data_files.test.factories import DataFileFactory
 
 
 def test_valid_transitions_succeed():
-    """Test allowed state transitions update the in-memory lifecycle."""
-    lifecycle = SubmissionLifecycle(SubmissionState.UPLOADED)
-
-    first = lifecycle.transition(
-        SubmissionState.VIRUS_SCAN_STARTED, note="Virus scan kicked off"
+    """Test allowed state transitions validate successfully."""
+    first = validate_transition(
+        SubmissionState.UPLOADED, SubmissionState.VIRUS_SCAN_STARTED
     )
-    second = lifecycle.transition(
-        SubmissionState.VIRUS_SCAN_COMPLETED, note="Virus scan passed"
+    second = validate_transition(
+        SubmissionState.VIRUS_SCAN_STARTED, SubmissionState.VIRUS_SCAN_COMPLETED
     )
 
     assert first.previous_state == SubmissionState.UPLOADED
     assert first.next_state == SubmissionState.VIRUS_SCAN_STARTED
     assert second.previous_state == SubmissionState.VIRUS_SCAN_STARTED
     assert second.next_state == SubmissionState.VIRUS_SCAN_COMPLETED
-    assert lifecycle.current_state == SubmissionState.VIRUS_SCAN_COMPLETED
-    assert [record.next_state for record in lifecycle.history] == [
+    assert allowed_next_states(SubmissionState.UPLOADED) == {
         SubmissionState.VIRUS_SCAN_STARTED,
-        SubmissionState.VIRUS_SCAN_COMPLETED,
-    ]
-    assert lifecycle.messages == ["Virus scan kicked off", "Virus scan passed"]
+        SubmissionState.CANCELED,
+    }
 
 
 def test_invalid_transition_raises():
     """Test invalid transitions raise InvalidTransition."""
-    lifecycle = SubmissionLifecycle(SubmissionState.UPLOADED)
-
     with pytest.raises(InvalidTransition, match="uploaded to parse_completed"):
-        lifecycle.transition(SubmissionState.PARSE_COMPLETED)
+        validate_transition(SubmissionState.UPLOADED, SubmissionState.PARSE_COMPLETED)
 
 
 @pytest.mark.parametrize(
@@ -51,10 +46,8 @@ def test_invalid_transition_raises():
 )
 def test_terminal_states_cannot_transition(state):
     """Test terminal states reject further transitions."""
-    lifecycle = SubmissionLifecycle(state)
-
     with pytest.raises(InvalidTransition, match=f"{state.value} to uploaded"):
-        lifecycle.transition(SubmissionState.UPLOADED)
+        validate_transition(state, SubmissionState.UPLOADED)
 
 
 @pytest.mark.django_db
@@ -93,3 +86,18 @@ def test_transition_datafile_calls_logger_hook():
             "note": "Parser completed successfully",
         }
     ]
+
+
+@pytest.mark.django_db
+def test_transition_datafile_supports_parse_failed_state():
+    """Test transition_datafile persists parse failures caused by exceptions."""
+    data_file = DataFileFactory(state=SubmissionState.PARSE_STARTED)
+
+    transition_datafile(
+        data_file,
+        SubmissionState.PARSE_FAILED,
+        note="Parser raised an unexpected exception",
+    )
+    data_file.refresh_from_db()
+
+    assert data_file.state == SubmissionState.PARSE_FAILED
