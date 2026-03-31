@@ -40,8 +40,12 @@ ALLOWED_TRANSITIONS: Dict[SubmissionState, Iterable[SubmissionState]] = {
         SubmissionState.CANCELED,
     },
     SubmissionState.PARSE_STARTED: {
+        SubmissionState.PARSE_FAILED,
         SubmissionState.PARSED_WITH_ERRORS,
         SubmissionState.PARSE_COMPLETED,
+        SubmissionState.CANCELED,
+    },
+    SubmissionState.PARSE_FAILED: {
         SubmissionState.CANCELED,
     },
     SubmissionState.PARSED_WITH_ERRORS: {
@@ -67,45 +71,27 @@ def coerce_submission_state(state) -> SubmissionState:
     return SubmissionState(state)
 
 
-class SubmissionLifecycle:
-    """Validate and record in-memory submission state transitions."""
+def allowed_next_states(current_state) -> set[SubmissionState]:
+    """Return the allowed next states for the given current state."""
+    normalized_current_state = coerce_submission_state(current_state)
+    return set(ALLOWED_TRANSITIONS[normalized_current_state])
 
-    def __init__(self, initial_state):
-        self.current_state = coerce_submission_state(initial_state)
-        self.history: list[TransitionRecord] = []
-        self.messages: list[str] = []
 
-    def allowed_next_states(self) -> set[SubmissionState]:
-        """Return the allowed next states for the current state."""
-        return set(ALLOWED_TRANSITIONS[self.current_state])
+def validate_transition(current_state, next_state) -> TransitionRecord:
+    """Validate a transition request and return a transition record."""
+    normalized_current_state = coerce_submission_state(current_state)
+    normalized_next_state = coerce_submission_state(next_state)
 
-    def validate_transition(self, next_state) -> SubmissionState:
-        """Validate the requested transition and return the normalized next state."""
-        normalized_next_state = coerce_submission_state(next_state)
-
-        if normalized_next_state not in self.allowed_next_states():
-            raise InvalidTransition(
-                f"Cannot transition submission from {self.current_state.value} "
-                + f"to {normalized_next_state.value}."
-            )
-
-        return normalized_next_state
-
-    def transition(self, next_state, note="") -> TransitionRecord:
-        """Apply a validated transition and record it in-memory."""
-        normalized_next_state = self.validate_transition(next_state)
-        record = TransitionRecord(
-            previous_state=self.current_state,
-            next_state=normalized_next_state,
-            note=note,
+    if normalized_next_state not in allowed_next_states(normalized_current_state):
+        raise InvalidTransition(
+            f"Cannot transition submission from {normalized_current_state.value} "
+            + f"to {normalized_next_state.value}."
         )
-        self.current_state = normalized_next_state
-        self.history.append(record)
 
-        if note:
-            self.messages.append(note)
-
-        return record
+    return TransitionRecord(
+        previous_state=normalized_current_state,
+        next_state=normalized_next_state,
+    )
 
 
 def transition_datafile(
@@ -115,8 +101,12 @@ def transition_datafile(
     logger_hook: Callable | None = None,
 ):
     """Safely transition a DataFile.state value and persist the new state."""
-    lifecycle = SubmissionLifecycle(data_file.state)
-    transition = lifecycle.transition(next_state, note=note)
+    transition = validate_transition(data_file.state, next_state)
+    transition = TransitionRecord(
+        previous_state=transition.previous_state,
+        next_state=transition.next_state,
+        note=note,
+    )
 
     data_file.state = transition.next_state
     data_file.save(update_fields=["state"])

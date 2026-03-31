@@ -9,8 +9,8 @@ from tdpservice.data_files.validators import (
     validate_file_extension,
     validate_file_infection,
 )
-from tdpservice.security.models import ClamAVFileScan
 from tdpservice.security.clients import ClamAVClient
+from tdpservice.security.models import ClamAVFileScan
 
 
 @pytest.mark.django_db
@@ -59,7 +59,7 @@ def test_created_at(data_file_data, data_analyst):
     ClamAVFileScan.objects.record_scan(
         data_file_data["file"],
         data_file_data["original_filename"],
-        "File scan marked as CLEAN for file",
+    f"File scan marked as CLEAN for file: {data_file_data['original_filename']}",
         ClamAVFileScan.Result.CLEAN,
         data_analyst,
     )
