@@ -91,7 +91,12 @@ class DataFileViewSet(ModelViewSet):
             transition_datafile(
                 data_file,
                 SubmissionState.VIRUS_SCAN_STARTED,
-                note="file accepted; queued for AV",
+                note="file accepted for upload",
+            )
+            transition_datafile(
+                data_file,
+                SubmissionState.VIRUS_SCAN_COMPLETED,
+                note="file passed AV validation",
             )
 
             logger.info(

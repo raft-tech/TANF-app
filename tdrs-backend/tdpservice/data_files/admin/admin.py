@@ -188,6 +188,12 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
                 )
         return actions
 
+    def parsing_state(self, obj):
+        """Return the submission state of the data file."""
+        return obj.state
+
+    parsing_state.short_description = "Parsing State"
+
     def status(self, obj):
         """Return the status of the data file summary."""
         return DataFileSummary.objects.get(datafile=obj).status
@@ -305,7 +311,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     list_display = [
         "id",
         "stt",
-        "state",
+        "parsing_state",
         "year",
         "quarter",
         "program_type",

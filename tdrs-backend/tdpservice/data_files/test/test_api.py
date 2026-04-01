@@ -313,7 +313,7 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         self.assert_data_file_exists(data_file_data, 1, user)
 
         data_file = DataFile.objects.get(id=response.data["id"])
-        assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
+        assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
 
     def test_data_file_file_version_increment(
         self, api_client, data_file_data, other_data_file_data, user
