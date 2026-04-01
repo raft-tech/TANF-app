@@ -129,6 +129,7 @@ def test_transition_datafile_integration_persists_sequential_state_changes():
     ]
 
 
+@pytest.mark.django_db
 def test_transition_datafile_supports_parse_failed_state():
     """Test transition_datafile persists parse failures caused by exceptions."""
     data_file = DataFileFactory(state=SubmissionState.PARSE_STARTED)
