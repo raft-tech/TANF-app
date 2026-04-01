@@ -1,4 +1,5 @@
 """Test data file serializers."""
+
 from django.core.exceptions import ValidationError
 
 import pytest
@@ -59,7 +60,7 @@ def test_created_at(data_file_data, data_analyst):
     ClamAVFileScan.objects.record_scan(
         data_file_data["file"],
         data_file_data["original_filename"],
-    f"File scan marked as CLEAN for file: {data_file_data['original_filename']}",
+        f"File scan marked as CLEAN for file: {data_file_data['original_filename']}",
         ClamAVFileScan.Result.CLEAN,
         data_analyst,
     )
