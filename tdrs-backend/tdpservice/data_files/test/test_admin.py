@@ -37,8 +37,8 @@ def test_DataFileAdmin_exposes_state_in_admin():
         if fieldset[0] == "Properties"
     )
 
-    assert "state" in data_file_admin.list_display
-    assert "state" in properties_fieldset[1]["fields"]
+    assert "parsing_state" in data_file_admin.list_display
+    assert "parsing_state" in properties_fieldset[1]["fields"]
 
 
 @pytest.mark.django_db
