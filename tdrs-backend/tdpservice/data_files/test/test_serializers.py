@@ -59,8 +59,8 @@ def test_created_at(data_file_data, data_analyst):
     """If a serializer has valid data it will return a valid object."""
     ClamAVFileScan.objects.record_scan(
         data_file_data["file"],
-        data_file_data["original_filename"],
-        f"File scan marked as CLEAN for file: {data_file_data['original_filename']}",
+        data_file_data["file"].name,
+        f"File scan marked as CLEAN for file: {data_file_data['file'].name}",
         ClamAVFileScan.Result.CLEAN,
         data_analyst,
     )
