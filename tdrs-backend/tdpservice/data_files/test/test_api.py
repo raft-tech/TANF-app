@@ -525,7 +525,9 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         response = self.post_data_file(api_client, data_file_data)
         assert response.data["section"] == "Active Case Data"
 
-    def test_failed_upload_does_not_create_record(self, api_client, data_file_data, user):
+    def test_failed_upload_does_not_create_record(
+        self, api_client, data_file_data, user
+    ):
         """Test failed uploads do not create a DataFile record."""
         data_file_data["file"].name = "bad.exe"
 
@@ -553,8 +555,11 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
             side_effect=fake_get,
         )
 
-        with pytest.raises(InvalidTransition, match="parse_started to virus_scan_started"):
+        with pytest.raises(
+            InvalidTransition, match="parse_started to virus_scan_started"
+        ):
             self.post_data_file(api_client, data_file_data)
+
     @pytest.mark.django_db
     def test_no_pia_feat_flag_blocks_uploads(self, api_client, data_file_data):
         """Test a nonexistant pia feature flag creates an error response from upload."""
