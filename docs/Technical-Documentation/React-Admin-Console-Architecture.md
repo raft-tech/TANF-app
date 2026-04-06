@@ -2320,16 +2320,6 @@ export async function POST(request: NextRequest) {
 
 ---
 
-## Sign-Off
-
-| Role | Name | Date | Status |
-|------|------|------|--------|
-| **Tech Lead** | [To be filled] | | Pending |
-| **Product Owner** | [To be filled] | | Pending |
-| **DevOps Lead** | [To be filled] | | Pending |
-
----
-
 **Document Version:** 1.0  
 **Last Updated:** April 2026  
 **Next Review Date:** After MVP scope sign-off or immediately before implementation kickoff
