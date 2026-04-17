@@ -608,9 +608,10 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
 
     @pytest.mark.django_db
     def test_av_infected_file_returns_400_no_datafile_created(
-        self, api_client, data_file_data, user, mocker
+        self, api_client, data_file_data, user, infected_data_file, mocker
     ):
         """Test that an infected file is rejected before any DataFile is created."""
+        data_file_data["file"] = infected_data_file
         mocker.patch(
             "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
             new=True,
