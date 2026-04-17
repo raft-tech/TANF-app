@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 from django.db.utils import DatabaseError
 
+from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile, ReparseFileMeta
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.parsers.models import DataFileSummary
@@ -191,7 +192,9 @@ def test_set_error_report_sets_filename():
 @pytest.mark.django_db
 def test_parse_success_sends_email(monkeypatch, data_analyst):
     """Send notification email on successful parse."""
-    datafile = DataFileFactory(stt=data_analyst.stt, version=4)
+    datafile = DataFileFactory(
+        stt=data_analyst.stt, version=4, state=SubmissionState.VIRUS_SCAN_COMPLETED
+    )
     ensure_stt_filenames(datafile.stt)
     dfs = DataFileSummary.objects.create(
         datafile=datafile, status=DataFileSummary.Status.PENDING
@@ -215,6 +218,9 @@ def test_parse_success_sends_email(monkeypatch, data_analyst):
     assert dummy_parser.called is True
     assert data_analyst.username in captured["recipients"]
     assert handlers[2].called is True
+
+    datafile.refresh_from_db()
+    assert datafile.state == SubmissionState.PARSE_STARTED
 
 
 @pytest.mark.django_db
@@ -352,3 +358,114 @@ def test_parse_generic_exception_rejects_and_logs(monkeypatch, stt):
     assert saved["called"] is True
     assert file_meta.finished is True
     assert file_meta.success is False
+
+
+@pytest.mark.django_db
+def test_parse_transitions_to_parse_completed(monkeypatch, data_analyst):
+    """Transition to PARSE_COMPLETED when DFS status is ACCEPTED."""
+    datafile = DataFileFactory(
+        stt=data_analyst.stt, version=10, state=SubmissionState.VIRUS_SCAN_COMPLETED
+    )
+    ensure_stt_filenames(datafile.stt)
+    dfs = DataFileSummary.objects.create(
+        datafile=datafile, status=DataFileSummary.Status.PENDING
+    )
+
+    def fake_update_dfs(dfs, data_file):
+        dfs.status = DataFileSummary.Status.ACCEPTED
+        dfs.save()
+
+    setup_parse_mocks(monkeypatch, dfs=dfs)
+    monkeypatch.setattr(parser_task, "update_dfs", fake_update_dfs)
+    monkeypatch.setattr(
+        parser_task.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
+    )
+    monkeypatch.setattr(parser_task, "send_data_submitted_email", lambda *a, **k: None)
+
+    parser_task.parse(datafile.id)
+
+    datafile.refresh_from_db()
+    assert datafile.state == SubmissionState.PARSE_COMPLETED
+
+
+@pytest.mark.django_db
+def test_parse_transitions_to_parsed_with_errors(monkeypatch, data_analyst):
+    """Transition to PARSED_WITH_ERRORS when DFS status has errors."""
+    datafile = DataFileFactory(
+        stt=data_analyst.stt, version=11, state=SubmissionState.VIRUS_SCAN_COMPLETED
+    )
+    ensure_stt_filenames(datafile.stt)
+    dfs = DataFileSummary.objects.create(
+        datafile=datafile, status=DataFileSummary.Status.PENDING
+    )
+
+    def fake_update_dfs(dfs, data_file):
+        dfs.status = DataFileSummary.Status.ACCEPTED_WITH_ERRORS
+        dfs.save()
+
+    setup_parse_mocks(monkeypatch, dfs=dfs)
+    monkeypatch.setattr(parser_task, "update_dfs", fake_update_dfs)
+    monkeypatch.setattr(
+        parser_task.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
+    )
+    monkeypatch.setattr(parser_task, "send_data_submitted_email", lambda *a, **k: None)
+
+    parser_task.parse(datafile.id)
+
+    datafile.refresh_from_db()
+    assert datafile.state == SubmissionState.PARSED_WITH_ERRORS
+
+
+@pytest.mark.django_db
+def test_parse_transitions_to_parse_failed_on_exception(monkeypatch, data_analyst):
+    """Transition to PARSE_FAILED on decoder exception for initial submission."""
+    datafile = DataFileFactory(
+        stt=data_analyst.stt, version=12, state=SubmissionState.VIRUS_SCAN_COMPLETED
+    )
+    ensure_stt_filenames(datafile.stt)
+    dfs = DataFileSummary.objects.create(
+        datafile=datafile, status=DataFileSummary.Status.PENDING
+    )
+    setup_parse_mocks(monkeypatch, dfs=dfs)
+    monkeypatch.setattr(
+        parser_task.ParserFactory,
+        "get_instance",
+        lambda **kwargs: DummyParser(exc=DecoderUnknownException("fail")),
+    )
+
+    parser_task.parse(datafile.id)
+
+    datafile.refresh_from_db()
+    assert datafile.state == SubmissionState.PARSE_FAILED
+
+
+@pytest.mark.django_db
+def test_reparse_does_not_transition_state(monkeypatch, stt):
+    """Reparse runs should not alter DataFile state."""
+    datafile = DataFileFactory(stt=stt, version=13)
+    ensure_stt_filenames(datafile.stt)
+    original_state = datafile.state
+    dfs = DataFileSummary.objects.create(
+        datafile=datafile, status=DataFileSummary.Status.PENDING
+    )
+    meta_model = ReparseMeta.objects.create(db_backup_location="s3://backup")
+    ReparseFileMeta.objects.create(
+        data_file=datafile, reparse_meta=meta_model
+    )
+    setup_parse_mocks(monkeypatch, dfs=dfs)
+    monkeypatch.setattr(
+        parser_task.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
+    )
+    monkeypatch.setattr(
+        parser_task.ParserError.objects,
+        "filter",
+        lambda *a, **k: SimpleNamespace(count=lambda: 0),
+    )
+    monkeypatch.setattr(
+        parser_task.ReparseMeta, "set_total_num_records_post", lambda *a, **k: None
+    )
+
+    parser_task.parse(datafile.id, reparse_id=meta_model.pk)
+
+    datafile.refresh_from_db()
+    assert datafile.state == original_state

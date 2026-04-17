@@ -4,6 +4,7 @@ import logging
 from distutils.util import strtobool
 from wsgiref.util import FileWrapper
 
+from django.conf import settings
 from django.db.models import Prefetch
 from django.http import FileResponse, Http404, HttpResponse
 
@@ -28,6 +29,8 @@ from tdpservice.data_files.submission_lifecycle import transition_datafile
 from tdpservice.log_handler import S3FileHandler
 from tdpservice.scheduling import parser_task
 from tdpservice.scheduling.parser_task import set_error_report
+from tdpservice.security.clients import ClamAVClient
+from tdpservice.security.models import ClamAVFileScan
 from tdpservice.users.permissions import DataFilePermissions, IsApprovedPermission
 
 logger = logging.getLogger(__name__)
@@ -86,12 +89,8 @@ class DataFileViewSet(ModelViewSet):
         )
     )
 
-    def create(self, request, *args, **kwargs):
-        """Override create to upload in case of successful scan."""
-        logger.debug(f"{self.__class__.__name__}: {request}")
-
-        # test the PIA feature flag before creation
-        # reject if it is off or doesn't exist
+    def _validate_pia_request(self, request):
+        """Validate PIA feature flag and year range. Return a Response on failure, or None on success."""
         is_program_audit = False
         try:
             is_program_audit = strtobool(request.POST.get("is_program_audit", "false"))
@@ -101,34 +100,83 @@ class DataFileViewSet(ModelViewSet):
                 status=HTTP_400_BAD_REQUEST,
             )
 
+        if not is_program_audit:
+            return None
+
         pia_feature_flag_enabled, pia_feature_flag_config = get_feature_flag(
             "program-integrity-audit"
         )
 
-        if is_program_audit and not pia_feature_flag_enabled:
+        if not pia_feature_flag_enabled:
             return Response(
                 {"detail": "This file type is not supported."},
                 status=HTTP_400_BAD_REQUEST,
             )
 
-        if is_program_audit and pia_feature_flag_enabled:
-            pia_minYear = pia_feature_flag_config.get("minYear") or 2024
-            pia_maxYear = pia_feature_flag_config.get("maxYear") or 2024
-            year = int(request.data.get("year"))
+        pia_minYear = pia_feature_flag_config.get("minYear") or 2024
+        pia_maxYear = pia_feature_flag_config.get("maxYear") or 2024
+        year = int(request.data.get("year"))
 
-            if year < pia_minYear or year > pia_maxYear:
-                return Response(
-                    {
-                        "detail": "This file was submitted for a reporting year not supported by this file type."
-                    },
-                    status=HTTP_400_BAD_REQUEST,
-                )
+        if year < pia_minYear or year > pia_maxYear:
+            return Response(
+                {
+                    "detail": "This file was submitted for a reporting year not supported by this file type."
+                },
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        return None
+
+    def _scan_uploaded_file(self, request):
+        """Run ClamAV scan on the uploaded file. Return a Response on failure, or None on success."""
+        if not settings.CLAMAV_NEEDED:
+            return None
+
+        uploaded_file = request.FILES.get("file")
+        try:
+            is_clean = ClamAVClient().scan_file(
+                uploaded_file,
+                uploaded_file.name,
+                request.user,
+            )
+        except ClamAVClient.ServiceUnavailable:
+            return Response(
+                {
+                    "detail": "Unable to complete security inspection, "
+                    "please try again or contact support for assistance"
+                },
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        if not is_clean:
+            return Response(
+                {
+                    "detail": "Rejected: uploaded file did not pass "
+                    "security inspection"
+                },
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        # Reset file cursor so the serializer can read it for saving
+        uploaded_file.seek(0)
+        return None
+
+    def create(self, request, *args, **kwargs):
+        """Override create to upload in case of successful scan."""
+        logger.debug(f"{self.__class__.__name__}: {request}")
+
+        pia_error = self._validate_pia_request(request)
+        if pia_error is not None:
+            return pia_error
+
+        av_error = self._scan_uploaded_file(request)
+        if av_error is not None:
+            return av_error
 
         response = super().create(request, *args, **kwargs)
 
-        # only if file is passed the virus scan and created successfully will we perform side-effects:
-        # * Send to parsing
-        # * Send email to user
+        # Only proceed with state transitions and parsing if the DataFile was
+        # created successfully. The DataFile starts in UPLOADED state (model default).
 
         logger.debug(f"{self.__class__.__name__}: status: {response.status_code}")
         if (
@@ -137,15 +185,28 @@ class DataFileViewSet(ModelViewSet):
         ):
             data_file_id = response.data.get("id")
             data_file = DataFile.objects.get(id=data_file_id)
+
+            # Record AV scan transitions retroactively now that a DataFile exists
             transition_datafile(
                 data_file,
                 SubmissionState.VIRUS_SCAN_STARTED,
-                note="file accepted for upload",
+                note="virus scan passed (pre-create)",
             )
+
+            # Link ClamAVFileScan record to the DataFile
+            uploaded_file = request.FILES.get("file")
+            av_scan = ClamAVFileScan.objects.filter(
+                file_name=uploaded_file.name,
+                uploaded_by=request.user,
+            ).last()
+            if av_scan is not None:
+                av_scan.data_file = data_file
+                av_scan.save()
+
             transition_datafile(
                 data_file,
                 SubmissionState.VIRUS_SCAN_COMPLETED,
-                note="file passed AV validation",
+                note="file passed virus scan",
             )
 
             logger.info(

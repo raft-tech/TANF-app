@@ -606,6 +606,54 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
             }
             assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    @pytest.mark.django_db
+    def test_av_infected_file_returns_400_no_datafile_created(
+        self, api_client, data_file_data, user, mocker
+    ):
+        """Test that an infected file is rejected before any DataFile is created."""
+        mocker.patch(
+            "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
+            new=True,
+        )
+        mocker.patch(
+            "tdpservice.data_files.views.ClamAVClient.scan_file",
+            return_value=False,
+        )
+
+        response = self.post_data_file(api_client, data_file_data)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "security inspection" in response.data["detail"]
+        assert not DataFile.objects.filter(
+            slug=data_file_data["slug"],
+            user=user,
+        ).exists()
+
+    @pytest.mark.django_db
+    def test_av_unavailable_returns_400_no_datafile_created(
+        self, api_client, data_file_data, user, mocker
+    ):
+        """Test that ClamAV unavailability rejects before any DataFile is created."""
+        from tdpservice.security.clients import ClamAVClient
+
+        mocker.patch(
+            "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
+            new=True,
+        )
+        mocker.patch(
+            "tdpservice.data_files.views.ClamAVClient.scan_file",
+            side_effect=ClamAVClient.ServiceUnavailable(),
+        )
+
+        response = self.post_data_file(api_client, data_file_data)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "security inspection" in response.data["detail"]
+        assert not DataFile.objects.filter(
+            slug=data_file_data["slug"],
+            user=user,
+        ).exists()
+
 
 class TestDataFileAPIAsInactiveUser(DataFileAPITestBase):
     """Test DataFileViewSet as an inactive user."""
