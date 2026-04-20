@@ -125,6 +125,7 @@ def parse(data_file_id, reparse_id=None):
     # passing the data file FileField across redis was rendering non-serializable failures, doing the below lookup
     # to avoid those. I suppose good practice to not store/serializer large file contents in memory when stored in redis
     # for undetermined amount of time.
+    dfs = None
     try:
         data_file = DataFile.objects.get(id=data_file_id)
         change_log_filename(logger, data_file)
@@ -168,8 +169,9 @@ def parse(data_file_id, reparse_id=None):
             _notify_data_analysts(data_file, dfs)
 
     except DecoderUnknownException:
-        dfs.set_status(DataFileSummary.Status.REJECTED)
-        dfs.save()
+        if dfs is not None:
+            dfs.set_status(DataFileSummary.Status.REJECTED)
+            dfs.save()
         _handle_parse_failure(data_file, reparse_id, "decoder unknown exception")
         reparse_success = False
     except DatabaseError as e:
@@ -181,6 +183,9 @@ def parse(data_file_id, reparse_id=None):
         _handle_parse_failure(data_file, reparse_id, "database error during parsing")
         reparse_success = False
     except Exception:
+        if dfs is None:
+            raise
+
         generate_error = ErrorGeneratorFactory(data_file).get_generator(
             ErrorGeneratorType.MSG_ONLY_PRECHECK,
             None,
@@ -196,8 +201,9 @@ def parse(data_file_id, reparse_id=None):
         )
         error = generate_error(generator_args=generator_args)
         error.save()
-        dfs.set_status(DataFileSummary.Status.REJECTED)
-        dfs.save()
+        if dfs is not None:
+            dfs.set_status(DataFileSummary.Status.REJECTED)
+            dfs.save()
         log_parser_exception(
             data_file,
             (
@@ -210,13 +216,14 @@ def parse(data_file_id, reparse_id=None):
         reparse_success = False
     finally:
         logger.info(f"DataFile parsing finished for file -> {repr(data_file)}.")
-        error_report_generator = ErrorReportFactory.get_error_report_generator(
-            data_file
-        )
-        error_report = error_report_generator.generate()
-        set_error_report(dfs, error_report)
-        logger.handlers[2].doRollover(data_file)
-        update_dfs(dfs, data_file)
+        if dfs is not None:
+            error_report_generator = ErrorReportFactory.get_error_report_generator(
+                data_file
+            )
+            error_report = error_report_generator.generate()
+            set_error_report(dfs, error_report)
+            logger.handlers[2].doRollover(data_file)
+            update_dfs(dfs, data_file)
 
         if reparse_id is not None:
             file_meta.num_records_created = dfs.total_number_of_records_created

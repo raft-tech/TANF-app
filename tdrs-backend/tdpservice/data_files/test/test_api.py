@@ -655,6 +655,22 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
             user=user,
         ).exists()
 
+    @pytest.mark.django_db
+    def test_missing_file_still_returns_serializer_validation_error_when_av_enabled(
+        self, api_client, data_file_data, mocker
+    ):
+        """Test that AV pre-scan does not intercept the serializer's missing-file validation."""
+        data_file_data.pop("file")
+        mocker.patch(
+            "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
+            new=True,
+        )
+
+        response = self.post_data_file(api_client, data_file_data)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["file"] == ["No file was submitted."]
+
 
 class TestDataFileAPIAsInactiveUser(DataFileAPITestBase):
     """Test DataFileViewSet as an inactive user."""

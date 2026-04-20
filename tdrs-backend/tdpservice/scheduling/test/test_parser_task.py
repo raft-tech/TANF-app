@@ -469,3 +469,14 @@ def test_reparse_does_not_transition_state(monkeypatch, stt):
 
     datafile.refresh_from_db()
     assert datafile.state == original_state
+
+
+@pytest.mark.django_db
+def test_parse_pre_dfs_failure_surfaces_original_exception(monkeypatch, stt):
+    """Failures before DataFileSummary creation should not be masked by cleanup code."""
+    datafile = DataFileFactory(stt=stt, version=14, state=SubmissionState.UPLOADED)
+    ensure_stt_filenames(datafile.stt)
+    setup_parse_mocks(monkeypatch)
+
+    with pytest.raises(ValueError, match="uploaded to parse_started"):
+        parser_task.parse(datafile.id)

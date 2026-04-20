@@ -133,6 +133,9 @@ class DataFileViewSet(ModelViewSet):
             return None
 
         uploaded_file = request.FILES.get("file")
+        if uploaded_file is None:
+            return None
+
         try:
             is_clean = ClamAVClient().scan_file(
                 uploaded_file,
@@ -195,13 +198,14 @@ class DataFileViewSet(ModelViewSet):
 
             # Link ClamAVFileScan record to the DataFile
             uploaded_file = request.FILES.get("file")
-            av_scan = ClamAVFileScan.objects.filter(
-                file_name=uploaded_file.name,
-                uploaded_by=request.user,
-            ).last()
-            if av_scan is not None:
-                av_scan.data_file = data_file
-                av_scan.save()
+            if uploaded_file is not None:
+                av_scan = ClamAVFileScan.objects.filter(
+                    file_name=uploaded_file.name,
+                    uploaded_by=request.user,
+                ).last()
+                if av_scan is not None:
+                    av_scan.data_file = data_file
+                    av_scan.save()
 
             transition_datafile(
                 data_file,
