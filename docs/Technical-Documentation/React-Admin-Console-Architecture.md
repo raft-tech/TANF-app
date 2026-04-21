@@ -17,6 +17,7 @@
   - [High-Level Component Architecture](#high-level-component-architecture)
   - [System Boundaries and Data Access](#system-boundaries-and-data-access)
     - [BFF shaping vs. pass-through pattern](#bff-shaping-vs-pass-through-pattern)
+  - [Form Metadata and Validation](#form-metadata-and-validation)
   - [Authentication and Authorization](#authentication-and-authorization)
     - [Authentication model](#authentication-model)
     - [Authorization model](#authorization-model)
@@ -160,6 +161,32 @@ The rule of thumb: if a single Django endpoint can serve the view, pass-through.
 
 ---
 
+## Form Metadata and Validation
+
+Django remains the source of truth for editable admin forms. The React admin should not manually duplicate Django model or form validators in TypeScript. Instead, Django should expose form metadata for each migrated admin workflow through explicit API endpoints.
+
+For model-backed forms, the backend can derive generic metadata from the same Django form/model layer used for server-side validation:
+
+- field type and widget intent,
+- required/optional state,
+- labels and help text,
+- choice values,
+- max length and numeric/date bounds where Django exposes them,
+- simple field validators that can be represented as client rules,
+- field and form-level errors returned from Django validation.
+
+The frontend uses that metadata to construct React Hook Form inputs and pre-submit schema validation for immediate feedback. Mutating requests still submit to Django, where `ModelForm`, serializer, model, and domain validation run authoritatively before persistence and audit logging.
+
+Validation support should be tiered:
+
+- **Generic client validation:** required fields, type checks, choice constraints, length, numeric bounds, date bounds, and simple regex patterns when safely serializable.
+- **Server-returned validation:** cross-field validation, permission-sensitive rules, custom Python validators, workflow-state rules, and any validator that cannot be losslessly represented in frontend schema form.
+- **Workflow-specific overrides:** allowed only when a migrated admin surface has behavior that cannot be described by generic metadata; these should remain thin UI adapters, not copies of business rules.
+
+This preserves Django's validation ownership while still giving admins pre-submission feedback for common mistakes. It also gives the migration a practical rule: no Django admin form is retired until its React replacement handles server-returned field and non-field errors and has parity for the generic metadata-supported validations.
+
+---
+
 ## Authentication and Authorization
 
 ### Authentication model
@@ -231,7 +258,7 @@ General rules:
 |------|--------|-------|
 | Framework | Next.js 14+ | App Router, SSR/RSC support |
 | UI System | USWDS React | Required design/accessibility alignment |
-| Forms | React Hook Form + schema validation | Client ergonomics with server-authoritative validation |
+| Forms | React Hook Form + metadata-driven schema validation | Client ergonomics from Django-derived metadata with server-authoritative validation |
 | Tables / Data Grid | Server-rendered USWDS tables with backend pagination | Prefer simple tables first; only introduce a heavier grid library if admin workflows prove it necessary |
 | Data Fetching | Server-first fetch patterns | Avoid client waterfalls |
 | State Management | URL/search-param driven server state plus local component state | Avoid Redux by default for MVP; introduce shared client state only for a concrete cross-page need |
@@ -289,6 +316,7 @@ Cloud.gov considerations:
 |------|----------|-----------|
 | Performance regressions on large datasets | High | Server-driven pagination and filtering from day one |
 | Auth/session edge-case defects | Medium | Explicit session-expiry and CSRF test matrix |
+| Frontend/backend validation drift | Medium | Generate generic form metadata from Django form/model definitions; keep Django validation authoritative |
 | BFF overgrowth into second backend | Medium | Boundary guardrails in design and review; pass-through as default pattern |
 | Operational overhead from third app | Medium | Reuse existing deployment and monitoring practices |
 | Accessibility drift | Medium | USWDS conformance plus automated checks in CI |
