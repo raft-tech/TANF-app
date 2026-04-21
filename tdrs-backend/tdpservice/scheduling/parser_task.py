@@ -119,6 +119,59 @@ def _handle_parse_failure(data_file, reparse_id, note):
         )
 
 
+def _reject_dfs(dfs):
+    """Mark a data file summary as rejected if it exists."""
+    if dfs is not None:
+        dfs.set_status(DataFileSummary.Status.REJECTED)
+        dfs.save()
+
+
+def _finalize_parse(data_file, dfs):
+    """Generate parse artifacts and refresh DataFileSummary aggregates."""
+    logger.info(f"DataFile parsing finished for file -> {repr(data_file)}.")
+    if dfs is None:
+        return
+
+    error_report_generator = ErrorReportFactory.get_error_report_generator(data_file)
+    error_report = error_report_generator.generate()
+    set_error_report(dfs, error_report)
+    logger.handlers[2].doRollover(data_file)
+    update_dfs(dfs, data_file)
+
+
+def _finalize_reparse(data_file_id, reparse_id, file_meta, dfs, reparse_success):
+    """Update reparse metadata after parsing completes."""
+    if reparse_id is None:
+        return
+
+    file_meta.num_records_created = dfs.total_number_of_records_created
+    file_meta.cat_4_errors_generated = ParserError.objects.filter(
+        file_id=data_file_id,
+        error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY,
+    ).count()
+    ReparseMeta.set_total_num_records_post(ReparseMeta.objects.get(pk=reparse_id))
+    set_reparse_file_meta_model_state(reparse_id, file_meta, reparse_success)
+
+
+def _add_unexpected_error(data_file):
+    """Persist a user-facing parser error for unexpected failures."""
+    generate_error = ErrorGeneratorFactory(data_file).get_generator(
+        ErrorGeneratorType.MSG_ONLY_PRECHECK,
+        None,
+    )
+    generator_args = ErrorGeneratorArgs(
+        record=None,
+        schema=None,
+        error_message=(
+            "We're sorry, an unexpected error has occurred and the file has been "
+            "rejected. Please contact the TDP support team at TANFData@acf.hhs.gov "
+            "for further assistance."
+        ),
+    )
+    error = generate_error(generator_args=generator_args)
+    error.save()
+
+
 @shared_task
 def parse(data_file_id, reparse_id=None):
     """Send data file for processing."""
@@ -169,9 +222,7 @@ def parse(data_file_id, reparse_id=None):
             _notify_data_analysts(data_file, dfs)
 
     except DecoderUnknownException:
-        if dfs is not None:
-            dfs.set_status(DataFileSummary.Status.REJECTED)
-            dfs.save()
+        _reject_dfs(dfs)
         _handle_parse_failure(data_file, reparse_id, "decoder unknown exception")
         reparse_success = False
     except DatabaseError as e:
@@ -186,24 +237,8 @@ def parse(data_file_id, reparse_id=None):
         if dfs is None:
             raise
 
-        generate_error = ErrorGeneratorFactory(data_file).get_generator(
-            ErrorGeneratorType.MSG_ONLY_PRECHECK,
-            None,
-        )
-        generator_args = ErrorGeneratorArgs(
-            record=None,
-            schema=None,
-            error_message=(
-                "We're sorry, an unexpected error has occurred and the file has been "
-                "rejected. Please contact the TDP support team at TANFData@acf.hhs.gov "
-                "for further assistance."
-            ),
-        )
-        error = generate_error(generator_args=generator_args)
-        error.save()
-        if dfs is not None:
-            dfs.set_status(DataFileSummary.Status.REJECTED)
-            dfs.save()
+        _add_unexpected_error(data_file)
+        _reject_dfs(dfs)
         log_parser_exception(
             data_file,
             (
@@ -215,23 +250,5 @@ def parse(data_file_id, reparse_id=None):
         _handle_parse_failure(data_file, reparse_id, "unexpected error during parsing")
         reparse_success = False
     finally:
-        logger.info(f"DataFile parsing finished for file -> {repr(data_file)}.")
-        if dfs is not None:
-            error_report_generator = ErrorReportFactory.get_error_report_generator(
-                data_file
-            )
-            error_report = error_report_generator.generate()
-            set_error_report(dfs, error_report)
-            logger.handlers[2].doRollover(data_file)
-            update_dfs(dfs, data_file)
-
-        if reparse_id is not None:
-            file_meta.num_records_created = dfs.total_number_of_records_created
-            file_meta.cat_4_errors_generated = ParserError.objects.filter(
-                file_id=data_file_id,
-                error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY,
-            ).count()
-            ReparseMeta.set_total_num_records_post(
-                ReparseMeta.objects.get(pk=reparse_id)
-            )
-            set_reparse_file_meta_model_state(reparse_id, file_meta, reparse_success)
+        _finalize_parse(data_file, dfs)
+        _finalize_reparse(data_file_id, reparse_id, file_meta, dfs, reparse_success)
