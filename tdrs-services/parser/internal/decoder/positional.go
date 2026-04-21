@@ -115,7 +115,7 @@ func (d *PostitionalDecoder) unsortedRows() iter.Seq2[Row, error] {
 				continue
 			}
 
-			if err == io.EOF {
+			if err == io.EOF && len(line) == 0 {
 				return
 			}
 
