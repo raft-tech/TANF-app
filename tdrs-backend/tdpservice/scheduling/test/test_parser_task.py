@@ -226,7 +226,9 @@ def test_parse_success_sends_email(monkeypatch, data_analyst):
 @pytest.mark.django_db
 def test_parse_success_reparse_updates_file_meta(monkeypatch, stt):
     """Update reparse metadata on success."""
-    datafile = DataFileFactory(stt=stt, version=5)
+    datafile = DataFileFactory(
+        stt=stt, version=5, state=SubmissionState.PARSE_COMPLETED
+    )
     ensure_stt_filenames(datafile.stt)
     dfs = DataFileSummary.objects.create(
         datafile=datafile, status=DataFileSummary.Status.PENDING
@@ -250,9 +252,17 @@ def test_parse_success_reparse_updates_file_meta(monkeypatch, stt):
         parser_task.ReparseMeta, "set_total_num_records_post", lambda *a, **k: None
     )
 
+    def fake_update_dfs(dfs, data_file):
+        dfs.status = DataFileSummary.Status.ACCEPTED
+        dfs.save()
+
+    monkeypatch.setattr(parser_task, "update_dfs", fake_update_dfs)
+
     parser_task.parse(datafile.id, reparse_id=meta_model.pk)
 
+    datafile.refresh_from_db()
     file_meta.refresh_from_db()
+    assert datafile.state == SubmissionState.PARSE_COMPLETED
     assert file_meta.finished is True
     assert file_meta.success is True
     assert file_meta.cat_4_errors_generated == 2
@@ -262,7 +272,9 @@ def test_parse_success_reparse_updates_file_meta(monkeypatch, stt):
 @pytest.mark.django_db
 def test_parse_decoder_unknown_sets_reparse_failed(monkeypatch, stt):
     """Set rejected status and failed reparse state on decode errors."""
-    datafile = DataFileFactory(stt=stt, version=6)
+    datafile = DataFileFactory(
+        stt=stt, version=6, state=SubmissionState.PARSE_COMPLETED
+    )
     ensure_stt_filenames(datafile.stt)
     dfs = DataFileSummary.objects.create(
         datafile=datafile, status=DataFileSummary.Status.PENDING
@@ -281,7 +293,9 @@ def test_parse_decoder_unknown_sets_reparse_failed(monkeypatch, stt):
     parser_task.parse(datafile.id, reparse_id=meta_model.pk)
 
     file_meta.refresh_from_db()
+    datafile.refresh_from_db()
     dfs = DataFileSummary.objects.get(datafile=datafile)
+    assert datafile.state == SubmissionState.PARSE_FAILED
     assert dfs.status == DataFileSummary.Status.REJECTED
     assert file_meta.finished is True
     assert file_meta.success is False
@@ -290,7 +304,9 @@ def test_parse_decoder_unknown_sets_reparse_failed(monkeypatch, stt):
 @pytest.mark.django_db
 def test_parse_database_error_sets_reparse_failed(monkeypatch, stt):
     """Mark reparse failed on database error."""
-    datafile = DataFileFactory(stt=stt, version=7)
+    datafile = DataFileFactory(
+        stt=stt, version=7, state=SubmissionState.PARSE_COMPLETED
+    )
     ensure_stt_filenames(datafile.stt)
     dfs = DataFileSummary.objects.create(
         datafile=datafile, status=DataFileSummary.Status.PENDING
@@ -310,6 +326,8 @@ def test_parse_database_error_sets_reparse_failed(monkeypatch, stt):
     parser_task.parse(datafile.id, reparse_id=meta_model.pk)
 
     file_meta.refresh_from_db()
+    datafile.refresh_from_db()
+    assert datafile.state == SubmissionState.PARSE_FAILED
     assert file_meta.finished is True
     assert file_meta.success is False
 
@@ -317,7 +335,9 @@ def test_parse_database_error_sets_reparse_failed(monkeypatch, stt):
 @pytest.mark.django_db
 def test_parse_generic_exception_rejects_and_logs(monkeypatch, stt):
     """Create error and reject on unexpected exceptions."""
-    datafile = DataFileFactory(stt=stt, version=8)
+    datafile = DataFileFactory(
+        stt=stt, version=8, state=SubmissionState.PARSE_COMPLETED
+    )
     ensure_stt_filenames(datafile.stt)
     dfs = DataFileSummary.objects.create(
         datafile=datafile, status=DataFileSummary.Status.PENDING
@@ -354,6 +374,8 @@ def test_parse_generic_exception_rejects_and_logs(monkeypatch, stt):
 
     dfs = DataFileSummary.objects.get(datafile=datafile)
     file_meta.refresh_from_db()
+    datafile.refresh_from_db()
+    assert datafile.state == SubmissionState.PARSE_FAILED
     assert dfs.status == DataFileSummary.Status.REJECTED
     assert saved["called"] is True
     assert file_meta.finished is True
@@ -440,11 +462,12 @@ def test_parse_transitions_to_parse_failed_on_exception(monkeypatch, data_analys
 
 
 @pytest.mark.django_db
-def test_reparse_does_not_transition_state(monkeypatch, stt):
-    """Reparse runs should not alter DataFile state."""
-    datafile = DataFileFactory(stt=stt, version=13)
+def test_reparse_transitions_to_parse_started(monkeypatch, stt):
+    """Reparse runs should mark the DataFile as parsing when the worker starts."""
+    datafile = DataFileFactory(
+        stt=stt, version=13, state=SubmissionState.PARSE_COMPLETED
+    )
     ensure_stt_filenames(datafile.stt)
-    original_state = datafile.state
     dfs = DataFileSummary.objects.create(
         datafile=datafile, status=DataFileSummary.Status.PENDING
     )
@@ -468,7 +491,7 @@ def test_reparse_does_not_transition_state(monkeypatch, stt):
     parser_task.parse(datafile.id, reparse_id=meta_model.pk)
 
     datafile.refresh_from_db()
-    assert datafile.state == original_state
+    assert datafile.state == SubmissionState.PARSE_STARTED
 
 
 @pytest.mark.django_db

@@ -116,7 +116,7 @@ def test_rejects_invalid_file_extensions(file_name):
 
 @pytest.mark.django_db
 def test_rejects_infected_file(infected_file, fake_file_name, user, settings):
-    """Test infected files are rejected by serializer validation."""
+    """Test infected files are rejected by the AV validator helper."""
     settings.CLAMAV_NEEDED = True
     with pytest.raises(ValidationError):
         validate_file_infection(infected_file, fake_file_name, user)
@@ -126,7 +126,7 @@ def test_rejects_infected_file(infected_file, fake_file_name, user, settings):
 def test_rejects_uploads_on_clamav_connection_error(
     fake_file, fake_file_name, mocker, user, settings
 ):
-    """Test that DataFiles cannot pass validation if ClamAV is down."""
+    """Test that the AV validator helper rejects if ClamAV is down."""
     settings.CLAMAV_NEEDED = True
     mocker.patch(
         "tdpservice.security.clients.ClamAVClient.scan_file",

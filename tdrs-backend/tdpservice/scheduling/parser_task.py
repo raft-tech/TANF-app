@@ -70,7 +70,7 @@ def set_error_report(dfs, error_report):
 
 
 def _transition_parse_outcome(data_file, dfs):
-    """Transition DataFile state based on parse outcome (initial submissions only)."""
+    """Transition DataFile state based on parse outcome."""
     if dfs.status == DataFileSummary.Status.ACCEPTED:
         transition_datafile(
             data_file,
@@ -109,14 +109,13 @@ def _notify_data_analysts(data_file, dfs):
     send_data_submitted_email(dfs, recipients)
 
 
-def _handle_parse_failure(data_file, reparse_id, note):
-    """Transition to PARSE_FAILED for initial submissions."""
-    if reparse_id is None:
-        transition_datafile(
-            data_file,
-            SubmissionState.PARSE_FAILED,
-            note=note,
-        )
+def _handle_parse_failure(data_file, note):
+    """Transition to PARSE_FAILED after parser startup."""
+    transition_datafile(
+        data_file,
+        SubmissionState.PARSE_FAILED,
+        note=note,
+    )
 
 
 def _reject_dfs(dfs):
@@ -195,12 +194,11 @@ def parse(data_file_id, reparse_id=None):
             file_meta.started_at = timezone.now()
             file_meta.save()
 
-        if reparse_id is None:
-            transition_datafile(
-                data_file,
-                SubmissionState.PARSE_STARTED,
-                note="parser worker started",
-            )
+        transition_datafile(
+            data_file,
+            SubmissionState.PARSE_STARTED,
+            note="parser worker started",
+        )
 
         dfs = DataFileSummary.objects.create(
             datafile=data_file, status=DataFileSummary.Status.PENDING
@@ -217,13 +215,13 @@ def parse(data_file_id, reparse_id=None):
 
         logger.info(f"Parsing finished for file -> {repr(data_file)}.")
 
+        _transition_parse_outcome(data_file, dfs)
         if reparse_id is None:
-            _transition_parse_outcome(data_file, dfs)
             _notify_data_analysts(data_file, dfs)
 
     except DecoderUnknownException:
         _reject_dfs(dfs)
-        _handle_parse_failure(data_file, reparse_id, "decoder unknown exception")
+        _handle_parse_failure(data_file, "decoder unknown exception")
         reparse_success = False
     except DatabaseError as e:
         log_parser_exception(
@@ -231,7 +229,7 @@ def parse(data_file_id, reparse_id=None):
             f"Encountered Database exception in parser_task.py: \n{e}",
             "error",
         )
-        _handle_parse_failure(data_file, reparse_id, "database error during parsing")
+        _handle_parse_failure(data_file, "database error during parsing")
         reparse_success = False
     except Exception:
         if dfs is None:
@@ -247,7 +245,7 @@ def parse(data_file_id, reparse_id=None):
             ),
             "exception",
         )
-        _handle_parse_failure(data_file, reparse_id, "unexpected error during parsing")
+        _handle_parse_failure(data_file, "unexpected error during parsing")
         reparse_success = False
     finally:
         _finalize_parse(data_file, dfs)
