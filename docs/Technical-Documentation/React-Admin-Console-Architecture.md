@@ -20,8 +20,10 @@
   - [Form Metadata and Validation](#form-metadata-and-validation)
   - [Authentication and Authorization](#authentication-and-authorization)
     - [Authentication model](#authentication-model)
+    - [Trust boundary and origin model](#trust-boundary-and-origin-model)
     - [Authorization model](#authorization-model)
     - [CSRF and cookie posture](#csrf-and-cookie-posture)
+    - [Cache behavior and audit forwarding](#cache-behavior-and-audit-forwarding)
     - [Session validation flow](#session-validation-flow)
   - [Rendering and Interaction Model](#rendering-and-interaction-model)
   - [Technology Stack](#technology-stack)
@@ -39,7 +41,7 @@ This document defines the target architecture for replacing Django admin workflo
 The architecture is a standalone Next.js admin application that:
 
 - uses server-side rendering and server components for data-heavy admin workflows,
-- reuses existing Django session/auth infrastructure,
+- uses Keycloak SSO with an admin-specific client and browser origin,
 - keeps business rules, authorization enforcement, workflow transitions, and audit behavior in Django,
 - is deployed as a separate Cloud.gov app alongside the existing user frontend and backend.
 
@@ -115,7 +117,7 @@ This is an architecture specification. It describes system structure, boundaries
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-This reflects the target coexistence model: existing CRA user app remains, while admin moves to a dedicated Next.js runtime.
+This reflects the target coexistence model: existing CRA user app remains, while admin moves to a dedicated Next.js runtime and separate browser origin.
 
 ---
 
@@ -191,9 +193,31 @@ This preserves Django's validation ownership while still giving admins pre-submi
 
 ### Authentication model
 
-- Reuse existing Django session-based authentication.
-- Next.js validates session presence and validity for admin routes.
-- No second session authority is introduced for MVP.
+The admin console should use Keycloak SSO through a dedicated admin client rather than treating admin as another path on the main CRA host.
+
+Target model:
+
+- `tdp-admin` is served from a separate hostname, such as `tdp-admin-raft.app.cloud.gov` in development and `admin.tanfdata.acf.hhs.gov` in production.
+- Keycloak registers `tdp-admin` as a separate client with admin-specific redirect URIs and web origins.
+- Keycloak preserves seamless SSO for users who already have an active SSO session, but the admin browser session is scoped to the admin hostname.
+- Django remains the application session authority for backend API enforcement after the Keycloak login callback completes.
+- Admin and non-admin Django sessions should be separate browser cookies. Prefer host-only `SESSION_COOKIE_DOMAIN` and `CSRF_COOKIE_DOMAIN` behavior by leaving broad domain settings unset for the admin deployment path.
+
+This model intentionally avoids sharing broad `.app.cloud.gov` or `.acf.hhs.gov` cookies between the user-facing CRA origin and the admin origin. It reduces the blast radius of a user-frontend XSS bug and gives admin routes their own redirect, cookie, CSRF, and session lifecycle boundaries.
+
+### Trust boundary and origin model
+
+Moving from `/admin/` reverse-proxied through nginx to a standalone Next.js app changes the trust boundary. Next.js becomes a privileged server-side component that can receive admin requests, validate admin session state, and call Django APIs on behalf of an admin user.
+
+Required guardrails:
+
+- Serve `tdp-admin` on a separate origin from `tdp-frontend`; do not host the admin console as a same-origin CRA path.
+- Treat Next.js server actions, route handlers, and BFF endpoints as privileged code paths.
+- Prefer pass-through calls to Django for mutations; any BFF mutation must forward Django-required CSRF context and must not become the final authorization authority.
+- Keep final authentication, authorization, workflow validation, and audit persistence in Django.
+- Do not share admin cookies with the user-facing frontend host.
+- Add CSP, dependency scanning, and XSS regression coverage to the admin app release gate because an admin-origin XSS has privileged impact.
+- Disable shared CDN/browser caching for authenticated admin responses.
 
 ### Authorization model
 
@@ -203,8 +227,27 @@ This preserves Django's validation ownership while still giving admins pre-submi
 
 ### CSRF and cookie posture
 
-- Cookie-authenticated mutating calls must carry expected CSRF context.
-- Trusted origins, cookie domain attributes, and same-site behavior must be aligned across admin and backend domains.
+- Admin session cookies must be `Secure`, `HttpOnly`, and host-only where possible.
+- Admin CSRF cookies should also be scoped to the admin host and not shared with the user frontend.
+- Cookie-authenticated mutating calls must carry Django's expected CSRF context through the Next.js layer.
+- Trusted origins should be explicit to the admin hostname and backend hostname; avoid wildcard subdomain trust.
+- SameSite behavior should be chosen for the deployed cross-host flow and documented before implementation. If the admin app and Django API require cross-site cookie submission, use the narrowest `SameSite=None; Secure` scope possible and compensate with strict origin/referrer checks.
+- Next.js BFF endpoints that accept browser mutations must perform CSRF validation or forward the request to Django without weakening Django's CSRF checks.
+- Logout must clear the admin-scoped Django session and trigger Keycloak logout or session revocation behavior consistent with the broader Keycloak architecture.
+
+### Cache behavior and audit forwarding
+
+Authenticated admin responses must not be stored in shared caches. Next.js server responses, route handlers, and BFF responses should set `Cache-Control: no-store` unless an endpoint is explicitly proven safe to cache. Server-rendered admin pages that contain user, submission, audit, or report data should always be dynamic and user-specific.
+
+When Next.js calls Django on behalf of an admin user, requests must preserve provenance for audit and incident response:
+
+- authenticated Django user/session identifier,
+- originating admin route or action name,
+- request ID/correlation ID,
+- source IP chain from platform headers,
+- Keycloak client/auth flow identifier when available.
+
+Django remains responsible for durable audit records. Next.js may add request context, but it must not be the only place where privileged admin activity is recorded.
 
 ### Session validation flow
 
@@ -212,8 +255,10 @@ Every admin route validates the session before rendering. The integration works 
 
 ```
 Admin request
-  -> Next.js checks for Django session cookie
-  -> Next.js validates session via lightweight Django auth endpoint
+  -> browser reaches the separate admin hostname
+  -> unauthenticated admin user is redirected through Keycloak tdp-admin client
+  -> Django establishes or validates an admin-scoped session
+  -> Next.js validates the admin session via lightweight Django auth endpoint
   -> invalid session redirects to login
   -> valid session continues to server-rendered admin route
 ```
@@ -222,12 +267,14 @@ For mutations, the CSRF token must be forwarded from the Django-issued cookie:
 
 ```
 POST admin mutation
-  -> forward Django session cookie
+  -> browser submits to Next.js admin origin
+  -> Next.js forwards admin-scoped Django session cookie
   -> include CSRF token in header
+  -> include provenance headers/request context
   -> Django performs final authz, mutation, and audit logging
 ```
 
-These examples illustrate the critical auth integration. The flow is pseudocode — exact implementation will depend on cookie domain configuration and session endpoint design.
+These examples illustrate the critical auth integration. The flow is pseudocode — exact implementation will depend on Keycloak client configuration, cookie domain configuration, and session endpoint design.
 
 ---
 
@@ -257,6 +304,7 @@ General rules:
 | Area | Choice | Notes |
 |------|--------|-------|
 | Framework | Next.js 14+ | App Router, SSR/RSC support |
+| Auth | Keycloak SSO + Django sessions | Separate admin client/origin with Django-authoritative API enforcement |
 | UI System | USWDS React | Required design/accessibility alignment |
 | Forms | React Hook Form + metadata-driven schema validation | Client ergonomics from Django-derived metadata with server-authoritative validation |
 | Tables / Data Grid | Server-rendered USWDS tables with backend pagination | Prefer simple tables first; only introduce a heavier grid library if admin workflows prove it necessary |
@@ -286,6 +334,9 @@ Operational implications:
 Cloud.gov considerations:
 
 - prefer internal app-to-app calls from admin to backend,
+- serve admin from a dedicated route/hostname instead of a same-origin CRA path,
+- register the admin hostname as a separate Keycloak client redirect URI and web origin,
+- prefer host-only session and CSRF cookies for admin and non-admin browser sessions,
 - treat local filesystem as ephemeral,
 - keep observability aligned with existing platform monitoring patterns,
 - support rollback strategies without coupling user and admin releases.
@@ -315,7 +366,9 @@ Cloud.gov considerations:
 | Risk | Severity | Mitigation |
 |------|----------|-----------|
 | Performance regressions on large datasets | High | Server-driven pagination and filtering from day one |
-| Auth/session edge-case defects | Medium | Explicit session-expiry and CSRF test matrix |
+| Admin trust-boundary expansion | High | Separate admin hostname, separate Keycloak client, host-only admin cookies, Django-authoritative authz |
+| Auth/session edge-case defects | Medium | Explicit session-expiry, logout, cookie-domain, and CSRF test matrix |
+| Accidental caching of privileged admin data | High | `Cache-Control: no-store` for authenticated admin pages and BFF responses |
 | Frontend/backend validation drift | Medium | Generate generic form metadata from Django form/model definitions; keep Django validation authoritative |
 | BFF overgrowth into second backend | Medium | Boundary guardrails in design and review; pass-through as default pattern |
 | Operational overhead from third app | Medium | Reuse existing deployment and monitoring practices |
