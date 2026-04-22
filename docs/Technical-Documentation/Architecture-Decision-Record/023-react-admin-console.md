@@ -16,7 +16,7 @@ Django admin is currently used for key administrative workflows in TDP but creat
 - Section 508 and USWDS consistency require ongoing workaround effort in the Django template layer.
 - Engineering ownership is split across mismatched UI stacks (React for users, Django templates for admins).
 
-These constraints motivate replacing Django admin with a React-based admin console. The decision is how to host and structure that console: inside the existing CRA frontend, or as a standalone Next.js application.
+These constraints motivate replacing Django admin with a React-based admin console. The decision is how to host and structure that console: inside the existing Create React App (CRA) frontend, or as a standalone Next.js application.
 
 ## Decision
 
