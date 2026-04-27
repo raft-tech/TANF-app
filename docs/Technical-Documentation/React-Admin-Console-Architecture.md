@@ -16,7 +16,7 @@
   - [Principles](#principles)
   - [High-Level Component Architecture](#high-level-component-architecture)
   - [System Boundaries and Data Access](#system-boundaries-and-data-access)
-    - [BFF shaping vs. pass-through pattern](#bff-shaping-vs-pass-through-pattern)
+    - [Backend for Frontend (BFF) shaping vs. pass-through pattern](#backend-for-frontend-bff-shaping-vs-pass-through-pattern)
   - [Form Metadata and Validation](#form-metadata-and-validation)
   - [Authentication and Authorization](#authentication-and-authorization)
     - [Authentication model](#authentication-model)
@@ -66,20 +66,27 @@ This is an architecture specification. It describes system structure, boundaries
 1. Django remains authoritative for domain and security decisions.
 2. Next.js is a presentation/orchestration layer, not a replacement backend.
 3. Prefer API reuse over policy duplication.
-4. Use BFF behavior only where it adds clear admin UX value.
+4. Use Backend for Frontend (BFF) behavior only where it adds clear admin UX value.
 
 ---
 
 ## High-Level Component Architecture
 
-```
+<table>
+  <tr>
+    <th>Admin Console</th>
+    <th>User Application</th>
+  </tr>
+  <tr>
+    <td>
+<pre>
 ┌──────────────────────────────────────────────────────────────────┐
 │                          Admin Browser                           │
 └──────────────────────────────────────────────────────────────────┘
                                │
                                ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                     tdp-admin (Next.js)                         │
+│                     tdp-admin (Next.js)                          │
 │  - SSR/RSC rendering                                             │
 │  - admin route protection                                        │
 │  - optional thin BFF shaping                                     │
@@ -88,7 +95,7 @@ This is an architecture specification. It describes system structure, boundaries
                                │
                                ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                     tdp-backend (Django)                        │
+│                     tdp-backend (Django)                         │
 │  - auth/session validation                                       │
 │  - authorization + workflow rules                                │
 │  - audit logging                                                 │
@@ -99,8 +106,10 @@ This is an architecture specification. It describes system structure, boundaries
 ┌──────────────────────────────────────────────────────────────────┐
 │                         PostgreSQL                               │
 └──────────────────────────────────────────────────────────────────┘
-
-
+</pre>
+    </td>
+    <td>
+<pre>
 ┌──────────────────────────────────────────────────────────────────┐
 │                          User Browser                            │
 └──────────────────────────────────────────────────────────────────┘
@@ -115,7 +124,10 @@ This is an architecture specification. It describes system structure, boundaries
 ┌──────────────────────────────────────────────────────────────────┐
 │                     tdp-backend (Django)                         │
 └──────────────────────────────────────────────────────────────────┘
-```
+</pre>
+    </td>
+  </tr>
+</table>
 
 This reflects the target coexistence model: existing CRA user app remains, while admin moves to a dedicated Next.js runtime and separate browser origin.
 
@@ -140,7 +152,7 @@ Data access patterns by workflow:
 - Workflow mutations (approve/reparse/update flags): explicit mutation endpoints with Django-side audit and policy enforcement.
 - Large dataset navigation: paginated or cursor-based API interactions, not client-side bulk loading.
 
-### BFF shaping vs. pass-through pattern
+### Backend for Frontend (BFF) shaping vs. pass-through pattern
 
 Most admin screens should use **pass-through** — the Next.js server component calls a single Django endpoint and renders the response directly.
 
