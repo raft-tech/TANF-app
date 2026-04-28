@@ -77,6 +77,15 @@ def go_parse(data_file_id):
 
 
 @shared_task
+def post_go_parse(data_file_id):
+    """Register the Go parser task name without executing it in Python."""
+    raise RuntimeError(
+        f"go_parse for data_file_id={data_file_id} is routed to the Go parser worker "
+        "and should not execute in the Python worker"
+    )
+
+
+@shared_task
 def parse(data_file_id, reparse_id=None):
     """Send data file for processing."""
     # passing the data file FileField across redis was rendering non-serializable failures, doing the below lookup
