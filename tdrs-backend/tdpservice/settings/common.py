@@ -50,22 +50,14 @@ def traces_sampler(sampling_context: SamplingContext) -> float:
 
 
 def before_send(event, hint):
-    """Drop known noisy infrastructure logs before sending events to Sentry."""
+    """Drop known noisy Tempo infrastructure logs before sending events to Sentry."""
     logentry = event.get("logentry", {})
     message = logentry.get("message", "")
     params = logentry.get("params") or []
 
-    is_parameterized_tempo_export_failure = (
-        message.startswith("Failed to export")
-        and "error code" in message
-        and "traces" in params
-        and "tempo.apps.internal:4317" in params
-    )
-    is_formatted_tempo_export_failure = (
-        "Failed to export traces to tempo.apps.internal:4317" in message
-    )
+    log_text = " ".join([message, *(str(param) for param in params)])
 
-    if is_parameterized_tempo_export_failure or is_formatted_tempo_export_failure:
+    if "tempo.apps.internal" in log_text:
         return None
 
     return event
