@@ -18,6 +18,9 @@
   - [System Boundaries and Data Access](#system-boundaries-and-data-access)
     - [Backend for Frontend (BFF) shaping vs. pass-through pattern](#backend-for-frontend-bff-shaping-vs-pass-through-pattern)
   - [Form Metadata and Validation](#form-metadata-and-validation)
+    - [Third-party library expectations](#third-party-library-expectations)
+    - [Backend metadata pattern](#backend-metadata-pattern)
+    - [Form submission validation flow](#form-submission-validation-flow)
   - [Authentication and Authorization](#authentication-and-authorization)
     - [Authentication model](#authentication-model)
     - [Trust boundary and origin model](#trust-boundary-and-origin-model)
@@ -72,6 +75,15 @@ This is an architecture specification. It describes system structure, boundaries
 
 ## High-Level Component Architecture
 
+In the diagram below:
+
+- SSR means server-side rendering.
+- RSC means React Server Components.
+- BFF means Backend for Frontend.
+- USWDS means U.S. Web Design System.
+- REST API means Representational State Transfer application programming interface.
+- CRA means Create React App.
+
 <table>
   <tr>
     <th>Admin Console</th>
@@ -87,10 +99,10 @@ This is an architecture specification. It describes system structure, boundaries
                                ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │                     tdp-admin (Next.js)                          │
-│  - SSR/RSC rendering                                             │
+│  - server-side rendering / React Server Components               │
 │  - admin route protection                                        │
-│  - optional thin BFF shaping                                     │
-│  - USWDS-based admin UI                                          │
+│  - optional thin Backend for Frontend shaping                    │
+│  - U.S. Web Design System-based admin UI                         │
 └──────────────────────────────────────────────────────────────────┘
                                │
                                ▼
@@ -116,7 +128,7 @@ This is an architecture specification. It describes system structure, boundaries
                                │
                                ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                    tdp-frontend (Current CRA)                    │
+│               tdp-frontend (Current Create React App)            │
 │                     user-facing routes                           │
 └──────────────────────────────────────────────────────────────────┘
                                │
@@ -177,9 +189,24 @@ The rule of thumb: if a single Django endpoint can serve the view, pass-through.
 
 ## Form Metadata and Validation
 
-Django remains the source of truth for editable admin forms. The React admin should not manually duplicate Django model or form validators in TypeScript. Instead, Django should expose form metadata for each migrated admin workflow through explicit API endpoints.
+Django remains the source of truth for editable admin forms. The React admin should not manually duplicate Django model or form validators in TypeScript. Instead, each migrated admin workflow should expose an explicit form-metadata endpoint from Django and a matching mutation endpoint for submission.
 
-For model-backed forms, the backend can derive generic metadata from the same Django form/model layer used for server-side validation:
+The target pattern is metadata-driven, not fully generic form generation. Shared React components should render common field types from backend metadata, while workflow-specific screens can still provide layout, conditional behavior, and specialized controls where needed. This gives the frontend reusable building blocks without requiring every Django admin form to fit a single universal form-builder abstraction.
+
+### Third-party library expectations
+
+Third-party libraries can help with frontend form state and generic client-side checks, but they should not be treated as a complete Django-to-React admin form solution.
+
+- **React Hook Form** should manage form state, touched/dirty state, field registration, and submission handling.
+- A TypeScript schema validation library may be used to express generic client-side rules derived from backend metadata.
+- USWDS React components should provide the accessible visual controls for common inputs.
+- Django should still own authoritative validation, authorization, persistence, workflow transitions, and audit behavior.
+
+The implementation should assume we own the Django metadata contract and the component mapping layer. A third-party package may reduce boilerplate, but it should not define the cross-system contract or move business rules out of Django.
+
+### Backend metadata pattern
+
+For model-backed forms, the backend should derive generic metadata from the same Django form, serializer, and model field definitions used for server-side validation where practical:
 
 - field type and widget intent,
 - required/optional state,
@@ -187,9 +214,83 @@ For model-backed forms, the backend can derive generic metadata from the same Dj
 - choice values,
 - max length and numeric/date bounds where Django exposes them,
 - simple field validators that can be represented as client rules,
+- initial values for edit forms,
+- read-only or disabled state derived from permissions or workflow state,
 - field and form-level errors returned from Django validation.
 
-The frontend uses that metadata to construct React Hook Form inputs and pre-submit schema validation for immediate feedback. Mutating requests still submit to Django, where `ModelForm`, serializer, model, and domain validation run authoritatively before persistence and audit logging.
+The backend contract should be explicit per workflow rather than inferred by the frontend. For example, a migrated user-access review form could expose one metadata endpoint for the editable fields on that screen and one mutation endpoint for approve/reject/update actions.
+
+Conceptual shape:
+
+```
+GET /api/admin/users/{id}/access-review/form/
+  -> fields, initial values, generic constraints, permissions
+
+POST /api/admin/users/{id}/access-review/
+  -> runs Django validation and workflow logic, persists changes, returns success or validation errors
+```
+
+High-level metadata example:
+
+```json
+{
+  "workflow": "user_access_review",
+  "fields": [
+    {
+      "name": "role",
+      "label": "Role",
+      "type": "choice",
+      "widget": "select",
+      "required": true,
+      "choices": [
+        { "value": "data_analyst", "label": "Data Analyst" },
+        { "value": "ofa_admin", "label": "OFA Admin" }
+      ]
+    },
+    {
+      "name": "decision_reason",
+      "label": "Decision reason",
+      "type": "string",
+      "widget": "textarea",
+      "required": false,
+      "maxLength": 500
+    }
+  ],
+  "initialValues": {
+    "role": "data_analyst",
+    "decision_reason": ""
+  }
+}
+```
+
+High-level validation error example:
+
+```json
+{
+  "fieldErrors": {
+    "role": ["Select a valid role."]
+  },
+  "nonFieldErrors": [
+    "This user cannot be approved until all required profile fields are complete."
+  ]
+}
+```
+
+The metadata response should be stable enough for frontend reuse, but it does not need to expose every Django validator. Rules that are permission-sensitive, cross-field, workflow-state-dependent, or hard to serialize should stay server-only and return as validation errors after submission.
+
+The frontend uses metadata to construct React Hook Form inputs and pre-submit schema validation for immediate feedback. Mutating requests still submit to Django, where `ModelForm`, serializer, model, and domain validation run authoritatively before persistence and audit logging.
+
+### Form submission validation flow
+
+Form submission should follow this sequence:
+
+1. The Next.js admin page requests metadata and initial values from Django.
+2. The React form maps backend field metadata to shared USWDS input components.
+3. React Hook Form applies generic client-side checks for immediate feedback.
+4. On submit, the form sends the payload to the Django mutation endpoint.
+5. Django runs authoritative `ModelForm`, serializer, model, permission, workflow, and domain validation.
+6. Django returns either a successful result or a normalized error response containing field errors and non-field errors.
+7. The React form maps server-returned errors back onto the corresponding fields or form-level alert region.
 
 Validation support should be tiered:
 
