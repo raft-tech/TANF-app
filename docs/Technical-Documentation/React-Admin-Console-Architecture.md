@@ -18,6 +18,7 @@
   - [System Boundaries and Data Access](#system-boundaries-and-data-access)
     - [Backend for Frontend (BFF) shaping vs. pass-through pattern](#backend-for-frontend-bff-shaping-vs-pass-through-pattern)
   - [Form Metadata and Validation](#form-metadata-and-validation)
+    - [Guiding design principles](#guiding-design-principles)
     - [Third-party library expectations](#third-party-library-expectations)
     - [Backend metadata pattern](#backend-metadata-pattern)
     - [Form submission validation flow](#form-submission-validation-flow)
@@ -192,6 +193,15 @@ The rule of thumb: if a single Django endpoint can serve the view, pass-through.
 Django remains the source of truth for editable admin forms. The React admin should not manually duplicate Django model or form validators in TypeScript. Instead, each migrated admin workflow should expose an explicit form-metadata endpoint from Django and a matching mutation endpoint for submission.
 
 The target pattern is metadata-driven, not fully generic form generation. Shared React components should render common field types from backend metadata, while workflow-specific screens can still provide layout, conditional behavior, and specialized controls where needed. This gives the frontend reusable building blocks without requiring every Django admin form to fit a single universal form-builder abstraction.
+
+### Guiding design principles
+
+- **Explicit workflow contracts:** each migrated admin form should have a clear backend metadata endpoint and mutation endpoint rather than relying on frontend inference from unrelated APIs.
+- **Shared component mapping:** the frontend should map common metadata field types to reusable USWDS React form controls.
+- **Server-authoritative validation:** Django remains the final authority for validation, permission checks, workflow rules, persistence, and audit behavior.
+- **Generic where safe:** required fields, choices, labels, help text, simple type checks, lengths, and numeric/date bounds can drive reusable form behavior.
+- **Workflow-specific escape hatches:** custom layouts, conditional fields, specialized controls, and server-only validation are expected for complex admin workflows.
+- **No hidden business logic in the frontend:** frontend adapters may improve usability, but they should not duplicate Django authorization, workflow transitions, or domain rules.
 
 ### Third-party library expectations
 
