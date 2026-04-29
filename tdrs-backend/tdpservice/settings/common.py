@@ -49,6 +49,28 @@ def traces_sampler(sampling_context: SamplingContext) -> float:
     return 0.5
 
 
+def before_send(event, hint):
+    """Drop known noisy infrastructure logs before sending events to Sentry."""
+    logentry = event.get("logentry", {})
+    message = logentry.get("message", "")
+    params = logentry.get("params") or []
+
+    is_parameterized_tempo_export_failure = (
+        message.startswith("Failed to export")
+        and "error code" in message
+        and "traces" in params
+        and "tempo.apps.internal:4317" in params
+    )
+    is_formatted_tempo_export_failure = (
+        "Failed to export traces to tempo.apps.internal:4317" in message
+    )
+
+    if is_parameterized_tempo_export_failure or is_formatted_tempo_export_failure:
+        return None
+
+    return event
+
+
 def init_sentry(sentry_dsn, environment: str = "ERROR") -> None:
     """Initialize Sentry for error tracking."""
     sentry_sdk.init(
@@ -70,6 +92,7 @@ def init_sentry(sentry_dsn, environment: str = "ERROR") -> None:
             LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
         ],
         traces_sampler=traces_sampler,
+        before_send=before_send,
         enable_logs=True,
     )
 
