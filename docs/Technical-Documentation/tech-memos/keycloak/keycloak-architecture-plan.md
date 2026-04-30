@@ -40,7 +40,7 @@ Keycloak acts as an **OIDC broker** — it sits between the TDP application and 
 | Django OIDC RP | `mozilla-django-oidc` + `KeycloakOIDCBackend` | Replaces hand-rolled OIDC flow with a standard library + custom user lookup/validation |
 | User Sync | `KeycloakSyncClient` + Django signals | Pushes user attributes and group memberships from Django to Keycloak on every save |
 | Realm Configuration | `realm-export.json` + `configure-idps.sh` | Declarative realm definition with post-startup script for sensitive material (signing keys) |
-| PLG SSO | `tdp-grafana` Keycloak client | Grafana authenticates via Keycloak OIDC (AMS + local password only) |
+| PLG SSO | `tdp-grafana` Keycloak client | Grafana authenticates via Keycloak OIDC (Login.gov, AMS, and local password) |
 | Deployment | `deploy.sh` + `manifest.yml` + Terraform (RDS) | Cloud Foundry deployment with rolling strategy, network policies, and IdP configuration |
 
 ---
@@ -115,18 +115,16 @@ Two identity provider paths, both brokered through Keycloak:
 
 ### PLG / Grafana Authentication
 
-The **production Keycloak instance** manages authentication for the PLG observability stack. Grafana uses the `tdp-grafana` Keycloak client. Login.gov is hidden from the Keycloak login page
-this is safe because the TDP frontend bypasses the login page entirely using `kc_idp_hint=login-gov`. Grafana's `auth_url` will include `?prompt=login` to force re-authentication, ensuring that an existing Keycloak SSO session (e.g., from a prior Login.gov login) does not automatically grant Grafana access. The result is that Grafana's login page shows only the AMS identity provider button and the Keycloak local password form.
+The **production Keycloak instance** manages authentication for the PLG observability stack. Grafana uses the `tdp-grafana` Keycloak client. Login.gov and AMS are visible on the Keycloak login page, while Grafana's group and approval mappers deny users who do not match the required authorization rules.
 
 Users **must** belong to one of three Keycloak groups to access Grafana. Users not in any recognized group are denied login entirely (`role_attribute_strict = true` with no fallback role).
 
 | Keycloak Group | Auth Path | Grafana Org | Grafana Role |
 |----------------|-----------|-------------|--------------|
-| `ofa-system-admin` | PIV auth via AMS through Keycloak | Admin (ID 1) | Admin |
+| `ofa-system-admin` | Login.gov or PIV auth through Keycloak | Admin (ID 1) | Admin |
 | `developer` | Local Keycloak username/password | Admin (ID 1) | Admin |
-| `digit-team` | PIV auth via AMS through Keycloak | DIGIT (ID 3) | Editor |
+| `digit-team` | Login.gov or PIV auth through Keycloak | DIGIT (ID 3) | Editor |
 | *(any other / none)* | — | — | **Login denied** |
-| Login.gov users | Cannot access (Login.gov hidden via `hideOnLogin`, SSO blocked by `prompt=login`) | — | N/A |
 
 Grafana has two orgs: **Admin** (ID 1) for system administrators and developers, and **DIGIT** (ID 3) for the DIGIT data team. Org assignment is controlled by `org_mapping` in Grafana's `[auth.generic_oauth]` config, which maps Keycloak group names to specific Grafana org IDs and roles. `auto_assign_org` is disabled so that org placement is handled entirely by the mapping — users not matching any rule are denied.
 
@@ -256,7 +254,7 @@ Sensitive configuration that cannot be expressed in the realm export (Login.gov 
 | Client | Type | Service Account | Purpose |
 |--------|------|-----------------|---------|
 | `tdp-django` | Confidential | Yes (`realm-management` roles) | Backend OIDC auth + Admin REST API access for user sync |
-| `tdp-grafana` | Confidential | No | Grafana SSO (AMS + local password; Login.gov hidden via `hideOnLogin`) |
+| `tdp-grafana` | Confidential | No | Grafana SSO (Login.gov, AMS, and local password) |
 
 ### Identity Provider Configuration
 
@@ -537,7 +535,7 @@ Keycloak stores its schema version in the database and runs automatic migrations
 - [ ] AMS flow validated end-to-end (all environments)
 - [ ] Django user sync verified (signal-based + bulk reconciliation)
 - [ ] Grafana SSO via prod Keycloak verified (AMS login + developer password login)
-- [ ] Login.gov users confirmed blocked from Grafana access
+- [ ] Login.gov users without required Grafana groups confirmed blocked from Grafana access
 - [ ] Network policies created for all app pairs per space
 - [ ] All secrets stored in CF environment variables (no secrets in code)
 - [ ] Token lifespans and session timeouts match security policy

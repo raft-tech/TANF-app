@@ -72,7 +72,7 @@ cd tdrs-backend/keycloak
 4. Maps the **public** route: `<hostname>.app.cloud.gov` (browser redirects, admin console)
 5. Sets `DEPLOY_ENV` so the container selects the correct checked-in realm export before import
 6. Creates network policies so backend and celery apps can reach Keycloak on port 8080
-7. Runs the `configure-idps.sh` script as a CF task to configure Login.gov signing key, ACR values, master realm security headers, and Grafana client IdP restriction
+7. Runs the `configure-idps.sh` script as a CF task to configure Login.gov signing key, ACR values, and master realm security headers.
 
 ### Per-Space Deployment Examples
 

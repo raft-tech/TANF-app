@@ -184,7 +184,7 @@ The `tdp-user-attributes` client scope maps these attributes into JWT tokens:
 | Client | Type | Purpose |
 |--------|------|---------|
 | `tdp-django` | Confidential (service account) | Backend OIDC authentication + Admin API access |
-| `tdp-grafana` | Confidential | Grafana SSO (AMS + local password auth only) |
+| `tdp-grafana` | Confidential | Grafana SSO (Login.gov, AMS, and local password auth) |
 
 ### Identity Providers
 
@@ -207,7 +207,7 @@ The `tdp-user-attributes` client scope maps these attributes into JWT tokens:
 
 ## Grafana SSO
 
-Grafana authenticates via Keycloak OIDC using the `tdp-grafana` client, which is configured to only show the AMS identity provider (Login.gov is excluded).
+Grafana authenticates via Keycloak OIDC using the `tdp-grafana` client. Login.gov and AMS are both available on the Keycloak login page, and Grafana denies users who do not match the required Keycloak groups and approval status.
 
 ### Access Control
 
@@ -215,12 +215,12 @@ Users **must** belong to one of three Keycloak groups to access Grafana. Users n
 
 | Keycloak Group | Grafana Org | Grafana Role | Auth Path |
 |----------------|-------------|--------------|-----------|
-| `ofa-system-admin` | Admin (ID 1) | Admin | PIV auth via AMS through Keycloak |
+| `ofa-system-admin` | Admin (ID 1) | Admin | Login.gov or PIV auth through Keycloak |
 | `developer` | Admin (ID 1) | Admin | Local Keycloak username/password |
-| `digit-team` | DIGIT (ID 3) | Editor | PIV auth via AMS through Keycloak |
+| `digit-team` | DIGIT (ID 3) | Editor | Login.gov or PIV auth through Keycloak |
 | *(any other / none)* | — | **Login denied** | — |
 
-**Login.gov users**: Cannot access Grafana (Login.gov IdP is not shown on the `tdp-grafana` client login page).
+Users authenticated by Login.gov still need the required Keycloak group and `account_approval_status = Approved` claims; otherwise Grafana denies login.
 
 ### Organization and Role Mapping
 
