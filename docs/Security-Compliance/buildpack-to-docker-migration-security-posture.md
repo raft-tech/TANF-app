@@ -185,7 +185,7 @@ To address the additional responsibilities that come with Docker deployment, we 
 
 ---
 
-## 8. Compliance Review Updates From ACF Feedback
+## 8. Compliance Review/Updates
 
 ACF feedback correctly identifies the Docker migration as a security-relevant modification even though it does not alter the authorization boundary, data flow, or Cloud.gov hosting environment. The proposed compliance package should therefore include an SIA and targeted SSP updates.
 
