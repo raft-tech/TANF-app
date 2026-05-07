@@ -146,6 +146,9 @@ def _finalize_reparse(data_file_id, reparse_id, file_meta, dfs, reparse_success)
     if reparse_id is None:
         return
 
+    if dfs is None:
+        return
+
     file_meta.num_records_created = dfs.total_number_of_records_created
     file_meta.cat_4_errors_generated = ParserError.objects.filter(
         file_id=data_file_id,

@@ -284,6 +284,8 @@ def test_parse_success_reparse_suppresses_email_for_accepted_to_accepted(
 ):
     """Do not send a reparse email when Accepted remains Accepted."""
     datafile = DataFileFactory(stt=data_analyst.stt, version=6)
+    datafile.state = SubmissionState.PARSE_COMPLETED
+    datafile.save()
     ensure_stt_filenames(datafile.stt)
     dfs = DataFileSummary.objects.create(
         datafile=datafile, status=DataFileSummary.Status.PENDING
@@ -334,6 +336,8 @@ def test_parse_success_reparse_still_sends_email_for_unchanged_nonaccepted_statu
 ):
     """Still send a reparse email when a non-Accepted status remains unchanged."""
     datafile = DataFileFactory(stt=data_analyst.stt, version=7)
+    datafile.state = SubmissionState.PARSED_WITH_ERRORS
+    datafile.save()
     ensure_stt_filenames(datafile.stt)
     dfs = DataFileSummary.objects.create(
         datafile=datafile, status=DataFileSummary.Status.PENDING
