@@ -94,7 +94,7 @@ def _transition_parse_outcome(data_file, dfs):
         )
 
 
-def _notify_data_analysts(data_file, dfs):
+def _notify_data_analysts(data_file, dfs, file_meta=None, reparse_id=None):
     """Send submission email to relevant data analysts (initial submissions only)."""
     qs = User.objects.filter(
         stt=data_file.stt,
@@ -106,7 +106,10 @@ def _notify_data_analysts(data_file, dfs):
         qs = qs.filter(user_permissions__codename="has_fra_access")
 
     recipients = qs.values_list("username", flat=True).distinct()
-    send_data_submitted_email(dfs, recipients)
+    if should_send_reparse_notification(dfs, file_meta, reparse_id):
+        send_data_submitted_email(
+            dfs, recipients, is_reprocessed=(reparse_id is not None)
+        )
 
 
 def _handle_parse_failure(data_file, note):
@@ -171,6 +174,29 @@ def _add_unexpected_error(data_file):
     error.save()
 
 
+def should_send_reparse_notification(dfs, file_meta, reparse_id):
+    """Return whether a reparse completion email should be sent."""
+    if not reparse_id:
+        return True
+
+    if file_meta is None:
+        return True
+
+    return not (
+        file_meta.previous_summary_status == DataFileSummary.Status.ACCEPTED
+        and dfs.status == DataFileSummary.Status.ACCEPTED
+    )
+
+
+@shared_task(name="tdpservice.scheduling.parser_task.go_parse")
+def go_parse(data_file_id):
+    """Register the Go parser task name without executing it in Python."""
+    raise RuntimeError(
+        f"go_parse for data_file_id={data_file_id} is routed to the Go parser worker "
+        "and should not execute in the Python worker"
+    )
+
+
 @shared_task
 def parse(data_file_id, reparse_id=None):
     """Send data file for processing."""
@@ -216,8 +242,7 @@ def parse(data_file_id, reparse_id=None):
         logger.info(f"Parsing finished for file -> {repr(data_file)}.")
 
         _transition_parse_outcome(data_file, dfs)
-        if reparse_id is None:
-            _notify_data_analysts(data_file, dfs)
+        _notify_data_analysts(data_file, dfs, file_meta, reparse_id)
 
     except DecoderUnknownException:
         _reject_dfs(dfs)
