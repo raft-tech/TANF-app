@@ -55,7 +55,19 @@ def test_immutability_of_data_file(data_file_instance):
 
 @pytest.mark.django_db
 def test_created_at(data_file_data, data_analyst):
+<<<<<<< HEAD
     """Test that serializer creates a DataFile with a created_at timestamp."""
+=======
+    """If a serializer has valid data it will return a valid object."""
+    ClamAVFileScan.objects.record_scan(
+        data_file_data["file"],
+        data_file_data["original_filename"],
+        f"File scan marked as CLEAN for file: {data_file_data['original_filename']}",
+        ClamAVFileScan.Result.CLEAN,
+        data_analyst,
+    )
+
+>>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
     create_serializer = DataFileSerializer(
         context={"user": data_analyst}, data=data_file_data
     )

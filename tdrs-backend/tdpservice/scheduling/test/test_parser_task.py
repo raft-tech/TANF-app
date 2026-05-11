@@ -225,7 +225,11 @@ def test_parse_success_sends_email(monkeypatch, data_analyst):
 def test_parse_success_reparse_updates_file_meta(monkeypatch, data_analyst):
     """Update reparse metadata on success."""
     datafile = DataFileFactory(
+<<<<<<< HEAD
         stt=data_analyst.stt, version=5, state=SubmissionState.PARSE_COMPLETED
+=======
+        stt=stt, version=5, state=SubmissionState.PARSE_COMPLETED
+>>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
     )
     ensure_stt_filenames(datafile.stt)
     dfs = DataFileSummary.objects.create(
@@ -256,6 +260,7 @@ def test_parse_success_reparse_updates_file_meta(monkeypatch, data_analyst):
 
     monkeypatch.setattr(parser_task, "update_dfs", fake_update_dfs)
 
+<<<<<<< HEAD
     captured = {}
 
     def fake_send(dfs, recipients, is_reprocessed=False):
@@ -263,6 +268,8 @@ def test_parse_success_reparse_updates_file_meta(monkeypatch, data_analyst):
 
     monkeypatch.setattr(parser_task, "send_data_submitted_email", fake_send)
 
+=======
+>>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
     parser_task.parse(datafile.id, reparse_id=meta_model.pk)
 
     datafile.refresh_from_db()

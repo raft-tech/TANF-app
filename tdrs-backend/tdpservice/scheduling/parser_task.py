@@ -94,7 +94,11 @@ def _transition_parse_outcome(data_file, dfs):
         )
 
 
+<<<<<<< HEAD
 def _notify_data_analysts(data_file, dfs, file_meta=None, reparse_id=None):
+=======
+def _notify_data_analysts(data_file, dfs):
+>>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
     """Send submission email to relevant data analysts (initial submissions only)."""
     qs = User.objects.filter(
         stt=data_file.stt,
@@ -106,10 +110,14 @@ def _notify_data_analysts(data_file, dfs, file_meta=None, reparse_id=None):
         qs = qs.filter(user_permissions__codename="has_fra_access")
 
     recipients = qs.values_list("username", flat=True).distinct()
+<<<<<<< HEAD
     if should_send_reparse_notification(dfs, file_meta, reparse_id):
         send_data_submitted_email(
             dfs, recipients, is_reprocessed=(reparse_id is not None)
         )
+=======
+    send_data_submitted_email(dfs, recipients)
+>>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
 
 
 def _handle_parse_failure(data_file, note):
@@ -146,9 +154,12 @@ def _finalize_reparse(data_file_id, reparse_id, file_meta, dfs, reparse_success)
     if reparse_id is None:
         return
 
+<<<<<<< HEAD
     if dfs is None:
         return
 
+=======
+>>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
     file_meta.num_records_created = dfs.total_number_of_records_created
     file_meta.cat_4_errors_generated = ParserError.objects.filter(
         file_id=data_file_id,
@@ -177,6 +188,7 @@ def _add_unexpected_error(data_file):
     error.save()
 
 
+<<<<<<< HEAD
 def should_send_reparse_notification(dfs, file_meta, reparse_id):
     """Return whether a reparse completion email should be sent."""
     if not reparse_id:
@@ -200,6 +212,8 @@ def go_parse(data_file_id):
     )
 
 
+=======
+>>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
 @shared_task
 def parse(data_file_id, reparse_id=None):
     """Send data file for processing."""
@@ -245,7 +259,12 @@ def parse(data_file_id, reparse_id=None):
         logger.info(f"Parsing finished for file -> {repr(data_file)}.")
 
         _transition_parse_outcome(data_file, dfs)
+<<<<<<< HEAD
         _notify_data_analysts(data_file, dfs, file_meta, reparse_id)
+=======
+        if reparse_id is None:
+            _notify_data_analysts(data_file, dfs)
+>>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
 
     except DecoderUnknownException:
         _reject_dfs(dfs)

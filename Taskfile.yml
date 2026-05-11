@@ -438,6 +438,7 @@ tasks:
         && tail -1 /var/log/clamav/clamd.log'
       - echo "Created tdrs-backend/infected_test.txt and loaded ClamAV test signature. Upload this file through the frontend to test AV rejection."
 
+<<<<<<< HEAD
   parser:compile-check:
     desc: Compile all Go parser packages and tests
     dir: tdrs-services/parser
@@ -500,6 +501,8 @@ tasks:
     cmds:
       - make ci-checks
 
+=======
+>>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
   help:
     desc: Show this help message
     cmds:
