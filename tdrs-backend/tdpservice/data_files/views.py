@@ -1,11 +1,13 @@
 """Check if user is authorized."""
 
 import logging
-from distutils.util import strtobool
 from wsgiref.util import FileWrapper
 
+<<<<<<< HEAD
 from django.conf import settings
 from django.db.models import Prefetch
+=======
+>>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
 from django.http import FileResponse, Http404, HttpResponse
 
 from django_filters import rest_framework as filters
@@ -20,12 +22,19 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.core.utils import get_feature_flag
 from tdpservice.data_files.error_reports import ErrorReportFactory
-from tdpservice.data_files.models import DataFile, ReparseFileMeta
+from tdpservice.data_files.models import DataFile
 from tdpservice.data_files.s3_client import S3Client
 from tdpservice.data_files.serializers import DataFileSerializer
+<<<<<<< HEAD
 from tdpservice.data_files.submission_lifecycle import transition_datafile
+=======
+from tdpservice.data_files.submission_lifecycle import (
+    complete_datafile_av_scan,
+    transition_datafile,
+)
+>>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
+from tdpservice.data_files.tasks import scan_datafile_for_virus
 from tdpservice.log_handler import S3FileHandler
 from tdpservice.scheduling import parser_task
 from tdpservice.scheduling.parser_task import set_error_report
@@ -74,20 +83,9 @@ class DataFileViewSet(ModelViewSet):
 
     # TODO: Handle versioning in queryset
     # Ref: https://github.com/raft-tech/TANF-app/issues/1007
-    queryset = (
-        DataFile.objects.all()
-        .select_related("stt", "user", "summary")
-        .prefetch_related(
-            Prefetch(
-                "reparse_file_metas",
-                queryset=ReparseFileMeta.objects.exclude(finished_at=None).order_by(
-                    "-finished_at"
-                ),
-                to_attr="rfms",
-            )
-        )
-    )
+    queryset = DataFile.objects.all()
 
+<<<<<<< HEAD
     def _validate_pia_request(self, request):
         """Validate PIA feature flag and year range. Return a Response on failure, or None on success."""
         is_program_audit = False
@@ -158,13 +156,47 @@ class DataFileViewSet(ModelViewSet):
                 },
                 status=HTTP_400_BAD_REQUEST,
             )
+=======
+    def create(self, request, *args, **kwargs):
+        """Override create to initiate AV scan for uploaded files."""
+        logger.debug(f"{self.__class__.__name__}: {request}")
+
+        response = super().create(request, *args, **kwargs)
+
+        # Only process if file was created successfully
+        logger.debug(f"{self.__class__.__name__}: status: {response.status_code}")
+        if (
+            response.status_code == status.HTTP_201_CREATED
+            or response.status_code == status.HTTP_200_OK
+        ):
+            data_file_id = response.data.get("id")
+            data_file = DataFile.objects.get(id=data_file_id)
+            
+            # Transition file to virus_scanning state and queue AV scan task
+            transition_datafile(
+                data_file,
+                SubmissionState.VIRUS_SCAN_STARTED,
+                note="file accepted for upload",
+            )
+
+            logger.info(
+                f"Preparing AV scan task: User META -> user: {request.user}, stt: {data_file.stt}. "
+                + f"Datafile META -> datafile: {data_file_id}, program type: {data_file.program_type}, "
+                + f"section: {data_file.section}, "
+                + f"quarter {data_file.quarter}, year {data_file.year}."
+            )
+
+            # Queue the virus scan task to be processed asynchronously
+            scan_datafile_for_virus.delay(data_file_id)
+            logger.info("Submitted AV scan task to queue for datafile %s.", data_file_id)
+>>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
 
         # Reset file cursor so the serializer can read it for saving
         uploaded_file.seek(0)
         return None
 
     def create(self, request, *args, **kwargs):
-        """Override create to upload in case of successful scan."""
+        """Override create to initiate async AV scan for uploaded files."""
         logger.debug(f"{self.__class__.__name__}: {request}")
 
         pia_error = self._validate_pia_request(request)
@@ -175,48 +207,26 @@ class DataFileViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         uploaded_file = serializer.validated_data.get("file")
-        data_file = serializer.save(file=None)
+        # Save the DataFile with the uploaded file immediately
+        data_file = serializer.save(file=uploaded_file)
 
-        # The DataFile starts in UPLOADED state (model default), then records
-        # the actual AV scan lifecycle before the file is persisted to storage.
+        # Transition to VIRUS_SCAN_STARTED state
         transition_datafile(
             data_file,
             SubmissionState.VIRUS_SCAN_STARTED,
-            note="virus scan started",
+            note="queued for virus scanning",
         )
-
-        scan_failure_response = self._scan_uploaded_file(
-            uploaded_file, request.user, data_file
-        )
-        if scan_failure_response is not None:
-            # Unsafe files and unavailable scanner errors stop here. The
-            # DataFile remains for lifecycle visibility, but the file is not
-            # persisted to storage or submitted for parsing.
-            transition_datafile(
-                data_file,
-                SubmissionState.VIRUS_SCAN_FAILED,
-                note=scan_failure_response.data["detail"],
-            )
-            return scan_failure_response
-
-        transition_datafile(
-            data_file,
-            SubmissionState.VIRUS_SCAN_COMPLETED,
-            note="file passed virus scan",
-        )
-
-        data_file.file = uploaded_file
-        data_file.save()
 
         logger.info(
-            f"Preparing parse task: User META -> user: {request.user}, stt: {data_file.stt}. "
+            f"Preparing AV scan task: User META -> user: {request.user}, stt: {data_file.stt}. "
             + f"Datafile META -> datafile: {data_file.id}, program type: {data_file.program_type}, "
             + f"section: {data_file.section}, "
             + f"quarter {data_file.quarter}, year {data_file.year}."
         )
 
-        parser_task.parse.delay(data_file.id)
-        logger.info("Submitted parse task to queue for datafile %s.", data_file.id)
+        # Queue the async virus scan task
+        scan_datafile_for_virus.delay(data_file.id)
+        logger.info("Queued AV scan task for datafile %s", data_file.id)
 
         headers = self.get_success_headers(serializer.data)
         response = Response(
@@ -225,57 +235,29 @@ class DataFileViewSet(ModelViewSet):
         logger.debug(f"{self.__class__.__name__}: return val: {response}")
         return response
 
-    def list(self, request, *args, **kwargs):
-        """Override to handle the list request with url param validation."""
-        queryset = self.get_queryset()
-
-        file_type = self.request.query_params.get("file_type", None)
-
-        if file_type == DataFileViewSet.SSP_FILE_TYPE:
-            queryset = queryset.filter(program_type=DataFile.ProgramType.SSP)
-        elif DataFile.Section.is_fra(file_type):
-            queryset = queryset.filter(
-                program_type=DataFile.ProgramType.FRA, section=file_type
-            )
-        else:
-            pia_feature_flag_enabled, pia_feature_flag_config = get_feature_flag(
-                "program-integrity-audit"
-            )
-            is_program_audit = file_type == DataFileViewSet.PIA_FILE_TYPE
-
-            if is_program_audit and not pia_feature_flag_enabled:
-                return Response(
-                    {"detail": "This file type is not supported."},
-                    status=HTTP_400_BAD_REQUEST,
-                )
-            elif is_program_audit:
-                pia_minYear = pia_feature_flag_config.get("minYear") or 2024
-                pia_maxYear = pia_feature_flag_config.get("maxYear") or 2024
-                year = int(request.query_params.get("year"))
-
-                if year < pia_minYear or year > pia_maxYear:
-                    return Response(
-                        {
-                            "detail": "This request was submitted for a reporting year not supported by this file type."
-                        },
-                        status=HTTP_400_BAD_REQUEST,
-                    )
-
-            queryset = queryset.filter(
-                program_type__in=[
-                    DataFile.ProgramType.TANF,
-                    DataFile.ProgramType.TRIBAL,
-                ],
-                is_program_audit=is_program_audit,
-            )
-
-        self.queryset = queryset
-        response = super().list(request, *args, **kwargs)
-        return response
-
     def get_queryset(self):
         """Apply custom queryset filters."""
         queryset = super().get_queryset().order_by("-created_at")
+
+        if self.action == "list":
+            file_type = self.request.query_params.get("file_type", None)
+
+            if file_type == DataFileViewSet.SSP_FILE_TYPE:
+                queryset = queryset.filter(program_type=DataFile.ProgramType.SSP)
+            elif DataFile.Section.is_fra(file_type):
+                queryset = queryset.filter(
+                    program_type=DataFile.ProgramType.FRA, section=file_type
+                )
+            else:
+                is_program_audit = file_type == DataFileViewSet.PIA_FILE_TYPE
+                queryset = queryset.filter(
+                    program_type__in=[
+                        DataFile.ProgramType.TANF,
+                        DataFile.ProgramType.TRIBAL,
+                    ],
+                    is_program_audit=is_program_audit,
+                )
+
         return queryset
 
     def filter_queryset(self, queryset):
