@@ -539,8 +539,7 @@ class Common(Configuration):
     # Canary cutover: percentage of new login requests routed through Keycloak (0-100).
     # 0 = 100% legacy (default), 100 = 100% Keycloak. Changeable via cf set-env.
     KEYCLOAK_AUTH_PERCENTAGE = int(os.getenv("KEYCLOAK_AUTH_PERCENTAGE", "0"))
-
-    KEYCLOAK_SYNC_ENABLED = bool(strtobool(os.getenv("KEYCLOAK_SYNC_ENABLED", "no")))
+    KEYCLOAK_SYNC_ENABLED = bool(strtobool(os.getenv("KEYCLOAK_SYNC_ENABLED", "yes")))
     KEYCLOAK_SERVER_URL = os.getenv("KEYCLOAK_SERVER_URL", "http://keycloak:8080")
     KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "tdp")
     KEYCLOAK_ADMIN_CLIENT_ID = os.getenv("KEYCLOAK_ADMIN_CLIENT_ID", "tdp-django")
@@ -614,6 +613,7 @@ class Common(Configuration):
 
     CELERY_BROKER_URL = REDIS_URI + "/0"
     CELERY_RESULT_BACKEND = REDIS_URI + "/0"
+    CELERY_GO_PARSER_QUEUE = os.getenv("CELERY_GO_PARSER_QUEUE", "go-parser")
     CELERY_ACCEPT_CONTENT = ["application/json"]
     CELERY_TASK_SERIALIZER = "json"
     CELERY_RESULT_SERIALIZER = "json"
@@ -621,6 +621,9 @@ class Common(Configuration):
     CELERYD_SEND_EVENTS = True
     CELERY_ENABLE_UTC = True
     CELERY_TASK_PROTOCOL = 1
+    CELERY_TASK_ROUTES = {
+        "tdpservice.scheduling.parser_task.go_parse": {"queue": CELERY_GO_PARSER_QUEUE}
+    }
 
     CELERY_BEAT_SCHEDULE = {
         "Database Backup": {
