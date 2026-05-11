@@ -112,6 +112,12 @@ graph TB
 
 ### Sequence Diagram
 
+> **Mermaid Sequence Diagram Keywords:**
+> - `alt` / `else` — Alternative paths (if/else branching)
+> - `loop` — Repeated actions
+> - `opt` — Optional steps that may or may not execute
+> - `par` — Parallel execution
+
 ```mermaid
 sequenceDiagram
     participant Client as Browser/API Client
