@@ -33,12 +33,161 @@ The same `parse` Celery task handles both first-time parses and admin-triggered 
 
 There are two status concepts in the current implementation:
 
-- `DataFile.state` tracks submission lifecycle state (state machine), currently through upload and virus-scan completion.
+- `DataFile.state` tracks submission lifecycle state (state machine), from upload through virus scan, parse start, and parse outcome.
 - `DataFileSummary.status` tracks parser outcome (`Accepted`, `Rejected`, etc.) and is the field used by parser emails and error-report views.
+
+### System Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        Browser[Browser/API Client]
+    end
+    
+    subgraph "Django Application"
+        ViewSet[DataFileViewSet]
+        Serializer[DataFileSerializer]
+        Lifecycle[submission_lifecycle]
+        Models[(Django Models)]
+    end
+    
+    subgraph "Async Processing"
+        Redis[Redis Queue]
+        Celery[Celery Worker]
+        ParserTask[parser_task.parse]
+    end
+    
+    subgraph "Parser Layer"
+        Factory[ParserFactory]
+        BaseParser[BaseParser]
+        TanfParser[TanfDataReportParser]
+        FRAParser[FRAParser]
+        AuditParser[ProgramAuditParser]
+        SchemaManager[SchemaManager]
+        Validators[Validators]
+    end
+    
+    subgraph "External Services"
+        ClamAV[ClamAV Antivirus]
+        Postgres[(PostgreSQL)]
+        S3[AWS S3]
+        Email[Email Service]
+    end
+    
+    Browser -->|POST /data_files/| ViewSet
+    ViewSet --> Serializer
+    ViewSet --> Lifecycle
+    ViewSet --> ClamAV
+    ViewSet -->|enqueue| Redis
+    
+    Redis --> Celery
+    Celery --> ParserTask
+    ParserTask --> Factory
+    Factory --> BaseParser
+    BaseParser --> TanfParser
+    BaseParser --> FRAParser
+    BaseParser --> AuditParser
+    
+    TanfParser --> SchemaManager
+    FRAParser --> SchemaManager
+    AuditParser --> SchemaManager
+    SchemaManager --> Validators
+    
+    BaseParser -->|records/errors| Postgres
+    ParserTask -->|error reports| S3
+    ParserTask -->|notifications| Email
+    ViewSet --> Models
+    Models --> Postgres
+    
+    style Browser fill:#e1f5ff
+    style Postgres fill:#ffe1e1
+    style S3 fill:#ffe1e1
+    style Redis fill:#fff4e1
+    style ClamAV fill:#ffe1e1
+```
 
 ---
 
 ## 2. End-to-End Upload → Parse Flow
+
+### Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant Client as Browser/API Client
+    participant ViewSet as DataFileViewSet
+    participant Serializer as DataFileSerializer
+    participant Lifecycle as submission_lifecycle
+    participant ClamAV as ClamAV Service
+    participant Redis as Redis Queue
+    participant Celery as Celery Worker
+    participant Parser as parser_task.parse
+    participant Factory as ParserFactory
+    participant BaseParser as BaseParser
+    participant DB as PostgreSQL
+    participant S3 as AWS S3
+    participant Email as Email Service
+    
+    Client->>ViewSet: POST /data_files/
+    ViewSet->>Serializer: validate()
+    Serializer->>Serializer: validate_file_extension
+    Serializer->>Serializer: validate year, quarter, section
+    Serializer-->>ViewSet: validated_data
+    
+    ViewSet->>DB: DataFile.create_new_version()
+    Note over DB: state = UPLOADED
+    
+    ViewSet->>Lifecycle: transition_datafile(VIRUS_SCAN_STARTED)
+    ViewSet->>ClamAV: scan_file(uploaded_file)
+    
+    alt Virus detected
+        ClamAV-->>ViewSet: infected
+        ViewSet->>Lifecycle: transition_datafile(VIRUS_SCAN_FAILED)
+        ViewSet-->>Client: HTTP 400 Bad Request
+    else Clean file
+        ClamAV-->>ViewSet: safe
+        ViewSet->>Lifecycle: transition_datafile(VIRUS_SCAN_COMPLETED)
+        ViewSet->>DB: data_file.file = uploaded_file
+        ViewSet->>Redis: parse.delay(data_file_id)
+        ViewSet-->>Client: HTTP 201 Created
+    end
+    
+    Redis->>Celery: dispatch task
+    Celery->>Parser: parse(data_file_id)
+    Parser->>DB: DataFile.objects.get(id)
+    Parser->>Parser: change_log_filename()
+    Parser->>Lifecycle: transition_datafile(PARSE_STARTED)
+    Parser->>DB: DataFileSummary.create(status=PENDING)
+    
+    Parser->>Factory: get_instance(program, section, ...)
+    Factory-->>Parser: parser instance
+    Parser->>BaseParser: parse_and_validate()
+    
+    loop For each row
+        BaseParser->>BaseParser: schema_manager.parse_and_validate()
+        BaseParser->>DB: bulk_create_records() [batched]
+        BaseParser->>DB: bulk_create_errors() [batched]
+    end
+    
+    BaseParser-->>Parser: parsing complete
+    Parser->>Parser: update_dfs() - compute aggregates
+    Parser->>DB: save DataFileSummary
+    Parser->>Lifecycle: transition_datafile(PARSE_COMPLETED/etc)
+    Parser->>Email: send_data_submitted_email()
+    
+    Note over Parser: Finally block - always executes
+    Parser->>Parser: ErrorReportFactory.generate()
+    Parser->>S3: upload error_report.xlsx
+    Parser->>DB: set_error_report(dfs)
+    Parser->>Parser: update_dfs() - second save
+    
+    alt Reparse
+        Parser->>DB: update ReparseFileMeta
+        Parser->>DB: update ReparseMeta counters
+    end
+```
+
+### Text-Based Flow
 
 ```
 Browser / API Client
@@ -48,33 +197,37 @@ POST /data_files/                         (DataFileViewSet.create)
         │
         ├── DRF serializer validation     (DataFileSerializer.validate)
         │       ├── DRF/model field validation for year, quarter, section, stt, and user
-        │       ├── validate_file_extension
-        │       └── validate_file_infection   ← ClamAV scan (synchronous, in-request)
+        │       └── validate_file_extension
         │
         ├── DataFileSerializer.create()
         │       ├── sets program_type from SSP / Tribal / FRA / TANF inputs
-        │       ├── DataFile.create_new_version(...) creates the DataFile (state = UPLOADED)
-        │       └── links the matching ClamAVFileScan record, when present
+        │       └── DataFile.create_new_version(...) creates the DataFile with file=None (state = UPLOADED)
         │
-        │   [after super().create() returns HTTP 201 — DataFile already persisted]
         ├── transition_datafile → VIRUS_SCAN_STARTED
-        ├── transition_datafile → VIRUS_SCAN_COMPLETED  (no separate async scan; scan ran in serializer)
+        ├── ClamAVClient.scan_file(...)       ← synchronous, in-request scan
+        ├── [scan failure] transition_datafile → VIRUS_SCAN_FAILED and return HTTP 400
+        ├── transition_datafile → VIRUS_SCAN_COMPLETED
+        ├── data_file.file = uploaded_file; data_file.save()
         │
         └── parser_task.parse.delay(data_file_id)   ← enqueued to Celery/Redis
                 │
+                ├── HTTP 201 response returned after task is queued
+                └── [asynchronous worker execution]
                 ▼
         [Celery Worker] parse(data_file_id, reparse_id=None)   (parser_task.py)
                 │
                 ├── DataFile.objects.get(id=data_file_id)
                 ├── change_log_filename(logger, data_file)      ← per-file log rotation
+                ├── transition_datafile → PARSE_STARTED
                 ├── DataFileSummary.objects.create(status=PENDING)
                 │
                 ├── ParserFactory.get_instance(...)             ← selects parser class
                 │       └── parser.parse_and_validate()         ← core parsing loop
                 │
                 ├── update_dfs(dfs, data_file)                  ← computes case_aggregates
+                ├── transition_datafile → PARSE_COMPLETED / PARSED_WITH_ERRORS / PARSE_FAILED
                 │
-                ├── send_data_submitted_email(dfs, recipients)  ← emails Data Analysts
+                ├── send_data_submitted_email(dfs, recipients)  ← emails Data Analysts when applicable
                 │
                 └── [finally block]
                         ├── ErrorReportFactory.get_error_report_generator(data_file).generate()
@@ -89,7 +242,7 @@ POST /data_files/                         (DataFileViewSet.create)
 | Module | Path | Role |
 |---|---|---|
 | `DataFileViewSet` | `data_files/views.py` | HTTP entry point; transitions state; enqueues parse task |
-| `DataFileSerializer` | `data_files/serializers.py` | DRF validation incl. synchronous ClamAV call |
+| `DataFileSerializer` | `data_files/serializers.py` | DRF validation including file extension and FRA access checks |
 | `submission_lifecycle` | `data_files/submission_lifecycle.py` | State machine helpers; enforces `ALLOWED_TRANSITIONS` |
 | `parser_task.parse` | `scheduling/parser_task.py` | Celery task; orchestrates the entire parse pipeline |
 | `ParserFactory` | `parsers/factory.py` | Selects and instantiates the correct parser class |
@@ -103,6 +256,65 @@ POST /data_files/                         (DataFileViewSet.create)
 ## 3. ParserFactory: Selection & Invocation
 
 **File:** `tdrs-backend/tdpservice/parsers/factory.py`
+
+### Parser Class Hierarchy
+
+```mermaid
+classDiagram
+    class BaseParser {
+        <<abstract>>
+        +parse_and_validate()
+        +bulk_create_records()
+        +bulk_create_errors()
+        +rollback_records()
+        +rollback_parser_errors()
+        #_validate_header()
+        #_delete_exact_dups()
+        #_delete_partial_dups()
+        #_delete_serialized_cases()
+    }
+    
+    class TanfDataReportParser {
+        +parse_and_validate()
+        -_init_schema_manager()
+        -validate_case_consistency()
+        -create_no_records_created_error()
+    }
+    
+    class FRAParser {
+        +parse_and_validate()
+        -_parse_xlsx()
+        -_parse_csv()
+    }
+    
+    class ProgramAuditParser {
+        +parse_and_validate()
+        #_delete_exact_dups() override
+        #_delete_partial_dups() override
+    }
+    
+    class ParserFactory {
+        <<static>>
+        +get_instance(kwargs) Parser
+        +get_class(program, audit) Class
+    }
+    
+    class SchemaManager {
+        +parse_and_validate(row)
+        +update_encrypted_fields()
+        -schema_map
+    }
+    
+    BaseParser <|-- TanfDataReportParser
+    BaseParser <|-- FRAParser
+    TanfDataReportParser <|-- ProgramAuditParser
+    ParserFactory ..> BaseParser : creates
+    TanfDataReportParser --> SchemaManager : uses
+    FRAParser --> SchemaManager : uses
+    ProgramAuditParser --> SchemaManager : uses
+```
+
+### Selection Logic
 
 ```
 ParserFactory.get_instance(**kwargs)
@@ -193,6 +405,62 @@ SchemaManager.parse_and_validate(row)
 
 ## 5. Output Storage: Source-of-Truth Map
 
+### Data Flow Diagram
+
+```mermaid
+flowchart LR
+    subgraph "Parser Pipeline"
+        Parser[BaseParser]
+        SchemaManager[SchemaManager]
+        CaseValidator[CaseConsistencyValidator]
+    end
+    
+    subgraph "Database Tables"
+        Records[("Parsed Records<br/>TANF_T1, TANF_T2, etc.")]
+        Errors[(ParserError)]
+        Summary[(DataFileSummary)]
+        DataFile[(DataFile)]
+        Reparse[("Reparse Models<br/>ReparseMeta<br/>ReparseFileMeta")]
+    end
+    
+    subgraph "Storage Services"
+        S3[("AWS S3<br/>Error Reports")]
+    end
+    
+    subgraph "Computed Fields"
+        Status["DataFileSummary.status<br/>(ACCEPTED/REJECTED/etc)"]
+        State["DataFile.state<br/>(UPLOADED/PARSE_STARTED/etc)"]
+        Aggregates["DataFileSummary.case_aggregates<br/>(JSON - monthly counts)"]
+    end
+    
+    Parser -->|"bulk_create_records()"| Records
+    Parser -->|"bulk_create_errors()"| Errors
+    SchemaManager -->|"field/record validation"| Errors
+    CaseValidator -->|"cat4 validation"| Errors
+    
+    Parser -->|"update_dfs()"| Summary
+    Parser -->|"transition_datafile()"| DataFile
+    Parser -->|"ErrorReportFactory"| S3
+    
+    Errors -->|"count queries"| Status
+    Summary -->|"DB aggregation"| Aggregates
+    
+    Parser -.->|"if reparse_id"| Reparse
+    
+    Summary -->|"OneToOne"| DataFile
+    S3 -.->|"FileField"| Summary
+    DataFile -->|"FK"| Records
+    DataFile -->|"FK"| Errors
+    
+    style Records fill:#e1f5ff
+    style Errors fill:#ffe1e1
+    style Summary fill:#fff4e1
+    style S3 fill:#e1ffe1
+    style Status fill:#f0e1ff
+    style State fill:#f0e1ff
+    style Aggregates fill:#f0e1ff
+```
+
 ### What lives where
 
 | Data | Model / Field | Source of truth | Notes |
@@ -204,7 +472,7 @@ SchemaManager.parse_and_validate(row)
 | Count of records created | `DataFileSummary.total_number_of_records_created` | Updated by `bulk_create_records()` + decremented in `_delete_serialized_cases()` | Used in reparse meta |
 | Aggregate / monthly counts | `DataFileSummary.case_aggregates` (JSON) | `update_dfs()` calling `case_aggregates_by_month` / `fra_total_errors` | Computed post-parse via DB aggregation |
 | Excel error report | `DataFileSummary.error_report` (S3 file) | `ErrorReportFactory` in `finally` block | Attempted on success and failure; early cleanup crashes can prevent it |
-| Submission lifecycle state | `DataFile.state` (`SubmissionState` enum) | `submission_lifecycle.transition_datafile()` | Currently advanced through `VIRUS_SCAN_COMPLETED` on upload; parse task does not update parse lifecycle states |
+| Submission lifecycle state | `DataFile.state` (`SubmissionState` enum) | `submission_lifecycle.transition_datafile()` | Advanced through upload, virus-scan, parse-start, and parse-outcome states |
 | Reparse job progress | `ReparseMeta` + `ReparseFileMeta` | `parser_task.parse` (finally block) + `reparse.py` | Tracks per-file start/finish/success |
 
 There is no separate `DataFile.status` field in the current model. When older tickets or discussions say "DataFile status," they usually mean either `DataFile.state` for submission lifecycle or `DataFileSummary.status` for parser outcome.
@@ -251,7 +519,9 @@ The error report is **attempted** in the `finally` block regardless of parse suc
                 └── automated_email(template, subject, context, recipients)
 ```
 
-**Emails are skipped** when `reparse_id` is set (admin reparsing does not re-notify end users). The email helper also returns without sending if `dfs.status == PENDING`; normal success paths call `update_dfs()` before email, while exception paths skip the email call entirely.
+For first-time parses, emails are sent to approved Data Analysts for the submitting STT after `update_dfs()` computes the final `DataFileSummary.status`.
+
+For reparses, notification is conditional. `parser_task.should_send_reparse_notification(...)` suppresses the email when the previous summary status was `ACCEPTED` and the reparsed status remains `ACCEPTED`; otherwise reparses use the reprocessed email templates and call `send_data_submitted_email(..., is_reprocessed=True)`. The email helper also returns without sending if `dfs.status == PENDING`; normal success paths call `update_dfs()` before email, while exception paths skip the email call entirely.
 
 ### Logging and audit trail
 
@@ -268,6 +538,59 @@ The error report is **attempted** in the `finally` block regardless of parse suc
 Reparsing is triggered via:
 - **Admin management command:** `clean_and_reparse` (not shown here)
 - **Admin Celery task** (`data_files/tasks.py`): `reparse_files(file_ids)` → `reparse.clean_reparse()`
+
+### Reparse Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant Admin as System Admin
+    participant Task as reparse_files task
+    participant Reparse as clean_reparse()
+    participant Backup as pg_dump
+    participant DB as PostgreSQL
+    participant Celery as Celery Queue
+    participant Parser as parser_task.parse
+    participant Meta as ReparseMeta
+    participant FileMeta as ReparseFileMeta
+    
+    Admin->>Task: reparse_files([file_ids])
+    Task->>Reparse: clean_reparse(["id1,id2,.."]) 
+    
+    Reparse->>DB: Create ReparseMeta record
+    Note over DB: timeout_at = now + 24h
+    
+    Reparse->>Backup: pg_dump database
+    Backup-->>Reparse: backup_file_name
+    Reparse->>DB: ReparseMeta.backup_file = path
+    
+    Reparse->>DB: delete_associated_models()
+    Note over DB: DELETE ParserError<br/>DELETE parsed records<br/>DELETE DataFileSummary
+    
+    loop For each DataFile
+        Reparse->>DB: file.reparses.add(meta_model)
+        Reparse->>Celery: parse.delay(file.pk, reparse_id=meta.pk)
+    end
+    
+    Reparse-->>Admin: Reparse jobs queued
+    
+    Note over Celery,Parser: Async execution per file
+    
+    Celery->>Parser: parse(data_file_id, reparse_id)
+    Parser->>DB: ReparseFileMeta.started_at = now()
+    
+    Parser->>Parser: ... standard parse pipeline ...
+    Note over Parser: Same as first-time parse
+    
+    alt Parse succeeds
+        Parser->>FileMeta: num_records_created = dfs.total
+        Parser->>FileMeta: success = True, finished = True
+        Parser->>Meta: increment total_num_records_post
+    else Parse fails
+        Parser->>FileMeta: success = False, finished = True
+    end
+    
+    Note over Meta: ReparseMeta tracks all files<br/>timeout detection via notify_stuck_files
+```
 
 ### Scheduled monitoring: `notify_stuck_files`
 
@@ -364,19 +687,19 @@ If the parser finishes without creating records, `create_no_records_created_pre_
 
 ## 9. Known Pain Points & Refactor Hazards
 
-### 9.1 `finally` block can crash before `dfs` is bound
+### 9.1 Early `DataFile` lookup failure can crash cleanup
 
 **Location:** `scheduling/parser_task.py` (finally block)
 
-If `DataFile.objects.get()` raises or `DataFileSummary.objects.create()` fails before `dfs` is assigned, both the `except` handlers (`DecoderUnknownException`, `Exception`) and the `finally` block call `dfs.set_status()` / `set_error_report(dfs, ...)` and will raise `UnboundLocalError`. There is no guard.
+`dfs` is initialized to `None`, and helper paths now guard before calling `dfs.set_status()` or generating the error report. However, `data_file` and `file_meta` are still assigned inside the `try` block. If `DataFile.objects.get(id=data_file_id)` raises before either value is bound, the `finally` block still calls `_finalize_parse(data_file, dfs)` and `_finalize_reparse(..., file_meta, ...)`, which can raise `UnboundLocalError`.
 
-`file_meta` is pre-initialized to `None` before the `try` block, so it is never unbound. However, if `reparse_id` is set and the early failure leaves `file_meta` as `None`, the `finally` block attempts `file_meta.num_records_created = ...` and raises `AttributeError: 'NoneType' object has no attribute 'num_records_created'`.
+If `DataFileSummary.objects.create()` fails after `data_file` is bound, `dfs` remains `None`; `_finalize_parse` and `_finalize_reparse` return early and avoid the older `dfs`/`file_meta` cleanup crash.
 
-**Risk:** The `finally` block is responsible for the error report and reparse meta updates — crashing there means both are silently lost.
+**Risk:** A missing or inaccessible `DataFile` can turn the original failure into a cleanup failure, obscuring the root cause.
 
 ### 9.2 Hardcoded logger handler index
 
-**Location:** `scheduling/parser_task.py:165` (approx.)
+**Location:** `scheduling/parser_task.py` (`_finalize_parse`)
 
 ```python
 logger.handlers[2].doRollover(data_file)
@@ -392,7 +715,7 @@ The real hazard is the `DatabaseError` path: it logs the error and sets `reparse
 
 ### 9.4 AV scan is synchronous and in-request
 
-The ClamAV scan runs inside `DataFileSerializer.validate()` (synchronous DRF serializer), blocking the HTTP request thread for potentially large files. State transitions (`VIRUS_SCAN_STARTED` → `VIRUS_SCAN_COMPLETED`) happen in `DataFileViewSet.create()` after `super().create()` returns HTTP 201 — i.e., after the `DataFile` record is already persisted — not as a real async pipeline. This means the AV scan latency is directly exposed to the user and cannot be independently retried.
+The ClamAV scan runs synchronously inside `DataFileViewSet.create()` after serializer validation creates a `DataFile` row with `file=None`. State transitions (`VIRUS_SCAN_STARTED` → `VIRUS_SCAN_COMPLETED` or `VIRUS_SCAN_FAILED`) are recorded before the API returns. This means AV scan latency is directly exposed to the user and cannot be independently retried, although unsafe files are not persisted to storage or submitted for parsing.
 
 ### 9.5 No transaction boundary around the parse pipeline
 
@@ -416,14 +739,14 @@ There is a check to prevent concurrent reparse jobs, but it is not DB-level atom
 - `set_status(status)` overrides status directly (exception-driven).
 - `get_status()` short-circuits to return the manually-set value if `status != PENDING`, but this relies on the caller having set PENDING as the initial state. If the PENDING default is ever changed, the guard logic breaks.
 
-### 9.9 Parse lifecycle state exists but is not wired into the parser task
+### 9.9 Parse lifecycle state and summary status both describe outcomes
 
-`SubmissionState` defines parse states, but `parser_task.parse` currently updates only `DataFileSummary.status`. This creates two parallel state concepts where upload lifecycle state can remain `virus_scan_completed` while parser outcome lives elsewhere. Refactors should decide whether parse lifecycle transitions should be authoritative, derived, or removed.
+`parser_task.parse` transitions `DataFile.state` to `PARSE_STARTED` and then to `PARSE_COMPLETED`, `PARSED_WITH_ERRORS`, or `PARSE_FAILED` based on `DataFileSummary.status`. This creates two parallel status concepts: `DataFile.state` for lifecycle and `DataFileSummary.status` for parser outcome and user-facing email/report behavior. Refactors should preserve the mapping between them or explicitly choose which one is authoritative for each use case.
 
 ### 9.10 Email is sent before the error report is written
 
 `send_data_submitted_email` is called after `parser.parse_and_validate()` but before the `finally` block writes the error report to S3. If the user immediately clicks the email link, `DataFileSummary.error_report` may not yet be populated.
 
-### 9.11 Reparse does not re-send email
+### 9.11 Reparse notification is conditional
 
-Admin-triggered reparsing intentionally skips `send_data_submitted_email`. There is no mechanism to notify the original submitter that their data has been reprocessed or that new errors may exist.
+Admin-triggered reparsing calls the same email helper with `is_reprocessed=True`, but `should_send_reparse_notification(...)` suppresses notifications when the previous status was `ACCEPTED` and the reparsed status remains `ACCEPTED`. Other reparse outcomes can send action-required or errors-resolved emails using the reparse templates.
