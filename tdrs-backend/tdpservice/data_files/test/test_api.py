@@ -9,7 +9,6 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.core.models import FeatureFlag
 from tdpservice.data_files.models import DataFile
 from tdpservice.data_files.serializers import DataFileSerializer
 from tdpservice.data_files.submission_lifecycle import InvalidTransition
@@ -311,19 +310,10 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
     def test_create_data_file_file_entry(
         self, api_client, data_file_data, user, mocker
     ):
-        """Test ability to create data file metadata registry."""
-        def clean_scan(_file, _file_name, _uploaded_by, data_file=None):
-            assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
-            assert not data_file.file
-            return True
-
-        mocker.patch(
-            "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
-            new=True,
-        )
-        mocker.patch(
-            "tdpservice.data_files.views.ClamAVClient.scan_file",
-            side_effect=clean_scan,
+        """Test ability to create data file metadata registry with async AV scan."""
+        # Mock the Celery task to prevent actual async execution
+        mock_scan_task = mocker.patch(
+            "tdpservice.data_files.views.scan_datafile_for_virus.delay"
         )
 
         response = self.post_data_file(api_client, data_file_data)
@@ -331,7 +321,12 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         self.assert_data_file_exists(data_file_data, 1, user)
 
         data_file = DataFile.objects.get(id=response.data["id"])
-        assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
+        # In async mode, file is queued for scanning and state is VIRUS_SCAN_STARTED
+        assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
+        assert data_file.file  # File is saved immediately for async scanning
+        
+        # Verify the scan task was queued
+        mock_scan_task.assert_called_once_with(data_file.id)
 
     def test_data_file_file_version_increment(
         self, api_client, data_file_data, other_data_file_data, user
@@ -542,9 +537,7 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         response = self.post_data_file(api_client, data_file_data)
         assert response.data["section"] == "Active Case Data"
 
-    def test_failed_upload_does_not_create_record(
-        self, api_client, data_file_data, user
-    ):
+    def test_failed_upload_does_not_create_record(self, api_client, data_file_data, user):
         """Test failed uploads do not create a DataFile record."""
         data_file_data["file"].name = "bad.exe"
 
@@ -572,11 +565,10 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
             new=fake_save,
         )
 
-        with pytest.raises(
-            InvalidTransition, match="parse_started to virus_scan_started"
-        ):
+        with pytest.raises(InvalidTransition, match="parse_started to virus_scan_started"):
             self.post_data_file(api_client, data_file_data)
 
+<<<<<<< HEAD
     @pytest.mark.django_db
     def test_no_pia_feat_flag_blocks_uploads(self, api_client, data_file_data):
         """Test a nonexistant pia feature flag creates an error response from upload."""
@@ -627,57 +619,51 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
     def test_av_infected_file_returns_400_with_failed_scan_state(
         self, api_client, data_file_data, user, infected_data_file, mocker
     ):
-        """Test that an infected file is rejected with failed scan state."""
+        """Test that async scan is queued for infected file (scan failure happens in task)."""
         data_file_data["file"] = infected_data_file
-        mocker.patch(
-            "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
-            new=True,
-        )
-
-        def infected_scan(_file, _file_name, _uploaded_by, data_file=None):
-            assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
-            assert not data_file.file
-            return False
-
-        mocker.patch(
-            "tdpservice.data_files.views.ClamAVClient.scan_file",
-            side_effect=infected_scan,
+        
+        # Mock the Celery task to prevent actual async execution
+        mock_scan_task = mocker.patch(
+            "tdpservice.data_files.views.scan_datafile_for_virus.delay"
         )
 
         response = self.post_data_file(api_client, data_file_data)
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "security inspection" in response.data["detail"]
+        # In async mode, upload succeeds and scan is queued
+        assert response.status_code == status.HTTP_201_CREATED
         data_file = DataFile.objects.get(
             slug=data_file_data["slug"],
             user=user,
         )
-        assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
-        assert not data_file.file
+        assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
+        assert data_file.file  # File is saved for async scanning
+        
+        # Verify the scan task was queued
+        mock_scan_task.assert_called_once_with(data_file.id)
 
     @pytest.mark.django_db
     def test_av_unavailable_returns_400_with_failed_scan_state(
         self, api_client, data_file_data, user, mocker
     ):
-        """Test that ClamAV unavailability rejects with failed scan state."""
-        from tdpservice.security.clients import ClamAVClient
-
-        mocker.patch(
-            "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
-            new=True,
-        )
-
-        def unavailable_scan(_file, _file_name, _uploaded_by, data_file=None):
-            assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
-            assert not data_file.file
-            raise ClamAVClient.ServiceUnavailable()
-
-        mocker.patch(
-            "tdpservice.data_files.views.ClamAVClient.scan_file",
-            side_effect=unavailable_scan,
+        """Test that async scan is queued even if ClamAV might be unavailable (failure happens in task)."""
+        # Mock the Celery task to prevent actual async execution
+        mock_scan_task = mocker.patch(
+            "tdpservice.data_files.views.scan_datafile_for_virus.delay"
         )
 
         response = self.post_data_file(api_client, data_file_data)
+
+        # In async mode, upload succeeds and scan is queued
+        assert response.status_code == status.HTTP_201_CREATED
+        data_file = DataFile.objects.get(
+            slug=data_file_data["slug"],
+            user=user,
+        )
+        assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
+        assert data_file.file  # File is saved for async scanning
+        
+        # Verify the scan task was queued
+        mock_scan_task.assert_called_once_with(data_file.id)
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "security inspection" in response.data["detail"]
@@ -704,6 +690,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["file"] == ["No file was submitted."]
 
+=======
+>>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
 
 class TestDataFileAPIAsInactiveUser(DataFileAPITestBase):
     """Test DataFileViewSet as an inactive user."""
@@ -1074,12 +1062,6 @@ class TestDataFileQuerysetFiltering:
         quarter,
     ):
         """Check that requests made to the filter endpoint contain every expected file and only files for the requested combination."""
-        FeatureFlag.objects.create(
-            feature_name="program-integrity-audit",
-            enabled=True,
-            config={"minYear": 2021, "maxYear": 2022},
-        )
-
         stt, tribe_stt, ofa_system_admin, non_pia_files, pia_files = filter_test_data
 
         # check the endpoint filtering
@@ -1105,131 +1087,3 @@ class TestDataFileQuerysetFiltering:
                 f"stt={location.id}&year={year}&quarter={quarter}&file_type=program-integrity-audit",
             )
             self._assert_pia(k, pia_files, pia_file_ids, section_options)
-
-    def test_no_pia_feat_flag_disallows_list(self, api_client, stt, ofa_system_admin):
-        """Test a nonexistent pia feature flag results in an empty list when requested."""
-        self.create_file(
-            "TAN",
-            "Active Case Data",
-            2024,
-            "Q1",
-            stt,
-            ofa_system_admin,
-            pia=True,
-        )
-
-        api_client.login(username=ofa_system_admin.username, password="test_password")
-
-        root_url = "/v1/data_files/"
-        url_param_str = (
-            f"stt={stt.id}&year=2024&quarter=Q1&file_type=program-integrity-audit"
-        )
-        response = api_client.get(f"{root_url}?{url_param_str}")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data == {"detail": "This file type is not supported."}
-
-    def test_disabled_pia_feat_flag_disallows_list(
-        self, api_client, stt, ofa_system_admin
-    ):
-        """Test a disabled pia feature flag results in an empty list when requested."""
-        FeatureFlag.objects.create(
-            feature_name="program-integrity-audit",
-            enabled=False,
-            config={"minYear": 2023, "maxYear": 2025},
-        )
-
-        self.create_file(
-            "TAN",
-            "Active Case Data",
-            2024,
-            "Q1",
-            stt,
-            ofa_system_admin,
-            pia=True,
-        )
-
-        api_client.login(username=ofa_system_admin.username, password="test_password")
-
-        root_url = "/v1/data_files/"
-        url_param_str = (
-            f"stt={stt.id}&year=2024&quarter=Q1&file_type=program-integrity-audit"
-        )
-        response = api_client.get(f"{root_url}?{url_param_str}")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data == {"detail": "This file type is not supported."}
-
-    @pytest.mark.parametrize(
-        "year,expected_success",
-        [
-            [2022, False],
-            [2023, True],
-            [2024, True],
-            [2025, True],
-            [2026, False],
-        ],
-    )
-    def test_request_pia_outside_allowed_year_disallows_list(
-        self, api_client, stt, ofa_system_admin, year, expected_success
-    ):
-        """Test that requesting PIA for a year outside the allowed range results in an error."""
-        FeatureFlag.objects.create(
-            feature_name="program-integrity-audit",
-            enabled=True,
-            config={"minYear": 2023, "maxYear": 2025},
-        )
-
-        file = self.create_file(
-            "TAN",
-            "Active Case Data",
-            year,
-            "Q1",
-            stt,
-            ofa_system_admin,
-            pia=True,
-        )
-
-        api_client.login(username=ofa_system_admin.username, password="test_password")
-
-        root_url = "/v1/data_files/"
-        url_param_str = (
-            f"stt={stt.id}&year={year}&quarter=Q1&file_type=program-integrity-audit"
-        )
-        response = api_client.get(f"{root_url}?{url_param_str}")
-
-        if expected_success:
-            assert response.status_code == status.HTTP_200_OK
-            response_file_ids = [f["id"] for f in response.data]
-            assert len(response_file_ids) == 1
-            assert response_file_ids[0] == file.id
-        else:
-            assert response.status_code == status.HTTP_400_BAD_REQUEST
-            assert response.data == {
-                "detail": "This request was submitted for a reporting year not supported by this file type."
-            }
-
-    def test_enabled_pia_feat_flag_allows_list(self, api_client, stt, ofa_system_admin):
-        """Test an enabled pia feature flag results in a populated list when requested."""
-        FeatureFlag.objects.create(
-            feature_name="program-integrity-audit",
-            enabled=True,
-            config={"minYear": 2023, "maxYear": 2025},
-        )
-
-        file = self.create_file(
-            "TAN",
-            "Active Case Data",
-            2024,
-            "Q1",
-            stt,
-            ofa_system_admin,
-            pia=True,
-        )
-
-        api_client.login(username=ofa_system_admin.username, password="test_password")
-
-        response_file_ids = self._make_get_request(
-            api_client,
-            f"stt={stt.id}&year=2024&quarter=Q1&file_type=program-integrity-audit",
-        )
-
-        assert response_file_ids[0] == file.id

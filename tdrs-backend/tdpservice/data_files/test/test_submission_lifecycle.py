@@ -4,8 +4,10 @@ import pytest
 
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.submission_lifecycle import (
+    InvalidScanResult,
     InvalidTransition,
     allowed_next_states,
+    complete_datafile_av_scan,
     transition_datafile,
     validate_transition,
 )
@@ -144,6 +146,7 @@ def test_transition_datafile_supports_parse_failed_state():
     assert data_file.state == SubmissionState.PARSE_FAILED
 
 
+<<<<<<< HEAD
 @pytest.mark.parametrize(
     "state",
     [
@@ -158,3 +161,251 @@ def test_parse_outcome_states_can_reparse(state):
 
     assert transition.previous_state == state
     assert transition.next_state == SubmissionState.PARSE_STARTED
+
+
+@pytest.mark.django_db
+class TestCompleteDatafileAvScan:
+    """Test complete_datafile_av_scan helper function."""
+
+    def test_clean_scan_transitions_to_completed(self):
+        """Test clean scan result transitions to VIRUS_SCAN_COMPLETED."""
+        data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
+
+        result_file, transition_occurred = complete_datafile_av_scan(data_file, scan_result="clean")
+        data_file.refresh_from_db()
+
+        assert transition_occurred is True
+        assert result_file.id == data_file.id
+        assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
+
+    def test_infected_scan_transitions_to_failed(self):
+        """Test infected scan result transitions to VIRUS_SCAN_FAILED."""
+        data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
+
+        result_file, transition_occurred = complete_datafile_av_scan(data_file, scan_result="infected")
+        data_file.refresh_from_db()
+
+        assert transition_occurred is True
+        assert result_file.id == data_file.id
+        assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
+
+    def test_error_scan_transitions_to_failed(self):
+        """Test error scan result transitions to VIRUS_SCAN_FAILED."""
+        data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
+
+        result_file, transition_occurred = complete_datafile_av_scan(data_file, scan_result="error")
+        data_file.refresh_from_db()
+
+        assert transition_occurred is True
+        assert result_file.id == data_file.id
+        assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
+
+    def test_normalizes_scan_result_values(self):
+        """Test that scan results are normalized (case-insensitive, whitespace trimmed)."""
+        data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
+
+        result_file, transition_occurred = complete_datafile_av_scan(data_file, scan_result="  CLEAN  ")
+        data_file.refresh_from_db()
+
+        assert transition_occurred is True
+        assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
+
+    def test_invalid_scan_result_raises(self):
+        """Test that invalid scan results raise InvalidScanResult."""
+        data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
+
+        with pytest.raises(InvalidScanResult, match="Unsupported AV scan result"):
+            complete_datafile_av_scan(data_file, scan_result="unknown")
+
+    def test_idempotent_duplicate_result_noops(self):
+        """Test that duplicate scan results are idempotent (no-op)."""
+        data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_COMPLETED)
+        payloads = []
+
+        # Try to apply clean result again
+        result_file, transition_occurred = complete_datafile_av_scan(
+            data_file,
+            scan_result="clean",
+            logger_hook=payloads.append,
+        )
+        data_file.refresh_from_db()
+
+        # Should return False for transition_occurred
+        assert transition_occurred is False
+        # State should remain unchanged
+        assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
+        # No logging payload for idempotent case (debug log only)
+        assert len(payloads) == 0
+
+    def test_out_of_order_result_noops_by_default(self):
+        """Test that out-of-order results no-op by default (non-strict mode)."""
+        data_file = DataFileFactory(state=SubmissionState.PARSE_STARTED)
+        payloads = []
+
+        # Try to apply scan result from wrong state
+        result_file, transition_occurred = complete_datafile_av_scan(
+            data_file,
+            scan_result="clean",
+            logger_hook=payloads.append,
+        )
+        data_file.refresh_from_db()
+
+        # Should return False for transition_occurred
+        assert transition_occurred is False
+        # State should remain unchanged
+        assert data_file.state == SubmissionState.PARSE_STARTED
+        assert len(payloads) == 1
+        assert "Out-of-order" in payloads[0]["note"]
+
+    def test_out_of_order_result_raises_in_strict_mode(self):
+        """Test that out-of-order results raise InvalidTransition in strict mode."""
+        data_file = DataFileFactory(state=SubmissionState.PARSE_STARTED)
+
+        with pytest.raises(InvalidTransition, match="Cannot apply scan result"):
+            complete_datafile_av_scan(
+                data_file,
+                scan_result="clean",
+                strict=True,
+            )
+
+    def test_structured_logging_includes_scan_result(self):
+        """Test that structured logging includes scan result."""
+        data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
+        payloads = []
+
+        result_file, transition_occurred = complete_datafile_av_scan(
+            data_file,
+            scan_result="clean",
+            note="Test note",
+            logger_hook=payloads.append,
+        )
+
+        assert transition_occurred is True
+        assert len(payloads) == 1
+        assert payloads[0]["data_file_id"] == data_file.id
+        assert payloads[0]["previous_state"] == SubmissionState.VIRUS_SCAN_STARTED.value
+        assert payloads[0]["next_state"] == SubmissionState.VIRUS_SCAN_COMPLETED.value
+        assert payloads[0]["scan_result"] == "CLEAN"
+        assert "Test note" in payloads[0]["note"]
+=======
+@pytest.mark.django_db
+def test_complete_datafile_av_scan_clean_transitions_to_scan_completed():
+    """Clean AV completion should move a DataFile into scan completed."""
+    data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
+    payloads = []
+
+    complete_datafile_av_scan(
+        data_file,
+        scan_result="clean",
+        note="AV callback reported clean file",
+        logger_hook=payloads.append,
+    )
+    data_file.refresh_from_db()
+
+    assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
+    assert payloads == [
+        {
+            "data_file_id": data_file.id,
+            "previous_state": SubmissionState.VIRUS_SCAN_STARTED.value,
+            "next_state": SubmissionState.VIRUS_SCAN_COMPLETED.value,
+            "scan_result": "CLEAN",
+            "note": "AV callback reported clean file",
+        }
+    ]
+
+
+@pytest.mark.django_db
+def test_complete_datafile_av_scan_fail_transitions_to_scan_failed():
+    """Infected/failed AV completion should move a DataFile into scan failed."""
+    data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
+    payloads = []
+
+    complete_datafile_av_scan(
+        data_file,
+        scan_result="infected",
+        note="AV callback reported infection",
+        logger_hook=payloads.append,
+    )
+    data_file.refresh_from_db()
+
+    assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
+    assert payloads == [
+        {
+            "data_file_id": data_file.id,
+            "previous_state": SubmissionState.VIRUS_SCAN_STARTED.value,
+            "next_state": SubmissionState.VIRUS_SCAN_FAILED.value,
+            "scan_result": "INFECTED",
+            "note": "AV callback reported infection",
+        }
+    ]
+
+
+@pytest.mark.django_db
+def test_complete_datafile_av_scan_out_of_order_noops_with_log_payload():
+    """Out-of-order completion should no-op and emit structured context."""
+    data_file = DataFileFactory(state=SubmissionState.PARSE_STARTED)
+    payloads = []
+
+    complete_datafile_av_scan(
+        data_file,
+        scan_result="clean",
+        logger_hook=payloads.append,
+    )
+    data_file.refresh_from_db()
+
+    assert data_file.state == SubmissionState.PARSE_STARTED
+    assert payloads == [
+        {
+            "data_file_id": data_file.id,
+            "previous_state": SubmissionState.PARSE_STARTED.value,
+            "next_state": SubmissionState.VIRUS_SCAN_COMPLETED.value,
+            "scan_result": "CLEAN",
+            "note": "Ignoring out-of-order AV completion result for DataFile.",
+        }
+    ]
+
+
+@pytest.mark.django_db
+def test_complete_datafile_av_scan_duplicate_result_noops_with_log_payload():
+    """Repeated callbacks with the same terminal result should be idempotent."""
+    data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_COMPLETED)
+    payloads = []
+
+    complete_datafile_av_scan(
+        data_file,
+        scan_result="clean",
+        logger_hook=payloads.append,
+    )
+    data_file.refresh_from_db()
+
+    assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
+    assert payloads == [
+        {
+            "data_file_id": data_file.id,
+            "previous_state": SubmissionState.VIRUS_SCAN_COMPLETED.value,
+            "next_state": SubmissionState.VIRUS_SCAN_COMPLETED.value,
+            "scan_result": "CLEAN",
+            "note": "Duplicate AV completion result; no-op.",
+        }
+    ]
+
+
+@pytest.mark.django_db
+def test_complete_datafile_av_scan_strict_out_of_order_raises():
+    """Strict mode should raise for out-of-order callbacks."""
+    data_file = DataFileFactory(state=SubmissionState.PARSE_STARTED)
+
+    with pytest.raises(
+        InvalidTransition,
+        match="Cannot apply AV scan completion while DataFile is in parse_started",
+    ):
+        complete_datafile_av_scan(data_file, scan_result="clean", strict=True)
+
+
+def test_complete_datafile_av_scan_rejects_unknown_scan_result():
+    """Unknown scan result values should fail fast."""
+    data_file = DataFileFactory.build(state=SubmissionState.VIRUS_SCAN_STARTED)
+
+    with pytest.raises(InvalidScanResult, match="Unsupported AV scan result"):
+        complete_datafile_av_scan(data_file, scan_result="MAYBE")
+>>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
