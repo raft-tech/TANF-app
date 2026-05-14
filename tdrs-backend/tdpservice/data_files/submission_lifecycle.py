@@ -23,11 +23,7 @@ class InvalidTransition(ValueError):
 
 
 class InvalidScanResult(ValueError):
-<<<<<<< HEAD
-    """Raised when an unrecognized scan result value is provided."""
-=======
     """Raised when an AV scan result cannot be mapped to a submission state."""
->>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
 
 
 ALLOWED_TRANSITIONS: Dict[SubmissionState, Iterable[SubmissionState]] = {
@@ -36,8 +32,8 @@ ALLOWED_TRANSITIONS: Dict[SubmissionState, Iterable[SubmissionState]] = {
         SubmissionState.CANCELED,
     },
     SubmissionState.VIRUS_SCAN_STARTED: {
-        SubmissionState.VIRUS_SCAN_FAILED,
         SubmissionState.VIRUS_SCAN_COMPLETED,
+        SubmissionState.VIRUS_SCAN_FAILED,
         SubmissionState.CANCELED,
     },
     SubmissionState.VIRUS_SCAN_FAILED: {
@@ -159,6 +155,16 @@ def _next_state_for_scan_result(scan_result) -> SubmissionState:
     raise InvalidScanResult(f"Unsupported AV scan result: {scan_result}")
 
 
+def _emit_av_completion_log(logger_hook, payload, level="info"):
+    """Emit AV completion logging through the optional hook or module logger."""
+    if logger_hook is not None:
+        logger_hook(payload)
+        return
+
+    log_method = logger.warning if level == "warning" else logger.info
+    log_method("DataFile AV scan completion", extra=payload)
+
+
 def complete_datafile_av_scan(
     data_file,
     scan_result,
@@ -166,67 +172,30 @@ def complete_datafile_av_scan(
     logger_hook: Callable | None = None,
     strict=False,
 ):
-    """Apply AV scan completion result to DataFile state.
+    """Apply an AV scan completion result to DataFile state.
 
-    Expected transition:
-<<<<<<< HEAD
-    - VIRUS_SCAN_STARTED -> VIRUS_SCAN_COMPLETED (clean)
-    - VIRUS_SCAN_STARTED -> VIRUS_SCAN_FAILED (infected/error/flagged)
+    Expected transitions:
+    - virus_scan_started -> virus_scan_completed for clean results
+    - virus_scan_started -> virus_scan_failed for infected, flagged, or error results
 
-    By default this function is idempotent and will no-op for out-of-order
-    results. Set strict=True to raise InvalidTransition on unexpected states.
-
-    Args:
-        data_file: DataFile instance to update
-        scan_result: Scan result value (CLEAN, INFECTED, ERROR, etc.)
-        note: Optional note for logging
-        logger_hook: Optional callable for custom logging
-        strict: If True, raise InvalidTransition on unexpected states
-
-    Returns:
-        Updated DataFile instance
-=======
-    - virus_scan_started -> virus_scan_completed (clean)
-    - virus_scan_started -> virus_scan_failed (infected/error/flagged)
-
-    By default this function is idempotent and will no-op for out-of-order
-    results. Set strict=True to raise InvalidTransition on unexpected states.
->>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
+    By default this function is idempotent and logs a no-op for duplicate or
+    out-of-order results. Set strict=True to raise InvalidTransition for
+    out-of-order states.
     """
     target_state = _next_state_for_scan_result(scan_result)
     previous_state = coerce_submission_state(data_file.state)
     normalized_scan_result = _normalize_scan_result(scan_result)
 
-<<<<<<< HEAD
-    # Idempotent: if already in target state, no-op
-=======
->>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
     if previous_state == target_state:
         payload = {
             "data_file_id": data_file.id,
             "previous_state": previous_state.value,
             "next_state": target_state.value,
             "scan_result": normalized_scan_result,
-<<<<<<< HEAD
-            "note": "Duplicate scan result, already in target state (no-op)",
-=======
             "note": note or "Duplicate AV completion result; no-op.",
->>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
         }
-        if logger_hook is not None:
-            logger_hook(payload)
-        else:
-<<<<<<< HEAD
-            logger.info(
-                "AV scan completion no-op: already in target state", extra=payload
-            )
-        return data_file
-
-    # Handle out-of-order results
-    if previous_state not in {SubmissionState.VIRUS_SCAN_STARTED}:
-=======
-            logger.info("DataFile AV scan completion no-op", extra=payload)
-        return data_file
+        _emit_av_completion_log(logger_hook, payload)
+        return data_file, False
 
     if previous_state != SubmissionState.VIRUS_SCAN_STARTED:
         if strict:
@@ -235,61 +204,22 @@ def complete_datafile_av_scan(
                 f"{previous_state.value}."
             )
 
->>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
         payload = {
             "data_file_id": data_file.id,
             "previous_state": previous_state.value,
             "next_state": target_state.value,
             "scan_result": normalized_scan_result,
-<<<<<<< HEAD
-            "note": f"Out-of-order scan result from state {previous_state.value}",
-        }
-
-        if strict:
-            logger.error("AV scan completion out-of-order (strict mode)", extra=payload)
-            raise InvalidTransition(
-                f"Cannot apply scan result {scan_result} from state {previous_state.value}"
-            )
-        else:
-            if logger_hook is not None:
-                logger_hook(payload)
-            else:
-                logger.warning("AV scan completion out-of-order (ignoring)", extra=payload)
-            return data_file, False
-
-    # Normal transition - add scan_result to logging payload
-    completion_note = note or f"AV scan completed with result: {normalized_scan_result}"
-    
-    # Custom logger hook that includes scan_result
-    def scan_logger_hook(log_payload):
-        enriched_payload = {**log_payload, "scan_result": normalized_scan_result}
-        if logger_hook is not None:
-            logger_hook(enriched_payload)
-        else:
-            logger.info("AV scan completion transition", extra=enriched_payload)
-    
-    transitioned_file = transition_datafile(
-        data_file,
-        target_state,
-        note=completion_note,
-        logger_hook=scan_logger_hook,
-    )
-    return transitioned_file, True
-=======
             "note": note
             or "Ignoring out-of-order AV completion result for DataFile.",
         }
-        if logger_hook is not None:
-            logger_hook(payload)
-        else:
-            logger.warning("DataFile AV scan completion out-of-order", extra=payload)
-        return data_file
+        _emit_av_completion_log(logger_hook, payload, level="warning")
+        return data_file, False
 
-    return transition_datafile(
+    transitioned_file = transition_datafile(
         data_file,
         target_state,
         note=note or "Applied AV scan completion result.",
         logger_hook=logger_hook,
         log_fields={"scan_result": normalized_scan_result},
     )
->>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
+    return transitioned_file, True

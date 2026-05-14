@@ -191,7 +191,9 @@ def test_set_error_report_sets_filename():
 def test_parse_success_sends_email(monkeypatch, data_analyst):
     """Send notification email on successful parse."""
     datafile = DataFileFactory(
-        stt=data_analyst.stt, version=4, state=SubmissionState.VIRUS_SCAN_COMPLETED
+        stt=data_analyst.stt,
+        version=4,
+        state=SubmissionState.VIRUS_SCAN_COMPLETED,
     )
     ensure_stt_filenames(datafile.stt)
     dfs = DataFileSummary.objects.create(
@@ -225,11 +227,7 @@ def test_parse_success_sends_email(monkeypatch, data_analyst):
 def test_parse_success_reparse_updates_file_meta(monkeypatch, data_analyst):
     """Update reparse metadata on success."""
     datafile = DataFileFactory(
-<<<<<<< HEAD
         stt=data_analyst.stt, version=5, state=SubmissionState.PARSE_COMPLETED
-=======
-        stt=stt, version=5, state=SubmissionState.PARSE_COMPLETED
->>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
     )
     ensure_stt_filenames(datafile.stt)
     dfs = DataFileSummary.objects.create(
@@ -260,7 +258,6 @@ def test_parse_success_reparse_updates_file_meta(monkeypatch, data_analyst):
 
     monkeypatch.setattr(parser_task, "update_dfs", fake_update_dfs)
 
-<<<<<<< HEAD
     captured = {}
 
     def fake_send(dfs, recipients, is_reprocessed=False):
@@ -268,8 +265,6 @@ def test_parse_success_reparse_updates_file_meta(monkeypatch, data_analyst):
 
     monkeypatch.setattr(parser_task, "send_data_submitted_email", fake_send)
 
-=======
->>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
     parser_task.parse(datafile.id, reparse_id=meta_model.pk)
 
     datafile.refresh_from_db()
@@ -505,10 +500,12 @@ def test_parse_generic_exception_rejects_and_logs(monkeypatch, stt):
 
 
 @pytest.mark.django_db
-def test_parse_transitions_to_parse_completed(monkeypatch, data_analyst):
+def test_parse_transitions_to_parsed_clean(monkeypatch, data_analyst):
     """Transition to PARSE_COMPLETED when DFS status is ACCEPTED."""
     datafile = DataFileFactory(
-        stt=data_analyst.stt, version=10, state=SubmissionState.VIRUS_SCAN_COMPLETED
+        stt=data_analyst.stt,
+        version=10,
+        state=SubmissionState.VIRUS_SCAN_COMPLETED,
     )
     ensure_stt_filenames(datafile.stt)
     dfs = DataFileSummary.objects.create(
@@ -536,7 +533,9 @@ def test_parse_transitions_to_parse_completed(monkeypatch, data_analyst):
 def test_parse_transitions_to_parsed_with_errors(monkeypatch, data_analyst):
     """Transition to PARSED_WITH_ERRORS when DFS status has errors."""
     datafile = DataFileFactory(
-        stt=data_analyst.stt, version=11, state=SubmissionState.VIRUS_SCAN_COMPLETED
+        stt=data_analyst.stt,
+        version=11,
+        state=SubmissionState.VIRUS_SCAN_COMPLETED,
     )
     ensure_stt_filenames(datafile.stt)
     dfs = DataFileSummary.objects.create(
@@ -564,7 +563,9 @@ def test_parse_transitions_to_parsed_with_errors(monkeypatch, data_analyst):
 def test_parse_transitions_to_parse_failed_on_exception(monkeypatch, data_analyst):
     """Transition to PARSE_FAILED on decoder exception for initial submission."""
     datafile = DataFileFactory(
-        stt=data_analyst.stt, version=12, state=SubmissionState.VIRUS_SCAN_COMPLETED
+        stt=data_analyst.stt,
+        version=12,
+        state=SubmissionState.VIRUS_SCAN_COMPLETED,
     )
     ensure_stt_filenames(datafile.stt)
     dfs = DataFileSummary.objects.create(
@@ -584,7 +585,7 @@ def test_parse_transitions_to_parse_failed_on_exception(monkeypatch, data_analys
 
 
 @pytest.mark.django_db
-def test_reparse_transitions_to_parse_started(monkeypatch, stt):
+def test_reparse_transitions_to_parsing(monkeypatch, stt):
     """Reparse runs should mark the DataFile as parsing when the worker starts."""
     datafile = DataFileFactory(
         stt=stt, version=13, state=SubmissionState.PARSE_COMPLETED

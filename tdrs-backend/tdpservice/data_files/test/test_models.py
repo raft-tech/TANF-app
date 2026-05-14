@@ -2,6 +2,7 @@
 
 import pytest
 
+from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
 from tdpservice.stts.models import STT
 
@@ -194,14 +195,13 @@ def test_submission_state_enum_matches_parsing_refactor_writeup():
     """Test the durable submission lifecycle states are defined on the enum."""
     assert list(SubmissionState.values) == [
         "uploaded",
-        "virus_scanning",
-        "scan_failed",
-        "validated",
-        "parsing",
+        "virus_scan_started",
+        "virus_scan_failed",
+        "virus_scan_completed",
+        "parse_started",
+        "parse_failed",
         "parsed_with_errors",
-        "parsed_clean",
-        "ingesting",
-        "ingest_failed",
+        "parse_completed",
         "stuck",
         "completed",
         "canceled",

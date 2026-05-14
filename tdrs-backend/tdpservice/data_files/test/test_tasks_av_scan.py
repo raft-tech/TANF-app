@@ -1,12 +1,14 @@
-<<<<<<< HEAD
 """Tests for async AV scanning tasks."""
 
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, patch
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile
-from tdpservice.data_files.tasks import complete_av_scan_for_datafile, scan_datafile_for_virus
+from tdpservice.data_files.tasks import (
+    complete_av_scan_for_datafile,
+    scan_datafile_for_virus,
+)
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.security.models import ClamAVFileScan
 
@@ -15,7 +17,7 @@ from tdpservice.security.models import ClamAVFileScan
 class TestCompleteAvScanForDatafile:
     """Test complete_av_scan_for_datafile task."""
 
-    def test_clean_scan_transitions_to_completed_and_queues_parse(self, mocker):
+    def test_clean_scan_transitions_to_virus_scan_completed_and_queues_parse(self, mocker):
         """Test that a CLEAN scan result transitions to VIRUS_SCAN_COMPLETED and queues parsing."""
         data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
         mock_parse = mocker.patch("tdpservice.data_files.tasks.parser_task.parse.delay")
@@ -26,23 +28,27 @@ class TestCompleteAvScanForDatafile:
         assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
         mock_parse.assert_called_once_with(data_file.id)
 
-    def test_infected_scan_transitions_to_failed_no_parse(self, mocker):
-        """Test that an INFECTED scan result transitions to VIRUS_SCAN_FAILED and does not queue parsing."""
+    def test_infected_scan_transitions_to_virus_scan_failed_no_parse(self, mocker):
+        """Test that an INFECTED scan result transitions to VIRUS_SCAN_FAILED."""
         data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
         mock_parse = mocker.patch("tdpservice.data_files.tasks.parser_task.parse.delay")
 
-        complete_av_scan_for_datafile(data_file.id, scan_result="infected", note="Test scan")
+        complete_av_scan_for_datafile(
+            data_file.id, scan_result="infected", note="Test scan"
+        )
 
         data_file.refresh_from_db()
         assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
         mock_parse.assert_not_called()
 
-    def test_error_scan_transitions_to_failed_no_parse(self, mocker):
-        """Test that an ERROR scan result transitions to VIRUS_SCAN_FAILED and does not queue parsing."""
+    def test_error_scan_transitions_to_virus_scan_failed_no_parse(self, mocker):
+        """Test that an ERROR scan result transitions to VIRUS_SCAN_FAILED."""
         data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
         mock_parse = mocker.patch("tdpservice.data_files.tasks.parser_task.parse.delay")
 
-        complete_av_scan_for_datafile(data_file.id, scan_result="error", note="ClamAV unavailable")
+        complete_av_scan_for_datafile(
+            data_file.id, scan_result="error", note="ClamAV unavailable"
+        )
 
         data_file.refresh_from_db()
         assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
@@ -58,34 +64,28 @@ class TestCompleteAvScanForDatafile:
         mock_parse.assert_not_called()
 
     def test_duplicate_clean_scan_does_not_queue_parse_again(self, mocker):
-        """Test that duplicate clean scan results don't queue parse multiple times."""
-        # Start with a file already in VIRUS_SCAN_COMPLETED state
+        """Test that duplicate clean scan results do not queue parse multiple times."""
         data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_COMPLETED)
         mock_parse = mocker.patch("tdpservice.data_files.tasks.parser_task.parse.delay")
 
-        # Try to complete scan again with clean result
         complete_av_scan_for_datafile(data_file.id, scan_result="clean")
 
-        # Parse should not be queued because transition didn't actually occur
+        data_file.refresh_from_db()
+        assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
         mock_parse.assert_not_called()
 
     def test_failed_scan_deletes_file_from_storage(self, mocker):
         """Test that failed scan results trigger file deletion from storage."""
         data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
-        
-        # Mock the file deletion
-        mock_file_delete = mocker.patch.object(data_file.file, "delete")
-        
-        # Mock parse task
+        mock_file_delete = mocker.patch("django.db.models.fields.files.FieldFile.delete")
         mock_parse = mocker.patch("tdpservice.data_files.tasks.parser_task.parse.delay")
 
         complete_av_scan_for_datafile(data_file.id, scan_result="infected")
 
         data_file.refresh_from_db()
         assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
-        # File should be deleted
-        mock_file_delete.assert_called_once_with(save=True)
-        # Parse should not be queued
+        assert mock_file_delete.call_count == 1
+        assert mock_file_delete.call_args.kwargs == {"save": True}
         mock_parse.assert_not_called()
 
 
@@ -97,7 +97,9 @@ class TestScanDatafileForVirus:
         """Test that when ClamAV is disabled, scan is skipped and clean result is queued."""
         settings.CLAMAV_NEEDED = False
         data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
-        mock_complete = mocker.patch("tdpservice.data_files.tasks.complete_av_scan_for_datafile.delay")
+        mock_complete = mocker.patch(
+            "tdpservice.data_files.tasks.complete_av_scan_for_datafile.delay"
+        )
 
         scan_datafile_for_virus(data_file.id)
 
@@ -112,20 +114,22 @@ class TestScanDatafileForVirus:
         settings.CLAMAV_NEEDED = True
         data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
 
-        # Mock ClamAV client
         mock_client = Mock()
         mock_client.scan_file.return_value = True
         mocker.patch("tdpservice.data_files.tasks.ClamAVClient", return_value=mock_client)
 
-        # Mock the scan record
         mock_scan = Mock()
         mock_scan.result = ClamAVFileScan.Result.CLEAN
         mocker.patch(
             "tdpservice.data_files.tasks.ClamAVFileScan.objects.filter",
-            return_value=Mock(order_by=Mock(return_value=Mock(first=Mock(return_value=mock_scan)))),
+            return_value=Mock(
+                order_by=Mock(return_value=Mock(first=Mock(return_value=mock_scan)))
+            ),
         )
 
-        mock_complete = mocker.patch("tdpservice.data_files.tasks.complete_av_scan_for_datafile.delay")
+        mock_complete = mocker.patch(
+            "tdpservice.data_files.tasks.complete_av_scan_for_datafile.delay"
+        )
 
         scan_datafile_for_virus(data_file.id)
 
@@ -139,20 +143,22 @@ class TestScanDatafileForVirus:
         settings.CLAMAV_NEEDED = True
         data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
 
-        # Mock ClamAV client
         mock_client = Mock()
         mock_client.scan_file.return_value = False
         mocker.patch("tdpservice.data_files.tasks.ClamAVClient", return_value=mock_client)
 
-        # Mock the scan record
         mock_scan = Mock()
         mock_scan.result = ClamAVFileScan.Result.INFECTED
         mocker.patch(
             "tdpservice.data_files.tasks.ClamAVFileScan.objects.filter",
-            return_value=Mock(order_by=Mock(return_value=Mock(first=Mock(return_value=mock_scan)))),
+            return_value=Mock(
+                order_by=Mock(return_value=Mock(first=Mock(return_value=mock_scan)))
+            ),
         )
 
-        mock_complete = mocker.patch("tdpservice.data_files.tasks.complete_av_scan_for_datafile.delay")
+        mock_complete = mocker.patch(
+            "tdpservice.data_files.tasks.complete_av_scan_for_datafile.delay"
+        )
 
         scan_datafile_for_virus(data_file.id)
 
@@ -166,21 +172,22 @@ class TestScanDatafileForVirus:
         settings.CLAMAV_NEEDED = True
         data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
 
-        # Mock ClamAV client to raise ServiceUnavailable
-        mock_client = Mock()
         from tdpservice.security.clients import ClamAVClient
 
+        mock_client = Mock()
         mock_client.scan_file.side_effect = ClamAVClient.ServiceUnavailable()
         mocker.patch("tdpservice.data_files.tasks.ClamAVClient", return_value=mock_client)
 
-        mock_complete = mocker.patch("tdpservice.data_files.tasks.complete_av_scan_for_datafile.delay")
+        mock_complete = mocker.patch(
+            "tdpservice.data_files.tasks.complete_av_scan_for_datafile.delay"
+        )
 
         scan_datafile_for_virus(data_file.id)
 
         mock_complete.assert_called_once_with(
             data_file.id,
             scan_result="error",
-            note="ClamAV service unavailable",
+            note="AV scan failed: ClamAV service unavailable",
         )
 
     def test_unexpected_error_queues_error_result(self, mocker, settings):
@@ -188,12 +195,13 @@ class TestScanDatafileForVirus:
         settings.CLAMAV_NEEDED = True
         data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
 
-        # Mock ClamAV client to raise unexpected error
         mock_client = Mock()
         mock_client.scan_file.side_effect = Exception("Unexpected error")
         mocker.patch("tdpservice.data_files.tasks.ClamAVClient", return_value=mock_client)
 
-        mock_complete = mocker.patch("tdpservice.data_files.tasks.complete_av_scan_for_datafile.delay")
+        mock_complete = mocker.patch(
+            "tdpservice.data_files.tasks.complete_av_scan_for_datafile.delay"
+        )
 
         scan_datafile_for_virus(data_file.id)
 
@@ -208,34 +216,3 @@ class TestScanDatafileForVirus:
         scan_datafile_for_virus(99999)
 
         assert "DataFile with id 99999 not found" in caplog.text
-=======
-"""Tests for AV scan completion task entrypoint."""
-
-import pytest
-
-from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.tasks import complete_av_scan_for_datafile
-from tdpservice.data_files.test.factories import DataFileFactory
-
-
-@pytest.mark.django_db
-def test_complete_av_scan_for_datafile_clean_sets_scan_completed():
-    """Task should transition a file to scan completed for clean results."""
-    data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
-
-    complete_av_scan_for_datafile(data_file.id, "clean")
-    data_file.refresh_from_db()
-
-    assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
-
-
-@pytest.mark.django_db
-def test_complete_av_scan_for_datafile_infected_sets_scan_failed():
-    """Task should transition a file to scan failed for infected results."""
-    data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
-
-    complete_av_scan_for_datafile(data_file.id, "infected")
-    data_file.refresh_from_db()
-
-    assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
->>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b

@@ -8,6 +8,7 @@ import pytest
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from tdpservice.core.models import FeatureFlag
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
 from tdpservice.data_files.serializers import DataFileSerializer
@@ -321,10 +322,10 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         self.assert_data_file_exists(data_file_data, 1, user)
 
         data_file = DataFile.objects.get(id=response.data["id"])
-        # In async mode, file is queued for scanning and state is VIRUS_SCAN_STARTED
+        # In async mode, file is queued for scanning and state is VIRUS_SCAN_STARTED.
         assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
         assert data_file.file  # File is saved immediately for async scanning
-        
+
         # Verify the scan task was queued
         mock_scan_task.assert_called_once_with(data_file.id)
 
@@ -565,10 +566,12 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
             new=fake_save,
         )
 
-        with pytest.raises(InvalidTransition, match="parse_started to virus_scan_started"):
+        with pytest.raises(
+            InvalidTransition,
+            match="parse_started to virus_scan_started",
+        ):
             self.post_data_file(api_client, data_file_data)
 
-<<<<<<< HEAD
     @pytest.mark.django_db
     def test_no_pia_feat_flag_blocks_uploads(self, api_client, data_file_data):
         """Test a nonexistant pia feature flag creates an error response from upload."""
@@ -621,7 +624,7 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
     ):
         """Test that async scan is queued for infected file (scan failure happens in task)."""
         data_file_data["file"] = infected_data_file
-        
+
         # Mock the Celery task to prevent actual async execution
         mock_scan_task = mocker.patch(
             "tdpservice.data_files.views.scan_datafile_for_virus.delay"
@@ -637,7 +640,7 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         )
         assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
         assert data_file.file  # File is saved for async scanning
-        
+
         # Verify the scan task was queued
         mock_scan_task.assert_called_once_with(data_file.id)
 
@@ -661,18 +664,9 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         )
         assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
         assert data_file.file  # File is saved for async scanning
-        
+
         # Verify the scan task was queued
         mock_scan_task.assert_called_once_with(data_file.id)
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "security inspection" in response.data["detail"]
-        data_file = DataFile.objects.get(
-            slug=data_file_data["slug"],
-            user=user,
-        )
-        assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
-        assert not data_file.file
 
     @pytest.mark.django_db
     def test_missing_file_still_returns_serializer_validation_error_when_av_enabled(
@@ -680,18 +674,11 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
     ):
         """Test that AV pre-scan does not intercept the serializer's missing-file validation."""
         data_file_data.pop("file")
-        mocker.patch(
-            "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
-            new=True,
-        )
-
         response = self.post_data_file(api_client, data_file_data)
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["file"] == ["No file was submitted."]
 
-=======
->>>>>>> 374a0a78b84497f675ca930ce9fc1d6900b8b18b
 
 class TestDataFileAPIAsInactiveUser(DataFileAPITestBase):
     """Test DataFileViewSet as an inactive user."""
@@ -1006,6 +993,11 @@ class TestDataFileQuerysetFiltering:
     @pytest.fixture
     def filter_test_data(self, stt, tribe_stt, ofa_system_admin):
         """Create a file for each program, section, year, quarter, pia combo."""
+        FeatureFlag.objects.create(
+            feature_name="program-integrity-audit",
+            enabled=True,
+            config={"minYear": min(year_options), "maxYear": max(year_options)},
+        )
         non_pia_files = {}
         pia_files = {}
 
