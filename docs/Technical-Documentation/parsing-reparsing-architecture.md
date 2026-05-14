@@ -333,7 +333,7 @@ ParserFactory.get_instance(**kwargs)
                 └── FRA                                          →  FRAParser
 ```
 
-All three parsers inherit from `BaseParser` (ABC).
+All three parsers inherit from the `BaseParser` Abstract Base Class (ABC).
 
 ### Parser class responsibilities
 
