@@ -311,10 +311,23 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
     def test_create_data_file_file_entry(
         self, api_client, data_file_data, user, mocker
     ):
-        """Test ability to create data file metadata registry with async AV scan."""
-        # Mock the Celery task to prevent actual async execution
-        mock_scan_task = mocker.patch(
-            "tdpservice.data_files.views.scan_datafile_for_virus.delay"
+        """Test uploads are scanned before the file is persisted."""
+
+        def clean_scan(_file, _file_name, _uploaded_by, data_file=None):
+            assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
+            assert not data_file.file
+            return True
+
+        mocker.patch(
+            "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
+            new=True,
+        )
+        mocker.patch(
+            "tdpservice.data_files.views.ClamAVClient.scan_file",
+            side_effect=clean_scan,
+        )
+        mock_parse_task = mocker.patch(
+            "tdpservice.data_files.views.parser_task.parse.delay"
         )
 
         response = self.post_data_file(api_client, data_file_data)
@@ -322,12 +335,10 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         self.assert_data_file_exists(data_file_data, 1, user)
 
         data_file = DataFile.objects.get(id=response.data["id"])
-        # In async mode, file is queued for scanning and state is VIRUS_SCAN_STARTED.
-        assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
-        assert data_file.file  # File is saved immediately for async scanning
+        assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
+        assert data_file.file
 
-        # Verify the scan task was queued
-        mock_scan_task.assert_called_once_with(data_file.id)
+        mock_parse_task.assert_called_once_with(data_file.id)
 
     def test_data_file_file_version_increment(
         self, api_client, data_file_data, other_data_file_data, user
@@ -622,51 +633,79 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
     def test_av_infected_file_returns_400_with_failed_scan_state(
         self, api_client, data_file_data, user, infected_data_file, mocker
     ):
-        """Test that async scan is queued for infected file (scan failure happens in task)."""
+        """Test that infected uploads fail before the file is persisted."""
         data_file_data["file"] = infected_data_file
 
-        # Mock the Celery task to prevent actual async execution
-        mock_scan_task = mocker.patch(
-            "tdpservice.data_files.views.scan_datafile_for_virus.delay"
+        def infected_scan(_file, _file_name, _uploaded_by, data_file=None):
+            assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
+            assert not data_file.file
+            return False
+
+        mocker.patch(
+            "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
+            new=True,
+        )
+        mocker.patch(
+            "tdpservice.data_files.views.ClamAVClient.scan_file",
+            side_effect=infected_scan,
+        )
+        mock_parse_task = mocker.patch(
+            "tdpservice.data_files.views.parser_task.parse.delay"
         )
 
         response = self.post_data_file(api_client, data_file_data)
 
-        # In async mode, upload succeeds and scan is queued
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == {
+            "detail": "Rejected: uploaded file did not pass security inspection"
+        }
         data_file = DataFile.objects.get(
             slug=data_file_data["slug"],
             user=user,
         )
-        assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
-        assert data_file.file  # File is saved for async scanning
+        assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
+        assert not data_file.file
 
-        # Verify the scan task was queued
-        mock_scan_task.assert_called_once_with(data_file.id)
+        mock_parse_task.assert_not_called()
 
     @pytest.mark.django_db
     def test_av_unavailable_returns_400_with_failed_scan_state(
         self, api_client, data_file_data, user, mocker
     ):
-        """Test that async scan is queued even if ClamAV might be unavailable (failure happens in task)."""
-        # Mock the Celery task to prevent actual async execution
-        mock_scan_task = mocker.patch(
-            "tdpservice.data_files.views.scan_datafile_for_virus.delay"
+        """Test that scanner outages fail before the file is persisted."""
+        from tdpservice.security.clients import ClamAVClient
+
+        def unavailable_scan(_file, _file_name, _uploaded_by, data_file=None):
+            assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
+            assert not data_file.file
+            raise ClamAVClient.ServiceUnavailable()
+
+        mocker.patch(
+            "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
+            new=True,
+        )
+        mocker.patch(
+            "tdpservice.data_files.views.ClamAVClient.scan_file",
+            side_effect=unavailable_scan,
+        )
+        mock_parse_task = mocker.patch(
+            "tdpservice.data_files.views.parser_task.parse.delay"
         )
 
         response = self.post_data_file(api_client, data_file_data)
 
-        # In async mode, upload succeeds and scan is queued
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == {
+            "detail": "Unable to complete security inspection, please try again or contact support for assistance"
+        }
         data_file = DataFile.objects.get(
             slug=data_file_data["slug"],
             user=user,
         )
-        assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
-        assert data_file.file  # File is saved for async scanning
+        assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
+        assert not data_file.file
 
-        # Verify the scan task was queued
-        mock_scan_task.assert_called_once_with(data_file.id)
+        mock_parse_task.assert_not_called()
 
     @pytest.mark.django_db
     def test_missing_file_still_returns_serializer_validation_error_when_av_enabled(

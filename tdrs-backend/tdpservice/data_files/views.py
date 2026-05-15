@@ -4,6 +4,7 @@ import logging
 from distutils.util import strtobool
 from wsgiref.util import FileWrapper
 
+from django.conf import settings
 from django.db.models import Exists, OuterRef, Prefetch
 from django.http import FileResponse, Http404, HttpResponse
 
@@ -25,10 +26,11 @@ from tdpservice.data_files.models import DataFile, ReparseFileMeta
 from tdpservice.data_files.s3_client import S3Client
 from tdpservice.data_files.serializers import DataFileSerializer
 from tdpservice.data_files.submission_lifecycle import transition_datafile
-from tdpservice.data_files.tasks import scan_datafile_for_virus
 from tdpservice.log_handler import S3FileHandler
 from tdpservice.parsers.models import ParserError
+from tdpservice.scheduling import parser_task
 from tdpservice.scheduling.parser_task import set_error_report
+from tdpservice.security.clients import ClamAVClient
 from tdpservice.users.permissions import DataFilePermissions, IsApprovedPermission
 
 logger = logging.getLogger(__name__)
@@ -130,8 +132,41 @@ class DataFileViewSet(ModelViewSet):
 
         return None
 
+    def _scan_uploaded_file(self, uploaded_file, user, data_file):
+        """Run ClamAV before saving the uploaded file to persistent storage."""
+        if not settings.CLAMAV_NEEDED or uploaded_file is None:
+            return None
+
+        try:
+            is_clean = ClamAVClient().scan_file(
+                uploaded_file,
+                uploaded_file.name,
+                user,
+                data_file=data_file,
+            )
+        except ClamAVClient.ServiceUnavailable:
+            return Response(
+                {
+                    "detail": "Unable to complete security inspection, please try again or contact support for assistance"
+                },
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        # Reset the stream because saving to storage will read the file again.
+        uploaded_file.seek(0)
+
+        if is_clean:
+            return None
+
+        return Response(
+            {
+                "detail": "Rejected: uploaded file did not pass security inspection"
+            },
+            status=HTTP_400_BAD_REQUEST,
+        )
+
     def create(self, request, *args, **kwargs):
-        """Create a DataFile, mark it for AV scanning, and queue the scan task."""
+        """Create a DataFile and persist the file only after a successful AV scan."""
         logger.debug(f"{self.__class__.__name__}: {request}")
 
         pia_error = self._validate_pia_request(request)
@@ -142,23 +177,45 @@ class DataFileViewSet(ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         uploaded_file = serializer.validated_data.get("file")
-        data_file = serializer.save(file=uploaded_file)
+        data_file = serializer.save(file=None)
 
         transition_datafile(
             data_file,
             SubmissionState.VIRUS_SCAN_STARTED,
-            note="queued for virus scanning",
+            note="virus scan started",
         )
 
+        scan_failure_response = self._scan_uploaded_file(
+            uploaded_file,
+            request.user,
+            data_file,
+        )
+        if scan_failure_response is not None:
+            transition_datafile(
+                data_file,
+                SubmissionState.VIRUS_SCAN_FAILED,
+                note=scan_failure_response.data["detail"],
+            )
+            return scan_failure_response
+
+        transition_datafile(
+            data_file,
+            SubmissionState.VIRUS_SCAN_COMPLETED,
+            note="file passed virus scan",
+        )
+
+        data_file.file = uploaded_file
+        data_file.save()
+
         logger.info(
-            f"Preparing AV scan task: User META -> user: {request.user}, stt: {data_file.stt}. "
+            f"Preparing parse task: User META -> user: {request.user}, stt: {data_file.stt}. "
             + f"Datafile META -> datafile: {data_file.id}, program type: {data_file.program_type}, "
             + f"section: {data_file.section}, "
             + f"quarter {data_file.quarter}, year {data_file.year}."
         )
 
-        scan_datafile_for_virus.delay(data_file.id)
-        logger.info("Submitted AV scan task to queue for datafile %s.", data_file.id)
+        parser_task.parse.delay(data_file.id)
+        logger.info("Submitted parse task to queue for datafile %s.", data_file.id)
 
         headers = self.get_success_headers(serializer.data)
         response = Response(
