@@ -340,7 +340,7 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
         assert data_file.file
 
-        mock_parse_task.assert_called_once_with(data_file.id)
+        mock_parse_task.assert_called_once_with(data_file.id, reparse_id=None)
 
         shadow_data_file = ShadowDataFile.objects.get(id=data_file.id)
         assert shadow_data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
