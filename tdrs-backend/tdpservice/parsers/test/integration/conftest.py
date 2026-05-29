@@ -10,9 +10,15 @@ import psycopg2
 import pytest
 from psycopg2 import sql
 
-from tdpservice.data_files.models import DataFile, ReparseFileMeta
+from tdpservice.data_files.models import DataFile, LegacyFileTransfer, ReparseFileMeta
 from tdpservice.parsers.models import DataFileSummary, ParserError
+from tdpservice.search_indexes.models.program_audit import (
+    ProgramAudit_T1,
+    ProgramAudit_T2,
+    ProgramAudit_T3,
+)
 from tdpservice.search_indexes.util import MODELS
+from tdpservice.security.models import ClamAVFileScan
 from tdpservice.stts.models import STT, Region
 from tdpservice.users.models import User
 
@@ -45,8 +51,13 @@ def _delete_datafiles_outside_transaction(datafile_ids: Iterable[int]) -> None:
         (DataFileSummary._meta.db_table, "datafile_id"),
         (ParserError._meta.db_table, "file_id"),
         (ReparseFileMeta._meta.db_table, "data_file_id"),
+        (ClamAVFileScan._meta.db_table, "data_file_id"),
+        (LegacyFileTransfer._meta.db_table, "data_file_id"),
     ]
-    delete_specs.extend((model._meta.db_table, "datafile_id") for model in MODELS)
+    record_models = MODELS + [ProgramAudit_T1, ProgramAudit_T2, ProgramAudit_T3]
+    delete_specs.extend(
+        (model._meta.db_table, "datafile_id") for model in record_models
+    )
 
     with closing(_connect_to_default_database()) as conn:
         conn.autocommit = True
