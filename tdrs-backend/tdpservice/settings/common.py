@@ -49,6 +49,20 @@ def traces_sampler(sampling_context: SamplingContext) -> float:
     return 0.5
 
 
+def before_send(event, hint):
+    """Drop known noisy Tempo infrastructure logs before sending events to Sentry."""
+    logentry = event.get("logentry", {})
+    message = logentry.get("message", "")
+    params = logentry.get("params") or []
+
+    log_text = " ".join([message, *(str(param) for param in params)])
+
+    if "tempo.apps.internal" in log_text:
+        return None
+
+    return event
+
+
 def init_sentry(sentry_dsn, environment: str = "ERROR") -> None:
     """Initialize Sentry for error tracking."""
     sentry_sdk.init(
@@ -70,6 +84,7 @@ def init_sentry(sentry_dsn, environment: str = "ERROR") -> None:
             LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR),
         ],
         traces_sampler=traces_sampler,
+        before_send=before_send,
         enable_logs=True,
     )
 
@@ -401,6 +416,7 @@ class Common(Configuration):
         "DEFAULT_RENDERER_CLASSES": DEFAULT_RENDERER_CLASSES,
         "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
         "DEFAULT_AUTHENTICATION_CLASSES": (
+            "tdpservice.users.authentication.KeycloakBearerTokenAuthentication",
             "tdpservice.users.authentication.CustomAuthentication",
             "rest_framework.authentication.SessionAuthentication",
             "tdpservice.security.utils.ExpTokenAuthentication",
@@ -408,6 +424,12 @@ class Common(Configuration):
         "DEFAULT_FILTER_BACKENDS": [
             "django_filters.rest_framework.DjangoFilterBackend",
         ],
+        "DEFAULT_THROTTLE_CLASSES": (
+            "tdpservice.users.throttling.KeycloakClientRateThrottle",
+        ),
+        "DEFAULT_THROTTLE_RATES": {
+            "keycloak_client": os.getenv("KEYCLOAK_CLIENT_RATE", "300/min"),
+        },
         "TEST_REQUEST_DEFAULT_FORMAT": "json",
         "TEST_REQUEST_RENDERER_CLASSES": TEST_REQUEST_RENDERER_CLASSES,
     }
@@ -535,6 +557,11 @@ class Common(Configuration):
     KEYCLOAK_DJANGO_CLIENT_SECRET = os.getenv(
         "KEYCLOAK_DJANGO_CLIENT_SECRET", "tdp-django-local-secret"
     )
+    KEYCLOAK_BEARER_CLIENT_ID = os.getenv("KEYCLOAK_BEARER_CLIENT_ID", "tdp-cli")
+    KEYCLOAK_API_AUDIENCE = os.getenv(
+        "KEYCLOAK_API_AUDIENCE", KEYCLOAK_DJANGO_CLIENT_ID
+    )
+    KEYCLOAK_JWKS_CACHE_TTL = int(os.getenv("KEYCLOAK_JWKS_CACHE_TTL", 300))
 
     ####################################
     # mozilla-django-oidc Settings     #
@@ -554,6 +581,7 @@ class Common(Configuration):
 
     _KC_REALM_URL = f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}"
     _KC_BROWSER_REALM_URL = f"{KEYCLOAK_BROWSER_URL}/realms/{KEYCLOAK_REALM}"
+    KEYCLOAK_ISSUER = os.getenv("KEYCLOAK_ISSUER", _KC_BROWSER_REALM_URL)
 
     # Browser-facing endpoints (user's browser is redirected here)
     OIDC_OP_AUTHORIZATION_ENDPOINT = (
@@ -598,6 +626,7 @@ class Common(Configuration):
 
     CELERY_BROKER_URL = REDIS_URI + "/0"
     CELERY_RESULT_BACKEND = REDIS_URI + "/0"
+    CELERY_GO_PARSER_QUEUE = os.getenv("CELERY_GO_PARSER_QUEUE", "go-parser")
     CELERY_ACCEPT_CONTENT = ["application/json"]
     CELERY_TASK_SERIALIZER = "json"
     CELERY_RESULT_SERIALIZER = "json"
@@ -605,6 +634,11 @@ class Common(Configuration):
     CELERYD_SEND_EVENTS = True
     CELERY_ENABLE_UTC = True
     CELERY_TASK_PROTOCOL = 1
+    CELERY_TASK_ROUTES = {
+        "tdpservice.scheduling.parser_task.go_parse": {"queue": CELERY_GO_PARSER_QUEUE}
+    }
+    GO_PARSER_QUEUE = os.getenv("GO_PARSER_QUEUE", "go-parser")
+    GO_PARSER_SHADOW_MODE = bool(strtobool(os.getenv("GO_PARSER_SHADOW_MODE", "true")))
 
     CELERY_BEAT_SCHEDULE = {
         "Database Backup": {
@@ -717,6 +751,10 @@ class Common(Configuration):
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
             "LOCATION": f"{REDIS_URI}/2",
         },
+        "throttle": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": f"{REDIS_URI}/3",
+        },
     }
 
     CYPRESS_TOKEN = os.getenv("CYPRESS_TOKEN", None)
@@ -733,7 +771,10 @@ class Common(Configuration):
     CELERY_WORKER_SEND_TASK_EVENTS = True
     CELERY_TASK_SEND_SENT_EVENT = True
 
-    FRA_PILOT_STATES = json.loads(os.getenv("FRA_PILOT_STATES", "[]"))
+    # TODO: Consider updating logic to allow setting pilot state for specific years
+    FRA_PILOT_STATES = json.loads(
+        os.getenv("FRA_PILOT_STATES", '["AZ", "IA", "NE", "OH", "VA"]')
+    )
 
     # Cloud.gov SET integration settings
     LOGIN_GOV_SET_AUDIENCE = os.getenv(

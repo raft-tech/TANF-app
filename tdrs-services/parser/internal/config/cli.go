@@ -29,6 +29,10 @@ type CLI struct {
 	// Server
 	ServerMode              string `kong:"name='server.mode',help='Server mode (celery, grpc, http, local)'"`
 	ServerCeleryRedisURL    string `kong:"name='server.celery.redis-url',help='Redis URL for Celery broker'"`
+	ServerCeleryQueue       string `kong:"name='server.celery.queue',env='GO_PARSER_QUEUE',help='Redis queue name for Celery tasks'"`
+	ServerCeleryNumWorkers  int    `kong:"name='server.celery.num-workers',help='Number of concurrent celery task workers'"`
+	ServerPostParseTaskName string `kong:"name='server.celery.post-parse-task-name',env='GO_PARSER_POST_PARSE_TASK_NAME',help='Python Celery post-parse task name'"`
+	ServerPostParseQueue    string `kong:"name='server.celery.post-parse-queue',env='GO_PARSER_POST_PARSE_QUEUE',help='Python Celery queue for post-parse tasks'"`
 	ServerGRPCListenAddress string `kong:"name='server.grpc.listen-address',help='gRPC listen address'"`
 	ServerHTTPListenAddress string `kong:"name='server.http.listen-address',help='HTTP listen address'"`
 	ServerLocalFilePath     string `kong:"name='server.local.file-path',help='File path for local processing'"`
@@ -61,6 +65,8 @@ type CLI struct {
 
 	// Database
 	DatabaseURL               string        `kong:"name='database.url',env='DATABASE_URL',help='Database connection URL'"`
+	DatabaseShadowMode        bool          `kong:"name='database.shadow-mode',env='GO_PARSER_SHADOW_MODE',help='Write to shadow tables instead of production tables'"`
+	DatabaseTablePrefix       string        `kong:"name='database.table-prefix',env='DATABASE_TABLE_PREFIX',help='Prefix for Go parser-owned output tables'"`
 	DatabaseMaxConns          int           `kong:"name='database.max-conns',help='Max database connections'"`
 	DatabaseMinConns          int           `kong:"name='database.min-conns',help='Min database connections'"`
 	DatabaseMaxConnLifetime   time.Duration `kong:"name='database.max-conn-lifetime',help='Max connection lifetime'"`
@@ -68,10 +74,11 @@ type CLI struct {
 	DatabaseHealthCheckPeriod time.Duration `kong:"name='database.health-check-period',help='Health check period'"`
 
 	// Storage
-	StorageSource     string `kong:"name='storage.source',help='File storage source (local, s3)'"`
-	StorageS3Bucket   string `kong:"name='storage.s3.bucket',help='S3 bucket name'"`
-	StorageS3Endpoint string `kong:"name='storage.s3.endpoint',help='S3 endpoint (for LocalStack)'"`
-	StorageS3Region   string `kong:"name='storage.s3.region',help='S3 region'"`
+	StorageSource      string `kong:"name='storage.source',help='File storage source (local, s3)'"`
+	StorageS3Bucket    string `kong:"name='storage.s3.bucket',help='S3 bucket name'"`
+	StorageS3Endpoint  string `kong:"name='storage.s3.endpoint',help='S3 endpoint (for LocalStack)'"`
+	StorageS3Region    string `kong:"name='storage.s3.region',help='S3 region'"`
+	StorageS3KeyPrefix string `kong:"name='storage.s3.key-prefix',help='S3 key prefix (Django APP_NAME)'"`
 }
 
 // ParseCLI parses command-line arguments using Kong and returns the CLI struct.
@@ -117,6 +124,18 @@ func (c *CLI) ApplyTo(cfg *Config, ctx *kong.Context) {
 	}
 	if set["server.celery.redis-url"] {
 		cfg.Server.Celery.RedisURL = c.ServerCeleryRedisURL
+	}
+	if set["server.celery.queue"] {
+		cfg.Server.Celery.Queue = c.ServerCeleryQueue
+	}
+	if set["server.celery.num-workers"] {
+		cfg.Server.Celery.NumWorkers = c.ServerCeleryNumWorkers
+	}
+	if set["server.celery.post-parse-task-name"] {
+		cfg.Server.Celery.PostParseTaskName = c.ServerPostParseTaskName
+	}
+	if set["server.celery.post-parse-queue"] {
+		cfg.Server.Celery.PostParseQueue = c.ServerPostParseQueue
 	}
 	if set["server.grpc.listen-address"] {
 		cfg.Server.GRPC.ListenAddress = c.ServerGRPCListenAddress
@@ -190,6 +209,12 @@ func (c *CLI) ApplyTo(cfg *Config, ctx *kong.Context) {
 	if set["database.url"] {
 		cfg.Database.URL = c.DatabaseURL
 	}
+	if set["database.shadow-mode"] {
+		cfg.Database.ShadowMode = c.DatabaseShadowMode
+	}
+	if set["database.table-prefix"] {
+		cfg.Database.TablePrefix = c.DatabaseTablePrefix
+	}
 	if set["database.max-conns"] {
 		cfg.Database.MaxConns = c.DatabaseMaxConns
 	}
@@ -217,6 +242,9 @@ func (c *CLI) ApplyTo(cfg *Config, ctx *kong.Context) {
 	}
 	if set["storage.s3.region"] {
 		cfg.Storage.S3.Region = c.StorageS3Region
+	}
+	if set["storage.s3.key-prefix"] {
+		cfg.Storage.S3.KeyPrefix = c.StorageS3KeyPrefix
 	}
 }
 

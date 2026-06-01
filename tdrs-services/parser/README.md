@@ -70,26 +70,30 @@ The parser uses a layered configuration system. Override precedence (lowest to h
 
 The primary config file is `config/parser.yaml`. Key sections:
 
-| Section | Controls |
-|---------|----------|
-| `server` | How the parser receives work (`local`, `celery`, `grpc`, `http`) |
-| `pipeline` | Worker pool sizes and buffer depths |
-| `writer` | Output mode (`database` or `file`), flush thresholds |
-| `validation` | Short-circuit behavior, validator file paths |
-| `database` | PostgreSQL connection pool settings |
-| `storage` | File acquisition (`local` or `s3`) |
+| Section      | Controls                                                         |
+| ------------ | ---------------------------------------------------------------- |
+| `server`     | How the parser receives work (`local`, `celery`, `grpc`, `http`) |
+| `pipeline`   | Worker pool sizes and buffer depths                              |
+| `writer`     | Output mode (`database` or `file`), flush thresholds             |
+| `validation` | Short-circuit behavior, validator file paths                     |
+| `database`   | PostgreSQL connection pool settings                              |
+| `storage`    | File acquisition (`local` or `s3`)                               |
 
 ### Environment Variables
 
 The config file supports `${VAR}` interpolation. Common variables:
 
-| Variable | Used In | Purpose |
-|----------|---------|---------|
-| `DATABASE_URL` | `database.url` | PostgreSQL connection string |
-| `REDIS_URL` | `server.celery.redis_url` | Redis broker for Celery mode |
-| `S3_BUCKET` | `storage.s3.bucket` | S3 bucket for file storage |
-| `S3_ENDPOINT` | `storage.s3.endpoint` | Custom S3 endpoint (LocalStack) |
-| `AWS_DEFAULT_REGION` | `storage.s3.region` | AWS region |
+| Variable             | Used In                   | Purpose                         |
+| -------------------- | ------------------------- | ------------------------------- |
+| `DATABASE_URL`       | `database.url`            | PostgreSQL connection string    |
+| `GO_PARSER_SHADOW_MODE` | `database.shadow_mode` | `true` writes to shadow tables; `false` writes to production tables |
+| `DATABASE_TABLE_PREFIX` | `database.table_prefix` | Prefix for Go parser-owned output tables (default `shadow_`) |
+| `REDIS_URL`          | `server.celery.redis_url` | Redis broker for Celery mode    |
+| `GO_PARSER_POST_PARSE_TASK_NAME` | `server.celery.post_parse_task_name` | Python Celery task to enqueue after each parse attempt |
+| `GO_PARSER_POST_PARSE_QUEUE` | `server.celery.post_parse_queue` | Python Celery queue for post-parse finalization |
+| `S3_BUCKET`          | `storage.s3.bucket`       | S3 bucket for file storage      |
+| `S3_ENDPOINT`        | `storage.s3.endpoint`     | Custom S3 endpoint (LocalStack) |
+| `AWS_DEFAULT_REGION` | `storage.s3.region`       | AWS region                      |
 
 ---
 
@@ -170,7 +174,7 @@ go run ./cmd/parser \
 
 ### Celery Mode
 
-Celery mode connects to Redis and consumes parse tasks dispatched by Django. This is the production deployment mode.
+Celery mode connects to Redis and consumes parse tasks dispatched by Django. After each parse attempt, it enqueues Django's shadow-table `post_parse` task on the Python Celery queue.
 
 ```sh
 DATABASE_URL=postgres://user:pass@localhost:5432/tdrs \
@@ -235,11 +239,29 @@ make test-short
 # Run tests with coverage report
 make test-coverage
 
-# Run integration tests (requires a running PostgreSQL instance)
-make test-integration
-
-# Run all tests (unit + integration) with coverage
+# Run all tests with coverage
 make test-all-coverage
+
+# Compile all packages and tests without executing them
+make compile-check
+
+# Run Go static analysis
+make lint
+
+# Verify sqlc-generated code is in sync with schema.sql and query.sql
+make sqlc-diff
+
+# Run sqlc static analysis checks
+make sqlc-vet
+
+# Verify parser SQL against the configured engine and schema
+make sqlc-verify
+
+# Load config and compile validator expressions from YAML
+make validate-config
+
+# Run the non-test CI checks together
+make ci-checks
 
 # Watch mode — re-runs tests on file changes
 make test-watch
@@ -258,23 +280,9 @@ gotestsum -- -count=1 -run TestAccumulatorKeyedGrouping ./internal/parser/...
 gotestsum -- -count=1 ./internal/validation/...
 ```
 
-### Integration Tests
-
-Integration tests are gated behind the `integration` build tag and require a PostgreSQL database:
-
-```sh
-# Set up the database connection
-export DATABASE_URL=postgres://tdpuser:something_secure@localhost:5432/tdrs_test?sslmode=disable
-
-# Run integration tests
-make test-integration
-```
-
----
-
 ## SQLC (Database Code Generation)
 
-The Go parser uses [SQLC](https://sqlc.dev) to generate type-safe Go code from SQL. The schema in `schema.sql` mirrors the Django model definitions.
+The Go parser uses [SQLC](https://sqlc.dev) to generate type-safe Go code from SQL. The schema in `schema.sql` mirrors the Django model definitions, with Go-owned output tables prefixed as `shadow_*` so Python/Django parser output remains isolated.
 
 ```sh
 # Regenerate Go code from schema.sql and query.sql
@@ -282,9 +290,36 @@ sqlc generate
 
 # Check if generated code is up to date (useful for CI)
 sqlc diff
+
+# Run sqlc lint-style checks
+sqlc vet
 ```
 
 Generated code lives in `internal/db/` and should not be edited by hand.
+
+---
+
+## CircleCI Checks
+
+The CircleCI parser job runs these checks from `tdrs-services/parser/`:
+
+```sh
+task parser:compile-check
+task parser:lint
+task parser:sqlc-diff
+task parser:sqlc-vet
+task parser:sqlc-verify
+task parser:validate-config
+task parser:test-all-coverage
+```
+
+Live Go parser integration coverage runs through the backend pytest suite:
+
+```sh
+task backend-pytest-go-integration
+```
+
+For integration tests in CI, CircleCI reuses the existing backend docker-compose stack, including PostgreSQL and the Django migration flow, before running the Go parser integration suite with `DATABASE_URL` pointed at that migrated test database. By default, Go parser records, parser errors, datafile metadata, and summaries are written to `shadow_*` tables in that same database. Set `GO_PARSER_SHADOW_MODE=false` to target production tables instead.
 
 ---
 
@@ -297,9 +332,9 @@ Generated code lives in `internal/db/` and should not be edited by hand.
 
 ### Example Launch Configurations
 
-| Configuration | Description |
-|---------------|-------------|
-| **Go DB** | Parse a local file and write results to PostgreSQL |
+| Configuration | Description                                                                  |
+| ------------- | ---------------------------------------------------------------------------- |
+| **Go DB**     | Parse a local file and write results to PostgreSQL                           |
 | **Go DryRun** | Parse a local file with `--dry-run` (CSV output to local files, no database) |
 
 ```jsonc
@@ -317,6 +352,27 @@ Generated code lives in `internal/db/` and should not be edited by hand.
               "--server.local.section", "1",
               "--server.local.fiscal-year", "2023",
               "--server.local.quarter", "2"]
+},
+{
+    "name": "Go Celery",
+    "type": "go",
+    "request": "launch",
+    "mode": "auto",
+    "program": "${workspaceFolder}/tdrs-services/parser/cmd/parser",
+    "cwd": "${workspaceFolder}/tdrs-services/parser",
+    "env": {
+        "AWS_ACCESS_KEY_ID": "test",
+        "AWS_SECRET_ACCESS_KEY": "test"
+    },
+    "args": ["--database.url", "postgres://tdpuser:something_secure@localhost:5432/tdrs_test?sslmode=disable",
+              "--server.mode=celery",
+              "--server.celery.redis-url=redis://localhost:6379/0",
+              "--storage.source=s3",
+              "--storage.s3.key-prefix=dev",
+              "--storage.s3.bucket=tdp-datafiles-localstack",
+              "--storage.s3.endpoint=http://localhost:4566",
+              "--storage.s3.region=us-gov-west-1",
+              "--writer.mode=database"]
 },
 {
     "name": "Go DryRun",

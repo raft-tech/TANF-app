@@ -50,7 +50,7 @@ func TestNewWorkerPool_Construction(t *testing.T) {
 	})
 	router.Start(ctx)
 
-	wp := NewWorkerPool(parsingOrch, valOrch, "TEST:1", router, 42, WorkerPoolConfig{
+	wp := NewWorkerPool(parsingOrch, valOrch, &validation.DataFileContext{}, "TEST:1", router, 42, WorkerPoolConfig{
 		NumWorkers:     4,
 		WorkBufferSize: 8,
 	})
@@ -94,7 +94,7 @@ func TestWorkerPool_StartAndStop_NoWork(t *testing.T) {
 	})
 	router.Start(ctx)
 
-	wp := NewWorkerPool(parsingOrch, valOrch, "TEST:1", router, 42, WorkerPoolConfig{
+	wp := NewWorkerPool(parsingOrch, valOrch, &validation.DataFileContext{}, "TEST:1", router, 42, WorkerPoolConfig{
 		NumWorkers:     2,
 		WorkBufferSize: 4,
 	})
@@ -157,7 +157,7 @@ func TestWorkerPool_ProcessesBatches(t *testing.T) {
 	})
 	router.Start(ctx)
 
-	wp := NewWorkerPool(parsingOrch, valOrch, "TEST:1", router, 42, WorkerPoolConfig{
+	wp := NewWorkerPool(parsingOrch, valOrch, &validation.DataFileContext{}, "TEST:1", router, 42, WorkerPoolConfig{
 		NumWorkers:     2,
 		WorkBufferSize: 4,
 	})
@@ -169,9 +169,7 @@ func TestWorkerPool_ProcessesBatches(t *testing.T) {
 		BatchID: 1,
 		DecodedGroups: []*parser.DecodedGroup{
 			{
-				Key:          "202401|12345",
-				RptMonthYear: "202401",
-				CaseNumber:   "12345",
+				Key: "202401|12345",
 				DecodedRecords: []parser.DecodedRecord{
 					{Row: row, Schema: t1Schema},
 				},
@@ -232,7 +230,7 @@ func TestWorkerPool_MultipleBatches(t *testing.T) {
 	})
 	router.Start(ctx)
 
-	wp := NewWorkerPool(parsingOrch, valOrch, "TEST:1", router, 42, WorkerPoolConfig{
+	wp := NewWorkerPool(parsingOrch, valOrch, &validation.DataFileContext{}, "TEST:1", router, 42, WorkerPoolConfig{
 		NumWorkers:     2,
 		WorkBufferSize: 8,
 	})
@@ -245,9 +243,7 @@ func TestWorkerPool_MultipleBatches(t *testing.T) {
 			BatchID: i + 1,
 			DecodedGroups: []*parser.DecodedGroup{
 				{
-					Key:          "202401|12345",
-					RptMonthYear: "202401",
-					CaseNumber:   "12345",
+					Key: "202401|12345",
 					DecodedRecords: []parser.DecodedRecord{
 						{Row: row, Schema: t1Schema},
 					},
@@ -295,7 +291,7 @@ func TestWorkerPool_AggregateStats_CombinesWorkers(t *testing.T) {
 	})
 	router.Start(ctx)
 
-	wp := NewWorkerPool(parsingOrch, valOrch, "TEST:1", router, 42, WorkerPoolConfig{
+	wp := NewWorkerPool(parsingOrch, valOrch, &validation.DataFileContext{}, "TEST:1", router, 42, WorkerPoolConfig{
 		NumWorkers:     3,
 		WorkBufferSize: 4,
 	})
@@ -358,7 +354,7 @@ func TestWorkerPool_ContextCancellation(t *testing.T) {
 	})
 	router.Start(ctx)
 
-	wp := NewWorkerPool(parsingOrch, valOrch, "TEST:1", router, 42, WorkerPoolConfig{
+	wp := NewWorkerPool(parsingOrch, valOrch, &validation.DataFileContext{}, "TEST:1", router, 42, WorkerPoolConfig{
 		NumWorkers:     2,
 		WorkBufferSize: 4,
 	})
@@ -407,7 +403,7 @@ func TestWorkerPool_ProcessBatch_WithMultipleGroups(t *testing.T) {
 	})
 	router.Start(ctx)
 
-	wp := NewWorkerPool(parsingOrch, valOrch, "TEST:1", router, 42, WorkerPoolConfig{
+	wp := NewWorkerPool(parsingOrch, valOrch, &validation.DataFileContext{}, "TEST:1", router, 42, WorkerPoolConfig{
 		NumWorkers:     1,
 		WorkBufferSize: 4,
 	})
@@ -421,14 +417,10 @@ func TestWorkerPool_ProcessBatch_WithMultipleGroups(t *testing.T) {
 		DecodedGroups: []*parser.DecodedGroup{
 			{
 				Key:            "202401|11111",
-				RptMonthYear:   "202401",
-				CaseNumber:     "11111",
 				DecodedRecords: []parser.DecodedRecord{{Row: row1, Schema: t1Schema}},
 			},
 			{
 				Key:            "202401|22222",
-				RptMonthYear:   "202401",
-				CaseNumber:     "22222",
 				DecodedRecords: []parser.DecodedRecord{{Row: row2, Schema: t1Schema}},
 			},
 		},

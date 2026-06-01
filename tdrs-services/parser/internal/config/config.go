@@ -13,14 +13,14 @@ type PipelineWorkerConfig struct {
 
 // WriterConfig holds table writer flush thresholds and output mode.
 type WriterConfig struct {
-	Mode                string   `yaml:"mode"`                  // "database" (default), "file"
-	Format              string   `yaml:"format"`                // "json" or "csv" (only used when mode is "file")
-	OutputDir           string   `yaml:"output_dir"`            // output directory (only used when mode is "file")
+	Mode                string   `yaml:"mode"`       // "database" (default), "file"
+	Format              string   `yaml:"format"`     // "json" or "csv" (only used when mode is "file")
+	OutputDir           string   `yaml:"output_dir"` // output directory (only used when mode is "file")
 	FlushThreshold      int      `yaml:"flush_threshold"`
 	ErrorFlushThreshold int      `yaml:"error_flush_threshold"`
-	IncludeSchemas      []string `yaml:"include_schemas"`       // filter which record types get written (empty = all)
-	IncludeRecords      bool     `yaml:"include_records"`       // whether to write records (default true)
-	IncludeErrors       bool     `yaml:"include_errors"`        // whether to write errors (default true)
+	IncludeSchemas      []string `yaml:"include_schemas"` // filter which record types get written (empty = all)
+	IncludeRecords      bool     `yaml:"include_records"` // whether to write records (default true)
+	IncludeErrors       bool     `yaml:"include_errors"`  // whether to write errors (default true)
 }
 
 // ValidationConfig controls validation behavior.
@@ -32,6 +32,8 @@ type ValidationConfig struct {
 // DatabaseConfig holds connection pool settings.
 type DatabaseConfig struct {
 	URL               string        `yaml:"url"` // Database connection URL (supports ${DATABASE_URL} interpolation)
+	ShadowMode        bool          `yaml:"shadow_mode"`
+	TablePrefix       string        `yaml:"table_prefix"`
 	MaxConns          int           `yaml:"max_conns"`
 	MinConns          int           `yaml:"min_conns"`
 	MaxConnLifetime   time.Duration `yaml:"max_conn_lifetime"`
@@ -39,11 +41,21 @@ type DatabaseConfig struct {
 	HealthCheckPeriod time.Duration `yaml:"health_check_period"`
 }
 
+// EffectiveTablePrefix returns the table prefix to use for parser-owned writes.
+// When shadow mode is disabled, the Go parser writes to production tables.
+func (c DatabaseConfig) EffectiveTablePrefix() string {
+	if !c.ShadowMode {
+		return ""
+	}
+	return c.TablePrefix
+}
+
 // S3Config holds S3-specific storage settings.
 type S3Config struct {
-	Bucket   string `yaml:"bucket"`
-	Endpoint string `yaml:"endpoint"` // Custom endpoint (empty = real AWS, set for LocalStack)
-	Region   string `yaml:"region"`
+	Bucket    string `yaml:"bucket"`
+	Endpoint  string `yaml:"endpoint"` // Custom endpoint (empty = real AWS, set for LocalStack)
+	Region    string `yaml:"region"`
+	KeyPrefix string `yaml:"key_prefix"` // Prefix prepended to paths for environment separation
 }
 
 // Config is the top-level configuration structure matching config/parser.yaml.
@@ -79,7 +91,11 @@ type ServerConfig struct {
 
 // CeleryConfig holds Celery worker settings.
 type CeleryConfig struct {
-	RedisURL string `yaml:"redis_url"`
+	RedisURL          string `yaml:"redis_url"`
+	Queue             string `yaml:"queue"`
+	NumWorkers        int    `yaml:"num_workers"` // Number of concurrent celery task workers (default 1)
+	PostParseTaskName string `yaml:"post_parse_task_name"`
+	PostParseQueue    string `yaml:"post_parse_queue"`
 }
 
 // GRPCConfig holds gRPC server settings.
@@ -122,6 +138,11 @@ func DefaultConfig() *Config {
 		FilespecFiles: []string{"filespecs/**/*.yaml"},
 		Server: ServerConfig{
 			Mode: "local",
+			Celery: CeleryConfig{
+				Queue:             "go-parser",
+				PostParseTaskName: "tdpservice.scheduling.parser_task.post_parse",
+				PostParseQueue:    "celery",
+			},
 			GRPC: GRPCConfig{
 				ListenAddress: ":50051",
 			},
@@ -148,6 +169,8 @@ func DefaultConfig() *Config {
 			ValidatorFiles: []string{"validation/validators.yaml"},
 		},
 		Database: DatabaseConfig{
+			ShadowMode:        true,
+			TablePrefix:       DefaultTablePrefix,
 			MaxConns:          10,
 			MinConns:          2,
 			MaxConnLifetime:   30 * time.Minute,
