@@ -19,6 +19,7 @@ from tdpservice.parsers import util
 from tdpservice.parsers.factory import ParserFactory
 from tdpservice.parsers.models import ParserError
 from tdpservice.parsers.test.factories import DataFileSummaryFactory
+from tdpservice.security.models import ClamAVFileScan
 
 
 @pytest.mark.usefixtures("db")
@@ -318,7 +319,7 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         def clean_scan(_file, _file_name, _uploaded_by, data_file=None):
             assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
             assert not data_file.file
-            return True
+            return ClamAVFileScan.Result.CLEAN
 
         mocker.patch(
             "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
@@ -659,7 +660,7 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         def infected_scan(_file, _file_name, _uploaded_by, data_file=None):
             assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
             assert not data_file.file
-            return False
+            return ClamAVFileScan.Result.INFECTED
 
         mocker.patch(
             "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
@@ -737,6 +738,149 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["file"] == ["No file was submitted."]
+
+    @pytest.mark.django_db
+    def test_clean_upload_logs_av_completion_with_scan_result(
+        self, api_client, data_file_data, user, mocker, caplog
+    ):
+        """Clean uploads should drive lifecycle state via complete_datafile_av_scan
+        and emit a structured log entry containing scan_result=CLEAN."""
+        mocker.patch(
+            "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
+            new=True,
+        )
+        mocker.patch(
+            "tdpservice.data_files.views.ClamAVClient.scan_file",
+            return_value=ClamAVFileScan.Result.CLEAN,
+        )
+        mocker.patch("tdpservice.data_files.views.parser_task.parse.delay")
+
+        with caplog.at_level(
+            "INFO", logger="tdpservice.data_files.submission_lifecycle"
+        ):
+            response = self.post_data_file(api_client, data_file_data)
+
+        assert response.status_code == status.HTTP_201_CREATED
+        data_file = DataFile.objects.get(id=response.data["id"])
+        assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
+
+        completion_records = [
+            record
+            for record in caplog.records
+            if getattr(record, "next_state", None)
+            == SubmissionState.VIRUS_SCAN_COMPLETED.value
+        ]
+        assert completion_records, "expected a virus_scan_completed lifecycle log"
+        record = completion_records[-1]
+        assert record.scan_result == "CLEAN"
+        assert record.previous_state == SubmissionState.VIRUS_SCAN_STARTED.value
+        assert record.data_file_id == data_file.id
+
+    @pytest.mark.django_db
+    def test_infected_upload_logs_av_completion_with_scan_result(
+        self, api_client, data_file_data, infected_data_file, mocker, caplog
+    ):
+        """Infected uploads should also flow through complete_datafile_av_scan
+        and produce a structured log entry containing scan_result=INFECTED."""
+        data_file_data["file"] = infected_data_file
+
+        mocker.patch(
+            "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
+            new=True,
+        )
+        mocker.patch(
+            "tdpservice.data_files.views.ClamAVClient.scan_file",
+            return_value=ClamAVFileScan.Result.INFECTED,
+        )
+        mocker.patch("tdpservice.data_files.views.parser_task.parse.delay")
+
+        with caplog.at_level(
+            "INFO", logger="tdpservice.data_files.submission_lifecycle"
+        ):
+            response = self.post_data_file(api_client, data_file_data)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+        failure_records = [
+            record
+            for record in caplog.records
+            if getattr(record, "next_state", None)
+            == SubmissionState.VIRUS_SCAN_FAILED.value
+        ]
+        assert failure_records, "expected a virus_scan_failed lifecycle log"
+        record = failure_records[-1]
+        assert record.scan_result == "INFECTED"
+        assert record.previous_state == SubmissionState.VIRUS_SCAN_STARTED.value
+
+    @pytest.mark.django_db
+    def test_av_unavailable_logs_av_completion_with_error_scan_result(
+        self, api_client, data_file_data, mocker, caplog
+    ):
+        """Scanner outages should be reported as scan_result=ERROR in lifecycle logs."""
+        from tdpservice.security.clients import ClamAVClient
+
+        mocker.patch(
+            "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
+            new=True,
+        )
+        mocker.patch(
+            "tdpservice.data_files.views.ClamAVClient.scan_file",
+            side_effect=ClamAVClient.ServiceUnavailable(),
+        )
+        mocker.patch("tdpservice.data_files.views.parser_task.parse.delay")
+
+        with caplog.at_level(
+            "INFO", logger="tdpservice.data_files.submission_lifecycle"
+        ):
+            response = self.post_data_file(api_client, data_file_data)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+        failure_records = [
+            record
+            for record in caplog.records
+            if getattr(record, "next_state", None)
+            == SubmissionState.VIRUS_SCAN_FAILED.value
+        ]
+        assert failure_records, "expected a virus_scan_failed lifecycle log"
+        assert failure_records[-1].scan_result == "ERROR"
+
+    @pytest.mark.django_db
+    def test_clamav_error_result_logs_distinct_scan_result(
+        self, api_client, data_file_data, mocker, caplog
+    ):
+        """A ClamAV ERROR scan result must not be collapsed into INFECTED in
+        lifecycle audit logs. The scan_result field should be ``ERROR``."""
+        mocker.patch(
+            "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
+            new=True,
+        )
+        mocker.patch(
+            "tdpservice.data_files.views.ClamAVClient.scan_file",
+            return_value=ClamAVFileScan.Result.ERROR,
+        )
+        mocker.patch("tdpservice.data_files.views.parser_task.parse.delay")
+
+        with caplog.at_level(
+            "INFO", logger="tdpservice.data_files.submission_lifecycle"
+        ):
+            response = self.post_data_file(api_client, data_file_data)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == {
+            "detail": "Unable to complete security inspection, please try again or contact support for assistance"
+        }
+
+        failure_records = [
+            record
+            for record in caplog.records
+            if getattr(record, "next_state", None)
+            == SubmissionState.VIRUS_SCAN_FAILED.value
+        ]
+        assert failure_records, "expected a virus_scan_failed lifecycle log"
+        record = failure_records[-1]
+        assert record.scan_result == "ERROR"
+        assert record.scan_result != "INFECTED"
 
 
 class TestDataFileAPIAsInactiveUser(DataFileAPITestBase):

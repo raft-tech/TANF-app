@@ -61,7 +61,7 @@ def test_transition_datafile_updates_state():
     transition_datafile(
         data_file,
         SubmissionState.VIRUS_SCAN_STARTED,
-        note="Picked up by AV scan worker",
+        note="Picked up by AV scan",
     )
     data_file.refresh_from_db()
 
@@ -100,7 +100,7 @@ def test_transition_datafile_integration_persists_sequential_state_changes():
     transition_datafile(
         data_file,
         SubmissionState.VIRUS_SCAN_STARTED,
-        note="Virus scan worker picked up the file",
+        note="Virus scan started",
         logger_hook=payloads.append,
     )
     data_file.refresh_from_db()
@@ -121,7 +121,7 @@ def test_transition_datafile_integration_persists_sequential_state_changes():
             "data_file_id": data_file.id,
             "previous_state": SubmissionState.UPLOADED.value,
             "next_state": SubmissionState.VIRUS_SCAN_STARTED.value,
-            "note": "Virus scan worker picked up the file",
+            "note": "Virus scan started",
         },
         {
             "data_file_id": data_file.id,
