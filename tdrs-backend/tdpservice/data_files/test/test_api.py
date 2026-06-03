@@ -743,8 +743,12 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
     def test_clean_upload_logs_av_completion_with_scan_result(
         self, api_client, data_file_data, user, mocker, caplog
     ):
-        """Clean uploads should drive lifecycle state via complete_datafile_av_scan
-        and emit a structured log entry containing scan_result=CLEAN."""
+        """Verify clean uploads emit a CLEAN scan_result lifecycle log.
+
+        Clean uploads should drive lifecycle state via
+        complete_datafile_av_scan and emit a structured log entry
+        containing scan_result=CLEAN.
+        """
         mocker.patch(
             "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
             new=True,
@@ -780,8 +784,12 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
     def test_infected_upload_logs_av_completion_with_scan_result(
         self, api_client, data_file_data, infected_data_file, mocker, caplog
     ):
-        """Infected uploads should also flow through complete_datafile_av_scan
-        and produce a structured log entry containing scan_result=INFECTED."""
+        """Verify infected uploads emit an INFECTED scan_result lifecycle log.
+
+        Infected uploads should also flow through
+        complete_datafile_av_scan and produce a structured log entry
+        containing scan_result=INFECTED.
+        """
         data_file_data["file"] = infected_data_file
 
         mocker.patch(
@@ -849,8 +857,11 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
     def test_clamav_error_result_logs_distinct_scan_result(
         self, api_client, data_file_data, mocker, caplog
     ):
-        """A ClamAV ERROR scan result must not be collapsed into INFECTED in
-        lifecycle audit logs. The scan_result field should be ``ERROR``."""
+        """Verify ClamAV ERROR results are logged distinctly from INFECTED.
+
+        A ClamAV ERROR scan result must not be collapsed into INFECTED in
+        lifecycle audit logs. The scan_result field should be ``ERROR``.
+        """
         mocker.patch(
             "tdpservice.data_files.views.settings.CLAMAV_NEEDED",
             new=True,
