@@ -112,7 +112,7 @@ When the parse task runs:
 4. It applies cross-record rules such as case consistency and duplicate handling.
 5. It computes the final `DataFileSummary.status`.
 6. It maps the parser outcome back onto `DataFile.state`.
-7. It generates an error report and stores it on the summary.
+7. It generates an error report and performs aggregate calculations according to the file type, stores them on the summary.
 8. It sends a notification when the outcome should be surfaced to users.
 
 ---
