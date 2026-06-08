@@ -34,9 +34,9 @@ The problem is that **nothing above that primitive coordinates the full workflow
 | `scheduling/parser_task.py` (`parse` Celery task) | `→ PARSE_STARTED`, `→ PARSE_FAILED`, `→ PARSED_WITH_ERRORS`, `→ PARSE_COMPLETED` |
 | `scheduling/parser_task.py` (`_transition_parse_outcome`) | `→ PARSE_COMPLETED`, `→ PARSED_WITH_ERRORS`, `→ PARSE_FAILED` |
 | `search_indexes/reparse.py` (`handle_datafiles`) | queues `parse.delay()` with `reparse_id` but does **not** reset DataFile state first |
-| Go parser worker (`celery.go`) | Writes `"Rejected"` to `DataFileSummary.status` on failure/panic; writes nothing on success path (bug #5735) |
+| Go parser worker (`celery.go`) | Runs the Go parser task and hands completion back to Python post-parse orchestration |
 
-No module owns the decision of what happens _between_ steps. `views.py` decides when to call `parse.delay()`. `reparse.py` decides when to call `parse.delay()` again. The Go worker decides when (or whether) to write shadow-state. These decisions are made locally with no shared policy.
+No module owns the decision of what happens _between_ steps. `views.py` decides when to call `parse.delay()`. `reparse.py` decides when to call `parse.delay()` again. The Go worker can complete parsing independently, but Django still needs to own post-parse lifecycle finalization. These decisions are made locally with no shared policy.
 
 ### 2.2 Pain Points
 
@@ -46,7 +46,7 @@ No module owns the decision of what happens _between_ steps. `views.py` decides 
 
 3. **Reparse re-entry is underdocumented.** `handle_datafiles()` calls `parse.delay()` on a file that may be in `PARSE_COMPLETED`, `PARSED_WITH_ERRORS`, or `PARSE_FAILED`. The `ALLOWED_TRANSITIONS` map does allow those states to re-enter `PARSE_STARTED`, but callers must know which states are re-entrant. There is no guard that prevents `handle_datafiles()` from queuing a file that is currently in `PARSE_STARTED` (concurrent re-entry), which would cause the second task's `record_parse_started()` call to raise `InvalidTransition`.
 
-4. **The Go parser has no success-path status write.** `celery.go:processTask()` calls `updateDataFileSummaryStatus(ctx, id, "Rejected")` on failure and on panic, but returns `nil` on success without writing any status to `DataFileSummary`. This is the bug from #5735. There is no retry hook if the status write itself fails.
+4. **Go parser completion needs a single Django-owned post-parse path.** The Go worker can parse records and write parser output directly, but Django still owns DataFile state, DataFileSummary finalization, error report generation, email notifications, and reparse bookkeeping. The integration point should be a Python `post_parse(data_file_id, parser_backend="go", reparse_id=None)` task queued by the Go worker after parse completion, so Go does not duplicate Django-side application logic.
 
 5. **No single audit log for a complete file lifecycle.** Individual transitions are logged, but there is no structured event stream that shows: upload received → scan started → scan passed → parse queued → parse started → ... → completed.
 
@@ -66,8 +66,9 @@ tdpservice/
       orchestrator.py       ← DataFileOrchestrator class
       events.py             ← LifecycleEvent dataclass + audit log writer
   scheduling/
-    parser_task.py          ← unchanged except: replaces direct transition_datafile
-                               calls with orchestrator.record_parse_outcome()
+    parser_task.py          ← replaces direct transition_datafile calls with
+                               orchestrator.record_parse_outcome() and adds
+                               post_parse() for Python/Go finalization
   data_files/
     views.py                ← replaces direct calls with orchestrator.submit()
   search_indexes/
@@ -140,14 +141,19 @@ class DataFileOrchestrator:
 
 All state-transition methods (`begin_scan`, `record_scan_failure`, `record_scan_success`, `record_parse_started`, `record_parse_outcome`, `record_parse_failure`, `finalize`, `mark_stuck`, `cancel`) call `transition_datafile()` internally and do not expose the raw `SubmissionState` enum to callers.
 
-Go parser result handling sits outside `DataFileOrchestrator` because it does not change `DataFile.state` — it only updates `DataFileSummary.status`. It is implemented as a standalone helper:
+Go parser result handling re-enters Django through a Python post-parse task. That task loads the `DataFileSummary` written by the parser, asks the orchestrator to apply the parse outcome to `DataFile.state`, and then runs Django-owned finalization:
 
 ```python
-def record_go_parse_outcome(data_file_id: int, status: str) -> None:
-    """Write the Go parser's final DataFileSummary status directly.
-    Does not call transition_datafile(); DataFile.state is not changed.
-    Fixes the success-path gap in celery.go (processTask returns nil
-    without writing any status). Pending resolution of OQ-8."""
+def post_parse(
+    data_file_id: int,
+    parser_backend: str,
+    reparse_id: int | None = None,
+) -> None:
+    """Finalize parser output after Python or Go parsing completes.
+    For Go, this is the handoff point queued by the Go worker.
+    It updates DataFile.state via DataFileOrchestrator, refreshes
+    DataFileSummary artifacts, sends notifications, and records
+    reparse metadata."""
 ```
 
 ---
@@ -250,19 +256,22 @@ This module is **not changed**. `ALLOWED_TRANSITIONS`, `validate_transition()`, 
 
 ### 5.5 Go Parser Task Worker
 
-**Responsibility:** Run the Go parser against the same `DataFile` as the Python parser and write a final `DataFileSummary.status` directly to the database on failure or panic.
+**Responsibility:** Run the Go parser against the same `DataFile` model, write parser-owned database output, and enqueue Django post-parse finalization.
 
-The Go worker (`tdrs-services/parser/internal/server/celery/celery.go`) is a separate process consuming the `go-parser` Celery queue. It receives `go_parse` tasks containing a `data_file_id`. It connects to the same PostgreSQL database as Django and calls `db.UpdateDataFileSummaryStatus()` directly — there are no shadow tables; it writes to the same `DataFileSummary` row as the Python parser.
+The Go worker (`tdrs-services/parser/internal/server/celery/celery.go`) is a separate process consuming the `go-parser` Celery queue. It receives `go_parse` tasks containing a `data_file_id`. It connects to the same PostgreSQL database as Django, reads the submitted file from the same S3 bucket, and writes parsed records, parser errors, and parser-owned summary fields.
 
-Current behavior:
-- **Failure / panic:** calls `updateDataFileSummaryStatus(ctx, id, "Rejected")`.
-- **Success:** returns `nil` from `processTask()` without writing any status — this is the bug from #5735.
+Target completion flow:
+1. Go receives `go_parse(data_file_id, reparse_id=None)`.
+2. Go runs the parser pipeline and writes records/errors.
+3. Go writes enough result metadata for Django to derive the final `DataFileSummary.status` and artifacts.
+4. Go enqueues `post_parse(data_file_id, parser_backend="go", reparse_id=reparse_id)` on the Python Celery queue.
+5. Python `post_parse` calls `DataFileOrchestrator.record_parse_outcome()` or `record_parse_failure()`, generates/attaches the error report, sends submission/reparse notifications, and updates `ReparseFileMeta`.
 
-**Blocking bug from #5735:** `processTask()` (`celery.go` approximately lines 223–229, the success branch after `RunPipeline` returns nil) exits without calling `updateDataFileSummaryStatus`. A thin Python Celery result task (or a direct Go DB call) should invoke `record_go_parse_outcome(data_file_id, status)` on success, providing the canonical fix without touching the primary Python parse path.
+This post-parse task replaces the earlier success-path-only fix from #5735. Rather than having Go partially duplicate `_finalize_parse()`, `_transition_parse_outcome()`, `_notify_data_analysts()`, and `_finalize_reparse()`, Go only reports that parsing is complete and Python runs the existing Django-side finalization in one place.
 
-**Race condition:** Both the Python parser (`parser_task.py`) and the Go worker write to the same `DataFileSummary` row. If both tasks run concurrently, the last write wins on `status`, `case_aggregates`, and `error_report`. The correct concurrency policy — whether Go writes are authoritative, advisory, or scoped to non-overlapping file types — must be defined in OQ-8 before dual dispatch is enabled.
+**Race condition:** If the Python parser (`parser_task.py`) and the Go worker run against the same production `DataFile`, both can write parser output and both can trigger post-parse finalization. The correct concurrency policy — whether Go is authoritative, advisory, or scoped to non-overlapping file types — must be defined in OQ-8 before dual dispatch is enabled.
 
-**What it must not do:** issue Django `transition_datafile()` calls or update `DataFile.state` — DataFile state is owned by the Python orchestrator.
+**What it must not do:** issue Django `transition_datafile()` calls, update `DataFile.state`, send user notifications, or update reparse metadata directly — those are owned by Python post-parse orchestration.
 
 ---
 
@@ -352,16 +361,39 @@ This gives a per-file, time-ordered event log that can be used to:
 
 ### 7.3 Metrics
 
-Each orchestrator method should emit a counter metric:
-- `datafile.transition.total{from_state, to_state, actor}` — count of successful transitions.
-- `datafile.transition.invalid{from_state, attempted_to_state}` — count of `InvalidTransition` raises.
-- `datafile.parse.duration{program_type, section}` — histogram from `PARSE_STARTED` to outcome.
+Metrics should be split by ownership boundary:
+
+- **Django lifecycle metrics** are registered in the data file lifecycle/post-parse modules using the existing `django_prometheus` integration. They are exposed through `/prometheus/metrics`, which Prometheus already scrapes for the backend and Python worker applications.
+- **Go parser execution metrics** are emitted by the Go parser worker and scraped as a separate Prometheus job for the `go-parser` container. These show pipeline health before Django post-parse runs.
+- **Post-parse handoff metrics** are emitted by both sides: Go records whether it successfully queued `post_parse`, and Django records whether `post_parse` completed lifecycle finalization.
+
+Lifecycle/orchestrator metrics:
+- `datafile_transition_total{from_state, to_state, actor}` — counter of successful transitions.
+- `datafile_transition_invalid_total{from_state, attempted_to_state, actor}` — counter of `InvalidTransition` raises.
+- `datafile_parse_lifecycle_duration_seconds{program_type, section, parser_backend, outcome}` — histogram from `PARSE_STARTED` to a terminal parse state.
+- `datafile_stuck_total{state, reason}` — counter of files marked `STUCK`.
+
+Go parser metrics:
+- `go_parser_task_total{program_type, section, outcome}` — counter of Go parse tasks by outcome (`success`, `rejected`, `failed`, `panic`).
+- `go_parser_task_duration_seconds{program_type, section, outcome}` — histogram for end-to-end Go parse runtime.
+- `go_parser_pipeline_stage_duration_seconds{stage, program_type, section}` — histogram for decode, presort, accumulate, parse, validate, and write stages.
+- `go_parser_records_total{program_type, section, record_type}` — counter of accepted records written.
+- `go_parser_errors_total{program_type, section, category}` — counter of parser errors generated.
+
+Post-parse metrics:
+- `datafile_post_parse_enqueued_total{parser_backend, outcome}` — counter emitted when the parser attempts to enqueue Python `post_parse`.
+- `datafile_post_parse_total{parser_backend, outcome}` — counter emitted by Python when post-parse finalization completes or fails.
+- `datafile_post_parse_duration_seconds{parser_backend, outcome}` — histogram for error report generation, summary refresh, notifications, and reparse bookkeeping.
+- `datafile_post_parse_lag_seconds{parser_backend}` — histogram from parser completion to `post_parse` task start; useful for detecting Python worker backlog.
 
 ### 7.4 Alerting
 
-- Alert on `datafile.transition.invalid` spike — indicates a code path calling transitions out of order.
+- Alert on `datafile_transition_invalid_total` spike — indicates a code path calling transitions out of order.
 - Alert on files in `PARSE_STARTED` for > 30 minutes (timeout threshold) — drives the `mark_stuck()` workflow.
 - Alert on files in `VIRUS_SCAN_STARTED` for > 5 minutes without resolution — scanner may be down.
+- Alert on `go_parser_task_total{outcome="panic"}` or sustained `go_parser_task_total{outcome="failed"}` — Go parser worker or input compatibility issue.
+- Alert on `datafile_post_parse_enqueued_total{outcome="failed"}` — Go parsed the file but could not hand off to Django finalization.
+- Alert on elevated `datafile_post_parse_lag_seconds` — Python worker backlog is delaying user-facing results after parsing completes.
 
 ---
 
@@ -406,7 +438,7 @@ Migration is split into four phases to allow incremental rollout with no flag-da
 
 **Validation:** Full parser test suite passes. End-to-end parse of a sample TANF file in staging.
 
-### Phase 4 — Migrate `reparse.py` and fix Go parser success path
+### Phase 4 — Migrate `reparse.py` and wire Go post-parse handoff
 
 **Effort:** 3 engineer-days  
 **Dependencies:** Phase 3  
@@ -414,10 +446,12 @@ Migration is split into four phases to allow incremental rollout with no flag-da
 
 1. Replace `parse.delay()` in `handle_datafiles()` with `orchestrator.enqueue_reparse(meta_model, previous_summary_status)`.
 2. Add re-entry guard inside `enqueue_reparse()`: raise `InvalidTransition` if the file is in `COMPLETED`, `CANCELED`, or `PARSE_STARTED`; proceed for `PARSE_FAILED`, `PARSED_WITH_ERRORS`, `PARSE_COMPLETED`.
-3. Add `record_go_parse_outcome()` call in the Go worker success path (thin Python Celery result task or direct Go DB call) to fix #5735 success-path gap.
-4. Add `LifecycleEvent` model and wire up event writes throughout the orchestrator (can be deferred to a 4b sub-phase).
+3. Add Python `post_parse(data_file_id, parser_backend, reparse_id=None)` and route it to the Python worker queue.
+4. Update the Go worker success/failure paths to enqueue `post_parse` after parser output is written.
+5. Move Django-owned finalization into `post_parse`: DataFile state transition, DataFileSummary artifact refresh, error report generation, notifications, and reparse metadata.
+6. Add `LifecycleEvent` model and wire up event writes throughout the orchestrator (can be deferred to a 4b sub-phase).
 
-**Validation:** End-to-end reparse of a single file in staging. Go parser queue enabled in staging; verify `DataFileSummary.status` is written on both success and failure paths.
+**Validation:** End-to-end reparse of a single file in staging. Go parser queue enabled in staging; verify Go writes parser output, enqueues `post_parse`, and Python post-parse moves `DataFile.state` plus refreshes `DataFileSummary` on both success and failure paths.
 
 ---
 
@@ -473,9 +507,9 @@ Before each phase ships to production:
 | OQ-1 | Should `LifecycleEvent` be a DB model or a structured log key? A DB model supports future admin UI timelines but adds a migration and a write on every transition. | Backend Lead + PM | Phase 1 planning |
 | OQ-2 | Should `COMPLETED` be reachable from `PARSED_WITH_ERRORS` directly (current), or only via an explicit analyst review action? | PM + OFA | Before Phase 3 |
 | OQ-3 | What is the correct `finalize()` trigger? Currently there is no explicit `→ COMPLETED` call in the codebase. `PARSE_COMPLETED` and `PARSED_WITH_ERRORS` are both treated as terminal in the UI. The orchestrator's `finalize()` method needs a caller. | Engineering + PM | Phase 3 design |
-| OQ-4 | Go parser success-path result delivery: should `record_go_parse_outcome()` be invoked by a thin Python Celery result-callback task, or should `celery.go` call `updateDataFileSummaryStatus` directly before returning? The choice affects whether Go ever needs to know Django's status string vocabulary. | Backend + Go team | Phase 4 planning |
+| OQ-4 | What exact payload should Go pass to Python `post_parse`? At minimum it needs `data_file_id`, `parser_backend`, and `reparse_id`; it may also need task outcome, parser completion timestamp, and failure reason so Django can emit accurate post-parse metrics and lifecycle events. | Backend + Go team | Phase 4 planning |
 | OQ-5 | Timeout / `STUCK` automation: what process monitors `PARSE_STARTED` age and calls `mark_stuck()`? Celery beat task? Health check? | Engineering | Phase 4 |
-| OQ-6 | Status string mismatch between Go worker (`"Partially Accepted"`) and Django (`"Partially Accepted with Errors"`) (#5735). Which is canonical? Fix must be coordinated across both repos before `record_go_parse_outcome()` is wired up. | Backend + Go team | Before Phase 4 |
+| OQ-6 | Status string mismatch between Go worker (`"Partially Accepted"`) and Django (`"Partially Accepted with Errors"`) (#5735). Which is canonical? Fix must be coordinated before Python `post_parse` derives `DataFile.state` from Go parser output. | Backend + Go team | Before Phase 4 |
 | OQ-7 | Should `VIRUS_SCAN_FAILED` be re-entrant? Currently there is no path from `VIRUS_SCAN_FAILED → VIRUS_SCAN_STARTED`. If OFA wants to allow a re-upload without creating a new DataFile, the transition map needs to change. | PM + OFA | Phase 1 planning |
 | OQ-8 | What is the Go parser's integration mode? Options: (a) **canary** — both parsers run concurrently, Python result is authoritative; (b) **replacement** — Go replaces Python for supported file types, Python does not run; (c) **comparison** — both run, results are diffed, neither is authoritative. This decision determines whether `go_parse.delay()` is dispatched from `enqueue_parse()`, which queue owns `DataFileSummary` writes, and how the race condition between the two workers is resolved. Currently no production code dispatches `go_parse.delay()`. | Backend + Go team + PM | Before Phase 2 |
 
