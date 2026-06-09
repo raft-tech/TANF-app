@@ -165,6 +165,32 @@ Mostly for use in our CircleCI pipelines, this script ensures the desired codeba
 
 `deploy-frontend.sh` is used in [CircleCI config](../.circleci/config.yml)'s job `deploy-frontend` which is used by `deploy-cloud-dot-gov` command. This script is primarily via in CircleCI but with CloudFoundry set up and logged in locally, this can also be used by a developer manually. Please also see our [CircleCI documentation](../docs/Technical-Documentation/circle-ci.md#deploy-frontend).
 
+## toggle-maintenance-route.sh
+
+### Usage
+
+```
+scripts/toggle-maintenance-route.sh <enable|disable> <primary-app> <maintenance-app> <domain> [hostname]
+```
+
+### Examples
+
+```
+# Production custom domain
+scripts/toggle-maintenance-route.sh enable tdp-frontend tdp-frontend-maint tanfdata.acf.hhs.gov
+scripts/toggle-maintenance-route.sh disable tdp-frontend tdp-frontend-maint tanfdata.acf.hhs.gov
+
+# app.cloud.gov route
+scripts/toggle-maintenance-route.sh enable tdp-frontend-staging tdp-frontend-staging-maint app.cloud.gov tdp-frontend-staging
+scripts/toggle-maintenance-route.sh disable tdp-frontend-staging tdp-frontend-staging-maint app.cloud.gov tdp-frontend-staging
+```
+
+### Description
+
+Toggles maintenance mode by switching the public route between your primary frontend app and a dedicated maintenance app, without editing nginx config in the primary app.
+
+This is preferred for Cloud.gov/Cloud Foundry operations because it is fast, reversible, and avoids configuration drift in production app instances.
+
 ## deploy-infrastructure-dev.sh
 
 ### Usage
