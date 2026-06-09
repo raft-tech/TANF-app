@@ -7,7 +7,7 @@ else
   set -x
 
   echo Importing Codecov PGP public keys...
-  curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --import
+  curl -fsSL https://uploader.codecov.io/verification.gpg | gpg --import
 
   echo Downloading codecov uploader...
   curl -Os https://uploader.codecov.io/latest/linux/codecov
