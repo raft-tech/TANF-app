@@ -172,33 +172,23 @@ Mostly for use in our CircleCI pipelines, this script ensures the desired codeba
 ```
 # Single-app in-place toggle (no restart)
 scripts/toggle-maintenance-route.sh <enable|disable> <app>
-
-# Route-switch toggle (primary + maintenance app)
-scripts/toggle-maintenance-route.sh <enable|disable> <primary-app> <maintenance-app> <domain> [hostname]
 ```
 
 ### Examples
 
 ```
-# Single-app in-place toggle
+# Production/custom-domain style: single-app in-place toggle
+scripts/toggle-maintenance-route.sh enable tdp-frontend
+scripts/toggle-maintenance-route.sh disable tdp-frontend
+
+# app.cloud.gov style: single-app in-place toggle
 scripts/toggle-maintenance-route.sh enable tdp-frontend-a11y
 scripts/toggle-maintenance-route.sh disable tdp-frontend-a11y
-
-# Production custom domain
-scripts/toggle-maintenance-route.sh enable tdp-frontend tdp-frontend-maint tanfdata.acf.hhs.gov
-scripts/toggle-maintenance-route.sh disable tdp-frontend tdp-frontend-maint tanfdata.acf.hhs.gov
-
-# app.cloud.gov route
-scripts/toggle-maintenance-route.sh enable tdp-frontend-staging tdp-frontend-staging-maint app.cloud.gov tdp-frontend-staging
-scripts/toggle-maintenance-route.sh disable tdp-frontend-staging tdp-frontend-staging-maint app.cloud.gov tdp-frontend-staging
 ```
 
 ### Description
 
-Supports two modes:
-
-1. Single-app in-place mode: uses `cf ssh` to copy/remove `503.html` in each running app instance without restart.
-2. Route-switch mode: switches the public route between your primary frontend app and a dedicated maintenance app.
+Single-app in-place mode uses `cf ssh` to copy/remove `503.html` in each running app instance without restart.
 
 Single-app mode is fast and avoids restart, but is ephemeral: changes are lost on app restart/restage/redeploy.
 
