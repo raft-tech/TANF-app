@@ -35,10 +35,6 @@ else
     else
       install_dir="$HOME/.local/bin"
       mkdir -p "$install_dir"
-      export PATH="$install_dir:$PATH"
-      if [ -n "${BASH_ENV:-}" ]; then
-        echo "export PATH=\"$install_dir:\$PATH\"" >> "$BASH_ENV"
-      fi
     fi
   fi
 
@@ -47,6 +43,19 @@ else
   else
     install -m 0755 ./codecov "$install_dir/codecov"
   fi
+
+  # Ensure the installed binary is discoverable in subsequent CI steps.
+  case ":$PATH:" in
+    *":$install_dir:"*) ;;
+    *)
+      export PATH="$install_dir:$PATH"
+      if [ -n "${BASH_ENV:-}" ]; then
+        echo "export PATH=\"$install_dir:\$PATH\"" >> "$BASH_ENV"
+      fi
+      ;;
+  esac
+
+  command -v codecov > /dev/null 2>&1
 
   rm codecov.SHA256SUM
   rm codecov.SHA256SUM.sig
