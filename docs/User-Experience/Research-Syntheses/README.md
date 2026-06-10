@@ -5,7 +5,7 @@ With a few exceptions, we've tended to publish markdown research syntheses to su
 
 The syntheses included herein are organized reverse-chronologically from newest to oldest:
 
-### 2026, Summer - Error Reporting Research 
+### 2026, Spring - Error Reporting Research 
 - Conducted 13 research sessions with STT users involved in TANF data submission and error correction workflows, with the TDP Office Hours Webinar used as an additional data point.
 - Explored how users currently review, interpret, share, and act on TDP error reports, including how workflows vary across teams.
 - Identified opportunities to make error reporting more actionable and easier to understand by improving report hierarchy, plain-language guidance, contextual error details, clearer sharing workflows and submission history records that support follow-up and audits.
