@@ -170,12 +170,20 @@ Mostly for use in our CircleCI pipelines, this script ensures the desired codeba
 ### Usage
 
 ```
+# Single-app in-place toggle (no restart)
+scripts/toggle-maintenance-route.sh <enable|disable> <app>
+
+# Route-switch toggle (primary + maintenance app)
 scripts/toggle-maintenance-route.sh <enable|disable> <primary-app> <maintenance-app> <domain> [hostname]
 ```
 
 ### Examples
 
 ```
+# Single-app in-place toggle
+scripts/toggle-maintenance-route.sh enable tdp-frontend-a11y
+scripts/toggle-maintenance-route.sh disable tdp-frontend-a11y
+
 # Production custom domain
 scripts/toggle-maintenance-route.sh enable tdp-frontend tdp-frontend-maint tanfdata.acf.hhs.gov
 scripts/toggle-maintenance-route.sh disable tdp-frontend tdp-frontend-maint tanfdata.acf.hhs.gov
@@ -187,9 +195,14 @@ scripts/toggle-maintenance-route.sh disable tdp-frontend-staging tdp-frontend-st
 
 ### Description
 
-Toggles maintenance mode by switching the public route between your primary frontend app and a dedicated maintenance app, without editing nginx config in the primary app.
+Supports two modes:
 
-This is preferred for Cloud.gov/Cloud Foundry operations because it is fast, reversible, and avoids configuration drift in production app instances.
+1. Single-app in-place mode: uses `cf ssh` to copy/remove `503.html` in each running app instance without restart.
+2. Route-switch mode: switches the public route between your primary frontend app and a dedicated maintenance app.
+
+Single-app mode is fast and avoids restart, but is ephemeral: changes are lost on app restart/restage/redeploy.
+
+In single-app mode, the script auto-detects common `503.html` source locations in the running container and writes to the active document root path used by Cloud.gov nginx buildpack.
 
 ## deploy-infrastructure-dev.sh
 
