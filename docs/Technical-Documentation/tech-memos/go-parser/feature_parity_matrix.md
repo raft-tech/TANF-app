@@ -70,7 +70,7 @@ See [architecture_and_integration_plan.md](architecture_and_integration_plan.md)
 | Dockerfile | N/A | No | Not Started | |
 | Docker-compose integration | N/A | No | Not Started | |
 | CI/CD pipeline (build, test, lint) | Yes | No | Not Started | |
-| SQLC schema validation in CI | N/A | No | Not Started | |
+| Django/YAML schema contract in CI | N/A | Yes | Done | Active search index model fields are compared to Go YAML schemas |
 | **Post-Parse Operations** | | | | |
 | Post-parse task enqueue to Python worker | Yes | No | Not Started | |
 | Email notifications | Yes | N/A | N/A | Python handles |
