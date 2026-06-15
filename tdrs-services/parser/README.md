@@ -455,8 +455,10 @@ For integration tests in CI, CircleCI reuses the existing backend docker-compose
 1. Create a schema YAML in `config/schemas/<program>/<type>.yaml`
 2. Add the schema path to the relevant filespec in `config/filespecs/`
 3. Add validators for the new fields in `config/validation/validators.yaml`
-4. Add a row serializer in `internal/storage/writer/`
-5. Add the table to `schema.sql` and run `sqlc generate`
+4. Add the table to `schema.sql` and run `sqlc generate`
+
+Writer table names, COPY columns, and row values are derived from the schema
+YAML. Do not add record-specific row serializers for new record types.
 
 ### Modifying a Validator
 
