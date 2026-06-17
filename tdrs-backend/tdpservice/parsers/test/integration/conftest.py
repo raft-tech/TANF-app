@@ -51,17 +51,29 @@ def _delete_datafiles_outside_transaction(datafile_ids: Iterable[int]) -> None:
         (DataFileSummary._meta.db_table, "datafile_id"),
         (ParserError._meta.db_table, "file_id"),
         (ReparseFileMeta._meta.db_table, "data_file_id"),
-        (ClamAVFileScan._meta.db_table, "data_file_id"),
-        (LegacyFileTransfer._meta.db_table, "data_file_id"),
     ]
     record_models = MODELS + [ProgramAudit_T1, ProgramAudit_T2, ProgramAudit_T3]
     delete_specs.extend(
         (model._meta.db_table, "datafile_id") for model in record_models
     )
+    null_specs = [
+        (ClamAVFileScan._meta.db_table, "data_file_id"),
+        (LegacyFileTransfer._meta.db_table, "data_file_id"),
+    ]
 
     with closing(_connect_to_default_database()) as conn:
         conn.autocommit = True
         with conn.cursor() as cursor:
+            for table_name, column_name in null_specs:
+                cursor.execute(
+                    sql.SQL("UPDATE {} SET {} = NULL WHERE {} = ANY(%s)").format(
+                        sql.Identifier(table_name),
+                        sql.Identifier(column_name),
+                        sql.Identifier(column_name),
+                    ),
+                    [datafile_ids],
+                )
+
             for table_name, column_name in delete_specs:
                 cursor.execute(
                     sql.SQL("DELETE FROM {} WHERE {} = ANY(%s)").format(
