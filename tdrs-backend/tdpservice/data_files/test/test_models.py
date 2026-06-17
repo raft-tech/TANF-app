@@ -247,6 +247,7 @@ def test_submission_state_enum_matches_parsing_refactor_writeup():
         "virus_scan_started",
         "virus_scan_failed",
         "virus_scan_completed",
+        "reparse_requested",
         "parse_started",
         "parse_failed",
         "parsed_with_errors",
