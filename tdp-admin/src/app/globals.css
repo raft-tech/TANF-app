@@ -1,9 +1,10 @@
 :root {
   --background: #ffffff;
   --foreground: #1b1b1b;
-  --primary-acf-blue: #005ea2;
-  --primary-light-pale-blue: #f0f6fb;
-  --primary-medium-blue: #0071bc;
+  --primary-acf-blue: #264a64;
+  --primary-light-pale-blue: #e2eff7;
+  --primary-medium-blue: #336a90;
+  --primary-graphite: #212121;
   --border-subtle: #dfe1e2;
 }
 
@@ -22,7 +23,6 @@ body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: "Source Sans Pro", "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -39,12 +39,14 @@ a {
 }
 
 .admin-login-page {
-  min-height: 100%;
-  background: #efefef;
+  min-height: 100vh;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
 }
 
 .admin-login-page__shell {
-  padding: 1.25rem;
+  padding: 0;
 }
 
 .admin-gov-banner {
@@ -67,30 +69,45 @@ a {
 }
 
 .admin-header .usa-logo__text a {
-  color: #1b1b1b;
-  font-size: 1.25rem;
-  font-weight: 700;
+  color: var(--primary-acf-blue);
   text-decoration: none;
 }
 
 .admin-hero {
-  padding: 0;
-  min-height: 270px;
-  background:
-    linear-gradient(0deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.22)),
-    url("/hero1.jpg") center center / cover no-repeat;
+  padding: 20px;
+  background: url("/hero1.jpg") center center / cover no-repeat;
 }
 
 .admin-login-page__lede {
   line-height: 1.6;
 }
 
+.admin-login-page__callout .usa-hero__heading--alt {
+  color: var(--primary-acf-blue);
+}
+
+.admin-login-page__callout .admin-login-page__lede {
+  color: var(--foreground);
+  line-height: 1.6;
+}
+
 .admin-login-page__callout {
   background-color: var(--primary-light-pale-blue);
-  box-shadow: 0 0 29px rgb(0 0 0 / 50%);
+  box-shadow: 0 0 29px 0 rgb(0 0 0 / 50%);
   border-radius: 0.25rem;
-  max-width: 23rem;
-  margin: 0 0 0 0.75rem;
+}
+
+.admin-login-page__login-button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-login-page__login-gov-logo {
+  display: inline-block;
+  width: 7.5rem;
+  height: auto;
+  padding-left: 0.5rem;
 }
 
 .usa-hero__heading--alt {
@@ -101,10 +118,17 @@ a {
 .admin-login-page .sign-in-button:hover,
 .admin-login-page .sign-in-button:visited {
   background-color: var(--primary-medium-blue);
-  font-size: 0.85rem;
+  color: #fff;
+  font-size: 16px;
   display: flex;
+  align-items: center;
   justify-content: center;
   text-align: center;
+}
+
+.admin-login-page .sign-in-button:hover,
+.admin-login-page .sign-in-button:focus {
+  background-color: #005f92;
 }
 
 .admin-login-page__details {
@@ -121,13 +145,23 @@ a {
   text-underline-offset: 0.15em;
 }
 
-.admin-login-page__resources {
-  padding: 0.75rem 0 1.5rem;
-  background: #efefef;
-}
 
 .resources-header {
-  color: #1b1b1b;
+  color: var(--primary-graphite);
+}
+
+.admin-login-page__resources {
+  padding-left: 0;
+}
+
+.usa-card__footer .usa-button,
+.usa-card__footer .usa-button:hover {
+  background-color: var(--primary-medium-blue);
+  color: #fff;
+}
+
+.usa-card__footer .usa-button:focus {
+  background-color: #005f92;
 }
 
 .admin-login-page__resources .usa-card__container {
@@ -137,26 +171,33 @@ a {
 }
 
 .admin-login-page__resources .usa-card__heading {
-  font-size: 1rem;
+  font-weight: 700;
 }
 
 .admin-login-page__resources .usa-card__body p {
-  font-size: 0.82rem;
-  line-height: 1.45;
-}
-
-.admin-login-page__resources .usa-card__footer .usa-button {
-  font-size: 0.72rem;
-  line-height: 1.1;
+  line-height: 1.6;
 }
 
 .admin-footer {
   margin-top: auto;
 }
 
+.usa-footer__primary-section,
+.usa-footer__secondary-section {
+  background-color: var(--primary-light-pale-blue);
+}
+
+.usa-footer__primary-link {
+  color: var(--primary-acf-blue);
+}
+
+.margin-left-neg-205 {
+  margin-left: -1.25rem;
+}
+
 @media (max-width: 640px) {
   .admin-login-page__shell {
-    padding: 0.75rem 1rem;
+    padding: 0;
   }
 
   .admin-gov-banner__inner {
@@ -178,5 +219,18 @@ a {
   .admin-login-page__actions .usa-button,
   .admin-login-page__actions .usa-button:visited {
     width: 100%;
+  }
+
+  .admin-login-page__login-button-content {
+    flex-direction: column;
+    align-items: center;
+    margin: auto;
+  }
+
+  .admin-login-page__login-gov-logo {
+    margin-left: auto;
+    margin-right: auto;
+    padding-top: 0.5rem;
+    padding-left: 0;
   }
 }
