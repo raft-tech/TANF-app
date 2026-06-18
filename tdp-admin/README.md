@@ -7,8 +7,9 @@ Administrative frontend for the TANF Data Portal.
 Install dependencies and start the app with the workspace task or a local dev server.
 
 ```bash
-npm install
-npm run dev
+corepack prepare yarn@4.6.0 --activate
+yarn install
+yarn dev
 ```
 
 Open [http://localhost:3001](http://localhost:3001) to reach the admin login page.

@@ -364,7 +364,7 @@ tasks:
     dir: tdp-admin
     cmds:
       - docker compose -f docker-compose.local.yml up -d --build tdp-admin
-      - docker compose -f docker-compose.local.yml exec tdp-admin sh -c "npm ci"
+      - docker compose -f docker-compose.local.yml exec tdp-admin sh -c "corepack prepare yarn@4.6.0 && corepack yarn install"
       - docker compose -f docker-compose.local.yml down
 
   admin-up:
@@ -401,13 +401,13 @@ tasks:
     desc: Run admin unit tests (Vitest)
     dir: tdp-admin
     cmds:
-      - npm run test
+      - yarn test
 
   admin-test-watch:
     desc: Run admin unit tests in watch mode
     dir: tdp-admin
     cmds:
-      - npm run test:watch
+      - yarn test:watch
 
   frontend-init:
     desc: Initialize the frontend project (localdev image with node_modules)
