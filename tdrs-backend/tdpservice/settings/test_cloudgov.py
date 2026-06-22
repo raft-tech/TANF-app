@@ -84,6 +84,7 @@ def import_cloudgov_settings(monkeypatch, space_name, app_name):
         "settings_class_name",
         "expected_server_url",
         "expected_browser_url",
+        "expected_database_name",
         "expected_hosts",
         "expected_origins",
         "expected_set_audience",
@@ -95,6 +96,7 @@ def import_cloudgov_settings(monkeypatch, space_name, app_name):
             "Development",
             "http://dev-auth.apps.internal:8080",
             "https://dev.auth.tanfdata.acf.hhs.gov",
+            "tdp_db_test",
             {
                 "test.tanfdata.acf.hhs.gov",
                 "qasp.tanfdata.acf.hhs.gov",
@@ -113,6 +115,7 @@ def import_cloudgov_settings(monkeypatch, space_name, app_name):
             "Staging",
             "http://staging-auth.apps.internal:8080",
             "https://staging.auth.tanfdata.acf.hhs.gov",
+            "tdp_db_staging",
             {
                 "develop.tanfdata.acf.hhs.gov",
                 "staging.tanfdata.acf.hhs.gov",
@@ -129,6 +132,7 @@ def import_cloudgov_settings(monkeypatch, space_name, app_name):
             "Production",
             "http://auth.apps.internal:8080",
             "https://auth.tanfdata.acf.hhs.gov",
+            "tdp_db",
             {"tanfdata.acf.hhs.gov"},
             {"https://tanfdata.acf.hhs.gov"},
             "https://tanfdata.acf.hhs.gov/v1/security/event-token/",
@@ -142,6 +146,7 @@ def test_cloudgov_custom_domain_defaults(
     settings_class_name,
     expected_server_url,
     expected_browser_url,
+    expected_database_name,
     expected_hosts,
     expected_origins,
     expected_set_audience,
@@ -152,6 +157,7 @@ def test_cloudgov_custom_domain_defaults(
 
     assert settings_class.KEYCLOAK_SERVER_URL == expected_server_url
     assert settings_class.KEYCLOAK_BROWSER_URL == expected_browser_url
+    assert settings_class.DATABASES["default"]["NAME"] == expected_database_name
     assert settings_class.SESSION_COOKIE_DOMAIN == ".tanfdata.acf.hhs.gov"
     assert expected_hosts.issubset(set(settings_class.ALLOWED_HOSTS))
     assert expected_origins.issubset(set(settings_class.CORS_ALLOWED_ORIGINS))
