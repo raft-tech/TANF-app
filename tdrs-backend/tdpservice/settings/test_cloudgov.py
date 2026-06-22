@@ -93,7 +93,7 @@ def import_cloudgov_settings(monkeypatch, space_name, app_name):
             "tanf-dev",
             "tdp-backend-raft",
             "Development",
-            "http://dev.auth.apps.internal:8080",
+            "http://dev-auth.apps.internal:8080",
             "https://dev.auth.tanfdata.acf.hhs.gov",
             {
                 "test.tanfdata.acf.hhs.gov",
@@ -111,7 +111,7 @@ def import_cloudgov_settings(monkeypatch, space_name, app_name):
             "tanf-staging",
             "tdp-backend-staging",
             "Staging",
-            "http://staging.auth.apps.internal:8080",
+            "http://staging-auth.apps.internal:8080",
             "https://staging.auth.tanfdata.acf.hhs.gov",
             {
                 "develop.tanfdata.acf.hhs.gov",

@@ -98,7 +98,7 @@ Keycloak is deployed with two routes:
 
 | Route | Purpose | Used by |
 |-------|---------|---------|
-| `dev.auth.apps.internal:8080`, `staging.auth.apps.internal:8080`, or `auth.apps.internal:8080` (internal) | Server-to-server API calls | Django backend, Celery, Grafana |
+| `dev-auth.apps.internal:8080`, `staging-auth.apps.internal:8080`, or `auth.apps.internal:8080` (internal) | Server-to-server API calls | Django backend, Celery, Grafana |
 | `dev.auth.tanfdata.acf.hhs.gov`, `staging.auth.tanfdata.acf.hhs.gov`, or `auth.tanfdata.acf.hhs.gov` (public) | Browser OIDC redirects, admin console | User browsers |
 
 Django settings use:

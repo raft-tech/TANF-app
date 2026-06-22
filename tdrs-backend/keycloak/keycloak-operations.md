@@ -68,7 +68,7 @@ cd tdrs-backend/keycloak
 
 1. Copies `manifest.yml` → `manifest.tmp.yml` and injects environment-specific values via `yq`
 2. Pushes the Docker image to Cloud Foundry with rolling strategy
-3. Maps the **internal** route: `dev.auth.apps.internal:8080`, `staging.auth.apps.internal:8080`, or `auth.apps.internal:8080` (server-to-server)
+3. Maps the **internal** route: `dev-auth.apps.internal:8080`, `staging-auth.apps.internal:8080`, or `auth.apps.internal:8080` (server-to-server)
 4. Maps the **public** route: `dev.auth.tanfdata.acf.hhs.gov`, `staging.auth.tanfdata.acf.hhs.gov`, or `auth.tanfdata.acf.hhs.gov` (browser redirects, admin console)
 5. Sets `DEPLOY_ENV` so the container selects the correct checked-in realm export before import
 6. Creates network policies so backend and celery apps can reach Keycloak on port 8080

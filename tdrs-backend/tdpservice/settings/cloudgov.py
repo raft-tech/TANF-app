@@ -46,8 +46,8 @@ def get_keycloak_server_url(cloudgov_space_suffix):
     if cloudgov_space_suffix == "prod":
         return "http://auth.apps.internal:8080"
     if cloudgov_space_suffix == "staging":
-        return "http://staging.auth.apps.internal:8080"
-    return "http://dev.auth.apps.internal:8080"
+        return "http://staging-auth.apps.internal:8080"
+    return "http://dev-auth.apps.internal:8080"
 
 
 def get_keycloak_browser_url(cloudgov_space_suffix):

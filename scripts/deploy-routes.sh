@@ -50,10 +50,10 @@ keycloak_public_host_for_env() {
 keycloak_internal_host_for_env() {
   case "$1" in
     dev)
-      echo "dev.auth.${TDP_INTERNAL_DOMAIN}"
+      echo "dev-auth.${TDP_INTERNAL_DOMAIN}"
       ;;
     staging)
-      echo "staging.auth.${TDP_INTERNAL_DOMAIN}"
+      echo "staging-auth.${TDP_INTERNAL_DOMAIN}"
       ;;
     prod)
       echo "auth.${TDP_INTERNAL_DOMAIN}"
@@ -163,16 +163,26 @@ route_hostname_for_fqdn() {
   echo "${route_fqdn%.$route_domain}"
 }
 
+cf_domain_exists() {
+  cf domains 2>/dev/null | awk '{print $1}' | grep -Fx "$1" >/dev/null 2>&1
+}
+
 map_route_for_fqdn() {
   route_app="$1"
   route_fqdn="$2"
-  if ! route_domain="$(route_domain_for_fqdn "$route_fqdn")"; then
-    echo "Unsupported route domain for FQDN: $route_fqdn"
-    return 1
-  fi
-  if ! route_hostname="$(route_hostname_for_fqdn "$route_fqdn")"; then
-    echo "Unsupported route hostname for FQDN: $route_fqdn"
-    return 1
+
+  if cf_domain_exists "$route_fqdn"; then
+    route_domain="$route_fqdn"
+    route_hostname=""
+  else
+    if ! route_domain="$(route_domain_for_fqdn "$route_fqdn")"; then
+      echo "Unsupported route domain for FQDN: $route_fqdn"
+      return 1
+    fi
+    if ! route_hostname="$(route_hostname_for_fqdn "$route_fqdn")"; then
+      echo "Unsupported route hostname for FQDN: $route_fqdn"
+      return 1
+    fi
   fi
 
   if [ -n "$route_hostname" ]; then

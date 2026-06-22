@@ -317,7 +317,7 @@ cd keycloak
 This will:
 1. Push the Keycloak Docker image to Cloud Foundry
 2. Bind the RDS service for the database
-3. Map the internal route (`dev.auth.apps.internal`, `staging.auth.apps.internal`, or `auth.apps.internal`) for server-to-server backend/celery calls
+3. Map the internal route (`dev-auth.apps.internal`, `staging-auth.apps.internal`, or `auth.apps.internal`) for server-to-server backend/celery calls
 4. Map the public route (`dev.auth.tanfdata.acf.hhs.gov`, `staging.auth.tanfdata.acf.hhs.gov`, or `auth.tanfdata.acf.hhs.gov`) for browser redirects and admin console
 5. Set `KC_HOSTNAME` and `DEPLOY_ENV` so the correct checked-in realm export is selected inside the container
 6. Set up network policies so backend and celery can reach Keycloak
@@ -327,7 +327,7 @@ This will:
 
 Keycloak is deployed with two routes:
 
-- **Internal** (`dev.auth.apps.internal:8080`, `staging.auth.apps.internal:8080`, or `auth.apps.internal:8080`) — used by the Django backend and Celery for server-to-server API calls (token exchange, user sync, JWKS). Configured via `KEYCLOAK_SERVER_URL`.
+- **Internal** (`dev-auth.apps.internal:8080`, `staging-auth.apps.internal:8080`, or `auth.apps.internal:8080`) — used by the Django backend and Celery for server-to-server API calls (token exchange, user sync, JWKS). Configured via `KEYCLOAK_SERVER_URL`.
 - **Public** (`dev.auth.tanfdata.acf.hhs.gov`, `staging.auth.tanfdata.acf.hhs.gov`, or `auth.tanfdata.acf.hhs.gov`) — used by the browser for OIDC redirects and the admin console. Configured via `KEYCLOAK_BROWSER_URL`.
 
 `deploy-backend.sh` defaults `KEYCLOAK_SERVER_URL` and `KEYCLOAK_BROWSER_URL` to those routes unless they are explicitly set in the deploy environment.
