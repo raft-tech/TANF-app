@@ -59,6 +59,13 @@ def get_keycloak_browser_url(cloudgov_space_suffix):
     return f"https://dev.auth.{TDP_PUBLIC_DOMAIN}"
 
 
+def get_database_name_suffix(cloudgov_name):
+    """Return the database suffix for a deployed backend app name."""
+    if cloudgov_name == "raft":
+        return "test"
+    return cloudgov_name
+
+
 class CloudGov(Common):
     """Base settings class for applications deployed in Cloud.gov."""
 
@@ -103,7 +110,7 @@ class CloudGov(Common):
     ###
     # Dynamic Database configuration based on cloud.gov services
     #
-    env_based_db_name = f"tdp_db_{cloudgov_name}"
+    env_based_db_name = f"tdp_db_{get_database_name_suffix(cloudgov_name)}"
 
     logger.debug("css: " + cloudgov_space_suffix)
     if cloudgov_space_suffix == "prod":

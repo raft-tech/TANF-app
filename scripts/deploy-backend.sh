@@ -22,6 +22,10 @@ strip() {
 # The cloud.gov space defined via environment variable (e.g., "tanf-dev", "tanf-staging")
 env=$(strip $CF_SPACE "tanf-")
 backend_app_name=$(echo $CGAPPNAME_BACKEND | cut -d"-" -f3)
+database_app_name=$backend_app_name
+if [ "$database_app_name" = "raft" ]; then
+  database_app_name="test"
+fi
 
 CGAPPNAME_CELERY="tdp-celery-${backend_app_name}"
 
@@ -31,6 +35,7 @@ echo CELERY_APPNAME: "$CGAPPNAME_CELERY"
 echo CF_SPACE: "$CF_SPACE"
 echo env: "$env"
 echo backend_app_name: "$backend_app_name"
+echo database_app_name: "$database_app_name"
 
 
 ##############################
@@ -192,7 +197,7 @@ update_backend()
 
           # Add variable for dev/staging apps to know their DB name. Prod uses default AWS name.
           cf unset-env "$APP" "APP_DB_NAME"
-          cf set-env "$APP" "APP_DB_NAME" "tdp_db_$backend_app_name"
+          cf set-env "$APP" "APP_DB_NAME" "tdp_db_$database_app_name"
         fi
     fi
 
