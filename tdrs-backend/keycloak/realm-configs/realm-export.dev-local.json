@@ -269,9 +269,9 @@
       "clientAuthenticatorType": "client-secret",
       "secret": "${KC_TDP_DJANGO_CLIENT_SECRET}",
       "redirectUris": [
-        "https://tdp-frontend-raft.app.cloud.gov/*",
-        "https://tdp-frontend-qasp.app.cloud.gov/*",
-        "https://tdp-frontend-a11y.app.cloud.gov/*",
+        "https://test.tanfdata.acf.hhs.gov/*",
+        "https://qasp.tanfdata.acf.hhs.gov/*",
+        "https://a11y.tanfdata.acf.hhs.gov/*",
         "http://localhost:3000/*",
         "http://localhost:8080/*",
         "http://localhost:8989/*",
@@ -280,9 +280,9 @@
         "http://127.0.0.1:8989/*"
       ],
       "webOrigins": [
-        "https://tdp-frontend-raft.app.cloud.gov",
-        "https://tdp-frontend-qasp.app.cloud.gov",
-        "https://tdp-frontend-a11y.app.cloud.gov",
+        "https://test.tanfdata.acf.hhs.gov",
+        "https://qasp.tanfdata.acf.hhs.gov",
+        "https://a11y.tanfdata.acf.hhs.gov",
         "http://localhost:3000",
         "http://localhost:8080",
         "http://localhost:8989",

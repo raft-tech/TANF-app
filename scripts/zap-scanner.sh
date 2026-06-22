@@ -7,6 +7,9 @@ TARGET=$1
 ENVIRONMENT=$2
 TARGET_ENV=$3
 REGISTRY_OWNER=$4
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+. "$SCRIPT_DIR/deploy-routes.sh"
 
 TARGET_DIR="$(pwd)/tdrs-$TARGET"
 CONFIG_FILE="zap.conf"
@@ -14,10 +17,11 @@ REPORT_NAME=owasp_report.html
 
 
 if [ "$ENVIRONMENT" = "nightly" ]; then
-    APP_URL="https://tdp-frontend-$TARGET_ENV.acf.hhs.gov/"
-    if [ "$TARGET_ENV" = "prod" ]; then
-        APP_URL="https://tanfdata.acf.hhs.gov/"
+    if ! FRONTEND_HOST=$(frontend_public_host "tdp-frontend-$TARGET_ENV"); then
+        echo "Unknown frontend app for custom domain mapping: tdp-frontend-$TARGET_ENV"
+        exit 1
     fi
+    APP_URL="https://${FRONTEND_HOST}/"
 elif [ "$ENVIRONMENT" = "circle" ] || [ "$ENVIRONMENT" = "local" ]; then
     if [ "$TARGET" = "frontend" ]; then
         APP_URL="http://tdp-frontend/"

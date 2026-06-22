@@ -7,8 +7,10 @@ STAGING_BACKEND_APPS=("tdp-backend-develop" "tdp-backend-staging")
 STAGING_CELERY_APPS=("tdp-celery-develop" "tdp-celery-staging")
 PROD_BACKEND="tdp-backend-prod"
 PROD_CELERY="tdp-celery-prod"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-PUBLIC_DOMAIN="app.cloud.gov"
+. "$REPO_ROOT/scripts/deploy-routes.sh"
 
 # Environment variables that must be set in the deployer's shell.
 # These are injected into the CF app's environment via the manifest.
@@ -29,7 +31,7 @@ OPTIONAL_ENV_VARS=(
 help() {
     echo "Deploy Keycloak to the Cloud Foundry space you're currently authenticated in."
     echo ""
-    echo "Syntax: deploy.sh [-h] -e <environment> -d <rds_service_name> -p <public_hostname> -i <docker_image> -u <docker_username>"
+    echo "Syntax: deploy.sh [-h] -e <environment> -d <rds_service_name> -p <public_fqdn> -i <docker_image> -u <docker_username>"
     echo ""
     echo "Options:"
     echo "  h     Print this help message."
@@ -41,8 +43,8 @@ help() {
     echo "        strategy runs old and new instances simultaneously, which can cause DB"
     echo "        migration conflicts and authentication failures during the transition."
     echo "  d     The Cloud Foundry service name of the RDS instance (e.g. tdp-keycloak-db-dev)."
-    echo "  p     The public hostname for Keycloak (e.g. tdp-keycloak-dev)."
-    echo "        This will create a public route at <hostname>.${PUBLIC_DOMAIN}"
+    echo "  p     The public FQDN for Keycloak (e.g. dev.auth.tanfdata.acf.hhs.gov)."
+    echo "        This will create a public route for that host"
     echo "        and set KC_HOSTNAME so Keycloak generates correct redirect URIs."
     echo "  i     The Docker image URI for Keycloak (e.g. ghcr.io/hhs/tdp-keycloak:latest)."
     echo "  u     Docker registry username. Password must be set via CF_DOCKER_PASSWORD env var."
@@ -58,7 +60,7 @@ help() {
     done
     echo ""
     echo "Example:"
-    echo "  ./deploy.sh -e dev -d tdp-db-dev -p tdp-keycloak-dev -i ghcr.io/raft-tech/keycloak_26:latest -u myuser"
+    echo "  ./deploy.sh -e dev -d tdp-keycloak-db-dev -p dev.auth.tanfdata.acf.hhs.gov -i ghcr.io/hhs/tdp-keycloak:latest -u myuser"
     echo ""
 }
 
@@ -101,11 +103,13 @@ inject_env_vars() {
 deploy_keycloak() {
     local app_name="$1"
     local db_service="$2"
-    local public_hostname="$3"
+    local public_fqdn="$3"
     local docker_image="$4"
     local docker_username="$5"
     local rolling="$6"
-    local public_url="https://${public_hostname}.${PUBLIC_DOMAIN}"
+    local public_url="https://${public_fqdn}"
+    local internal_fqdn
+    internal_fqdn=$(keycloak_internal_host_for_env "$DEPLOY_ENV")
 
     MANIFEST=manifest.tmp.yml
     cp manifest.yml $MANIFEST
@@ -124,23 +128,31 @@ deploy_keycloak() {
 
     CF_DOCKER_PASSWORD="$CF_DOCKER_PASSWORD" cf push --no-route -f $MANIFEST $strategy_flag --docker-image "$docker_image" --docker-username "$docker_username"
 
-    # Internal route for server-to-server communication (backend/celery -> keycloak)
-    cf map-route "$app_name" apps.internal --hostname "$app_name"
+    # Internal route for server-to-server communication (backend/celery -> keycloak).
+    map_route_for_fqdn "$app_name" "$internal_fqdn"
 
     # Public route for browser redirects and admin console access
-    cf map-route "$app_name" "$PUBLIC_DOMAIN" --hostname "$public_hostname"
+    map_route_for_fqdn "$app_name" "$public_fqdn"
 
     rm $MANIFEST
 }
 
 configure_keycloak_idps() {
     local app_name="$1"
-    local internal_base="http://${app_name}.apps.internal"
+    local internal_fqdn
+    local internal_base
+    local tdp_redirect_uris
+    local tdp_web_origins
+    internal_fqdn=$(keycloak_internal_host_for_env "$DEPLOY_ENV")
+    internal_base="http://${internal_fqdn}"
+    tdp_redirect_uris=$(keycloak_tdp_redirect_uris_for_env "$DEPLOY_ENV")
+    tdp_web_origins=$(keycloak_tdp_web_origins_for_env "$DEPLOY_ENV")
+
     echo "Running IdP configuration task..."
     # /health/ready is proxied through nginx on port 8080, so the management URL
     # uses port 8080 (not 9000, which is only accessible within the container).
     cf run-task "$app_name" \
-        --command "export KEYCLOAK_URL=${internal_base}:8080 KEYCLOAK_MANAGEMENT_URL=${internal_base}:8080 && /opt/keycloak/configure-idps.sh" \
+        --command "export KEYCLOAK_URL=${internal_base}:8080 KEYCLOAK_MANAGEMENT_URL=${internal_base}:8080 KC_TDP_REDIRECT_URIS='${tdp_redirect_uris}' KC_TDP_WEB_ORIGINS='${tdp_web_origins}' && /opt/keycloak/configure-idps.sh" \
         --name "configure-idps"
 }
 
@@ -165,7 +177,7 @@ setup_keycloak_net_pols() {
     fi
 }
 
-pushd "$(dirname "$0")"
+pushd "$SCRIPT_DIR"
 
 ROLLING="false"
 
@@ -180,7 +192,7 @@ while getopts ":he:rd:p:i:u:" option; do
          ROLLING="true";;
       d) # RDS service name
          DB_SERVICE_NAME=$OPTARG;;
-      p) # Public hostname
+      p) # Public FQDN
          PUBLIC_HOSTNAME=$OPTARG;;
       i) # Docker image
          DOCKER_IMAGE=$OPTARG;;
@@ -236,7 +248,7 @@ if [ "$DB_SERVICE_NAME" == "" ]; then
 fi
 
 if [ "$PUBLIC_HOSTNAME" == "" ]; then
-    echo "Error: you must include a public hostname with -p."
+    echo "Error: you must include a public FQDN with -p."
     echo
     help
     popd
@@ -266,8 +278,8 @@ echo "  Environment:    $DEPLOY_ENV"
 echo "  App name:       $APP_NAME"
 echo "  Docker image:   $DOCKER_IMAGE"
 echo "  RDS service:    $DB_SERVICE_NAME"
-echo "  Internal route: ${APP_NAME}.apps.internal"
-echo "  Public route:   ${PUBLIC_HOSTNAME}.${PUBLIC_DOMAIN}"
+echo "  Internal route: $(keycloak_internal_host_for_env "$DEPLOY_ENV")"
+echo "  Public route:   ${PUBLIC_HOSTNAME}"
 echo "  Rolling deploy: $ROLLING"
 echo ""
 

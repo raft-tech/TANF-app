@@ -310,15 +310,15 @@ For testing without going through the full Login.gov / AMS broker flow, you can 
 
 ```bash
 cd keycloak
-./deploy.sh -e <environment> -d <rds_service_name> -p <public_hostname> -i <docker_image>
-# Example: ./deploy.sh -e dev -d tdp-keycloak-db-dev -p tdp-keycloak-dev -i ghcr.io/hhs/tdp-keycloak:latest
+./deploy.sh -e <environment> -d <rds_service_name> -p <public_fqdn> -i <docker_image>
+# Example: ./deploy.sh -e dev -d tdp-keycloak-db-dev -p dev.auth.tanfdata.acf.hhs.gov -i ghcr.io/hhs/tdp-keycloak:latest
 ```
 
 This will:
 1. Push the Keycloak Docker image to Cloud Foundry
 2. Bind the RDS service for the database
-3. Map the internal route `keycloak.apps.internal:8080` (for server-to-server backend/celery calls)
-4. Map the public route `<public_hostname>.app.cloud.gov` (for browser redirects and admin console)
+3. Map the internal route (`dev.auth.apps.internal`, `staging.auth.apps.internal`, or `auth.apps.internal`) for server-to-server backend/celery calls
+4. Map the public route (`dev.auth.tanfdata.acf.hhs.gov`, `staging.auth.tanfdata.acf.hhs.gov`, or `auth.tanfdata.acf.hhs.gov`) for browser redirects and admin console
 5. Set `KC_HOSTNAME` and `DEPLOY_ENV` so the correct checked-in realm export is selected inside the container
 6. Set up network policies so backend and celery can reach Keycloak
 7. Run `configure-idps.sh` to configure runtime-sensitive IdP settings after startup
@@ -327,14 +327,14 @@ This will:
 
 Keycloak is deployed with two routes:
 
-- **Internal** (`keycloak.apps.internal:8080`) — used by the Django backend and Celery for server-to-server API calls (token exchange, user sync, JWKS). Configured via `KEYCLOAK_SERVER_URL`.
-- **Public** (`<hostname>.app.cloud.gov`) — used by the browser for OIDC redirects and the admin console. Configured via `KEYCLOAK_BROWSER_URL`.
+- **Internal** (`dev.auth.apps.internal:8080`, `staging.auth.apps.internal:8080`, or `auth.apps.internal:8080`) — used by the Django backend and Celery for server-to-server API calls (token exchange, user sync, JWKS). Configured via `KEYCLOAK_SERVER_URL`.
+- **Public** (`dev.auth.tanfdata.acf.hhs.gov`, `staging.auth.tanfdata.acf.hhs.gov`, or `auth.tanfdata.acf.hhs.gov`) — used by the browser for OIDC redirects and the admin console. Configured via `KEYCLOAK_BROWSER_URL`.
 
-Set `KEYCLOAK_BROWSER_URL` in the backend's environment to match the public route (e.g., `https://tdp-keycloak-dev.app.cloud.gov`).
+`deploy-backend.sh` defaults `KEYCLOAK_SERVER_URL` and `KEYCLOAK_BROWSER_URL` to those routes unless they are explicitly set in the deploy environment.
 
 For the checked-in realm exports:
 
-- `local` and `dev` both use `realm-export.dev-local.json`, which allows `raft`, `qasp`, and `a11y` hosted frontends plus localhost/`127.0.0.1`.
+- `local` and `dev` both use `realm-export.dev-local.json`, which allows `test.tanfdata.acf.hhs.gov`, `qasp.tanfdata.acf.hhs.gov`, and `a11y.tanfdata.acf.hhs.gov` plus localhost/`127.0.0.1`.
 - `staging` uses `realm-export.staging.json`, which allows only `develop` and `staging` hosted frontends.
 - `prod` uses `realm-export.prod.json`, which allows only `https://tanfdata.acf.hhs.gov`.
 

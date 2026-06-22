@@ -13,14 +13,14 @@ can each be modified through the interface.
 
 ### Log in to Admin
 
-- Go to `<frontend-domain-name>` (e.g. `https://tdp-frontend-staging.acf.hhs.gov/`)
+- Go to `<frontend-domain-name>` (e.g. `https://staging.tanfdata.acf.hhs.gov/`)
 - Sign in through `ACF AMS` (ACF users)
-- Go to `<frontend-domain-name>/admin/` (e.g. `https://tdp-frontend-staging.acf.hhs.gov/admin/`)
+- Go to `<frontend-domain-name>/admin/` (e.g. `https://staging.tanfdata.acf.hhs.gov/admin/`)
 
 _Alternatively_
 
 - Go to `<frontend-domain-name>/admin/`
-- You will be redirected to `<frontend-domain-name>` 
+- You will be redirected to `<frontend-domain-name>`
 - After signing in ACF AMS credenials, you will be redirected back to the main application
 - Go to `<frontend-domain-name>/admin/`
 
@@ -51,7 +51,7 @@ _Alternatively_
 
 ### STT List
 
-- When you click on "STTs" from the Admin Home page, you can view a list of the STTs currently in the system. 
+- When you click on "STTs" from the Admin Home page, you can view a list of the STTs currently in the system.
 
 ![](images/stt_list.png)
 
@@ -79,30 +79,30 @@ first name, last name, and username, as well as the user's Account Status, Super
 For the OFA MVP, we will need to assign the Django built-in roles of `superuser` and `staff` to the deployed application.
 This will be needed for users to have access to the Django Admin interface detailed above.
 
-This guide will provide instructions on how to define them in local and deployed environments. 
-Access to the CLI is strictly controlled by the Product Owner. 
+This guide will provide instructions on how to define them in local and deployed environments.
+Access to the CLI is strictly controlled by the Product Owner.
 
 
 **Local Development**
-	
-1a.) After following the instructions in the README for the TDRS Frontend and 
-Backend services, you will now be able to login via Login.gov which will result in 
+
+1a.) After following the instructions in the README for the TDRS Frontend and
+Backend services, you will now be able to login via Login.gov which will result in
 your account being generated and stored in the local database.
 
-1b.) Alternatively, run the following commands from the root directory: 
+1b.) Alternatively, run the following commands from the root directory:
 
-  
+
    ```bash
    source commands.sh
    tdrs-django-shell
    ```
-   This will open up a shell prompt that will allow you to execute commands 
+   This will open up a shell prompt that will allow you to execute commands
    directly to the TDRS Backend Django application.
-   
-   To update your user, edit the sample script below to reflect your Login.gov 
-   email associated with your login process and press enter.  After this you may 
-   exit the shell and resume using the application with the `superuser` role. 
-   
+
+   To update your user, edit the sample script below to reflect your Login.gov
+   email associated with your login process and press enter.  After this you may
+   exit the shell and resume using the application with the `superuser` role.
+
    ```
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -123,12 +123,10 @@ user = User.objects.get(username="test@example.com")
 data_prepper.user_set.add(user)
 
 ```
- 
- 
+
+
  **Deployed Environment**
-	
-1.) Users targeted for Superuser creation will have to be manually elevated by system administrators with access to the intended Cloud.gov environment. 
+
+1.) Users targeted for Superuser creation will have to be manually elevated by system administrators with access to the intended Cloud.gov environment.
 
 2.) Admins with access will have to ssh into the environment and assign permissions. Instructions for how to do this are included [here](../Security-Compliance/Incidence-Response/Sys-Admin-Acct-Mgmt.md#example-mitigation-steps) under **CF CLI Commands**.
-
- 

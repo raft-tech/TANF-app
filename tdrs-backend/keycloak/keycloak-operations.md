@@ -32,7 +32,7 @@ For architectural context, see [Authentication Architecture](auth-architecture.m
 
 ```bash
 cd tdrs-backend/keycloak
-./deploy.sh -e <environment> -d <rds_service> -p <public_hostname> -i <docker_image> -u <docker_username>
+./deploy.sh -e <environment> -d <rds_service> -p <public_fqdn> -i <docker_image> -u <docker_username>
 ```
 
 **Parameters:**
@@ -40,7 +40,7 @@ cd tdrs-backend/keycloak
 | Flag | Description | Example |
 |------|-------------|---------|
 | `-d` | Cloud Foundry RDS service name | `tdp-keycloak-db-dev` |
-| `-p` | Public hostname (creates `<hostname>.app.cloud.gov`) | `tdp-keycloak-dev` |
+| `-p` | Public Keycloak FQDN | `dev.auth.tanfdata.acf.hhs.gov` |
 | `-i` | Docker image URI | `ghcr.io/hhs/tdp-keycloak:latest` |
 | `-u` | Docker registry username | `myuser` |
 
@@ -68,8 +68,8 @@ cd tdrs-backend/keycloak
 
 1. Copies `manifest.yml` → `manifest.tmp.yml` and injects environment-specific values via `yq`
 2. Pushes the Docker image to Cloud Foundry with rolling strategy
-3. Maps the **internal** route: `keycloak-<ENV>.apps.internal:8080` (server-to-server)
-4. Maps the **public** route: `<hostname>.app.cloud.gov` (browser redirects, admin console)
+3. Maps the **internal** route: `dev.auth.apps.internal:8080`, `staging.auth.apps.internal:8080`, or `auth.apps.internal:8080` (server-to-server)
+4. Maps the **public** route: `dev.auth.tanfdata.acf.hhs.gov`, `staging.auth.tanfdata.acf.hhs.gov`, or `auth.tanfdata.acf.hhs.gov` (browser redirects, admin console)
 5. Sets `DEPLOY_ENV` so the container selects the correct checked-in realm export before import
 6. Creates network policies so backend and celery apps can reach Keycloak on port 8080
 7. Runs the `configure-idps.sh` script as a CF task to configure Login.gov signing key, ACR values, master realm security headers, and Grafana client IdP restriction
@@ -78,13 +78,13 @@ cd tdrs-backend/keycloak
 
 ```bash
 # Dev
-./deploy.sh -e dev -d tdp-keycloak-db-dev -p tdp-keycloak-dev -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
+./deploy.sh -e dev -d tdp-keycloak-db-dev -p dev.auth.tanfdata.acf.hhs.gov -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
 
 # Staging
-./deploy.sh -e staging -d tdp-keycloak-db-staging -p tdp-keycloak-staging -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
+./deploy.sh -e staging -d tdp-keycloak-db-staging -p staging.auth.tanfdata.acf.hhs.gov -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
 
 # Production
-./deploy.sh -e prod -d tdp-keycloak-db-prod -p tdp-keycloak-prod -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
+./deploy.sh -e prod -d tdp-keycloak-db-prod -p auth.tanfdata.acf.hhs.gov -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
 ```
 
 ---
@@ -230,7 +230,7 @@ The Login.gov private key (`LOGIN_GOV_JWT_KEY`) is used for `private_key_jwt` au
 4. Re-run the IdP configuration task to update the signing key component:
    ```bash
    cf run-task keycloak \
-       --command "export SKIP_KEYCLOAK_WAIT=true KEYCLOAK_URL=http://keycloak-<ENV>.apps.internal:8080 KEYCLOAK_MANAGEMENT_URL=http://keycloak-<ENV>.apps.internal:9000 && /opt/keycloak/configure-idps.sh" \
+       --command "export SKIP_KEYCLOAK_WAIT=true KEYCLOAK_URL=http://<keycloak-internal-host>:8080 KEYCLOAK_MANAGEMENT_URL=http://<keycloak-internal-host>:8080 && /opt/keycloak/configure-idps.sh" \
        --name "configure-idps"
    ```
 
@@ -282,7 +282,7 @@ The realms are defined in `tdrs-backend/keycloak/realm-configs/`. Changes to cli
 
 For one-off changes that don't warrant a full redeployment:
 
-1. Access the admin console at `https://<hostname>.app.cloud.gov/admin`
+1. Access the admin console at the public Keycloak route, such as `https://dev.auth.tanfdata.acf.hhs.gov/admin`
 2. Log in with admin credentials
 3. Select the `tdp` realm
 4. Make changes through the UI
@@ -296,7 +296,7 @@ The `configure-idps.sh` script handles post-startup configuration that cannot sa
 
 ```bash
 cf run-task keycloak \
-    --command "export SKIP_KEYCLOAK_WAIT=true KEYCLOAK_URL=http://keycloak-<ENV>.apps.internal:8080 KEYCLOAK_MANAGEMENT_URL=http://keycloak-<ENV>.apps.internal:9000 && /opt/keycloak/configure-idps.sh" \
+    --command "export SKIP_KEYCLOAK_WAIT=true KEYCLOAK_URL=http://<keycloak-internal-host>:8080 KEYCLOAK_MANAGEMENT_URL=http://<keycloak-internal-host>:8080 && /opt/keycloak/configure-idps.sh" \
     --name "configure-idps"
 ```
 
@@ -419,7 +419,7 @@ Developer accounts for Grafana are **local Keycloak accounts** in the prod Keycl
 
 ### Create a Developer Account
 
-1. Access the prod Keycloak admin console: `https://<prod-hostname>.app.cloud.gov/admin`
+1. Access the prod Keycloak admin console: `https://auth.tanfdata.acf.hhs.gov/admin`
 2. Select the `tdp` realm
 3. Go to **Users** → **Add user**
 4. Fill in:
@@ -478,7 +478,7 @@ Note: This exports realm configuration but **not** user credentials or sessions.
 3. Run the IdP configuration task (signing keys are stored in the database, not the Docker image):
    ```bash
    cf run-task keycloak \
-       --command "export SKIP_KEYCLOAK_WAIT=true KEYCLOAK_URL=http://keycloak-<ENV>.apps.internal:8080 KEYCLOAK_MANAGEMENT_URL=http://keycloak-<ENV>.apps.internal:9000 && /opt/keycloak/configure-idps.sh" \
+       --command "export SKIP_KEYCLOAK_WAIT=true KEYCLOAK_URL=http://<keycloak-internal-host>:8080 KEYCLOAK_MANAGEMENT_URL=http://<keycloak-internal-host>:8080 && /opt/keycloak/configure-idps.sh" \
        --name "configure-idps"
    ```
 4. Run a bulk user sync to reconcile Django and Keycloak state:
@@ -516,10 +516,10 @@ If the Keycloak instance is completely lost:
 
 ```bash
 # Via public route
-curl -sf https://<hostname>.app.cloud.gov/health/ready
+curl -sf https://<keycloak-public-host>/health/ready
 
 # Via internal route (from within a CF app)
-curl -sf http://keycloak-<ENV>.apps.internal:8080/health/ready
+curl -sf http://<keycloak-internal-host>:8080/health/ready
 ```
 
 ### Checking Keycloak Status
@@ -551,7 +551,7 @@ cf tasks keycloak
 Verify the realm is properly configured:
 
 ```bash
-curl -sf https://<hostname>.app.cloud.gov/realms/tdp/.well-known/openid-configuration | jq .
+curl -sf https://<keycloak-public-host>/realms/tdp/.well-known/openid-configuration | jq .
 ```
 
 This should return all OIDC endpoints (authorization, token, userinfo, JWKS, end_session, etc.).
@@ -626,7 +626,7 @@ This should return all OIDC endpoints (authorization, token, userinfo, JWKS, end
    ```
    Must show a policy allowing TCP port 8080 to keycloak.
 
-3. **Check Grafana's token URL**: In `custom.ini`, `token_url` should use the **internal** route (`http://keycloak-<ENV>.apps.internal:8080/...`), while `auth_url` should use the **public** route.
+3. **Check Grafana's token URL**: In `custom.ini`, `token_url` should use the **internal** route (`http://<keycloak-internal-host>:8080/...`), while `auth_url` should use the **public** route.
 
 4. **Verify role mapping**: If a user gets the wrong Grafana role, check their Keycloak group membership (admin console → Users → select user → Groups). The JMESPath expression maps:
    - `ofa-system-admin` or `developer` → Admin
@@ -648,7 +648,7 @@ The nginx proxy in the Keycloak container strips `X-Frame-Options: DENY` and rep
 
 1. Verify the response header:
    ```bash
-   curl -sI https://<hostname>.app.cloud.gov/ | grep -i x-frame
+   curl -sI https://<keycloak-public-host>/ | grep -i x-frame
    ```
    Should show `X-Frame-Options: SAMEORIGIN`.
 

@@ -11,6 +11,9 @@ DEPLOY_STRATEGY=${1}
 CGAPPNAME_FRONTEND=${2}
 CGAPPNAME_BACKEND=${3}
 CF_SPACE=${4}
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+
+. "$SCRIPT_DIR/deploy-routes.sh"
 
 strip() {
     # Usage: strip "string" "pattern"
@@ -221,34 +224,32 @@ update_backend_network()
 ##############################
 
 # Determine the appropriate BASE_URL for the deployed instance based on the
-# provided Cloud.gov App Name
-DEFAULT_ROUTE="https://$CGAPPNAME_FRONTEND.app.cloud.gov"
+# provided Cloud.gov app name.
+if ! CANONICAL_FRONTEND_HOST=$(frontend_public_host "$CGAPPNAME_FRONTEND"); then
+  echo "Unknown frontend app for custom domain mapping: $CGAPPNAME_FRONTEND"
+  exit 1
+fi
+DEFAULT_ROUTE="https://$CANONICAL_FRONTEND_HOST"
 if [ -n "$BASE_URL" ]; then
   # Use Shell Parameter Expansion to replace localhost in the URL
   BASE_URL="${BASE_URL//http:\/\/localhost:8080/$DEFAULT_ROUTE}"
-elif [ "$CF_SPACE" = "tanf-prod" ]; then
-  # Keep the base url set explicitly for production.
-  BASE_URL="https://tanfdata.acf.hhs.gov/v1"
-elif [ "$CF_SPACE" = "tanf-staging" ]; then
-  # use .acf.hss.gov domain for develop and staging.
-  BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov/v1"
 else
-  # Default to the route formed with the cloud.gov env for the lower environments.
   BASE_URL="$DEFAULT_ROUTE/v1"
 fi
 
-DEFAULT_FRONTEND_ROUTE="${DEFAULT_ROUTE//backend/frontend}"
+DEFAULT_FRONTEND_ROUTE="$DEFAULT_ROUTE"
 if [ -n "$FRONTEND_BASE_URL" ]; then
   FRONTEND_BASE_URL="${FRONTEND_BASE_URL//http:\/\/localhost:3000/$DEFAULT_FRONTEND_ROUTE}"
-elif [ "$CF_SPACE" = "tanf-prod" ]; then
-  # Keep the base url set explicitly for production.
-  FRONTEND_BASE_URL="https://tanfdata.acf.hhs.gov"
-elif [ "$CF_SPACE" = "tanf-staging" ]; then
-   # use .acf.hss.gov domain for develop and staging.
-  FRONTEND_BASE_URL="https://$CGAPPNAME_FRONTEND.acf.hhs.gov"
 else
-  # Default to the route formed with the cloud.gov env for the lower environments.
   FRONTEND_BASE_URL="$DEFAULT_FRONTEND_ROUTE"
+fi
+
+if [ -z "$KEYCLOAK_BROWSER_URL" ]; then
+  KEYCLOAK_BROWSER_URL=$(keycloak_public_url_for_space "$CF_SPACE")
+fi
+
+if [ -z "$KEYCLOAK_SERVER_URL" ]; then
+  KEYCLOAK_SERVER_URL=$(keycloak_internal_url_for_space "$CF_SPACE")
 fi
 
 # Dynamically generate a new DJANGO_SECRET_KEY

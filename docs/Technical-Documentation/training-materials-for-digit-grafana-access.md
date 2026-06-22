@@ -33,7 +33,7 @@ If you encounter any issues logging in or accessing certain features, please con
 
 Each dashboard includes an Overview to describe the purpose and intention.&#x20;
 
-<table><thead><tr><th width="175.05078125">Dashboard</th><th width="256.68359375">Description and Purpose</th><th width="237.15234375">Filters Needed </th><th>Status/Notes</th></tr></thead><tbody><tr><td><a href="https://tdp-frontend-a11y.app.cloud.gov/grafana/d/eemnhxok5dr7kd/b3ed5b3f-cce8-5855-a97c-7e8f7330e003">[DIGIT] Query Views by program type, record type, and time period</a></td><td>Dashboard with pre-set query params (prod)</td><td>program type, record type, and time period</td><td>In progress</td></tr><tr><td><p></p><p><a href="https://tdp-frontend-a11y.app.cloud.gov/grafana/d/fe6fa4dye7s3kf/digit-stts-missing-approved-users">[DIGIT] STTs missing Approved Users</a></p></td><td>List of STTs with no approved users in TDP (prod)</td><td>STT region, STT code, STT</td><td>In progress</td></tr><tr><td><a href="https://tdp-frontend-a11y.app.cloud.gov/grafana/d/ce6f8l7vw36kgd/digit-tdp-submission-history">[DIGIT] TDP Submission History</a></td><td>Production data submission history</td><td>Program_type, Section, Fiscal_Year, Fiscal Quarter, STT Region, STT_Type, STT</td><td>Templating Error Type alert</td></tr></tbody></table>
+<table><thead><tr><th width="175.05078125">Dashboard</th><th width="256.68359375">Description and Purpose</th><th width="237.15234375">Filters Needed </th><th>Status/Notes</th></tr></thead><tbody><tr><td><a href="https://a11y.tanfdata.acf.hhs.gov/grafana/d/eemnhxok5dr7kd/b3ed5b3f-cce8-5855-a97c-7e8f7330e003">[DIGIT] Query Views by program type, record type, and time period</a></td><td>Dashboard with pre-set query params (prod)</td><td>program type, record type, and time period</td><td>In progress</td></tr><tr><td><p></p><p><a href="https://a11y.tanfdata.acf.hhs.gov/grafana/d/fe6fa4dye7s3kf/digit-stts-missing-approved-users">[DIGIT] STTs missing Approved Users</a></p></td><td>List of STTs with no approved users in TDP (prod)</td><td>STT region, STT code, STT</td><td>In progress</td></tr><tr><td><a href="https://a11y.tanfdata.acf.hhs.gov/grafana/d/ce6f8l7vw36kgd/digit-tdp-submission-history">[DIGIT] TDP Submission History</a></td><td>Production data submission history</td><td>Program_type, Section, Fiscal_Year, Fiscal Quarter, STT Region, STT_Type, STT</td><td>Templating Error Type alert</td></tr></tbody></table>
 
 ---
 
@@ -177,7 +177,7 @@ An example of using the <strong>Builder</strong> UI to aggregate data to compare
 The same query can be written in SQL and run in the **Code** view:
 
 ```
-SELECT 
+SELECT
     COUNT(*) AS total_records,
     COUNT(DISTINCT "CASE_NUMBER") AS unique_cases
 FROM tanf_t1;-- TANF, active t1 (family-level) records
@@ -207,9 +207,9 @@ An example of using the <strong>Builder</strong> UI to group data by column and 
 The same query can be written in SQL and run in the **Code** view:
 
 ```
-SELECT 
-    "STT", -- State or territory 
-    "RPT_MONTH_YEAR",     -- Reporting month (e.g., 202401, 202402)             
+SELECT
+    "STT", -- State or territory
+    "RPT_MONTH_YEAR",     -- Reporting month (e.g., 202401, 202402)
     COUNT(*) AS total_records
 FROM tanf_t6 -- TANF,  t6 (aggregate-level) records
 GROUP BY  "STT","RPT_MONTH_YEAR"

@@ -10,6 +10,9 @@ CGHOSTNAME_FRONTEND=${2}
 CGHOSTNAME_BACKEND=${3}
 CF_SPACE=${4}
 ENVIRONMENT=${5}
+SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+
+. "$SCRIPT_DIR/deploy-routes.sh"
 
 env=${CF_SPACE#"tanf-"}
 
@@ -20,37 +23,37 @@ update_frontend()
     echo BACKEND_HOST: "$CGHOSTNAME_BACKEND"
     cd tdrs-frontend || exit
 
+    if ! FRONTEND_DOMAIN=$(frontend_public_host "$CGHOSTNAME_FRONTEND"); then
+        echo "Unknown frontend app for custom domain mapping: $CGHOSTNAME_FRONTEND"
+        exit 1
+    fi
+    FRONTEND_URL="https://$FRONTEND_DOMAIN"
+    ENV_FILE=".env.development"
     if [ "$CF_SPACE" = "tanf-prod" ]; then
-        echo "REACT_APP_BACKEND_URL=https://tanfdata.acf.hhs.gov/v1" >> .env.production
-        echo "REACT_APP_AUTH_URL=https://tanfdata.acf.hhs.gov" >> .env.production
-        echo "REACT_APP_FRONTEND_URL=https://tanfdata.acf.hhs.gov" >> .env.production
-        echo "REACT_APP_BACKEND_HOST=https://tanfdata.acf.hhs.gov" >> .env.production
+        ENV_FILE=".env.production"
+    fi
+
+    echo FRONTEND_URL: "$FRONTEND_URL"
+    echo "REACT_APP_BACKEND_URL=$FRONTEND_URL/v1" >> "$ENV_FILE"
+    echo "REACT_APP_AUTH_URL=$FRONTEND_URL" >> "$ENV_FILE"
+    echo "REACT_APP_FRONTEND_URL=$FRONTEND_URL" >> "$ENV_FILE"
+    echo "REACT_APP_BACKEND_HOST=$FRONTEND_URL" >> "$ENV_FILE"
+    echo "REACT_APP_CF_SPACE=$CF_SPACE" >> "$ENV_FILE"
+
+    if [ "$CF_SPACE" = "tanf-prod" ]; then
         echo "REACT_APP_LOGIN_GOV_URL=https://secure.login.gov/" >> .env.production
-        echo "REACT_APP_CF_SPACE=$CF_SPACE" >> .env.production
         # RUM config
         echo "REACT_APP_ENABLE_RUM=true" >> .env.production
-        echo "REACT_APP_FARO_ENDPOINT=https://tanfdata.acf.hhs.gov/collect" >> .env.production
+        echo "REACT_APP_FARO_ENDPOINT=$FRONTEND_URL/collect" >> .env.production
         echo "REACT_APP_VERSION=v3.8.4" >> .env.production
         #Nginx
         echo "BACK_END=" >> .env.production
     elif [ "$CF_SPACE" = "tanf-staging" ]; then
-        echo "REACT_APP_BACKEND_URL=https://$CGHOSTNAME_FRONTEND.acf.hhs.gov/v1" >> .env.development
-        echo "REACT_APP_AUTH_URL=https://$CGHOSTNAME_FRONTEND.acf.hhs.gov" >> .env.development
-        echo "REACT_APP_FRONTEND_URL=https://$CGHOSTNAME_FRONTEND.acf.hhs.gov" >> .env.development
-        echo "REACT_APP_BACKEND_HOST=https://$CGHOSTNAME_FRONTEND.acf.hhs.gov" >> .env.development
-        echo "REACT_APP_CF_SPACE=$CF_SPACE" >> .env.development
-
-        cf set-env "$CGHOSTNAME_FRONTEND" ALLOWED_ORIGIN "https://$CGHOSTNAME_FRONTEND.acf.hhs.gov"
-        cf set-env "$CGHOSTNAME_FRONTEND" CONNECT_SRC '*.acf.hhs.gov'
+        cf set-env "$CGHOSTNAME_FRONTEND" ALLOWED_ORIGIN "$FRONTEND_URL"
+        cf set-env "$CGHOSTNAME_FRONTEND" CONNECT_SRC '*.tanfdata.acf.hhs.gov'
     else
-        echo "REACT_APP_BACKEND_URL=https://$CGHOSTNAME_FRONTEND.app.cloud.gov/v1" >> .env.development
-        echo "REACT_APP_AUTH_URL=https://$CGHOSTNAME_FRONTEND.app.cloud.gov" >> .env.development
-        echo "REACT_APP_FRONTEND_URL=https://$CGHOSTNAME_FRONTEND.app.cloud.gov" >> .env.development
-        echo "REACT_APP_BACKEND_HOST=https://$CGHOSTNAME_FRONTEND.app.cloud.gov" >> .env.development
-        echo "REACT_APP_CF_SPACE=$CF_SPACE" >> .env.development
-
-        cf set-env "$CGHOSTNAME_FRONTEND" ALLOWED_ORIGIN "https://$CGHOSTNAME_FRONTEND.app.cloud.gov"
-        cf set-env "$CGHOSTNAME_FRONTEND" CONNECT_SRC '*.app.cloud.gov'
+        cf set-env "$CGHOSTNAME_FRONTEND" ALLOWED_ORIGIN "$FRONTEND_URL"
+        cf set-env "$CGHOSTNAME_FRONTEND" CONNECT_SRC '*.tanfdata.acf.hhs.gov'
     fi
 
     cf set-env "$CGHOSTNAME_FRONTEND" BACKEND_HOST "$CGHOSTNAME_BACKEND"
@@ -86,13 +89,7 @@ update_frontend()
         cf push "$CGHOSTNAME_FRONTEND" --no-route -f manifest.buildpack.yml
     fi
 
-    if [ "$CF_SPACE" = "tanf-prod" ]; then
-        cf map-route "$CGHOSTNAME_FRONTEND" tanfdata.acf.hhs.gov
-    elif [ "$CF_SPACE" = "tanf-staging" ]; then
-        cf map-route "$CGHOSTNAME_FRONTEND" "$CGHOSTNAME_FRONTEND".acf.hhs.gov
-    else
-        cf map-route "$CGHOSTNAME_FRONTEND" app.cloud.gov --hostname "${CGHOSTNAME_FRONTEND}"
-    fi
+    map_route_for_fqdn "$CGHOSTNAME_FRONTEND" "$FRONTEND_DOMAIN"
 
     cd ../..
     rm -r tdrs-frontend/deployment

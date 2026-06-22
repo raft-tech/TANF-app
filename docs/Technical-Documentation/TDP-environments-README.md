@@ -4,9 +4,9 @@
 
 | Dev Site | Frontend URL | Backend URL | Branch/Commit | Purpose |
 | -------- | -------- | -------- | -------- | -------- |
-| A11y | https://tdp-frontend-a11y.app.cloud.gov | https://tdp-frontend-a11y.app.cloud.gov/admin/ |  | Space for accessibility testing |
-| QASP | https://tdp-frontend-qasp.app.cloud.gov | https://tdp-frontend-qasp.app.cloud.gov/admin/ |  | Space for QASP review |
-| raft | https://tdp-frontend-raft.app.cloud.gov | https://tdp-frontend-raft.app.cloud.gov/admin/ |  | Space for raft review |
+| A11y | https://a11y.tanfdata.acf.hhs.gov | https://a11y.tanfdata.acf.hhs.gov/admin/ |  | Space for accessibility testing |
+| QASP | https://qasp.tanfdata.acf.hhs.gov | https://qasp.tanfdata.acf.hhs.gov/admin/ |  | Space for QASP review |
+| raft/test | https://test.tanfdata.acf.hhs.gov | https://test.tanfdata.acf.hhs.gov/admin/ |  | Space for raft review |
 
 ![badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/andrew-jameson/ded3a260ed8245a5b231ba726b3039df/raw/Live-Environments-raft.json)
 
@@ -34,8 +34,8 @@ The Staging environment contains two frontend and backend deployments.
 
 | Frontend URL | Backend URL | Purpose |
 | -------- | -------- | -------- |
-| https://tdp-frontend-staging.acf.hhs.gov | https://tdp-frontend-staging.acf.hhs.gov/admin/     | Space for government users to test in a deployed, production-like environment    |
-| https://tdp-frontend-develop.acf.hhs.gov | https://tdp-frontend-develop.acf.hhs.gov/admin/     | Space for government users to test in a deployed, production-like environment    |
+| https://staging.tanfdata.acf.hhs.gov | https://staging.tanfdata.acf.hhs.gov/admin/     | Space for government users to test in a deployed, production-like environment    |
+| https://develop.tanfdata.acf.hhs.gov | https://develop.tanfdata.acf.hhs.gov/admin/     | Space for government users to test in a deployed, production-like environment    |
 
 ### Dependencies
 
