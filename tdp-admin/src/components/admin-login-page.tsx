@@ -111,7 +111,7 @@ export default function AdminLoginPage() {
         </section>
 
         <section className="padding-top-4 usa-section admin-login-page__resources">
-          <GridContainer className="grid-container-widescreen grid-row">
+          <div className="grid-container-widescreen grid-row">
             <div className="desktop:padding-0 desktop:grid-col-3">
               <h2 className="resources-header font-heading-2xl margin-top-0 margin-bottom-0">
                 Featured TANF Resources
@@ -222,12 +222,12 @@ export default function AdminLoginPage() {
                 </li>
               </ul>
             </div>
-          </GridContainer>
+          </div>
         </section>
 
         <footer className="usa-footer usa-footer--slim admin-footer">
           <div className="usa-footer__primary-section">
-            <GridContainer className="grid-container-widescreen grid-row">
+            <div className="grid-container-widescreen grid-row">
               <div className="mobile-lg:grid-col-8">
                 <nav className="usa-footer__nav" aria-label="Footer navigation">
                   <ul className="grid-row grid-gap">
@@ -264,10 +264,10 @@ export default function AdminLoginPage() {
                   </ul>
                 </nav>
               </div>
-            </GridContainer>
+            </div>
           </div>
           <div className="usa-footer__secondary-section">
-            <GridContainer className="grid-container-widescreen">
+            <div className="grid-container-widescreen">
               <div className="usa-footer__logo margin-left-neg-205">
                 <div className="grid-col-auto">
                   <img
@@ -277,7 +277,7 @@ export default function AdminLoginPage() {
                   />
                 </div>
               </div>
-            </GridContainer>
+            </div>
           </div>
         </footer>
       </main>

@@ -550,6 +550,13 @@ tasks:
       - task: backend-update
       - task: frontend-update
 
+  update-all:
+    desc: Rebuild backend, frontend, and admin without wiping data
+    cmds:
+      - task: backend-update
+      - task: frontend-update
+      - task: admin-up
+
   down:
     desc: Stop both frontend and backend web servers
     cmds:

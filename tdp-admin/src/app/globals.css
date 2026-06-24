@@ -23,8 +23,6 @@ body {
 body {
   color: var(--foreground);
   background: var(--background);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
@@ -46,7 +44,13 @@ a {
 }
 
 .admin-login-page__shell {
-  padding: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.admin-hero > .grid-container {
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .admin-gov-banner {
@@ -79,7 +83,8 @@ a {
 }
 
 .admin-login-page__lede {
-  line-height: 1.6;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.5;
 }
 
 .admin-login-page__callout .usa-hero__heading--alt {
@@ -87,20 +92,20 @@ a {
 }
 
 .admin-login-page__callout .admin-login-page__lede {
-  color: var(--foreground);
-  line-height: 1.6;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.5;
 }
 
 .admin-login-page__callout {
   background-color: var(--primary-light-pale-blue);
   box-shadow: 0 0 29px 0 rgb(0 0 0 / 50%);
   border-radius: 0.25rem;
+  max-width: 20rem;
 }
 
 .admin-login-page__login-button-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
+  text-align: center;
 }
 
 .admin-login-page__login-gov-logo {
@@ -108,6 +113,7 @@ a {
   width: 7.5rem;
   height: auto;
   padding-left: 0.5rem;
+  vertical-align: middle;
 }
 
 .usa-hero__heading--alt {
@@ -119,8 +125,10 @@ a {
 .admin-login-page .sign-in-button:visited {
   background-color: var(--primary-medium-blue);
   color: #fff;
+  font-family: Arial, Helvetica, sans-serif;
   font-size: 16px;
-  display: flex;
+  line-height: 1.5;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   text-align: center;
@@ -170,16 +178,38 @@ a {
   background: #fff;
 }
 
+.admin-login-page__resources .usa-card-group {
+  margin-left: 0;
+  margin-right: 0;
+}
+
 .admin-login-page__resources .usa-card__heading {
   font-weight: 700;
+  font-family: "Merriweather Web", Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 .admin-login-page__resources .usa-card__body p {
   line-height: 1.6;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.admin-login-page__resources .usa-card__footer .usa-button,
+.admin-login-page__resources .usa-card__footer .usa-button:hover {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 16px;
+}
+
+.admin-login-page__resources .desktop\:grid-col-3 p {
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 .admin-footer {
   margin-top: auto;
+}
+
+.usa-footer__logo img {
+  max-width: 320px;
+  width: 100%;
 }
 
 .usa-footer__primary-section,
@@ -189,6 +219,8 @@ a {
 
 .usa-footer__primary-link {
   color: var(--primary-acf-blue);
+  font-family: Arial, Helvetica, sans-serif;
+  text-decoration: underline;
 }
 
 .margin-left-neg-205 {
@@ -197,7 +229,8 @@ a {
 
 @media (max-width: 640px) {
   .admin-login-page__shell {
-    padding: 0;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 
   .admin-gov-banner__inner {
@@ -221,10 +254,8 @@ a {
     width: 100%;
   }
 
-  .admin-login-page__login-button-content {
+  .admin-login-page .sign-in-button {
     flex-direction: column;
-    align-items: center;
-    margin: auto;
   }
 
   .admin-login-page__login-gov-logo {
