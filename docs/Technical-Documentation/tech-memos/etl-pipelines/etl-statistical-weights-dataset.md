@@ -24,7 +24,7 @@ Use this document when implementing:
 
 ## Current State
 
-The prototype scripts in `tdrs-backend/etl/` are notebook-export SQL files. They contain useful business logic, but they are not production modules:
+The prototype scripts in `tdrs-backend/etl_scripts/` are notebook-export SQL files. They contain useful business logic, but they are not production modules:
 
 - they mix SQL, Databricks/Spark SQL constructs, notebook cells, and `%python`,
 - several values are hardcoded, including fiscal periods and sandbox table names,
@@ -61,7 +61,7 @@ The current `reports` app should not own calculation logic. It stores, versions,
 
 ### Module Shape
 
-Add a new backend module at `tdpservice.etl`. It owns approved calculation pipelines, run history, DAG execution, QA output, and durable computed datasets.
+Add a new backend Django app at `tdpservice.etl`. It owns approved calculation pipelines, run history, DAG execution, QA output, and durable computed datasets.
 
 Planned layout:
 
@@ -86,8 +86,8 @@ tdpservice/
 The external seam is intentionally small:
 
 - admins create and inspect runs through DRF endpoints,
-- the runner compiles approved pipeline runs into Celery Canvas primitives,
-- Celery executes generated `chain`, `group`, and `chord` task graphs,
+- the runner computes approved pipeline dependency layers,
+- Celery executes generated per-layer `chain`, `group`, and `chord` canvases,
 - pipeline definitions are code-defined and reviewed,
 - nodes receive typed run context and write declared outputs.
 
@@ -116,7 +116,7 @@ Node definitions declare:
 - whether outputs are temporary, run-scoped, or durable,
 - expected QA checks or row-count reporting.
 
-The first implementation should use a lightweight internal runner that validates the dependency graph, detects cycles, computes ready-node layers, and compiles execution into Celery Canvas primitives:
+The first implementation should use a lightweight internal runner that validates the dependency graph, detects cycles, computes ready-node layers, and queues one Celery Canvas layer at a time:
 
 | DAG shape | Celery primitive | Use |
 | --- | --- | --- |
@@ -124,7 +124,7 @@ The first implementation should use a lightweight internal runner that validates
 | Independent branches | `group` | Run nodes in parallel after their shared upstream dependencies are satisfied. |
 | Fan-in dependency | `chord` | Run a callback node after every node in a parallel group succeeds. |
 
-The registry remains the logical DAG definition. Pipeline authors declare node dependencies; they do not hand-write Canvas graphs unless a pipeline has a measured need for a custom execution shape.
+The registry remains the logical DAG definition. Pipeline authors declare node dependencies; they do not hand-write Canvas graphs unless a pipeline has a measured need for a custom execution shape. The runner should not build one static Canvas for the entire run. Each layer should call a run-advancer task that re-checks persisted node statuses before queueing the next layer, so duplicate Celery callbacks cannot advance past an unfinished dependency or run a downstream node implementation twice.
 
 Celery tasks should receive stable identifiers: pipeline run ID, node key, output scope, and resolved upstream output versions. Tasks load run context from the database, update `ETLNodeRun`, and persist any `ETLOutput` rows. The database remains the source of truth for orchestration state; Celery is the execution mechanism.
 
@@ -173,6 +173,8 @@ Required fields:
 - status,
 - parameters as JSON,
 - output scope as JSON,
+- output scope key as a canonical SHA-256 hash,
+- structured run metadata as JSON,
 - trigger source: `ADMIN`, `SCHEDULED`, or `RETRY`,
 - triggered-by user, nullable for scheduled runs,
 - retry-of run, nullable,
@@ -191,7 +193,7 @@ program=TANF
 section=1
 ```
 
-Only one active run may exist for a given output scope.
+Only one active run may exist for a given output scope. The implementation stores a canonical `output_scope_key` generated from sorted compact JSON and enforces uniqueness for `PENDING` and `RUNNING` runs at the database level.
 
 #### `ETLNodeRun`
 
@@ -228,7 +230,7 @@ QA output must be queryable by admins and suitable for inclusion in notification
 
 #### `ETLOutput`
 
-Stores final and important intermediate output references.
+Stores final and important output references.
 
 Required fields:
 
@@ -241,6 +243,21 @@ Required fields:
 - published flag,
 - metadata as JSON,
 - created_at.
+
+#### `ETLIntermediateOutput`
+
+Stores run-scoped intermediate node payloads that are consumed by downstream nodes in the same run.
+
+Required fields:
+
+- pipeline run,
+- output key,
+- payload as JSON,
+- row count,
+- created_at,
+- updated_at.
+
+The MVP stores `weights.s1`, `weights.s3`, `weights.s4`, and `statistical_weights.candidates` as JSON payloads. These are internal handoff records, not published data products.
 
 ### Statistical Weights Output Model
 
@@ -324,13 +341,14 @@ Admin-triggered run:
 4. DRF creates `ETLPipelineRun` and initial `ETLNodeRun` rows.
 5. DRF queues a pipeline runner task with the run ID.
 6. The runner loads the pipeline definition and run row.
-7. The runner validates dependencies and compiles the executable graph into Celery `chain`, `group`, and `chord` primitives.
+7. The runner validates dependencies, computes dependency layers, and queues the first Celery layer.
 8. Celery executes generated node tasks with stable run/node identifiers and resolved upstream output versions.
-9. Each node updates its `ETLNodeRun`.
-10. QA nodes persist `ETLQAResult` rows.
-11. Publication happens in a database transaction.
-12. The run is marked `SUCCEEDED` or `FAILED`.
-13. Notification email is sent.
+9. Each node claims its `ETLNodeRun` under a database lock, then records status, row counts, metadata, and errors.
+10. A run-advancer task confirms prior layers succeeded before queueing the next layer.
+11. QA nodes persist `ETLQAResult` rows.
+12. Publication happens in a database transaction.
+13. The run is marked `SUCCEEDED` or `FAILED`.
+14. Notification email is sent.
 
 Scheduled run:
 
@@ -376,6 +394,8 @@ Source-selection rules must be explicit:
 
 The default accepted parser state should be `PARSE_COMPLETED`. If product or legacy parity requires including `PARSED_WITH_ERRORS`, document that decision in the pipeline definition and test it explicitly.
 
+The first node snapshots the selected T1, T6, and T7 `DataFile` IDs into `ETLPipelineRun.metadata["source_datafile_ids"]`. All later nodes read from that snapshot rather than recalculating "latest accepted" files. This keeps counts, QA, and publication stable if a newer file is accepted while a run is executing.
+
 ### DAG
 
 The weights MVP pipeline is:
@@ -393,22 +413,22 @@ validate_parameters
   -> notify_weights_run
 ```
 
-The runner should compile this as a `chain` containing a `chord`: validation runs first, the three extract nodes run in parallel as a `group`, and `build_weight_candidates` runs as the chord callback after all extracts succeed. The remaining QA, publication, and notification nodes continue as ordered `chain` steps.
+The runner should execute this as layers, not as one nested Canvas. Validation runs in a single-node layer. The three extract nodes run in the next layer as a `group` inside a `chord` whose callback is the run advancer, not `build_weight_candidates`. The advancer reads `ETLNodeRun` state, confirms all extracts succeeded, then queues `build_weight_candidates` as the next single-node layer. QA, publication, and notification continue as later single-node layers.
 
 Node responsibilities:
 
 | Node | Responsibility |
 | --- | --- |
-| `validate_parameters` | Validate fiscal year, program, section, and output scope. |
-| `extract_t1_family_counts` | Build `s1`: unique families by STT, reporting month, stratum. |
-| `extract_t6_case_counts` | Build `s3`: aggregate cases by STT and reporting month. |
-| `extract_t7_section_case_counts` | Build `s4`: section cases by STT, reporting month, stratum for `TDRS_SECTION_IND = 1`. |
-| `build_weight_candidates` | Join `s1`, `s3`, and `s4`; compute candidate weight rows. |
-| `run_weights_qa` | Persist the four QA checks. |
-| `publish_weights` | Publish a new immutable weights version and record it on `ETLOutput`. |
-| `notify_weights_run` | Email run status and QA summary to recipients. |
+| `validate_parameters` | Validate fiscal year, program, section, and output scope; snapshot source `DataFile` IDs. |
+| `extract_t1_family_counts` | Build `s1`: unique families by STT, reporting month, stratum; persist `weights.s1`. |
+| `extract_t6_case_counts` | Build `s3`: aggregate cases by STT and reporting month; persist `weights.s3`. |
+| `extract_t7_section_case_counts` | Build `s4`: section cases by STT, reporting month, stratum for `TDRS_SECTION_IND = 1`; persist `weights.s4`. |
+| `build_weight_candidates` | Join persisted `s1`, `s3`, and `s4`; persist `statistical_weights.candidates`. |
+| `run_weights_qa` | Read persisted intermediates and persist the four QA checks. |
+| `publish_weights` | Publish a new immutable weights version from persisted candidates and record it on `ETLOutput`. |
+| `notify_weights_run` | Email run status, output, and QA summary to recipients. |
 
-The first implementation may materialize `s1`, `s3`, `s4`, and candidate weights as run-scoped temporary tables or CTEs. If debugging needs durable intermediates, persist them with the run ID and do not mark them as published outputs.
+The first implementation materializes `s1`, `s3`, `s4`, and candidate weights as run-scoped `ETLIntermediateOutput` JSON payloads. The runner validates declared input contracts before executing a node; a node with a missing input contract fails before its implementation runs.
 
 ### Calculation Rules
 
@@ -459,7 +479,7 @@ Persist these checks as `ETLQAResult` rows.
 | `weights_t1_t6_pair_mismatch` | STT/reporting-month pairs present in `s1` but not `s3`, or vice versa. | Warning |
 | `weights_t1_t7_stratum_mismatch` | Sample-state STT/reporting-month/stratum pairs present in `s1` but not `s4`, or vice versa. | Warning |
 
-For MVP parity, keep the current script's required STT code list as a named constant in the weights node module unless product confirms a better source. Sample-state QA should use `stts_stt.sample = true` where possible.
+Required T1/T6 STTs should come from `STT` reference records for state and territory entities. Do not maintain a separate hard-coded STT list in the weights node. Sample-state T7 QA should use `stts_stt.sample = true`.
 
 ### Publication And Idempotency
 
@@ -479,6 +499,8 @@ For output scope `TANF + Section 1 + fiscal year`:
 
 If any step fails before publication commits, existing published weights must remain available.
 
+Active-run idempotency is enforced separately from publication versioning. `ETLPipelineRun.output_scope_key` prevents duplicate `PENDING` or `RUNNING` runs for the same canonical output scope, while completed or failed runs remain available for history and reruns.
+
 Follow-on DAG nodes consume the `ETLOutput` from the dependency they declare. For example, a weighted WPR node should receive `statistical_weights.version = 3` from the runner and query that exact version. This keeps a DAG run reproducible and prevents different nodes from resolving "latest weights" at different times.
 
 ### Notifications
@@ -492,11 +514,13 @@ The email should include:
 
 - pipeline name,
 - fiscal year,
+- run ID,
 - run status,
 - trigger source,
+- output version,
 - row count,
 - QA summary,
-- link or identifier for the run detail endpoint.
+- link to `/v1/etl/runs/{id}/`.
 
 Detailed QA payloads stay in the database; the email should summarize them.
 
@@ -559,13 +583,16 @@ Celery retries should be conservative. Retry transient database connection failu
 - DAG ordering for valid graphs.
 - Cycle detection.
 - Missing dependency detection.
-- Canvas generation:
-  - linear dependency layers compile to `chain`,
-  - independent extract nodes compile to `group`,
-  - fan-in from extract nodes to `build_weight_candidates` compiles to `chord`,
+- Layer Canvas generation:
+  - single-node dependency layers compile to `chain(execute_node, advance_pipeline_run)`,
+  - independent extract nodes compile to a `group` inside a `chord`,
+  - parallel layer chords call `advance_pipeline_run`, not downstream business nodes directly,
   - generated node tasks receive run ID, node key, output scope, and resolved upstream output versions.
+- Duplicate callback handling: the advancer waits for persisted prior-layer success, and duplicate node task delivery does not run an already running or succeeded implementation again.
 - Node contract validation.
 - Output scope/idempotency key generation.
+- Active-run partial unique constraint behavior.
+- Source snapshot reuse across nodes.
 - Output version resolution for downstream DAG dependencies.
 - First-workday scheduler helper.
 - Weights case-selection logic:
@@ -578,11 +605,12 @@ Celery retries should be conservative. Retry transient database connection failu
 ### Integration Tests
 
 - Admin creates a weights run through DRF.
-- Pipeline runner generates the Celery Canvas graph from node dependencies.
+- Pipeline runner generates per-layer Celery canvases from node dependencies.
 - Celery executes generated node tasks and updates pipeline/node statuses.
 - QA results are persisted.
 - Published weights are inserted.
 - Rerun inserts the next `StatisticalWeight` version and sets retention on the previous version.
+- Extract, candidate, QA, and publication nodes consume run-scoped intermediate payloads.
 - `ETLOutput` records the produced statistical-weights version for downstream nodes.
 - Failed run does not replace existing published weights.
 - Concurrent run for the same output scope is rejected.
@@ -611,7 +639,7 @@ Use existing dependencies for v1:
 - existing email helpers for notifications,
 - PostgreSQL for set-based calculations and durable outputs.
 
-Do not add Airflow, Prefect, NetworkX, or a SQL execution product for v1. The DAG runner should be a small internal module that validates code-owned graphs and compiles them into Celery Canvas primitives because the immediate need is approved calculation workflows, not user-authored workflows.
+Do not add Airflow, Prefect, NetworkX, or a SQL execution product for v1. The DAG runner should be a small internal module that validates code-owned graphs and queues generated Celery Canvas layers because the immediate need is approved calculation workflows, not user-authored workflows.
 
 Potential future dependency decisions:
 
@@ -625,7 +653,7 @@ Potential future dependency decisions:
 
 Current source areas:
 
-- `tdrs-backend/etl/` - prototype SQL and notebook-export scripts.
+- `tdrs-backend/etl_scripts/` - prototype SQL and notebook-export scripts.
 - `tdrs-backend/tdpservice/reports/` - existing feedback report file storage and distribution.
 - `tdrs-backend/tdpservice/data_files/` - submitted file metadata and lifecycle.
 - `tdrs-backend/tdpservice/parsers/` - parsed record models and parser outcomes.
