@@ -1,6 +1,6 @@
 # ETL Calculation Architecture
 
-- **Status:** Draft - implementation guide
+- **Status:** Review - implementation guide
 - **Scope:** TDP-managed ETL pipelines, beginning with the TANF statistical weights dataset
 - **Last updated:** 2026-06-24
 
