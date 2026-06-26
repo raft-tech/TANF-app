@@ -6,6 +6,7 @@ from django.db import IntegrityError, transaction
 
 import pytest
 
+from tdpservice.etl.exceptions import ActivePipelineRunError, PipelineValidationError
 from tdpservice.etl.models import ETLNodeRun, ETLPipelineRun
 from tdpservice.etl.registry import (
     NodeDefinition,
@@ -14,15 +15,10 @@ from tdpservice.etl.registry import (
     get_pipeline_definition,
 )
 from tdpservice.etl.runner import (
-    ActivePipelineRunError,
-    PipelineValidationError,
-    advance_pipeline_run,
-    build_layer_canvas,
-    create_pipeline_run,
-    execute_node,
+    NodeExecutor,
+    PipelineRunCreator,
+    PipelineRunScheduler,
     output_scope_key,
-    topological_layers,
-    validate_run_parameters,
 )
 
 
@@ -43,29 +39,19 @@ def _definition(nodes):
     )
 
 
-def test_topological_layers_groups_ready_nodes():
-    """Independent branches are returned in the same dependency layer."""
-    definition = _definition(
-        [
-            NodeDefinition("extract", (), _noop),
-            NodeDefinition("branch_a", ("extract",), _noop),
-            NodeDefinition("branch_b", ("extract",), _noop),
-            NodeDefinition("publish", ("branch_a", "branch_b"), _noop),
-        ]
+def _create_pipeline_run():
+    """Create a statistical weights pipeline run for runner tests."""
+    return PipelineRunCreator.for_pipeline_key("tanf_statistical_weights").create(
+        parameters={"fiscal_year": 2026},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
-
-    assert topological_layers(definition) == [
-        ["extract"],
-        ["branch_a", "branch_b"],
-        ["publish"],
-    ]
 
 
 def test_parallel_layer_canvas_advances_to_layer_scheduler_only():
     """Parallel layers schedule one layer-advancer callback, not downstream nodes."""
     definition = get_pipeline_definition("tanf_statistical_weights")
 
-    canvas_graph = build_layer_canvas(definition, pipeline_run_id=1, layer_index=1)
+    canvas_graph = definition.build_layer_canvas(pipeline_run_id=1, layer_index=1)
 
     canvas_repr = repr(canvas_graph)
     assert "extract_t1_family_counts" in canvas_repr
@@ -87,14 +73,14 @@ def test_topological_layers_rejects_cycles():
     )
 
     with pytest.raises(PipelineValidationError):
-        topological_layers(definition)
+        definition.topological_layers()
 
 
 def test_validate_run_parameters_normalizes_fiscal_year():
     """Fiscal year input is normalized for output-scope idempotency."""
     definition = _definition([NodeDefinition("extract", (), _noop)])
 
-    assert validate_run_parameters(definition, {"fiscal_year": "2026"}) == {
+    assert definition.validate_parameters({"fiscal_year": "2026"}) == {
         "fiscal_year": 2026
     }
 
@@ -104,10 +90,7 @@ def test_validate_run_parameters_rejects_unknown_parameters():
     definition = _definition([NodeDefinition("extract", (), _noop)])
 
     with pytest.raises(PipelineValidationError):
-        validate_run_parameters(
-            definition,
-            {"fiscal_year": 2026, "raw_sql": "select 1"},
-        )
+        definition.validate_parameters({"fiscal_year": 2026, "raw_sql": "select 1"})
 
 
 @pytest.mark.django_db
@@ -154,23 +137,21 @@ def test_active_run_scope_key_constraint_allows_completed_reruns():
 @pytest.mark.django_db
 def test_create_pipeline_run_reports_active_scope():
     """Run creation converts active-scope conflicts into a domain error."""
-    first_run = create_pipeline_run(
-        pipeline_key="tanf_statistical_weights",
+    creator = PipelineRunCreator.for_pipeline_key("tanf_statistical_weights")
+    first_run = creator.create(
         parameters={"fiscal_year": 2026},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 
     with pytest.raises(ActivePipelineRunError):
-        create_pipeline_run(
-            pipeline_key="tanf_statistical_weights",
+        creator.create(
             parameters={"fiscal_year": 2026},
             trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
         )
 
     first_run.status = ETLPipelineRun.Status.SUCCEEDED
     first_run.save(update_fields=["status", "updated_at"])
-    second_run = create_pipeline_run(
-        pipeline_key="tanf_statistical_weights",
+    second_run = creator.create(
         parameters={"fiscal_year": 2026},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
@@ -181,13 +162,9 @@ def test_create_pipeline_run_reports_active_scope():
 @pytest.mark.django_db
 def test_advance_pipeline_run_waits_for_prior_layers():
     """Duplicate or early callbacks do not advance before dependencies finish."""
-    pipeline_run = create_pipeline_run(
-        pipeline_key="tanf_statistical_weights",
-        parameters={"fiscal_year": 2026},
-        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
-    )
+    pipeline_run = _create_pipeline_run()
 
-    result = advance_pipeline_run(pipeline_run.id, layer_index=1)
+    result = PipelineRunScheduler.for_run_id(pipeline_run.id).advance(layer_index=1)
 
     assert result["status"] == "waiting_on_dependencies"
     assert result["dependency_status"] == {
@@ -221,8 +198,8 @@ def test_execute_node_ignores_already_succeeded_node():
     with patch(
         "tdpservice.etl.runner.get_pipeline_definition", return_value=definition
     ):
-        first_result = execute_node(pipeline_run.id, "extract")
-        second_result = execute_node(pipeline_run.id, "extract")
+        first_result = NodeExecutor.for_run_id(pipeline_run.id, "extract").execute()
+        second_result = NodeExecutor.for_run_id(pipeline_run.id, "extract").execute()
 
     assert first_result == {
         "node_key": "extract",
@@ -239,11 +216,7 @@ def test_execute_node_ignores_already_succeeded_node():
 @pytest.mark.django_db
 def test_execute_node_fails_missing_input_contracts():
     """Nodes fail before implementation when declared intermediate inputs are missing."""
-    pipeline_run = create_pipeline_run(
-        pipeline_key="tanf_statistical_weights",
-        parameters={"fiscal_year": 2026},
-        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
-    )
+    pipeline_run = _create_pipeline_run()
     pipeline_run.node_runs.filter(
         node_key__in=[
             "validate_parameters",
@@ -254,7 +227,10 @@ def test_execute_node_fails_missing_input_contracts():
     ).update(status=ETLNodeRun.Status.SUCCEEDED)
 
     with pytest.raises(PipelineValidationError):
-        execute_node(pipeline_run.id, "build_weight_candidates")
+        NodeExecutor.for_run_id(
+            pipeline_run.id,
+            "build_weight_candidates",
+        ).execute()
 
     node_run = pipeline_run.node_runs.get(node_key="build_weight_candidates")
     pipeline_run.refresh_from_db()

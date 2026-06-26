@@ -2,34 +2,34 @@
 
 from celery import shared_task
 
-from tdpservice.etl import runner
 from tdpservice.etl.models import ETLPipelineRun
+from tdpservice.etl.runner import NodeExecutor, PipelineRunScheduler
 from tdpservice.etl.scheduler import schedule_statistical_weights_run
 
 
 @shared_task(name="tdpservice.etl.tasks.launch_pipeline_run")
 def launch_pipeline_run(pipeline_run_id: int):
     """Launch a pipeline run by queueing its first execution layer."""
-    result = runner.launch_pipeline_run(pipeline_run_id)
+    result = PipelineRunScheduler.for_run_id(pipeline_run_id).launch()
     return {"pipeline_run_id": pipeline_run_id, "task_id": result.id}
 
 
 @shared_task(name="tdpservice.etl.tasks.advance_pipeline_run")
 def advance_pipeline_run(pipeline_run_id: int, layer_index: int):
     """Queue the next ETL layer after the prior layer succeeds."""
-    return runner.advance_pipeline_run(pipeline_run_id, layer_index)
+    return PipelineRunScheduler.for_run_id(pipeline_run_id).advance(layer_index)
 
 
 @shared_task(name="tdpservice.etl.tasks.execute_node")
 def execute_node(pipeline_run_id: int, node_key: str):
     """Execute one ETL node."""
-    return runner.execute_node(pipeline_run_id, node_key)
+    return NodeExecutor.for_run_id(pipeline_run_id, node_key).execute()
 
 
 @shared_task(name="tdpservice.etl.tasks.finalize_pipeline_run")
 def finalize_pipeline_run(pipeline_run_id: int):
     """Finalize a pipeline run."""
-    return runner.finalize_pipeline_run(pipeline_run_id)
+    return PipelineRunScheduler.for_run_id(pipeline_run_id).finalize()
 
 
 @shared_task(name="tdpservice.etl.tasks.schedule_statistical_weights")

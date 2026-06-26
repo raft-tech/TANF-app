@@ -4,8 +4,9 @@ from datetime import date
 
 from django.utils import timezone
 
+from tdpservice.etl.exceptions import ActivePipelineRunError
 from tdpservice.etl.models import ETLPipelineRun
-from tdpservice.etl.runner import ActivePipelineRunError, create_pipeline_run
+from tdpservice.etl.runner import PipelineRunCreator
 
 
 def fiscal_year_for_date(value: date) -> int:
@@ -58,8 +59,7 @@ def schedule_statistical_weights_run(
         return None
 
     try:
-        return create_pipeline_run(
-            pipeline_key="tanf_statistical_weights",
+        return PipelineRunCreator.for_pipeline_key("tanf_statistical_weights").create(
             parameters={"fiscal_year": fiscal_year},
             trigger_source=ETLPipelineRun.TriggerSource.SCHEDULED,
         )

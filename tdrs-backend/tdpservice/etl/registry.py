@@ -3,6 +3,10 @@
 from dataclasses import dataclass, field
 from typing import Callable
 
+from celery import chain, chord, group
+
+from tdpservice.etl.exceptions import PipelineValidationError
+
 
 @dataclass(frozen=True)
 class NodeResult:
@@ -51,6 +55,91 @@ class PipelineDefinition:
             "program": "TANF",
             "section": "1",
         }
+
+    def validate_parameters(self, parameters: dict) -> dict:
+        """Validate and normalize run parameters for this pipeline."""
+        normalized = dict(parameters or {})
+        allowed = self.allowed_parameters
+
+        for name, metadata in allowed.items():
+            if metadata.get("required") and name not in normalized:
+                raise PipelineValidationError(f"Missing required parameter: {name}")
+
+        if "fiscal_year" in normalized:
+            try:
+                normalized["fiscal_year"] = int(normalized["fiscal_year"])
+            except (TypeError, ValueError) as exc:
+                raise PipelineValidationError(
+                    "fiscal_year must be an integer."
+                ) from exc
+
+            if normalized["fiscal_year"] < 2000:
+                raise PipelineValidationError("fiscal_year must be 2000 or later.")
+
+        unexpected = set(normalized) - set(allowed)
+        if unexpected:
+            raise PipelineValidationError(
+                f"Unexpected parameters: {sorted(unexpected)}"
+            )
+
+        return normalized
+
+    def validate(self) -> None:
+        """Validate node references and cycles for this pipeline."""
+        node_keys = [node.key for node in self.nodes]
+        if len(node_keys) != len(set(node_keys)):
+            raise PipelineValidationError("Pipeline node keys must be unique.")
+
+        known_keys = set(node_keys)
+        for node in self.nodes:
+            missing = set(node.depends_on) - known_keys
+            if missing:
+                raise PipelineValidationError(
+                    f"Node {node.key} depends on unknown nodes: {sorted(missing)}"
+                )
+
+        self.topological_layers()
+
+    def topological_layers(self) -> list[list[str]]:
+        """Return node keys in dependency layers."""
+        remaining = {node.key: set(node.depends_on) for node in self.nodes}
+        node_order = [node.key for node in self.nodes]
+        completed: set[str] = set()
+        layers: list[list[str]] = []
+
+        while remaining:
+            ready = [
+                node_key
+                for node_key in node_order
+                if node_key in remaining and remaining[node_key].issubset(completed)
+            ]
+            if not ready:
+                cycle_nodes = sorted(remaining.keys())
+                raise PipelineValidationError(
+                    "Pipeline contains a dependency cycle involving: " f"{cycle_nodes}"
+                )
+
+            layers.append(ready)
+            completed.update(ready)
+            for node_key in ready:
+                remaining.pop(node_key)
+
+        return layers
+
+    def build_layer_canvas(self, pipeline_run_id: int, layer_index: int):
+        """Build Celery Canvas primitives for one pipeline layer."""
+        from tdpservice.etl.tasks import advance_pipeline_run, execute_node
+
+        layer = self.topological_layers()[layer_index]
+        next_layer = advance_pipeline_run.si(pipeline_run_id, layer_index + 1)
+
+        if len(layer) == 1:
+            return chain(execute_node.si(pipeline_run_id, layer[0]), next_layer)
+
+        return chord(
+            group([execute_node.si(pipeline_run_id, node_key) for node_key in layer]),
+            next_layer,
+        )
 
     def serialize(self) -> dict:
         """Return API-safe pipeline definition metadata."""

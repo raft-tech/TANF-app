@@ -18,7 +18,7 @@ from tdpservice.etl.models import (
 )
 from tdpservice.etl.nodes import statistical_weights
 from tdpservice.etl.registry import get_pipeline_definition
-from tdpservice.etl.runner import NodeContext, create_pipeline_run
+from tdpservice.etl.runner import NodeContext, PipelineRunCreator
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T6, TANF_T7
 from tdpservice.stts.models import STT
 
@@ -58,8 +58,7 @@ def _node_context(pipeline_run, node_key):
 
 def _create_pipeline_run():
     """Create a statistical weights pipeline run."""
-    return create_pipeline_run(
-        pipeline_key="tanf_statistical_weights",
+    return PipelineRunCreator.for_pipeline_key("tanf_statistical_weights").create(
         parameters={"fiscal_year": FISCAL_YEAR},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )

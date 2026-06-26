@@ -161,7 +161,7 @@ class ETLQAResult(models.Model):
 
 
 class ETLOutput(models.Model):
-    """Reference to a final or important intermediate pipeline output."""
+    """Reference to a final pipeline output."""
 
     class OutputKind(models.TextChoices):
         """Supported output kinds."""

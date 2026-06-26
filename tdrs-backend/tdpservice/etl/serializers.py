@@ -2,9 +2,9 @@
 
 from rest_framework import serializers
 
+from tdpservice.etl.exceptions import PipelineValidationError
 from tdpservice.etl.models import ETLNodeRun, ETLOutput, ETLPipelineRun, ETLQAResult
 from tdpservice.etl.registry import get_pipeline_definition, list_pipeline_definitions
-from tdpservice.etl.runner import PipelineValidationError, validate_run_parameters
 
 
 class PipelineDefinitionSerializer(serializers.Serializer):
@@ -134,9 +134,8 @@ class ETLPipelineRunCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError({"pipeline_key": str(exc)}) from exc
 
         try:
-            attrs["parameters"] = validate_run_parameters(
-                definition,
-                attrs.get("parameters", {}),
+            attrs["parameters"] = definition.validate_parameters(
+                attrs.get("parameters", {})
             )
         except PipelineValidationError as exc:
             raise serializers.ValidationError({"parameters": str(exc)}) from exc

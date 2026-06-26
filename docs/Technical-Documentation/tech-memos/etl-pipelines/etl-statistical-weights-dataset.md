@@ -86,7 +86,7 @@ tdpservice/
 The external seam is intentionally small:
 
 - admins create and inspect runs through DRF endpoints,
-- the runner computes approved pipeline dependency layers,
+- `PipelineDefinition` validates approved DAGs and computes dependency layers,
 - Celery executes generated per-layer `chain`, `group`, and `chord` canvases,
 - pipeline definitions are code-defined and reviewed,
 - nodes receive typed run context and write declared outputs.
@@ -116,7 +116,7 @@ Node definitions declare:
 - whether outputs are temporary, run-scoped, or durable,
 - expected QA checks or row-count reporting.
 
-The first implementation should use a lightweight internal runner that validates the dependency graph, detects cycles, computes ready-node layers, and queues one Celery Canvas layer at a time:
+The first implementation should use a lightweight internal runner. `PipelineDefinition` validates the dependency graph, detects cycles, computes ready-node layers, and builds one Celery Canvas layer at a time. Runner services create runs, launch and advance layers, execute nodes, and finalize run status:
 
 | DAG shape | Celery primitive | Use |
 | --- | --- | --- |
@@ -341,7 +341,7 @@ Admin-triggered run:
 4. DRF creates `ETLPipelineRun` and initial `ETLNodeRun` rows.
 5. DRF queues a pipeline runner task with the run ID.
 6. The runner loads the pipeline definition and run row.
-7. The runner validates dependencies, computes dependency layers, and queues the first Celery layer.
+7. `PipelineDefinition` validates dependencies and computes dependency layers; the runner queues the first Celery layer.
 8. Celery executes generated node tasks with stable run/node identifiers and resolved upstream output versions.
 9. Each node claims its `ETLNodeRun` under a database lock, then records status, row counts, metadata, and errors.
 10. A run-advancer task confirms prior layers succeeded before queueing the next layer.
@@ -428,7 +428,7 @@ Node responsibilities:
 | `publish_weights` | Publish a new immutable weights version from persisted candidates and record it on `ETLOutput`. |
 | `notify_weights_run` | Email run status, output, and QA summary to recipients. |
 
-The first implementation materializes `s1`, `s3`, `s4`, and candidate weights as run-scoped `ETLIntermediateOutput` JSON payloads. The runner validates declared input contracts before executing a node; a node with a missing input contract fails before its implementation runs.
+The first implementation materializes `s1`, `s3`, `s4`, and candidate weights as run-scoped `ETLIntermediateOutput` JSON payloads. The node executor validates declared input contracts before executing a node; a node with a missing input contract fails before its implementation runs.
 
 ### Calculation Rules
 

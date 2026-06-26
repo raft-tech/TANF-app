@@ -5,13 +5,10 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from tdpservice.etl.exceptions import ActivePipelineRunError, PipelineValidationError
 from tdpservice.etl.models import ETLPipelineRun
 from tdpservice.etl.permissions import ETLPermissions
-from tdpservice.etl.runner import (
-    ActivePipelineRunError,
-    PipelineValidationError,
-    create_pipeline_run,
-)
+from tdpservice.etl.runner import PipelineRunCreator
 from tdpservice.etl.serializers import (
     ETLPipelineRunCreateSerializer,
     ETLPipelineRunSerializer,
@@ -50,8 +47,9 @@ class PipelineRunViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         try:
-            pipeline_run = create_pipeline_run(
-                pipeline_key=serializer.validated_data["pipeline_key"],
+            pipeline_run = PipelineRunCreator.for_pipeline_key(
+                serializer.validated_data["pipeline_key"]
+            ).create(
                 parameters=serializer.validated_data["parameters"],
                 trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
                 triggered_by=request.user,
@@ -73,8 +71,9 @@ class PipelineRunViewSet(viewsets.ModelViewSet):
             raise ValidationError("Only failed ETL runs can be retried.")
 
         try:
-            pipeline_run = create_pipeline_run(
-                pipeline_key=failed_run.pipeline_key,
+            pipeline_run = PipelineRunCreator.for_pipeline_key(
+                failed_run.pipeline_key
+            ).create(
                 parameters=failed_run.parameters,
                 trigger_source=ETLPipelineRun.TriggerSource.RETRY,
                 triggered_by=request.user,
