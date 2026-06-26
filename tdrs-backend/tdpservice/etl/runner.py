@@ -14,12 +14,8 @@ from tdpservice.etl.models import (
     ETLOutput,
     ETLPipelineRun,
 )
-from tdpservice.etl.registry import (
-    NodeResult,
-    PipelineDefinition,
-    PipelineNode,
-    get_pipeline_definition,
-)
+from tdpservice.etl.pipelines.base import NodeResult, PipelineDefinition, PipelineNode
+from tdpservice.etl.registry import get_pipeline_definition
 
 ACTIVE_RUN_STATUSES = (
     ETLPipelineRun.Status.PENDING,

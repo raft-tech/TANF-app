@@ -401,7 +401,7 @@ DAG principles:
 
 ### Celery Canvas Execution
 
-The pipeline registry owns executable, code-reviewed DAG definitions. `PipelineDefinition` validates declared node metadata, normalizes run parameters, and builds the pipeline's Celery Canvas directly. Runner services create `ETLPipelineRun` and `ETLNodeRun` rows, launch the Canvas, execute nodes, and finalize status. The Canvas should make the business DAG visible in code instead of hiding progression behind a secondary layer scheduler or metadata-to-Canvas compiler.
+The pipeline registry maps approved keys to executable, code-reviewed pipeline classes. `PipelineDefinition` is the abstract base interface; it provides shared node lookup, node-key validation, and serialization. Each concrete pipeline class normalizes its own run parameters, builds its own output scope, declares node metadata, and builds its Celery Canvas directly. Runner services create `ETLPipelineRun` and `ETLNodeRun` rows, launch the Canvas, execute nodes, and finalize status. The Canvas should make the business DAG visible in code instead of hiding progression behind a secondary layer scheduler or metadata-to-Canvas compiler.
 
 | DAG shape | Celery primitive | Use |
 | --- | --- | --- |
@@ -440,7 +440,7 @@ chain(
 )
 ```
 
-Each pipeline definition should declare its exact Celery Canvas in code. Node registry metadata is limited to the execution details the runner needs: node key, implementation, and input/output contracts. Node execution is claimed under a database lock, so duplicate task delivery does not run a completed or currently running node implementation again. A larger orchestrator is not needed until the team needs operator-managed DAGs, cross-environment backfills, or non-Django execution workers.
+Each concrete pipeline definition should declare its exact Celery Canvas in code. Node metadata is limited to the execution details the runner needs: node key, implementation, and input/output contracts. Node execution is claimed under a database lock, so duplicate task delivery does not run a completed or currently running node implementation again. A larger orchestrator is not needed until the team needs operator-managed DAGs, cross-environment backfills, or non-Django execution workers.
 
 ---
 

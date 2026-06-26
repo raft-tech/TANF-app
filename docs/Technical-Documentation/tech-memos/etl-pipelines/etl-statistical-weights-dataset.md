@@ -86,7 +86,7 @@ tdpservice/
 The external seam is intentionally small:
 
 - admins create and inspect runs through DRF endpoints,
-- `PipelineDefinition` validates approved pipeline metadata,
+- `PipelineDefinition` defines the base interface for approved pipelines,
 - Celery executes a pipeline-owned `chain`/`chord` Canvas for each run,
 - pipeline definitions are code-defined and reviewed,
 - nodes receive typed run context and write declared outputs.
@@ -95,13 +95,15 @@ Do not build an arbitrary SQL runner. Admin users execute approved pipelines onl
 
 ### Pipeline Registry
 
-Pipeline definitions are code-defined. A pipeline definition declares:
+Pipeline definitions are code-defined classes. The base `PipelineDefinition` is an abstract interface that provides shared node lookup, duplicate node-key validation, and API serialization. Each concrete pipeline class owns its own parameter validation, output scope, node metadata, Celery Canvas, schedule metadata, and permission metadata.
+
+A concrete pipeline definition declares:
 
 - `key`, such as `statistical_weights`,
 - `version`,
 - display name and description,
-- allowed parameters,
-- output scope,
+- allowed parameters and validation rules,
+- output scope construction,
 - node metadata,
 - executable Celery Canvas builder,
 - schedule metadata,
@@ -116,14 +118,14 @@ Node definitions declare:
 - whether outputs are temporary, run-scoped, or durable,
 - expected QA checks or row-count reporting.
 
-The first implementation should use a lightweight internal runner. `PipelineDefinition` validates node metadata and builds one code-owned Celery Canvas for the run. Runner services create runs, launch the Canvas, execute nodes, and finalize run status:
+The first implementation should use a lightweight internal runner. The base `PipelineDefinition` validates shared node metadata, and each concrete pipeline builds its own code-owned Celery Canvas for the run. Runner services create runs, launch the Canvas, execute nodes, and finalize run status:
 
 | DAG shape | Celery primitive | Use |
 | --- | --- | --- |
 | Linear dependency | `chain` | Run ordered nodes where each node depends on the prior node's output. |
 | Fan-out/fan-in dependency | `chord` | Run parallel header nodes, then run the body once after every header node succeeds. |
 
-The registry remains the executable DAG definition. Pipeline authors hand-write the Celery Canvas for each approved pipeline. Node registry metadata is limited to the execution details the runner needs: node key, implementation, and input/output contracts. The Canvas should make the DAG visible: linear dependencies use `chain`, and parallel fan-in uses `chord` with a single fan-in body task. Remaining downstream nodes continue from that body task through an immutable link chain when needed.
+Concrete pipeline classes remain the executable DAG definitions. The registry only maps approved pipeline keys to those classes. Pipeline authors hand-write the Celery Canvas for each approved pipeline. Node metadata is limited to the execution details the runner needs: node key, implementation, and input/output contracts. The Canvas should make the DAG visible: linear dependencies use `chain`, and parallel fan-in uses `chord` with a single fan-in body task. Remaining downstream nodes continue from that body task through an immutable link chain when needed.
 
 Celery tasks should receive stable identifiers: pipeline run ID, node key, output scope, and resolved upstream output versions. Node and finalize signatures should be immutable (`.si`) so upstream return values and chord header results are not appended to task arguments. Tasks load run context from the database, update `ETLNodeRun`, and persist any `ETLOutput` rows. The database remains the source of truth for orchestration state; Celery is the execution mechanism.
 
@@ -340,7 +342,7 @@ Admin-triggered run:
 4. DRF creates `ETLPipelineRun` and initial `ETLNodeRun` rows.
 5. DRF queues a pipeline runner task with the run ID.
 6. The runner loads the pipeline definition and run row.
-7. `PipelineDefinition` validates node metadata and builds the pipeline-owned Celery Canvas.
+7. The concrete `PipelineDefinition` validates node metadata and builds the pipeline-owned Celery Canvas.
 8. Celery executes node tasks with stable run/node identifiers and resolved upstream output versions.
 9. Each node claims its `ETLNodeRun` under a database lock, then records status, row counts, metadata, and errors.
 10. The chord body runs `build_weight_candidates` once after all extract nodes succeed, then its immutable link chain runs QA, publish, notify, and finalize.

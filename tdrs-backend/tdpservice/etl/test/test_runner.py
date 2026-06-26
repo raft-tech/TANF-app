@@ -8,12 +8,8 @@ import pytest
 
 from tdpservice.etl.exceptions import ActivePipelineRunError, PipelineValidationError
 from tdpservice.etl.models import ETLNodeRun, ETLPipelineRun
-from tdpservice.etl.registry import (
-    NodeResult,
-    PipelineDefinition,
-    PipelineNode,
-    get_pipeline_definition,
-)
+from tdpservice.etl.pipelines.base import NodeResult, PipelineDefinition, PipelineNode
+from tdpservice.etl.registry import get_pipeline_definition
 from tdpservice.etl.runner import NodeExecutor, PipelineRunCreator, output_scope_key
 
 
@@ -22,16 +18,40 @@ def _noop(context):
     return None
 
 
+class ConcretePipelineDefinition(PipelineDefinition):
+    """Minimal concrete pipeline definition for runner tests."""
+
+    key = "test_pipeline"
+    version = "1"
+    display_name = "Test Pipeline"
+    description = "Pipeline used by runner tests."
+    allowed_parameters = {"fiscal_year": {"required": True}}
+
+    def __init__(self, nodes):
+        """Initialize a test pipeline with configurable nodes."""
+        self.nodes = tuple(nodes)
+
+    def validate_parameters(self, parameters: dict) -> dict:
+        """Return test parameters unchanged."""
+        return dict(parameters or {})
+
+    def output_scope(self, parameters: dict) -> dict:
+        """Return a simple fiscal-year output scope."""
+        return {
+            "pipeline": self.key,
+            "fiscal_year": int(parameters["fiscal_year"]),
+        }
+
+    def build_canvas(self, pipeline_run_id: int):
+        """Test pipeline does not declare an executable Canvas."""
+        raise PipelineValidationError(
+            f"Pipeline {self.key} does not define an executable Celery Canvas."
+        )
+
+
 def _definition(nodes):
     """Build a minimal pipeline definition."""
-    return PipelineDefinition(
-        key="test_pipeline",
-        version="1",
-        display_name="Test Pipeline",
-        description="Pipeline used by runner tests.",
-        nodes=tuple(nodes),
-        allowed_parameters={"fiscal_year": {"required": True}},
-    )
+    return ConcretePipelineDefinition(nodes)
 
 
 def _create_pipeline_run():
@@ -90,20 +110,36 @@ def test_pipeline_validation_rejects_duplicate_node_keys():
         definition.validate()
 
 
-def test_pipeline_build_canvas_requires_canvas_builder():
-    """Pipeline definitions must own an executable Canvas declaration."""
-    definition = _definition([PipelineNode("extract", _noop)])
+def test_pipeline_definition_requires_canvas_builder_implementation():
+    """Pipeline definitions must implement executable Canvas declaration."""
 
-    with pytest.raises(PipelineValidationError):
-        definition.build_canvas(pipeline_run_id=1)
+    class MissingCanvasPipeline(PipelineDefinition):
+        key = "missing_canvas"
+        version = "1"
+        display_name = "Missing Canvas"
+        description = "Pipeline missing a Canvas implementation."
+        allowed_parameters = {}
+        nodes = ()
+
+        def validate_parameters(self, parameters: dict) -> dict:
+            return {}
+
+        def output_scope(self, parameters: dict) -> dict:
+            return {}
+
+    with pytest.raises(TypeError):
+        MissingCanvasPipeline()
 
 
-def test_validate_run_parameters_normalizes_fiscal_year():
+def test_statistical_weights_parameters_normalize_fiscal_year():
     """Fiscal year input is normalized for output-scope idempotency."""
-    definition = _definition([PipelineNode("extract", _noop)])
+    definition = get_pipeline_definition("statistical_weights")
 
-    assert definition.validate_parameters({"fiscal_year": "2026"}) == {
-        "fiscal_year": 2026
+    assert definition.validate_parameters(
+        {"fiscal_year": "2026", "program": "TANF"}
+    ) == {
+        "fiscal_year": 2026,
+        "program": "TANF",
     }
 
 
@@ -126,10 +162,12 @@ def test_validate_statistical_weights_parameters_rejects_unknown_program():
 
 def test_validate_run_parameters_rejects_unknown_parameters():
     """Only code-defined pipeline parameters are accepted."""
-    definition = _definition([PipelineNode("extract", _noop)])
+    definition = get_pipeline_definition("statistical_weights")
 
     with pytest.raises(PipelineValidationError):
-        definition.validate_parameters({"fiscal_year": 2026, "raw_sql": "select 1"})
+        definition.validate_parameters(
+            {"fiscal_year": 2026, "program": "TANF", "raw_sql": "select 1"}
+        )
 
 
 @pytest.mark.django_db

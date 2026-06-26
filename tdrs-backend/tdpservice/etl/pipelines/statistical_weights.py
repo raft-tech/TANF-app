@@ -3,13 +3,17 @@
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import ROUND_HALF_UP, Decimal
+from typing import Any
 
 from django.db import transaction
 from django.db.models import Count, F, Max, OuterRef, Subquery, Sum
 from django.utils import timezone
 
+from celery import chain, chord
+
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
+from tdpservice.etl.exceptions import PipelineValidationError
 from tdpservice.etl.models import (
     ETLIntermediateOutput,
     ETLOutput,
@@ -17,7 +21,7 @@ from tdpservice.etl.models import (
     StatisticalWeight,
 )
 from tdpservice.etl.notifications import send_statistical_weights_notification
-from tdpservice.etl.registry import NodeResult
+from tdpservice.etl.pipelines.base import NodeResult, PipelineDefinition, PipelineNode
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M6, SSP_M7
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T6, TANF_T7
 from tdpservice.search_indexes.models.tribal import (
@@ -782,3 +786,165 @@ def notify_weights_run(context) -> NodeResult:
     return NodeResult(
         metadata=send_statistical_weights_notification(context.pipeline_run)
     )
+
+
+class StatisticalWeightsPipeline(PipelineDefinition):
+    """Pipeline definition for Section 1 statistical weights."""
+
+    key = PIPELINE_KEY
+    version = "1"
+    display_name = "Statistical Weights"
+    description = (
+        "Generate Section 1 statistical weights for a fiscal year and program."
+    )
+    schedule = {"first_workday_monthly": True}
+    allowed_parameters = {
+        "fiscal_year": {
+            "type": "integer",
+            "required": True,
+            "description": "Fiscal year to generate weights for.",
+        },
+        "program": {
+            "type": "string",
+            "required": True,
+            "description": "Program to generate weights for.",
+            "choices": list(SUPPORTED_PROGRAMS),
+            "aliases": PROGRAM_ALIASES,
+        },
+    }
+    nodes = (
+        PipelineNode(
+            key="validate_parameters",
+            implementation=validate_parameters,
+        ),
+        PipelineNode(
+            key="extract_active_family_counts",
+            implementation=extract_active_family_counts,
+            output_contracts=(S1_OUTPUT_KEY,),
+        ),
+        PipelineNode(
+            key="extract_aggregate_case_counts",
+            implementation=extract_aggregate_case_counts,
+            output_contracts=(S3_OUTPUT_KEY,),
+        ),
+        PipelineNode(
+            key="extract_stratum_case_counts",
+            implementation=extract_stratum_case_counts,
+            output_contracts=(S4_OUTPUT_KEY,),
+        ),
+        PipelineNode(
+            key="build_weight_candidates",
+            implementation=build_weight_candidates,
+            input_contracts=(S1_OUTPUT_KEY, S3_OUTPUT_KEY, S4_OUTPUT_KEY),
+            output_contracts=(WEIGHT_CANDIDATES_KEY,),
+        ),
+        PipelineNode(
+            key="run_weights_qa",
+            implementation=run_weights_qa,
+            input_contracts=(
+                S1_OUTPUT_KEY,
+                S3_OUTPUT_KEY,
+                S4_OUTPUT_KEY,
+                WEIGHT_CANDIDATES_KEY,
+            ),
+        ),
+        PipelineNode(
+            key="publish_weights",
+            implementation=publish_weights,
+            input_contracts=(WEIGHT_CANDIDATES_KEY,),
+            output_contracts=(WEIGHT_OUTPUT_KEY,),
+        ),
+        PipelineNode(
+            key="notify_weights_run",
+            implementation=notify_weights_run,
+            input_contracts=(WEIGHT_OUTPUT_KEY,),
+        ),
+    )
+
+    def validate_parameters(self, parameters: dict) -> dict:
+        """Validate and normalize statistical weights run parameters."""
+        normalized = dict(parameters or {})
+        unexpected = set(normalized) - set(self.allowed_parameters)
+        if unexpected:
+            raise PipelineValidationError(
+                f"Unexpected parameters: {sorted(unexpected)}"
+            )
+
+        for name, metadata in self.allowed_parameters.items():
+            if metadata.get("required") and name not in normalized:
+                raise PipelineValidationError(f"Missing required parameter: {name}")
+
+        normalized["fiscal_year"] = self._normalize_fiscal_year(
+            normalized["fiscal_year"]
+        )
+        normalized["program"] = self._normalize_program(normalized["program"])
+        return normalized
+
+    def output_scope(self, parameters: dict) -> dict:
+        """Build the idempotency/output scope for statistical weights."""
+        return {
+            "pipeline": self.key,
+            "fiscal_year": int(parameters["fiscal_year"]),
+            "program": normalize_program(parameters["program"]),
+            "section": SECTION,
+        }
+
+    def build_canvas(self, pipeline_run_id: int) -> Any:
+        """Build the Celery Canvas for the statistical weights DAG."""
+        from tdpservice.etl.tasks import execute_node, finalize_pipeline_run
+
+        build_weight_candidates_signature = execute_node.si(
+            pipeline_run_id,
+            "build_weight_candidates",
+        )
+        downstream = chain(
+            execute_node.si(pipeline_run_id, "run_weights_qa"),
+            execute_node.si(pipeline_run_id, "publish_weights"),
+            execute_node.si(pipeline_run_id, "notify_weights_run"),
+            finalize_pipeline_run.si(pipeline_run_id),
+        )
+        downstream.set(immutable=True)
+        build_weight_candidates_signature.link(downstream)
+
+        return chain(
+            execute_node.si(pipeline_run_id, "validate_parameters"),
+            chord(
+                [
+                    execute_node.si(
+                        pipeline_run_id,
+                        "extract_active_family_counts",
+                    ),
+                    execute_node.si(
+                        pipeline_run_id,
+                        "extract_aggregate_case_counts",
+                    ),
+                    execute_node.si(
+                        pipeline_run_id,
+                        "extract_stratum_case_counts",
+                    ),
+                ],
+                build_weight_candidates_signature,
+            ),
+        )
+
+    @staticmethod
+    def _normalize_fiscal_year(value) -> int:
+        """Normalize and validate fiscal year."""
+        try:
+            fiscal_year = int(value)
+        except (TypeError, ValueError) as exc:
+            raise PipelineValidationError("fiscal_year must be an integer.") from exc
+
+        if fiscal_year < 2000:
+            raise PipelineValidationError("fiscal_year must be 2000 or later.")
+        return fiscal_year
+
+    @staticmethod
+    def _normalize_program(value) -> str:
+        """Normalize and validate program."""
+        try:
+            return normalize_program(value)
+        except ValueError as exc:
+            raise PipelineValidationError(
+                f"program must be one of: {', '.join(SUPPORTED_PROGRAMS)}."
+            ) from exc
