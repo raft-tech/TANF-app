@@ -203,6 +203,8 @@ Every translated query must apply the same source-selection contract:
 
 The default parser state for calculations should be successfully parsed data.
 
+Pipelines that read submitted files should declare their `DataFileSource` inputs and use the shared `DataFileSourceSnapshotter` to freeze latest accepted `DataFile` IDs once per run. Downstream nodes should consume that run-scoped snapshot instead of recalculating latest files independently.
+
 ---
 
 ## Core Data Products

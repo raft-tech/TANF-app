@@ -6,12 +6,11 @@ from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from django.db import transaction
-from django.db.models import Count, F, Max, OuterRef, Subquery, Sum
+from django.db.models import Count, Max, Sum
 from django.utils import timezone
 
 from celery import chain, chord
 
-from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
 from tdpservice.etl.exceptions import PipelineValidationError
 from tdpservice.etl.models import (
@@ -22,6 +21,11 @@ from tdpservice.etl.models import (
 )
 from tdpservice.etl.notifications import send_statistical_weights_notification
 from tdpservice.etl.pipelines.base import NodeResult, PipelineDefinition, PipelineNode
+from tdpservice.etl.pipelines.sources import (
+    SOURCE_DATAFILE_IDS_KEY,
+    DataFileSource,
+    DataFileSourceSnapshot,
+)
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M6, SSP_M7
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T6, TANF_T7
 from tdpservice.search_indexes.models.tribal import (
@@ -46,7 +50,6 @@ PROGRAM_ALIASES = {
 }
 SECTION = "1"
 WEIGHT_OUTPUT_KEY = "statistical_weights"
-SOURCE_DATAFILE_IDS_KEY = "source_datafile_ids"
 ACTIVE_SOURCE_KEY = "active"
 AGGREGATE_SOURCE_KEY = "aggregate"
 STRATUM_SOURCE_KEY = "stratum"
@@ -54,6 +57,7 @@ S1_OUTPUT_KEY = "weights.s1"
 S3_OUTPUT_KEY = "weights.s3"
 S4_OUTPUT_KEY = "weights.s4"
 WEIGHT_CANDIDATES_KEY = "statistical_weights.candidates"
+DATAFILE_SOURCE_SNAPSHOT = DataFileSourceSnapshot()
 
 
 @dataclass(frozen=True)
@@ -158,79 +162,36 @@ def _normalize_code(value) -> str:
         return str(value).strip()
 
 
-def _latest_datafile_ids(fiscal_year: int, program: str, section: str) -> list[int]:
-    """Return latest accepted DataFile ids by STT and quarter for a section."""
+def _datafile_sources(program: str) -> tuple[DataFileSource, ...]:
+    """Return the DataFile source declarations for a weights run."""
     adapter = _adapter(program)
-    accepted_files = DataFile.objects.filter(
-        year=fiscal_year,
-        program_type=adapter.datafile_program,
-        section=section,
-        is_program_audit=False,
-        state=SubmissionState.PARSE_COMPLETED,
-    )
-
-    latest_version = (
-        DataFile.objects.filter(
-            year=fiscal_year,
+    return (
+        DataFileSource(
+            key=ACTIVE_SOURCE_KEY,
             program_type=adapter.datafile_program,
-            section=section,
-            is_program_audit=False,
-            state=SubmissionState.PARSE_COMPLETED,
-            stt_id=OuterRef("stt_id"),
-            quarter=OuterRef("quarter"),
-        )
-        .order_by("-version")
-        .values("version")[:1]
+            section=DataFile.Section.ACTIVE_CASE_DATA,
+        ),
+        DataFileSource(
+            key=AGGREGATE_SOURCE_KEY,
+            program_type=adapter.datafile_program,
+            section=DataFile.Section.AGGREGATE_DATA,
+        ),
+        DataFileSource(
+            key=STRATUM_SOURCE_KEY,
+            program_type=adapter.datafile_program,
+            section=DataFile.Section.STRATUM_DATA,
+        ),
     )
-
-    return list(
-        accepted_files.annotate(latest_version=Subquery(latest_version))
-        .filter(version=F("latest_version"))
-        .values_list("id", flat=True)
-    )
-
-
-def _snapshot_source_datafile_ids(
-    fiscal_year: int,
-    program: str = PROGRAM_TANF,
-) -> dict[str, list[int]]:
-    """Return the source DataFile snapshot for one weights run."""
-    # If an STT submits a file during a run, later nodes should not pick it up.
-    return {
-        ACTIVE_SOURCE_KEY: _latest_datafile_ids(
-            fiscal_year, program, DataFile.Section.ACTIVE_CASE_DATA
-        ),
-        AGGREGATE_SOURCE_KEY: _latest_datafile_ids(
-            fiscal_year, program, DataFile.Section.AGGREGATE_DATA
-        ),
-        STRATUM_SOURCE_KEY: _latest_datafile_ids(
-            fiscal_year, program, DataFile.Section.STRATUM_DATA
-        ),
-    }
 
 
 def _source_datafile_ids(context) -> dict[str, list[int]]:
     """Return a run's source DataFile snapshot, creating it once when needed."""
-    metadata = dict(context.pipeline_run.metadata or {})
-    source_ids = metadata.get(SOURCE_DATAFILE_IDS_KEY)
-    if source_ids:
-        return {
-            ACTIVE_SOURCE_KEY: [
-                int(value) for value in source_ids.get(ACTIVE_SOURCE_KEY, [])
-            ],
-            AGGREGATE_SOURCE_KEY: [
-                int(value) for value in source_ids.get(AGGREGATE_SOURCE_KEY, [])
-            ],
-            STRATUM_SOURCE_KEY: [
-                int(value) for value in source_ids.get(STRATUM_SOURCE_KEY, [])
-            ],
-        }
-
-    source_ids = _snapshot_source_datafile_ids(_fiscal_year(context), _program(context))
-    metadata[SOURCE_DATAFILE_IDS_KEY] = source_ids
-    context.pipeline_run.metadata = metadata
-    context.pipeline_run.save(update_fields=["metadata", "updated_at"])
-    return source_ids
+    program = _program(context)
+    return DATAFILE_SOURCE_SNAPSHOT.snapshot(
+        context.pipeline_run,
+        fiscal_year=_fiscal_year(context),
+        sources=_datafile_sources(program),
+    )
 
 
 def _write_intermediate_output(pipeline_run, output_key: str, payload: list[dict]):
@@ -535,16 +496,6 @@ def _numeric_stt_codes(queryset) -> set[int]:
         .values_list("stt_code", flat=True)
     )
     return {int(code) for code in codes if str(code).isdigit()}
-
-
-def _required_stt_codes() -> set[int]:
-    """Return state and territory STT codes expected in TANF active/aggregate QA."""
-    return _required_program_stt_codes(PROGRAM_TANF)
-
-
-def _sample_stt_codes() -> set[int]:
-    """Return TANF sample STT codes as integers."""
-    return _stratum_program_stt_codes(PROGRAM_TANF)
 
 
 def _required_program_stt_codes(program: str) -> set[int]:

@@ -397,7 +397,7 @@ Source-selection rules must be explicit:
 
 The default accepted parser state should be `PARSE_COMPLETED`. If product or legacy parity requires including `PARSED_WITH_ERRORS`, document that decision in the pipeline definition and test it explicitly.
 
-The first node snapshots the selected active, aggregate, and stratum `DataFile` IDs into `ETLPipelineRun.metadata["source_datafile_ids"]`. All later nodes read from that snapshot rather than recalculating "latest accepted" files. This keeps counts, QA, and publication stable if a newer file is accepted while a run is executing.
+The first node declares three `DataFileSource` inputs, then uses the shared `DataFileSourceSnapshotter` to snapshot the selected active, aggregate, and stratum `DataFile` IDs into `ETLPipelineRun.metadata["source_datafile_ids"]`. All later nodes read from that snapshot rather than recalculating "latest accepted" files. This keeps counts, QA, and publication stable if a newer file is accepted while a run is executing. The snapshotter is shared infrastructure for future pipelines; statistical weights only owns the source declarations.
 
 ### DAG
 
