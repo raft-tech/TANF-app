@@ -91,7 +91,6 @@ class ETLNodeRun(models.Model):
         RUNNING = "RUNNING"
         SUCCEEDED = "SUCCEEDED"
         FAILED = "FAILED"
-        SKIPPED = "SKIPPED"
 
     pipeline_run = models.ForeignKey(
         ETLPipelineRun, on_delete=models.CASCADE, related_name="node_runs"
@@ -100,7 +99,6 @@ class ETLNodeRun(models.Model):
     status = models.CharField(
         max_length=16, choices=Status.choices, default=Status.PENDING
     )
-    dependency_status = models.JSONField(default=dict)
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     input_row_count = models.PositiveIntegerField(null=True, blank=True)

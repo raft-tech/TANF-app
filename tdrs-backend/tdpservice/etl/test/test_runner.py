@@ -1,4 +1,4 @@
-"""Tests for ETL runner graph validation."""
+"""Tests for ETL runner services."""
 
 from unittest.mock import patch
 
@@ -9,17 +9,12 @@ import pytest
 from tdpservice.etl.exceptions import ActivePipelineRunError, PipelineValidationError
 from tdpservice.etl.models import ETLNodeRun, ETLPipelineRun
 from tdpservice.etl.registry import (
-    NodeDefinition,
     NodeResult,
     PipelineDefinition,
+    PipelineNode,
     get_pipeline_definition,
 )
-from tdpservice.etl.runner import (
-    NodeExecutor,
-    PipelineRunCreator,
-    PipelineRunScheduler,
-    output_scope_key,
-)
+from tdpservice.etl.runner import NodeExecutor, PipelineRunCreator, output_scope_key
 
 
 def _noop(context):
@@ -47,38 +42,65 @@ def _create_pipeline_run():
     )
 
 
-def test_parallel_layer_canvas_advances_to_layer_scheduler_only():
-    """Parallel layers schedule one layer-advancer callback, not downstream nodes."""
+def test_pipeline_canvas_uses_chord_for_extract_fan_in():
+    """The pipeline-owned Canvas expresses the DAG without a layer compiler."""
     definition = get_pipeline_definition("tanf_statistical_weights")
 
-    canvas_graph = definition.build_layer_canvas(pipeline_run_id=1, layer_index=1)
+    canvas_graph = definition.build_canvas(pipeline_run_id=1)
+    chord_task = canvas_graph.tasks[1]
 
     canvas_repr = repr(canvas_graph)
+    assert chord_task.name == "celery.chord"
+    assert [task.args[1] for task in chord_task.tasks] == [
+        "extract_t1_family_counts",
+        "extract_t6_case_counts",
+        "extract_t7_section_case_counts",
+    ]
+    assert chord_task.body.args[1] == "build_weight_candidates"
+    assert chord_task.body.immutable
+    downstream_chain = chord_task.body.options["link"][0]
+    assert downstream_chain.immutable
+    assert [task.args[1] for task in downstream_chain.tasks[:3]] == [
+        "run_weights_qa",
+        "publish_weights",
+        "notify_weights_run",
+    ]
+    assert (
+        downstream_chain.tasks[3].name == "tdpservice.etl.tasks.finalize_pipeline_run"
+    )
+    assert all(task.immutable for task in downstream_chain.tasks)
+    assert "validate_parameters" in canvas_repr
     assert "extract_t1_family_counts" in canvas_repr
     assert "extract_t6_case_counts" in canvas_repr
     assert "extract_t7_section_case_counts" in canvas_repr
-    assert "advance_pipeline_run" in canvas_repr
-    assert "run_weights_qa" not in canvas_repr
-    assert "publish_weights" not in canvas_repr
-    assert "notify_weights_run" not in canvas_repr
+    assert "build_weight_candidates" in canvas_repr
+    assert "advance_pipeline_run" not in canvas_repr
 
 
-def test_topological_layers_rejects_cycles():
-    """A cyclic pipeline definition fails validation."""
+def test_pipeline_validation_rejects_duplicate_node_keys():
+    """Pipeline node keys must be unique for execution lookup."""
     definition = _definition(
         [
-            NodeDefinition("a", ("b",), _noop),
-            NodeDefinition("b", ("a",), _noop),
+            PipelineNode("extract", _noop),
+            PipelineNode("extract", _noop),
         ]
     )
 
     with pytest.raises(PipelineValidationError):
-        definition.topological_layers()
+        definition.validate()
+
+
+def test_pipeline_build_canvas_requires_canvas_builder():
+    """Pipeline definitions must own an executable Canvas declaration."""
+    definition = _definition([PipelineNode("extract", _noop)])
+
+    with pytest.raises(PipelineValidationError):
+        definition.build_canvas(pipeline_run_id=1)
 
 
 def test_validate_run_parameters_normalizes_fiscal_year():
     """Fiscal year input is normalized for output-scope idempotency."""
-    definition = _definition([NodeDefinition("extract", (), _noop)])
+    definition = _definition([PipelineNode("extract", _noop)])
 
     assert definition.validate_parameters({"fiscal_year": "2026"}) == {
         "fiscal_year": 2026
@@ -87,7 +109,7 @@ def test_validate_run_parameters_normalizes_fiscal_year():
 
 def test_validate_run_parameters_rejects_unknown_parameters():
     """Only code-defined pipeline parameters are accepted."""
-    definition = _definition([NodeDefinition("extract", (), _noop)])
+    definition = _definition([PipelineNode("extract", _noop)])
 
     with pytest.raises(PipelineValidationError):
         definition.validate_parameters({"fiscal_year": 2026, "raw_sql": "select 1"})
@@ -160,19 +182,6 @@ def test_create_pipeline_run_reports_active_scope():
 
 
 @pytest.mark.django_db
-def test_advance_pipeline_run_waits_for_prior_layers():
-    """Duplicate or early callbacks do not advance before dependencies finish."""
-    pipeline_run = _create_pipeline_run()
-
-    result = PipelineRunScheduler.for_run_id(pipeline_run.id).advance(layer_index=1)
-
-    assert result["status"] == "waiting_on_dependencies"
-    assert result["dependency_status"] == {
-        "validate_parameters": ETLNodeRun.Status.PENDING
-    }
-
-
-@pytest.mark.django_db
 def test_execute_node_ignores_already_succeeded_node():
     """Duplicate task delivery does not run a node implementation twice."""
     calls = []
@@ -181,7 +190,7 @@ def test_execute_node_ignores_already_succeeded_node():
         calls.append(context.node.key)
         return NodeResult(output_row_count=1)
 
-    definition = _definition([NodeDefinition("extract", (), implementation)])
+    definition = _definition([PipelineNode("extract", implementation)])
     parameters = {"fiscal_year": 2026}
     scope = definition.output_scope(parameters)
     pipeline_run = ETLPipelineRun.objects.create(

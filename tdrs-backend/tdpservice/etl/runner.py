@@ -1,4 +1,4 @@
-"""ETL pipeline runner and Celery layer scheduler."""
+"""ETL pipeline run creation and execution services."""
 
 import hashlib
 import json
@@ -15,9 +15,9 @@ from tdpservice.etl.models import (
     ETLPipelineRun,
 )
 from tdpservice.etl.registry import (
-    NodeDefinition,
     NodeResult,
     PipelineDefinition,
+    PipelineNode,
     get_pipeline_definition,
 )
 
@@ -32,7 +32,7 @@ class NodeContext:
     """Execution context passed to a node implementation."""
 
     pipeline_run: ETLPipelineRun
-    node: NodeDefinition
+    node: PipelineNode
     upstream_outputs: dict[str, ETLOutput]
     intermediate_outputs: dict[str, ETLIntermediateOutput]
 
@@ -126,7 +126,7 @@ class PipelineRunCreator:
 
 
 class PipelineRunScheduler:
-    """Launch, advance, and finalize a persisted pipeline run."""
+    """Launch and finalize a persisted pipeline run."""
 
     def __init__(
         self,
@@ -147,82 +147,17 @@ class PipelineRunScheduler:
         return cls(pipeline_run=pipeline_run, definition=definition)
 
     def launch(self):
-        """Queue the first executable layer for a pipeline run."""
+        """Queue the pipeline-owned Canvas for a pipeline run."""
         if self.pipeline_run.status == ETLPipelineRun.Status.PENDING:
             self.pipeline_run.status = ETLPipelineRun.Status.RUNNING
             self.pipeline_run.started_at = timezone.now()
             self.pipeline_run.save(update_fields=["status", "started_at", "updated_at"])
 
-        layer_canvas = self.definition.build_layer_canvas(self.pipeline_run.id, 0)
-        return layer_canvas.apply_async()
-
-    def advance(self, layer_index: int) -> dict:
-        """Queue the next pipeline layer after the previous layer succeeds."""
-        layers = self.definition.topological_layers()
-
-        if self.pipeline_run.status in (
-            ETLPipelineRun.Status.FAILED,
-            ETLPipelineRun.Status.CANCELED,
-        ):
-            return {
-                "pipeline_run_id": self.pipeline_run.id,
-                "status": self.pipeline_run.status,
-            }
-
-        previous_node_keys = [
-            node_key
-            for previous_layer in layers[:layer_index]
-            for node_key in previous_layer
-        ]
-        previous_statuses = self._node_statuses(previous_node_keys)
-        if any(
-            status == ETLNodeRun.Status.FAILED for status in previous_statuses.values()
-        ):
-            return self.finalize()
-        if any(
-            previous_statuses.get(node_key) != ETLNodeRun.Status.SUCCEEDED
-            for node_key in previous_node_keys
-        ):
-            return {
-                "pipeline_run_id": self.pipeline_run.id,
-                "layer_index": layer_index,
-                "status": "waiting_on_dependencies",
-                "dependency_status": previous_statuses,
-            }
-
-        if layer_index >= len(layers):
-            return self.finalize()
-
-        layer = layers[layer_index]
-        statuses = self._node_statuses(layer)
-
-        if any(status == ETLNodeRun.Status.FAILED for status in statuses.values()):
-            return self.finalize()
-
-        if all(status == ETLNodeRun.Status.SUCCEEDED for status in statuses.values()):
-            return self.advance(layer_index + 1)
-
-        if any(status != ETLNodeRun.Status.PENDING for status in statuses.values()):
-            return {
-                "pipeline_run_id": self.pipeline_run.id,
-                "layer_index": layer_index,
-                "status": "already_started",
-                "node_statuses": statuses,
-            }
-
-        layer_canvas = self.definition.build_layer_canvas(
-            self.pipeline_run.id,
-            layer_index,
-        )
-        result = layer_canvas.apply_async()
-        return {
-            "pipeline_run_id": self.pipeline_run.id,
-            "layer_index": layer_index,
-            "task_id": result.id,
-        }
+        pipeline_canvas = self.definition.build_canvas(self.pipeline_run.id)
+        return pipeline_canvas.apply_async()
 
     def finalize(self) -> dict:
-        """Finalize a pipeline run after its generated Canvas graph completes."""
+        """Finalize a pipeline run after its Celery Canvas completes."""
         node_runs = self.pipeline_run.node_runs.all()
 
         if node_runs.filter(status=ETLNodeRun.Status.FAILED).exists():
@@ -241,15 +176,6 @@ class PipelineRunScheduler:
             "pipeline_run_id": self.pipeline_run.id,
             "status": self.pipeline_run.status,
         }
-
-    def _node_statuses(self, node_keys: list[str]) -> dict:
-        """Return statuses for node keys in this pipeline run."""
-        return dict(
-            ETLNodeRun.objects.filter(
-                pipeline_run=self.pipeline_run,
-                node_key__in=node_keys,
-            ).values_list("node_key", "status")
-        )
 
 
 class NodeExecutor:
@@ -279,8 +205,8 @@ class NodeExecutor:
         )
 
     @property
-    def node(self) -> NodeDefinition:
-        """Return this executor's node definition."""
+    def node(self) -> PipelineNode:
+        """Return this executor's registered node."""
         return self.definition.node_map[self.node_key]
 
     def execute(self) -> dict:
@@ -319,35 +245,12 @@ class NodeExecutor:
                 "status": node_run.status,
                 "already_started": True,
             }
-        if node_run.status in (
-            ETLNodeRun.Status.FAILED,
-            ETLNodeRun.Status.SKIPPED,
-        ):
+        if node_run.status == ETLNodeRun.Status.FAILED:
             return {
                 "node_key": self.node_key,
                 "status": node_run.status,
                 "already_completed": True,
             }
-
-        dependency_status = self._dependency_status()
-        dependency_failed = any(
-            status != ETLNodeRun.Status.SUCCEEDED
-            for status in dependency_status.values()
-        )
-        if dependency_failed:
-            node_run.status = ETLNodeRun.Status.SKIPPED
-            node_run.dependency_status = dependency_status
-            node_run.finished_at = timezone.now()
-            node_run.error_message = "One or more dependencies did not succeed."
-            node_run.save(
-                update_fields=[
-                    "status",
-                    "dependency_status",
-                    "finished_at",
-                    "error_message",
-                ]
-            )
-            return {"node_key": self.node_key, "status": node_run.status}
 
         now = timezone.now()
         if self.pipeline_run.status == ETLPipelineRun.Status.PENDING:
@@ -356,29 +259,16 @@ class NodeExecutor:
             self.pipeline_run.save(update_fields=["status", "started_at", "updated_at"])
 
         node_run.status = ETLNodeRun.Status.RUNNING
-        node_run.dependency_status = dependency_status
         node_run.started_at = now
         node_run.error_message = None
         node_run.save(
             update_fields=[
                 "status",
-                "dependency_status",
                 "started_at",
                 "error_message",
             ]
         )
         return None
-
-    def _dependency_status(self) -> dict:
-        """Return dependency statuses for this node run."""
-        if not self.node.depends_on:
-            return {}
-
-        node_runs = ETLNodeRun.objects.filter(
-            pipeline_run=self.pipeline_run,
-            node_key__in=self.node.depends_on,
-        )
-        return {node_run.node_key: node_run.status for node_run in node_runs}
 
     def _build_context(self) -> NodeContext:
         """Build a validated node context from persisted upstream artifacts."""

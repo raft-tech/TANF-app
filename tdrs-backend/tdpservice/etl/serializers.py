@@ -38,7 +38,6 @@ class ETLNodeRunSerializer(serializers.ModelSerializer):
             "id",
             "node_key",
             "status",
-            "dependency_status",
             "started_at",
             "finished_at",
             "input_row_count",

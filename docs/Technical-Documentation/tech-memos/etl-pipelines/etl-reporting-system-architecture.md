@@ -402,33 +402,46 @@ DAG principles:
 
 ### Celery Canvas Execution
 
-The pipeline registry remains the logical DAG definition. `PipelineDefinition` validates declared nodes, normalizes run parameters, resolves dependency layers, and builds the per-layer Celery Canvas. Runner services create `ETLPipelineRun` and `ETLNodeRun` rows, launch runs, advance layers, execute nodes, and finalize status. The runner queues one executable layer at a time instead of building one large Canvas graph for the whole run.
+The pipeline registry owns executable, code-reviewed DAG definitions. `PipelineDefinition` validates declared node metadata, normalizes run parameters, and builds the pipeline's Celery Canvas directly. Runner services create `ETLPipelineRun` and `ETLNodeRun` rows, launch the Canvas, execute nodes, and finalize status. The Canvas should make the business DAG visible in code instead of hiding progression behind a secondary layer scheduler or metadata-to-Canvas compiler.
 
 | DAG shape | Celery primitive | Use |
 | --- | --- | --- |
 | Linear dependency | `chain` | Run ordered nodes where each node depends on the prior node's output. |
-| Independent branches | `group` | Run nodes in parallel when they depend on the same completed upstream output and do not depend on each other. |
-| Fan-in dependency | `chord` | Run a callback node after every node in a parallel group succeeds. |
+| Fan-out/fan-in dependency | `chord` | Run parallel header nodes, then run the body exactly once after every header node succeeds. |
 
 Every Celery task should receive only stable identifiers: pipeline run ID, node key, output scope, and resolved upstream output versions. Tasks load their run context from the database, execute code-owned node logic, update `ETLNodeRun`, and persist any produced `ETLOutput` records. This keeps the database as the source of truth for run state while Celery handles scheduling and parallel execution.
 
-Each layer ends by calling a small run-advancer task. The advancer re-reads the database, confirms all prior dependency-layer nodes succeeded, and only then queues the next layer. A single-node layer is a short `chain` of `execute_node` followed by the advancer. A multi-node layer is a `chord` whose header is a `group` of node tasks and whose body is the advancer. This avoids embedding downstream publication nodes inside the same Canvas continuation as a parallel group, which can cause duplicate downstream task delivery when chord callbacks and chains interact.
+The statistical weights DAG is represented directly as a `chain` with a `chord` for the parallel extract fan-in. The three extract tasks are the chord header. The fan-in node, `build_weight_candidates`, is the chord body. The remaining QA, publish, notify, and finalize path is attached as the body task's immutable continuation, avoiding Celery's duplicate-delivery behavior when a full `chain` is used as a chord body.
+
+Use immutable Celery signatures (`.si`) for node and finalize tasks so upstream return values and chord header results are not appended to task arguments.
 
 Example execution shape:
 
-```text
-layer 0: chain(validate_parameters, advance_to_layer_1)
-layer 1: chord(
-  group(extract_t1_family_counts, extract_t6_case_counts, extract_t7_section_case_counts),
-  advance_to_layer_2
+```python
+build_weight_candidates = execute_node.si(run_id, "build_weight_candidates")
+build_weight_candidates.link(
+    chain(
+        execute_node.si(run_id, "run_weights_qa"),
+        execute_node.si(run_id, "publish_weights"),
+        execute_node.si(run_id, "notify_weights_run"),
+        finalize_pipeline_run.si(run_id),
+    )
 )
-layer 2: chain(build_weight_candidates, advance_to_layer_3)
-layer 3: chain(run_weights_qa, advance_to_layer_4)
-layer 4: chain(publish_weights, advance_to_layer_5)
-layer 5: chain(notify_weights_run, advance_to_finalize)
+
+chain(
+    execute_node.si(run_id, "validate_parameters"),
+    chord(
+        [
+            execute_node.si(run_id, "extract_t1_family_counts"),
+            execute_node.si(run_id, "extract_t6_case_counts"),
+            execute_node.si(run_id, "extract_t7_section_case_counts"),
+        ],
+        build_weight_candidates,
+    ),
+)
 ```
 
-The exact layer Canvas should be generated from the `PipelineDefinition` node dependencies, not handwritten for each pipeline unless a pipeline needs a carefully optimized execution shape. Node execution is claimed under a database lock, so duplicate task delivery does not run a completed or currently running node implementation again. A larger orchestrator is not needed until the team needs operator-managed DAGs, cross-environment backfills, or non-Django execution workers.
+Each pipeline definition should declare its exact Celery Canvas in code. Node registry metadata is limited to the execution details the runner needs: node key, implementation, and input/output contracts. Node execution is claimed under a database lock, so duplicate task delivery does not run a completed or currently running node implementation again. A larger orchestrator is not needed until the team needs operator-managed DAGs, cross-environment backfills, or non-Django execution workers.
 
 ---
 
@@ -632,7 +645,7 @@ Goal:
 - Make QA structured, persisted, and visible.
 - Make publication transactional.
 - Record every run and node execution.
-- Represent executable DAG layers with Celery `chain`, `group`, and `chord` primitives generated from code-owned pipeline definitions.
+- Represent executable DAGs with Celery `chain` and `chord` primitives declared by code-owned pipeline definitions.
 - Prefer code-owned pipeline definitions until there is a clear need for operator-authored DAGs.
 - Add program-family adapters only when a second implementation makes the seam real.
 - Keep the statistical weights MVP small enough to deliver quickly.

@@ -9,15 +9,9 @@ from tdpservice.etl.scheduler import schedule_statistical_weights_run
 
 @shared_task(name="tdpservice.etl.tasks.launch_pipeline_run")
 def launch_pipeline_run(pipeline_run_id: int):
-    """Launch a pipeline run by queueing its first execution layer."""
+    """Launch a pipeline run by queueing its execution graph."""
     result = PipelineRunScheduler.for_run_id(pipeline_run_id).launch()
     return {"pipeline_run_id": pipeline_run_id, "task_id": result.id}
-
-
-@shared_task(name="tdpservice.etl.tasks.advance_pipeline_run")
-def advance_pipeline_run(pipeline_run_id: int, layer_index: int):
-    """Queue the next ETL layer after the prior layer succeeds."""
-    return PipelineRunScheduler.for_run_id(pipeline_run_id).advance(layer_index)
 
 
 @shared_task(name="tdpservice.etl.tasks.execute_node")

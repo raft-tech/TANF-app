@@ -86,8 +86,8 @@ tdpservice/
 The external seam is intentionally small:
 
 - admins create and inspect runs through DRF endpoints,
-- `PipelineDefinition` validates approved DAGs and computes dependency layers,
-- Celery executes generated per-layer `chain`, `group`, and `chord` canvases,
+- `PipelineDefinition` validates approved pipeline metadata,
+- Celery executes a pipeline-owned `chain`/`chord` Canvas for each run,
 - pipeline definitions are code-defined and reviewed,
 - nodes receive typed run context and write declared outputs.
 
@@ -102,31 +102,30 @@ Pipeline definitions are code-defined. A pipeline definition declares:
 - display name and description,
 - allowed parameters,
 - output scope,
-- DAG nodes,
+- node metadata,
+- executable Celery Canvas builder,
 - schedule metadata,
 - required Django permissions or groups.
 
 Node definitions declare:
 
 - node key,
-- dependency node keys,
 - input contracts,
 - output contracts,
 - implementation function,
 - whether outputs are temporary, run-scoped, or durable,
 - expected QA checks or row-count reporting.
 
-The first implementation should use a lightweight internal runner. `PipelineDefinition` validates the dependency graph, detects cycles, computes ready-node layers, and builds one Celery Canvas layer at a time. Runner services create runs, launch and advance layers, execute nodes, and finalize run status:
+The first implementation should use a lightweight internal runner. `PipelineDefinition` validates node metadata and builds one code-owned Celery Canvas for the run. Runner services create runs, launch the Canvas, execute nodes, and finalize run status:
 
 | DAG shape | Celery primitive | Use |
 | --- | --- | --- |
 | Linear dependency | `chain` | Run ordered nodes where each node depends on the prior node's output. |
-| Independent branches | `group` | Run nodes in parallel after their shared upstream dependencies are satisfied. |
-| Fan-in dependency | `chord` | Run a callback node after every node in a parallel group succeeds. |
+| Fan-out/fan-in dependency | `chord` | Run parallel header nodes, then run the body once after every header node succeeds. |
 
-The registry remains the logical DAG definition. Pipeline authors declare node dependencies; they do not hand-write Canvas graphs unless a pipeline has a measured need for a custom execution shape. The runner should not build one static Canvas for the entire run. Each layer should call a run-advancer task that re-checks persisted node statuses before queueing the next layer, so duplicate Celery callbacks cannot advance past an unfinished dependency or run a downstream node implementation twice.
+The registry remains the executable DAG definition. Pipeline authors hand-write the Celery Canvas for each approved pipeline. Node registry metadata is limited to the execution details the runner needs: node key, implementation, and input/output contracts. The Canvas should make the DAG visible: linear dependencies use `chain`, and parallel fan-in uses `chord` with a single fan-in body task. Remaining downstream nodes continue from that body task through an immutable link chain when needed.
 
-Celery tasks should receive stable identifiers: pipeline run ID, node key, output scope, and resolved upstream output versions. Tasks load run context from the database, update `ETLNodeRun`, and persist any `ETLOutput` rows. The database remains the source of truth for orchestration state; Celery is the execution mechanism.
+Celery tasks should receive stable identifiers: pipeline run ID, node key, output scope, and resolved upstream output versions. Node and finalize signatures should be immutable (`.si`) so upstream return values and chord header results are not appended to task arguments. Tasks load run context from the database, update `ETLNodeRun`, and persist any `ETLOutput` rows. The database remains the source of truth for orchestration state; Celery is the execution mechanism.
 
 Do not add Airflow, Prefect, or another external orchestrator for v1. Add a larger orchestrator only if future requirements need distributed DAG scheduling, cross-system backfills, or operator-managed dependency graphs beyond what Celery can safely handle.
 
@@ -147,8 +146,7 @@ Node runs use:
 - `PENDING`,
 - `RUNNING`,
 - `SUCCEEDED`,
-- `FAILED`,
-- `SKIPPED`.
+- `FAILED`.
 
 QA results use:
 
@@ -341,10 +339,10 @@ Admin-triggered run:
 4. DRF creates `ETLPipelineRun` and initial `ETLNodeRun` rows.
 5. DRF queues a pipeline runner task with the run ID.
 6. The runner loads the pipeline definition and run row.
-7. `PipelineDefinition` validates dependencies and computes dependency layers; the runner queues the first Celery layer.
-8. Celery executes generated node tasks with stable run/node identifiers and resolved upstream output versions.
+7. `PipelineDefinition` validates node metadata and builds the pipeline-owned Celery Canvas.
+8. Celery executes node tasks with stable run/node identifiers and resolved upstream output versions.
 9. Each node claims its `ETLNodeRun` under a database lock, then records status, row counts, metadata, and errors.
-10. A run-advancer task confirms prior layers succeeded before queueing the next layer.
+10. The chord body runs `build_weight_candidates` once after all extract nodes succeed, then its immutable link chain runs QA, publish, notify, and finalize.
 11. QA nodes persist `ETLQAResult` rows.
 12. Publication happens in a database transaction.
 13. The run is marked `SUCCEEDED` or `FAILED`.
@@ -402,7 +400,7 @@ The weights MVP pipeline is:
 
 ```text
 validate_parameters
-  -> group(
+  -> chord header(
        extract_t1_family_counts,
        extract_t6_case_counts,
        extract_t7_section_case_counts
@@ -413,7 +411,7 @@ validate_parameters
   -> notify_weights_run
 ```
 
-The runner should execute this as layers, not as one nested Canvas. Validation runs in a single-node layer. The three extract nodes run in the next layer as a `group` inside a `chord` whose callback is the run advancer, not `build_weight_candidates`. The advancer reads `ETLNodeRun` state, confirms all extracts succeeded, then queues `build_weight_candidates` as the next single-node layer. QA, publication, and notification continue as later single-node layers.
+The runner should execute this as one pipeline-owned Canvas. Validation runs first. The three extract nodes run as the `chord` header. The chord body is the fan-in node, `build_weight_candidates`; its immutable link chain runs `run_weights_qa`, `publish_weights`, `notify_weights_run`, and `finalize_pipeline_run`.
 
 Node responsibilities:
 
@@ -580,15 +578,14 @@ Celery retries should be conservative. Retry transient database connection failu
 
 ### Unit Tests
 
-- DAG ordering for valid graphs.
-- Cycle detection.
-- Missing dependency detection.
-- Layer Canvas generation:
-  - single-node dependency layers compile to `chain(execute_node, advance_pipeline_run)`,
-  - independent extract nodes compile to a `group` inside a `chord`,
-  - parallel layer chords call `advance_pipeline_run`, not downstream business nodes directly,
-  - generated node tasks receive run ID, node key, output scope, and resolved upstream output versions.
-- Duplicate callback handling: the advancer waits for persisted prior-layer success, and duplicate node task delivery does not run an already running or succeeded implementation again.
+- Node registry validation:
+  - duplicate node key detection.
+- Pipeline-owned Canvas declaration:
+  - statistical weights validation and extract fan-in use `chain` and `chord`,
+  - the chord body is the single fan-in node,
+  - the body task links to the downstream QA, publish, notify, and finalize chain,
+  - node tasks receive run ID, node key, output scope, and resolved upstream output versions.
+- Duplicate task handling: duplicate node task delivery does not run an already running or succeeded implementation again.
 - Node contract validation.
 - Output scope/idempotency key generation.
 - Active-run partial unique constraint behavior.
@@ -605,8 +602,8 @@ Celery retries should be conservative. Retry transient database connection failu
 ### Integration Tests
 
 - Admin creates a weights run through DRF.
-- Pipeline runner generates per-layer Celery canvases from node dependencies.
-- Celery executes generated node tasks and updates pipeline/node statuses.
+- Pipeline runner launches the pipeline-owned Celery `chain`/`chord` Canvas.
+- Celery executes node tasks and updates pipeline/node statuses.
 - QA results are persisted.
 - Published weights are inserted.
 - Rerun inserts the next `StatisticalWeight` version and sets retention on the previous version.
@@ -639,7 +636,7 @@ Use existing dependencies for v1:
 - existing email helpers for notifications,
 - PostgreSQL for set-based calculations and durable outputs.
 
-Do not add Airflow, Prefect, NetworkX, or a SQL execution product for v1. The DAG runner should be a small internal module that validates code-owned graphs and queues generated Celery Canvas layers because the immediate need is approved calculation workflows, not user-authored workflows.
+Do not add Airflow, Prefect, NetworkX, or a SQL execution product for v1. The DAG runner should be a small internal module that validates code-owned pipeline metadata and queues pipeline-owned Celery Canvases because the immediate need is approved calculation workflows, not user-authored workflows.
 
 Potential future dependency decisions:
 
