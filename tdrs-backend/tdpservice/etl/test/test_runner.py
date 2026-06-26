@@ -36,15 +36,15 @@ def _definition(nodes):
 
 def _create_pipeline_run():
     """Create a statistical weights pipeline run for runner tests."""
-    return PipelineRunCreator.for_pipeline_key("tanf_statistical_weights").create(
-        parameters={"fiscal_year": 2026},
+    return PipelineRunCreator.for_pipeline_key("statistical_weights").create(
+        parameters={"fiscal_year": 2026, "program": "TANF"},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 
 
 def test_pipeline_canvas_uses_chord_for_extract_fan_in():
     """The pipeline-owned Canvas expresses the DAG without a layer compiler."""
-    definition = get_pipeline_definition("tanf_statistical_weights")
+    definition = get_pipeline_definition("statistical_weights")
 
     canvas_graph = definition.build_canvas(pipeline_run_id=1)
     chord_task = canvas_graph.tasks[1]
@@ -52,9 +52,9 @@ def test_pipeline_canvas_uses_chord_for_extract_fan_in():
     canvas_repr = repr(canvas_graph)
     assert chord_task.name == "celery.chord"
     assert [task.args[1] for task in chord_task.tasks] == [
-        "extract_t1_family_counts",
-        "extract_t6_case_counts",
-        "extract_t7_section_case_counts",
+        "extract_active_family_counts",
+        "extract_aggregate_case_counts",
+        "extract_stratum_case_counts",
     ]
     assert chord_task.body.args[1] == "build_weight_candidates"
     assert chord_task.body.immutable
@@ -70,9 +70,9 @@ def test_pipeline_canvas_uses_chord_for_extract_fan_in():
     )
     assert all(task.immutable for task in downstream_chain.tasks)
     assert "validate_parameters" in canvas_repr
-    assert "extract_t1_family_counts" in canvas_repr
-    assert "extract_t6_case_counts" in canvas_repr
-    assert "extract_t7_section_case_counts" in canvas_repr
+    assert "extract_active_family_counts" in canvas_repr
+    assert "extract_aggregate_case_counts" in canvas_repr
+    assert "extract_stratum_case_counts" in canvas_repr
     assert "build_weight_candidates" in canvas_repr
     assert "advance_pipeline_run" not in canvas_repr
 
@@ -107,6 +107,23 @@ def test_validate_run_parameters_normalizes_fiscal_year():
     }
 
 
+def test_validate_statistical_weights_parameters_normalizes_program_alias():
+    """Program input is normalized before output-scope idempotency."""
+    definition = get_pipeline_definition("statistical_weights")
+
+    assert definition.validate_parameters(
+        {"fiscal_year": "2026", "program": "tribal tanf"}
+    ) == {"fiscal_year": 2026, "program": "TRIBAL"}
+
+
+def test_validate_statistical_weights_parameters_rejects_unknown_program():
+    """Only supported statistical weights programs are accepted."""
+    definition = get_pipeline_definition("statistical_weights")
+
+    with pytest.raises(PipelineValidationError):
+        definition.validate_parameters({"fiscal_year": 2026, "program": "WPR"})
+
+
 def test_validate_run_parameters_rejects_unknown_parameters():
     """Only code-defined pipeline parameters are accepted."""
     definition = _definition([PipelineNode("extract", _noop)])
@@ -118,8 +135,8 @@ def test_validate_run_parameters_rejects_unknown_parameters():
 @pytest.mark.django_db
 def test_active_run_scope_key_constraint_allows_completed_reruns():
     """The database rejects duplicate active scopes and allows completed reruns."""
-    definition = get_pipeline_definition("tanf_statistical_weights")
-    parameters = {"fiscal_year": 2026}
+    definition = get_pipeline_definition("statistical_weights")
+    parameters = {"fiscal_year": 2026, "program": "TANF"}
     scope = definition.output_scope(parameters)
     scope_key = output_scope_key(scope)
 
@@ -159,26 +176,45 @@ def test_active_run_scope_key_constraint_allows_completed_reruns():
 @pytest.mark.django_db
 def test_create_pipeline_run_reports_active_scope():
     """Run creation converts active-scope conflicts into a domain error."""
-    creator = PipelineRunCreator.for_pipeline_key("tanf_statistical_weights")
+    creator = PipelineRunCreator.for_pipeline_key("statistical_weights")
     first_run = creator.create(
-        parameters={"fiscal_year": 2026},
+        parameters={"fiscal_year": 2026, "program": "TANF"},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 
     with pytest.raises(ActivePipelineRunError):
         creator.create(
-            parameters={"fiscal_year": 2026},
+            parameters={"fiscal_year": 2026, "program": "TANF"},
             trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
         )
 
     first_run.status = ETLPipelineRun.Status.SUCCEEDED
     first_run.save(update_fields=["status", "updated_at"])
     second_run = creator.create(
-        parameters={"fiscal_year": 2026},
+        parameters={"fiscal_year": 2026, "program": "TANF"},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 
     assert second_run.output_scope_key == first_run.output_scope_key
+
+
+@pytest.mark.django_db
+def test_create_pipeline_run_scopes_active_runs_by_program():
+    """Different programs can run concurrently for the same fiscal year."""
+    creator = PipelineRunCreator.for_pipeline_key("statistical_weights")
+
+    tanf_run = creator.create(
+        parameters={"fiscal_year": 2026, "program": "TANF"},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+    ssp_run = creator.create(
+        parameters={"fiscal_year": 2026, "program": "SSP"},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+
+    assert tanf_run.output_scope_key != ssp_run.output_scope_key
+    assert tanf_run.output_scope["program"] == "TANF"
+    assert ssp_run.output_scope["program"] == "SSP"
 
 
 @pytest.mark.django_db
@@ -229,9 +265,9 @@ def test_execute_node_fails_missing_input_contracts():
     pipeline_run.node_runs.filter(
         node_key__in=[
             "validate_parameters",
-            "extract_t1_family_counts",
-            "extract_t6_case_counts",
-            "extract_t7_section_case_counts",
+            "extract_active_family_counts",
+            "extract_aggregate_case_counts",
+            "extract_stratum_case_counts",
         ]
     ).update(status=ETLNodeRun.Status.SUCCEEDED)
 

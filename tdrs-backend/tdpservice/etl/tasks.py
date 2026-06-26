@@ -4,7 +4,7 @@ from celery import shared_task
 
 from tdpservice.etl.models import ETLPipelineRun
 from tdpservice.etl.runner import NodeExecutor, PipelineRunScheduler
-from tdpservice.etl.scheduler import schedule_statistical_weights_run
+from tdpservice.etl.scheduler import schedule_statistical_weights_runs
 
 
 @shared_task(name="tdpservice.etl.tasks.launch_pipeline_run")
@@ -29,12 +29,17 @@ def finalize_pipeline_run(pipeline_run_id: int):
 @shared_task(name="tdpservice.etl.tasks.schedule_statistical_weights")
 def schedule_statistical_weights():
     """Run the daily scheduler check for statistical weights."""
-    pipeline_run = schedule_statistical_weights_run()
-    if not pipeline_run:
+    pipeline_runs = schedule_statistical_weights_runs()
+    if not pipeline_runs:
         return {"created": False}
 
-    launch_pipeline_run.delay(pipeline_run.id)
-    return {"created": True, "pipeline_run_id": pipeline_run.id}
+    for pipeline_run in pipeline_runs:
+        launch_pipeline_run.delay(pipeline_run.id)
+
+    return {
+        "created": True,
+        "pipeline_run_ids": [pipeline_run.id for pipeline_run in pipeline_runs],
+    }
 
 
 def enqueue_pipeline_run(pipeline_run: ETLPipelineRun):

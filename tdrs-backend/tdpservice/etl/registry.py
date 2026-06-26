@@ -49,40 +49,70 @@ class PipelineDefinition:
     def output_scope(self, parameters: dict) -> dict:
         """Build the idempotency/output scope for the pipeline."""
         fiscal_year = int(parameters["fiscal_year"])
-        return {
+        scope = {
             "pipeline": self.key,
             "fiscal_year": fiscal_year,
-            "program": "TANF",
             "section": "1",
         }
+        if "program" in parameters:
+            scope["program"] = parameters["program"]
+        return scope
 
     def validate_parameters(self, parameters: dict) -> dict:
         """Validate and normalize run parameters for this pipeline."""
         normalized = dict(parameters or {})
-        allowed = self.allowed_parameters
+        self._validate_required_parameters(normalized)
+        self._normalize_fiscal_year(normalized)
+        self._normalize_choice_parameters(normalized)
+        self._validate_unexpected_parameters(normalized)
 
-        for name, metadata in allowed.items():
-            if metadata.get("required") and name not in normalized:
+        return normalized
+
+    def _validate_required_parameters(self, parameters: dict) -> None:
+        """Validate required run parameters."""
+        for name, metadata in self.allowed_parameters.items():
+            if metadata.get("required") and name not in parameters:
                 raise PipelineValidationError(f"Missing required parameter: {name}")
 
-        if "fiscal_year" in normalized:
+    def _normalize_fiscal_year(self, parameters: dict) -> None:
+        """Normalize the fiscal year parameter."""
+        if "fiscal_year" in parameters:
             try:
-                normalized["fiscal_year"] = int(normalized["fiscal_year"])
+                parameters["fiscal_year"] = int(parameters["fiscal_year"])
             except (TypeError, ValueError) as exc:
                 raise PipelineValidationError(
                     "fiscal_year must be an integer."
                 ) from exc
 
-            if normalized["fiscal_year"] < 2000:
+            if parameters["fiscal_year"] < 2000:
                 raise PipelineValidationError("fiscal_year must be 2000 or later.")
 
-        unexpected = set(normalized) - set(allowed)
+    def _normalize_choice_parameters(self, parameters: dict) -> None:
+        """Normalize and validate enum-like run parameters."""
+        for name, metadata in self.allowed_parameters.items():
+            if name not in parameters:
+                continue
+
+            value = parameters[name]
+            aliases = metadata.get("aliases") or {}
+            if aliases:
+                value = aliases.get(str(value).strip().upper(), value)
+
+            choices = metadata.get("choices")
+            if choices and value not in choices:
+                raise PipelineValidationError(
+                    f"{name} must be one of: {', '.join(choices)}."
+                )
+
+            parameters[name] = value
+
+    def _validate_unexpected_parameters(self, parameters: dict) -> None:
+        """Reject run parameters not declared by the pipeline."""
+        unexpected = set(parameters) - set(self.allowed_parameters)
         if unexpected:
             raise PipelineValidationError(
                 f"Unexpected parameters: {sorted(unexpected)}"
             )
-
-        return normalized
 
     def validate(self) -> None:
         """Validate node metadata for this pipeline."""
@@ -119,8 +149,8 @@ class PipelineDefinition:
 
 
 def _statistical_weights_pipeline() -> PipelineDefinition:
-    """Build the TANF statistical weights pipeline definition."""
-    from tdpservice.etl.nodes import statistical_weights
+    """Build the statistical weights pipeline definition."""
+    from tdpservice.etl.pipelines import statistical_weights
 
     def build_canvas(pipeline_run_id: int) -> Any:
         from tdpservice.etl.tasks import execute_node, finalize_pipeline_run
@@ -142,11 +172,17 @@ def _statistical_weights_pipeline() -> PipelineDefinition:
             execute_node.si(pipeline_run_id, "validate_parameters"),
             chord(
                 [
-                    execute_node.si(pipeline_run_id, "extract_t1_family_counts"),
-                    execute_node.si(pipeline_run_id, "extract_t6_case_counts"),
                     execute_node.si(
                         pipeline_run_id,
-                        "extract_t7_section_case_counts",
+                        "extract_active_family_counts",
+                    ),
+                    execute_node.si(
+                        pipeline_run_id,
+                        "extract_aggregate_case_counts",
+                    ),
+                    execute_node.si(
+                        pipeline_run_id,
+                        "extract_stratum_case_counts",
                     ),
                 ],
                 build_weight_candidates,
@@ -154,16 +190,23 @@ def _statistical_weights_pipeline() -> PipelineDefinition:
         )
 
     return PipelineDefinition(
-        key="tanf_statistical_weights",
+        key=statistical_weights.PIPELINE_KEY,
         version="1",
-        display_name="TANF Statistical Weights",
-        description="Generate TANF Section 1 statistical weights for a fiscal year.",
+        display_name="Statistical Weights",
+        description="Generate Section 1 statistical weights for a fiscal year and program.",
         allowed_parameters={
             "fiscal_year": {
                 "type": "integer",
                 "required": True,
                 "description": "Fiscal year to generate weights for.",
-            }
+            },
+            "program": {
+                "type": "string",
+                "required": True,
+                "description": "Program to generate weights for.",
+                "choices": list(statistical_weights.SUPPORTED_PROGRAMS),
+                "aliases": statistical_weights.PROGRAM_ALIASES,
+            },
         },
         canvas_builder=build_canvas,
         schedule={"first_workday_monthly": True},
@@ -173,18 +216,18 @@ def _statistical_weights_pipeline() -> PipelineDefinition:
                 implementation=statistical_weights.validate_parameters,
             ),
             PipelineNode(
-                key="extract_t1_family_counts",
-                implementation=statistical_weights.extract_t1_family_counts,
+                key="extract_active_family_counts",
+                implementation=statistical_weights.extract_active_family_counts,
                 output_contracts=("weights.s1",),
             ),
             PipelineNode(
-                key="extract_t6_case_counts",
-                implementation=statistical_weights.extract_t6_case_counts,
+                key="extract_aggregate_case_counts",
+                implementation=statistical_weights.extract_aggregate_case_counts,
                 output_contracts=("weights.s3",),
             ),
             PipelineNode(
-                key="extract_t7_section_case_counts",
-                implementation=statistical_weights.extract_t7_section_case_counts,
+                key="extract_stratum_case_counts",
+                implementation=statistical_weights.extract_stratum_case_counts,
                 output_contracts=("weights.s4",),
             ),
             PipelineNode(
@@ -219,7 +262,7 @@ def _statistical_weights_pipeline() -> PipelineDefinition:
 
 
 PIPELINE_REGISTRY = {
-    "tanf_statistical_weights": _statistical_weights_pipeline,
+    "statistical_weights": _statistical_weights_pipeline,
 }
 
 

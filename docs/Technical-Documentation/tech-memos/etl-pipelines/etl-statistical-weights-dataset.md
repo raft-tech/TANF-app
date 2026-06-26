@@ -1,14 +1,14 @@
 # ETL Calculation Architecture
 
 - **Status:** Draft - implementation guide
-- **Scope:** TDP-managed ETL pipelines, beginning with the TANF statistical weights dataset
-- **Last updated:** 2026-06-24
+- **Scope:** TDP-managed ETL pipelines, beginning with the program-agnostic statistical weights dataset
+- **Last updated:** 2026-06-26
 
 ---
 
 ## Purpose
 
-This document describes the architecture for moving ETL-style calculations into TDP. The first implementation slice is the TANF statistical weights dataset. The architecture should let the team deliver that dataset quickly while establishing a reusable DAG-shaped ETL module for later feedback reports and generic ETL style workloads.
+This document describes the architecture for moving ETL-style calculations into TDP. The first implementation slice is the Section 1 statistical weights dataset for TANF, SSP, and Tribal TANF. The architecture should let the team deliver that dataset quickly while establishing a reusable DAG-shaped ETL module for later feedback reports and generic ETL style workloads.
 
 For the system-level architecture across TANF, SSP, Tribal TANF, FRA, and future report families, start with `etl-reporting-system-architecture.md`.
 
@@ -97,7 +97,7 @@ Do not build an arbitrary SQL runner. Admin users execute approved pipelines onl
 
 Pipeline definitions are code-defined. A pipeline definition declares:
 
-- `key`, such as `tanf_statistical_weights`,
+- `key`, such as `statistical_weights`,
 - `version`,
 - display name and description,
 - allowed parameters,
@@ -185,9 +185,9 @@ Required fields:
 The output scope is the idempotency key. For statistical weights it is:
 
 ```text
-pipeline=tanf_statistical_weights
+pipeline=statistical_weights
 fiscal_year=<year>
-program=TANF
+program=<TANF|SSP|TRIBAL>
 section=1
 ```
 
@@ -307,14 +307,15 @@ The create endpoint accepts:
 
 ```json
 {
-  "pipeline_key": "tanf_statistical_weights",
+  "pipeline_key": "statistical_weights",
   "parameters": {
-    "fiscal_year": 2025
+    "fiscal_year": 2025,
+    "program": "TANF"
   }
 }
 ```
 
-For the weights MVP, the backend derives reporting months from the fiscal year. It should not require the admin to submit raw SQL or source table names.
+For the weights MVP, the backend derives reporting months from the fiscal year and program. It should not require the admin to submit raw SQL or source table names.
 
 ### Permissions
 
@@ -363,7 +364,7 @@ For MVP, "workday" means Monday through Friday. If federal holiday exclusion is 
 
 ### Goal
 
-Produce a database-resident TANF statistical weights dataset for a selected fiscal year. The first version calculates Section 1 weights only, matching the current ticket and script.
+Produce a database-resident statistical weights dataset for a selected fiscal year and program. The first version calculates Section 1 weights only. The formula is shared across TANF, SSP, and Tribal TANF; program adapters provide the parsed source models, aggregate count field, `DataFile.program_type`, and QA STT scope.
 
 ### Source Inputs
 
@@ -371,11 +372,13 @@ Use database-backed data, not Databricks volume CSV paths.
 
 Required source models and metadata:
 
-- TANF T1 parsed records: `search_indexes.models.tanf.TANF_T1`,
-- TANF T6 parsed records: `search_indexes.models.tanf.TANF_T6`,
-- TANF T7 parsed records: `search_indexes.models.tanf.TANF_T7`,
-- submitted-file metadata: `data_files.DataFile`,
-- STT metadata: `stts.STT`.
+| Program | Active family model | Aggregate model | Stratum model | Aggregate count field | `DataFile.program_type` |
+| --- | --- | --- | --- | --- | --- |
+| TANF | `TANF_T1` | `TANF_T6` | `TANF_T7` | `NUM_FAMILIES` | `TAN` |
+| SSP | `SSP_M1` | `SSP_M6` | `SSP_M7` | `SSPMOE_FAMILIES` | `SSP` |
+| Tribal TANF | `Tribal_TANF_T1` | `Tribal_TANF_T6` | `Tribal_TANF_T7` | `NUM_FAMILIES` | `TRIBAL` |
+
+Every run also uses submitted-file metadata from `data_files.DataFile` and STT metadata from `stts.STT`.
 
 The first implementation should use backend-owned query helpers against the parsed-record models, joined through each record's `datafile` foreign key. Prefer Django ORM querysets for filtering, grouping, and simple aggregations. Use raw SQL only for query shapes that the ORM cannot express cleanly or that need measured performance improvements.
 
@@ -384,7 +387,7 @@ Do not depend on Grafana-facing views for the calculation path. Those views are 
 Source-selection rules must be explicit:
 
 - selected fiscal year,
-- TANF program type,
+- selected program type,
 - active case, aggregate, or stratum section as appropriate,
 - non-program-audit files,
 - latest accepted `DataFile` version per STT, quarter, program type, and section,
@@ -392,7 +395,7 @@ Source-selection rules must be explicit:
 
 The default accepted parser state should be `PARSE_COMPLETED`. If product or legacy parity requires including `PARSED_WITH_ERRORS`, document that decision in the pipeline definition and test it explicitly.
 
-The first node snapshots the selected T1, T6, and T7 `DataFile` IDs into `ETLPipelineRun.metadata["source_datafile_ids"]`. All later nodes read from that snapshot rather than recalculating "latest accepted" files. This keeps counts, QA, and publication stable if a newer file is accepted while a run is executing.
+The first node snapshots the selected active, aggregate, and stratum `DataFile` IDs into `ETLPipelineRun.metadata["source_datafile_ids"]`. All later nodes read from that snapshot rather than recalculating "latest accepted" files. This keeps counts, QA, and publication stable if a newer file is accepted while a run is executing.
 
 ### DAG
 
@@ -401,9 +404,9 @@ The weights MVP pipeline is:
 ```text
 validate_parameters
   -> chord header(
-       extract_t1_family_counts,
-       extract_t6_case_counts,
-       extract_t7_section_case_counts
+       extract_active_family_counts,
+       extract_aggregate_case_counts,
+       extract_stratum_case_counts
      )
   -> build_weight_candidates
   -> run_weights_qa
@@ -418,9 +421,9 @@ Node responsibilities:
 | Node | Responsibility |
 | --- | --- |
 | `validate_parameters` | Validate fiscal year, program, section, and output scope; snapshot source `DataFile` IDs. |
-| `extract_t1_family_counts` | Build `s1`: unique families by STT, reporting month, stratum; persist `weights.s1`. |
-| `extract_t6_case_counts` | Build `s3`: aggregate cases by STT and reporting month; persist `weights.s3`. |
-| `extract_t7_section_case_counts` | Build `s4`: section cases by STT, reporting month, stratum for `TDRS_SECTION_IND = 1`; persist `weights.s4`. |
+| `extract_active_family_counts` | Build `s1`: unique families by STT, reporting month, stratum; persist `weights.s1`. |
+| `extract_aggregate_case_counts` | Build `s3`: aggregate cases by STT and reporting month; persist `weights.s3`. |
+| `extract_stratum_case_counts` | Build `s4`: section cases by STT, reporting month, stratum for `TDRS_SECTION_IND = 1`; persist `weights.s4`. |
 | `build_weight_candidates` | Join persisted `s1`, `s3`, and `s4`; persist `statistical_weights.candidates`. |
 | `run_weights_qa` | Read persisted intermediates and persist the four QA checks. |
 | `publish_weights` | Publish a new immutable weights version from persisted candidates and record it on `ETLOutput`. |
@@ -432,21 +435,21 @@ The first implementation materializes `s1`, `s3`, `s4`, and candidate weights as
 
 `s1`:
 
-- source: TANF T1,
+- source: active family records for the requested program,
 - filter: selected fiscal year,
 - grain: STT code, reporting month, stratum,
 - value: count of distinct case numbers.
 
 `s3`:
 
-- source: TANF T6,
+- source: aggregate records for the requested program,
 - filter: selected fiscal year,
 - grain: STT code, reporting month,
-- value: `NUM_FAMILIES`.
+- value: `NUM_FAMILIES` for TANF and Tribal TANF; `SSPMOE_FAMILIES` for SSP.
 
 `s4`:
 
-- source: TANF T7,
+- source: stratum records for the requested program,
 - filter: selected fiscal year,
 - filter: `TDRS_SECTION_IND = 1`,
 - filter: `FAMILIES_MONTH > 0`,
@@ -473,17 +476,17 @@ Persist these checks as `ETLQAResult` rows.
 | Check | Description | Blocking |
 | --- | --- | --- |
 | `weights_row_counts` | Row counts for `s1`, `s3`, `s4`, and candidate output. | No |
-| `weights_missing_stts` | Required STTs missing from `s1`, `s3`, or sample-state `s4` for the reporting month under review. | Warning |
-| `weights_t1_t6_pair_mismatch` | STT/reporting-month pairs present in `s1` but not `s3`, or vice versa. | Warning |
-| `weights_t1_t7_stratum_mismatch` | Sample-state STT/reporting-month/stratum pairs present in `s1` but not `s4`, or vice versa. | Warning |
+| `weights_missing_stts` | Required STTs missing from `s1`, `s3`, or program stratum `s4` for the reporting month under review. | Warning |
+| `weights_active_aggregate_pair_mismatch` | STT/reporting-month pairs present in `s1` but not `s3`, or vice versa. | Warning |
+| `weights_active_stratum_mismatch` | Program stratum STT/reporting-month/stratum pairs present in `s1` but not `s4`, or vice versa. | Warning |
 
-Required T1/T6 STTs should come from `STT` reference records for state and territory entities. Do not maintain a separate hard-coded STT list in the weights node. Sample-state T7 QA should use `stts_stt.sample = true`.
+Required active/aggregate STTs come from `STT` reference records, not from a hard-coded list. TANF uses state and territory entities. SSP uses state and territory entities with `ssp = true`. Tribal TANF uses tribe entities. Stratum QA uses `sample = true` for TANF, `sample = true` and `ssp = true` for SSP, and tribe entities for Tribal TANF.
 
 ### Publication And Idempotency
 
 Weights publication must be transactional.
 
-For output scope `TANF + Section 1 + fiscal year`:
+For output scope `<program> + Section 1 + fiscal year`:
 
 1. Compute candidates and QA under the run ID.
 2. If a blocking QA check fails, mark the run `FAILED` and do not publish.
@@ -512,6 +515,7 @@ The email should include:
 
 - pipeline name,
 - fiscal year,
+- program,
 - run ID,
 - run status,
 - trigger source,
@@ -534,8 +538,6 @@ The architecture should support additional pipelines without changing the runner
 
 Likely next pipelines:
 
-- SSP statistical weights,
-- Tribal TANF statistical weights,
 - weighted TANF WPR summaries,
 - unweighted TANF feedback tables,
 - TANF time-limit report tables,
@@ -554,7 +556,7 @@ calculation nodes
 
 `publish_report_files` should reuse the existing `ReportFile` model and permissions so the current reports download and versioning behavior continues to apply.
 
-Program-specific behavior should live behind adapters at the pipeline/node level. TANF, SSP, and Tribal TANF should share the runner, run history, QA storage, notification path, and output publication rules.
+Program-specific behavior lives behind adapters at the statistical weights node level. TANF, SSP, and Tribal TANF share one pipeline key, runner, run history, QA storage, notification path, and output publication rule set.
 
 ---
 
@@ -588,10 +590,13 @@ Celery retries should be conservative. Retry transient database connection failu
 - Duplicate task handling: duplicate node task delivery does not run an already running or succeeded implementation again.
 - Node contract validation.
 - Output scope/idempotency key generation.
+- Program parameter normalization and supported-program rejection.
 - Active-run partial unique constraint behavior.
+- Active-run scoping allows the same fiscal year to run concurrently for different programs.
 - Source snapshot reuse across nodes.
 - Output version resolution for downstream DAG dependencies.
 - First-workday scheduler helper.
+- Program adapter mapping for TANF, SSP, and Tribal TANF parsed models and aggregate count fields.
 - Weights case-selection logic:
   - T7 cases preferred when present,
   - T6 cases used as fallback,
@@ -611,7 +616,7 @@ Celery retries should be conservative. Retry transient database connection failu
 - `ETLOutput` records the produced statistical-weights version for downstream nodes.
 - Failed run does not replace existing published weights.
 - Concurrent run for the same output scope is rejected.
-- Scheduled first-workday run creates exactly one run for the scope.
+- Scheduled first-workday run creates exactly one run per program scope.
 
 ### Permission Tests
 

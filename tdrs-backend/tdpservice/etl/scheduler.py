@@ -6,6 +6,12 @@ from django.utils import timezone
 
 from tdpservice.etl.exceptions import ActivePipelineRunError
 from tdpservice.etl.models import ETLPipelineRun
+from tdpservice.etl.pipelines.statistical_weights import (
+    PIPELINE_KEY,
+    PROGRAM_TANF,
+    SUPPORTED_PROGRAMS,
+    normalize_program,
+)
 from tdpservice.etl.runner import PipelineRunCreator
 
 
@@ -30,6 +36,7 @@ def is_first_workday(value: date) -> bool:
 
 def schedule_statistical_weights_run(
     today: date | None = None,
+    program: str = PROGRAM_TANF,
 ) -> ETLPipelineRun | None:
     """Create a scheduled statistical weights run when due."""
     today = today or timezone.localdate()
@@ -37,14 +44,15 @@ def schedule_statistical_weights_run(
         return None
 
     fiscal_year = fiscal_year_for_date(today)
+    program = normalize_program(program)
     output_scope = {
-        "pipeline": "tanf_statistical_weights",
+        "pipeline": PIPELINE_KEY,
         "fiscal_year": fiscal_year,
-        "program": "TANF",
+        "program": program,
         "section": "1",
     }
     already_scheduled = ETLPipelineRun.objects.filter(
-        pipeline_key="tanf_statistical_weights",
+        pipeline_key=PIPELINE_KEY,
         output_scope=output_scope,
         trigger_source=ETLPipelineRun.TriggerSource.SCHEDULED,
         status__in=[
@@ -59,9 +67,21 @@ def schedule_statistical_weights_run(
         return None
 
     try:
-        return PipelineRunCreator.for_pipeline_key("tanf_statistical_weights").create(
-            parameters={"fiscal_year": fiscal_year},
+        return PipelineRunCreator.for_pipeline_key(PIPELINE_KEY).create(
+            parameters={"fiscal_year": fiscal_year, "program": program},
             trigger_source=ETLPipelineRun.TriggerSource.SCHEDULED,
         )
     except ActivePipelineRunError:
         return None
+
+
+def schedule_statistical_weights_runs(
+    today: date | None = None,
+) -> list[ETLPipelineRun]:
+    """Create scheduled statistical weights runs for all supported programs."""
+    scheduled_runs = []
+    for program in SUPPORTED_PROGRAMS:
+        pipeline_run = schedule_statistical_weights_run(today, program)
+        if pipeline_run:
+            scheduled_runs.append(pipeline_run)
+    return scheduled_runs

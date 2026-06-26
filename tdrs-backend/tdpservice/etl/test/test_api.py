@@ -15,7 +15,7 @@ def test_pipeline_list_allows_approved_operational_viewers(api_client, digit_tea
     response = api_client.get("/v1/etl/pipelines/")
 
     assert response.status_code == 200
-    assert response.data[0]["key"] == "tanf_statistical_weights"
+    assert response.data[0]["key"] == "statistical_weights"
 
 
 @pytest.mark.django_db
@@ -26,8 +26,8 @@ def test_pipeline_run_create_requires_ofa_system_admin(api_client, digit_team):
     response = api_client.post(
         "/v1/etl/runs/",
         {
-            "pipeline_key": "tanf_statistical_weights",
-            "parameters": {"fiscal_year": 2026},
+            "pipeline_key": "statistical_weights",
+            "parameters": {"fiscal_year": 2026, "program": "TANF"},
         },
         format="json",
     )
@@ -44,15 +44,15 @@ def test_pipeline_run_create_enqueues_approved_pipeline(api_client, ofa_system_a
         response = api_client.post(
             "/v1/etl/runs/",
             {
-                "pipeline_key": "tanf_statistical_weights",
-                "parameters": {"fiscal_year": "2026"},
+                "pipeline_key": "statistical_weights",
+                "parameters": {"fiscal_year": "2026", "program": "TAN"},
             },
             format="json",
         )
 
     assert response.status_code == 201
-    assert response.data["pipeline_key"] == "tanf_statistical_weights"
-    assert response.data["parameters"] == {"fiscal_year": 2026}
+    assert response.data["pipeline_key"] == "statistical_weights"
+    assert response.data["parameters"] == {"fiscal_year": 2026, "program": "TANF"}
     assert response.data["metadata"] == {}
     assert ETLPipelineRun.objects.count() == 1
     enqueue_pipeline_run.assert_called_once()
@@ -63,8 +63,8 @@ def test_pipeline_run_create_rejects_active_duplicate(api_client, ofa_system_adm
     """Only one active run may exist for the same output scope."""
     api_client.force_authenticate(user=ofa_system_admin)
     request_body = {
-        "pipeline_key": "tanf_statistical_weights",
-        "parameters": {"fiscal_year": 2026},
+        "pipeline_key": "statistical_weights",
+        "parameters": {"fiscal_year": 2026, "program": "TANF"},
     }
 
     with patch("tdpservice.etl.views.enqueue_pipeline_run"):

@@ -1,4 +1,4 @@
-"""Tests for TANF statistical weights ETL nodes."""
+"""Tests for statistical weights ETL nodes."""
 
 from decimal import Decimal
 
@@ -16,23 +16,29 @@ from tdpservice.etl.models import (
     ETLQAResult,
     StatisticalWeight,
 )
-from tdpservice.etl.nodes import statistical_weights
+from tdpservice.etl.pipelines import statistical_weights
 from tdpservice.etl.registry import get_pipeline_definition
 from tdpservice.etl.runner import NodeContext, PipelineRunCreator
+from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M6, SSP_M7
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T6, TANF_T7
+from tdpservice.search_indexes.models.tribal import (
+    Tribal_TANF_T1,
+    Tribal_TANF_T6,
+    Tribal_TANF_T7,
+)
 from tdpservice.stts.models import STT
 
 FISCAL_YEAR = 2026
 REPORTING_MONTH = 202501
 
 
-def _datafile(stt, user, section, version=1):
-    """Create a parse-completed TANF DataFile in the weights fiscal year."""
+def _datafile(stt, user, section, version=1, program_type=DataFile.ProgramType.TANF):
+    """Create a parse-completed DataFile in the weights fiscal year."""
     return DataFileFactory.create(
         stt=stt,
         user=user,
         section=section,
-        program_type=DataFile.ProgramType.TANF,
+        program_type=program_type,
         quarter=DataFile.Quarter.Q1,
         year=FISCAL_YEAR,
         version=version,
@@ -56,10 +62,10 @@ def _node_context(pipeline_run, node_key):
     )
 
 
-def _create_pipeline_run():
+def _create_pipeline_run(program=statistical_weights.PROGRAM_TANF):
     """Create a statistical weights pipeline run."""
-    return PipelineRunCreator.for_pipeline_key("tanf_statistical_weights").create(
-        parameters={"fiscal_year": FISCAL_YEAR},
+    return PipelineRunCreator.for_pipeline_key(statistical_weights.PIPELINE_KEY).create(
+        parameters={"fiscal_year": FISCAL_YEAR, "program": program},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 
@@ -138,14 +144,14 @@ def test_build_candidates_uses_latest_files_and_stratum_fallback(parsed_weights_
     source_ids = statistical_weights._snapshot_source_datafile_ids(FISCAL_YEAR)
     candidates = statistical_weights.build_candidates(
         FISCAL_YEAR,
-        statistical_weights.t1_family_counts(
-            source_ids[statistical_weights.T1_SOURCE_KEY]
+        statistical_weights.active_family_counts(
+            source_ids[statistical_weights.ACTIVE_SOURCE_KEY]
         ),
-        statistical_weights.t6_case_counts(
-            source_ids[statistical_weights.T6_SOURCE_KEY]
+        statistical_weights.aggregate_case_counts(
+            source_ids[statistical_weights.AGGREGATE_SOURCE_KEY]
         ),
-        statistical_weights.t7_section_case_counts(
-            source_ids[statistical_weights.T7_SOURCE_KEY]
+        statistical_weights.stratum_section_case_counts(
+            source_ids[statistical_weights.STRATUM_SOURCE_KEY]
         ),
     )
 
@@ -165,6 +171,115 @@ def test_build_candidates_uses_latest_files_and_stratum_fallback(parsed_weights_
     assert stratum_two.case_count == 1
     assert stratum_two.cases == 10
     assert stratum_two.weight == Decimal("10.0000")
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    (
+        "program",
+        "program_type",
+        "active_model",
+        "aggregate_model",
+        "stratum_model",
+        "aggregate_field",
+    ),
+    [
+        (
+            statistical_weights.PROGRAM_SSP,
+            DataFile.ProgramType.SSP,
+            SSP_M1,
+            SSP_M6,
+            SSP_M7,
+            "SSPMOE_FAMILIES",
+        ),
+        (
+            statistical_weights.PROGRAM_TRIBAL,
+            DataFile.ProgramType.TRIBAL,
+            Tribal_TANF_T1,
+            Tribal_TANF_T6,
+            Tribal_TANF_T7,
+            "NUM_FAMILIES",
+        ),
+    ],
+)
+def test_program_adapters_build_non_tanf_candidates(
+    stt,
+    user,
+    program,
+    program_type,
+    active_model,
+    aggregate_model,
+    stratum_model,
+    aggregate_field,
+):
+    """SSP and Tribal runs use program-specific parsed models and fields."""
+    active_file = _datafile(
+        stt,
+        user,
+        DataFile.Section.ACTIVE_CASE_DATA,
+        program_type=program_type,
+    )
+    aggregate_file = _datafile(
+        stt,
+        user,
+        DataFile.Section.AGGREGATE_DATA,
+        program_type=program_type,
+    )
+    stratum_file = _datafile(
+        stt,
+        user,
+        DataFile.Section.STRATUM_DATA,
+        program_type=program_type,
+    )
+
+    active_model.objects.create(
+        datafile=active_file,
+        RPT_MONTH_YEAR=REPORTING_MONTH,
+        CASE_NUMBER="CASE000001",
+        STRATUM="1",
+    )
+    active_model.objects.create(
+        datafile=active_file,
+        RPT_MONTH_YEAR=REPORTING_MONTH,
+        CASE_NUMBER="CASE000002",
+        STRATUM="1",
+    )
+    aggregate_model.objects.create(
+        datafile=aggregate_file,
+        RPT_MONTH_YEAR=REPORTING_MONTH,
+        **{aggregate_field: 12},
+    )
+    stratum_model.objects.create(
+        datafile=stratum_file,
+        RPT_MONTH_YEAR=REPORTING_MONTH,
+        TDRS_SECTION_IND="1",
+        STRATUM="1",
+        FAMILIES_MONTH=6,
+    )
+
+    source_ids = statistical_weights._snapshot_source_datafile_ids(FISCAL_YEAR, program)
+    candidates = statistical_weights.build_candidates(
+        FISCAL_YEAR,
+        statistical_weights.active_family_counts(
+            source_ids[statistical_weights.ACTIVE_SOURCE_KEY],
+            program,
+        ),
+        statistical_weights.aggregate_case_counts(
+            source_ids[statistical_weights.AGGREGATE_SOURCE_KEY],
+            program,
+        ),
+        statistical_weights.stratum_section_case_counts(
+            source_ids[statistical_weights.STRATUM_SOURCE_KEY],
+            program,
+        ),
+        program,
+    )
+
+    assert len(candidates) == 1
+    assert candidates[0].program == program
+    assert candidates[0].case_count == 2
+    assert candidates[0].cases == 6
+    assert candidates[0].weight == Decimal("3.0000")
 
 
 @pytest.mark.django_db
@@ -188,8 +303,8 @@ def test_validate_parameters_snapshots_source_files(parsed_weights_data, user):
         STRATUM="8",
     )
 
-    result = statistical_weights.extract_t1_family_counts(
-        _node_context(pipeline_run, "extract_t1_family_counts")
+    result = statistical_weights.extract_active_family_counts(
+        _node_context(pipeline_run, "extract_active_family_counts")
     )
     intermediate = pipeline_run.intermediate_outputs.get(
         output_key=statistical_weights.S1_OUTPUT_KEY
@@ -207,14 +322,14 @@ def test_extract_nodes_write_intermediate_outputs(parsed_weights_data):
         _node_context(pipeline_run, "validate_parameters")
     )
 
-    statistical_weights.extract_t1_family_counts(
-        _node_context(pipeline_run, "extract_t1_family_counts")
+    statistical_weights.extract_active_family_counts(
+        _node_context(pipeline_run, "extract_active_family_counts")
     )
-    statistical_weights.extract_t6_case_counts(
-        _node_context(pipeline_run, "extract_t6_case_counts")
+    statistical_weights.extract_aggregate_case_counts(
+        _node_context(pipeline_run, "extract_aggregate_case_counts")
     )
-    statistical_weights.extract_t7_section_case_counts(
-        _node_context(pipeline_run, "extract_t7_section_case_counts")
+    statistical_weights.extract_stratum_case_counts(
+        _node_context(pipeline_run, "extract_stratum_case_counts")
     )
 
     outputs = {
@@ -233,14 +348,14 @@ def test_qa_and_publish_use_persisted_candidates(parsed_weights_data):
     statistical_weights.validate_parameters(
         _node_context(pipeline_run, "validate_parameters")
     )
-    statistical_weights.extract_t1_family_counts(
-        _node_context(pipeline_run, "extract_t1_family_counts")
+    statistical_weights.extract_active_family_counts(
+        _node_context(pipeline_run, "extract_active_family_counts")
     )
-    statistical_weights.extract_t6_case_counts(
-        _node_context(pipeline_run, "extract_t6_case_counts")
+    statistical_weights.extract_aggregate_case_counts(
+        _node_context(pipeline_run, "extract_aggregate_case_counts")
     )
-    statistical_weights.extract_t7_section_case_counts(
-        _node_context(pipeline_run, "extract_t7_section_case_counts")
+    statistical_weights.extract_stratum_case_counts(
+        _node_context(pipeline_run, "extract_stratum_case_counts")
     )
     statistical_weights.build_weight_candidates(
         _node_context(pipeline_run, "build_weight_candidates")
@@ -258,7 +373,11 @@ def test_qa_and_publish_use_persisted_candidates(parsed_weights_data):
     )
 
     assert qa_result.output_row_count == 4
-    assert publish_result.metadata == {"version": 1, "row_count": 2}
+    assert publish_result.metadata == {
+        "program": "TANF",
+        "version": 1,
+        "row_count": 2,
+    }
     assert StatisticalWeight.objects.filter(pipeline_run=pipeline_run).count() == 2
 
 
@@ -281,14 +400,14 @@ def test_missing_stt_qa_uses_stt_reference_data(parsed_weights_data, region):
     statistical_weights.validate_parameters(
         _node_context(pipeline_run, "validate_parameters")
     )
-    statistical_weights.extract_t1_family_counts(
-        _node_context(pipeline_run, "extract_t1_family_counts")
+    statistical_weights.extract_active_family_counts(
+        _node_context(pipeline_run, "extract_active_family_counts")
     )
-    statistical_weights.extract_t6_case_counts(
-        _node_context(pipeline_run, "extract_t6_case_counts")
+    statistical_weights.extract_aggregate_case_counts(
+        _node_context(pipeline_run, "extract_aggregate_case_counts")
     )
-    statistical_weights.extract_t7_section_case_counts(
-        _node_context(pipeline_run, "extract_t7_section_case_counts")
+    statistical_weights.extract_stratum_case_counts(
+        _node_context(pipeline_run, "extract_stratum_case_counts")
     )
     statistical_weights.build_weight_candidates(
         _node_context(pipeline_run, "build_weight_candidates")
@@ -312,14 +431,14 @@ def test_publish_weights_versions_outputs(parsed_weights_data):
     statistical_weights.validate_parameters(
         _node_context(first_run, "validate_parameters")
     )
-    statistical_weights.extract_t1_family_counts(
-        _node_context(first_run, "extract_t1_family_counts")
+    statistical_weights.extract_active_family_counts(
+        _node_context(first_run, "extract_active_family_counts")
     )
-    statistical_weights.extract_t6_case_counts(
-        _node_context(first_run, "extract_t6_case_counts")
+    statistical_weights.extract_aggregate_case_counts(
+        _node_context(first_run, "extract_aggregate_case_counts")
     )
-    statistical_weights.extract_t7_section_case_counts(
-        _node_context(first_run, "extract_t7_section_case_counts")
+    statistical_weights.extract_stratum_case_counts(
+        _node_context(first_run, "extract_stratum_case_counts")
     )
     statistical_weights.build_weight_candidates(
         _node_context(first_run, "build_weight_candidates")
@@ -330,21 +449,25 @@ def test_publish_weights_versions_outputs(parsed_weights_data):
     first_run.status = ETLPipelineRun.Status.SUCCEEDED
     first_run.save(update_fields=["status", "updated_at"])
 
-    assert first_result.metadata == {"version": 1, "row_count": 2}
+    assert first_result.metadata == {
+        "program": "TANF",
+        "version": 1,
+        "row_count": 2,
+    }
     assert StatisticalWeight.objects.filter(version=1).count() == 2
 
     second_run = _create_pipeline_run()
     statistical_weights.validate_parameters(
         _node_context(second_run, "validate_parameters")
     )
-    statistical_weights.extract_t1_family_counts(
-        _node_context(second_run, "extract_t1_family_counts")
+    statistical_weights.extract_active_family_counts(
+        _node_context(second_run, "extract_active_family_counts")
     )
-    statistical_weights.extract_t6_case_counts(
-        _node_context(second_run, "extract_t6_case_counts")
+    statistical_weights.extract_aggregate_case_counts(
+        _node_context(second_run, "extract_aggregate_case_counts")
     )
-    statistical_weights.extract_t7_section_case_counts(
-        _node_context(second_run, "extract_t7_section_case_counts")
+    statistical_weights.extract_stratum_case_counts(
+        _node_context(second_run, "extract_stratum_case_counts")
     )
     statistical_weights.build_weight_candidates(
         _node_context(second_run, "build_weight_candidates")
@@ -353,7 +476,11 @@ def test_publish_weights_versions_outputs(parsed_weights_data):
         _node_context(second_run, "publish_weights")
     )
 
-    assert second_result.metadata == {"version": 2, "row_count": 2}
+    assert second_result.metadata == {
+        "program": "TANF",
+        "version": 2,
+        "row_count": 2,
+    }
     assert StatisticalWeight.objects.filter(version=2).count() == 2
     assert (
         StatisticalWeight.objects.filter(

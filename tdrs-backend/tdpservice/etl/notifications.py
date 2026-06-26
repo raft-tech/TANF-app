@@ -38,8 +38,18 @@ def _run_detail_url(pipeline_run: ETLPipelineRun) -> str:
     return f"{settings.BASE_URL}/etl/runs/{pipeline_run.id}/"
 
 
+def _program_label(pipeline_run: ETLPipelineRun) -> str:
+    """Return the statistical weights program label for a run."""
+    return (
+        pipeline_run.output_scope.get("program")
+        or pipeline_run.parameters.get("program")
+        or "unknown"
+    )
+
+
 def _statistical_weights_message(pipeline_run: ETLPipelineRun) -> str:
     """Return a plain-text statistical weights notification body."""
+    program = _program_label(pipeline_run)
     output = pipeline_run.outputs.filter(output_key="statistical_weights").last()
     output_version = output.output_version if output else "unknown"
     row_count = output.row_count if output else 0
@@ -50,11 +60,12 @@ def _statistical_weights_message(pipeline_run: ETLPipelineRun) -> str:
 
     return "\n".join(
         [
-            "TANF Statistical Weights ETL run completed.",
+            f"{program} Statistical Weights ETL run completed.",
             "",
-            "Pipeline: TANF Statistical Weights",
+            f"Pipeline: {program} Statistical Weights",
             f"Run ID: {pipeline_run.id}",
             f"Fiscal Year: {pipeline_run.parameters.get('fiscal_year')}",
+            f"Program: {program}",
             f"Status: {run_status}",
             f"Trigger Source: {pipeline_run.trigger_source}",
             f"Output Version: {output_version}",
@@ -73,9 +84,10 @@ def send_statistical_weights_notification(pipeline_run: ETLPipelineRun) -> dict:
     if not recipients:
         return {"notification": "no_recipients"}
 
+    program = _program_label(pipeline_run)
     output = pipeline_run.outputs.filter(output_key="statistical_weights").last()
     run_status = ETLPipelineRun.Status.SUCCEEDED if output else pipeline_run.status
-    subject = f"TANF Statistical Weights Run {pipeline_run.id} {run_status}"
+    subject = f"{program} Statistical Weights Run {pipeline_run.id} {run_status}"
     message = _statistical_weights_message(pipeline_run)
 
     try:

@@ -9,6 +9,7 @@ from tdpservice.etl.scheduler import (
     fiscal_year_for_date,
     is_first_workday,
     schedule_statistical_weights_run,
+    schedule_statistical_weights_runs,
 )
 
 
@@ -32,9 +33,28 @@ def test_schedule_statistical_weights_run_is_idempotent_for_month():
     pipeline_run = schedule_statistical_weights_run(date(2026, 6, 1))
 
     assert pipeline_run is not None
-    assert pipeline_run.pipeline_key == "tanf_statistical_weights"
+    assert pipeline_run.pipeline_key == "statistical_weights"
     assert pipeline_run.trigger_source == ETLPipelineRun.TriggerSource.SCHEDULED
-    assert pipeline_run.parameters == {"fiscal_year": 2026}
+    assert pipeline_run.parameters == {"fiscal_year": 2026, "program": "TANF"}
     assert pipeline_run.node_runs.count() == 8
 
     assert schedule_statistical_weights_run(date(2026, 6, 1)) is None
+
+
+@pytest.mark.django_db
+def test_schedule_statistical_weights_runs_creates_one_run_per_program():
+    """The monthly scheduler creates separate scoped runs for each program."""
+    pipeline_runs = schedule_statistical_weights_runs(date(2026, 6, 1))
+
+    assert [run.parameters["program"] for run in pipeline_runs] == [
+        "TANF",
+        "SSP",
+        "TRIBAL",
+    ]
+    assert {run.output_scope["program"] for run in pipeline_runs} == {
+        "TANF",
+        "SSP",
+        "TRIBAL",
+    }
+
+    assert schedule_statistical_weights_runs(date(2026, 6, 1)) == []

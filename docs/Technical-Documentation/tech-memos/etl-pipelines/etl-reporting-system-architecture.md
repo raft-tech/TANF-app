@@ -2,7 +2,7 @@
 
 - **Status:** Draft - system architecture
 - **Scope:** TDP-managed ETL for feedback-reporting data products across TANF, SSP, Tribal TANF, and future report families
-- **Last updated:** 2026-06-24
+- **Last updated:** 2026-06-26
 
 ---
 
@@ -24,7 +24,7 @@ For the first implementation slice and model-level implementation details, use `
 
 ## System Goal
 
-TDP should manage reporting ETL pipelines as approved, versioned, auditable data products. The system should support immediate production of TANF statistical weights and later support the wider family of calculations currently represented by the prototype scripts:
+TDP should manage reporting ETL pipelines as approved, versioned, auditable data products. The system should support immediate production of Section 1 statistical weights for TANF, SSP, and Tribal TANF and later support the wider family of calculations currently represented by the prototype scripts:
 
 - monthly case/work-participation derived datasets,
 - statistical weights,
@@ -220,14 +220,13 @@ Inputs:
 
 First implementation:
 
-- TANF Section 1 only,
-- fiscal-year scoped,
+- Section 1 for TANF, SSP, and Tribal TANF,
+- fiscal-year and program scoped,
+- one shared pipeline with program adapters,
 - database output plus QA email.
 
 Later extensions:
 
-- SSP weights,
-- Tribal TANF weights,
 - section expansion when business rules are approved.
 
 ### Monthly Case/Work-Participation Dataset
@@ -432,9 +431,9 @@ chain(
     execute_node.si(run_id, "validate_parameters"),
     chord(
         [
-            execute_node.si(run_id, "extract_t1_family_counts"),
-            execute_node.si(run_id, "extract_t6_case_counts"),
-            execute_node.si(run_id, "extract_t7_section_case_counts"),
+            execute_node.si(run_id, "extract_active_family_counts"),
+            execute_node.si(run_id, "extract_aggregate_case_counts"),
+            execute_node.si(run_id, "extract_stratum_case_counts"),
         ],
         build_weight_candidates,
     ),
@@ -551,7 +550,7 @@ The key separation is:
 
 Deliver the first production data product:
 
-- TANF Section 1 statistical weights,
+- Section 1 statistical weights for TANF, SSP, and Tribal TANF,
 - admin-triggered DRF execution,
 - scheduled first-workday execution,
 - run history,
@@ -619,14 +618,14 @@ Goal:
 - publish through `ReportFile`,
 - notify STTs and regional audiences through existing report access patterns.
 
-### Phase 6: SSP And Tribal TANF Expansion
+### Phase 6: SSP And Tribal TANF Report Expansion
 
-Add program-specific adapters and pipeline variants for SSP and Tribal TANF.
+Extend the post-weights report products to SSP and Tribal TANF.
 
 Goal:
 
 - reuse the same DAG runner and run history,
-- isolate source mappings and calculation differences,
+- isolate non-weight source mappings and calculation differences,
 - avoid copying TANF-specific assumptions into program families where they do not apply.
 
 ---

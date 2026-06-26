@@ -9,7 +9,7 @@ import pytest
 
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
-from tdpservice.etl.nodes import statistical_weights
+from tdpservice.etl.pipelines import statistical_weights
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T6, TANF_T7
 
 
@@ -67,13 +67,13 @@ def test_load_statistical_weights_test_data_creates_datafiles_and_rows(tmp_path,
     assert t1_rows[1].datafile.quarter == DataFile.Quarter.Q2
 
     source_ids = statistical_weights._snapshot_source_datafile_ids(2024)
-    assert set(source_ids[statistical_weights.T1_SOURCE_KEY]) == set(
+    assert set(source_ids[statistical_weights.ACTIVE_SOURCE_KEY]) == set(
         DataFile.objects.filter(section=DataFile.Section.ACTIVE_CASE_DATA).values_list(
             "id", flat=True
         )
     )
-    assert statistical_weights.t1_family_counts(
-        source_ids[statistical_weights.T1_SOURCE_KEY]
+    assert statistical_weights.active_family_counts(
+        source_ids[statistical_weights.ACTIVE_SOURCE_KEY]
     ) == [
         {
             "stt_code": "55",

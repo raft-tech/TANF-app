@@ -1,4 +1,4 @@
-"""TANF statistical weights ETL node implementations."""
+"""Program-agnostic statistical weights ETL node implementations."""
 
 from dataclasses import dataclass
 from datetime import timedelta
@@ -18,21 +18,90 @@ from tdpservice.etl.models import (
 )
 from tdpservice.etl.notifications import send_statistical_weights_notification
 from tdpservice.etl.registry import NodeResult
+from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M6, SSP_M7
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T6, TANF_T7
+from tdpservice.search_indexes.models.tribal import (
+    Tribal_TANF_T1,
+    Tribal_TANF_T6,
+    Tribal_TANF_T7,
+)
 from tdpservice.stts.models import STT
 
-PROGRAM = "TANF"
-DATAFILE_PROGRAM = DataFile.ProgramType.TANF
+PIPELINE_KEY = "statistical_weights"
+PROGRAM_TANF = "TANF"
+PROGRAM_SSP = "SSP"
+PROGRAM_TRIBAL = "TRIBAL"
+SUPPORTED_PROGRAMS = (PROGRAM_TANF, PROGRAM_SSP, PROGRAM_TRIBAL)
+PROGRAM_ALIASES = {
+    "TAN": PROGRAM_TANF,
+    PROGRAM_TANF: PROGRAM_TANF,
+    PROGRAM_SSP: PROGRAM_SSP,
+    PROGRAM_TRIBAL: PROGRAM_TRIBAL,
+    "TRIBAL_TANF": PROGRAM_TRIBAL,
+    "TRIBAL TANF": PROGRAM_TRIBAL,
+}
 SECTION = "1"
 WEIGHT_OUTPUT_KEY = "statistical_weights"
 SOURCE_DATAFILE_IDS_KEY = "source_datafile_ids"
-T1_SOURCE_KEY = "t1"
-T6_SOURCE_KEY = "t6"
-T7_SOURCE_KEY = "t7"
+ACTIVE_SOURCE_KEY = "active"
+AGGREGATE_SOURCE_KEY = "aggregate"
+STRATUM_SOURCE_KEY = "stratum"
 S1_OUTPUT_KEY = "weights.s1"
 S3_OUTPUT_KEY = "weights.s3"
 S4_OUTPUT_KEY = "weights.s4"
 WEIGHT_CANDIDATES_KEY = "statistical_weights.candidates"
+
+
+@dataclass(frozen=True)
+class ProgramAdapter:
+    """Program-specific parsed models and field names for one weights run."""
+
+    program: str
+    datafile_program: str
+    active_model: type
+    aggregate_model: type
+    stratum_model: type
+    aggregate_case_count_field: str
+    active_label: str
+    aggregate_label: str
+    stratum_label: str
+
+
+PROGRAM_ADAPTERS = {
+    PROGRAM_TANF: ProgramAdapter(
+        program=PROGRAM_TANF,
+        datafile_program=DataFile.ProgramType.TANF,
+        active_model=TANF_T1,
+        aggregate_model=TANF_T6,
+        stratum_model=TANF_T7,
+        aggregate_case_count_field="NUM_FAMILIES",
+        active_label="T1",
+        aggregate_label="T6",
+        stratum_label="T7",
+    ),
+    PROGRAM_SSP: ProgramAdapter(
+        program=PROGRAM_SSP,
+        datafile_program=DataFile.ProgramType.SSP,
+        active_model=SSP_M1,
+        aggregate_model=SSP_M6,
+        stratum_model=SSP_M7,
+        aggregate_case_count_field="SSPMOE_FAMILIES",
+        active_label="M1",
+        aggregate_label="M6",
+        stratum_label="M7",
+    ),
+    PROGRAM_TRIBAL: ProgramAdapter(
+        program=PROGRAM_TRIBAL,
+        datafile_program=DataFile.ProgramType.TRIBAL,
+        active_model=Tribal_TANF_T1,
+        aggregate_model=Tribal_TANF_T6,
+        stratum_model=Tribal_TANF_T7,
+        aggregate_case_count_field="NUM_FAMILIES",
+        active_label="T1",
+        aggregate_label="T6",
+        stratum_label="T7",
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -55,6 +124,25 @@ def _fiscal_year(context) -> int:
     return int(context.parameters["fiscal_year"])
 
 
+def normalize_program(value: str) -> str:
+    """Normalize a user-supplied program parameter."""
+    program = str(value).strip().upper()
+    try:
+        return PROGRAM_ALIASES[program]
+    except KeyError as exc:
+        raise ValueError(f"Unsupported statistical weights program: {value}") from exc
+
+
+def _program(context) -> str:
+    """Return the normalized program parameter for this run."""
+    return normalize_program(context.parameters["program"])
+
+
+def _adapter(program: str) -> ProgramAdapter:
+    """Return the program adapter for a statistical weights run."""
+    return PROGRAM_ADAPTERS[normalize_program(program)]
+
+
 def _normalize_code(value) -> str:
     """Normalize STT and stratum codes for joins with legacy integer SQL."""
     if value is None:
@@ -66,11 +154,12 @@ def _normalize_code(value) -> str:
         return str(value).strip()
 
 
-def _latest_datafile_ids(fiscal_year: int, section: str) -> list[int]:
+def _latest_datafile_ids(fiscal_year: int, program: str, section: str) -> list[int]:
     """Return latest accepted DataFile ids by STT and quarter for a section."""
+    adapter = _adapter(program)
     accepted_files = DataFile.objects.filter(
         year=fiscal_year,
-        program_type=DATAFILE_PROGRAM,
+        program_type=adapter.datafile_program,
         section=section,
         is_program_audit=False,
         state=SubmissionState.PARSE_COMPLETED,
@@ -79,7 +168,7 @@ def _latest_datafile_ids(fiscal_year: int, section: str) -> list[int]:
     latest_version = (
         DataFile.objects.filter(
             year=fiscal_year,
-            program_type=DATAFILE_PROGRAM,
+            program_type=adapter.datafile_program,
             section=section,
             is_program_audit=False,
             state=SubmissionState.PARSE_COMPLETED,
@@ -97,17 +186,22 @@ def _latest_datafile_ids(fiscal_year: int, section: str) -> list[int]:
     )
 
 
-def _snapshot_source_datafile_ids(fiscal_year: int) -> dict[str, list[int]]:
+def _snapshot_source_datafile_ids(
+    fiscal_year: int,
+    program: str = PROGRAM_TANF,
+) -> dict[str, list[int]]:
     """Return the source DataFile snapshot for one weights run."""
     # If an STT submits a file during a run, later nodes should not pick it up.
     return {
-        T1_SOURCE_KEY: _latest_datafile_ids(
-            fiscal_year, DataFile.Section.ACTIVE_CASE_DATA
+        ACTIVE_SOURCE_KEY: _latest_datafile_ids(
+            fiscal_year, program, DataFile.Section.ACTIVE_CASE_DATA
         ),
-        T6_SOURCE_KEY: _latest_datafile_ids(
-            fiscal_year, DataFile.Section.AGGREGATE_DATA
+        AGGREGATE_SOURCE_KEY: _latest_datafile_ids(
+            fiscal_year, program, DataFile.Section.AGGREGATE_DATA
         ),
-        T7_SOURCE_KEY: _latest_datafile_ids(fiscal_year, DataFile.Section.STRATUM_DATA),
+        STRATUM_SOURCE_KEY: _latest_datafile_ids(
+            fiscal_year, program, DataFile.Section.STRATUM_DATA
+        ),
     }
 
 
@@ -117,12 +211,18 @@ def _source_datafile_ids(context) -> dict[str, list[int]]:
     source_ids = metadata.get(SOURCE_DATAFILE_IDS_KEY)
     if source_ids:
         return {
-            T1_SOURCE_KEY: [int(value) for value in source_ids.get(T1_SOURCE_KEY, [])],
-            T6_SOURCE_KEY: [int(value) for value in source_ids.get(T6_SOURCE_KEY, [])],
-            T7_SOURCE_KEY: [int(value) for value in source_ids.get(T7_SOURCE_KEY, [])],
+            ACTIVE_SOURCE_KEY: [
+                int(value) for value in source_ids.get(ACTIVE_SOURCE_KEY, [])
+            ],
+            AGGREGATE_SOURCE_KEY: [
+                int(value) for value in source_ids.get(AGGREGATE_SOURCE_KEY, [])
+            ],
+            STRATUM_SOURCE_KEY: [
+                int(value) for value in source_ids.get(STRATUM_SOURCE_KEY, [])
+            ],
         }
 
-    source_ids = _snapshot_source_datafile_ids(_fiscal_year(context))
+    source_ids = _snapshot_source_datafile_ids(_fiscal_year(context), _program(context))
     metadata[SOURCE_DATAFILE_IDS_KEY] = source_ids
     context.pipeline_run.metadata = metadata
     context.pipeline_run.save(update_fields=["metadata", "updated_at"])
@@ -182,25 +282,30 @@ def _candidates_from_payload(payload: list[dict]) -> list[WeightCandidate]:
     ]
 
 
-def _t1_queryset(datafile_ids: list[int]):
-    """Return TANF T1 rows in scope."""
-    return TANF_T1.objects.filter(datafile_id__in=datafile_ids)
+def _active_queryset(datafile_ids: list[int], program: str = PROGRAM_TANF):
+    """Return active-case rows in scope."""
+    return _adapter(program).active_model.objects.filter(datafile_id__in=datafile_ids)
 
 
-def _t6_queryset(datafile_ids: list[int]):
-    """Return TANF T6 rows in scope."""
-    return TANF_T6.objects.filter(datafile_id__in=datafile_ids)
+def _aggregate_queryset(datafile_ids: list[int], program: str = PROGRAM_TANF):
+    """Return aggregate rows in scope."""
+    return _adapter(program).aggregate_model.objects.filter(
+        datafile_id__in=datafile_ids
+    )
 
 
-def _t7_queryset(datafile_ids: list[int]):
-    """Return TANF T7 rows in scope."""
-    return TANF_T7.objects.filter(datafile_id__in=datafile_ids)
+def _stratum_queryset(datafile_ids: list[int], program: str = PROGRAM_TANF):
+    """Return stratum rows in scope."""
+    return _adapter(program).stratum_model.objects.filter(datafile_id__in=datafile_ids)
 
 
-def t1_family_counts(datafile_ids: list[int]) -> list[dict]:
+def active_family_counts(
+    datafile_ids: list[int],
+    program: str = PROGRAM_TANF,
+) -> list[dict]:
     """Build s1: unique families by STT, reporting month, and stratum."""
     rows = (
-        _t1_queryset(datafile_ids)
+        _active_queryset(datafile_ids, program)
         .values("datafile__stt__stt_code", "RPT_MONTH_YEAR", "STRATUM")
         .annotate(case_count=Count("CASE_NUMBER", distinct=True))
         .order_by("datafile__stt__stt_code", "RPT_MONTH_YEAR", "STRATUM")
@@ -216,12 +321,16 @@ def t1_family_counts(datafile_ids: list[int]) -> list[dict]:
     ]
 
 
-def t6_case_counts(datafile_ids: list[int]) -> list[dict]:
+def aggregate_case_counts(
+    datafile_ids: list[int],
+    program: str = PROGRAM_TANF,
+) -> list[dict]:
     """Build s3: aggregate cases by STT and reporting month."""
+    adapter = _adapter(program)
     rows = (
-        _t6_queryset(datafile_ids)
+        _aggregate_queryset(datafile_ids, program)
         .values("datafile__stt__stt_code", "RPT_MONTH_YEAR")
-        .annotate(case_count=Sum("NUM_FAMILIES"))
+        .annotate(case_count=Sum(adapter.aggregate_case_count_field))
         .order_by("datafile__stt__stt_code", "RPT_MONTH_YEAR")
     )
     return [
@@ -234,10 +343,13 @@ def t6_case_counts(datafile_ids: list[int]) -> list[dict]:
     ]
 
 
-def t7_section_case_counts(datafile_ids: list[int]) -> list[dict]:
+def stratum_section_case_counts(
+    datafile_ids: list[int],
+    program: str = PROGRAM_TANF,
+) -> list[dict]:
     """Build s4: stratum cases by STT, reporting month, and stratum."""
     rows = (
-        _t7_queryset(datafile_ids)
+        _stratum_queryset(datafile_ids, program)
         .filter(TDRS_SECTION_IND=SECTION, FAMILIES_MONTH__gt=0)
         .values("datafile__stt__stt_code", "RPT_MONTH_YEAR", "STRATUM")
         .annotate(cases=Sum("FAMILIES_MONTH"))
@@ -259,8 +371,10 @@ def build_candidates(
     s1_rows: list[dict],
     s3_rows: list[dict],
     s4_rows: list[dict],
+    program: str = PROGRAM_TANF,
 ) -> list[WeightCandidate]:
     """Build final statistical weight candidates."""
+    program = normalize_program(program)
     s3_cases_by_pair = {
         (row["stt_code"], row["reporting_month"]): row["case_count"] for row in s3_rows
     }
@@ -294,7 +408,7 @@ def build_candidates(
             WeightCandidate(
                 fiscal_year=fiscal_year,
                 reporting_month=row["reporting_month"],
-                program=PROGRAM,
+                program=program,
                 section=SECTION,
                 stt_code=row["stt_code"],
                 stratum=row["stratum"],
@@ -310,6 +424,7 @@ def build_candidates(
 def validate_parameters(context) -> NodeResult:
     """Validate statistical-weights parameters."""
     fiscal_year = _fiscal_year(context)
+    program = _program(context)
     if fiscal_year < 2000:
         raise ValueError("fiscal_year must be 2000 or later.")
 
@@ -317,47 +432,63 @@ def validate_parameters(context) -> NodeResult:
     return NodeResult(
         metadata={
             "fiscal_year": fiscal_year,
+            "program": program,
             SOURCE_DATAFILE_IDS_KEY: source_ids,
         }
     )
 
 
-def extract_t1_family_counts(context) -> NodeResult:
+def extract_active_family_counts(context) -> NodeResult:
     """Build and count s1 rows."""
-    datafile_ids = _source_datafile_ids(context)[T1_SOURCE_KEY]
-    source_count = _t1_queryset(datafile_ids).count()
-    rows = t1_family_counts(datafile_ids)
+    program = _program(context)
+    datafile_ids = _source_datafile_ids(context)[ACTIVE_SOURCE_KEY]
+    source_count = _active_queryset(datafile_ids, program).count()
+    rows = active_family_counts(datafile_ids, program)
     _write_intermediate_output(context.pipeline_run, S1_OUTPUT_KEY, rows)
     return NodeResult(
         input_row_count=source_count,
         output_row_count=len(rows),
-        metadata={"dataset": "s1", "source_datafile_ids": datafile_ids},
+        metadata={
+            "dataset": "s1",
+            "program": program,
+            "source_datafile_ids": datafile_ids,
+        },
     )
 
 
-def extract_t6_case_counts(context) -> NodeResult:
+def extract_aggregate_case_counts(context) -> NodeResult:
     """Build and count s3 rows."""
-    datafile_ids = _source_datafile_ids(context)[T6_SOURCE_KEY]
-    source_count = _t6_queryset(datafile_ids).count()
-    rows = t6_case_counts(datafile_ids)
+    program = _program(context)
+    datafile_ids = _source_datafile_ids(context)[AGGREGATE_SOURCE_KEY]
+    source_count = _aggregate_queryset(datafile_ids, program).count()
+    rows = aggregate_case_counts(datafile_ids, program)
     _write_intermediate_output(context.pipeline_run, S3_OUTPUT_KEY, rows)
     return NodeResult(
         input_row_count=source_count,
         output_row_count=len(rows),
-        metadata={"dataset": "s3", "source_datafile_ids": datafile_ids},
+        metadata={
+            "dataset": "s3",
+            "program": program,
+            "source_datafile_ids": datafile_ids,
+        },
     )
 
 
-def extract_t7_section_case_counts(context) -> NodeResult:
+def extract_stratum_case_counts(context) -> NodeResult:
     """Build and count s4 rows."""
-    datafile_ids = _source_datafile_ids(context)[T7_SOURCE_KEY]
-    source_count = _t7_queryset(datafile_ids).count()
-    rows = t7_section_case_counts(datafile_ids)
+    program = _program(context)
+    datafile_ids = _source_datafile_ids(context)[STRATUM_SOURCE_KEY]
+    source_count = _stratum_queryset(datafile_ids, program).count()
+    rows = stratum_section_case_counts(datafile_ids, program)
     _write_intermediate_output(context.pipeline_run, S4_OUTPUT_KEY, rows)
     return NodeResult(
         input_row_count=source_count,
         output_row_count=len(rows),
-        metadata={"dataset": "s4", "source_datafile_ids": datafile_ids},
+        metadata={
+            "dataset": "s4",
+            "program": program,
+            "source_datafile_ids": datafile_ids,
+        },
     )
 
 
@@ -368,6 +499,7 @@ def build_weight_candidates(context) -> NodeResult:
         _intermediate_payload(context, S1_OUTPUT_KEY),
         _intermediate_payload(context, S3_OUTPUT_KEY),
         _intermediate_payload(context, S4_OUTPUT_KEY),
+        _program(context),
     )
     _write_intermediate_output(
         context.pipeline_run,
@@ -402,20 +534,38 @@ def _numeric_stt_codes(queryset) -> set[int]:
 
 
 def _required_stt_codes() -> set[int]:
-    """Return TANF state and territory STT codes expected in T1/T6 QA."""
-    return _numeric_stt_codes(
-        STT.objects.filter(
-            type__in=[
-                STT.EntityType.STATE,
-                STT.EntityType.TERRITORY,
-            ]
-        )
-    )
+    """Return state and territory STT codes expected in TANF active/aggregate QA."""
+    return _required_program_stt_codes(PROGRAM_TANF)
 
 
 def _sample_stt_codes() -> set[int]:
-    """Return sample STT codes as integers."""
-    return _numeric_stt_codes(STT.objects.filter(sample=True))
+    """Return TANF sample STT codes as integers."""
+    return _stratum_program_stt_codes(PROGRAM_TANF)
+
+
+def _required_program_stt_codes(program: str) -> set[int]:
+    """Return STT codes expected for active and aggregate rows."""
+    if normalize_program(program) == PROGRAM_TRIBAL:
+        return _numeric_stt_codes(STT.objects.filter(type=STT.EntityType.TRIBE))
+    queryset = STT.objects.filter(
+        type__in=[
+            STT.EntityType.STATE,
+            STT.EntityType.TERRITORY,
+        ]
+    )
+    if normalize_program(program) == PROGRAM_SSP:
+        queryset = queryset.filter(ssp=True)
+    return _numeric_stt_codes(queryset)
+
+
+def _stratum_program_stt_codes(program: str) -> set[int]:
+    """Return STT codes expected for stratum rows."""
+    if normalize_program(program) == PROGRAM_TRIBAL:
+        return _numeric_stt_codes(STT.objects.filter(type=STT.EntityType.TRIBE))
+    queryset = STT.objects.filter(sample=True)
+    if normalize_program(program) == PROGRAM_SSP:
+        queryset = queryset.filter(ssp=True)
+    return _numeric_stt_codes(queryset)
 
 
 def _create_qa_result(
@@ -439,6 +589,8 @@ def _tuple_payload(values: list[tuple]) -> list[list]:
 
 def run_weights_qa(context) -> NodeResult:
     """Persist statistical weights QA results."""
+    program = _program(context)
+    adapter = _adapter(program)
     s1_rows = _intermediate_payload(context, S1_OUTPUT_KEY)
     s3_rows = _intermediate_payload(context, S3_OUTPUT_KEY)
     s4_rows = _intermediate_payload(context, S4_OUTPUT_KEY)
@@ -484,13 +636,13 @@ def run_weights_qa(context) -> NodeResult:
         s3_present = set()
         s4_present = set()
 
-    required_codes = _required_stt_codes()
-    sample_codes = _sample_stt_codes()
+    required_codes = _required_program_stt_codes(program)
+    stratum_codes = _stratum_program_stt_codes(program)
     missing_payload = {
         "review_month": review_month,
         "s1_missing": sorted(required_codes - s1_present),
         "s3_missing": sorted(required_codes - s3_present),
-        "s4_missing": sorted(sample_codes - s4_present),
+        "s4_missing": sorted(stratum_codes - s4_present),
     }
     missing_count = sum(
         len(values) for values in missing_payload.values() if isinstance(values, list)
@@ -508,38 +660,49 @@ def run_weights_qa(context) -> NodeResult:
     pair_mismatches = sorted(s1_pairs.symmetric_difference(s3_pairs))
     _create_qa_result(
         context.pipeline_run,
-        "weights_t1_t6_pair_mismatch",
+        "weights_active_aggregate_pair_mismatch",
         ETLQAResult.Status.WARNING if pair_mismatches else ETLQAResult.Status.PASSED,
-        f"Found {len(pair_mismatches)} T1/T6 pair mismatches.",
+        "Found "
+        f"{len(pair_mismatches)} {adapter.active_label}/{adapter.aggregate_label} "
+        "pair mismatches.",
         {"mismatches": _tuple_payload(pair_mismatches)},
     )
 
-    sample_code_strings = {str(code) for code in sample_codes}
+    stratum_code_strings = {str(code) for code in stratum_codes}
     s1_strata = {
         (row["stt_code"], row["reporting_month"], row["stratum"])
         for row in s1_rows
-        if row["stt_code"] in sample_code_strings
+        if row["stt_code"] in stratum_code_strings
     }
     s4_strata = {
         (row["stt_code"], row["reporting_month"], row["stratum"])
         for row in s4_rows
-        if row["stt_code"] in sample_code_strings
+        if row["stt_code"] in stratum_code_strings
     }
     stratum_mismatches = sorted(s1_strata.symmetric_difference(s4_strata))
     _create_qa_result(
         context.pipeline_run,
-        "weights_t1_t7_stratum_mismatch",
+        "weights_active_stratum_mismatch",
         ETLQAResult.Status.WARNING if stratum_mismatches else ETLQAResult.Status.PASSED,
-        f"Found {len(stratum_mismatches)} T1/T7 stratum mismatches.",
+        "Found "
+        f"{len(stratum_mismatches)} {adapter.active_label}/{adapter.stratum_label} "
+        "stratum mismatches.",
         {"mismatches": _tuple_payload(stratum_mismatches)},
     )
 
-    return NodeResult(output_row_count=4, metadata={"review_month": review_month})
+    return NodeResult(
+        output_row_count=4,
+        metadata={"program": program, "review_month": review_month},
+    )
 
 
-def _scope_filter(fiscal_year: int) -> dict:
+def _scope_filter(fiscal_year: int, program: str) -> dict:
     """Return the StatisticalWeight filter for a fiscal-year output scope."""
-    return {"fiscal_year": fiscal_year, "program": PROGRAM, "section": SECTION}
+    return {
+        "fiscal_year": fiscal_year,
+        "program": normalize_program(program),
+        "section": SECTION,
+    }
 
 
 def publish_weights(context) -> NodeResult:
@@ -555,6 +718,7 @@ def publish_weights(context) -> NodeResult:
         )
 
     fiscal_year = _fiscal_year(context)
+    program = _program(context)
     candidates = _candidates_from_payload(
         _intermediate_payload(context, WEIGHT_CANDIDATES_KEY)
     )
@@ -563,7 +727,7 @@ def publish_weights(context) -> NodeResult:
 
     with transaction.atomic():
         existing_rows = StatisticalWeight.objects.select_for_update().filter(
-            **_scope_filter(fiscal_year)
+            **_scope_filter(fiscal_year, program)
         )
         current_version = existing_rows.aggregate(latest=Max("version"))["latest"] or 0
         next_version = current_version + 1
@@ -605,7 +769,11 @@ def publish_weights(context) -> NodeResult:
 
     return NodeResult(
         output_row_count=len(candidates),
-        metadata={"version": next_version, "row_count": len(candidates)},
+        metadata={
+            "program": program,
+            "version": next_version,
+            "row_count": len(candidates),
+        },
     )
 
 
