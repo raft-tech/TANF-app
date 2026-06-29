@@ -179,7 +179,7 @@ def validate_no_active_pipeline_source_overlap(datafile_ids) -> None:
 
 def datafile_id_overlap(candidate_ids, active_ids) -> set[int]:
     """Return DataFile IDs present in both flat ID sets."""
-    return sorted(candidate_ids & active_ids)
+    return sorted(set(candidate_ids) & set(active_ids))
 
 
 def active_reparse_datafile_ids() -> set[int]:
@@ -193,7 +193,7 @@ def active_reparse_datafile_ids() -> set[int]:
     active_ids.update(
         unfinished_reparse_files.values_list("data_file_id", flat=True).distinct()
     )
-    return active_ids
+    return sorted(active_ids)
 
 
 def active_pipeline_source_datafile_ids() -> set[int]:
@@ -206,4 +206,4 @@ def active_pipeline_source_datafile_ids() -> set[int]:
         source_ids_by_key = (metadata or {}).get(SOURCE_DATAFILE_IDS_KEY, {})
         for datafile_ids in source_ids_by_key.values():
             active_ids.update(int(datafile_id) for datafile_id in datafile_ids)
-    return active_ids
+    return sorted(active_ids)
