@@ -65,6 +65,8 @@ class ETLPipelineRun(models.Model):
     class Meta:
         """Model metadata."""
 
+        verbose_name = "ETL Pipeline"
+        verbose_name_plural = "ETL Pipelines"
         ordering = ["-created_at"]
         indexes = [
             models.Index(
@@ -118,6 +120,8 @@ class ETLNodeRun(models.Model):
     class Meta:
         """Model metadata."""
 
+        verbose_name = "ETL Node Run"
+        verbose_name_plural = "ETL Node Runs"
         ordering = ["pipeline_run_id", "id"]
         constraints = [
             models.UniqueConstraint(
@@ -157,6 +161,8 @@ class ETLQAResult(models.Model):
     class Meta:
         """Model metadata."""
 
+        verbose_name = "ETL QA Result"
+        verbose_name_plural = "ETL QA Results"
         ordering = ["pipeline_run_id", "id"]
         indexes = [
             models.Index(fields=["check_key", "status"], name="etl_qa_key_status_idx")
@@ -192,6 +198,8 @@ class ETLOutput(models.Model):
     class Meta:
         """Model metadata."""
 
+        verbose_name = "ETL Output"
+        verbose_name_plural = "ETL Outputs"
         ordering = ["pipeline_run_id", "id"]
         indexes = [
             models.Index(
@@ -226,6 +234,8 @@ class ETLIntermediateOutput(models.Model):
     class Meta:
         """Model metadata."""
 
+        verbose_name = "ETL Intermediate Output"
+        verbose_name_plural = "ETL Intermediate Outputs"
         ordering = ["pipeline_run_id", "id"]
         constraints = [
             models.UniqueConstraint(
@@ -269,6 +279,8 @@ class StatisticalWeight(models.Model):
     class Meta:
         """Model metadata."""
 
+        verbose_name = "Statistical Weight"
+        verbose_name_plural = "Statistical Weights"
         constraints = [
             models.UniqueConstraint(
                 fields=(
