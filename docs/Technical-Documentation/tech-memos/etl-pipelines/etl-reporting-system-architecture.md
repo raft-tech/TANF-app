@@ -1,6 +1,6 @@
 # ETL Reporting System Architecture
 
-- **Status:** Draft - system architecture
+- **Status:** Review - system architecture
 - **Scope:** TDP-managed ETL for feedback-reporting data products across TANF, SSP, Tribal TANF, and future report families
 - **Last updated:** 2026-06-26
 
