@@ -8,6 +8,7 @@ from django.db import models
 from django.urls import NoReverseMatch, reverse
 from django.utils.html import format_html
 
+from tdpservice.core.utils import ReadOnlyAdminMixin
 from tdpservice.etl.models import (
     ETLIntermediateOutput,
     ETLNodeRun,
@@ -19,7 +20,7 @@ from tdpservice.etl.models import (
 
 
 @admin.register(ETLPipelineRun)
-class ETLPipelineRunAdmin(admin.ModelAdmin):
+class ETLPipelineRunAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Admin view for pipeline runs."""
 
     list_display = (
@@ -109,7 +110,7 @@ class ETLPipelineRunAdmin(admin.ModelAdmin):
 
 
 @admin.register(ETLNodeRun)
-class ETLNodeRunAdmin(admin.ModelAdmin):
+class ETLNodeRunAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Admin view for node runs."""
 
     list_display = (
@@ -125,7 +126,7 @@ class ETLNodeRunAdmin(admin.ModelAdmin):
 
 
 @admin.register(ETLQAResult)
-class ETLQAResultAdmin(admin.ModelAdmin):
+class ETLQAResultAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Admin view for QA results."""
 
     list_display = ("id", "pipeline_run", "check_key", "status", "blocking")
@@ -134,7 +135,7 @@ class ETLQAResultAdmin(admin.ModelAdmin):
 
 
 @admin.register(ETLOutput)
-class ETLOutputAdmin(admin.ModelAdmin):
+class ETLOutputAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Admin view for outputs."""
 
     list_display = (
@@ -151,7 +152,7 @@ class ETLOutputAdmin(admin.ModelAdmin):
 
 
 @admin.register(ETLIntermediateOutput)
-class ETLIntermediateOutputAdmin(admin.ModelAdmin):
+class ETLIntermediateOutputAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Admin view for run-scoped intermediate outputs."""
 
     list_display = ("id", "pipeline_run", "output_key", "row_count", "created_at")
@@ -160,7 +161,7 @@ class ETLIntermediateOutputAdmin(admin.ModelAdmin):
 
 
 @admin.register(StatisticalWeight)
-class StatisticalWeightAdmin(admin.ModelAdmin):
+class StatisticalWeightAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Admin view for statistical weights."""
 
     list_display = (
