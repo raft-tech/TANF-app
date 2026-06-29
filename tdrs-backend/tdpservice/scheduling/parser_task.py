@@ -313,6 +313,7 @@ def _finalize_parse(
     parser_error_model=None,
     record_model_resolver=None,
     roll_log=True,
+    refresh_summary=True,
 ):
     """Generate parse artifacts and refresh DataFileSummary aggregates."""
     parser_models = _parser_models_for_instance(data_file)
@@ -335,12 +336,13 @@ def _finalize_parse(
     set_error_report(dfs, error_report)
     if roll_log:
         logger.handlers[2].doRollover(data_file)
-    update_dfs(
-        dfs,
-        data_file,
-        parser_error_model=parser_error_model,
-        record_model_resolver=record_model_resolver,
-    )
+    if refresh_summary:
+        update_dfs(
+            dfs,
+            data_file,
+            parser_error_model=parser_error_model,
+            record_model_resolver=record_model_resolver,
+        )
 
 
 def _finalize_reparse(data_file_id, reparse_id, file_meta, dfs, reparse_success):
@@ -514,5 +516,5 @@ def parse(data_file_id, reparse_id=None):
         _handle_parse_failure(data_file, "unexpected error during parsing")
         reparse_success = False
     finally:
-        _finalize_parse(data_file, dfs)
+        _finalize_parse(data_file, dfs, refresh_summary=reparse_success)
         _finalize_reparse(data_file_id, reparse_id, file_meta, dfs, reparse_success)
