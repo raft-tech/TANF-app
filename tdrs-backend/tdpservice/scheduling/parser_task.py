@@ -343,12 +343,17 @@ def _finalize_parse(
     set_error_report(dfs, error_report)
     if roll_log:
         logger.handlers[2].doRollover(data_file)
+
+    explicit_status = dfs.status
     update_dfs(
         dfs,
         data_file,
         parser_error_model=parser_error_model,
         record_model_resolver=record_model_resolver,
     )
+    if explicit_status == DataFileSummary.Status.REJECTED:
+        dfs.status = explicit_status
+        dfs.save(update_fields=["status"])
 
 
 def _finalize_reparse(data_file_id, reparse_id, file_meta, dfs, reparse_success):
