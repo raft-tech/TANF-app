@@ -78,8 +78,19 @@ tdpservice/
     scheduler.py
     registry.py
     runner.py
-    nodes/
-      statistical_weights.py
+    pipelines/
+      base.py
+      sources.py
+      statistical_weights/
+        __init__.py
+        definition.py
+        adapters.py
+        sources.py
+        extractors.py
+        candidates.py
+        qa.py
+        publishing.py
+        nodes.py
     notifications.py
 ```
 
@@ -189,7 +200,7 @@ The output scope is the idempotency key. For statistical weights it is:
 ```text
 pipeline=statistical_weights
 fiscal_year=<year>
-program=<TANF|SSP|TRIBAL>
+program=<TAN|SSP|TRIBAL>
 section=1
 ```
 
@@ -312,7 +323,7 @@ The create endpoint accepts:
   "pipeline_key": "statistical_weights",
   "parameters": {
     "fiscal_year": 2025,
-    "program": "TANF"
+    "program": "TAN"
   }
 }
 ```
@@ -397,7 +408,9 @@ Source-selection rules must be explicit:
 
 The default accepted parser state should be `PARSE_COMPLETED`. If product or legacy parity requires including `PARSED_WITH_ERRORS`, document that decision in the pipeline definition and test it explicitly.
 
-The first node declares three `DataFileSource` inputs, then uses the shared `DataFileSourceSnapshotter` to snapshot the selected active, aggregate, and stratum `DataFile` IDs into `ETLPipelineRun.metadata["source_datafile_ids"]`. All later nodes read from that snapshot rather than recalculating "latest accepted" files. This keeps counts, QA, and publication stable if a newer file is accepted while a run is executing. The snapshotter is shared infrastructure for future pipelines; statistical weights only owns the source declarations.
+The first node declares three `DataFileSource` inputs, then uses the shared `DataFileSourceSnapshot` to snapshot the selected active, aggregate, and stratum `DataFile` IDs into `ETLPipelineRun.metadata["source_datafile_ids"]`. All later nodes read from that snapshot rather than recalculating "latest accepted" files. This keeps counts, QA, and publication stable if a newer file is accepted while a run is executing. The statistical weights pipeline fails validation if any required source family snapshots to an empty list; an empty source run must not reach publication as a successful zero-row output. The snapshot helper is shared infrastructure for future pipelines; statistical weights only owns the source declarations.
+
+The statistical weights implementation is split by responsibility under `tdpservice.etl.pipelines.statistical_weights`: `definition.py` owns parameter validation, output scope, and Celery Canvas declaration; `adapters.py` owns program-specific models and field names; `sources.py` owns the pipeline-specific `DataFileSource` declarations; `extractors.py`, `candidates.py`, `qa.py`, and `publishing.py` own their respective domain behavior; and `nodes.py` composes those classes into runner node handlers.
 
 ### DAG
 
@@ -422,13 +435,13 @@ Node responsibilities:
 
 | Node | Responsibility |
 | --- | --- |
-| `validate_parameters` | Validate fiscal year, program, section, and output scope; snapshot source `DataFile` IDs. |
+| `validate_parameters` | Validate fiscal year, program, section, and output scope; snapshot source `DataFile` IDs; fail when required source families have no accepted files. |
 | `extract_active_family_counts` | Build `s1`: unique families by STT, reporting month, stratum; persist `weights.s1`. |
 | `extract_aggregate_case_counts` | Build `s3`: aggregate cases by STT and reporting month; persist `weights.s3`. |
 | `extract_stratum_case_counts` | Build `s4`: section cases by STT, reporting month, stratum for `TDRS_SECTION_IND = 1`; persist `weights.s4`. |
 | `build_weight_candidates` | Join persisted `s1`, `s3`, and `s4`; persist `statistical_weights.candidates`. |
 | `run_weights_qa` | Read persisted intermediates and persist the four QA checks. |
-| `publish_weights` | Publish a new immutable weights version from persisted candidates and record it on `ETLOutput`. |
+| `publish_weights` | Publish a new immutable weights version from persisted candidates and record it on `ETLOutput`; reject empty candidate payloads. |
 | `notify_weights_run` | Email run status, output, and QA summary to recipients. |
 
 The first implementation materializes `s1`, `s3`, `s4`, and candidate weights as run-scoped `ETLIntermediateOutput` JSON payloads. The node executor validates declared input contracts before executing a node; a node with a missing input contract fails before its implementation runs.
@@ -558,7 +571,7 @@ calculation nodes
 
 `publish_report_files` should reuse the existing `ReportFile` model and permissions so the current reports download and versioning behavior continues to apply.
 
-Program-specific behavior lives behind adapters at the statistical weights node level. TANF, SSP, and Tribal TANF share one pipeline key, runner, run history, QA storage, notification path, and output publication rule set.
+Program-specific behavior lives behind adapters at the statistical weights node level. TANF, SSP, and Tribal TANF share one pipeline key, runner, run history, QA storage, notification path, and output publication rule set. The run parameter uses exact `DataFile.ProgramType` values: `TAN`, `SSP`, or `TRIBAL`; display aliases such as `TANF` or `Tribal TANF` are not accepted as request values.
 
 ---
 
@@ -568,7 +581,8 @@ Program-specific behavior lives behind adapters at the statistical weights node 
 | --- | --- |
 | Invalid parameters | Reject before creating a pipeline runner task. |
 | Active run already exists for scope | Reject or return the active run reference. |
-| Missing source data | Persist QA failure or warning, depending on check configuration. |
+| Missing source data | Fail validation before extraction when a required source family has no accepted files. |
+| Empty candidate output | Fail publication and preserve the previous published output. |
 | Node exception | Mark node and pipeline failed; preserve error details. |
 | Publication failure | Roll back publication transaction; keep previous published output. |
 | Notification failure | Mark run succeeded if publication succeeded, but record notification failure in metadata/logs. |
@@ -592,7 +606,7 @@ Celery retries should be conservative. Retry transient database connection failu
 - Duplicate task handling: duplicate node task delivery does not run an already running or succeeded implementation again.
 - Node contract validation.
 - Output scope/idempotency key generation.
-- Program parameter normalization and supported-program rejection.
+- Exact `DataFile.ProgramType` program parameter validation and supported-program rejection.
 - Active-run partial unique constraint behavior.
 - Active-run scoping allows the same fiscal year to run concurrently for different programs.
 - Source snapshot reuse across nodes.

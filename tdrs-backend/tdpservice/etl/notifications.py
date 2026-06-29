@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.db.models import Q
 
+from tdpservice.data_files.models import DataFile
 from tdpservice.etl.models import ETLPipelineRun
 from tdpservice.users.models import AccountApprovalStatusChoices, User
 
@@ -40,11 +41,14 @@ def _run_detail_url(pipeline_run: ETLPipelineRun) -> str:
 
 def _program_label(pipeline_run: ETLPipelineRun) -> str:
     """Return the statistical weights program label for a run."""
-    return (
+    program = (
         pipeline_run.output_scope.get("program")
         or pipeline_run.parameters.get("program")
         or "unknown"
     )
+    if program in DataFile.ProgramType.values:
+        return DataFile.ProgramType(program).name
+    return program
 
 
 def _statistical_weights_message(pipeline_run: ETLPipelineRun) -> str:

@@ -4,14 +4,10 @@ from datetime import date
 
 from django.utils import timezone
 
+from tdpservice.data_files.models import DataFile
 from tdpservice.etl.exceptions import ActivePipelineRunError
 from tdpservice.etl.models import ETLPipelineRun
-from tdpservice.etl.pipelines.statistical_weights import (
-    PIPELINE_KEY,
-    PROGRAM_TANF,
-    SUPPORTED_PROGRAMS,
-    normalize_program,
-)
+from tdpservice.etl.pipelines.statistical_weights import StatisticalWeightsPipeline
 from tdpservice.etl.runner import PipelineRunCreator
 
 
@@ -36,7 +32,7 @@ def is_first_workday(value: date) -> bool:
 
 def schedule_statistical_weights_run(
     today: date | None = None,
-    program: str = PROGRAM_TANF,
+    program: str = DataFile.ProgramType.TANF,
 ) -> ETLPipelineRun | None:
     """Create a scheduled statistical weights run when due."""
     today = today or timezone.localdate()
@@ -44,15 +40,13 @@ def schedule_statistical_weights_run(
         return None
 
     fiscal_year = fiscal_year_for_date(today)
-    program = normalize_program(program)
-    output_scope = {
-        "pipeline": PIPELINE_KEY,
-        "fiscal_year": fiscal_year,
-        "program": program,
-        "section": "1",
-    }
+    definition = StatisticalWeightsPipeline()
+    parameters = definition.validate_parameters(
+        {"fiscal_year": fiscal_year, "program": program}
+    )
+    output_scope = definition.output_scope(parameters)
     already_scheduled = ETLPipelineRun.objects.filter(
-        pipeline_key=PIPELINE_KEY,
+        pipeline_key=definition.key,
         output_scope=output_scope,
         trigger_source=ETLPipelineRun.TriggerSource.SCHEDULED,
         status__in=[
@@ -67,8 +61,8 @@ def schedule_statistical_weights_run(
         return None
 
     try:
-        return PipelineRunCreator.for_pipeline_key(PIPELINE_KEY).create(
-            parameters={"fiscal_year": fiscal_year, "program": program},
+        return PipelineRunCreator.for_pipeline_key(definition.key).create(
+            parameters=parameters,
             trigger_source=ETLPipelineRun.TriggerSource.SCHEDULED,
         )
     except ActivePipelineRunError:
@@ -80,7 +74,7 @@ def schedule_statistical_weights_runs(
 ) -> list[ETLPipelineRun]:
     """Create scheduled statistical weights runs for all supported programs."""
     scheduled_runs = []
-    for program in SUPPORTED_PROGRAMS:
+    for program in StatisticalWeightsPipeline.supported_program_types:
         pipeline_run = schedule_statistical_weights_run(today, program)
         if pipeline_run:
             scheduled_runs.append(pipeline_run)

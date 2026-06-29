@@ -370,7 +370,18 @@ class Migration(migrations.Migration):
                 ),
                 ("fiscal_year", models.PositiveIntegerField()),
                 ("reporting_month", models.PositiveIntegerField()),
-                ("program", models.CharField(max_length=16)),
+                (
+                    "program",
+                    models.CharField(
+                        choices=[
+                            ("TAN", "Tanf"),
+                            ("SSP", "Ssp"),
+                            ("TRIBAL", "Tribal"),
+                            ("FRA", "Fra"),
+                        ],
+                        max_length=16,
+                    ),
+                ),
                 ("section", models.CharField(max_length=16)),
                 ("stt_code", models.CharField(max_length=3)),
                 ("stratum", models.CharField(max_length=2)),

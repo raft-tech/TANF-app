@@ -6,6 +6,7 @@ from django.db import IntegrityError, transaction
 
 import pytest
 
+from tdpservice.data_files.models import DataFile
 from tdpservice.etl.exceptions import ActivePipelineRunError, PipelineValidationError
 from tdpservice.etl.models import ETLNodeRun, ETLPipelineRun
 from tdpservice.etl.pipelines.base import NodeResult, PipelineDefinition, PipelineNode
@@ -57,7 +58,7 @@ def _definition(nodes):
 def _create_pipeline_run():
     """Create a statistical weights pipeline run for runner tests."""
     return PipelineRunCreator.for_pipeline_key("statistical_weights").create(
-        parameters={"fiscal_year": 2026, "program": "TANF"},
+        parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 
@@ -136,20 +137,19 @@ def test_statistical_weights_parameters_normalize_fiscal_year():
     definition = get_pipeline_definition("statistical_weights")
 
     assert definition.validate_parameters(
-        {"fiscal_year": "2026", "program": "TANF"}
+        {"fiscal_year": "2026", "program": DataFile.ProgramType.TANF}
     ) == {
         "fiscal_year": 2026,
-        "program": "TANF",
+        "program": DataFile.ProgramType.TANF,
     }
 
 
-def test_validate_statistical_weights_parameters_normalizes_program_alias():
-    """Program input is normalized before output-scope idempotency."""
+def test_validate_statistical_weights_parameters_rejects_program_alias():
+    """Program input must use exact DataFile.ProgramType values."""
     definition = get_pipeline_definition("statistical_weights")
 
-    assert definition.validate_parameters(
-        {"fiscal_year": "2026", "program": "tribal tanf"}
-    ) == {"fiscal_year": 2026, "program": "TRIBAL"}
+    with pytest.raises(PipelineValidationError):
+        definition.validate_parameters({"fiscal_year": "2026", "program": "TANF"})
 
 
 def test_validate_statistical_weights_parameters_rejects_unknown_program():
@@ -166,7 +166,11 @@ def test_validate_run_parameters_rejects_unknown_parameters():
 
     with pytest.raises(PipelineValidationError):
         definition.validate_parameters(
-            {"fiscal_year": 2026, "program": "TANF", "raw_sql": "select 1"}
+            {
+                "fiscal_year": 2026,
+                "program": DataFile.ProgramType.TANF,
+                "raw_sql": "select 1",
+            }
         )
 
 
@@ -174,7 +178,7 @@ def test_validate_run_parameters_rejects_unknown_parameters():
 def test_active_run_scope_key_constraint_allows_completed_reruns():
     """The database rejects duplicate active scopes and allows completed reruns."""
     definition = get_pipeline_definition("statistical_weights")
-    parameters = {"fiscal_year": 2026, "program": "TANF"}
+    parameters = {"fiscal_year": 2026, "program": DataFile.ProgramType.TANF}
     scope = definition.output_scope(parameters)
     scope_key = output_scope_key(scope)
 
@@ -216,20 +220,20 @@ def test_create_pipeline_run_reports_active_scope():
     """Run creation converts active-scope conflicts into a domain error."""
     creator = PipelineRunCreator.for_pipeline_key("statistical_weights")
     first_run = creator.create(
-        parameters={"fiscal_year": 2026, "program": "TANF"},
+        parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 
     with pytest.raises(ActivePipelineRunError):
         creator.create(
-            parameters={"fiscal_year": 2026, "program": "TANF"},
+            parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
             trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
         )
 
     first_run.status = ETLPipelineRun.Status.SUCCEEDED
     first_run.save(update_fields=["status", "updated_at"])
     second_run = creator.create(
-        parameters={"fiscal_year": 2026, "program": "TANF"},
+        parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 
@@ -242,17 +246,17 @@ def test_create_pipeline_run_scopes_active_runs_by_program():
     creator = PipelineRunCreator.for_pipeline_key("statistical_weights")
 
     tanf_run = creator.create(
-        parameters={"fiscal_year": 2026, "program": "TANF"},
+        parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
     ssp_run = creator.create(
-        parameters={"fiscal_year": 2026, "program": "SSP"},
+        parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.SSP},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 
     assert tanf_run.output_scope_key != ssp_run.output_scope_key
-    assert tanf_run.output_scope["program"] == "TANF"
-    assert ssp_run.output_scope["program"] == "SSP"
+    assert tanf_run.output_scope["program"] == DataFile.ProgramType.TANF
+    assert ssp_run.output_scope["program"] == DataFile.ProgramType.SSP
 
 
 @pytest.mark.django_db

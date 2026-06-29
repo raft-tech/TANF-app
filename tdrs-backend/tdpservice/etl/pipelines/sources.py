@@ -25,7 +25,7 @@ class DataFileSourceSnapshot:
     """Snapshot latest accepted DataFile ids once for a pipeline run."""
 
     def __init__(self, metadata_key: str = SOURCE_DATAFILE_IDS_KEY):
-        """Initialize the snapshotter with its run metadata key."""
+        """Initialize the source snapshot with its run metadata key."""
         self.metadata_key = metadata_key
 
     def snapshot(

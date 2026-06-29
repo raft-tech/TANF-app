@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
+from tdpservice.data_files.models import DataFile
 from tdpservice.etl.models import ETLPipelineRun
 
 
@@ -27,7 +28,10 @@ def test_pipeline_run_create_requires_ofa_system_admin(api_client, digit_team):
         "/v1/etl/runs/",
         {
             "pipeline_key": "statistical_weights",
-            "parameters": {"fiscal_year": 2026, "program": "TANF"},
+            "parameters": {
+                "fiscal_year": 2026,
+                "program": DataFile.ProgramType.TANF,
+            },
         },
         format="json",
     )
@@ -45,17 +49,41 @@ def test_pipeline_run_create_enqueues_approved_pipeline(api_client, ofa_system_a
             "/v1/etl/runs/",
             {
                 "pipeline_key": "statistical_weights",
-                "parameters": {"fiscal_year": "2026", "program": "TAN"},
+                "parameters": {
+                    "fiscal_year": "2026",
+                    "program": DataFile.ProgramType.TANF,
+                },
             },
             format="json",
         )
 
     assert response.status_code == 201
     assert response.data["pipeline_key"] == "statistical_weights"
-    assert response.data["parameters"] == {"fiscal_year": 2026, "program": "TANF"}
+    assert response.data["parameters"] == {
+        "fiscal_year": 2026,
+        "program": DataFile.ProgramType.TANF,
+    }
     assert response.data["metadata"] == {}
     assert ETLPipelineRun.objects.count() == 1
     enqueue_pipeline_run.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_pipeline_run_create_rejects_program_alias(api_client, ofa_system_admin):
+    """Pipeline run creation requires exact DataFile.ProgramType values."""
+    api_client.force_authenticate(user=ofa_system_admin)
+
+    response = api_client.post(
+        "/v1/etl/runs/",
+        {
+            "pipeline_key": "statistical_weights",
+            "parameters": {"fiscal_year": 2026, "program": "TANF"},
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert ETLPipelineRun.objects.count() == 0
 
 
 @pytest.mark.django_db
@@ -64,7 +92,7 @@ def test_pipeline_run_create_rejects_active_duplicate(api_client, ofa_system_adm
     api_client.force_authenticate(user=ofa_system_admin)
     request_body = {
         "pipeline_key": "statistical_weights",
-        "parameters": {"fiscal_year": 2026, "program": "TANF"},
+        "parameters": {"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
     }
 
     with patch("tdpservice.etl.views.enqueue_pipeline_run"):

@@ -9,8 +9,10 @@ import pytest
 
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
-from tdpservice.etl.pipelines import statistical_weights
+from tdpservice.etl.pipelines.statistical_weights import StatisticalWeightsPipeline
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T6, TANF_T7
+
+PIPELINE = StatisticalWeightsPipeline()
 
 
 def _write_weights_csvs(data_dir: Path, reporting_months=None):
@@ -66,14 +68,18 @@ def test_load_statistical_weights_test_data_creates_datafiles_and_rows(tmp_path,
     assert t1_rows[0].datafile.quarter == DataFile.Quarter.Q1
     assert t1_rows[1].datafile.quarter == DataFile.Quarter.Q2
 
-    source_ids = statistical_weights._snapshot_source_datafile_ids(2024)
-    assert set(source_ids[statistical_weights.ACTIVE_SOURCE_KEY]) == set(
+    source_ids = PIPELINE.node_handlers.sources.snapshot_source_datafile_ids(
+        2024,
+        DataFile.ProgramType.TANF,
+    )
+    assert set(source_ids[PIPELINE.source_keys["active"]]) == set(
         DataFile.objects.filter(section=DataFile.Section.ACTIVE_CASE_DATA).values_list(
             "id", flat=True
         )
     )
-    assert statistical_weights.active_family_counts(
-        source_ids[statistical_weights.ACTIVE_SOURCE_KEY]
+    assert PIPELINE.node_handlers.extractor.active_family_counts(
+        source_ids[PIPELINE.source_keys["active"]],
+        DataFile.ProgramType.TANF,
     ) == [
         {
             "stt_code": "55",

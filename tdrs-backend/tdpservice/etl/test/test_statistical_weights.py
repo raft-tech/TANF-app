@@ -16,7 +16,8 @@ from tdpservice.etl.models import (
     ETLQAResult,
     StatisticalWeight,
 )
-from tdpservice.etl.pipelines import statistical_weights
+from tdpservice.etl.pipelines.sources import SOURCE_DATAFILE_IDS_KEY
+from tdpservice.etl.pipelines.statistical_weights import StatisticalWeightsPipeline
 from tdpservice.etl.registry import get_pipeline_definition
 from tdpservice.etl.runner import NodeContext, PipelineRunCreator
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M6, SSP_M7
@@ -30,9 +31,12 @@ from tdpservice.stts.models import STT
 
 FISCAL_YEAR = 2026
 REPORTING_MONTH = 202501
+PIPELINE = StatisticalWeightsPipeline()
+NODES = PIPELINE.node_handlers
+TANF_PROGRAM = DataFile.ProgramType.TANF
 
 
-def _datafile(stt, user, section, version=1, program_type=DataFile.ProgramType.TANF):
+def _datafile(stt, user, section, version=1, program_type=TANF_PROGRAM):
     """Create a parse-completed DataFile in the weights fiscal year."""
     return DataFileFactory.create(
         stt=stt,
@@ -62,9 +66,9 @@ def _node_context(pipeline_run, node_key):
     )
 
 
-def _create_pipeline_run(program=statistical_weights.PROGRAM_TANF):
+def _create_pipeline_run(program=TANF_PROGRAM):
     """Create a statistical weights pipeline run."""
-    return PipelineRunCreator.for_pipeline_key(statistical_weights.PIPELINE_KEY).create(
+    return PipelineRunCreator.for_pipeline_key(StatisticalWeightsPipeline.key).create(
         parameters={"fiscal_year": FISCAL_YEAR, "program": program},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
@@ -139,20 +143,43 @@ def parsed_weights_data(stt, user):
 
 
 @pytest.mark.django_db
+def test_validate_parameters_rejects_missing_source_datafiles():
+    """Runs fail early when there are no accepted source files to snapshot."""
+    pipeline_run = _create_pipeline_run()
+
+    with pytest.raises(ValueError, match="active, aggregate, stratum"):
+        NODES.validate_parameters(_node_context(pipeline_run, "validate_parameters"))
+
+    pipeline_run.refresh_from_db()
+    assert pipeline_run.metadata[SOURCE_DATAFILE_IDS_KEY] == {
+        "active": [],
+        "aggregate": [],
+        "stratum": [],
+    }
+
+
+@pytest.mark.django_db
 def test_build_candidates_uses_latest_files_and_stratum_fallback(parsed_weights_data):
     """Weights use latest accepted files and prefer T7 stratum counts over T6."""
-    source_ids = statistical_weights._snapshot_source_datafile_ids(FISCAL_YEAR)
-    candidates = statistical_weights.build_candidates(
+    source_ids = PIPELINE.node_handlers.sources.snapshot_source_datafile_ids(
         FISCAL_YEAR,
-        statistical_weights.active_family_counts(
-            source_ids[statistical_weights.ACTIVE_SOURCE_KEY]
+        TANF_PROGRAM,
+    )
+    candidates = PIPELINE.node_handlers.candidates.build(
+        FISCAL_YEAR,
+        PIPELINE.node_handlers.extractor.active_family_counts(
+            source_ids[PIPELINE.source_keys["active"]],
+            TANF_PROGRAM,
         ),
-        statistical_weights.aggregate_case_counts(
-            source_ids[statistical_weights.AGGREGATE_SOURCE_KEY]
+        PIPELINE.node_handlers.extractor.aggregate_case_counts(
+            source_ids[PIPELINE.source_keys["aggregate"]],
+            TANF_PROGRAM,
         ),
-        statistical_weights.stratum_section_case_counts(
-            source_ids[statistical_weights.STRATUM_SOURCE_KEY]
+        PIPELINE.node_handlers.extractor.stratum_section_case_counts(
+            source_ids[PIPELINE.source_keys["stratum"]],
+            TANF_PROGRAM,
         ),
+        TANF_PROGRAM,
     )
 
     assert len(candidates) == 2
@@ -185,7 +212,7 @@ def test_build_candidates_uses_latest_files_and_stratum_fallback(parsed_weights_
     ),
     [
         (
-            statistical_weights.PROGRAM_SSP,
+            DataFile.ProgramType.SSP,
             DataFile.ProgramType.SSP,
             SSP_M1,
             SSP_M6,
@@ -193,7 +220,7 @@ def test_build_candidates_uses_latest_files_and_stratum_fallback(parsed_weights_
             "SSPMOE_FAMILIES",
         ),
         (
-            statistical_weights.PROGRAM_TRIBAL,
+            DataFile.ProgramType.TRIBAL,
             DataFile.ProgramType.TRIBAL,
             Tribal_TANF_T1,
             Tribal_TANF_T6,
@@ -257,19 +284,22 @@ def test_program_adapters_build_non_tanf_candidates(
         FAMILIES_MONTH=6,
     )
 
-    source_ids = statistical_weights._snapshot_source_datafile_ids(FISCAL_YEAR, program)
-    candidates = statistical_weights.build_candidates(
+    source_ids = PIPELINE.node_handlers.sources.snapshot_source_datafile_ids(
         FISCAL_YEAR,
-        statistical_weights.active_family_counts(
-            source_ids[statistical_weights.ACTIVE_SOURCE_KEY],
+        program,
+    )
+    candidates = PIPELINE.node_handlers.candidates.build(
+        FISCAL_YEAR,
+        PIPELINE.node_handlers.extractor.active_family_counts(
+            source_ids[PIPELINE.source_keys["active"]],
             program,
         ),
-        statistical_weights.aggregate_case_counts(
-            source_ids[statistical_weights.AGGREGATE_SOURCE_KEY],
+        PIPELINE.node_handlers.extractor.aggregate_case_counts(
+            source_ids[PIPELINE.source_keys["aggregate"]],
             program,
         ),
-        statistical_weights.stratum_section_case_counts(
-            source_ids[statistical_weights.STRATUM_SOURCE_KEY],
+        PIPELINE.node_handlers.extractor.stratum_section_case_counts(
+            source_ids[PIPELINE.source_keys["stratum"]],
             program,
         ),
         program,
@@ -286,9 +316,7 @@ def test_program_adapters_build_non_tanf_candidates(
 def test_validate_parameters_snapshots_source_files(parsed_weights_data, user):
     """A run continues to use the DataFile snapshot captured during validation."""
     pipeline_run = _create_pipeline_run()
-    statistical_weights.validate_parameters(
-        _node_context(pipeline_run, "validate_parameters")
-    )
+    NODES.validate_parameters(_node_context(pipeline_run, "validate_parameters"))
 
     newer_file = _datafile(
         parsed_weights_data,
@@ -303,11 +331,11 @@ def test_validate_parameters_snapshots_source_files(parsed_weights_data, user):
         STRATUM="8",
     )
 
-    result = statistical_weights.extract_active_family_counts(
+    result = NODES.extract_active_family_counts(
         _node_context(pipeline_run, "extract_active_family_counts")
     )
     intermediate = pipeline_run.intermediate_outputs.get(
-        output_key=statistical_weights.S1_OUTPUT_KEY
+        output_key=PIPELINE.intermediate_keys["s1"]
     )
 
     assert result.output_row_count == 2
@@ -318,17 +346,15 @@ def test_validate_parameters_snapshots_source_files(parsed_weights_data, user):
 def test_extract_nodes_write_intermediate_outputs(parsed_weights_data):
     """Extract nodes persist their declared run-scoped output contracts."""
     pipeline_run = _create_pipeline_run()
-    statistical_weights.validate_parameters(
-        _node_context(pipeline_run, "validate_parameters")
-    )
+    NODES.validate_parameters(_node_context(pipeline_run, "validate_parameters"))
 
-    statistical_weights.extract_active_family_counts(
+    NODES.extract_active_family_counts(
         _node_context(pipeline_run, "extract_active_family_counts")
     )
-    statistical_weights.extract_aggregate_case_counts(
+    NODES.extract_aggregate_case_counts(
         _node_context(pipeline_run, "extract_aggregate_case_counts")
     )
-    statistical_weights.extract_stratum_case_counts(
+    NODES.extract_stratum_case_counts(
         _node_context(pipeline_run, "extract_stratum_case_counts")
     )
 
@@ -336,28 +362,26 @@ def test_extract_nodes_write_intermediate_outputs(parsed_weights_data):
         output.output_key: output
         for output in ETLIntermediateOutput.objects.filter(pipeline_run=pipeline_run)
     }
-    assert outputs[statistical_weights.S1_OUTPUT_KEY].row_count == 2
-    assert outputs[statistical_weights.S3_OUTPUT_KEY].row_count == 1
-    assert outputs[statistical_weights.S4_OUTPUT_KEY].row_count == 1
+    assert outputs[PIPELINE.intermediate_keys["s1"]].row_count == 2
+    assert outputs[PIPELINE.intermediate_keys["s3"]].row_count == 1
+    assert outputs[PIPELINE.intermediate_keys["s4"]].row_count == 1
 
 
 @pytest.mark.django_db
 def test_qa_and_publish_use_persisted_candidates(parsed_weights_data):
     """QA and publication consume intermediate payloads, not live source queries."""
     pipeline_run = _create_pipeline_run()
-    statistical_weights.validate_parameters(
-        _node_context(pipeline_run, "validate_parameters")
-    )
-    statistical_weights.extract_active_family_counts(
+    NODES.validate_parameters(_node_context(pipeline_run, "validate_parameters"))
+    NODES.extract_active_family_counts(
         _node_context(pipeline_run, "extract_active_family_counts")
     )
-    statistical_weights.extract_aggregate_case_counts(
+    NODES.extract_aggregate_case_counts(
         _node_context(pipeline_run, "extract_aggregate_case_counts")
     )
-    statistical_weights.extract_stratum_case_counts(
+    NODES.extract_stratum_case_counts(
         _node_context(pipeline_run, "extract_stratum_case_counts")
     )
-    statistical_weights.build_weight_candidates(
+    NODES.build_weight_candidates(
         _node_context(pipeline_run, "build_weight_candidates")
     )
 
@@ -365,16 +389,14 @@ def test_qa_and_publish_use_persisted_candidates(parsed_weights_data):
     TANF_T6.objects.all().delete()
     TANF_T7.objects.all().delete()
 
-    qa_result = statistical_weights.run_weights_qa(
-        _node_context(pipeline_run, "run_weights_qa")
-    )
-    publish_result = statistical_weights.publish_weights(
+    qa_result = NODES.run_weights_qa(_node_context(pipeline_run, "run_weights_qa"))
+    publish_result = NODES.publish_weights(
         _node_context(pipeline_run, "publish_weights")
     )
 
     assert qa_result.output_row_count == 4
     assert publish_result.metadata == {
-        "program": "TANF",
+        "program": TANF_PROGRAM,
         "version": 1,
         "row_count": 2,
     }
@@ -397,23 +419,21 @@ def test_missing_stt_qa_uses_stt_reference_data(parsed_weights_data, region):
         type=STT.EntityType.TRIBE,
     )
     pipeline_run = _create_pipeline_run()
-    statistical_weights.validate_parameters(
-        _node_context(pipeline_run, "validate_parameters")
-    )
-    statistical_weights.extract_active_family_counts(
+    NODES.validate_parameters(_node_context(pipeline_run, "validate_parameters"))
+    NODES.extract_active_family_counts(
         _node_context(pipeline_run, "extract_active_family_counts")
     )
-    statistical_weights.extract_aggregate_case_counts(
+    NODES.extract_aggregate_case_counts(
         _node_context(pipeline_run, "extract_aggregate_case_counts")
     )
-    statistical_weights.extract_stratum_case_counts(
+    NODES.extract_stratum_case_counts(
         _node_context(pipeline_run, "extract_stratum_case_counts")
     )
-    statistical_weights.build_weight_candidates(
+    NODES.build_weight_candidates(
         _node_context(pipeline_run, "build_weight_candidates")
     )
 
-    statistical_weights.run_weights_qa(_node_context(pipeline_run, "run_weights_qa"))
+    NODES.run_weights_qa(_node_context(pipeline_run, "run_weights_qa"))
 
     qa_result = ETLQAResult.objects.get(
         pipeline_run=pipeline_run,
@@ -425,59 +445,67 @@ def test_missing_stt_qa_uses_stt_reference_data(parsed_weights_data, region):
 
 
 @pytest.mark.django_db
+def test_publish_weights_rejects_empty_candidates():
+    """Empty candidate payloads cannot become successful output versions."""
+    pipeline_run = _create_pipeline_run()
+    NODES.outputs.write(
+        pipeline_run,
+        PIPELINE.intermediate_keys["candidates"],
+        [],
+    )
+
+    with pytest.raises(ValueError, match="No statistical weight candidates"):
+        NODES.publish_weights(_node_context(pipeline_run, "publish_weights"))
+
+    assert not StatisticalWeight.objects.filter(pipeline_run=pipeline_run).exists()
+    assert not ETLOutput.objects.filter(
+        pipeline_run=pipeline_run,
+        output_key=PIPELINE.output_key,
+    ).exists()
+
+
+@pytest.mark.django_db
 def test_publish_weights_versions_outputs(parsed_weights_data):
     """Reruns publish a new version and retain the prior version until purge."""
     first_run = _create_pipeline_run()
-    statistical_weights.validate_parameters(
-        _node_context(first_run, "validate_parameters")
-    )
-    statistical_weights.extract_active_family_counts(
+    NODES.validate_parameters(_node_context(first_run, "validate_parameters"))
+    NODES.extract_active_family_counts(
         _node_context(first_run, "extract_active_family_counts")
     )
-    statistical_weights.extract_aggregate_case_counts(
+    NODES.extract_aggregate_case_counts(
         _node_context(first_run, "extract_aggregate_case_counts")
     )
-    statistical_weights.extract_stratum_case_counts(
+    NODES.extract_stratum_case_counts(
         _node_context(first_run, "extract_stratum_case_counts")
     )
-    statistical_weights.build_weight_candidates(
-        _node_context(first_run, "build_weight_candidates")
-    )
-    first_result = statistical_weights.publish_weights(
-        _node_context(first_run, "publish_weights")
-    )
+    NODES.build_weight_candidates(_node_context(first_run, "build_weight_candidates"))
+    first_result = NODES.publish_weights(_node_context(first_run, "publish_weights"))
     first_run.status = ETLPipelineRun.Status.SUCCEEDED
     first_run.save(update_fields=["status", "updated_at"])
 
     assert first_result.metadata == {
-        "program": "TANF",
+        "program": TANF_PROGRAM,
         "version": 1,
         "row_count": 2,
     }
     assert StatisticalWeight.objects.filter(version=1).count() == 2
 
     second_run = _create_pipeline_run()
-    statistical_weights.validate_parameters(
-        _node_context(second_run, "validate_parameters")
-    )
-    statistical_weights.extract_active_family_counts(
+    NODES.validate_parameters(_node_context(second_run, "validate_parameters"))
+    NODES.extract_active_family_counts(
         _node_context(second_run, "extract_active_family_counts")
     )
-    statistical_weights.extract_aggregate_case_counts(
+    NODES.extract_aggregate_case_counts(
         _node_context(second_run, "extract_aggregate_case_counts")
     )
-    statistical_weights.extract_stratum_case_counts(
+    NODES.extract_stratum_case_counts(
         _node_context(second_run, "extract_stratum_case_counts")
     )
-    statistical_weights.build_weight_candidates(
-        _node_context(second_run, "build_weight_candidates")
-    )
-    second_result = statistical_weights.publish_weights(
-        _node_context(second_run, "publish_weights")
-    )
+    NODES.build_weight_candidates(_node_context(second_run, "build_weight_candidates"))
+    second_result = NODES.publish_weights(_node_context(second_run, "publish_weights"))
 
     assert second_result.metadata == {
-        "program": "TANF",
+        "program": TANF_PROGRAM,
         "version": 2,
         "row_count": 2,
     }
@@ -497,7 +525,7 @@ def test_publish_weights_versions_outputs(parsed_weights_data):
         == 2
     )
 
-    output = second_run.outputs.get(output_key=statistical_weights.WEIGHT_OUTPUT_KEY)
+    output = second_run.outputs.get(output_key=PIPELINE.output_key)
     assert output.output_version == 2
     assert output.row_count == 2
     assert output.published
@@ -514,7 +542,7 @@ def test_notify_weights_run_includes_operational_summary(
     pipeline_run.save(update_fields=["status", "updated_at"])
     ETLOutput.objects.create(
         pipeline_run=pipeline_run,
-        output_key=statistical_weights.WEIGHT_OUTPUT_KEY,
+        output_key=PIPELINE.output_key,
         output_kind=ETLOutput.OutputKind.TABLE,
         reference=StatisticalWeight._meta.db_table,
         output_version=3,
@@ -530,9 +558,7 @@ def test_notify_weights_run_includes_operational_summary(
         result_payload={"candidate_output": 2},
     )
 
-    result = statistical_weights.notify_weights_run(
-        _node_context(pipeline_run, "notify_weights_run")
-    )
+    result = NODES.notify_weights_run(_node_context(pipeline_run, "notify_weights_run"))
 
     assert result.metadata["notification"] == "sent"
     assert len(mail.outbox) == 1

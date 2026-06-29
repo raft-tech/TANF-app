@@ -31,7 +31,7 @@ def _datafile(stt, user, version):
 def _pipeline_run():
     """Create a statistical weights pipeline run for snapshot tests."""
     return PipelineRunCreator.for_pipeline_key("statistical_weights").create(
-        parameters={"fiscal_year": FISCAL_YEAR, "program": "TANF"},
+        parameters={"fiscal_year": FISCAL_YEAR, "program": DataFile.ProgramType.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 

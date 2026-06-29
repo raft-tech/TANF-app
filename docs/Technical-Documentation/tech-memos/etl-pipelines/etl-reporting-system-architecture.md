@@ -203,7 +203,7 @@ Every translated query must apply the same source-selection contract:
 
 The default parser state for calculations should be successfully parsed data.
 
-Pipelines that read submitted files should declare their `DataFileSource` inputs and use the shared `DataFileSourceSnapshotter` to freeze latest accepted `DataFile` IDs once per run. Downstream nodes should consume that run-scoped snapshot instead of recalculating latest files independently.
+Pipelines that read submitted files should declare their `DataFileSource` inputs and use the shared `DataFileSourceSnapshot` helper to freeze latest accepted `DataFile` IDs once per run. Downstream nodes should consume that run-scoped snapshot instead of recalculating latest files independently.
 
 ---
 
@@ -403,7 +403,7 @@ DAG principles:
 
 ### Celery Canvas Execution
 
-The pipeline registry maps approved keys to executable, code-reviewed pipeline classes. `PipelineDefinition` is the abstract base interface; it provides shared node lookup, node-key validation, and serialization. Each concrete pipeline class normalizes its own run parameters, builds its own output scope, declares node metadata, and builds its Celery Canvas directly. Runner services create `ETLPipelineRun` and `ETLNodeRun` rows, launch the Canvas, execute nodes, and finalize status. The Canvas should make the business DAG visible in code instead of hiding progression behind a secondary layer scheduler or metadata-to-Canvas compiler.
+The pipeline registry maps approved keys to executable, code-reviewed pipeline classes. `PipelineDefinition` is the abstract base interface; it provides shared node lookup, node-key validation, and serialization. Each concrete pipeline class validates its own run parameters, builds its own output scope, declares node metadata, and builds its Celery Canvas directly. Runner services create `ETLPipelineRun` and `ETLNodeRun` rows, launch the Canvas, execute nodes, and finalize status. The Canvas should make the business DAG visible in code instead of hiding progression behind a secondary layer scheduler or metadata-to-Canvas compiler.
 
 | DAG shape | Celery primitive | Use |
 | --- | --- | --- |
