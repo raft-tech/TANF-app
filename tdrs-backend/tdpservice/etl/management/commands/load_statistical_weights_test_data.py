@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import csv
+import gzip
+import lzma
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
@@ -29,7 +31,7 @@ class CsvSpec:
     """A DataSurge CSV file that can be imported for weights testing."""
 
     key: str
-    pattern: str
+    patterns: tuple[str, ...]
     record_type: str
     model: type[models.Model]
     section: str
@@ -38,21 +40,21 @@ class CsvSpec:
 CSV_SPECS = (
     CsvSpec(
         key="t1",
-        pattern="TANF_T1_*.csv",
+        patterns=("TANF_T1_*.csv.xz", "TANF_T1_*.csv.gz", "TANF_T1_*.csv"),
         record_type="T1",
         model=TANF_T1,
         section=DataFile.Section.ACTIVE_CASE_DATA,
     ),
     CsvSpec(
         key="t6",
-        pattern="TANF_T6_*.csv",
+        patterns=("TANF_T6_*.csv.xz", "TANF_T6_*.csv.gz", "TANF_T6_*.csv"),
         record_type="T6",
         model=TANF_T6,
         section=DataFile.Section.AGGREGATE_DATA,
     ),
     CsvSpec(
         key="t7",
-        pattern="TANF_T7_*.csv",
+        patterns=("TANF_T7_*.csv.xz", "TANF_T7_*.csv.gz", "TANF_T7_*.csv"),
         record_type="T7",
         model=TANF_T7,
         section=DataFile.Section.STRATUM_DATA,
@@ -73,7 +75,10 @@ class Command(BaseCommand):
         parser.add_argument(
             "--data-dir",
             default=str(DEFAULT_DATA_DIR),
-            help="Directory containing TANF_T1, TANF_T6, and TANF_T7 CSV files.",
+            help=(
+                "Directory containing TANF_T1, TANF_T6, and TANF_T7 CSV, "
+                "CSV.GZ, or CSV.XZ files."
+            ),
         )
         parser.add_argument(
             "--fiscal-year",
@@ -198,21 +203,24 @@ class Command(BaseCommand):
 
     def _single_csv_path(self, data_dir: Path, spec: CsvSpec) -> Path:
         """Find the one CSV path for a configured import spec."""
-        paths = sorted(data_dir.glob(spec.pattern))
-        if not paths:
-            raise CommandError(f"No {spec.pattern} file found in {data_dir}.")
-        if len(paths) > 1:
-            raise CommandError(
-                f"Expected one {spec.pattern} file in {data_dir}; found {len(paths)}."
-            )
-        return paths[0]
+        for pattern in spec.patterns:
+            paths = sorted(data_dir.glob(pattern))
+            if len(paths) == 1:
+                return paths[0]
+            if len(paths) > 1:
+                raise CommandError(
+                    f"Expected one {pattern} file in {data_dir}; found {len(paths)}."
+                )
+
+        patterns = ", ".join(spec.patterns)
+        raise CommandError(f"No {patterns} file found in {data_dir}.")
 
     def _load_csv(self, csv_path: Path, spec: CsvSpec, importer: User) -> int:
         """Stream one CSV into its parsed-record table."""
         loaded_count = 0
         batch: list[models.Model] = []
 
-        with csv_path.open(newline="", encoding="utf-8-sig") as csv_file:
+        with self._open_csv(csv_path) as csv_file:
             reader = csv.DictReader(csv_file)
             model_fields = self._model_fields(spec.model)
             csv_fields = self._validated_csv_fields(csv_path, reader, model_fields)
@@ -243,6 +251,14 @@ class Command(BaseCommand):
             self._write_progress(spec, loaded_count)
 
         return loaded_count
+
+    def _open_csv(self, csv_path: Path) -> TextIO:
+        """Open plain or stdlib-compressed CSV input."""
+        if csv_path.suffix == ".xz":
+            return lzma.open(csv_path, mode="rt", newline="", encoding="utf-8-sig")
+        if csv_path.suffix == ".gz":
+            return gzip.open(csv_path, mode="rt", newline="", encoding="utf-8-sig")
+        return csv_path.open(newline="", encoding="utf-8-sig")
 
     def _model_fields(self, model: type[models.Model]) -> dict[str, models.Field]:
         """Return concrete model fields keyed by name."""

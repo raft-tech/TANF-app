@@ -1,5 +1,8 @@
 """Tests for loading de-identified statistical weights CSV fixtures."""
 
+import gzip
+import lzma
+import shutil
 from pathlib import Path
 
 from django.core.management import call_command
@@ -36,6 +39,17 @@ def _write_weights_csvs(data_dir: Path, reporting_months=None):
         "FIPS_CODE,RPT_MONTH_YEAR,TDRS_SECTION_IND,STRATUM,FAMILIES_MONTH\n"
         "55,202310,1,01,7\n"
     )
+
+
+def _compress_csvs(data_dir: Path, extension: str):
+    """Compress fixture CSVs with a stdlib-supported format."""
+    openers = {".gz": gzip.open, ".xz": lzma.open}
+    for csv_path in data_dir.glob("TANF_T*_fixture.csv"):
+        compressed_path = csv_path.with_suffix(f"{csv_path.suffix}{extension}")
+        with csv_path.open("rb") as source:
+            with openers[extension](compressed_path, "wb") as target:
+                shutil.copyfileobj(source, target)
+        csv_path.unlink()
 
 
 @pytest.mark.django_db
@@ -94,6 +108,27 @@ def test_load_statistical_weights_test_data_creates_datafiles_and_rows(tmp_path,
             "case_count": 1,
         },
     ]
+    assert TANF_T6.objects.count() == 1
+    assert TANF_T7.objects.count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("extension", [".gz", ".xz"])
+def test_load_statistical_weights_test_data_reads_compressed_csvs(
+    tmp_path, stt, extension
+):
+    """The importer reads stdlib-compressed CSV fixtures."""
+    _write_weights_csvs(tmp_path)
+    _compress_csvs(tmp_path, extension)
+
+    call_command(
+        "load_statistical_weights_test_data",
+        data_dir=str(tmp_path),
+        fiscal_year=2024,
+        datafile_version=9001,
+    )
+
+    assert TANF_T1.objects.count() == 2
     assert TANF_T6.objects.count() == 1
     assert TANF_T7.objects.count() == 1
 
