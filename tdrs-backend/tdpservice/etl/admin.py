@@ -23,13 +23,14 @@ class ETLPipelineRunAdmin(admin.ModelAdmin):
         "status",
         "trigger_source",
         "triggered_by",
+        "final_output",
         "created_at",
         "started_at",
         "finished_at",
     )
     list_filter = ("pipeline_key", "status", "trigger_source")
     search_fields = ("pipeline_key", "error_message")
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("final_output", "created_at", "updated_at")
 
 
 @admin.register(ETLNodeRun)

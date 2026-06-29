@@ -91,6 +91,7 @@ class ETLPipelineRunSerializer(serializers.ModelSerializer):
     node_runs = ETLNodeRunSerializer(many=True, read_only=True)
     qa_results = ETLQAResultSerializer(many=True, read_only=True)
     outputs = ETLOutputSerializer(many=True, read_only=True)
+    final_output = ETLOutputSerializer(read_only=True)
 
     class Meta:
         """Serializer metadata."""
@@ -107,6 +108,7 @@ class ETLPipelineRunSerializer(serializers.ModelSerializer):
             "trigger_source",
             "triggered_by",
             "retry_of",
+            "final_output",
             "started_at",
             "finished_at",
             "error_message",

@@ -400,6 +400,11 @@ def test_qa_and_publish_use_persisted_candidates(parsed_weights_data):
         "version": 1,
         "row_count": 2,
     }
+    pipeline_run.refresh_from_db()
+    assert (
+        pipeline_run.final_output_id
+        == pipeline_run.outputs.get(output_key=PIPELINE.output_key).id
+    )
     assert StatisticalWeight.objects.filter(pipeline_run=pipeline_run).count() == 2
 
 
@@ -526,6 +531,8 @@ def test_publish_weights_versions_outputs(parsed_weights_data):
     )
 
     output = second_run.outputs.get(output_key=PIPELINE.output_key)
+    second_run.refresh_from_db()
+    assert second_run.final_output_id == output.id
     assert output.output_version == 2
     assert output.row_count == 2
     assert output.published

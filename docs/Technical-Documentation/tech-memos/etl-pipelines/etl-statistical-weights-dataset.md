@@ -189,6 +189,7 @@ Required fields:
 - trigger source: `ADMIN`, `SCHEDULED`, or `RETRY`,
 - triggered-by user, nullable for scheduled runs,
 - retry-of run, nullable,
+- final output, nullable until publication succeeds,
 - started_at,
 - finished_at,
 - error message,
@@ -408,7 +409,7 @@ Source-selection rules must be explicit:
 
 The default accepted parser state should be `PARSE_COMPLETED`. If product or legacy parity requires including `PARSED_WITH_ERRORS`, document that decision in the pipeline definition and test it explicitly.
 
-The first node declares three `DataFileSource` inputs, then uses the shared `DataFileSourceSnapshot` to snapshot the selected active, aggregate, and stratum `DataFile` IDs into `ETLPipelineRun.metadata["source_datafile_ids"]`. All later nodes read from that snapshot rather than recalculating "latest accepted" files. This keeps counts, QA, and publication stable if a newer file is accepted while a run is executing. The statistical weights pipeline fails validation if any required source family snapshots to an empty list; an empty source run must not reach publication as a successful zero-row output. The snapshot helper is shared infrastructure for future pipelines; statistical weights only owns the source declarations.
+The first node declares three `DataFileSource` inputs, then uses the shared `DataFileSourceSnapshot` to snapshot the selected active, aggregate, and stratum `DataFile` IDs into `ETLPipelineRun.metadata["source_datafile_ids"]`. All later nodes read from that snapshot rather than recalculating "latest accepted" files. This keeps counts, QA, and publication stable if a newer file is accepted while a run is executing. The statistical weights pipeline fails validation if any required source family snapshots to an empty list; an empty source run must not reach publication as a successful zero-row output. The shared snapshot helper also rejects any source `DataFile` that is part of active reparse work, and reparse startup rejects files already snapshotted by active `PENDING` or `RUNNING` ETL runs. This disjointness rule applies to every future DataFile-backed pipeline that uses the shared snapshot helper. The snapshot helper is shared infrastructure for future pipelines; statistical weights only owns the source declarations.
 
 The statistical weights implementation is split by responsibility under `tdpservice.etl.pipelines.statistical_weights`: `definition.py` owns parameter validation, output scope, and Celery Canvas declaration; `adapters.py` owns program-specific models and field names; `sources.py` owns the pipeline-specific `DataFileSource` declarations; `extractors.py`, `candidates.py`, `qa.py`, and `publishing.py` own their respective domain behavior; and `nodes.py` composes those classes into runner node handlers.
 
@@ -582,6 +583,7 @@ Program-specific behavior lives behind adapters at the statistical weights node 
 | Invalid parameters | Reject before creating a pipeline runner task. |
 | Active run already exists for scope | Reject or return the active run reference. |
 | Missing source data | Fail validation before extraction when a required source family has no accepted files. |
+| Source/reparse overlap | Reject ETL validation or reparse startup before either process mutates source data. |
 | Empty candidate output | Fail publication and preserve the previous published output. |
 | Node exception | Mark node and pipeline failed; preserve error details. |
 | Publication failure | Roll back publication transaction; keep previous published output. |

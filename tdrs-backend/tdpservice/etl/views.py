@@ -36,7 +36,7 @@ class PipelineRunViewSet(viewsets.ModelViewSet):
     permission_classes = [ETLPermissions]
     queryset = (
         ETLPipelineRun.objects.all()
-        .select_related("triggered_by", "retry_of")
+        .select_related("triggered_by", "retry_of", "final_output")
         .prefetch_related("node_runs", "qa_results", "outputs")
         .order_by("-created_at")
     )

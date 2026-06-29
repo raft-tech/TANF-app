@@ -49,6 +49,13 @@ class ETLPipelineRun(models.Model):
         null=True,
         blank=True,
     )
+    final_output = models.OneToOneField(
+        "etl.ETLOutput",
+        on_delete=models.SET_NULL,
+        related_name="final_pipeline_run",
+        null=True,
+        blank=True,
+    )
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     error_message = models.TextField(null=True, blank=True)

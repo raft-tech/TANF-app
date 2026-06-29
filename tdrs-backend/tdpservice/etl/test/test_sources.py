@@ -5,11 +5,16 @@ from django.db import transaction
 import pytest
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.models import DataFile, ReparseFileMeta
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.etl.models import ETLPipelineRun
-from tdpservice.etl.pipelines.sources import DataFileSource, DataFileSourceSnapshot
+from tdpservice.etl.pipelines.sources import (
+    ActiveReparseDataFileOverlapError,
+    DataFileSource,
+    DataFileSourceSnapshot,
+)
 from tdpservice.etl.runner import PipelineRunCreator
+from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 
 FISCAL_YEAR = 2026
 
@@ -82,3 +87,24 @@ def test_datafile_source_snapshotter_rejects_duplicate_source_keys(stt, user):
                 fiscal_year=FISCAL_YEAR,
                 sources=(source, source),
             )
+
+
+@pytest.mark.django_db
+def test_datafile_source_snapshotter_rejects_active_reparse_overlap(stt, user):
+    """ETL source snapshots cannot include DataFiles being reparsed."""
+    data_file = _datafile(stt, user, version=1)
+    reparse = ReparseMeta.objects.create(db_backup_location="s3://backup")
+    ReparseFileMeta.objects.create(data_file=data_file, reparse_meta=reparse)
+    source = DataFileSource(
+        key="active",
+        program_type=DataFile.ProgramType.TANF,
+        section=DataFile.Section.ACTIVE_CASE_DATA,
+    )
+    snapshotter = DataFileSourceSnapshot()
+
+    with pytest.raises(ActiveReparseDataFileOverlapError, match=str(data_file.id)):
+        snapshotter.snapshot(
+            _pipeline_run(),
+            fiscal_year=FISCAL_YEAR,
+            sources=(source,),
+        )

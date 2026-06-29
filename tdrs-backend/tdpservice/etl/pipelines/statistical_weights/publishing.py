@@ -79,7 +79,7 @@ class StatisticalWeightsPublisher:
                     for candidate in candidates
                 ]
             )
-            ETLOutput.objects.create(
+            final_output = ETLOutput.objects.create(
                 pipeline_run=pipeline_run,
                 output_key=self.output_key,
                 output_kind=ETLOutput.OutputKind.TABLE,
@@ -89,6 +89,8 @@ class StatisticalWeightsPublisher:
                 published=True,
                 metadata=output_scope,
             )
+            pipeline_run.final_output = final_output
+            pipeline_run.save(update_fields=["final_output", "updated_at"])
 
         return NodeResult(
             output_row_count=len(candidates),

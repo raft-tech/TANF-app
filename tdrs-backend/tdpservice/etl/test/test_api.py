@@ -5,7 +5,8 @@ from unittest.mock import patch
 import pytest
 
 from tdpservice.data_files.models import DataFile
-from tdpservice.etl.models import ETLPipelineRun
+from tdpservice.etl.models import ETLOutput, ETLPipelineRun, StatisticalWeight
+from tdpservice.etl.runner import PipelineRunCreator
 
 
 @pytest.mark.django_db
@@ -66,6 +67,36 @@ def test_pipeline_run_create_enqueues_approved_pipeline(api_client, ofa_system_a
     assert response.data["metadata"] == {}
     assert ETLPipelineRun.objects.count() == 1
     enqueue_pipeline_run.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_pipeline_run_detail_includes_final_output(api_client, digit_team):
+    """Run detail exposes the final output relation for easy navigation."""
+    pipeline_run = PipelineRunCreator.for_pipeline_key("statistical_weights").create(
+        parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+    output = ETLOutput.objects.create(
+        pipeline_run=pipeline_run,
+        output_key="statistical_weights",
+        output_kind=ETLOutput.OutputKind.TABLE,
+        reference=StatisticalWeight._meta.db_table,
+        output_version=1,
+        row_count=2,
+        published=True,
+        metadata=pipeline_run.output_scope,
+    )
+    pipeline_run.status = ETLPipelineRun.Status.SUCCEEDED
+    pipeline_run.final_output = output
+    pipeline_run.save(update_fields=["status", "final_output", "updated_at"])
+    api_client.force_authenticate(user=digit_team)
+
+    response = api_client.get(f"/v1/etl/runs/{pipeline_run.id}/")
+
+    assert response.status_code == 200
+    assert response.data["final_output"]["id"] == output.id
+    assert response.data["final_output"]["output_key"] == "statistical_weights"
+    assert response.data["final_output"]["output_version"] == 1
 
 
 @pytest.mark.django_db

@@ -266,6 +266,17 @@ class Migration(migrations.Migration):
                 ],
             },
         ),
+        migrations.AddField(
+            model_name="etlpipelinerun",
+            name="final_output",
+            field=models.OneToOneField(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="final_pipeline_run",
+                to="etl.etloutput",
+            ),
+        ),
         migrations.CreateModel(
             name="ETLNodeRun",
             fields=[
