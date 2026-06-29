@@ -1,6 +1,7 @@
 """Tests for statistical weights ETL nodes."""
 
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.core import mail
 
@@ -16,6 +17,7 @@ from tdpservice.etl.models import (
     ETLQAResult,
     StatisticalWeight,
 )
+from tdpservice.etl.notifications import send_statistical_weights_notification
 from tdpservice.etl.pipelines.sources import SOURCE_DATAFILE_IDS_KEY
 from tdpservice.etl.pipelines.statistical_weights import StatisticalWeightsPipeline
 from tdpservice.etl.registry import get_pipeline_definition
@@ -564,16 +566,56 @@ def test_notify_weights_run_includes_operational_summary(
         summary="Captured statistical weights row counts.",
         result_payload={"candidate_output": 2},
     )
+    ETLQAResult.objects.create(
+        pipeline_run=pipeline_run,
+        check_key="weights_active_stratum_mismatch",
+        status=ETLQAResult.Status.WARNING,
+        summary="Found 12 T1/T7 stratum mismatches.",
+        result_payload={"mismatches": []},
+    )
 
     result = NODES.notify_weights_run(_node_context(pipeline_run, "notify_weights_run"))
 
     assert result.metadata["notification"] == "sent"
     assert len(mail.outbox) == 1
-    message = mail.outbox[0].body
-    assert "Pipeline: TANF Statistical Weights" in message
-    assert f"Run ID: {pipeline_run.id}" in message
-    assert "Status: SUCCEEDED" in message
-    assert "Trigger Source: ADMIN" in message
-    assert "Row Count: 2" in message
-    assert "weights_row_counts: PASSED" in message
-    assert f"/etl/runs/{pipeline_run.id}/" in message
+    text_message = mail.outbox[0].body
+    html_message = mail.outbox[0].alternatives[0][0]
+    assert "Pipeline: TANF Statistical Weights" in text_message
+    assert f"Run ID: {pipeline_run.id}" in text_message
+    assert "Status: SUCCEEDED" in text_message
+    assert "Trigger Source: ADMIN" in text_message
+    assert "Row Count: 2" in text_message
+    assert "weights_row_counts: PASSED" in text_message
+    assert (
+        "weights_active_stratum_mismatch: WARNING - Found 12 T1/T7 stratum mismatches."
+        in text_message
+    )
+    assert f"/admin/etl/etlpipelinerun/{pipeline_run.id}/change" in text_message
+    assert "View ETL Run" in html_message
+    assert "Node ID" in html_message
+    assert "Status" in html_message
+    assert "Error/Warning Message" in html_message
+    assert "weights_row_counts" in html_message
+    assert "weights_active_stratum_mismatch" in html_message
+    assert "Found 12 T1/T7 stratum mismatches." in html_message
+    assert f"/admin/etl/etlpipelinerun/{pipeline_run.id}/change" in html_message
+
+
+@pytest.mark.django_db
+def test_statistical_weights_notification_routes_through_email_helper(
+    ofa_system_admin,
+    digit_team,
+):
+    """ETL notifications use the shared email helper/template path."""
+    pipeline_run = _create_pipeline_run()
+
+    with patch(
+        "tdpservice.etl.notifications.send_statistical_weights_run_email"
+    ) as send_email:
+        result = send_statistical_weights_notification(pipeline_run)
+
+    send_email.assert_called_once()
+    called_run, recipients = send_email.call_args.args
+    assert called_run == pipeline_run
+    assert set(recipients) == {ofa_system_admin.email, digit_team.email}
+    assert result["notification"] == "sent"
