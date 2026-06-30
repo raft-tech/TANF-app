@@ -2,7 +2,7 @@
 
 - **Status:** Review - system architecture
 - **Scope:** TDP-managed ETL for feedback-reporting data products across TANF, SSP, Tribal TANF, and future report families
-- **Last updated:** 2026-06-26
+- **Last updated:** 2026-06-30
 
 ---
 
@@ -395,7 +395,7 @@ DAG principles:
 - nodes are code-reviewed modules,
 - dependencies are declared by output contract,
 - node outputs are scoped by run ID,
-- node tasks receive explicit input versions from upstream `ETLOutput` records,
+- node tasks load required artifact manifests from upstream `ETLArtifact` records,
 - publication is explicit and transactional,
 - QA is stored as data,
 - run history is durable,
@@ -410,19 +410,18 @@ The pipeline registry maps approved keys to executable, code-reviewed pipeline c
 | Linear dependency | `chain` | Run ordered nodes where each node depends on the prior node's output. |
 | Fan-out/fan-in dependency | `chord` | Run parallel header nodes, then run the body exactly once after every header node succeeds. |
 
-Every Celery task should receive only stable identifiers: pipeline run ID, node key, output scope, and resolved upstream output versions. Tasks load their run context from the database, execute code-owned node logic, update `ETLNodeRun`, and persist any produced `ETLOutput` records. This keeps the database as the source of truth for run state while Celery handles scheduling and parallel execution.
+Every Celery task should receive only stable identifiers: pipeline run ID and node key. Tasks load their run context and available `ETLArtifact` manifests from the database, execute code-owned node logic, update `ETLNodeRun`, and persist any produced artifact manifests. This keeps the database as the source of truth for run state while Celery handles scheduling and parallel execution.
 
-The statistical weights DAG is represented directly as a `chain` with a `chord` for the parallel extract fan-in. The three extract tasks are the chord header. The fan-in node, `build_weight_candidates`, is the chord body. The remaining QA, publish, notify, and finalize path is attached as the body task's immutable continuation, avoiding Celery's duplicate-delivery behavior when a full `chain` is used as a chord body.
+The statistical weights DAG is represented directly as a `chain` with a `chord` for the parallel extract fan-in. The three extract tasks are the chord header. The QA node, `run_weights_qa`, is the single chord body. The remaining publish, notify, and finalize path is attached as the body task's immutable continuation, avoiding Celery's duplicate-delivery behavior when a full `chain` is used as a chord body.
 
 Use immutable Celery signatures (`.si`) for node and finalize tasks so upstream return values and chord header results are not appended to task arguments.
 
 Example execution shape:
 
 ```python
-build_weight_candidates = execute_node.si(run_id, "build_weight_candidates")
-build_weight_candidates.link(
+run_weights_qa = execute_node.si(run_id, "run_weights_qa")
+run_weights_qa.link(
     chain(
-        execute_node.si(run_id, "run_weights_qa"),
         execute_node.si(run_id, "publish_weights"),
         execute_node.si(run_id, "notify_weights_run"),
         finalize_pipeline_run.si(run_id),
@@ -437,7 +436,7 @@ chain(
             execute_node.si(run_id, "extract_aggregate_case_counts"),
             execute_node.si(run_id, "extract_stratum_case_counts"),
         ],
-        build_weight_candidates,
+        run_weights_qa,
     ),
 )
 ```
@@ -590,7 +589,7 @@ Goal:
 
 Translation focus:
 
-- consume the explicit statistical-weights version and monthly dataset version from upstream `ETLOutput` dependencies,
+- consume the explicit statistical-weights version and monthly dataset version from upstream final `ETLArtifact` manifests,
 - translate report-specific temporary views into report-ready data products,
 - persist notebook comparison checks as QA results rather than manual dataframe comparisons.
 

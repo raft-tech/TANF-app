@@ -2,7 +2,7 @@
 
 - **Status:** Review - implementation guide
 - **Scope:** TDP-managed ETL pipelines, beginning with the TANF statistical weights dataset
-- **Last updated:** 2026-06-24
+- **Last updated:** 2026-06-30
 
 ---
 
@@ -100,7 +100,7 @@ The external seam is intentionally small:
 - `PipelineDefinition` defines the base interface for approved pipelines,
 - Celery executes a pipeline-owned `chain`/`chord` Canvas for each run,
 - pipeline definitions are code-defined and reviewed,
-- nodes receive typed run context and write declared outputs.
+- nodes receive typed run context and write declared artifact manifests.
 
 Do not build an arbitrary SQL runner. Admin users execute approved pipelines only.
 
@@ -138,7 +138,7 @@ The first implementation should use a lightweight internal runner. The base `Pip
 
 Concrete pipeline classes remain the executable DAG definitions. The registry only maps approved pipeline keys to those classes. Pipeline authors hand-write the Celery Canvas for each approved pipeline. Node metadata is limited to the execution details the runner needs: node key, implementation, and input/output contracts. The Canvas should make the DAG visible: linear dependencies use `chain`, and parallel fan-in uses `chord` with a single fan-in body task. Remaining downstream nodes continue from that body task through an immutable link chain when needed.
 
-Celery tasks should receive stable identifiers: pipeline run ID, node key, output scope, and resolved upstream output versions. Node and finalize signatures should be immutable (`.si`) so upstream return values and chord header results are not appended to task arguments. Tasks load run context from the database, update `ETLNodeRun`, and persist any `ETLOutput` rows. The database remains the source of truth for orchestration state; Celery is the execution mechanism.
+Celery tasks should receive stable identifiers: pipeline run ID and node key. Node and finalize signatures should be immutable (`.si`) so upstream return values and chord header results are not appended to task arguments. Tasks load run context and available artifact manifests from the database, validate declared input contracts, update `ETLNodeRun`, and persist any produced `ETLArtifact` manifests. The database remains the source of truth for orchestration state; Celery is the execution mechanism.
 
 Do not add Airflow, Prefect, or another external orchestrator for v1. Add a larger orchestrator only if future requirements need distributed DAG scheduling, cross-system backfills, or operator-managed dependency graphs beyond what Celery can safely handle.
 
@@ -240,36 +240,47 @@ Required fields:
 
 QA output must be queryable by admins and suitable for inclusion in notification emails.
 
-#### `ETLOutput`
+#### `ETLArtifact`
 
-Stores final and important output references.
+Stores run-scoped artifact manifests for both intermediate and final pipeline products. The manifest is the graph contract; large row payloads live in typed tables or future object storage, not in JSON fields.
 
 Required fields:
 
 - pipeline run,
-- output key,
-- output kind: `TABLE`, `VIEW`, or `FILE`,
-- table name or file reference,
-- output version, nullable for outputs that are not versioned,
+- key,
+- artifact role: `INTERMEDIATE` or `FINAL`,
+- artifact kind: `DATASET`, `FILE`, or `SCALAR`,
+- storage kind: `POSTGRES_TABLE`, `OBJECT`, or `INLINE_JSON`,
+- table name, object key, or inline reference,
+- schema key,
+- schema version,
+- version, nullable for non-versioned artifacts,
 - row count,
 - published flag,
 - metadata as JSON,
 - created_at.
+- updated_at.
 
-#### `ETLIntermediateOutput`
+Each pipeline run has at most one artifact per key. Final statistical weights are represented by a final `ETLArtifact` with `artifact_role = FINAL`, `storage_kind = POSTGRES_TABLE`, `reference = StatisticalWeight._meta.db_table`, `version = <published version>`, and `published = true`. `ETLPipelineRun.final_output` points to that final artifact; final outputs are represented by artifact manifests rather than a separate output model.
 
-Stores run-scoped intermediate node payloads that are consumed by downstream nodes in the same run.
+Intermediate artifacts use the same manifest table with `artifact_role = INTERMEDIATE`. The statistical weights MVP uses table-backed intermediate artifacts for `weights.s1`, `weights.s3`, and `weights.s4`. These artifact manifests point at a typed staging table and carry the relevant slice metadata, such as `count_kind = S1`.
+
+Use `INLINE_JSON` only for small scalar or metadata-style values. Do not store large intermediate datasets as JSON payloads.
+
+#### `StatisticalWeightsCaseCount`
+
+Stores run-scoped `s1`, `s3`, and `s4` aggregate rows for statistical weights in one typed table.
 
 Required fields:
 
 - pipeline run,
-- output key,
-- payload as JSON,
-- row count,
-- created_at,
-- updated_at.
+- count kind: `S1`, `S3`, or `S4`,
+- STT code,
+- reporting month,
+- stratum, blank for `S3`,
+- count.
 
-The MVP stores `weights.s1`, `weights.s3`, `weights.s4`, and `statistical_weights.candidates` as JSON payloads. These are internal handoff records, not published data products.
+The unique key is pipeline run, count kind, STT code, reporting month, and stratum. `S3` uses an empty string for stratum rather than `NULL` so uniqueness is deterministic. The artifact keys remain separate (`weights.s1`, `weights.s3`, `weights.s4`) even though they reference the same physical table; this keeps the graph contract readable while reducing staging model surface area.
 
 ### Statistical Weights Output Model
 
@@ -303,7 +314,7 @@ Add a unique constraint across fiscal year, reporting month, program, section, S
 
 The MVP retention rule is one month after replacement. The current version keeps `retention_expires_at` null. When a later version supersedes it, the publication transaction sets `retention_expires_at` on the older version. A scheduled cleanup can delete non-current versions whose `retention_expires_at` has passed.
 
-The DAG runner should treat version as part of the output contract. `ETLOutput` records the produced statistical-weights version for the run, and downstream nodes receive that explicit version from dependency resolution. Downstream nodes should not independently calculate `MAX(version)` during a run. If external consumers need a current-only surface, expose a read-only view or query helper that selects the latest version per output scope.
+The DAG runner should treat version as part of the output contract. The final `ETLArtifact` records the produced statistical-weights version for the run, and downstream nodes should consume that explicit artifact instead of independently calculating `MAX(version)` during a run. If external consumers need a current-only surface, expose a read-only view or query helper that selects the latest version per output scope.
 
 ### DRF Interface
 
@@ -314,7 +325,7 @@ Add backend endpoints under `/v1/etl/`:
 | `GET` | `/v1/etl/pipelines/` | List approved pipeline definitions and parameter metadata. |
 | `POST` | `/v1/etl/runs/` | Start an approved pipeline run. |
 | `GET` | `/v1/etl/runs/` | List run history. |
-| `GET` | `/v1/etl/runs/{id}/` | Show run status, nodes, QA results, and outputs. |
+| `GET` | `/v1/etl/runs/{id}/` | Show run status, nodes, QA results, artifact manifests, and final output. |
 | `POST` | `/v1/etl/runs/{id}/retry/` | Retry a failed run if its output scope is not active. |
 
 The create endpoint accepts:
@@ -355,9 +366,9 @@ Admin-triggered run:
 5. DRF queues a pipeline runner task with the run ID.
 6. The runner loads the pipeline definition and run row.
 7. The concrete `PipelineDefinition` validates node metadata and builds the pipeline-owned Celery Canvas.
-8. Celery executes node tasks with stable run/node identifiers and resolved upstream output versions.
+8. Celery executes node tasks with stable run/node identifiers.
 9. Each node claims its `ETLNodeRun` under a database lock, then records status, row counts, metadata, and errors.
-10. The chord body runs `build_weight_candidates` once after all extract nodes succeed, then its immutable link chain runs QA, publish, notify, and finalize.
+10. The chord body runs `run_weights_qa` once after all extract nodes succeed, then its immutable link chain runs publish, notify, and finalize.
 11. QA nodes persist `ETLQAResult` rows.
 12. Publication happens in a database transaction.
 13. The run is marked `SUCCEEDED` or `FAILED`.
@@ -424,13 +435,14 @@ validate_parameters
        extract_aggregate_case_counts,
        extract_stratum_case_counts
      )
-  -> build_weight_candidates
   -> run_weights_qa
   -> publish_weights
   -> notify_weights_run
 ```
 
-The runner should execute this as one pipeline-owned Canvas. Validation runs first. The three extract nodes run as the `chord` header. The chord body is the fan-in node, `build_weight_candidates`; its immutable link chain runs `run_weights_qa`, `publish_weights`, `notify_weights_run`, and `finalize_pipeline_run`.
+The runner executes this as one pipeline-owned Canvas. Validation runs first. The three extract nodes run as the `chord` header. The chord body is the single fan-in node, `run_weights_qa`; its immutable link chain runs `publish_weights`, `notify_weights_run`, and `finalize_pipeline_run`.
+
+Do not use a full `chain` as the chord body. In local Celery testing, using the whole QA-publish-notify-finalize chain directly as the chord body caused duplicate downstream task delivery. The safe shape is a single chord body task with the remaining chain attached through `link`.
 
 Node responsibilities:
 
@@ -440,12 +452,11 @@ Node responsibilities:
 | `extract_active_family_counts` | Build `s1`: unique families by STT, reporting month, stratum; persist `weights.s1`. |
 | `extract_aggregate_case_counts` | Build `s3`: aggregate cases by STT and reporting month; persist `weights.s3`. |
 | `extract_stratum_case_counts` | Build `s4`: section cases by STT, reporting month, stratum for `TDRS_SECTION_IND = 1`; persist `weights.s4`. |
-| `build_weight_candidates` | Join persisted `s1`, `s3`, and `s4`; persist `statistical_weights.candidates`. |
-| `run_weights_qa` | Read persisted intermediates and persist the four QA checks. |
-| `publish_weights` | Publish a new immutable weights version from persisted candidates and record it on `ETLOutput`; reject empty candidate payloads. |
+| `run_weights_qa` | Read persisted `s1`, `s3`, and `s4`; build candidates in memory; persist the four QA checks. |
+| `publish_weights` | Read persisted `s1`, `s3`, and `s4`; rebuild candidates in memory; publish a new immutable weights version and record it as a final `ETLArtifact`; reject empty candidates. |
 | `notify_weights_run` | Email run status, output, and QA summary to recipients. |
 
-The first implementation materializes `s1`, `s3`, `s4`, and candidate weights as run-scoped `ETLIntermediateOutput` JSON payloads. The node executor validates declared input contracts before executing a node; a node with a missing input contract fails before its implementation runs.
+The implementation materializes `s1`, `s3`, and `s4` as table-backed `ETLArtifact` manifests. All three artifacts reference `StatisticalWeightsCaseCount`, with `metadata.count_kind` identifying the relevant slice. Candidates are not persisted as a database table or artifact because they are fully derived from `s1`, `s3`, `s4`, and run parameters. The node executor validates declared input artifact contracts before executing a node; a node with a missing input contract fails before its implementation runs.
 
 ### Calculation Rules
 
@@ -483,15 +494,17 @@ Candidate weights:
 - exclude rows where cases is zero or case count is zero,
 - `weight = ROUND(cases / case_count, 4)`.
 
+Candidate rows are built in memory inside `run_weights_qa` and `publish_weights`. They are not passed through Celery result payloads and are not stored as JSON artifacts.
+
 Do not duplicate the `wght` column. The final durable output has one `weight` column rounded to four decimal places.
 
 ### QA Checks
 
-Persist these checks as `ETLQAResult` rows.
+QA logic lives in pipeline nodes. Persist the check results as `ETLQAResult` rows so admins can inspect them and notification emails can include them.
 
 | Check | Description | Blocking |
 | --- | --- | --- |
-| `weights_row_counts` | Row counts for `s1`, `s3`, `s4`, and candidate output. | No |
+| `weights_row_counts` | Row counts for `s1`, `s3`, `s4`, and in-memory candidates. | No |
 | `weights_missing_stts` | Required STTs missing from `s1`, `s3`, or program stratum `s4` for the reporting month under review. | Warning |
 | `weights_active_aggregate_pair_mismatch` | STT/reporting-month pairs present in `s1` but not `s3`, or vice versa. | Warning |
 | `weights_active_stratum_mismatch` | Program stratum STT/reporting-month/stratum pairs present in `s1` but not `s4`, or vice versa. | Warning |
@@ -504,21 +517,23 @@ Weights publication must be transactional.
 
 For output scope `<program> + Section 1 + fiscal year`:
 
-1. Compute candidates and QA under the run ID.
-2. If a blocking QA check fails, mark the run `FAILED` and do not publish.
-3. Lock or otherwise serialize publication for the output scope.
-4. Determine the next output version as the current max version for the scope plus one.
-5. Set `retention_expires_at` on the previous current version if it does not already have a retention date.
-6. Insert the new `StatisticalWeight` rows with the current run ID, new version, and null `retention_expires_at`.
-7. Create an `ETLOutput` row for `statistical_weights` with the output scope, row count, table reference, and output version.
-8. Mark outputs as published.
-9. Mark the run `SUCCEEDED`.
+1. Compute table-backed `s1`, `s3`, and `s4` under the run ID.
+2. Build candidates in memory and persist QA under the run ID.
+3. If a blocking QA check fails, mark the run `FAILED` and do not publish.
+4. Rebuild candidates in memory for publication.
+5. Lock or otherwise serialize publication for the output scope.
+6. Determine the next output version as the current max version for the scope plus one.
+7. Set `retention_expires_at` on the previous current version if it does not already have a retention date.
+8. Insert the new `StatisticalWeight` rows with the current run ID, new version, and null `retention_expires_at`.
+9. Create or update a final `ETLArtifact` row for `statistical_weights` with the output scope, row count, table reference, and version.
+10. Mark the final artifact as published and set `ETLPipelineRun.final_output`.
+11. Mark the run `SUCCEEDED`.
 
 If any step fails before publication commits, existing published weights must remain available.
 
 Active-run idempotency is enforced separately from publication versioning. `ETLPipelineRun.output_scope_key` prevents duplicate `PENDING` or `RUNNING` runs for the same canonical output scope, while completed or failed runs remain available for history and reruns.
 
-Follow-on DAG nodes consume the `ETLOutput` from the dependency they declare. For example, a weighted WPR node should receive `statistical_weights.version = 3` from the runner and query that exact version. This keeps a DAG run reproducible and prevents different nodes from resolving "latest weights" at different times.
+Follow-on DAG nodes consume the final `ETLArtifact` from the dependency they declare. For example, a weighted WPR node should receive `statistical_weights.version = 3` from the artifact manifest and query that exact version. This keeps a DAG run reproducible and prevents different nodes from resolving "latest weights" at different times.
 
 ### Notifications
 
@@ -584,7 +599,7 @@ Program-specific behavior lives behind adapters at the statistical weights node 
 | Active run already exists for scope | Reject or return the active run reference. |
 | Missing source data | Fail validation before extraction when a required source family has no accepted files. |
 | Source/reparse overlap | Reject ETL validation or reparse startup before either process mutates source data. |
-| Empty candidate output | Fail publication and preserve the previous published output. |
+| Empty in-memory candidates | Fail publication and preserve the previous published output. |
 | Node exception | Mark node and pipeline failed; preserve error details. |
 | Publication failure | Roll back publication transaction; keep previous published output. |
 | Notification failure | Mark run succeeded if publication succeeded, but record notification failure in metadata/logs. |
@@ -602,9 +617,9 @@ Celery retries should be conservative. Retry transient database connection failu
   - duplicate node key detection.
 - Pipeline-owned Canvas declaration:
   - statistical weights validation and extract fan-in use `chain` and `chord`,
-  - the chord body is the single fan-in node,
-  - the body task links to the downstream QA, publish, notify, and finalize chain,
-  - node tasks receive run ID, node key, output scope, and resolved upstream output versions.
+  - the chord body is the single fan-in node, `run_weights_qa`,
+  - the body task links to the downstream publish, notify, and finalize chain,
+  - node tasks receive run ID and node key.
 - Duplicate task handling: duplicate node task delivery does not run an already running or succeeded implementation again.
 - Node contract validation.
 - Output scope/idempotency key generation.
@@ -630,8 +645,9 @@ Celery retries should be conservative. Retry transient database connection failu
 - QA results are persisted.
 - Published weights are inserted.
 - Rerun inserts the next `StatisticalWeight` version and sets retention on the previous version.
-- Extract, candidate, QA, and publication nodes consume run-scoped intermediate payloads.
-- `ETLOutput` records the produced statistical-weights version for downstream nodes.
+- Extract nodes create table-backed `ETLArtifact` manifests for `weights.s1`, `weights.s3`, and `weights.s4`.
+- QA and publication rebuild candidates in memory from those persisted artifacts.
+- The final `ETLArtifact` records the produced statistical-weights version for downstream nodes.
 - Failed run does not replace existing published weights.
 - Concurrent run for the same output scope is rejected.
 - Scheduled first-workday run creates exactly one run per program scope.
