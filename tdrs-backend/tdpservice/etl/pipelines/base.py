@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable
+from typing import Any, Iterable
 
 from django.db import transaction
 from django.utils import timezone
@@ -26,7 +26,6 @@ class NodeContext:
     """Execution context passed to a pipeline node operation."""
 
     pipeline_run: Any
-    node: "PipelineNodeBase"
     artifacts: dict[str, Any]
 
     @property
@@ -40,7 +39,7 @@ class NodeContext:
         return self.pipeline_run.output_scope
 
 
-class PipelineNodeBase(ABC):
+class PipelineNode(ABC):
     """Execution boundary for one ETLNodeRun-backed pipeline node."""
 
     input_contracts: tuple[str, ...] = ()
@@ -50,10 +49,6 @@ class PipelineNodeBase(ABC):
     @abstractmethod
     def key(self) -> str:
         """Return this node's stable ETLNodeRun key."""
-
-    @abstractmethod
-    def execute(self, context: NodeContext) -> NodeResult | None:
-        """Run this node's business operation."""
 
     def task(self, pipeline_run_id: int):
         """Return the Celery signature for this node."""
@@ -141,7 +136,6 @@ class PipelineNodeBase(ABC):
 
         return NodeContext(
             pipeline_run=pipeline_run,
-            node=self,
             artifacts=artifacts,
         )
 
@@ -193,28 +187,10 @@ class PipelineNodeBase(ABC):
         """Run this node's business operation."""
 
 
-@dataclass(frozen=True)
-class PipelineNode(PipelineNodeBase):
-    """Generic pipeline node with no extra business logic or preparation."""
-
-    operation: Callable[[NodeContext], NodeResult | None]
-    input_contracts: tuple[str, ...] = ()
-    output_contracts: tuple[str, ...] = ()
-
-    @property
-    def key(self) -> str:
-        """Return the operation name as this node's stable key."""
-        return self.operation.__name__
-
-    def execute(self, context: NodeContext) -> NodeResult | None:
-        """Run the configured pipeline operation."""
-        return self.operation(context)
-
-
 class PipelineNodeRegistry:
     """Node collection addressable by node key or attribute name."""
 
-    def __init__(self, nodes: Iterable[PipelineNodeBase]):
+    def __init__(self, nodes: Iterable[PipelineNode]):
         """Initialize a registry from pipeline-owned nodes."""
         self._nodes = tuple(nodes)
         self._node_map = {node.key: node for node in self._nodes}
@@ -223,14 +199,14 @@ class PipelineNodeRegistry:
         """Iterate over registered nodes in declaration order."""
         return iter(self._nodes)
 
-    def __getitem__(self, key: str) -> PipelineNodeBase:
+    def __getitem__(self, key: str) -> PipelineNode:
         """Return a node by ETLNodeRun node_key."""
         try:
             return self._node_map[key]
         except KeyError as exc:
             raise PipelineValidationError(f"Unknown pipeline node: {key}") from exc
 
-    def __getattr__(self, key: str) -> PipelineNodeBase:
+    def __getattr__(self, key: str) -> PipelineNode:
         """Return a node by attribute when the key is a valid Python name."""
         try:
             return self[key]

@@ -1,5 +1,6 @@
 """Tests for ETL runner services."""
 
+from collections.abc import Callable
 from unittest.mock import patch
 
 from django.db import IntegrityError, transaction
@@ -20,20 +21,41 @@ from tdpservice.etl.runner import PipelineRunFactory, output_scope_key
 from tdpservice.etl.tasks import run_pipeline_node
 
 
-def _noop(context):
+def _noop(context) -> None:
     """No-op node handler for graph tests."""
     return None
 
 
-def _node(key, operation=None, **kwargs):
-    """Build an operation-backed test node with a stable key."""
-    operation = operation or _noop
+class DummyPipelineNode(PipelineNode):
+    """Minimal concrete node for runner tests."""
 
-    def keyed_operation(context):
-        return operation(context)
+    def __init__(
+        self,
+        key: str,
+        operation: Callable[[object], NodeResult | None] | None = None,
+        *,
+        input_contracts: tuple[str, ...] = (),
+        output_contracts: tuple[str, ...] = (),
+    ):
+        """Initialize a test node with configurable execution."""
+        self._key = key
+        self.operation = operation or _noop
+        self.input_contracts = input_contracts
+        self.output_contracts = output_contracts
 
-    keyed_operation.__name__ = key
-    return PipelineNode(keyed_operation, **kwargs)
+    @property
+    def key(self) -> str:
+        """Return the stable test node key."""
+        return self._key
+
+    def execute(self, context) -> NodeResult | None:
+        """Run the configured test operation."""
+        return self.operation(context)
+
+
+def _node(key: str, operation=None, **kwargs):
+    """Build a concrete test node with a stable key."""
+    return DummyPipelineNode(key, operation, **kwargs)
 
 
 class ConcretePipelineDefinition(PipelineDefinition):
@@ -148,8 +170,8 @@ def test_pipeline_validation_rejects_duplicate_node_keys():
         definition.validate()
 
 
-def test_operation_pipeline_node_key_comes_from_operation_name():
-    """Operation nodes derive their ETLNodeRun key from the operation name."""
+def test_pipeline_node_exposes_configured_key():
+    """Pipeline nodes expose their configured ETLNodeRun key."""
     node = _node("extract")
 
     assert node.key == "extract"
@@ -309,7 +331,7 @@ def test_run_pipeline_node_task_resolves_registered_node():
     calls = []
 
     def handler(context):
-        calls.append(context.node.key)
+        calls.append(context.parameters["fiscal_year"])
         return NodeResult(output_row_count=1)
 
     definition = _definition([_node("extract", handler)])
@@ -333,7 +355,7 @@ def test_run_pipeline_node_task_resolves_registered_node():
         "node_key": "extract",
         "status": ETLNodeRun.Status.SUCCEEDED,
     }
-    assert calls == ["extract"]
+    assert calls == [2026]
 
 
 @pytest.mark.django_db
@@ -342,7 +364,7 @@ def test_run_pipeline_node_ignores_already_succeeded_node():
     calls = []
 
     def handler(context):
-        calls.append(context.node.key)
+        calls.append(context.parameters["fiscal_year"])
         return NodeResult(output_row_count=1)
 
     definition = _definition([_node("extract", handler)])
@@ -371,7 +393,7 @@ def test_run_pipeline_node_ignores_already_succeeded_node():
         "status": ETLNodeRun.Status.SUCCEEDED,
         "already_started": True,
     }
-    assert calls == ["extract"]
+    assert calls == [2026]
 
 
 @pytest.mark.django_db

@@ -82,7 +82,7 @@ def test_load_statistical_weights_test_data_creates_datafiles_and_rows(tmp_path,
     assert t1_rows[0].datafile.quarter == DataFile.Quarter.Q1
     assert t1_rows[1].datafile.quarter == DataFile.Quarter.Q2
 
-    source_ids = PIPELINE.snapshot_source_datafile_ids(
+    source_ids = PIPELINE.nodes.validate_run_sources.snapshot_source_datafile_ids(
         2024,
         DataFile.ProgramType.TANF,
     )
