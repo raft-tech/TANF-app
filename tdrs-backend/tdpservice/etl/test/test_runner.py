@@ -16,12 +16,24 @@ from tdpservice.etl.pipelines.base import (
     PipelineNodeRegistry,
 )
 from tdpservice.etl.registry import get_pipeline_definition
-from tdpservice.etl.runner import NodeExecutor, PipelineRunFactory, output_scope_key
+from tdpservice.etl.runner import PipelineRunFactory, output_scope_key
+from tdpservice.etl.tasks import run_pipeline_node
 
 
 def _noop(context):
     """No-op node handler for graph tests."""
     return None
+
+
+def _node(key, operation=None, **kwargs):
+    """Build an operation-backed test node with a stable key."""
+    operation = operation or _noop
+
+    def keyed_operation(context):
+        return operation(context)
+
+    keyed_operation.__name__ = key
+    return PipelineNode(keyed_operation, **kwargs)
 
 
 class ConcretePipelineDefinition(PipelineDefinition):
@@ -119,7 +131,7 @@ def test_pipeline_nodes_create_registered_task_signatures():
     signature = definition.nodes.publish_weights.task(pipeline_run_id=123)
 
     assert definition.nodes.publish_weights is node
-    assert signature.name == "tdpservice.etl.tasks.execute_node"
+    assert signature.name == "tdpservice.etl.tasks.run_pipeline_node"
     assert signature.args == (123, "publish_weights")
 
 
@@ -127,8 +139,8 @@ def test_pipeline_validation_rejects_duplicate_node_keys():
     """Pipeline node keys must be unique for ETLNodeRun lookup."""
     definition = _definition(
         [
-            PipelineNode("extract"),
-            PipelineNode("extract"),
+            _node("extract"),
+            _node("extract"),
         ]
     )
 
@@ -136,12 +148,11 @@ def test_pipeline_validation_rejects_duplicate_node_keys():
         definition.validate()
 
 
-def test_pipeline_validation_rejects_missing_node_handler():
-    """Pipeline node handlers must exist on the definition."""
-    definition = _definition([PipelineNode("missing_handler")])
+def test_operation_pipeline_node_key_comes_from_operation_name():
+    """Operation nodes derive their ETLNodeRun key from the operation name."""
+    node = _node("extract")
 
-    with pytest.raises(PipelineValidationError, match="missing_handler"):
-        definition.validate()
+    assert node.key == "extract"
 
 
 def test_pipeline_definition_requires_canvas_builder_implementation():
@@ -293,15 +304,15 @@ def test_create_pipeline_run_scopes_active_runs_by_program():
 
 
 @pytest.mark.django_db
-def test_execute_node_ignores_already_succeeded_node():
-    """Duplicate task delivery does not run a node handler twice."""
+def test_run_pipeline_node_task_resolves_registered_node():
+    """The Celery task resolves a node and delegates execution to the node."""
     calls = []
 
     def handler(context):
         calls.append(context.node.key)
         return NodeResult(output_row_count=1)
 
-    definition = _definition([PipelineNode("extract")], {"extract": handler})
+    definition = _definition([_node("extract", handler)])
     parameters = {"fiscal_year": 2026}
     scope = definition.output_scope(parameters)
     pipeline_run = ETLPipelineRun.objects.create(
@@ -315,11 +326,41 @@ def test_execute_node_ignores_already_succeeded_node():
     )
     ETLNodeRun.objects.create(pipeline_run=pipeline_run, node_key="extract")
 
-    with patch(
-        "tdpservice.etl.runner.get_pipeline_definition", return_value=definition
-    ):
-        first_result = NodeExecutor.for_run_id(pipeline_run.id, "extract").execute()
-        second_result = NodeExecutor.for_run_id(pipeline_run.id, "extract").execute()
+    with patch("tdpservice.etl.tasks.get_pipeline_definition", return_value=definition):
+        result = run_pipeline_node(pipeline_run.id, "extract")
+
+    assert result == {
+        "node_key": "extract",
+        "status": ETLNodeRun.Status.SUCCEEDED,
+    }
+    assert calls == ["extract"]
+
+
+@pytest.mark.django_db
+def test_run_pipeline_node_ignores_already_succeeded_node():
+    """Duplicate task delivery does not run a node handler twice."""
+    calls = []
+
+    def handler(context):
+        calls.append(context.node.key)
+        return NodeResult(output_row_count=1)
+
+    definition = _definition([_node("extract", handler)])
+    parameters = {"fiscal_year": 2026}
+    scope = definition.output_scope(parameters)
+    pipeline_run = ETLPipelineRun.objects.create(
+        pipeline_key=definition.key,
+        pipeline_version=definition.version,
+        status=ETLPipelineRun.Status.RUNNING,
+        parameters=parameters,
+        output_scope=scope,
+        output_scope_key=output_scope_key(scope),
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+    ETLNodeRun.objects.create(pipeline_run=pipeline_run, node_key="extract")
+
+    first_result = definition.nodes["extract"].run(pipeline_run)
+    second_result = definition.nodes["extract"].run(pipeline_run)
 
     assert first_result == {
         "node_key": "extract",
@@ -334,7 +375,7 @@ def test_execute_node_ignores_already_succeeded_node():
 
 
 @pytest.mark.django_db
-def test_execute_node_fails_missing_input_contracts():
+def test_run_pipeline_node_fails_missing_input_contracts():
     """Nodes fail before their handlers when declared artifact inputs are missing."""
     pipeline_run = _create_pipeline_run()
     pipeline_run.node_runs.filter(
@@ -347,10 +388,9 @@ def test_execute_node_fails_missing_input_contracts():
     ).update(status=ETLNodeRun.Status.SUCCEEDED)
 
     with pytest.raises(PipelineValidationError):
-        NodeExecutor.for_run_id(
-            pipeline_run.id,
-            "run_weights_qa",
-        ).execute()
+        get_pipeline_definition("statistical_weights").nodes.run_weights_qa.run(
+            pipeline_run
+        )
 
     node_run = pipeline_run.node_runs.get(node_key="run_weights_qa")
     pipeline_run.refresh_from_db()
@@ -360,7 +400,7 @@ def test_execute_node_fails_missing_input_contracts():
 
 
 @pytest.mark.django_db
-def test_execute_node_accepts_present_artifact_contract():
+def test_run_pipeline_node_accepts_present_artifact_contract():
     """A declared artifact manifest satisfies a node input contract."""
     calls = []
 
@@ -369,8 +409,7 @@ def test_execute_node_accepts_present_artifact_contract():
         return NodeResult(output_row_count=1)
 
     definition = _definition(
-        [PipelineNode("consume", input_contracts=("artifact.input",))],
-        {"consume": handler},
+        [_node("consume", handler, input_contracts=("artifact.input",))],
     )
     parameters = {"fiscal_year": 2026}
     scope = definition.output_scope(parameters)
@@ -394,10 +433,7 @@ def test_execute_node_accepts_present_artifact_contract():
         row_count=1,
     )
 
-    with patch(
-        "tdpservice.etl.runner.get_pipeline_definition", return_value=definition
-    ):
-        result = NodeExecutor.for_run_id(pipeline_run.id, "consume").execute()
+    result = definition.nodes["consume"].run(pipeline_run)
 
     assert result == {
         "node_key": "consume",

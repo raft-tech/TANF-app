@@ -3,7 +3,8 @@
 from celery import shared_task
 
 from tdpservice.etl.models import ETLPipelineRun
-from tdpservice.etl.runner import NodeExecutor, PipelineRunLauncher
+from tdpservice.etl.registry import get_pipeline_definition
+from tdpservice.etl.runner import PipelineRunLauncher
 from tdpservice.etl.scheduler import schedule_statistical_weights_runs
 
 
@@ -14,10 +15,13 @@ def launch_pipeline_run(pipeline_run_id: int):
     return {"pipeline_run_id": pipeline_run_id, "task_id": result.id}
 
 
-@shared_task(name="tdpservice.etl.tasks.execute_node")
-def execute_node(pipeline_run_id: int, node_key: str):
-    """Execute one ETLNodeRun-backed pipeline node."""
-    return NodeExecutor.for_run_id(pipeline_run_id, node_key).execute()
+@shared_task(name="tdpservice.etl.tasks.run_pipeline_node")
+def run_pipeline_node(pipeline_run_id: int, node_key: str):
+    """Run one ETLNodeRun-backed pipeline node."""
+    pipeline_run = ETLPipelineRun.objects.get(id=pipeline_run_id)
+    definition = get_pipeline_definition(pipeline_run.pipeline_key)
+    definition.validate()
+    return definition.nodes[node_key].run(pipeline_run)
 
 
 @shared_task(name="tdpservice.etl.tasks.finalize_pipeline_run")

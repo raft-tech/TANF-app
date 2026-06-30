@@ -35,90 +35,30 @@ from tdpservice.etl.pipelines.statistical_weights.publishing import (
 from tdpservice.etl.pipelines.statistical_weights.qa import StatisticalWeightsQA
 
 
-class StatisticalWeightsPipeline(PipelineDefinition):
-    """Pipeline definition for Section 1 statistical weights."""
+class StatisticalWeightsNodeOperations:
+    """Executable operations for statistical weights pipeline nodes."""
 
-    key = "statistical_weights"
-    version = "1"
-    display_name = "Statistical Weights"
-    description = (
-        "Generate Section 1 statistical weights for a fiscal year and program."
-    )
-    schedule = {"first_workday_monthly": True}
-
-    # TODO: Alex indicated this pipeline executes for section 1 and 2. But I don't see the scripts for it. Hard coded
-    # to section 1 for now.
-    section = "1"
-    source_keys = {
-        "active": "active",
-        "aggregate": "aggregate",
-        "stratum": "stratum",
-    }
-    intermediate_keys = {
-        "s1": "weights.s1",
-        "s3": "weights.s3",
-        "s4": "weights.s4",
-    }
-    output_key = "statistical_weights"
-    supported_program_types = (
-        DataFile.ProgramType.TANF,
-        DataFile.ProgramType.SSP,
-        DataFile.ProgramType.TRIBAL,
-    )
-    allowed_parameters = {
-        "fiscal_year": {
-            "type": "integer",
-            "required": True,
-            "description": "Fiscal year to generate weights for.",
-        },
-        "program": {
-            "type": "string",
-            "required": True,
-            "description": "DataFile program type to generate weights for.",
-            "choices": list(supported_program_types),
-        },
-    }
-
-    def __init__(self):
-        """Initialize this pipeline's executable node declarations."""
-        self.datafile_snapshot = DataFileSourceSnapshot()
-        self.extractor = StatisticalWeightsExtractor(section=self.section)
-        self.candidates = WeightCandidateBuilder(section=self.section)
-        self.qa = StatisticalWeightsQA()
-        self.publisher = StatisticalWeightsPublisher(
-            section=self.section,
-            output_key=self.output_key,
-        )
-        self.artifacts = StatisticalWeightsArtifactStore(
-            intermediate_keys=self.intermediate_keys,
-        )
-        self.nodes = self._pipeline_nodes()
-
-    def validate_parameters(self, parameters: dict) -> dict:
-        """Validate statistical weights run parameters."""
-        validated = dict(parameters or {})
-        unexpected = set(validated) - set(self.allowed_parameters)
-        if unexpected:
-            raise PipelineValidationError(
-                f"Unexpected parameters: {sorted(unexpected)}"
-            )
-
-        for name, metadata in self.allowed_parameters.items():
-            if metadata.get("required") and name not in validated:
-                raise PipelineValidationError(f"Missing required parameter: {name}")
-
-        validated["fiscal_year"] = self._normalize_fiscal_year(validated["fiscal_year"])
-        validated["program"] = self._validate_program_type(validated["program"])
-        return validated
-
-    def output_scope(self, parameters: dict) -> dict:
-        """Build the idempotency/output scope for statistical weights."""
-        return {
-            "pipeline": self.key,
-            "fiscal_year": int(parameters["fiscal_year"]),
-            "program": self._validate_program_type(parameters["program"]),
-            "section": self.section,
-        }
+    def __init__(
+        self,
+        *,
+        section: str,
+        source_keys: dict[str, str],
+        datafile_snapshot: DataFileSourceSnapshot,
+        extractor: StatisticalWeightsExtractor,
+        candidates: WeightCandidateBuilder,
+        qa: StatisticalWeightsQA,
+        publisher: StatisticalWeightsPublisher,
+        artifacts: StatisticalWeightsArtifactStore,
+    ):
+        """Initialize statistical weights node operations."""
+        self.section = section
+        self.source_keys = source_keys
+        self.datafile_snapshot = datafile_snapshot
+        self.extractor = extractor
+        self.candidates = candidates
+        self.qa = qa
+        self.publisher = publisher
+        self.artifacts = artifacts
 
     def datafile_sources(self, program: str) -> tuple[DataFileSource, ...]:
         """Return this pipeline's DataFile source declarations."""
@@ -158,75 +98,6 @@ class StatisticalWeightsPipeline(PipelineDefinition):
             context.pipeline_run,
             fiscal_year=int(context.parameters["fiscal_year"]),
             sources=self.datafile_sources(context.parameters["program"]),
-        )
-
-    def build_canvas(self, pipeline_run_id: int) -> Any:
-        """Build the Celery Canvas for the statistical weights DAG."""
-        from tdpservice.etl.tasks import finalize_pipeline_run
-
-        nodes = self.nodes
-        run_weights_qa_signature = nodes.run_weights_qa.task(pipeline_run_id)
-        finalize = chain(
-            nodes.publish_weights.task(pipeline_run_id),
-            nodes.notify_weights_run.task(pipeline_run_id),
-            finalize_pipeline_run.si(pipeline_run_id),
-        )
-        finalize.set(immutable=True)
-        run_weights_qa_signature.link(finalize)
-
-        return chain(
-            nodes.validate_run_sources.task(pipeline_run_id),
-            chord(
-                [
-                    nodes.extract_active_family_counts.task(pipeline_run_id),
-                    nodes.extract_aggregate_case_counts.task(pipeline_run_id),
-                    nodes.extract_stratum_case_counts.task(pipeline_run_id),
-                ],
-                run_weights_qa_signature,
-            ),
-        )
-
-    def _pipeline_nodes(self) -> PipelineNodeRegistry:
-        """Return ETLNodeRun-backed node declarations for this pipeline."""
-        return PipelineNodeRegistry(
-            (
-                PipelineNode(
-                    key="validate_run_sources",
-                ),
-                PipelineNode(
-                    key="extract_active_family_counts",
-                    output_contracts=(self.intermediate_keys["s1"],),
-                ),
-                PipelineNode(
-                    key="extract_aggregate_case_counts",
-                    output_contracts=(self.intermediate_keys["s3"],),
-                ),
-                PipelineNode(
-                    key="extract_stratum_case_counts",
-                    output_contracts=(self.intermediate_keys["s4"],),
-                ),
-                PipelineNode(
-                    key="run_weights_qa",
-                    input_contracts=(
-                        self.intermediate_keys["s1"],
-                        self.intermediate_keys["s3"],
-                        self.intermediate_keys["s4"],
-                    ),
-                ),
-                PipelineNode(
-                    key="publish_weights",
-                    input_contracts=(
-                        self.intermediate_keys["s1"],
-                        self.intermediate_keys["s3"],
-                        self.intermediate_keys["s4"],
-                    ),
-                    output_contracts=(self.output_key,),
-                ),
-                PipelineNode(
-                    key="notify_weights_run",
-                    input_contracts=(self.output_key,),
-                ),
-            )
         )
 
     def validate_run_sources(self, context) -> NodeResult:
@@ -392,6 +263,320 @@ class StatisticalWeightsPipeline(PipelineDefinition):
     def program(self, context) -> str:
         """Return the exact DataFile program type parameter for this run."""
         return context.parameters["program"]
+
+
+class StatisticalWeightsPipeline(PipelineDefinition):
+    """Pipeline definition for Section 1 statistical weights."""
+
+    key = "statistical_weights"
+    version = "1"
+    display_name = "Statistical Weights"
+    description = (
+        "Generate Section 1 statistical weights for a fiscal year and program."
+    )
+    schedule = {"first_workday_monthly": True}
+
+    # TODO: Alex indicated this pipeline executes for section 1 and 2. But I don't see the scripts for it. Hard coded
+    # to section 1 for now.
+    section = "1"
+    source_keys = {
+        "active": "active",
+        "aggregate": "aggregate",
+        "stratum": "stratum",
+    }
+    intermediate_keys = {
+        "s1": "weights.s1",
+        "s3": "weights.s3",
+        "s4": "weights.s4",
+    }
+    output_key = "statistical_weights"
+    supported_program_types = (
+        DataFile.ProgramType.TANF,
+        DataFile.ProgramType.SSP,
+        DataFile.ProgramType.TRIBAL,
+    )
+    allowed_parameters = {
+        "fiscal_year": {
+            "type": "integer",
+            "required": True,
+            "description": "Fiscal year to generate weights for.",
+        },
+        "program": {
+            "type": "string",
+            "required": True,
+            "description": "DataFile program type to generate weights for.",
+            "choices": list(supported_program_types),
+        },
+    }
+
+    def __init__(self):
+        """Initialize this pipeline's executable node declarations."""
+        self.datafile_snapshot = DataFileSourceSnapshot()
+        self.extractor = StatisticalWeightsExtractor(section=self.section)
+        self.candidates = WeightCandidateBuilder(section=self.section)
+        self.qa = StatisticalWeightsQA()
+        self.publisher = StatisticalWeightsPublisher(
+            section=self.section,
+            output_key=self.output_key,
+        )
+        self.artifacts = StatisticalWeightsArtifactStore(
+            intermediate_keys=self.intermediate_keys,
+        )
+        self.operations = StatisticalWeightsNodeOperations(
+            section=self.section,
+            source_keys=self.source_keys,
+            datafile_snapshot=self.datafile_snapshot,
+            extractor=self.extractor,
+            candidates=self.candidates,
+            qa=self.qa,
+            publisher=self.publisher,
+            artifacts=self.artifacts,
+        )
+        self.nodes = self._pipeline_nodes()
+
+    def validate_parameters(self, parameters: dict) -> dict:
+        """Validate statistical weights run parameters."""
+        validated = dict(parameters or {})
+        unexpected = set(validated) - set(self.allowed_parameters)
+        if unexpected:
+            raise PipelineValidationError(
+                f"Unexpected parameters: {sorted(unexpected)}"
+            )
+
+        for name, metadata in self.allowed_parameters.items():
+            if metadata.get("required") and name not in validated:
+                raise PipelineValidationError(f"Missing required parameter: {name}")
+
+        validated["fiscal_year"] = self._normalize_fiscal_year(validated["fiscal_year"])
+        validated["program"] = self._validate_program_type(validated["program"])
+        return validated
+
+    def output_scope(self, parameters: dict) -> dict:
+        """Build the idempotency/output scope for statistical weights."""
+        return {
+            "pipeline": self.key,
+            "fiscal_year": int(parameters["fiscal_year"]),
+            "program": self._validate_program_type(parameters["program"]),
+            "section": self.section,
+        }
+
+    def datafile_sources(self, program: str) -> tuple[DataFileSource, ...]:
+        """Return this pipeline's DataFile source declarations."""
+        return self.operations.datafile_sources(program)
+
+    def snapshot_source_datafile_ids(
+        self,
+        fiscal_year: int,
+        program_type: str,
+    ) -> dict[str, list[int]]:
+        """Return a fresh source DataFile snapshot for one weights run."""
+        return self.operations.snapshot_source_datafile_ids(fiscal_year, program_type)
+
+    def source_datafile_ids(self, context) -> dict[str, list[int]]:
+        """Return a run's source DataFile snapshot, creating it once when needed."""
+        return self.operations.source_datafile_ids(context)
+
+    def build_canvas(self, pipeline_run_id: int) -> Any:
+        """Build the Celery Canvas for the statistical weights DAG."""
+        from tdpservice.etl.tasks import finalize_pipeline_run
+
+        nodes = self.nodes
+        run_weights_qa_signature = nodes.run_weights_qa.task(pipeline_run_id)
+        finalize = chain(
+            nodes.publish_weights.task(pipeline_run_id),
+            nodes.notify_weights_run.task(pipeline_run_id),
+            finalize_pipeline_run.si(pipeline_run_id),
+        )
+        finalize.set(immutable=True)
+        run_weights_qa_signature.link(finalize)
+
+        return chain(
+            nodes.validate_run_sources.task(pipeline_run_id),
+            chord(
+                [
+                    nodes.extract_active_family_counts.task(pipeline_run_id),
+                    nodes.extract_aggregate_case_counts.task(pipeline_run_id),
+                    nodes.extract_stratum_case_counts.task(pipeline_run_id),
+                ],
+                run_weights_qa_signature,
+            ),
+        )
+
+    def _pipeline_nodes(self) -> PipelineNodeRegistry:
+        """Return ETLNodeRun-backed node declarations for this pipeline."""
+        return PipelineNodeRegistry(
+            (
+                PipelineNode(
+                    self.operations.validate_run_sources,
+                ),
+                PipelineNode(
+                    self.operations.extract_active_family_counts,
+                    output_contracts=(self.intermediate_keys["s1"],),
+                ),
+                PipelineNode(
+                    self.operations.extract_aggregate_case_counts,
+                    output_contracts=(self.intermediate_keys["s3"],),
+                ),
+                PipelineNode(
+                    self.operations.extract_stratum_case_counts,
+                    output_contracts=(self.intermediate_keys["s4"],),
+                ),
+                PipelineNode(
+                    self.operations.run_weights_qa,
+                    input_contracts=(
+                        self.intermediate_keys["s1"],
+                        self.intermediate_keys["s3"],
+                        self.intermediate_keys["s4"],
+                    ),
+                ),
+                PipelineNode(
+                    self.operations.publish_weights,
+                    input_contracts=(
+                        self.intermediate_keys["s1"],
+                        self.intermediate_keys["s3"],
+                        self.intermediate_keys["s4"],
+                    ),
+                    output_contracts=(self.output_key,),
+                ),
+                PipelineNode(
+                    self.operations.notify_weights_run,
+                    input_contracts=(self.output_key,),
+                ),
+            )
+        )
+
+    def validate_run_sources(self, context) -> NodeResult:
+        """Validate statistical-weights parameters and snapshot source files."""
+        fiscal_year = self.fiscal_year(context)
+        program = self.program(context)
+        if fiscal_year < 2000:
+            raise ValueError("fiscal_year must be 2000 or later.")
+
+        source_ids = self.source_datafile_ids(context)
+        missing_sources = [
+            source_key
+            for source_key, datafile_ids in source_ids.items()
+            if not datafile_ids
+        ]
+        if missing_sources:
+            missing_list = ", ".join(sorted(missing_sources))
+            raise ValueError(
+                "No accepted DataFiles found for required statistical weights "
+                f"sources: {missing_list}."
+            )
+
+        return NodeResult(
+            metadata={
+                "fiscal_year": fiscal_year,
+                "program": program,
+                SOURCE_DATAFILE_IDS_KEY: source_ids,
+            }
+        )
+
+    def extract_active_family_counts(self, context) -> NodeResult:
+        """Build and persist s1 rows."""
+        program = self.program(context)
+        adapter = adapter_for_program(program)
+        datafile_ids = self.source_datafile_ids(context)[self.source_keys["active"]]
+        source_count = adapter.active_queryset(datafile_ids).count()
+        rows = self.extractor.active_family_counts(datafile_ids, program)
+        metadata = {
+            "dataset": "s1",
+            "program": program,
+            "source_datafile_ids": datafile_ids,
+        }
+        self.artifacts.write_active_family_counts(
+            context.pipeline_run,
+            rows,
+            metadata=metadata,
+        )
+        return NodeResult(
+            input_row_count=source_count,
+            output_row_count=len(rows),
+            metadata=metadata,
+        )
+
+    def extract_aggregate_case_counts(self, context) -> NodeResult:
+        """Build and persist s3 rows."""
+        program = self.program(context)
+        adapter = adapter_for_program(program)
+        datafile_ids = self.source_datafile_ids(context)[self.source_keys["aggregate"]]
+        source_count = adapter.aggregate_queryset(datafile_ids).count()
+        rows = self.extractor.aggregate_case_counts(datafile_ids, program)
+        metadata = {
+            "dataset": "s3",
+            "program": program,
+            "source_datafile_ids": datafile_ids,
+        }
+        self.artifacts.write_aggregate_case_counts(
+            context.pipeline_run,
+            rows,
+            metadata=metadata,
+        )
+        return NodeResult(
+            input_row_count=source_count,
+            output_row_count=len(rows),
+            metadata=metadata,
+        )
+
+    def extract_stratum_case_counts(self, context) -> NodeResult:
+        """Build and persist s4 rows."""
+        program = self.program(context)
+        adapter = adapter_for_program(program)
+        datafile_ids = self.source_datafile_ids(context)[self.source_keys["stratum"]]
+        source_count = adapter.stratum_queryset(datafile_ids).count()
+        rows = self.extractor.stratum_section_case_counts(datafile_ids, program)
+        metadata = {
+            "dataset": "s4",
+            "program": program,
+            "source_datafile_ids": datafile_ids,
+        }
+        self.artifacts.write_stratum_case_counts(
+            context.pipeline_run,
+            rows,
+            metadata=metadata,
+        )
+        return NodeResult(
+            input_row_count=source_count,
+            output_row_count=len(rows),
+            metadata=metadata,
+        )
+
+    def build_candidates(
+        self,
+        context,
+        *,
+        s1_rows: list[dict] | None = None,
+        s3_rows: list[dict] | None = None,
+        s4_rows: list[dict] | None = None,
+    ) -> list[WeightCandidate]:
+        """Build candidate statistical weight rows from persisted aggregates."""
+        return self.operations.build_candidates(
+            context,
+            s1_rows=s1_rows,
+            s3_rows=s3_rows,
+            s4_rows=s4_rows,
+        )
+
+    def run_weights_qa(self, context) -> NodeResult:
+        """Run and persist statistical weights QA checks."""
+        return self.operations.run_weights_qa(context)
+
+    def publish_weights(self, context) -> NodeResult:
+        """Publish a new immutable statistical weights version."""
+        return self.operations.publish_weights(context)
+
+    def notify_weights_run(self, context) -> NodeResult:
+        """Notify operational users that a statistical weights run completed."""
+        return self.operations.notify_weights_run(context)
+
+    def fiscal_year(self, context) -> int:
+        """Return the fiscal year parameter."""
+        return self.operations.fiscal_year(context)
+
+    def program(self, context) -> str:
+        """Return the exact DataFile program type parameter for this run."""
+        return self.operations.program(context)
 
     @staticmethod
     def _normalize_fiscal_year(value) -> int:

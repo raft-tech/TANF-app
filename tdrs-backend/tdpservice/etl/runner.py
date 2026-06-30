@@ -2,39 +2,19 @@
 
 import hashlib
 import json
-from dataclasses import dataclass
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from tdpservice.etl.exceptions import ActivePipelineRunError, PipelineValidationError
-from tdpservice.etl.models import ETLArtifact, ETLNodeRun, ETLPipelineRun
-from tdpservice.etl.pipelines.base import NodeResult, PipelineDefinition, PipelineNode
+from tdpservice.etl.exceptions import ActivePipelineRunError
+from tdpservice.etl.models import ETLNodeRun, ETLPipelineRun
+from tdpservice.etl.pipelines.base import PipelineDefinition
 from tdpservice.etl.registry import get_pipeline_definition
 
 ACTIVE_RUN_STATUSES = (
     ETLPipelineRun.Status.PENDING,
     ETLPipelineRun.Status.RUNNING,
 )
-
-
-@dataclass(frozen=True)
-class NodeContext:
-    """Execution context passed to a pipeline node handler."""
-
-    pipeline_run: ETLPipelineRun
-    node: PipelineNode
-    artifacts: dict[str, ETLArtifact]
-
-    @property
-    def parameters(self) -> dict:
-        """Return run parameters."""
-        return self.pipeline_run.parameters
-
-    @property
-    def output_scope(self) -> dict:
-        """Return run output scope."""
-        return self.pipeline_run.output_scope
 
 
 class PipelineRunFactory:
@@ -168,163 +148,6 @@ class PipelineRunLauncher:
             "pipeline_run_id": self.pipeline_run.id,
             "status": self.pipeline_run.status,
         }
-
-
-class NodeExecutor:
-    """Execute one pipeline node and persist its ETLNodeRun state."""
-
-    def __init__(
-        self,
-        *,
-        pipeline_run: ETLPipelineRun,
-        definition: PipelineDefinition,
-        node_key: str,
-    ):
-        """Initialize an executor for one persisted ETLNodeRun."""
-        self.pipeline_run = pipeline_run
-        self.definition = definition
-        self.node_key = node_key
-
-    @classmethod
-    def for_run_id(cls, pipeline_run_id: int, node_key: str) -> "NodeExecutor":
-        """Build an executor for one persisted ETLNodeRun."""
-        pipeline_run = ETLPipelineRun.objects.get(id=pipeline_run_id)
-        definition = get_pipeline_definition(pipeline_run.pipeline_key)
-        return cls(
-            pipeline_run=pipeline_run,
-            definition=definition,
-            node_key=node_key,
-        )
-
-    @property
-    def node(self) -> PipelineNode:
-        """Return this executor's registered pipeline node."""
-        return self.definition.nodes[self.node_key]
-
-    def execute(self) -> dict:
-        """Execute one pipeline node and update its ETLNodeRun record."""
-        node_run = None
-
-        try:
-            with transaction.atomic():
-                node_run = ETLNodeRun.objects.select_for_update().get(
-                    pipeline_run=self.pipeline_run,
-                    node_key=self.node_key,
-                )
-                start_result = self._start_node_run(node_run)
-                if start_result:
-                    return start_result
-
-            context = self._build_context()
-            result = self.node.execute(self.definition, context)
-            if result is None:
-                result = NodeResult()
-
-            self._mark_succeeded(node_run, result)
-            return {"node_key": self.node_key, "status": node_run.status}
-        except Exception as exc:
-            self._mark_failed(node_run, exc)
-            raise
-
-    def _start_node_run(self, node_run: ETLNodeRun) -> dict | None:
-        """Claim a pending ETLNodeRun or return its existing terminal state."""
-        if node_run.status in (
-            ETLNodeRun.Status.RUNNING,
-            ETLNodeRun.Status.SUCCEEDED,
-        ):
-            return {
-                "node_key": self.node_key,
-                "status": node_run.status,
-                "already_started": True,
-            }
-        if node_run.status == ETLNodeRun.Status.FAILED:
-            return {
-                "node_key": self.node_key,
-                "status": node_run.status,
-                "already_completed": True,
-            }
-
-        now = timezone.now()
-        if self.pipeline_run.status == ETLPipelineRun.Status.PENDING:
-            self.pipeline_run.status = ETLPipelineRun.Status.RUNNING
-            self.pipeline_run.started_at = now
-            self.pipeline_run.save(update_fields=["status", "started_at", "updated_at"])
-
-        node_run.status = ETLNodeRun.Status.RUNNING
-        node_run.started_at = now
-        node_run.error_message = None
-        node_run.save(
-            update_fields=[
-                "status",
-                "started_at",
-                "error_message",
-            ]
-        )
-        return None
-
-    def _build_context(self) -> NodeContext:
-        """Build a validated node context from persisted upstream artifacts."""
-        artifacts = self._artifacts()
-        available_contracts = set(artifacts)
-        missing_contracts = set(self.node.input_contracts) - available_contracts
-        if missing_contracts:
-            raise PipelineValidationError(
-                "Missing input contracts for "
-                f"{self.node_key}: {sorted(missing_contracts)}"
-            )
-
-        return NodeContext(
-            pipeline_run=self.pipeline_run,
-            node=self.node,
-            artifacts=artifacts,
-        )
-
-    def _artifacts(self) -> dict[str, ETLArtifact]:
-        """Return artifacts already produced by this run."""
-        return {
-            artifact.key: artifact
-            for artifact in self.pipeline_run.artifacts.all().order_by("id")
-        }
-
-    def _mark_succeeded(
-        self,
-        node_run: ETLNodeRun,
-        result: NodeResult,
-    ) -> None:
-        """Persist a successful node result."""
-        node_run.status = ETLNodeRun.Status.SUCCEEDED
-        node_run.finished_at = timezone.now()
-        node_run.input_row_count = result.input_row_count
-        node_run.output_row_count = result.output_row_count
-        node_run.metadata = result.metadata
-        node_run.save(
-            update_fields=[
-                "status",
-                "finished_at",
-                "input_row_count",
-                "output_row_count",
-                "metadata",
-            ]
-        )
-
-    def _mark_failed(
-        self,
-        node_run: ETLNodeRun | None,
-        exc: Exception,
-    ) -> None:
-        """Persist node and pipeline failure state."""
-        if node_run is not None:
-            node_run.status = ETLNodeRun.Status.FAILED
-            node_run.finished_at = timezone.now()
-            node_run.error_message = str(exc)
-            node_run.save(update_fields=["status", "finished_at", "error_message"])
-
-        self.pipeline_run.status = ETLPipelineRun.Status.FAILED
-        self.pipeline_run.finished_at = timezone.now()
-        self.pipeline_run.error_message = f"{self.node_key}: {exc}"
-        self.pipeline_run.save(
-            update_fields=["status", "finished_at", "error_message", "updated_at"]
-        )
 
 
 def output_scope_key(output_scope: dict) -> str:

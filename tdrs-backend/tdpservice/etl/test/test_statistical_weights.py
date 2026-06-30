@@ -18,10 +18,11 @@ from tdpservice.etl.models import (
     StatisticalWeightsCaseCount,
 )
 from tdpservice.etl.notifications import send_statistical_weights_notification
+from tdpservice.etl.pipelines.base import NodeContext
 from tdpservice.etl.pipelines.sources import SOURCE_DATAFILE_IDS_KEY
 from tdpservice.etl.pipelines.statistical_weights import StatisticalWeightsPipeline
 from tdpservice.etl.registry import get_pipeline_definition
-from tdpservice.etl.runner import NodeContext, PipelineRunFactory
+from tdpservice.etl.runner import PipelineRunFactory
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M6, SSP_M7
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T6, TANF_T7
 from tdpservice.search_indexes.models.tribal import (
