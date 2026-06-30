@@ -34,7 +34,6 @@ from tdpservice.stts.models import STT
 FISCAL_YEAR = 2026
 REPORTING_MONTH = 202501
 PIPELINE = StatisticalWeightsPipeline()
-NODES = PIPELINE
 TANF_PROGRAM = DataFile.ProgramType.TANF
 
 
@@ -53,11 +52,11 @@ def _datafile(stt, user, section, version=1, program_type=TANF_PROGRAM):
 
 
 def _node_context(pipeline_run, node_key):
-    """Build a node context for direct node execution."""
+    """Build a node context for direct handler execution."""
     definition = get_pipeline_definition(pipeline_run.pipeline_key)
     return NodeContext(
         pipeline_run=pipeline_run,
-        node=definition.node_map[node_key],
+        node=definition.nodes[node_key],
         artifacts={artifact.key: artifact for artifact in pipeline_run.artifacts.all()},
     )
 
@@ -139,12 +138,14 @@ def parsed_weights_data(stt, user):
 
 
 @pytest.mark.django_db
-def test_validate_parameters_rejects_missing_source_datafiles():
+def test_validate_run_sources_rejects_missing_source_datafiles():
     """Runs fail early when there are no accepted source files to snapshot."""
     pipeline_run = _create_pipeline_run()
 
     with pytest.raises(ValueError, match="active, aggregate, stratum"):
-        NODES.validate_run_sources(_node_context(pipeline_run, "validate_parameters"))
+        PIPELINE.validate_run_sources(
+            _node_context(pipeline_run, "validate_run_sources")
+        )
 
     pipeline_run.refresh_from_db()
     assert pipeline_run.metadata[SOURCE_DATAFILE_IDS_KEY] == {
@@ -309,10 +310,10 @@ def test_program_adapters_build_non_tanf_candidates(
 
 
 @pytest.mark.django_db
-def test_validate_parameters_snapshots_source_files(parsed_weights_data, user):
+def test_validate_run_sources_snapshots_source_files(parsed_weights_data, user):
     """A run continues to use the DataFile snapshot captured during validation."""
     pipeline_run = _create_pipeline_run()
-    NODES.validate_run_sources(_node_context(pipeline_run, "validate_parameters"))
+    PIPELINE.validate_run_sources(_node_context(pipeline_run, "validate_run_sources"))
 
     newer_file = _datafile(
         parsed_weights_data,
@@ -327,7 +328,7 @@ def test_validate_parameters_snapshots_source_files(parsed_weights_data, user):
         STRATUM="8",
     )
 
-    result = NODES.extract_active_family_counts(
+    result = PIPELINE.extract_active_family_counts(
         _node_context(pipeline_run, "extract_active_family_counts")
     )
     artifact = pipeline_run.artifacts.get(key=PIPELINE.intermediate_keys["s1"])
@@ -345,18 +346,18 @@ def test_validate_parameters_snapshots_source_files(parsed_weights_data, user):
 def test_extract_nodes_write_artifacts(parsed_weights_data):
     """Extract nodes persist their declared run-scoped artifact contracts."""
     pipeline_run = _create_pipeline_run()
-    NODES.validate_run_sources(_node_context(pipeline_run, "validate_parameters"))
+    PIPELINE.validate_run_sources(_node_context(pipeline_run, "validate_run_sources"))
 
-    NODES.extract_active_family_counts(
+    PIPELINE.extract_active_family_counts(
         _node_context(pipeline_run, "extract_active_family_counts")
     )
-    NODES.extract_aggregate_case_counts(
+    PIPELINE.extract_aggregate_case_counts(
         _node_context(pipeline_run, "extract_aggregate_case_counts")
     )
-    NODES.extract_stratum_case_counts(
+    PIPELINE.extract_stratum_case_counts(
         _node_context(pipeline_run, "extract_stratum_case_counts")
     )
-    NODES.extract_active_family_counts(
+    PIPELINE.extract_active_family_counts(
         _node_context(pipeline_run, "extract_active_family_counts")
     )
 
@@ -400,14 +401,14 @@ def test_extract_nodes_write_artifacts(parsed_weights_data):
 def test_qa_and_publish_use_persisted_aggregate_artifacts(parsed_weights_data):
     """QA and publication consume persisted aggregates, not live source queries."""
     pipeline_run = _create_pipeline_run()
-    NODES.validate_run_sources(_node_context(pipeline_run, "validate_parameters"))
-    NODES.extract_active_family_counts(
+    PIPELINE.validate_run_sources(_node_context(pipeline_run, "validate_run_sources"))
+    PIPELINE.extract_active_family_counts(
         _node_context(pipeline_run, "extract_active_family_counts")
     )
-    NODES.extract_aggregate_case_counts(
+    PIPELINE.extract_aggregate_case_counts(
         _node_context(pipeline_run, "extract_aggregate_case_counts")
     )
-    NODES.extract_stratum_case_counts(
+    PIPELINE.extract_stratum_case_counts(
         _node_context(pipeline_run, "extract_stratum_case_counts")
     )
 
@@ -415,8 +416,8 @@ def test_qa_and_publish_use_persisted_aggregate_artifacts(parsed_weights_data):
     TANF_T6.objects.all().delete()
     TANF_T7.objects.all().delete()
 
-    qa_result = NODES.run_weights_qa(_node_context(pipeline_run, "run_weights_qa"))
-    publish_result = NODES.publish_weights(
+    qa_result = PIPELINE.run_weights_qa(_node_context(pipeline_run, "run_weights_qa"))
+    publish_result = PIPELINE.publish_weights(
         _node_context(pipeline_run, "publish_weights")
     )
 
@@ -450,18 +451,18 @@ def test_missing_stt_qa_uses_stt_reference_data(parsed_weights_data, region):
         type=STT.EntityType.TRIBE,
     )
     pipeline_run = _create_pipeline_run()
-    NODES.validate_run_sources(_node_context(pipeline_run, "validate_parameters"))
-    NODES.extract_active_family_counts(
+    PIPELINE.validate_run_sources(_node_context(pipeline_run, "validate_run_sources"))
+    PIPELINE.extract_active_family_counts(
         _node_context(pipeline_run, "extract_active_family_counts")
     )
-    NODES.extract_aggregate_case_counts(
+    PIPELINE.extract_aggregate_case_counts(
         _node_context(pipeline_run, "extract_aggregate_case_counts")
     )
-    NODES.extract_stratum_case_counts(
+    PIPELINE.extract_stratum_case_counts(
         _node_context(pipeline_run, "extract_stratum_case_counts")
     )
 
-    NODES.run_weights_qa(_node_context(pipeline_run, "run_weights_qa"))
+    PIPELINE.run_weights_qa(_node_context(pipeline_run, "run_weights_qa"))
 
     qa_result = ETLQAResult.objects.get(
         pipeline_run=pipeline_run,
@@ -476,12 +477,12 @@ def test_missing_stt_qa_uses_stt_reference_data(parsed_weights_data, region):
 def test_publish_weights_rejects_empty_candidates():
     """Empty in-memory candidates cannot become successful output versions."""
     pipeline_run = _create_pipeline_run()
-    NODES.artifacts.write_active_family_counts(pipeline_run, [])
-    NODES.artifacts.write_aggregate_case_counts(pipeline_run, [])
-    NODES.artifacts.write_stratum_case_counts(pipeline_run, [])
+    PIPELINE.artifacts.write_active_family_counts(pipeline_run, [])
+    PIPELINE.artifacts.write_aggregate_case_counts(pipeline_run, [])
+    PIPELINE.artifacts.write_stratum_case_counts(pipeline_run, [])
 
     with pytest.raises(ValueError, match="No statistical weight candidates"):
-        NODES.publish_weights(_node_context(pipeline_run, "publish_weights"))
+        PIPELINE.publish_weights(_node_context(pipeline_run, "publish_weights"))
 
     assert not StatisticalWeight.objects.filter(pipeline_run=pipeline_run).exists()
     assert not ETLArtifact.objects.filter(
@@ -495,17 +496,17 @@ def test_publish_weights_rejects_empty_candidates():
 def test_publish_weights_versions_outputs(parsed_weights_data):
     """Reruns publish a new version and retain the prior version until purge."""
     first_run = _create_pipeline_run()
-    NODES.validate_run_sources(_node_context(first_run, "validate_parameters"))
-    NODES.extract_active_family_counts(
+    PIPELINE.validate_run_sources(_node_context(first_run, "validate_run_sources"))
+    PIPELINE.extract_active_family_counts(
         _node_context(first_run, "extract_active_family_counts")
     )
-    NODES.extract_aggregate_case_counts(
+    PIPELINE.extract_aggregate_case_counts(
         _node_context(first_run, "extract_aggregate_case_counts")
     )
-    NODES.extract_stratum_case_counts(
+    PIPELINE.extract_stratum_case_counts(
         _node_context(first_run, "extract_stratum_case_counts")
     )
-    first_result = NODES.publish_weights(_node_context(first_run, "publish_weights"))
+    first_result = PIPELINE.publish_weights(_node_context(first_run, "publish_weights"))
     first_run.status = ETLPipelineRun.Status.SUCCEEDED
     first_run.save(update_fields=["status", "updated_at"])
 
@@ -517,17 +518,19 @@ def test_publish_weights_versions_outputs(parsed_weights_data):
     assert StatisticalWeight.objects.filter(version=1).count() == 2
 
     second_run = _create_pipeline_run()
-    NODES.validate_run_sources(_node_context(second_run, "validate_parameters"))
-    NODES.extract_active_family_counts(
+    PIPELINE.validate_run_sources(_node_context(second_run, "validate_run_sources"))
+    PIPELINE.extract_active_family_counts(
         _node_context(second_run, "extract_active_family_counts")
     )
-    NODES.extract_aggregate_case_counts(
+    PIPELINE.extract_aggregate_case_counts(
         _node_context(second_run, "extract_aggregate_case_counts")
     )
-    NODES.extract_stratum_case_counts(
+    PIPELINE.extract_stratum_case_counts(
         _node_context(second_run, "extract_stratum_case_counts")
     )
-    second_result = NODES.publish_weights(_node_context(second_run, "publish_weights"))
+    second_result = PIPELINE.publish_weights(
+        _node_context(second_run, "publish_weights")
+    )
 
     assert second_result.metadata == {
         "program": TANF_PROGRAM,
@@ -598,7 +601,9 @@ def test_notify_weights_run_includes_operational_summary(
         result_payload={"mismatches": []},
     )
 
-    result = NODES.notify_weights_run(_node_context(pipeline_run, "notify_weights_run"))
+    result = PIPELINE.notify_weights_run(
+        _node_context(pipeline_run, "notify_weights_run")
+    )
 
     assert result.metadata["notification"] == "sent"
     assert len(mail.outbox) == 1

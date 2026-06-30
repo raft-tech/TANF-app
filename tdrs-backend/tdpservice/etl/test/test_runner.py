@@ -9,13 +9,18 @@ import pytest
 from tdpservice.data_files.models import DataFile
 from tdpservice.etl.exceptions import ActivePipelineRunError, PipelineValidationError
 from tdpservice.etl.models import ETLArtifact, ETLNodeRun, ETLPipelineRun
-from tdpservice.etl.pipelines.base import NodeResult, PipelineDefinition, PipelineNode
+from tdpservice.etl.pipelines.base import (
+    NodeResult,
+    PipelineDefinition,
+    PipelineNode,
+    PipelineNodeRegistry,
+)
 from tdpservice.etl.registry import get_pipeline_definition
 from tdpservice.etl.runner import NodeExecutor, PipelineRunFactory, output_scope_key
 
 
 def _noop(context):
-    """No-op node implementation for graph tests."""
+    """No-op node handler for graph tests."""
     return None
 
 
@@ -28,9 +33,18 @@ class ConcretePipelineDefinition(PipelineDefinition):
     description = "Pipeline used by runner tests."
     allowed_parameters = {"fiscal_year": {"required": True}}
 
-    def __init__(self, nodes):
+    def __init__(self, nodes, handlers=None):
         """Initialize a test pipeline with configurable nodes."""
-        self.nodes = tuple(nodes)
+        self.nodes = PipelineNodeRegistry(nodes)
+        self.handlers = handlers or {}
+
+    def extract(self, context):
+        """Run a configurable extract handler."""
+        return self.handlers.get("extract", _noop)(context)
+
+    def consume(self, context):
+        """Run a configurable consume handler."""
+        return self.handlers["consume"](context)
 
     def validate_parameters(self, parameters: dict) -> dict:
         """Return test parameters unchanged."""
@@ -50,9 +64,9 @@ class ConcretePipelineDefinition(PipelineDefinition):
         )
 
 
-def _definition(nodes):
+def _definition(nodes, handlers=None):
     """Build a minimal pipeline definition."""
-    return ConcretePipelineDefinition(nodes)
+    return ConcretePipelineDefinition(nodes, handlers)
 
 
 def _create_pipeline_run():
@@ -89,7 +103,7 @@ def test_pipeline_canvas_uses_chord_for_extract_fan_in():
         downstream_chain.tasks[2].name == "tdpservice.etl.tasks.finalize_pipeline_run"
     )
     assert all(task.immutable for task in downstream_chain.tasks)
-    assert "validate_parameters" in canvas_repr
+    assert "validate_run_sources" in canvas_repr
     assert "extract_active_family_counts" in canvas_repr
     assert "extract_aggregate_case_counts" in canvas_repr
     assert "extract_stratum_case_counts" in canvas_repr
@@ -97,16 +111,36 @@ def test_pipeline_canvas_uses_chord_for_extract_fan_in():
     assert "advance_pipeline_run" not in canvas_repr
 
 
+def test_pipeline_nodes_create_registered_task_signatures():
+    """Pipeline nodes expose their Celery task signatures directly."""
+    definition = get_pipeline_definition("statistical_weights")
+
+    node = definition.nodes["publish_weights"]
+    signature = definition.nodes.publish_weights.task(pipeline_run_id=123)
+
+    assert definition.nodes.publish_weights is node
+    assert signature.name == "tdpservice.etl.tasks.execute_node"
+    assert signature.args == (123, "publish_weights")
+
+
 def test_pipeline_validation_rejects_duplicate_node_keys():
-    """Pipeline node keys must be unique for execution lookup."""
+    """Pipeline node keys must be unique for ETLNodeRun lookup."""
     definition = _definition(
         [
-            PipelineNode("extract", _noop),
-            PipelineNode("extract", _noop),
+            PipelineNode("extract"),
+            PipelineNode("extract"),
         ]
     )
 
     with pytest.raises(PipelineValidationError):
+        definition.validate()
+
+
+def test_pipeline_validation_rejects_missing_node_handler():
+    """Pipeline node handlers must exist on the definition."""
+    definition = _definition([PipelineNode("missing_handler")])
+
+    with pytest.raises(PipelineValidationError, match="missing_handler"):
         definition.validate()
 
 
@@ -119,7 +153,7 @@ def test_pipeline_definition_requires_canvas_builder_implementation():
         display_name = "Missing Canvas"
         description = "Pipeline missing a Canvas implementation."
         allowed_parameters = {}
-        nodes = ()
+        nodes = PipelineNodeRegistry(())
 
         def validate_parameters(self, parameters: dict) -> dict:
             return {}
@@ -260,14 +294,14 @@ def test_create_pipeline_run_scopes_active_runs_by_program():
 
 @pytest.mark.django_db
 def test_execute_node_ignores_already_succeeded_node():
-    """Duplicate task delivery does not run a node implementation twice."""
+    """Duplicate task delivery does not run a node handler twice."""
     calls = []
 
-    def implementation(context):
+    def handler(context):
         calls.append(context.node.key)
         return NodeResult(output_row_count=1)
 
-    definition = _definition([PipelineNode("extract", implementation)])
+    definition = _definition([PipelineNode("extract")], {"extract": handler})
     parameters = {"fiscal_year": 2026}
     scope = definition.output_scope(parameters)
     pipeline_run = ETLPipelineRun.objects.create(
@@ -301,11 +335,11 @@ def test_execute_node_ignores_already_succeeded_node():
 
 @pytest.mark.django_db
 def test_execute_node_fails_missing_input_contracts():
-    """Nodes fail before implementation when declared artifact inputs are missing."""
+    """Nodes fail before their handlers when declared artifact inputs are missing."""
     pipeline_run = _create_pipeline_run()
     pipeline_run.node_runs.filter(
         node_key__in=[
-            "validate_parameters",
+            "validate_run_sources",
             "extract_active_family_counts",
             "extract_aggregate_case_counts",
             "extract_stratum_case_counts",
@@ -330,12 +364,13 @@ def test_execute_node_accepts_present_artifact_contract():
     """A declared artifact manifest satisfies a node input contract."""
     calls = []
 
-    def implementation(context):
+    def handler(context):
         calls.append(sorted(context.artifacts))
         return NodeResult(output_row_count=1)
 
     definition = _definition(
-        [PipelineNode("consume", implementation, input_contracts=("artifact.input",))]
+        [PipelineNode("consume", input_contracts=("artifact.input",))],
+        {"consume": handler},
     )
     parameters = {"fiscal_year": 2026}
     scope = definition.output_scope(parameters)

@@ -2,24 +2,60 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any, Iterable
 
 from tdpservice.etl.exceptions import PipelineValidationError
 
 
 @dataclass(frozen=True)
 class PipelineNode:
-    """Executable node registered for one ETL pipeline."""
+    """Run bookkeeping for one executable node in an ETL pipeline."""
 
     key: str
-    implementation: Callable
     input_contracts: tuple[str, ...] = ()
     output_contracts: tuple[str, ...] = ()
+
+    def execute(self, definition: "PipelineDefinition", context) -> Any:
+        """Run this node's pipeline-owned handler."""
+        return getattr(definition, self.key)(context)
+
+    def task(self, pipeline_run_id: int):
+        """Return the Celery signature for this node."""
+        from tdpservice.etl.tasks import execute_node
+
+        return execute_node.si(pipeline_run_id, self.key)
+
+
+class PipelineNodeRegistry:
+    """Node collection addressable by node key or attribute name."""
+
+    def __init__(self, nodes: Iterable[PipelineNode]):
+        """Initialize a registry from pipeline-owned nodes."""
+        self._nodes = tuple(nodes)
+        self._node_map = {node.key: node for node in self._nodes}
+
+    def __iter__(self):
+        """Iterate over registered nodes in declaration order."""
+        return iter(self._nodes)
+
+    def __getitem__(self, key: str) -> PipelineNode:
+        """Return a node by ETLNodeRun node_key."""
+        try:
+            return self._node_map[key]
+        except KeyError as exc:
+            raise PipelineValidationError(f"Unknown pipeline node: {key}") from exc
+
+    def __getattr__(self, key: str) -> PipelineNode:
+        """Return a node by attribute when the key is a valid Python name."""
+        try:
+            return self[key]
+        except PipelineValidationError as exc:
+            raise AttributeError(key) from exc
 
 
 @dataclass(frozen=True)
 class NodeResult:
-    """Structured result returned by a node implementation."""
+    """Structured result returned by a node handler."""
 
     input_row_count: int | None = None
     output_row_count: int | None = None
@@ -34,14 +70,9 @@ class PipelineDefinition(ABC):
     display_name: str
     description: str
     allowed_parameters: dict
-    nodes: tuple[PipelineNode, ...]
+    nodes: PipelineNodeRegistry
     schedule: dict | None = None
     required_groups: tuple[str, ...] = ("OFA System Admin",)
-
-    @property
-    def node_map(self) -> dict[str, PipelineNode]:
-        """Return nodes keyed by node key."""
-        return {node.key: node for node in self.nodes}
 
     @abstractmethod
     def validate_parameters(self, parameters: dict) -> dict:
@@ -56,6 +87,16 @@ class PipelineDefinition(ABC):
         node_keys = [node.key for node in self.nodes]
         if len(node_keys) != len(set(node_keys)):
             raise PipelineValidationError("Pipeline node keys must be unique.")
+
+        missing_handlers = [
+            node.key
+            for node in self.nodes
+            if not callable(getattr(self, node.key, None))
+        ]
+        if missing_handlers:
+            raise PipelineValidationError(
+                f"Pipeline node handlers are missing: {sorted(missing_handlers)}"
+            )
 
     @abstractmethod
     def build_canvas(self, pipeline_run_id: int) -> Any:

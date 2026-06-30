@@ -7,7 +7,12 @@ from celery import chain, chord
 from tdpservice.data_files.models import DataFile
 from tdpservice.etl.exceptions import PipelineValidationError
 from tdpservice.etl.notifications import send_statistical_weights_notification
-from tdpservice.etl.pipelines.base import NodeResult, PipelineDefinition, PipelineNode
+from tdpservice.etl.pipelines.base import (
+    NodeResult,
+    PipelineDefinition,
+    PipelineNode,
+    PipelineNodeRegistry,
+)
 from tdpservice.etl.pipelines.sources import (
     SOURCE_DATAFILE_IDS_KEY,
     DataFileSource,
@@ -157,87 +162,71 @@ class StatisticalWeightsPipeline(PipelineDefinition):
 
     def build_canvas(self, pipeline_run_id: int) -> Any:
         """Build the Celery Canvas for the statistical weights DAG."""
-        from tdpservice.etl.tasks import execute_node, finalize_pipeline_run
+        from tdpservice.etl.tasks import finalize_pipeline_run
 
-        run_weights_qa_signature = execute_node.si(
-            pipeline_run_id,
-            "run_weights_qa",
-        )
+        nodes = self.nodes
+        run_weights_qa_signature = nodes.run_weights_qa.task(pipeline_run_id)
         finalize = chain(
-            execute_node.si(pipeline_run_id, "publish_weights"),
-            execute_node.si(pipeline_run_id, "notify_weights_run"),
+            nodes.publish_weights.task(pipeline_run_id),
+            nodes.notify_weights_run.task(pipeline_run_id),
             finalize_pipeline_run.si(pipeline_run_id),
         )
         finalize.set(immutable=True)
         run_weights_qa_signature.link(finalize)
 
         return chain(
-            execute_node.si(pipeline_run_id, "validate_parameters"),
+            nodes.validate_run_sources.task(pipeline_run_id),
             chord(
                 [
-                    execute_node.si(
-                        pipeline_run_id,
-                        "extract_active_family_counts",
-                    ),
-                    execute_node.si(
-                        pipeline_run_id,
-                        "extract_aggregate_case_counts",
-                    ),
-                    execute_node.si(
-                        pipeline_run_id,
-                        "extract_stratum_case_counts",
-                    ),
+                    nodes.extract_active_family_counts.task(pipeline_run_id),
+                    nodes.extract_aggregate_case_counts.task(pipeline_run_id),
+                    nodes.extract_stratum_case_counts.task(pipeline_run_id),
                 ],
                 run_weights_qa_signature,
             ),
         )
 
-    def _pipeline_nodes(self) -> tuple[PipelineNode, ...]:
-        """Return runner node declarations for this pipeline."""
-        return (
-            PipelineNode(
-                key="validate_parameters",
-                implementation=self.validate_run_sources,
-            ),
-            PipelineNode(
-                key="extract_active_family_counts",
-                implementation=self.extract_active_family_counts,
-                output_contracts=(self.intermediate_keys["s1"],),
-            ),
-            PipelineNode(
-                key="extract_aggregate_case_counts",
-                implementation=self.extract_aggregate_case_counts,
-                output_contracts=(self.intermediate_keys["s3"],),
-            ),
-            PipelineNode(
-                key="extract_stratum_case_counts",
-                implementation=self.extract_stratum_case_counts,
-                output_contracts=(self.intermediate_keys["s4"],),
-            ),
-            PipelineNode(
-                key="run_weights_qa",
-                implementation=self.run_weights_qa,
-                input_contracts=(
-                    self.intermediate_keys["s1"],
-                    self.intermediate_keys["s3"],
-                    self.intermediate_keys["s4"],
+    def _pipeline_nodes(self) -> PipelineNodeRegistry:
+        """Return ETLNodeRun-backed node declarations for this pipeline."""
+        return PipelineNodeRegistry(
+            (
+                PipelineNode(
+                    key="validate_run_sources",
                 ),
-            ),
-            PipelineNode(
-                key="publish_weights",
-                implementation=self.publish_weights,
-                input_contracts=(
-                    self.intermediate_keys["s1"],
-                    self.intermediate_keys["s3"],
-                    self.intermediate_keys["s4"],
+                PipelineNode(
+                    key="extract_active_family_counts",
+                    output_contracts=(self.intermediate_keys["s1"],),
                 ),
-                output_contracts=(self.output_key,),
-            ),
-            PipelineNode(
-                key="notify_weights_run",
-                implementation=self.notify_weights_run,
-                input_contracts=(self.output_key,),
-            ),
+                PipelineNode(
+                    key="extract_aggregate_case_counts",
+                    output_contracts=(self.intermediate_keys["s3"],),
+                ),
+                PipelineNode(
+                    key="extract_stratum_case_counts",
+                    output_contracts=(self.intermediate_keys["s4"],),
+                ),
+                PipelineNode(
+                    key="run_weights_qa",
+                    input_contracts=(
+                        self.intermediate_keys["s1"],
+                        self.intermediate_keys["s3"],
+                        self.intermediate_keys["s4"],
+                    ),
+                ),
+                PipelineNode(
+                    key="publish_weights",
+                    input_contracts=(
+                        self.intermediate_keys["s1"],
+                        self.intermediate_keys["s3"],
+                        self.intermediate_keys["s4"],
+                    ),
+                    output_contracts=(self.output_key,),
+                ),
+                PipelineNode(
+                    key="notify_weights_run",
+                    input_contracts=(self.output_key,),
+                ),
+            )
         )
 
     def validate_run_sources(self, context) -> NodeResult:

@@ -16,7 +16,7 @@ def launch_pipeline_run(pipeline_run_id: int):
 
 @shared_task(name="tdpservice.etl.tasks.execute_node")
 def execute_node(pipeline_run_id: int, node_key: str):
-    """Execute one ETL node."""
+    """Execute one ETLNodeRun-backed pipeline node."""
     return NodeExecutor.for_run_id(pipeline_run_id, node_key).execute()
 
 

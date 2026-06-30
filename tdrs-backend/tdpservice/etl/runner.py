@@ -20,7 +20,7 @@ ACTIVE_RUN_STATUSES = (
 
 @dataclass(frozen=True)
 class NodeContext:
-    """Execution context passed to a node implementation."""
+    """Execution context passed to a pipeline node handler."""
 
     pipeline_run: ETLPipelineRun
     node: PipelineNode
@@ -57,7 +57,7 @@ class PipelineRunFactory:
         triggered_by=None,
         retry_of: ETLPipelineRun | None = None,
     ) -> ETLPipelineRun:
-        """Create a pipeline run and initial node run records."""
+        """Create a pipeline run and initial ETLNodeRun records."""
         self.definition.validate()
         normalized_parameters = self.definition.validate_parameters(parameters)
         output_scope = self.definition.output_scope(normalized_parameters)
@@ -154,7 +154,9 @@ class PipelineRunLauncher:
             self.pipeline_run.status = ETLPipelineRun.Status.FAILED
         elif node_runs.exclude(status=ETLNodeRun.Status.SUCCEEDED).exists():
             self.pipeline_run.status = ETLPipelineRun.Status.FAILED
-            self.pipeline_run.error_message = "One or more nodes did not complete."
+            self.pipeline_run.error_message = (
+                "One or more ETLNodeRun records did not complete."
+            )
         else:
             self.pipeline_run.status = ETLPipelineRun.Status.SUCCEEDED
 
@@ -169,7 +171,7 @@ class PipelineRunLauncher:
 
 
 class NodeExecutor:
-    """Execute one pipeline node and persist its node-run state."""
+    """Execute one pipeline node and persist its ETLNodeRun state."""
 
     def __init__(
         self,
@@ -178,14 +180,14 @@ class NodeExecutor:
         definition: PipelineDefinition,
         node_key: str,
     ):
-        """Initialize an executor for one pipeline node run."""
+        """Initialize an executor for one persisted ETLNodeRun."""
         self.pipeline_run = pipeline_run
         self.definition = definition
         self.node_key = node_key
 
     @classmethod
     def for_run_id(cls, pipeline_run_id: int, node_key: str) -> "NodeExecutor":
-        """Build an executor for one persisted pipeline node run."""
+        """Build an executor for one persisted ETLNodeRun."""
         pipeline_run = ETLPipelineRun.objects.get(id=pipeline_run_id)
         definition = get_pipeline_definition(pipeline_run.pipeline_key)
         return cls(
@@ -196,11 +198,11 @@ class NodeExecutor:
 
     @property
     def node(self) -> PipelineNode:
-        """Return this executor's registered node."""
-        return self.definition.node_map[self.node_key]
+        """Return this executor's registered pipeline node."""
+        return self.definition.nodes[self.node_key]
 
     def execute(self) -> dict:
-        """Execute one node and update its run record."""
+        """Execute one pipeline node and update its ETLNodeRun record."""
         node_run = None
 
         try:
@@ -214,7 +216,7 @@ class NodeExecutor:
                     return start_result
 
             context = self._build_context()
-            result = self.node.implementation(context)
+            result = self.node.execute(self.definition, context)
             if result is None:
                 result = NodeResult()
 
@@ -225,7 +227,7 @@ class NodeExecutor:
             raise
 
     def _start_node_run(self, node_run: ETLNodeRun) -> dict | None:
-        """Claim a pending node run or return its existing terminal state."""
+        """Claim a pending ETLNodeRun or return its existing terminal state."""
         if node_run.status in (
             ETLNodeRun.Status.RUNNING,
             ETLNodeRun.Status.SUCCEEDED,
