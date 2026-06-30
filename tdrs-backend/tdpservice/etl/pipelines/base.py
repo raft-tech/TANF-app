@@ -45,6 +45,10 @@ class PipelineNode(ABC):
     input_contracts: tuple[str, ...] = ()
     output_contracts: tuple[str, ...] = ()
 
+    @abstractmethod
+    def execute(self, context: NodeContext) -> NodeResult | None:
+        """Run this node's business operation."""
+
     @property
     @abstractmethod
     def key(self) -> str:
@@ -182,10 +186,6 @@ class PipelineNode(ABC):
             update_fields=["status", "finished_at", "error_message", "updated_at"]
         )
 
-    @abstractmethod
-    def execute(self, context: NodeContext) -> NodeResult | None:
-        """Run this node's business operation."""
-
 
 class PipelineNodeRegistry:
     """Node collection addressable by node key or attribute name."""
@@ -234,6 +234,14 @@ class PipelineDefinition(ABC):
     def output_scope(self, parameters: dict) -> dict:
         """Build the idempotency/output scope for this pipeline."""
 
+    @abstractmethod
+    def build_canvas(self, pipeline_run_id: int) -> Any:
+        """Build the code-owned Celery Canvas for this pipeline run."""
+
+    @abstractmethod
+    def _pipeline_nodes(self) -> PipelineNodeRegistry:
+        """Build the pipeline registry for canvas execution."""
+
     def validate(self) -> None:
         """Validate node metadata for this pipeline."""
         node_keys = [node.key for node in self.nodes]
@@ -241,10 +249,6 @@ class PipelineDefinition(ABC):
             raise PipelineValidationError("Pipeline node keys cannot be empty.")
         if len(node_keys) != len(set(node_keys)):
             raise PipelineValidationError("Pipeline node keys must be unique.")
-
-    @abstractmethod
-    def build_canvas(self, pipeline_run_id: int) -> Any:
-        """Build the code-owned Celery Canvas for this pipeline run."""
 
     def serialize(self) -> dict:
         """Return API-safe pipeline definition metadata."""

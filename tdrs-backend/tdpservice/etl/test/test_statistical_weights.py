@@ -173,15 +173,15 @@ def test_build_candidates_uses_latest_files_and_stratum_fallback(parsed_weights_
     )
     candidates = PIPELINE.candidates.build(
         FISCAL_YEAR,
-        PIPELINE.extractor.active_family_counts(
+        PIPELINE.nodes.extract_active_family_counts.extract_rows(
             source_ids[PIPELINE.source_keys["active"]],
             TANF_PROGRAM,
         ),
-        PIPELINE.extractor.aggregate_case_counts(
+        PIPELINE.nodes.extract_aggregate_case_counts.extract_rows(
             source_ids[PIPELINE.source_keys["aggregate"]],
             TANF_PROGRAM,
         ),
-        PIPELINE.extractor.stratum_section_case_counts(
+        PIPELINE.nodes.extract_stratum_case_counts.extract_rows(
             source_ids[PIPELINE.source_keys["stratum"]],
             TANF_PROGRAM,
         ),
@@ -296,15 +296,15 @@ def test_program_adapters_build_non_tanf_candidates(
     )
     candidates = PIPELINE.candidates.build(
         FISCAL_YEAR,
-        PIPELINE.extractor.active_family_counts(
+        PIPELINE.nodes.extract_active_family_counts.extract_rows(
             source_ids[PIPELINE.source_keys["active"]],
             program,
         ),
-        PIPELINE.extractor.aggregate_case_counts(
+        PIPELINE.nodes.extract_aggregate_case_counts.extract_rows(
             source_ids[PIPELINE.source_keys["aggregate"]],
             program,
         ),
-        PIPELINE.extractor.stratum_section_case_counts(
+        PIPELINE.nodes.extract_stratum_case_counts.extract_rows(
             source_ids[PIPELINE.source_keys["stratum"]],
             program,
         ),

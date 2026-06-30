@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from django.db import transaction
+from django.db.models import Count, Sum
 
 from tdpservice.data_files.models import DataFile
 from tdpservice.etl.artifacts import upsert_table_dataset_artifact
@@ -19,9 +20,6 @@ from tdpservice.etl.pipelines.statistical_weights.candidates import (
     WeightCandidate,
     WeightCandidateBuilder,
 )
-from tdpservice.etl.pipelines.statistical_weights.extractors import (
-    StatisticalWeightsExtractor,
-)
 from tdpservice.etl.pipelines.statistical_weights.publishing import (
     StatisticalWeightsPublisher,
 )
@@ -33,8 +31,8 @@ class StatisticalWeightsNodeResources:
     """Shared dependencies for statistical weights pipeline nodes."""
 
     source_keys: dict[str, str]
+    section: str
     datafile_snapshot: DataFileSourceSnapshot
-    extractor: StatisticalWeightsExtractor
     candidates: WeightCandidateBuilder
     qa: StatisticalWeightsQA
     publisher: StatisticalWeightsPublisher
@@ -175,7 +173,7 @@ class ExtractActiveFamilyCountsNode(StatisticalWeightsNode):
             self.resources.source_keys["active"]
         ]
         source_count = adapter.active_queryset(datafile_ids).count()
-        rows = self.resources.extractor.active_family_counts(datafile_ids, program)
+        rows = self.extract_rows(datafile_ids, program)
         metadata = {
             "dataset": "s1",
             "program": program,
@@ -192,6 +190,29 @@ class ExtractActiveFamilyCountsNode(StatisticalWeightsNode):
             metadata=metadata,
         )
 
+    def extract_rows(
+        self,
+        datafile_ids: list[int],
+        program: str,
+    ) -> list[dict]:
+        """Build s1: unique families by STT, reporting month, and stratum."""
+        adapter = adapter_for_program(program)
+        rows = (
+            adapter.active_queryset(datafile_ids)
+            .values("datafile__stt__stt_code", "RPT_MONTH_YEAR", "STRATUM")
+            .annotate(case_count=Count("CASE_NUMBER", distinct=True))
+            .order_by("datafile__stt__stt_code", "RPT_MONTH_YEAR", "STRATUM")
+        )
+        return [
+            {
+                "stt_code": adapter.normalize_code(row["datafile__stt__stt_code"]),
+                "reporting_month": row["RPT_MONTH_YEAR"],
+                "stratum": adapter.normalize_code(row["STRATUM"]),
+                "case_count": int(row["case_count"] or 0),
+            }
+            for row in rows
+        ]
+
 
 class ExtractAggregateCaseCountsNode(StatisticalWeightsNode):
     """Build and persist aggregate case count rows."""
@@ -206,7 +227,7 @@ class ExtractAggregateCaseCountsNode(StatisticalWeightsNode):
             self.resources.source_keys["aggregate"]
         ]
         source_count = adapter.aggregate_queryset(datafile_ids).count()
-        rows = self.resources.extractor.aggregate_case_counts(datafile_ids, program)
+        rows = self.extract_rows(datafile_ids, program)
         metadata = {
             "dataset": "s3",
             "program": program,
@@ -223,6 +244,28 @@ class ExtractAggregateCaseCountsNode(StatisticalWeightsNode):
             metadata=metadata,
         )
 
+    def extract_rows(
+        self,
+        datafile_ids: list[int],
+        program: str,
+    ) -> list[dict]:
+        """Build s3: aggregate cases by STT and reporting month."""
+        adapter = adapter_for_program(program)
+        rows = (
+            adapter.aggregate_queryset(datafile_ids)
+            .values("datafile__stt__stt_code", "RPT_MONTH_YEAR")
+            .annotate(case_count=Sum(adapter.aggregate_case_count_field))
+            .order_by("datafile__stt__stt_code", "RPT_MONTH_YEAR")
+        )
+        return [
+            {
+                "stt_code": adapter.normalize_code(row["datafile__stt__stt_code"]),
+                "reporting_month": row["RPT_MONTH_YEAR"],
+                "case_count": int(row["case_count"] or 0),
+            }
+            for row in rows
+        ]
+
 
 class ExtractStratumCaseCountsNode(StatisticalWeightsNode):
     """Build and persist stratum case count rows."""
@@ -237,10 +280,7 @@ class ExtractStratumCaseCountsNode(StatisticalWeightsNode):
             self.resources.source_keys["stratum"]
         ]
         source_count = adapter.stratum_queryset(datafile_ids).count()
-        rows = self.resources.extractor.stratum_section_case_counts(
-            datafile_ids,
-            program,
-        )
+        rows = self.extract_rows(datafile_ids, program)
         metadata = {
             "dataset": "s4",
             "program": program,
@@ -256,6 +296,30 @@ class ExtractStratumCaseCountsNode(StatisticalWeightsNode):
             output_row_count=len(rows),
             metadata=metadata,
         )
+
+    def extract_rows(
+        self,
+        datafile_ids: list[int],
+        program: str,
+    ) -> list[dict]:
+        """Build s4: stratum cases by STT, reporting month, and stratum."""
+        adapter = adapter_for_program(program)
+        rows = (
+            adapter.stratum_queryset(datafile_ids)
+            .filter(TDRS_SECTION_IND=self.resources.section, FAMILIES_MONTH__gt=0)
+            .values("datafile__stt__stt_code", "RPT_MONTH_YEAR", "STRATUM")
+            .annotate(cases=Sum("FAMILIES_MONTH"))
+            .order_by("datafile__stt__stt_code", "RPT_MONTH_YEAR", "STRATUM")
+        )
+        return [
+            {
+                "stt_code": adapter.normalize_code(row["datafile__stt__stt_code"]),
+                "reporting_month": row["RPT_MONTH_YEAR"],
+                "stratum": adapter.normalize_code(row["STRATUM"]),
+                "cases": int(row["cases"] or 0),
+            }
+            for row in rows
+        ]
 
 
 class RunWeightsQANode(StatisticalWeightsNode):

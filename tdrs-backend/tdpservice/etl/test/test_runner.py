@@ -91,6 +91,10 @@ class ConcretePipelineDefinition(PipelineDefinition):
             "fiscal_year": int(parameters["fiscal_year"]),
         }
 
+    def _pipeline_nodes(self) -> PipelineNodeRegistry:
+        """Return configured test node declarations."""
+        return self.nodes
+
     def build_canvas(self, pipeline_run_id: int):
         """Test pipeline does not declare an executable Canvas."""
         raise PipelineValidationError(

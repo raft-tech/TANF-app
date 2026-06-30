@@ -11,9 +11,6 @@ from tdpservice.etl.pipelines.sources import DataFileSourceSnapshot
 from tdpservice.etl.pipelines.statistical_weights.candidates import (
     WeightCandidateBuilder,
 )
-from tdpservice.etl.pipelines.statistical_weights.extractors import (
-    StatisticalWeightsExtractor,
-)
 from tdpservice.etl.pipelines.statistical_weights.nodes import (
     ExtractActiveFamilyCountsNode,
     ExtractAggregateCaseCountsNode,
@@ -78,7 +75,6 @@ class StatisticalWeightsPipeline(PipelineDefinition):
     def __init__(self):
         """Initialize this pipeline's executable node declarations."""
         self.datafile_snapshot = DataFileSourceSnapshot()
-        self.extractor = StatisticalWeightsExtractor(section=self.section)
         self.candidates = WeightCandidateBuilder(section=self.section)
         self.qa = StatisticalWeightsQA()
         self.publisher = StatisticalWeightsPublisher(
@@ -90,8 +86,8 @@ class StatisticalWeightsPipeline(PipelineDefinition):
         )
         self.node_resources = StatisticalWeightsNodeResources(
             source_keys=self.source_keys,
+            section=self.section,
             datafile_snapshot=self.datafile_snapshot,
-            extractor=self.extractor,
             candidates=self.candidates,
             qa=self.qa,
             publisher=self.publisher,
