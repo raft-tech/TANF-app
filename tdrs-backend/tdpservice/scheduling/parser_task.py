@@ -248,12 +248,13 @@ def set_error_report(dfs, error_report):
     dfs.save()
 
 
-def _transition_parse_outcome(data_file, dfs):
+def _transition_parse_outcome(data_file, dfs, reparse_id=None):
     """Transition DataFile state based on parse outcome."""
     parse_context = {
         "section": data_file.section,
         "program_type": data_file.program_type,
         "parse_summary_status": dfs.status,
+        "reparse_id": reparse_id,
     }
 
     if dfs.status == DataFileSummary.Status.ACCEPTED:
@@ -501,7 +502,7 @@ def parse(data_file_id, reparse_id=None):
 
         logger.info(f"Parsing finished for file -> {repr(data_file)}.")
 
-        _transition_parse_outcome(data_file, dfs)
+        _transition_parse_outcome(data_file, dfs, reparse_id)
         _notify_data_analysts(data_file, dfs, file_meta, reparse_id)
 
     except DecoderUnknownException:

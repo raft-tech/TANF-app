@@ -1010,8 +1010,8 @@ def test_parse_rejected_outcome_maps_to_parsed_with_errors(monkeypatch, data_ana
 
 
 @pytest.mark.django_db
-def test_parse_start_transition_includes_parse_context(monkeypatch, data_analyst):
-    """Parse start transition emits lifecycle context through transition_datafile."""
+def test_parse_transitions_include_parse_context(monkeypatch, data_analyst):
+    """Parse transitions emit lifecycle context through transition_datafile."""
     datafile = DataFileFactory(
         stt=data_analyst.stt,
         version=16,
@@ -1053,6 +1053,16 @@ def test_parse_start_transition_includes_parse_context(monkeypatch, data_analyst
     assert start_transition["log_fields"]["section"] == datafile.section
     assert start_transition["log_fields"]["program_type"] == datafile.program_type
     assert start_transition["log_fields"]["reparse_id"] is None
+
+    completion_transition = transitions[1]
+    assert completion_transition["next_state"] == SubmissionState.PARSE_COMPLETED
+    assert completion_transition["note"] == "parsing completed successfully"
+    assert completion_transition["log_fields"]["section"] == datafile.section
+    assert completion_transition["log_fields"]["program_type"] == datafile.program_type
+    assert completion_transition["log_fields"]["parse_summary_status"] == (
+        DataFileSummary.Status.ACCEPTED
+    )
+    assert completion_transition["log_fields"]["reparse_id"] is None
 
 
 @pytest.mark.django_db
