@@ -76,12 +76,12 @@ SHADOW_SEARCH_INDEX_MODELS = (
 
 
 ETL_MODELS = (
-    "etlintermediateoutput",
+    "etlartifact",
     "etlnoderun",
-    "etloutput",
     "etlpipelinerun",
     "etlqaresult",
     "statisticalweight",
+    "statisticalweightscasecount",
 )
 
 

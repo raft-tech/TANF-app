@@ -50,12 +50,12 @@ OFA_SYSTEM_ADMIN_TABLE_PERMISSIONS = (
                 "solarschedule",
             ],
             "etl": [
-                "etlintermediateoutput",
+                "etlartifact",
                 "etlnoderun",
-                "etloutput",
                 "etlpipelinerun",
                 "etlqaresult",
                 "statisticalweight",
+                "statisticalweightscasecount",
             ],
             "parsers": ["datafilesummary", "parsererror"],
             "reports": ["reportfile", "reportsource"],
@@ -228,12 +228,12 @@ def test_digit_team_permissions(digit_team):
         "reports.view_reportfile",
         "reports.view_reportsource",
         # ETL permissions added in migration 0001
-        "etl.view_etlintermediateoutput",
+        "etl.view_etlartifact",
         "etl.view_etlnoderun",
-        "etl.view_etloutput",
         "etl.view_etlpipelinerun",
         "etl.view_etlqaresult",
         "etl.view_statisticalweight",
+        "etl.view_statisticalweightscasecount",
     }
     group_permissions = digit_team.get_group_permissions()
     assert group_permissions == expected_permissions
