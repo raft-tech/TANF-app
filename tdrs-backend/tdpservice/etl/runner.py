@@ -37,7 +37,7 @@ class NodeContext:
         return self.pipeline_run.output_scope
 
 
-class PipelineRunCreator:
+class PipelineRunFactory:
     """Create pipeline run records from a code-owned pipeline definition."""
 
     def __init__(self, definition: PipelineDefinition):
@@ -45,7 +45,7 @@ class PipelineRunCreator:
         self.definition = definition
 
     @classmethod
-    def for_pipeline_key(cls, pipeline_key: str) -> "PipelineRunCreator":
+    def for_pipeline_key(cls, pipeline_key: str) -> "PipelineRunFactory":
         """Build a creator for an approved pipeline key."""
         return cls(get_pipeline_definition(pipeline_key))
 
@@ -115,7 +115,7 @@ class PipelineRunCreator:
         return pipeline_run
 
 
-class PipelineRunScheduler:
+class PipelineRunLauncher:
     """Launch and finalize a persisted pipeline run."""
 
     def __init__(
@@ -124,13 +124,13 @@ class PipelineRunScheduler:
         pipeline_run: ETLPipelineRun,
         definition: PipelineDefinition,
     ):
-        """Initialize a scheduler for one persisted pipeline run."""
+        """Initialize a launcher for one persisted pipeline run."""
         self.pipeline_run = pipeline_run
         self.definition = definition
 
     @classmethod
-    def for_run_id(cls, pipeline_run_id: int) -> "PipelineRunScheduler":
-        """Build a scheduler for a persisted pipeline run."""
+    def for_run_id(cls, pipeline_run_id: int) -> "PipelineRunLauncher":
+        """Build a launcher for a persisted pipeline run."""
         pipeline_run = ETLPipelineRun.objects.get(id=pipeline_run_id)
         definition = get_pipeline_definition(pipeline_run.pipeline_key)
         definition.validate()

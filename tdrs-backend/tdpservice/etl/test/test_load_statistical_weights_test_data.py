@@ -82,7 +82,7 @@ def test_load_statistical_weights_test_data_creates_datafiles_and_rows(tmp_path,
     assert t1_rows[0].datafile.quarter == DataFile.Quarter.Q1
     assert t1_rows[1].datafile.quarter == DataFile.Quarter.Q2
 
-    source_ids = PIPELINE.node_handlers.sources.snapshot_source_datafile_ids(
+    source_ids = PIPELINE.snapshot_source_datafile_ids(
         2024,
         DataFile.ProgramType.TANF,
     )
@@ -91,7 +91,7 @@ def test_load_statistical_weights_test_data_creates_datafiles_and_rows(tmp_path,
             "id", flat=True
         )
     )
-    assert PIPELINE.node_handlers.extractor.active_family_counts(
+    assert PIPELINE.extractor.active_family_counts(
         source_ids[PIPELINE.source_keys["active"]],
         DataFile.ProgramType.TANF,
     ) == [

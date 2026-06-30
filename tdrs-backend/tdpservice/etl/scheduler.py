@@ -8,7 +8,7 @@ from tdpservice.data_files.models import DataFile
 from tdpservice.etl.exceptions import ActivePipelineRunError
 from tdpservice.etl.models import ETLPipelineRun
 from tdpservice.etl.pipelines.statistical_weights import StatisticalWeightsPipeline
-from tdpservice.etl.runner import PipelineRunCreator
+from tdpservice.etl.runner import PipelineRunFactory
 
 
 def fiscal_year_for_date(value: date) -> int:
@@ -61,7 +61,7 @@ def schedule_statistical_weights_run(
         return None
 
     try:
-        return PipelineRunCreator.for_pipeline_key(definition.key).create(
+        return PipelineRunFactory.for_pipeline_key(definition.key).create(
             parameters=parameters,
             trigger_source=ETLPipelineRun.TriggerSource.SCHEDULED,
         )

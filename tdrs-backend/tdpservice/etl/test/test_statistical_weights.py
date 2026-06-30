@@ -21,7 +21,7 @@ from tdpservice.etl.notifications import send_statistical_weights_notification
 from tdpservice.etl.pipelines.sources import SOURCE_DATAFILE_IDS_KEY
 from tdpservice.etl.pipelines.statistical_weights import StatisticalWeightsPipeline
 from tdpservice.etl.registry import get_pipeline_definition
-from tdpservice.etl.runner import NodeContext, PipelineRunCreator
+from tdpservice.etl.runner import NodeContext, PipelineRunFactory
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M6, SSP_M7
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T6, TANF_T7
 from tdpservice.search_indexes.models.tribal import (
@@ -34,7 +34,7 @@ from tdpservice.stts.models import STT
 FISCAL_YEAR = 2026
 REPORTING_MONTH = 202501
 PIPELINE = StatisticalWeightsPipeline()
-NODES = PIPELINE.node_handlers
+NODES = PIPELINE
 TANF_PROGRAM = DataFile.ProgramType.TANF
 
 
@@ -64,7 +64,7 @@ def _node_context(pipeline_run, node_key):
 
 def _create_pipeline_run(program=TANF_PROGRAM):
     """Create a statistical weights pipeline run."""
-    return PipelineRunCreator.for_pipeline_key(StatisticalWeightsPipeline.key).create(
+    return PipelineRunFactory.for_pipeline_key(StatisticalWeightsPipeline.key).create(
         parameters={"fiscal_year": FISCAL_YEAR, "program": program},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
@@ -144,7 +144,7 @@ def test_validate_parameters_rejects_missing_source_datafiles():
     pipeline_run = _create_pipeline_run()
 
     with pytest.raises(ValueError, match="active, aggregate, stratum"):
-        NODES.validate_parameters(_node_context(pipeline_run, "validate_parameters"))
+        NODES.validate_run_sources(_node_context(pipeline_run, "validate_parameters"))
 
     pipeline_run.refresh_from_db()
     assert pipeline_run.metadata[SOURCE_DATAFILE_IDS_KEY] == {
@@ -157,21 +157,21 @@ def test_validate_parameters_rejects_missing_source_datafiles():
 @pytest.mark.django_db
 def test_build_candidates_uses_latest_files_and_stratum_fallback(parsed_weights_data):
     """Weights use latest accepted files and prefer T7 stratum counts over T6."""
-    source_ids = PIPELINE.node_handlers.sources.snapshot_source_datafile_ids(
+    source_ids = PIPELINE.snapshot_source_datafile_ids(
         FISCAL_YEAR,
         TANF_PROGRAM,
     )
-    candidates = PIPELINE.node_handlers.candidates.build(
+    candidates = PIPELINE.candidates.build(
         FISCAL_YEAR,
-        PIPELINE.node_handlers.extractor.active_family_counts(
+        PIPELINE.extractor.active_family_counts(
             source_ids[PIPELINE.source_keys["active"]],
             TANF_PROGRAM,
         ),
-        PIPELINE.node_handlers.extractor.aggregate_case_counts(
+        PIPELINE.extractor.aggregate_case_counts(
             source_ids[PIPELINE.source_keys["aggregate"]],
             TANF_PROGRAM,
         ),
-        PIPELINE.node_handlers.extractor.stratum_section_case_counts(
+        PIPELINE.extractor.stratum_section_case_counts(
             source_ids[PIPELINE.source_keys["stratum"]],
             TANF_PROGRAM,
         ),
@@ -280,21 +280,21 @@ def test_program_adapters_build_non_tanf_candidates(
         FAMILIES_MONTH=6,
     )
 
-    source_ids = PIPELINE.node_handlers.sources.snapshot_source_datafile_ids(
+    source_ids = PIPELINE.snapshot_source_datafile_ids(
         FISCAL_YEAR,
         program,
     )
-    candidates = PIPELINE.node_handlers.candidates.build(
+    candidates = PIPELINE.candidates.build(
         FISCAL_YEAR,
-        PIPELINE.node_handlers.extractor.active_family_counts(
+        PIPELINE.extractor.active_family_counts(
             source_ids[PIPELINE.source_keys["active"]],
             program,
         ),
-        PIPELINE.node_handlers.extractor.aggregate_case_counts(
+        PIPELINE.extractor.aggregate_case_counts(
             source_ids[PIPELINE.source_keys["aggregate"]],
             program,
         ),
-        PIPELINE.node_handlers.extractor.stratum_section_case_counts(
+        PIPELINE.extractor.stratum_section_case_counts(
             source_ids[PIPELINE.source_keys["stratum"]],
             program,
         ),
@@ -312,7 +312,7 @@ def test_program_adapters_build_non_tanf_candidates(
 def test_validate_parameters_snapshots_source_files(parsed_weights_data, user):
     """A run continues to use the DataFile snapshot captured during validation."""
     pipeline_run = _create_pipeline_run()
-    NODES.validate_parameters(_node_context(pipeline_run, "validate_parameters"))
+    NODES.validate_run_sources(_node_context(pipeline_run, "validate_parameters"))
 
     newer_file = _datafile(
         parsed_weights_data,
@@ -345,7 +345,7 @@ def test_validate_parameters_snapshots_source_files(parsed_weights_data, user):
 def test_extract_nodes_write_artifacts(parsed_weights_data):
     """Extract nodes persist their declared run-scoped artifact contracts."""
     pipeline_run = _create_pipeline_run()
-    NODES.validate_parameters(_node_context(pipeline_run, "validate_parameters"))
+    NODES.validate_run_sources(_node_context(pipeline_run, "validate_parameters"))
 
     NODES.extract_active_family_counts(
         _node_context(pipeline_run, "extract_active_family_counts")
@@ -400,7 +400,7 @@ def test_extract_nodes_write_artifacts(parsed_weights_data):
 def test_qa_and_publish_use_persisted_aggregate_artifacts(parsed_weights_data):
     """QA and publication consume persisted aggregates, not live source queries."""
     pipeline_run = _create_pipeline_run()
-    NODES.validate_parameters(_node_context(pipeline_run, "validate_parameters"))
+    NODES.validate_run_sources(_node_context(pipeline_run, "validate_parameters"))
     NODES.extract_active_family_counts(
         _node_context(pipeline_run, "extract_active_family_counts")
     )
@@ -450,7 +450,7 @@ def test_missing_stt_qa_uses_stt_reference_data(parsed_weights_data, region):
         type=STT.EntityType.TRIBE,
     )
     pipeline_run = _create_pipeline_run()
-    NODES.validate_parameters(_node_context(pipeline_run, "validate_parameters"))
+    NODES.validate_run_sources(_node_context(pipeline_run, "validate_parameters"))
     NODES.extract_active_family_counts(
         _node_context(pipeline_run, "extract_active_family_counts")
     )
@@ -495,7 +495,7 @@ def test_publish_weights_rejects_empty_candidates():
 def test_publish_weights_versions_outputs(parsed_weights_data):
     """Reruns publish a new version and retain the prior version until purge."""
     first_run = _create_pipeline_run()
-    NODES.validate_parameters(_node_context(first_run, "validate_parameters"))
+    NODES.validate_run_sources(_node_context(first_run, "validate_parameters"))
     NODES.extract_active_family_counts(
         _node_context(first_run, "extract_active_family_counts")
     )
@@ -517,7 +517,7 @@ def test_publish_weights_versions_outputs(parsed_weights_data):
     assert StatisticalWeight.objects.filter(version=1).count() == 2
 
     second_run = _create_pipeline_run()
-    NODES.validate_parameters(_node_context(second_run, "validate_parameters"))
+    NODES.validate_run_sources(_node_context(second_run, "validate_parameters"))
     NODES.extract_active_family_counts(
         _node_context(second_run, "extract_active_family_counts")
     )

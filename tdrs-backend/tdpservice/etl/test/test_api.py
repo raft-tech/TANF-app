@@ -11,7 +11,7 @@ from tdpservice.etl.models import (
     StatisticalWeight,
     StatisticalWeightsCaseCount,
 )
-from tdpservice.etl.runner import PipelineRunCreator
+from tdpservice.etl.runner import PipelineRunFactory
 
 
 @pytest.mark.django_db
@@ -77,7 +77,7 @@ def test_pipeline_run_create_enqueues_approved_pipeline(api_client, ofa_system_a
 @pytest.mark.django_db
 def test_pipeline_run_detail_includes_final_output(api_client, digit_team):
     """Run detail exposes the final output relation for easy navigation."""
-    pipeline_run = PipelineRunCreator.for_pipeline_key("statistical_weights").create(
+    pipeline_run = PipelineRunFactory.for_pipeline_key("statistical_weights").create(
         parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )

@@ -11,7 +11,7 @@ from tdpservice.etl.exceptions import ActivePipelineRunError, PipelineValidation
 from tdpservice.etl.models import ETLArtifact, ETLNodeRun, ETLPipelineRun
 from tdpservice.etl.pipelines.base import NodeResult, PipelineDefinition, PipelineNode
 from tdpservice.etl.registry import get_pipeline_definition
-from tdpservice.etl.runner import NodeExecutor, PipelineRunCreator, output_scope_key
+from tdpservice.etl.runner import NodeExecutor, PipelineRunFactory, output_scope_key
 
 
 def _noop(context):
@@ -57,7 +57,7 @@ def _definition(nodes):
 
 def _create_pipeline_run():
     """Create a statistical weights pipeline run for runner tests."""
-    return PipelineRunCreator.for_pipeline_key("statistical_weights").create(
+    return PipelineRunFactory.for_pipeline_key("statistical_weights").create(
         parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
@@ -217,7 +217,7 @@ def test_active_run_scope_key_constraint_allows_completed_reruns():
 @pytest.mark.django_db
 def test_create_pipeline_run_reports_active_scope():
     """Run creation converts active-scope conflicts into a domain error."""
-    creator = PipelineRunCreator.for_pipeline_key("statistical_weights")
+    creator = PipelineRunFactory.for_pipeline_key("statistical_weights")
     first_run = creator.create(
         parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
@@ -242,7 +242,7 @@ def test_create_pipeline_run_reports_active_scope():
 @pytest.mark.django_db
 def test_create_pipeline_run_scopes_active_runs_by_program():
     """Different programs can run concurrently for the same fiscal year."""
-    creator = PipelineRunCreator.for_pipeline_key("statistical_weights")
+    creator = PipelineRunFactory.for_pipeline_key("statistical_weights")
 
     tanf_run = creator.create(
         parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},

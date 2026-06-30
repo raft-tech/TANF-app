@@ -13,11 +13,11 @@ import pytest
 from tdpservice.data_files.models import DataFile
 from tdpservice.etl.admin import ETLPipelineRunAdmin
 from tdpservice.etl.models import ETLArtifact, ETLPipelineRun, StatisticalWeight
-from tdpservice.etl.runner import PipelineRunCreator
+from tdpservice.etl.runner import PipelineRunFactory
 
 
 def _create_pipeline_run() -> ETLPipelineRun:
-    return PipelineRunCreator.for_pipeline_key("statistical_weights").create(
+    return PipelineRunFactory.for_pipeline_key("statistical_weights").create(
         parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )

@@ -13,7 +13,7 @@ from tdpservice.etl.pipelines.sources import (
     DataFileSource,
     DataFileSourceSnapshot,
 )
-from tdpservice.etl.runner import PipelineRunCreator
+from tdpservice.etl.runner import PipelineRunFactory
 from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 
 FISCAL_YEAR = 2026
@@ -35,7 +35,7 @@ def _datafile(stt, user, version):
 
 def _pipeline_run():
     """Create a statistical weights pipeline run for snapshot tests."""
-    return PipelineRunCreator.for_pipeline_key("statistical_weights").create(
+    return PipelineRunFactory.for_pipeline_key("statistical_weights").create(
         parameters={"fiscal_year": FISCAL_YEAR, "program": DataFile.ProgramType.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )

@@ -85,7 +85,6 @@ tdpservice/
         __init__.py
         definition.py
         adapters.py
-        sources.py
         extractors.py
         candidates.py
         qa.py
@@ -422,7 +421,7 @@ The default accepted parser state should be `PARSE_COMPLETED`. If product or leg
 
 The first node declares three `DataFileSource` inputs, then uses the shared `DataFileSourceSnapshot` to snapshot the selected active, aggregate, and stratum `DataFile` IDs into `ETLPipelineRun.metadata["source_datafile_ids"]`. All later nodes read from that snapshot rather than recalculating "latest accepted" files. This keeps counts, QA, and publication stable if a newer file is accepted while a run is executing. The statistical weights pipeline fails validation if any required source family snapshots to an empty list; an empty source run must not reach publication as a successful zero-row output. The shared snapshot helper also rejects any source `DataFile` that is part of active reparse work, and reparse startup rejects files already snapshotted by active `PENDING` or `RUNNING` ETL runs. This disjointness rule applies to every future DataFile-backed pipeline that uses the shared snapshot helper. The snapshot helper is shared infrastructure for future pipelines; statistical weights only owns the source declarations.
 
-The statistical weights implementation is split by responsibility under `tdpservice.etl.pipelines.statistical_weights`: `definition.py` owns parameter validation, output scope, and Celery Canvas declaration; `adapters.py` owns program-specific models and field names; `sources.py` owns the pipeline-specific `DataFileSource` declarations; `extractors.py`, `candidates.py`, `qa.py`, and `publishing.py` own their respective domain behavior; and `nodes.py` composes those classes into runner node handlers.
+The statistical weights implementation is split by responsibility under `tdpservice.etl.pipelines.statistical_weights`: `definition.py` owns parameter validation, output scope, pipeline-specific `DataFileSource` declarations, node handlers, and Celery Canvas declaration; `adapters.py` owns program-specific models and field names; `extractors.py`, `candidates.py`, `qa.py`, and `publishing.py` own their respective domain behavior; and `nodes.py` owns table-backed statistical-weights artifact persistence.
 
 ### DAG
 

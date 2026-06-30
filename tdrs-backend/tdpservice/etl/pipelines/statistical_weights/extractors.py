@@ -12,18 +12,6 @@ class StatisticalWeightsExtractor:
         """Initialize the extractor with the statistical weights section."""
         self.section = section
 
-    def active_queryset(self, datafile_ids: list[int], program_type: str):
-        """Return active-case rows in scope."""
-        return adapter_for_program(program_type).active_queryset(datafile_ids)
-
-    def aggregate_queryset(self, datafile_ids: list[int], program_type: str):
-        """Return aggregate rows in scope."""
-        return adapter_for_program(program_type).aggregate_queryset(datafile_ids)
-
-    def stratum_queryset(self, datafile_ids: list[int], program_type: str):
-        """Return stratum rows in scope."""
-        return adapter_for_program(program_type).stratum_queryset(datafile_ids)
-
     def active_family_counts(
         self,
         datafile_ids: list[int],

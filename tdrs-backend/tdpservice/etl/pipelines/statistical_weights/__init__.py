@@ -16,25 +16,19 @@ from tdpservice.etl.pipelines.statistical_weights.extractors import (
 )
 from tdpservice.etl.pipelines.statistical_weights.nodes import (
     StatisticalWeightsArtifactStore,
-    StatisticalWeightsNodes,
 )
 from tdpservice.etl.pipelines.statistical_weights.publishing import (
     StatisticalWeightsPublisher,
 )
 from tdpservice.etl.pipelines.statistical_weights.qa import StatisticalWeightsQA
-from tdpservice.etl.pipelines.statistical_weights.sources import (
-    StatisticalWeightsSources,
-)
 
 __all__ = (
     "ProgramAdapter",
     "StatisticalWeightsExtractor",
     "StatisticalWeightsArtifactStore",
-    "StatisticalWeightsNodes",
     "StatisticalWeightsPipeline",
     "StatisticalWeightsPublisher",
     "StatisticalWeightsQA",
-    "StatisticalWeightsSources",
     "WeightCandidate",
     "WeightCandidateBuilder",
     "adapter_for_program",
