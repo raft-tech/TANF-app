@@ -19,7 +19,10 @@
           name: Run ETL integration tests
           command: |
             cd tdrs-backend
-            sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b "$HOME/go/bin"
+            mkdir -p "$HOME/.local/bin"
+            sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b "$HOME/.local/bin"
+            export PATH="$HOME/.local/bin:$PATH"
+            task --version
             task backend-pytest-etl-integration
       - upload-codecov:
           component: backend
