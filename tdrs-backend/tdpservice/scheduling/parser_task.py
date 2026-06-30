@@ -260,7 +260,7 @@ def _transition_parse_outcome(data_file, dfs):
         transition_datafile(
             data_file,
             SubmissionState.PARSE_COMPLETED,
-            note="parsing completed cleanly",
+            note="parsing completed successfully",
             log_fields=parse_context,
         )
     elif dfs.status in (
