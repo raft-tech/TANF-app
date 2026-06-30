@@ -2,13 +2,13 @@
 
 - **Status:** Review - system architecture
 - **Scope:** TDP-managed ETL for feedback-reporting data products across TANF, SSP, Tribal TANF, and future report families
-- **Last updated:** 2026-06-24
+- **Last updated:** 2026-06-30
 
 ---
 
 ## Purpose
 
-This document describes the high-level architecture for bringing ETL-style reporting calculations into TDP. It covers the broader reporting system implied by the prototype scripts in `tdrs-backend/etl/`.
+This document describes the high-level architecture for bringing ETL-style reporting calculations into TDP. It covers the broader reporting system implied by the prototype scripts in `tdrs-backend/etl_scripts/`.
 
 Use this document to understand:
 
@@ -24,7 +24,7 @@ For the first implementation slice and model-level implementation details, use `
 
 ## System Goal
 
-TDP should manage reporting ETL pipelines as approved, versioned, auditable data products. The system should support immediate production of TANF statistical weights and later support the wider family of calculations currently represented by the prototype scripts:
+TDP should manage reporting ETL pipelines as approved, versioned, auditable data products. The system should support immediate production of Section 1 statistical weights for TANF, SSP, and Tribal TANF and later support the wider family of calculations currently represented by the prototype scripts:
 
 - monthly case/work-participation derived datasets,
 - statistical weights,
@@ -90,7 +90,7 @@ This layer should be implemented as backend-owned query modules over parsed-reco
 
 ETL pipelines are approved DAGs. Each DAG is made of named nodes with declared inputs, outputs, parameters, QA checks, and publication behavior.
 
-This layer is owned by a new `tdpservice.etl` module. It provides:
+This layer is owned by the `tdpservice.etl` Django app. It provides:
 
 - pipeline registry,
 - DAG runner,
@@ -130,7 +130,7 @@ The ETL module remains the owner of the data product. The `reports` app remains 
 
 ## Prototype Script Families
 
-The TANF scripts in `tdrs-backend/etl/` map to reporting pipeline families.
+The TANF scripts in `tdrs-backend/etl_scripts/` map to reporting pipeline families.
 
 | Prototype script | High-level pipeline family | Main data product |
 | --- | --- | --- |
@@ -203,6 +203,8 @@ Every translated query must apply the same source-selection contract:
 
 The default parser state for calculations should be successfully parsed data.
 
+Pipelines that read submitted files should declare their `DataFileSource` inputs and use the shared `DataFileSourceSnapshot` helper to freeze latest accepted `DataFile` IDs once per run. Downstream nodes should consume that run-scoped snapshot instead of recalculating latest files independently.
+
 ---
 
 ## Core Data Products
@@ -220,14 +222,13 @@ Inputs:
 
 First implementation:
 
-- TANF Section 1 only,
-- fiscal-year scoped,
+- Section 1 for TANF, SSP, and Tribal TANF,
+- fiscal-year and program scoped,
+- one shared pipeline with program adapters,
 - database output plus QA email.
 
 Later extensions:
 
-- SSP weights,
-- Tribal TANF weights,
 - section expansion when business rules are approved.
 
 ### Monthly Case/Work-Participation Dataset
@@ -394,7 +395,7 @@ DAG principles:
 - nodes are code-reviewed modules,
 - dependencies are declared by output contract,
 - node outputs are scoped by run ID,
-- node tasks receive explicit input versions from upstream `ETLOutput` records,
+- node tasks load required artifact manifests from upstream `ETLArtifact` records,
 - publication is explicit and transactional,
 - QA is stored as data,
 - run history is durable,
@@ -402,32 +403,46 @@ DAG principles:
 
 ### Celery Canvas Execution
 
-The pipeline registry remains the logical DAG definition. The runner validates the DAG, resolves dependencies, creates `ETLPipelineRun` and `ETLNodeRun` rows, then compiles the executable graph into Celery Canvas primitives:
+The pipeline registry maps approved keys to executable, code-reviewed pipeline classes. `PipelineDefinition` is the abstract base interface; it provides shared node lookup, node-key validation, and serialization. Each concrete pipeline class validates its own run parameters, builds its own output scope, declares node metadata, and builds its Celery Canvas directly. Runner services create `ETLPipelineRun` and `ETLNodeRun` rows, launch the Canvas, and finalize status; node execution happens through `PipelineNode.run()` on the selected node. The Canvas should make the business DAG visible in code instead of hiding progression behind a secondary layer scheduler or metadata-to-Canvas compiler.
 
 | DAG shape | Celery primitive | Use |
 | --- | --- | --- |
 | Linear dependency | `chain` | Run ordered nodes where each node depends on the prior node's output. |
-| Independent branches | `group` | Run nodes in parallel when they depend on the same completed upstream output and do not depend on each other. |
-| Fan-in dependency | `chord` | Run a callback node after every node in a parallel group succeeds. |
+| Fan-out/fan-in dependency | `chord` | Run parallel header nodes, then run the body exactly once after every header node succeeds. |
 
-Every Celery task should receive only stable identifiers: pipeline run ID, node key, output scope, and resolved upstream output versions. Tasks load their run context from the database, execute code-owned node logic, update `ETLNodeRun`, and persist any produced `ETLOutput` records. This keeps the database as the source of truth for run state while Celery handles scheduling and parallel execution.
+Every Celery task should receive only stable identifiers: pipeline run ID and node key. Pipeline authors build the Canvas from the node registry, for example `self.nodes.run_weights_qa.task(run_id)`, rather than manually wrapping node keys in the pipeline definition. The shared Celery task reloads the definition and delegates to `definition.nodes[node_key].run(pipeline_run)`. Each `PipelineNode` owns its execution path: it loads run context and available `ETLArtifact` manifests from the database, validates declared input contracts, executes the concrete node's business logic, updates `ETLNodeRun`, and persists any produced artifact manifests. This keeps the database as the source of truth for run state while Celery handles scheduling and parallel execution.
+
+The statistical weights DAG is represented directly as a `chain` with a `chord` for the parallel extract fan-in. The three extract tasks are the chord header. The QA node, `run_weights_qa`, is the single chord body. The remaining publish, notify, and finalize path is attached as the body task's immutable continuation, avoiding Celery's duplicate-delivery behavior when a full `chain` is used as a chord body.
+
+Use immutable Celery signatures (`.si`) for node and finalize tasks so upstream return values and chord header results are not appended to task arguments.
 
 Example execution shape:
 
-```text
+```python
+nodes = self.nodes
+run_weights_qa = nodes.run_weights_qa.task(run_id)
+run_weights_qa.link(
+    chain(
+        nodes.publish_weights.task(run_id),
+        nodes.notify_weights_run.task(run_id),
+        finalize_pipeline_run.si(run_id),
+    )
+)
+
 chain(
-  validate_parameters,
-  chord(
-    group(extract_t1_family_counts, extract_t6_case_counts, extract_t7_section_case_counts),
-    build_weight_candidates,
-  ),
-  run_weights_qa,
-  publish_weights,
-  notify_weights_run,
+    nodes.validate_run_sources.task(run_id),
+    chord(
+        [
+            nodes.extract_active_family_counts.task(run_id),
+            nodes.extract_aggregate_case_counts.task(run_id),
+            nodes.extract_stratum_case_counts.task(run_id),
+        ],
+        run_weights_qa,
+    ),
 )
 ```
 
-The exact Canvas graph should be generated by the runner from node dependencies, not handwritten for each pipeline unless a pipeline needs a carefully optimized execution shape. A larger orchestrator is not needed until the team needs operator-managed DAGs, cross-environment backfills, or non-Django execution workers.
+Each concrete pipeline definition should declare its exact Celery Canvas in code. Node metadata is limited to the execution details the registry and API need: node key and input/output contracts. Concrete `PipelineNode` subclasses keep the node's execution logic with the node itself. Node execution is claimed under a database lock, so duplicate task delivery does not run a completed or currently running node implementation again. A larger orchestrator is not needed until the team needs operator-managed DAGs, cross-environment backfills, or non-Django execution workers.
 
 ---
 
@@ -518,7 +533,7 @@ Operational views should show:
 | `parsers` | Owns parsing, validation, parser errors, summaries, and parsed records. |
 | `search_indexes` | Provides parsed record models used by query and reporting layers. |
 | `reports` | Owns feedback report file upload/storage/distribution, not ETL logic. |
-| `etl` | New module that owns approved ETL pipelines, DAG execution, QA, run history, and published data products. |
+| `tdpservice.etl` | Django app that owns approved ETL pipelines, DAG execution, QA, run history, and published data products. |
 | `email` | Sends ETL completion and report availability notifications. |
 | `plg/grafana_views` | Provides and/or informs database views used for reporting access. |
 
@@ -537,7 +552,7 @@ The key separation is:
 
 Deliver the first production data product:
 
-- TANF Section 1 statistical weights,
+- Section 1 statistical weights for TANF, SSP, and Tribal TANF,
 - admin-triggered DRF execution,
 - scheduled first-workday execution,
 - run history,
@@ -575,7 +590,7 @@ Goal:
 
 Translation focus:
 
-- consume the explicit statistical-weights version and monthly dataset version from upstream `ETLOutput` dependencies,
+- consume the explicit statistical-weights version and monthly dataset version from upstream final `ETLArtifact` manifests,
 - translate report-specific temporary views into report-ready data products,
 - persist notebook comparison checks as QA results rather than manual dataframe comparisons.
 
@@ -605,14 +620,14 @@ Goal:
 - publish through `ReportFile`,
 - notify STTs and regional audiences through existing report access patterns.
 
-### Phase 6: SSP And Tribal TANF Expansion
+### Phase 6: SSP And Tribal TANF Report Expansion
 
-Add program-specific adapters and pipeline variants for SSP and Tribal TANF.
+Extend the post-weights report products to SSP and Tribal TANF.
 
 Goal:
 
-- reuse the same DAG runner and run history,
-- isolate source mappings and calculation differences,
+- reuse the same run launcher and run history,
+- isolate non-weight source mappings and calculation differences,
 - avoid copying TANF-specific assumptions into program families where they do not apply.
 
 ---
@@ -631,7 +646,7 @@ Goal:
 - Make QA structured, persisted, and visible.
 - Make publication transactional.
 - Record every run and node execution.
-- Represent executable DAGs with Celery `chain`, `group`, and `chord` primitives generated from code-owned pipeline definitions.
+- Represent executable DAGs with Celery `chain` and `chord` primitives declared by code-owned pipeline definitions.
 - Prefer code-owned pipeline definitions until there is a clear need for operator-authored DAGs.
 - Add program-family adapters only when a second implementation makes the seam real.
 - Keep the statistical weights MVP small enough to deliver quickly.
@@ -648,7 +663,7 @@ Related architecture docs:
 
 Current source areas:
 
-- `tdrs-backend/etl/` - prototype TANF ETL scripts.
+- `tdrs-backend/etl_scripts/` - prototype TANF ETL scripts.
 - `tdrs-backend/tdpservice/data_files/` - submitted data files.
 - `tdrs-backend/tdpservice/parsers/` - parsed records and parser outcomes.
 - `tdrs-backend/tdpservice/reports/` - feedback report file storage and distribution.
