@@ -15,10 +15,7 @@ from tdpservice.etl.models import (
     ETLPipelineRun,
     ETLQAResult,
     StatisticalWeight,
-    StatisticalWeightCandidate,
-    StatisticalWeightsActiveFamilyCount,
-    StatisticalWeightsAggregateCaseCount,
-    StatisticalWeightsStratumCaseCount,
+    StatisticalWeightsCaseCount,
 )
 from tdpservice.etl.notifications import send_statistical_weights_notification
 from tdpservice.etl.pipelines.sources import SOURCE_DATAFILE_IDS_KEY
@@ -334,7 +331,10 @@ def test_validate_parameters_snapshots_source_files(parsed_weights_data, user):
         _node_context(pipeline_run, "extract_active_family_counts")
     )
     artifact = pipeline_run.artifacts.get(key=PIPELINE.intermediate_keys["s1"])
-    rows = StatisticalWeightsActiveFamilyCount.objects.filter(pipeline_run=pipeline_run)
+    rows = StatisticalWeightsCaseCount.objects.filter(
+        pipeline_run=pipeline_run,
+        count_kind=StatisticalWeightsCaseCount.CountKind.ACTIVE_FAMILY,
+    )
 
     assert result.output_row_count == 2
     assert artifact.row_count == 2
@@ -369,33 +369,36 @@ def test_extract_nodes_write_artifacts(parsed_weights_data):
         ETLArtifact.StorageKind.POSTGRES_TABLE
     )
     assert artifacts[PIPELINE.intermediate_keys["s1"]].reference == (
-        StatisticalWeightsActiveFamilyCount._meta.db_table
+        StatisticalWeightsCaseCount._meta.db_table
     )
     assert artifacts[PIPELINE.intermediate_keys["s3"]].row_count == 1
     assert artifacts[PIPELINE.intermediate_keys["s4"]].row_count == 1
     assert (
-        StatisticalWeightsActiveFamilyCount.objects.filter(
-            pipeline_run=pipeline_run
+        StatisticalWeightsCaseCount.objects.filter(
+            pipeline_run=pipeline_run,
+            count_kind=StatisticalWeightsCaseCount.CountKind.ACTIVE_FAMILY,
         ).count()
         == 2
     )
     assert (
-        StatisticalWeightsAggregateCaseCount.objects.filter(
-            pipeline_run=pipeline_run
+        StatisticalWeightsCaseCount.objects.filter(
+            pipeline_run=pipeline_run,
+            count_kind=StatisticalWeightsCaseCount.CountKind.AGGREGATE_CASE,
         ).count()
         == 1
     )
     assert (
-        StatisticalWeightsStratumCaseCount.objects.filter(
-            pipeline_run=pipeline_run
+        StatisticalWeightsCaseCount.objects.filter(
+            pipeline_run=pipeline_run,
+            count_kind=StatisticalWeightsCaseCount.CountKind.STRATUM_CASE,
         ).count()
         == 1
     )
 
 
 @pytest.mark.django_db
-def test_qa_and_publish_use_persisted_candidates(parsed_weights_data):
-    """QA and publication consume intermediate payloads, not live source queries."""
+def test_qa_and_publish_use_persisted_aggregate_artifacts(parsed_weights_data):
+    """QA and publication consume persisted aggregates, not live source queries."""
     pipeline_run = _create_pipeline_run()
     NODES.validate_parameters(_node_context(pipeline_run, "validate_parameters"))
     NODES.extract_active_family_counts(
@@ -407,10 +410,6 @@ def test_qa_and_publish_use_persisted_candidates(parsed_weights_data):
     NODES.extract_stratum_case_counts(
         _node_context(pipeline_run, "extract_stratum_case_counts")
     )
-    NODES.build_weight_candidates(
-        _node_context(pipeline_run, "build_weight_candidates")
-    )
-    assert StatisticalWeightCandidate.objects.filter(pipeline_run=pipeline_run).count()
 
     TANF_T1.objects.all().delete()
     TANF_T6.objects.all().delete()
@@ -461,9 +460,6 @@ def test_missing_stt_qa_uses_stt_reference_data(parsed_weights_data, region):
     NODES.extract_stratum_case_counts(
         _node_context(pipeline_run, "extract_stratum_case_counts")
     )
-    NODES.build_weight_candidates(
-        _node_context(pipeline_run, "build_weight_candidates")
-    )
 
     NODES.run_weights_qa(_node_context(pipeline_run, "run_weights_qa"))
 
@@ -478,13 +474,11 @@ def test_missing_stt_qa_uses_stt_reference_data(parsed_weights_data, region):
 
 @pytest.mark.django_db
 def test_publish_weights_rejects_empty_candidates():
-    """Empty candidate artifacts cannot become successful output versions."""
+    """Empty in-memory candidates cannot become successful output versions."""
     pipeline_run = _create_pipeline_run()
-    NODES.artifacts.write_candidates(
-        pipeline_run,
-        [],
-        metadata={"candidate_count": 0},
-    )
+    NODES.artifacts.write_active_family_counts(pipeline_run, [])
+    NODES.artifacts.write_aggregate_case_counts(pipeline_run, [])
+    NODES.artifacts.write_stratum_case_counts(pipeline_run, [])
 
     with pytest.raises(ValueError, match="No statistical weight candidates"):
         NODES.publish_weights(_node_context(pipeline_run, "publish_weights"))
@@ -511,7 +505,6 @@ def test_publish_weights_versions_outputs(parsed_weights_data):
     NODES.extract_stratum_case_counts(
         _node_context(first_run, "extract_stratum_case_counts")
     )
-    NODES.build_weight_candidates(_node_context(first_run, "build_weight_candidates"))
     first_result = NODES.publish_weights(_node_context(first_run, "publish_weights"))
     first_run.status = ETLPipelineRun.Status.SUCCEEDED
     first_run.save(update_fields=["status", "updated_at"])
@@ -534,7 +527,6 @@ def test_publish_weights_versions_outputs(parsed_weights_data):
     NODES.extract_stratum_case_counts(
         _node_context(second_run, "extract_stratum_case_counts")
     )
-    NODES.build_weight_candidates(_node_context(second_run, "build_weight_candidates"))
     second_result = NODES.publish_weights(_node_context(second_run, "publish_weights"))
 
     assert second_result.metadata == {

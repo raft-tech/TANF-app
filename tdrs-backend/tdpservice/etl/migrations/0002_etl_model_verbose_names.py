@@ -49,50 +49,17 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.AlterModelOptions(
-            name="statisticalweightcandidate",
+            name="statisticalweightscasecount",
             options={
                 "ordering": [
                     "pipeline_run_id",
+                    "count_kind",
                     "stt_code",
                     "reporting_month",
                     "stratum",
                 ],
-                "verbose_name": "Statistical Weight Candidate",
-                "verbose_name_plural": "Statistical Weight Candidates",
-            },
-        ),
-        migrations.AlterModelOptions(
-            name="statisticalweightsactivefamilycount",
-            options={
-                "ordering": [
-                    "pipeline_run_id",
-                    "stt_code",
-                    "reporting_month",
-                    "stratum",
-                ],
-                "verbose_name": "Statistical Weights Active Family Count",
-                "verbose_name_plural": "Statistical Weights Active Family Counts",
-            },
-        ),
-        migrations.AlterModelOptions(
-            name="statisticalweightsaggregatecasecount",
-            options={
-                "ordering": ["pipeline_run_id", "stt_code", "reporting_month"],
-                "verbose_name": "Statistical Weights Aggregate Case Count",
-                "verbose_name_plural": "Statistical Weights Aggregate Case Counts",
-            },
-        ),
-        migrations.AlterModelOptions(
-            name="statisticalweightsstratumcasecount",
-            options={
-                "ordering": [
-                    "pipeline_run_id",
-                    "stt_code",
-                    "reporting_month",
-                    "stratum",
-                ],
-                "verbose_name": "Statistical Weights Stratum Case Count",
-                "verbose_name_plural": "Statistical Weights Stratum Case Counts",
+                "verbose_name": "Statistical Weights Case Count",
+                "verbose_name_plural": "Statistical Weights Case Counts",
             },
         ),
     ]

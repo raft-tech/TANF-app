@@ -255,172 +255,69 @@ class ETLArtifact(models.Model):
         return f"{self.pipeline_run_id}:{self.key} ({self.artifact_role})"
 
 
-class StatisticalWeightsActiveFamilyCount(models.Model):
-    """Run-scoped s1 active-family counts for statistical weights."""
+class StatisticalWeightsCaseCount(models.Model):
+    """Run-scoped statistical weights case-count rows."""
+
+    class CountKind(models.TextChoices):
+        """Statistical weights aggregate row types."""
+
+        ACTIVE_FAMILY = "S1", "Active Family"
+        AGGREGATE_CASE = "S3", "Aggregate Case"
+        STRATUM_CASE = "S4", "Stratum Case"
 
     pipeline_run = models.ForeignKey(
         ETLPipelineRun,
         on_delete=models.CASCADE,
-        related_name="statistical_weight_active_family_counts",
+        related_name="statistical_weight_case_counts",
     )
+    count_kind = models.CharField(max_length=2, choices=CountKind.choices)
     stt_code = models.CharField(max_length=3)
     reporting_month = models.PositiveIntegerField()
-    stratum = models.CharField(max_length=2)
-    case_count = models.PositiveIntegerField()
+    # stratum will be "" for S3 weights.
+    stratum = models.CharField(max_length=2, blank=True, default="")
+    count = models.PositiveIntegerField()
 
     class Meta:
         """Model metadata."""
 
-        verbose_name = "Statistical Weights Active Family Count"
-        verbose_name_plural = "Statistical Weights Active Family Counts"
-        ordering = ["pipeline_run_id", "stt_code", "reporting_month", "stratum"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=("pipeline_run", "stt_code", "reporting_month", "stratum"),
-                name="unique_sw_active_family_count",
-            )
+        verbose_name = "Statistical Weights Case Count"
+        verbose_name_plural = "Statistical Weights Case Counts"
+        ordering = [
+            "pipeline_run_id",
+            "count_kind",
+            "stt_code",
+            "reporting_month",
+            "stratum",
         ]
-        indexes = [
-            models.Index(
-                fields=["pipeline_run", "reporting_month"],
-                name="sw_s1_run_month_idx",
-            )
-        ]
-
-    def __str__(self):
-        """Return a concise s1 row label."""
-        return (
-            f"{self.pipeline_run_id}:{self.stt_code}/"
-            f"{self.reporting_month}/{self.stratum}"
-        )
-
-
-class StatisticalWeightsAggregateCaseCount(models.Model):
-    """Run-scoped s3 aggregate case counts for statistical weights."""
-
-    pipeline_run = models.ForeignKey(
-        ETLPipelineRun,
-        on_delete=models.CASCADE,
-        related_name="statistical_weight_aggregate_case_counts",
-    )
-    stt_code = models.CharField(max_length=3)
-    reporting_month = models.PositiveIntegerField()
-    case_count = models.PositiveIntegerField()
-
-    class Meta:
-        """Model metadata."""
-
-        verbose_name = "Statistical Weights Aggregate Case Count"
-        verbose_name_plural = "Statistical Weights Aggregate Case Counts"
-        ordering = ["pipeline_run_id", "stt_code", "reporting_month"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=("pipeline_run", "stt_code", "reporting_month"),
-                name="unique_sw_aggregate_case_count",
-            )
-        ]
-        indexes = [
-            models.Index(
-                fields=["pipeline_run", "reporting_month"],
-                name="sw_s3_run_month_idx",
-            )
-        ]
-
-    def __str__(self):
-        """Return a concise s3 row label."""
-        return f"{self.pipeline_run_id}:{self.stt_code}/{self.reporting_month}"
-
-
-class StatisticalWeightsStratumCaseCount(models.Model):
-    """Run-scoped s4 stratum case counts for statistical weights."""
-
-    pipeline_run = models.ForeignKey(
-        ETLPipelineRun,
-        on_delete=models.CASCADE,
-        related_name="statistical_weight_stratum_case_counts",
-    )
-    stt_code = models.CharField(max_length=3)
-    reporting_month = models.PositiveIntegerField()
-    stratum = models.CharField(max_length=2)
-    cases = models.PositiveIntegerField()
-
-    class Meta:
-        """Model metadata."""
-
-        verbose_name = "Statistical Weights Stratum Case Count"
-        verbose_name_plural = "Statistical Weights Stratum Case Counts"
-        ordering = ["pipeline_run_id", "stt_code", "reporting_month", "stratum"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=("pipeline_run", "stt_code", "reporting_month", "stratum"),
-                name="unique_sw_stratum_case_count",
-            )
-        ]
-        indexes = [
-            models.Index(
-                fields=["pipeline_run", "reporting_month"],
-                name="sw_s4_run_month_idx",
-            )
-        ]
-
-    def __str__(self):
-        """Return a concise s4 row label."""
-        return (
-            f"{self.pipeline_run_id}:{self.stt_code}/"
-            f"{self.reporting_month}/{self.stratum}"
-        )
-
-
-class StatisticalWeightCandidate(models.Model):
-    """Run-scoped candidate statistical weight rows before publication."""
-
-    pipeline_run = models.ForeignKey(
-        ETLPipelineRun,
-        on_delete=models.CASCADE,
-        related_name="statistical_weight_candidates",
-    )
-    fiscal_year = models.PositiveIntegerField()
-    reporting_month = models.PositiveIntegerField()
-    program = models.CharField(max_length=16, choices=DataFile.ProgramType.choices)
-    section = models.CharField(max_length=16)
-    stt_code = models.CharField(max_length=3)
-    stratum = models.CharField(max_length=2)
-    case_count = models.PositiveIntegerField()
-    cases = models.PositiveIntegerField()
-    weight = models.DecimalField(max_digits=12, decimal_places=4)
-
-    class Meta:
-        """Model metadata."""
-
-        verbose_name = "Statistical Weight Candidate"
-        verbose_name_plural = "Statistical Weight Candidates"
-        ordering = ["pipeline_run_id", "stt_code", "reporting_month", "stratum"]
         constraints = [
             models.UniqueConstraint(
                 fields=(
                     "pipeline_run",
-                    "fiscal_year",
-                    "reporting_month",
-                    "program",
-                    "section",
+                    "count_kind",
                     "stt_code",
+                    "reporting_month",
                     "stratum",
                 ),
-                name="unique_statistical_weight_candidate",
+                name="unique_sw_case_count",
             )
         ]
         indexes = [
             models.Index(
-                fields=["pipeline_run", "program", "section"],
-                name="sw_candidate_scope_idx",
-            )
+                fields=["pipeline_run", "count_kind", "reporting_month"],
+                name="sw_case_kind_month_idx",
+            ),
+            models.Index(
+                fields=["pipeline_run", "count_kind", "stt_code", "reporting_month"],
+                name="sw_case_kind_pair_idx",
+            ),
         ]
 
     def __str__(self):
-        """Return a concise candidate label."""
+        """Return a concise case-count row label."""
         return (
-            f"{self.pipeline_run_id}:{self.program} FY{self.fiscal_year} "
-            f"{self.reporting_month} {self.stt_code}/{self.stratum}"
+            f"{self.pipeline_run_id}:{self.count_kind}/"
+            f"{self.stt_code}/"
+            f"{self.reporting_month}/{self.stratum}"
         )
 
 

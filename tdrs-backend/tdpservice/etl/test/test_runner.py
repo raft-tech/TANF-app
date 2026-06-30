@@ -77,24 +77,19 @@ def test_pipeline_canvas_uses_chord_for_extract_fan_in():
         "extract_aggregate_case_counts",
         "extract_stratum_case_counts",
     ]
-    assert chord_task.body.args[1] == "build_weight_candidates"
     assert chord_task.body.immutable
-    downstream_chain = chord_task.body.options["link"][0]
-    assert downstream_chain.immutable
-    assert [task.args[1] for task in downstream_chain.tasks[:3]] == [
+    assert [task.args[1] for task in chord_task.body.tasks[:3]] == [
         "run_weights_qa",
         "publish_weights",
         "notify_weights_run",
     ]
-    assert (
-        downstream_chain.tasks[3].name == "tdpservice.etl.tasks.finalize_pipeline_run"
-    )
-    assert all(task.immutable for task in downstream_chain.tasks)
+    assert chord_task.body.tasks[3].name == "tdpservice.etl.tasks.finalize_pipeline_run"
+    assert all(task.immutable for task in chord_task.body.tasks)
     assert "validate_parameters" in canvas_repr
     assert "extract_active_family_counts" in canvas_repr
     assert "extract_aggregate_case_counts" in canvas_repr
     assert "extract_stratum_case_counts" in canvas_repr
-    assert "build_weight_candidates" in canvas_repr
+    assert "build_weight_candidates" not in canvas_repr
     assert "advance_pipeline_run" not in canvas_repr
 
 
@@ -316,10 +311,10 @@ def test_execute_node_fails_missing_input_contracts():
     with pytest.raises(PipelineValidationError):
         NodeExecutor.for_run_id(
             pipeline_run.id,
-            "build_weight_candidates",
+            "run_weights_qa",
         ).execute()
 
-    node_run = pipeline_run.node_runs.get(node_key="build_weight_candidates")
+    node_run = pipeline_run.node_runs.get(node_key="run_weights_qa")
     pipeline_run.refresh_from_db()
     assert node_run.status == ETLNodeRun.Status.FAILED
     assert "Missing input contracts" in node_run.error_message

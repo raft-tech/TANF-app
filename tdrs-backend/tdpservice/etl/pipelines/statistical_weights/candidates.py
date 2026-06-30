@@ -22,7 +22,7 @@ class WeightCandidate:
 
 
 class WeightCandidateBuilder:
-    """Build and serialize statistical weight candidate rows."""
+    """Build statistical weight candidate rows."""
 
     def __init__(self, *, section: str):
         """Initialize candidate construction for the statistical weights section."""
@@ -83,37 +83,3 @@ class WeightCandidateBuilder:
             )
 
         return candidates
-
-    def to_payload(self, candidates: list[WeightCandidate]) -> list[dict]:
-        """Return candidates as a JSON-stable payload."""
-        return [
-            {
-                "fiscal_year": candidate.fiscal_year,
-                "reporting_month": candidate.reporting_month,
-                "program": candidate.program,
-                "section": candidate.section,
-                "stt_code": candidate.stt_code,
-                "stratum": candidate.stratum,
-                "case_count": candidate.case_count,
-                "cases": candidate.cases,
-                "weight": str(candidate.weight),
-            }
-            for candidate in candidates
-        ]
-
-    def from_payload(self, payload: list[dict]) -> list[WeightCandidate]:
-        """Return candidate dataclasses from a JSON-stable payload."""
-        return [
-            WeightCandidate(
-                fiscal_year=int(row["fiscal_year"]),
-                reporting_month=int(row["reporting_month"]),
-                program=row["program"],
-                section=row["section"],
-                stt_code=row["stt_code"],
-                stratum=row["stratum"],
-                case_count=int(row["case_count"]),
-                cases=int(row["cases"]),
-                weight=Decimal(str(row["weight"])),
-            )
-            for row in payload
-        ]

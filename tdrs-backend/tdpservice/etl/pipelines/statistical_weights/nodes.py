@@ -3,12 +3,7 @@
 from django.db import transaction
 
 from tdpservice.etl.artifacts import upsert_table_dataset_artifact
-from tdpservice.etl.models import (
-    StatisticalWeightCandidate,
-    StatisticalWeightsActiveFamilyCount,
-    StatisticalWeightsAggregateCaseCount,
-    StatisticalWeightsStratumCaseCount,
-)
+from tdpservice.etl.models import StatisticalWeightsCaseCount
 from tdpservice.etl.notifications import send_statistical_weights_notification
 from tdpservice.etl.pipelines.base import NodeResult, PipelineNode
 from tdpservice.etl.pipelines.sources import SOURCE_DATAFILE_IDS_KEY
@@ -35,7 +30,11 @@ class StatisticalWeightsArtifactStore:
         "s1": "statistical_weights.s1",
         "s3": "statistical_weights.s3",
         "s4": "statistical_weights.s4",
-        "candidates": "statistical_weights.candidates",
+    }
+    count_kinds = {
+        "s1": StatisticalWeightsCaseCount.CountKind.ACTIVE_FAMILY,
+        "s3": StatisticalWeightsCaseCount.CountKind.AGGREGATE_CASE,
+        "s4": StatisticalWeightsCaseCount.CountKind.STRATUM_CASE,
     }
 
     def __init__(self, *, intermediate_keys: dict[str, str]):
@@ -50,19 +49,19 @@ class StatisticalWeightsArtifactStore:
     ):
         """Replace and manifest s1 active-family count rows."""
         objects = [
-            StatisticalWeightsActiveFamilyCount(
+            StatisticalWeightsCaseCount(
                 pipeline_run=pipeline_run,
+                count_kind=self.count_kinds["s1"],
                 stt_code=row["stt_code"],
                 reporting_month=row["reporting_month"],
                 stratum=row["stratum"],
-                case_count=row["case_count"],
+                count=row["case_count"],
             )
             for row in rows
         ]
         return self._replace_rows(
             pipeline_run=pipeline_run,
             key_name="s1",
-            model=StatisticalWeightsActiveFamilyCount,
             objects=objects,
             metadata=metadata,
         )
@@ -75,18 +74,18 @@ class StatisticalWeightsArtifactStore:
     ):
         """Replace and manifest s3 aggregate case count rows."""
         objects = [
-            StatisticalWeightsAggregateCaseCount(
+            StatisticalWeightsCaseCount(
                 pipeline_run=pipeline_run,
+                count_kind=self.count_kinds["s3"],
                 stt_code=row["stt_code"],
                 reporting_month=row["reporting_month"],
-                case_count=row["case_count"],
+                count=row["case_count"],
             )
             for row in rows
         ]
         return self._replace_rows(
             pipeline_run=pipeline_run,
             key_name="s3",
-            model=StatisticalWeightsAggregateCaseCount,
             objects=objects,
             metadata=metadata,
         )
@@ -99,49 +98,19 @@ class StatisticalWeightsArtifactStore:
     ):
         """Replace and manifest s4 stratum case count rows."""
         objects = [
-            StatisticalWeightsStratumCaseCount(
+            StatisticalWeightsCaseCount(
                 pipeline_run=pipeline_run,
+                count_kind=self.count_kinds["s4"],
                 stt_code=row["stt_code"],
                 reporting_month=row["reporting_month"],
                 stratum=row["stratum"],
-                cases=row["cases"],
+                count=row["cases"],
             )
             for row in rows
         ]
         return self._replace_rows(
             pipeline_run=pipeline_run,
             key_name="s4",
-            model=StatisticalWeightsStratumCaseCount,
-            objects=objects,
-            metadata=metadata,
-        )
-
-    def write_candidates(
-        self,
-        pipeline_run,
-        candidates: list[WeightCandidate],
-        metadata: dict | None = None,
-    ):
-        """Replace and manifest candidate statistical weight rows."""
-        objects = [
-            StatisticalWeightCandidate(
-                pipeline_run=pipeline_run,
-                fiscal_year=candidate.fiscal_year,
-                reporting_month=candidate.reporting_month,
-                program=candidate.program,
-                section=candidate.section,
-                stt_code=candidate.stt_code,
-                stratum=candidate.stratum,
-                case_count=candidate.case_count,
-                cases=candidate.cases,
-                weight=candidate.weight,
-            )
-            for candidate in candidates
-        ]
-        return self._replace_rows(
-            pipeline_run=pipeline_run,
-            key_name="candidates",
-            model=StatisticalWeightCandidate,
             objects=objects,
             metadata=metadata,
         )
@@ -149,54 +118,54 @@ class StatisticalWeightsArtifactStore:
     def active_family_count_rows(self, context) -> list[dict]:
         """Return s1 rows from the table-backed artifact."""
         self._artifact(context, "s1")
-        return list(
-            StatisticalWeightsActiveFamilyCount.objects.filter(
-                pipeline_run=context.pipeline_run
+        return [
+            {
+                "stt_code": row.stt_code,
+                "reporting_month": row.reporting_month,
+                "stratum": row.stratum,
+                "case_count": row.count,
+            }
+            for row in (
+                StatisticalWeightsCaseCount.objects.filter(
+                    pipeline_run=context.pipeline_run,
+                    count_kind=self.count_kinds["s1"],
+                ).order_by("stt_code", "reporting_month", "stratum")
             )
-            .order_by("stt_code", "reporting_month", "stratum")
-            .values("stt_code", "reporting_month", "stratum", "case_count")
-        )
+        ]
 
     def aggregate_case_count_rows(self, context) -> list[dict]:
         """Return s3 rows from the table-backed artifact."""
         self._artifact(context, "s3")
-        return list(
-            StatisticalWeightsAggregateCaseCount.objects.filter(
-                pipeline_run=context.pipeline_run
+        return [
+            {
+                "stt_code": row.stt_code,
+                "reporting_month": row.reporting_month,
+                "case_count": row.count,
+            }
+            for row in (
+                StatisticalWeightsCaseCount.objects.filter(
+                    pipeline_run=context.pipeline_run,
+                    count_kind=self.count_kinds["s3"],
+                ).order_by("stt_code", "reporting_month")
             )
-            .order_by("stt_code", "reporting_month")
-            .values("stt_code", "reporting_month", "case_count")
-        )
+        ]
 
     def stratum_case_count_rows(self, context) -> list[dict]:
         """Return s4 rows from the table-backed artifact."""
         self._artifact(context, "s4")
-        return list(
-            StatisticalWeightsStratumCaseCount.objects.filter(
-                pipeline_run=context.pipeline_run
-            )
-            .order_by("stt_code", "reporting_month", "stratum")
-            .values("stt_code", "reporting_month", "stratum", "cases")
-        )
-
-    def candidates(self, context) -> list[WeightCandidate]:
-        """Return candidate rows from the table-backed artifact."""
-        self._artifact(context, "candidates")
         return [
-            WeightCandidate(
-                fiscal_year=row.fiscal_year,
-                reporting_month=row.reporting_month,
-                program=row.program,
-                section=row.section,
-                stt_code=row.stt_code,
-                stratum=row.stratum,
-                case_count=row.case_count,
-                cases=row.cases,
-                weight=row.weight,
+            {
+                "stt_code": row.stt_code,
+                "reporting_month": row.reporting_month,
+                "stratum": row.stratum,
+                "cases": row.count,
+            }
+            for row in (
+                StatisticalWeightsCaseCount.objects.filter(
+                    pipeline_run=context.pipeline_run,
+                    count_kind=self.count_kinds["s4"],
+                ).order_by("stt_code", "reporting_month", "stratum")
             )
-            for row in StatisticalWeightCandidate.objects.filter(
-                pipeline_run=context.pipeline_run
-            ).order_by("stt_code", "reporting_month", "stratum")
         ]
 
     def _replace_rows(
@@ -204,21 +173,25 @@ class StatisticalWeightsArtifactStore:
         *,
         pipeline_run,
         key_name: str,
-        model,
         objects: list,
         metadata: dict | None,
     ):
         """Replace table rows and upsert the matching artifact manifest."""
+        count_kind = self.count_kinds[key_name]
+        artifact_metadata = {"count_kind": count_kind.value, **(metadata or {})}
         with transaction.atomic():
-            model.objects.filter(pipeline_run=pipeline_run).delete()
-            model.objects.bulk_create(objects)
+            StatisticalWeightsCaseCount.objects.filter(
+                pipeline_run=pipeline_run,
+                count_kind=count_kind,
+            ).delete()
+            StatisticalWeightsCaseCount.objects.bulk_create(objects)
             return upsert_table_dataset_artifact(
                 pipeline_run=pipeline_run,
                 key=self.intermediate_keys[key_name],
-                model=model,
+                model=StatisticalWeightsCaseCount,
                 schema_key=self.schema_keys[key_name],
                 row_count=len(objects),
-                metadata=metadata,
+                metadata=artifact_metadata,
             )
 
     def _artifact(self, context, key_name: str):
@@ -283,29 +256,22 @@ class StatisticalWeightsNodes:
                 output_contracts=(self.intermediate_keys["s4"],),
             ),
             PipelineNode(
-                key="build_weight_candidates",
-                implementation=self.build_weight_candidates,
-                input_contracts=(
-                    self.intermediate_keys["s1"],
-                    self.intermediate_keys["s3"],
-                    self.intermediate_keys["s4"],
-                ),
-                output_contracts=(self.intermediate_keys["candidates"],),
-            ),
-            PipelineNode(
                 key="run_weights_qa",
                 implementation=self.run_weights_qa,
                 input_contracts=(
                     self.intermediate_keys["s1"],
                     self.intermediate_keys["s3"],
                     self.intermediate_keys["s4"],
-                    self.intermediate_keys["candidates"],
                 ),
             ),
             PipelineNode(
                 key="publish_weights",
                 implementation=self.publish_weights,
-                input_contracts=(self.intermediate_keys["candidates"],),
+                input_contracts=(
+                    self.intermediate_keys["s1"],
+                    self.intermediate_keys["s3"],
+                    self.intermediate_keys["s4"],
+                ),
                 output_contracts=(self.output_key,),
             ),
             PipelineNode(
@@ -415,34 +381,47 @@ class StatisticalWeightsNodes:
             metadata=metadata,
         )
 
-    def build_weight_candidates(self, context) -> NodeResult:
-        """Build and persist candidate statistical weight rows."""
-        candidates = self.candidates.build(
+    def build_candidates(
+        self,
+        context,
+        *,
+        s1_rows: list[dict] | None = None,
+        s3_rows: list[dict] | None = None,
+        s4_rows: list[dict] | None = None,
+    ) -> list[WeightCandidate]:
+        """Build candidate statistical weight rows from persisted aggregates."""
+        if s1_rows is None:
+            s1_rows = self.artifacts.active_family_count_rows(context)
+        if s3_rows is None:
+            s3_rows = self.artifacts.aggregate_case_count_rows(context)
+        if s4_rows is None:
+            s4_rows = self.artifacts.stratum_case_count_rows(context)
+        return self.candidates.build(
             self.fiscal_year(context),
-            self.artifacts.active_family_count_rows(context),
-            self.artifacts.aggregate_case_count_rows(context),
-            self.artifacts.stratum_case_count_rows(context),
+            s1_rows,
+            s3_rows,
+            s4_rows,
             self.program(context),
-        )
-        self.artifacts.write_candidates(
-            context.pipeline_run,
-            candidates,
-            metadata={"candidate_count": len(candidates)},
-        )
-        return NodeResult(
-            output_row_count=len(candidates),
-            metadata={"candidate_count": len(candidates)},
         )
 
     def run_weights_qa(self, context) -> NodeResult:
         """Run and persist statistical weights QA checks."""
+        s1_rows = self.artifacts.active_family_count_rows(context)
+        s3_rows = self.artifacts.aggregate_case_count_rows(context)
+        s4_rows = self.artifacts.stratum_case_count_rows(context)
+        candidates = self.build_candidates(
+            context,
+            s1_rows=s1_rows,
+            s3_rows=s3_rows,
+            s4_rows=s4_rows,
+        )
         return self.qa.run(
             pipeline_run=context.pipeline_run,
             program=self.program(context),
-            s1_rows=self.artifacts.active_family_count_rows(context),
-            s3_rows=self.artifacts.aggregate_case_count_rows(context),
-            s4_rows=self.artifacts.stratum_case_count_rows(context),
-            candidates=self.artifacts.candidates(context),
+            s1_rows=s1_rows,
+            s3_rows=s3_rows,
+            s4_rows=s4_rows,
+            candidates=candidates,
         )
 
     def publish_weights(self, context) -> NodeResult:
@@ -452,7 +431,7 @@ class StatisticalWeightsNodes:
             output_scope=context.output_scope,
             fiscal_year=self.fiscal_year(context),
             program=self.program(context),
-            candidates=self.artifacts.candidates(context),
+            candidates=self.build_candidates(context),
         )
 
     def notify_weights_run(self, context) -> NodeResult:

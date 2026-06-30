@@ -33,7 +33,6 @@ class StatisticalWeightsPipeline(PipelineDefinition):
         "s1": "weights.s1",
         "s3": "weights.s3",
         "s4": "weights.s4",
-        "candidates": "statistical_weights.candidates",
     }
     output_key = "statistical_weights"
     supported_program_types = (
@@ -99,10 +98,6 @@ class StatisticalWeightsPipeline(PipelineDefinition):
         """Build the Celery Canvas for the statistical weights DAG."""
         from tdpservice.etl.tasks import execute_node, finalize_pipeline_run
 
-        build_weight_candidates_signature = execute_node.si(
-            pipeline_run_id,
-            "build_weight_candidates",
-        )
         downstream = chain(
             execute_node.si(pipeline_run_id, "run_weights_qa"),
             execute_node.si(pipeline_run_id, "publish_weights"),
@@ -110,7 +105,6 @@ class StatisticalWeightsPipeline(PipelineDefinition):
             finalize_pipeline_run.si(pipeline_run_id),
         )
         downstream.set(immutable=True)
-        build_weight_candidates_signature.link(downstream)
 
         return chain(
             execute_node.si(pipeline_run_id, "validate_parameters"),
@@ -129,7 +123,7 @@ class StatisticalWeightsPipeline(PipelineDefinition):
                         "extract_stratum_case_counts",
                     ),
                 ],
-                build_weight_candidates_signature,
+                downstream,
             ),
         )
 

@@ -15,10 +15,7 @@ from tdpservice.etl.models import (
     ETLPipelineRun,
     ETLQAResult,
     StatisticalWeight,
-    StatisticalWeightCandidate,
-    StatisticalWeightsActiveFamilyCount,
-    StatisticalWeightsAggregateCaseCount,
-    StatisticalWeightsStratumCaseCount,
+    StatisticalWeightsCaseCount,
 )
 
 
@@ -170,69 +167,20 @@ class ETLArtifactAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     search_fields = ("key", "reference", "schema_key")
 
 
-@admin.register(StatisticalWeightsActiveFamilyCount)
-class StatisticalWeightsActiveFamilyCountAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
-    """Admin view for statistical weights s1 rows."""
+@admin.register(StatisticalWeightsCaseCount)
+class StatisticalWeightsCaseCountAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
+    """Admin view for statistical weights aggregate count rows."""
 
     list_display = (
         "id",
         "pipeline_run",
+        "count_kind",
         "stt_code",
         "reporting_month",
         "stratum",
-        "case_count",
+        "count",
     )
-    list_filter = ("reporting_month", "stt_code", "stratum")
-    search_fields = ("stt_code", "stratum")
-
-
-@admin.register(StatisticalWeightsAggregateCaseCount)
-class StatisticalWeightsAggregateCaseCountAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
-    """Admin view for statistical weights s3 rows."""
-
-    list_display = (
-        "id",
-        "pipeline_run",
-        "stt_code",
-        "reporting_month",
-        "case_count",
-    )
-    list_filter = ("reporting_month", "stt_code")
-    search_fields = ("stt_code",)
-
-
-@admin.register(StatisticalWeightsStratumCaseCount)
-class StatisticalWeightsStratumCaseCountAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
-    """Admin view for statistical weights s4 rows."""
-
-    list_display = (
-        "id",
-        "pipeline_run",
-        "stt_code",
-        "reporting_month",
-        "stratum",
-        "cases",
-    )
-    list_filter = ("reporting_month", "stt_code", "stratum")
-    search_fields = ("stt_code", "stratum")
-
-
-@admin.register(StatisticalWeightCandidate)
-class StatisticalWeightCandidateAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
-    """Admin view for statistical weight candidate rows."""
-
-    list_display = (
-        "id",
-        "pipeline_run",
-        "fiscal_year",
-        "reporting_month",
-        "program",
-        "section",
-        "stt_code",
-        "stratum",
-        "weight",
-    )
-    list_filter = ("fiscal_year", "program", "section", "reporting_month")
+    list_filter = ("count_kind", "reporting_month", "stt_code", "stratum")
     search_fields = ("stt_code", "stratum")
 
 

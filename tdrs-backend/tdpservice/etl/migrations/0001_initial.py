@@ -18,11 +18,8 @@ ETL_MODELS = (
     "etlnoderun",
     "etlpipelinerun",
     "etlqaresult",
-    "statisticalweightcandidate",
     "statisticalweight",
-    "statisticalweightsactivefamilycount",
-    "statisticalweightsaggregatecasecount",
-    "statisticalweightsstratumcasecount",
+    "statisticalweightscasecount",
 )
 
 
@@ -368,7 +365,7 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.CreateModel(
-            name="StatisticalWeightsActiveFamilyCount",
+            name="StatisticalWeightsCaseCount",
             fields=[
                 (
                     "id",
@@ -379,145 +376,26 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("stt_code", models.CharField(max_length=3)),
-                ("reporting_month", models.PositiveIntegerField()),
-                ("stratum", models.CharField(max_length=2)),
-                ("case_count", models.PositiveIntegerField()),
                 (
-                    "pipeline_run",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="statistical_weight_active_family_counts",
-                        to="etl.etlpipelinerun",
-                    ),
-                ),
-            ],
-            options={
-                "ordering": [
-                    "pipeline_run_id",
-                    "stt_code",
-                    "reporting_month",
-                    "stratum",
-                ],
-                "indexes": [
-                    models.Index(
-                        fields=["pipeline_run", "reporting_month"],
-                        name="sw_s1_run_month_idx",
-                    )
-                ],
-            },
-        ),
-        migrations.CreateModel(
-            name="StatisticalWeightsAggregateCaseCount",
-            fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                ("stt_code", models.CharField(max_length=3)),
-                ("reporting_month", models.PositiveIntegerField()),
-                ("case_count", models.PositiveIntegerField()),
-                (
-                    "pipeline_run",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="statistical_weight_aggregate_case_counts",
-                        to="etl.etlpipelinerun",
-                    ),
-                ),
-            ],
-            options={
-                "ordering": ["pipeline_run_id", "stt_code", "reporting_month"],
-                "indexes": [
-                    models.Index(
-                        fields=["pipeline_run", "reporting_month"],
-                        name="sw_s3_run_month_idx",
-                    )
-                ],
-            },
-        ),
-        migrations.CreateModel(
-            name="StatisticalWeightsStratumCaseCount",
-            fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                ("stt_code", models.CharField(max_length=3)),
-                ("reporting_month", models.PositiveIntegerField()),
-                ("stratum", models.CharField(max_length=2)),
-                ("cases", models.PositiveIntegerField()),
-                (
-                    "pipeline_run",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="statistical_weight_stratum_case_counts",
-                        to="etl.etlpipelinerun",
-                    ),
-                ),
-            ],
-            options={
-                "ordering": [
-                    "pipeline_run_id",
-                    "stt_code",
-                    "reporting_month",
-                    "stratum",
-                ],
-                "indexes": [
-                    models.Index(
-                        fields=["pipeline_run", "reporting_month"],
-                        name="sw_s4_run_month_idx",
-                    )
-                ],
-            },
-        ),
-        migrations.CreateModel(
-            name="StatisticalWeightCandidate",
-            fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                ("fiscal_year", models.PositiveIntegerField()),
-                ("reporting_month", models.PositiveIntegerField()),
-                (
-                    "program",
+                    "count_kind",
                     models.CharField(
                         choices=[
-                            ("TAN", "Tanf"),
-                            ("SSP", "Ssp"),
-                            ("TRIBAL", "Tribal"),
-                            ("FRA", "Fra"),
+                            ("S1", "Active Family"),
+                            ("S3", "Aggregate Case"),
+                            ("S4", "Stratum Case"),
                         ],
-                        max_length=16,
+                        max_length=2,
                     ),
                 ),
-                ("section", models.CharField(max_length=16)),
                 ("stt_code", models.CharField(max_length=3)),
-                ("stratum", models.CharField(max_length=2)),
-                ("case_count", models.PositiveIntegerField()),
-                ("cases", models.PositiveIntegerField()),
-                ("weight", models.DecimalField(decimal_places=4, max_digits=12)),
+                ("reporting_month", models.PositiveIntegerField()),
+                ("stratum", models.CharField(blank=True, default="", max_length=2)),
+                ("count", models.PositiveIntegerField()),
                 (
                     "pipeline_run",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        related_name="statistical_weight_candidates",
+                        related_name="statistical_weight_case_counts",
                         to="etl.etlpipelinerun",
                     ),
                 ),
@@ -525,15 +403,25 @@ class Migration(migrations.Migration):
             options={
                 "ordering": [
                     "pipeline_run_id",
+                    "count_kind",
                     "stt_code",
                     "reporting_month",
                     "stratum",
                 ],
                 "indexes": [
                     models.Index(
-                        fields=["pipeline_run", "program", "section"],
-                        name="sw_candidate_scope_idx",
-                    )
+                        fields=["pipeline_run", "count_kind", "reporting_month"],
+                        name="sw_case_kind_month_idx",
+                    ),
+                    models.Index(
+                        fields=[
+                            "pipeline_run",
+                            "count_kind",
+                            "stt_code",
+                            "reporting_month",
+                        ],
+                        name="sw_case_kind_pair_idx",
+                    ),
                 ],
             },
         ),
@@ -624,39 +512,16 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AddConstraint(
-            model_name="statisticalweightsactivefamilycount",
-            constraint=models.UniqueConstraint(
-                fields=("pipeline_run", "stt_code", "reporting_month", "stratum"),
-                name="unique_sw_active_family_count",
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="statisticalweightsaggregatecasecount",
-            constraint=models.UniqueConstraint(
-                fields=("pipeline_run", "stt_code", "reporting_month"),
-                name="unique_sw_aggregate_case_count",
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="statisticalweightsstratumcasecount",
-            constraint=models.UniqueConstraint(
-                fields=("pipeline_run", "stt_code", "reporting_month", "stratum"),
-                name="unique_sw_stratum_case_count",
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="statisticalweightcandidate",
+            model_name="statisticalweightscasecount",
             constraint=models.UniqueConstraint(
                 fields=(
                     "pipeline_run",
-                    "fiscal_year",
-                    "reporting_month",
-                    "program",
-                    "section",
+                    "count_kind",
                     "stt_code",
+                    "reporting_month",
                     "stratum",
                 ),
-                name="unique_statistical_weight_candidate",
+                name="unique_sw_case_count",
             ),
         ),
         migrations.RunPython(create_perms, reverse_code=migrations.RunPython.noop),

@@ -5,7 +5,12 @@ from unittest.mock import patch
 import pytest
 
 from tdpservice.data_files.models import DataFile
-from tdpservice.etl.models import ETLArtifact, ETLPipelineRun, StatisticalWeight
+from tdpservice.etl.models import (
+    ETLArtifact,
+    ETLPipelineRun,
+    StatisticalWeight,
+    StatisticalWeightsCaseCount,
+)
 from tdpservice.etl.runner import PipelineRunCreator
 
 
@@ -94,7 +99,7 @@ def test_pipeline_run_detail_includes_final_output(api_client, digit_team):
         key="weights.s1",
         artifact_kind=ETLArtifact.ArtifactKind.DATASET,
         storage_kind=ETLArtifact.StorageKind.POSTGRES_TABLE,
-        reference="etl_statisticalweightsactivefamilycount",
+        reference=StatisticalWeightsCaseCount._meta.db_table,
         schema_key="statistical_weights.s1",
         row_count=2,
     )

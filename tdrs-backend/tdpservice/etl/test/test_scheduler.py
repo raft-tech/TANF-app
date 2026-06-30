@@ -40,7 +40,7 @@ def test_schedule_statistical_weights_run_is_idempotent_for_month():
         "fiscal_year": 2026,
         "program": DataFile.ProgramType.TANF,
     }
-    assert pipeline_run.node_runs.count() == 8
+    assert pipeline_run.node_runs.count() == 7
 
     assert schedule_statistical_weights_run(date(2026, 6, 1)) is None
 
