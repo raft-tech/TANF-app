@@ -8,12 +8,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from tdpservice.etl.exceptions import ActivePipelineRunError, PipelineValidationError
-from tdpservice.etl.models import (
-    ETLIntermediateOutput,
-    ETLNodeRun,
-    ETLOutput,
-    ETLPipelineRun,
-)
+from tdpservice.etl.models import ETLArtifact, ETLNodeRun, ETLPipelineRun
 from tdpservice.etl.pipelines.base import NodeResult, PipelineDefinition, PipelineNode
 from tdpservice.etl.registry import get_pipeline_definition
 
@@ -29,8 +24,7 @@ class NodeContext:
 
     pipeline_run: ETLPipelineRun
     node: PipelineNode
-    upstream_outputs: dict[str, ETLOutput]
-    intermediate_outputs: dict[str, ETLIntermediateOutput]
+    artifacts: dict[str, ETLArtifact]
 
     @property
     def parameters(self) -> dict:
@@ -268,9 +262,8 @@ class NodeExecutor:
 
     def _build_context(self) -> NodeContext:
         """Build a validated node context from persisted upstream artifacts."""
-        upstream_outputs = self._upstream_outputs()
-        intermediate_outputs = self._intermediate_outputs()
-        available_contracts = set(upstream_outputs) | set(intermediate_outputs)
+        artifacts = self._artifacts()
+        available_contracts = set(artifacts)
         missing_contracts = set(self.node.input_contracts) - available_contracts
         if missing_contracts:
             raise PipelineValidationError(
@@ -281,24 +274,14 @@ class NodeExecutor:
         return NodeContext(
             pipeline_run=self.pipeline_run,
             node=self.node,
-            upstream_outputs=upstream_outputs,
-            intermediate_outputs=intermediate_outputs,
+            artifacts=artifacts,
         )
 
-    def _upstream_outputs(self) -> dict[str, ETLOutput]:
-        """Return published outputs already produced by this run."""
+    def _artifacts(self) -> dict[str, ETLArtifact]:
+        """Return artifacts already produced by this run."""
         return {
-            output.output_key: output
-            for output in self.pipeline_run.outputs.filter(published=True).order_by(
-                "id"
-            )
-        }
-
-    def _intermediate_outputs(self) -> dict[str, ETLIntermediateOutput]:
-        """Return intermediate outputs already produced by this run."""
-        return {
-            output.output_key: output
-            for output in self.pipeline_run.intermediate_outputs.all().order_by("id")
+            artifact.key: artifact
+            for artifact in self.pipeline_run.artifacts.all().order_by("id")
         }
 
     def _mark_succeeded(

@@ -8,7 +8,7 @@ import pytest
 
 from tdpservice.data_files.models import DataFile
 from tdpservice.etl.exceptions import ActivePipelineRunError, PipelineValidationError
-from tdpservice.etl.models import ETLNodeRun, ETLPipelineRun
+from tdpservice.etl.models import ETLArtifact, ETLNodeRun, ETLPipelineRun
 from tdpservice.etl.pipelines.base import NodeResult, PipelineDefinition, PipelineNode
 from tdpservice.etl.registry import get_pipeline_definition
 from tdpservice.etl.runner import NodeExecutor, PipelineRunCreator, output_scope_key
@@ -302,7 +302,7 @@ def test_execute_node_ignores_already_succeeded_node():
 
 @pytest.mark.django_db
 def test_execute_node_fails_missing_input_contracts():
-    """Nodes fail before implementation when declared intermediate inputs are missing."""
+    """Nodes fail before implementation when declared artifact inputs are missing."""
     pipeline_run = _create_pipeline_run()
     pipeline_run.node_runs.filter(
         node_key__in=[
@@ -324,3 +324,49 @@ def test_execute_node_fails_missing_input_contracts():
     assert node_run.status == ETLNodeRun.Status.FAILED
     assert "Missing input contracts" in node_run.error_message
     assert pipeline_run.status == ETLPipelineRun.Status.FAILED
+
+
+@pytest.mark.django_db
+def test_execute_node_accepts_present_artifact_contract():
+    """A declared artifact manifest satisfies a node input contract."""
+    calls = []
+
+    def implementation(context):
+        calls.append(sorted(context.artifacts))
+        return NodeResult(output_row_count=1)
+
+    definition = _definition(
+        [PipelineNode("consume", implementation, input_contracts=("artifact.input",))]
+    )
+    parameters = {"fiscal_year": 2026}
+    scope = definition.output_scope(parameters)
+    pipeline_run = ETLPipelineRun.objects.create(
+        pipeline_key=definition.key,
+        pipeline_version=definition.version,
+        status=ETLPipelineRun.Status.RUNNING,
+        parameters=parameters,
+        output_scope=scope,
+        output_scope_key=output_scope_key(scope),
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+    ETLNodeRun.objects.create(pipeline_run=pipeline_run, node_key="consume")
+    ETLArtifact.objects.create(
+        pipeline_run=pipeline_run,
+        key="artifact.input",
+        artifact_kind=ETLArtifact.ArtifactKind.DATASET,
+        storage_kind=ETLArtifact.StorageKind.POSTGRES_TABLE,
+        reference="example_table",
+        schema_key="example.input",
+        row_count=1,
+    )
+
+    with patch(
+        "tdpservice.etl.runner.get_pipeline_definition", return_value=definition
+    ):
+        result = NodeExecutor.for_run_id(pipeline_run.id, "consume").execute()
+
+    assert result == {
+        "node_key": "consume",
+        "status": ETLNodeRun.Status.SUCCEEDED,
+    }
+    assert calls == [["artifact.input"]]

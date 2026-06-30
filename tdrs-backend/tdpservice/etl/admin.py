@@ -10,12 +10,15 @@ from django.utils.html import format_html
 
 from tdpservice.core.utils import ReadOnlyAdminMixin
 from tdpservice.etl.models import (
-    ETLIntermediateOutput,
+    ETLArtifact,
     ETLNodeRun,
-    ETLOutput,
     ETLPipelineRun,
     ETLQAResult,
     StatisticalWeight,
+    StatisticalWeightCandidate,
+    StatisticalWeightsActiveFamilyCount,
+    StatisticalWeightsAggregateCaseCount,
+    StatisticalWeightsStratumCaseCount,
 )
 
 
@@ -52,16 +55,22 @@ class ETLPipelineRunAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
             label=self._final_output_label(output),
         )
 
-    def _final_output_url(self, pipeline_run: ETLPipelineRun, output: ETLOutput) -> str:
-        if output.output_kind == ETLOutput.OutputKind.TABLE:
+    def _final_output_url(
+        self,
+        pipeline_run: ETLPipelineRun,
+        output: ETLArtifact,
+    ) -> str:
+        if output.storage_kind == ETLArtifact.StorageKind.POSTGRES_TABLE:
             table_url = self._table_output_url(pipeline_run, output)
             if table_url:
                 return table_url
 
-        return reverse("admin:etl_etloutput_change", args=[output.id])
+        return reverse("admin:etl_etlartifact_change", args=[output.id])
 
     def _table_output_url(
-        self, pipeline_run: ETLPipelineRun, output: ETLOutput
+        self,
+        pipeline_run: ETLPipelineRun,
+        output: ETLArtifact,
     ) -> str | None:
         model = self._model_for_db_table(output.reference)
         if model is None:
@@ -83,7 +92,7 @@ class ETLPipelineRunAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         self,
         model: type[models.Model],
         pipeline_run: ETLPipelineRun,
-        output: ETLOutput,
+        output: ETLArtifact,
     ) -> dict[str, object]:
         scope = {**pipeline_run.output_scope, **(output.metadata or {})}
         field_names = {
@@ -94,8 +103,8 @@ class ETLPipelineRunAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
             for key, value in scope.items()
             if key in field_names and value not in (None, "")
         }
-        if "version" in field_names and output.output_version is not None:
-            filters["version__exact"] = output.output_version
+        if "version" in field_names and output.version is not None:
+            filters["version__exact"] = output.version
         return filters
 
     def _model_for_db_table(self, db_table: str) -> type[models.Model] | None:
@@ -104,9 +113,9 @@ class ETLPipelineRunAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
                 return model
         return None
 
-    def _final_output_label(self, output: ETLOutput) -> str:
-        version = f" v{output.output_version}" if output.output_version else ""
-        return f"{output.output_key}{version} ({output.row_count} rows)"
+    def _final_output_label(self, output: ETLArtifact) -> str:
+        version = f" v{output.version}" if output.version else ""
+        return f"{output.key}{version} ({output.row_count} rows)"
 
 
 @admin.register(ETLNodeRun)
@@ -134,30 +143,97 @@ class ETLQAResultAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     search_fields = ("check_key", "summary")
 
 
-@admin.register(ETLOutput)
-class ETLOutputAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
-    """Admin view for outputs."""
+@admin.register(ETLArtifact)
+class ETLArtifactAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
+    """Admin view for run-scoped ETL artifacts."""
 
     list_display = (
         "id",
         "pipeline_run",
-        "output_key",
-        "output_kind",
-        "output_version",
+        "key",
+        "artifact_role",
+        "artifact_kind",
+        "storage_kind",
+        "version",
         "row_count",
         "published",
+        "created_at",
     )
-    list_filter = ("output_key", "output_kind", "published")
-    search_fields = ("output_key", "reference")
+    list_filter = (
+        "key",
+        "artifact_role",
+        "artifact_kind",
+        "storage_kind",
+        "schema_key",
+        "published",
+    )
+    search_fields = ("key", "reference", "schema_key")
 
 
-@admin.register(ETLIntermediateOutput)
-class ETLIntermediateOutputAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
-    """Admin view for run-scoped intermediate outputs."""
+@admin.register(StatisticalWeightsActiveFamilyCount)
+class StatisticalWeightsActiveFamilyCountAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
+    """Admin view for statistical weights s1 rows."""
 
-    list_display = ("id", "pipeline_run", "output_key", "row_count", "created_at")
-    list_filter = ("output_key",)
-    search_fields = ("output_key",)
+    list_display = (
+        "id",
+        "pipeline_run",
+        "stt_code",
+        "reporting_month",
+        "stratum",
+        "case_count",
+    )
+    list_filter = ("reporting_month", "stt_code", "stratum")
+    search_fields = ("stt_code", "stratum")
+
+
+@admin.register(StatisticalWeightsAggregateCaseCount)
+class StatisticalWeightsAggregateCaseCountAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
+    """Admin view for statistical weights s3 rows."""
+
+    list_display = (
+        "id",
+        "pipeline_run",
+        "stt_code",
+        "reporting_month",
+        "case_count",
+    )
+    list_filter = ("reporting_month", "stt_code")
+    search_fields = ("stt_code",)
+
+
+@admin.register(StatisticalWeightsStratumCaseCount)
+class StatisticalWeightsStratumCaseCountAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
+    """Admin view for statistical weights s4 rows."""
+
+    list_display = (
+        "id",
+        "pipeline_run",
+        "stt_code",
+        "reporting_month",
+        "stratum",
+        "cases",
+    )
+    list_filter = ("reporting_month", "stt_code", "stratum")
+    search_fields = ("stt_code", "stratum")
+
+
+@admin.register(StatisticalWeightCandidate)
+class StatisticalWeightCandidateAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
+    """Admin view for statistical weight candidate rows."""
+
+    list_display = (
+        "id",
+        "pipeline_run",
+        "fiscal_year",
+        "reporting_month",
+        "program",
+        "section",
+        "stt_code",
+        "stratum",
+        "weight",
+    )
+    list_filter = ("fiscal_year", "program", "section", "reporting_month")
+    search_fields = ("stt_code", "stratum")
 
 
 @admin.register(StatisticalWeight)

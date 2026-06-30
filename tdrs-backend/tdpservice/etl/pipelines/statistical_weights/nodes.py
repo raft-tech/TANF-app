@@ -1,10 +1,19 @@
 """Celery node handlers for statistical weights."""
 
-from tdpservice.etl.models import ETLIntermediateOutput
+from django.db import transaction
+
+from tdpservice.etl.artifacts import upsert_table_dataset_artifact
+from tdpservice.etl.models import (
+    StatisticalWeightCandidate,
+    StatisticalWeightsActiveFamilyCount,
+    StatisticalWeightsAggregateCaseCount,
+    StatisticalWeightsStratumCaseCount,
+)
 from tdpservice.etl.notifications import send_statistical_weights_notification
 from tdpservice.etl.pipelines.base import NodeResult, PipelineNode
 from tdpservice.etl.pipelines.sources import SOURCE_DATAFILE_IDS_KEY
 from tdpservice.etl.pipelines.statistical_weights.candidates import (
+    WeightCandidate,
     WeightCandidateBuilder,
 )
 from tdpservice.etl.pipelines.statistical_weights.extractors import (
@@ -19,23 +28,202 @@ from tdpservice.etl.pipelines.statistical_weights.sources import (
 )
 
 
-class IntermediateOutputStore:
-    """Persist and read run-scoped intermediate payloads."""
+class StatisticalWeightsArtifactStore:
+    """Persist and read run-scoped statistical weights artifacts."""
 
-    def write(self, pipeline_run, output_key: str, payload: list[dict]):
-        """Persist a run-scoped intermediate output payload."""
-        return ETLIntermediateOutput.objects.update_or_create(
+    schema_keys = {
+        "s1": "statistical_weights.s1",
+        "s3": "statistical_weights.s3",
+        "s4": "statistical_weights.s4",
+        "candidates": "statistical_weights.candidates",
+    }
+
+    def __init__(self, *, intermediate_keys: dict[str, str]):
+        """Initialize the store with pipeline artifact keys."""
+        self.intermediate_keys = intermediate_keys
+
+    def write_active_family_counts(
+        self,
+        pipeline_run,
+        rows: list[dict],
+        metadata: dict | None = None,
+    ):
+        """Replace and manifest s1 active-family count rows."""
+        objects = [
+            StatisticalWeightsActiveFamilyCount(
+                pipeline_run=pipeline_run,
+                stt_code=row["stt_code"],
+                reporting_month=row["reporting_month"],
+                stratum=row["stratum"],
+                case_count=row["case_count"],
+            )
+            for row in rows
+        ]
+        return self._replace_rows(
             pipeline_run=pipeline_run,
-            output_key=output_key,
-            defaults={
-                "payload": payload,
-                "row_count": len(payload),
-            },
-        )[0]
+            key_name="s1",
+            model=StatisticalWeightsActiveFamilyCount,
+            objects=objects,
+            metadata=metadata,
+        )
 
-    def payload(self, context, output_key: str) -> list[dict]:
-        """Return a declared intermediate output payload."""
-        return context.intermediate_outputs[output_key].payload
+    def write_aggregate_case_counts(
+        self,
+        pipeline_run,
+        rows: list[dict],
+        metadata: dict | None = None,
+    ):
+        """Replace and manifest s3 aggregate case count rows."""
+        objects = [
+            StatisticalWeightsAggregateCaseCount(
+                pipeline_run=pipeline_run,
+                stt_code=row["stt_code"],
+                reporting_month=row["reporting_month"],
+                case_count=row["case_count"],
+            )
+            for row in rows
+        ]
+        return self._replace_rows(
+            pipeline_run=pipeline_run,
+            key_name="s3",
+            model=StatisticalWeightsAggregateCaseCount,
+            objects=objects,
+            metadata=metadata,
+        )
+
+    def write_stratum_case_counts(
+        self,
+        pipeline_run,
+        rows: list[dict],
+        metadata: dict | None = None,
+    ):
+        """Replace and manifest s4 stratum case count rows."""
+        objects = [
+            StatisticalWeightsStratumCaseCount(
+                pipeline_run=pipeline_run,
+                stt_code=row["stt_code"],
+                reporting_month=row["reporting_month"],
+                stratum=row["stratum"],
+                cases=row["cases"],
+            )
+            for row in rows
+        ]
+        return self._replace_rows(
+            pipeline_run=pipeline_run,
+            key_name="s4",
+            model=StatisticalWeightsStratumCaseCount,
+            objects=objects,
+            metadata=metadata,
+        )
+
+    def write_candidates(
+        self,
+        pipeline_run,
+        candidates: list[WeightCandidate],
+        metadata: dict | None = None,
+    ):
+        """Replace and manifest candidate statistical weight rows."""
+        objects = [
+            StatisticalWeightCandidate(
+                pipeline_run=pipeline_run,
+                fiscal_year=candidate.fiscal_year,
+                reporting_month=candidate.reporting_month,
+                program=candidate.program,
+                section=candidate.section,
+                stt_code=candidate.stt_code,
+                stratum=candidate.stratum,
+                case_count=candidate.case_count,
+                cases=candidate.cases,
+                weight=candidate.weight,
+            )
+            for candidate in candidates
+        ]
+        return self._replace_rows(
+            pipeline_run=pipeline_run,
+            key_name="candidates",
+            model=StatisticalWeightCandidate,
+            objects=objects,
+            metadata=metadata,
+        )
+
+    def active_family_count_rows(self, context) -> list[dict]:
+        """Return s1 rows from the table-backed artifact."""
+        self._artifact(context, "s1")
+        return list(
+            StatisticalWeightsActiveFamilyCount.objects.filter(
+                pipeline_run=context.pipeline_run
+            )
+            .order_by("stt_code", "reporting_month", "stratum")
+            .values("stt_code", "reporting_month", "stratum", "case_count")
+        )
+
+    def aggregate_case_count_rows(self, context) -> list[dict]:
+        """Return s3 rows from the table-backed artifact."""
+        self._artifact(context, "s3")
+        return list(
+            StatisticalWeightsAggregateCaseCount.objects.filter(
+                pipeline_run=context.pipeline_run
+            )
+            .order_by("stt_code", "reporting_month")
+            .values("stt_code", "reporting_month", "case_count")
+        )
+
+    def stratum_case_count_rows(self, context) -> list[dict]:
+        """Return s4 rows from the table-backed artifact."""
+        self._artifact(context, "s4")
+        return list(
+            StatisticalWeightsStratumCaseCount.objects.filter(
+                pipeline_run=context.pipeline_run
+            )
+            .order_by("stt_code", "reporting_month", "stratum")
+            .values("stt_code", "reporting_month", "stratum", "cases")
+        )
+
+    def candidates(self, context) -> list[WeightCandidate]:
+        """Return candidate rows from the table-backed artifact."""
+        self._artifact(context, "candidates")
+        return [
+            WeightCandidate(
+                fiscal_year=row.fiscal_year,
+                reporting_month=row.reporting_month,
+                program=row.program,
+                section=row.section,
+                stt_code=row.stt_code,
+                stratum=row.stratum,
+                case_count=row.case_count,
+                cases=row.cases,
+                weight=row.weight,
+            )
+            for row in StatisticalWeightCandidate.objects.filter(
+                pipeline_run=context.pipeline_run
+            ).order_by("stt_code", "reporting_month", "stratum")
+        ]
+
+    def _replace_rows(
+        self,
+        *,
+        pipeline_run,
+        key_name: str,
+        model,
+        objects: list,
+        metadata: dict | None,
+    ):
+        """Replace table rows and upsert the matching artifact manifest."""
+        with transaction.atomic():
+            model.objects.filter(pipeline_run=pipeline_run).delete()
+            model.objects.bulk_create(objects)
+            return upsert_table_dataset_artifact(
+                pipeline_run=pipeline_run,
+                key=self.intermediate_keys[key_name],
+                model=model,
+                schema_key=self.schema_keys[key_name],
+                row_count=len(objects),
+                metadata=metadata,
+            )
+
+    def _artifact(self, context, key_name: str):
+        """Return a declared artifact from node context."""
+        return context.artifacts[self.intermediate_keys[key_name]]
 
 
 class StatisticalWeightsNodes:
@@ -53,7 +241,7 @@ class StatisticalWeightsNodes:
         candidates: WeightCandidateBuilder | None = None,
         qa: StatisticalWeightsQA | None = None,
         publisher: StatisticalWeightsPublisher | None = None,
-        outputs: IntermediateOutputStore | None = None,
+        artifacts: StatisticalWeightsArtifactStore | None = None,
     ):
         """Initialize node handlers with their domain services."""
         self.section = section
@@ -68,7 +256,9 @@ class StatisticalWeightsNodes:
             section=section,
             output_key=output_key,
         )
-        self.outputs = outputs or IntermediateOutputStore()
+        self.artifacts = artifacts or StatisticalWeightsArtifactStore(
+            intermediate_keys=intermediate_keys,
+        )
 
     def as_pipeline_nodes(self) -> tuple[PipelineNode, ...]:
         """Return runner node declarations for this pipeline."""
@@ -161,15 +351,20 @@ class StatisticalWeightsNodes:
         ]
         source_count = self.extractor.active_queryset(datafile_ids, program).count()
         rows = self.extractor.active_family_counts(datafile_ids, program)
-        self.outputs.write(context.pipeline_run, self.intermediate_keys["s1"], rows)
+        metadata = {
+            "dataset": "s1",
+            "program": program,
+            "source_datafile_ids": datafile_ids,
+        }
+        self.artifacts.write_active_family_counts(
+            context.pipeline_run,
+            rows,
+            metadata=metadata,
+        )
         return NodeResult(
             input_row_count=source_count,
             output_row_count=len(rows),
-            metadata={
-                "dataset": "s1",
-                "program": program,
-                "source_datafile_ids": datafile_ids,
-            },
+            metadata=metadata,
         )
 
     def extract_aggregate_case_counts(self, context) -> NodeResult:
@@ -180,15 +375,20 @@ class StatisticalWeightsNodes:
         ]
         source_count = self.extractor.aggregate_queryset(datafile_ids, program).count()
         rows = self.extractor.aggregate_case_counts(datafile_ids, program)
-        self.outputs.write(context.pipeline_run, self.intermediate_keys["s3"], rows)
+        metadata = {
+            "dataset": "s3",
+            "program": program,
+            "source_datafile_ids": datafile_ids,
+        }
+        self.artifacts.write_aggregate_case_counts(
+            context.pipeline_run,
+            rows,
+            metadata=metadata,
+        )
         return NodeResult(
             input_row_count=source_count,
             output_row_count=len(rows),
-            metadata={
-                "dataset": "s3",
-                "program": program,
-                "source_datafile_ids": datafile_ids,
-            },
+            metadata=metadata,
         )
 
     def extract_stratum_case_counts(self, context) -> NodeResult:
@@ -199,30 +399,35 @@ class StatisticalWeightsNodes:
         ]
         source_count = self.extractor.stratum_queryset(datafile_ids, program).count()
         rows = self.extractor.stratum_section_case_counts(datafile_ids, program)
-        self.outputs.write(context.pipeline_run, self.intermediate_keys["s4"], rows)
+        metadata = {
+            "dataset": "s4",
+            "program": program,
+            "source_datafile_ids": datafile_ids,
+        }
+        self.artifacts.write_stratum_case_counts(
+            context.pipeline_run,
+            rows,
+            metadata=metadata,
+        )
         return NodeResult(
             input_row_count=source_count,
             output_row_count=len(rows),
-            metadata={
-                "dataset": "s4",
-                "program": program,
-                "source_datafile_ids": datafile_ids,
-            },
+            metadata=metadata,
         )
 
     def build_weight_candidates(self, context) -> NodeResult:
         """Build and persist candidate statistical weight rows."""
         candidates = self.candidates.build(
             self.fiscal_year(context),
-            self.outputs.payload(context, self.intermediate_keys["s1"]),
-            self.outputs.payload(context, self.intermediate_keys["s3"]),
-            self.outputs.payload(context, self.intermediate_keys["s4"]),
+            self.artifacts.active_family_count_rows(context),
+            self.artifacts.aggregate_case_count_rows(context),
+            self.artifacts.stratum_case_count_rows(context),
             self.program(context),
         )
-        self.outputs.write(
+        self.artifacts.write_candidates(
             context.pipeline_run,
-            self.intermediate_keys["candidates"],
-            self.candidates.to_payload(candidates),
+            candidates,
+            metadata={"candidate_count": len(candidates)},
         )
         return NodeResult(
             output_row_count=len(candidates),
@@ -234,12 +439,10 @@ class StatisticalWeightsNodes:
         return self.qa.run(
             pipeline_run=context.pipeline_run,
             program=self.program(context),
-            s1_rows=self.outputs.payload(context, self.intermediate_keys["s1"]),
-            s3_rows=self.outputs.payload(context, self.intermediate_keys["s3"]),
-            s4_rows=self.outputs.payload(context, self.intermediate_keys["s4"]),
-            candidates=self.candidates.from_payload(
-                self.outputs.payload(context, self.intermediate_keys["candidates"])
-            ),
+            s1_rows=self.artifacts.active_family_count_rows(context),
+            s3_rows=self.artifacts.aggregate_case_count_rows(context),
+            s4_rows=self.artifacts.stratum_case_count_rows(context),
+            candidates=self.artifacts.candidates(context),
         )
 
     def publish_weights(self, context) -> NodeResult:
@@ -249,9 +452,7 @@ class StatisticalWeightsNodes:
             output_scope=context.output_scope,
             fiscal_year=self.fiscal_year(context),
             program=self.program(context),
-            candidates=self.candidates.from_payload(
-                self.outputs.payload(context, self.intermediate_keys["candidates"])
-            ),
+            candidates=self.artifacts.candidates(context),
         )
 
     def notify_weights_run(self, context) -> NodeResult:

@@ -10,11 +10,11 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AlterModelOptions(
-            name="etlintermediateoutput",
+            name="etlartifact",
             options={
                 "ordering": ["pipeline_run_id", "id"],
-                "verbose_name": "ETL Intermediate Output",
-                "verbose_name_plural": "ETL Intermediate Outputs",
+                "verbose_name": "ETL Artifact",
+                "verbose_name_plural": "ETL Artifacts",
             },
         ),
         migrations.AlterModelOptions(
@@ -23,14 +23,6 @@ class Migration(migrations.Migration):
                 "ordering": ["pipeline_run_id", "id"],
                 "verbose_name": "ETL Node Run",
                 "verbose_name_plural": "ETL Node Runs",
-            },
-        ),
-        migrations.AlterModelOptions(
-            name="etloutput",
-            options={
-                "ordering": ["pipeline_run_id", "id"],
-                "verbose_name": "ETL Output",
-                "verbose_name_plural": "ETL Outputs",
             },
         ),
         migrations.AlterModelOptions(
@@ -54,6 +46,53 @@ class Migration(migrations.Migration):
             options={
                 "verbose_name": "Statistical Weight",
                 "verbose_name_plural": "Statistical Weights",
+            },
+        ),
+        migrations.AlterModelOptions(
+            name="statisticalweightcandidate",
+            options={
+                "ordering": [
+                    "pipeline_run_id",
+                    "stt_code",
+                    "reporting_month",
+                    "stratum",
+                ],
+                "verbose_name": "Statistical Weight Candidate",
+                "verbose_name_plural": "Statistical Weight Candidates",
+            },
+        ),
+        migrations.AlterModelOptions(
+            name="statisticalweightsactivefamilycount",
+            options={
+                "ordering": [
+                    "pipeline_run_id",
+                    "stt_code",
+                    "reporting_month",
+                    "stratum",
+                ],
+                "verbose_name": "Statistical Weights Active Family Count",
+                "verbose_name_plural": "Statistical Weights Active Family Counts",
+            },
+        ),
+        migrations.AlterModelOptions(
+            name="statisticalweightsaggregatecasecount",
+            options={
+                "ordering": ["pipeline_run_id", "stt_code", "reporting_month"],
+                "verbose_name": "Statistical Weights Aggregate Case Count",
+                "verbose_name_plural": "Statistical Weights Aggregate Case Counts",
+            },
+        ),
+        migrations.AlterModelOptions(
+            name="statisticalweightsstratumcasecount",
+            options={
+                "ordering": [
+                    "pipeline_run_id",
+                    "stt_code",
+                    "reporting_month",
+                    "stratum",
+                ],
+                "verbose_name": "Statistical Weights Stratum Case Count",
+                "verbose_name_plural": "Statistical Weights Stratum Case Counts",
             },
         ),
     ]

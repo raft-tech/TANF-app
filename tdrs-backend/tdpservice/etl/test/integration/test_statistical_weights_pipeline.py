@@ -51,7 +51,7 @@ def test_tanf_statistical_weights_pipeline_matches_expected_output(
     pipeline_run = ETLPipelineRun.objects.get(id=response.data["id"])
     assert pipeline_run.status == ETLPipelineRun.Status.SUCCEEDED
     assert pipeline_run.final_output is not None
-    assert pipeline_run.final_output.output_key == "statistical_weights"
+    assert pipeline_run.final_output.key == "statistical_weights"
     assert pipeline_run.final_output.published
 
     expected_rows = _expected_weight_rows()

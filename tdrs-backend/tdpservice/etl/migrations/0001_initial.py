@@ -14,12 +14,15 @@ from tdpservice.users.permissions import (
 
 
 ETL_MODELS = (
-    "etlintermediateoutput",
+    "etlartifact",
     "etlnoderun",
-    "etloutput",
     "etlpipelinerun",
     "etlqaresult",
+    "statisticalweightcandidate",
     "statisticalweight",
+    "statisticalweightsactivefamilycount",
+    "statisticalweightsaggregatecasecount",
+    "statisticalweightsstratumcasecount",
 )
 
 
@@ -214,70 +217,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name="ETLOutput",
-            fields=[
-                (
-                    "id",
-                    models.BigAutoField(
-                        auto_created=True,
-                        primary_key=True,
-                        serialize=False,
-                        verbose_name="ID",
-                    ),
-                ),
-                ("output_key", models.CharField(max_length=128)),
-                (
-                    "output_kind",
-                    models.CharField(
-                        choices=[
-                            ("TABLE", "Table"),
-                            ("VIEW", "View"),
-                            ("FILE", "File"),
-                        ],
-                        max_length=16,
-                    ),
-                ),
-                ("reference", models.CharField(max_length=255)),
-                ("output_version", models.PositiveIntegerField(blank=True, null=True)),
-                ("row_count", models.PositiveIntegerField(default=0)),
-                ("published", models.BooleanField(default=False)),
-                ("metadata", models.JSONField(default=dict)),
-                ("created_at", models.DateTimeField(auto_now_add=True)),
-                (
-                    "pipeline_run",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="outputs",
-                        to="etl.etlpipelinerun",
-                    ),
-                ),
-            ],
-            options={
-                "ordering": ["pipeline_run_id", "id"],
-                "indexes": [
-                    models.Index(
-                        fields=["output_key", "published"],
-                        name="etl_output_key_pub_idx",
-                    ),
-                    models.Index(
-                        fields=["output_key", "output_version"],
-                        name="etl_output_key_ver_idx",
-                    ),
-                ],
-            },
-        ),
-        migrations.AddField(
-            model_name="etlpipelinerun",
-            name="final_output",
-            field=models.OneToOneField(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="final_pipeline_run",
-                to="etl.etloutput",
-            ),
-        ),
-        migrations.CreateModel(
             name="ETLNodeRun",
             fields=[
                 (
@@ -332,7 +271,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name="ETLIntermediateOutput",
+            name="ETLArtifact",
             fields=[
                 (
                     "id",
@@ -343,16 +282,54 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("output_key", models.CharField(max_length=128)),
-                ("payload", models.JSONField(default=dict)),
+                ("key", models.CharField(max_length=128)),
+                (
+                    "artifact_role",
+                    models.CharField(
+                        choices=[
+                            ("INTERMEDIATE", "Intermediate"),
+                            ("FINAL", "Final"),
+                        ],
+                        default="INTERMEDIATE",
+                        max_length=16,
+                    ),
+                ),
+                (
+                    "artifact_kind",
+                    models.CharField(
+                        choices=[
+                            ("DATASET", "Dataset"),
+                            ("FILE", "File"),
+                            ("SCALAR", "Scalar"),
+                        ],
+                        max_length=16,
+                    ),
+                ),
+                (
+                    "storage_kind",
+                    models.CharField(
+                        choices=[
+                            ("POSTGRES_TABLE", "Postgres Table"),
+                            ("OBJECT", "Object"),
+                            ("INLINE_JSON", "Inline Json"),
+                        ],
+                        max_length=32,
+                    ),
+                ),
+                ("reference", models.CharField(max_length=255)),
+                ("schema_key", models.CharField(max_length=128)),
+                ("schema_version", models.PositiveIntegerField(default=1)),
+                ("version", models.PositiveIntegerField(blank=True, null=True)),
                 ("row_count", models.PositiveIntegerField(default=0)),
+                ("published", models.BooleanField(default=False)),
+                ("metadata", models.JSONField(default=dict)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
                     "pipeline_run",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        related_name="intermediate_outputs",
+                        related_name="artifacts",
                         to="etl.etlpipelinerun",
                     ),
                 ),
@@ -361,8 +338,201 @@ class Migration(migrations.Migration):
                 "ordering": ["pipeline_run_id", "id"],
                 "indexes": [
                     models.Index(
-                        fields=["output_key"],
-                        name="etl_intermediate_key_idx",
+                        fields=["key"],
+                        name="etl_artifact_key_idx",
+                    ),
+                    models.Index(
+                        fields=["key", "artifact_role"],
+                        name="etl_artifact_key_role_idx",
+                    ),
+                    models.Index(
+                        fields=["artifact_kind", "storage_kind"],
+                        name="etl_artifact_kind_store_idx",
+                    ),
+                    models.Index(
+                        fields=["artifact_role", "published"],
+                        name="etl_artifact_role_pub_idx",
+                    ),
+                ],
+            },
+        ),
+        migrations.AddField(
+            model_name="etlpipelinerun",
+            name="final_output",
+            field=models.OneToOneField(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="final_pipeline_run",
+                to="etl.etlartifact",
+            ),
+        ),
+        migrations.CreateModel(
+            name="StatisticalWeightsActiveFamilyCount",
+            fields=[
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("stt_code", models.CharField(max_length=3)),
+                ("reporting_month", models.PositiveIntegerField()),
+                ("stratum", models.CharField(max_length=2)),
+                ("case_count", models.PositiveIntegerField()),
+                (
+                    "pipeline_run",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="statistical_weight_active_family_counts",
+                        to="etl.etlpipelinerun",
+                    ),
+                ),
+            ],
+            options={
+                "ordering": [
+                    "pipeline_run_id",
+                    "stt_code",
+                    "reporting_month",
+                    "stratum",
+                ],
+                "indexes": [
+                    models.Index(
+                        fields=["pipeline_run", "reporting_month"],
+                        name="sw_s1_run_month_idx",
+                    )
+                ],
+            },
+        ),
+        migrations.CreateModel(
+            name="StatisticalWeightsAggregateCaseCount",
+            fields=[
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("stt_code", models.CharField(max_length=3)),
+                ("reporting_month", models.PositiveIntegerField()),
+                ("case_count", models.PositiveIntegerField()),
+                (
+                    "pipeline_run",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="statistical_weight_aggregate_case_counts",
+                        to="etl.etlpipelinerun",
+                    ),
+                ),
+            ],
+            options={
+                "ordering": ["pipeline_run_id", "stt_code", "reporting_month"],
+                "indexes": [
+                    models.Index(
+                        fields=["pipeline_run", "reporting_month"],
+                        name="sw_s3_run_month_idx",
+                    )
+                ],
+            },
+        ),
+        migrations.CreateModel(
+            name="StatisticalWeightsStratumCaseCount",
+            fields=[
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("stt_code", models.CharField(max_length=3)),
+                ("reporting_month", models.PositiveIntegerField()),
+                ("stratum", models.CharField(max_length=2)),
+                ("cases", models.PositiveIntegerField()),
+                (
+                    "pipeline_run",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="statistical_weight_stratum_case_counts",
+                        to="etl.etlpipelinerun",
+                    ),
+                ),
+            ],
+            options={
+                "ordering": [
+                    "pipeline_run_id",
+                    "stt_code",
+                    "reporting_month",
+                    "stratum",
+                ],
+                "indexes": [
+                    models.Index(
+                        fields=["pipeline_run", "reporting_month"],
+                        name="sw_s4_run_month_idx",
+                    )
+                ],
+            },
+        ),
+        migrations.CreateModel(
+            name="StatisticalWeightCandidate",
+            fields=[
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("fiscal_year", models.PositiveIntegerField()),
+                ("reporting_month", models.PositiveIntegerField()),
+                (
+                    "program",
+                    models.CharField(
+                        choices=[
+                            ("TAN", "Tanf"),
+                            ("SSP", "Ssp"),
+                            ("TRIBAL", "Tribal"),
+                            ("FRA", "Fra"),
+                        ],
+                        max_length=16,
+                    ),
+                ),
+                ("section", models.CharField(max_length=16)),
+                ("stt_code", models.CharField(max_length=3)),
+                ("stratum", models.CharField(max_length=2)),
+                ("case_count", models.PositiveIntegerField()),
+                ("cases", models.PositiveIntegerField()),
+                ("weight", models.DecimalField(decimal_places=4, max_digits=12)),
+                (
+                    "pipeline_run",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="statistical_weight_candidates",
+                        to="etl.etlpipelinerun",
+                    ),
+                ),
+            ],
+            options={
+                "ordering": [
+                    "pipeline_run_id",
+                    "stt_code",
+                    "reporting_month",
+                    "stratum",
+                ],
+                "indexes": [
+                    models.Index(
+                        fields=["pipeline_run", "program", "section"],
+                        name="sw_candidate_scope_idx",
                     )
                 ],
             },
@@ -425,10 +595,10 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.AddConstraint(
-            model_name="etlintermediateoutput",
+            model_name="etlartifact",
             constraint=models.UniqueConstraint(
-                fields=("pipeline_run", "output_key"),
-                name="unique_etl_intermediate_per_run",
+                fields=("pipeline_run", "key"),
+                name="unique_etl_artifact_per_run",
             ),
         ),
         migrations.AddConstraint(
@@ -451,6 +621,42 @@ class Migration(migrations.Migration):
                     "version",
                 ),
                 name="unique_statistical_weight_version",
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="statisticalweightsactivefamilycount",
+            constraint=models.UniqueConstraint(
+                fields=("pipeline_run", "stt_code", "reporting_month", "stratum"),
+                name="unique_sw_active_family_count",
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="statisticalweightsaggregatecasecount",
+            constraint=models.UniqueConstraint(
+                fields=("pipeline_run", "stt_code", "reporting_month"),
+                name="unique_sw_aggregate_case_count",
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="statisticalweightsstratumcasecount",
+            constraint=models.UniqueConstraint(
+                fields=("pipeline_run", "stt_code", "reporting_month", "stratum"),
+                name="unique_sw_stratum_case_count",
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="statisticalweightcandidate",
+            constraint=models.UniqueConstraint(
+                fields=(
+                    "pipeline_run",
+                    "fiscal_year",
+                    "reporting_month",
+                    "program",
+                    "section",
+                    "stt_code",
+                    "stratum",
+                ),
+                name="unique_statistical_weight_candidate",
             ),
         ),
         migrations.RunPython(create_perms, reverse_code=migrations.RunPython.noop),

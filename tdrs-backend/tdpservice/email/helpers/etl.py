@@ -5,7 +5,7 @@ from django.conf import settings
 from tdpservice.data_files.models import DataFile
 from tdpservice.email.email import automated_email, log
 from tdpservice.email.email_enums import ETLEmail
-from tdpservice.etl.models import ETLPipelineRun, ETLQAResult
+from tdpservice.etl.models import ETLArtifact, ETLPipelineRun, ETLQAResult
 
 
 def send_statistical_weights_run_email(
@@ -37,9 +37,22 @@ def send_statistical_weights_run_email(
 def statistical_weights_email_context(pipeline_run: ETLPipelineRun) -> dict:
     """Return template context for a statistical weights ETL notification."""
     program = _program_label(pipeline_run)
-    output = pipeline_run.outputs.filter(output_key="statistical_weights").last()
-    run_status = ETLPipelineRun.Status.SUCCEEDED if output else pipeline_run.status
-    output_version = output.output_version if output else "unknown"
+    output = pipeline_run.final_output
+    if output is None:
+        output = (
+            pipeline_run.artifacts.filter(
+                key="statistical_weights",
+                artifact_role=ETLArtifact.ArtifactRole.FINAL,
+            )
+            .order_by("id")
+            .last()
+        )
+    run_status = (
+        ETLPipelineRun.Status.SUCCEEDED
+        if output and output.published
+        else pipeline_run.status
+    )
+    output_version = output.version if output else "unknown"
     row_count = output.row_count if output else 0
     subject = f"{program} Statistical Weights Run: {run_status}"
 

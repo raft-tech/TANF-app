@@ -6,7 +6,8 @@ from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
 
-from tdpservice.etl.models import ETLOutput, ETLQAResult, StatisticalWeight
+from tdpservice.etl.artifacts import upsert_table_dataset_artifact
+from tdpservice.etl.models import ETLArtifact, ETLQAResult, StatisticalWeight
 from tdpservice.etl.pipelines.base import NodeResult
 from tdpservice.etl.pipelines.statistical_weights.adapters import adapter_for_program
 from tdpservice.etl.pipelines.statistical_weights.candidates import WeightCandidate
@@ -79,12 +80,13 @@ class StatisticalWeightsPublisher:
                     for candidate in candidates
                 ]
             )
-            final_output = ETLOutput.objects.create(
+            final_output = upsert_table_dataset_artifact(
                 pipeline_run=pipeline_run,
-                output_key=self.output_key,
-                output_kind=ETLOutput.OutputKind.TABLE,
-                reference=StatisticalWeight._meta.db_table,
-                output_version=next_version,
+                key=self.output_key,
+                model=StatisticalWeight,
+                schema_key="statistical_weights",
+                artifact_role=ETLArtifact.ArtifactRole.FINAL,
+                version=next_version,
                 row_count=len(candidates),
                 published=True,
                 metadata=output_scope,

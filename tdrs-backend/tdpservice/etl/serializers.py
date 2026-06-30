@@ -3,7 +3,7 @@
 from rest_framework import serializers
 
 from tdpservice.etl.exceptions import PipelineValidationError
-from tdpservice.etl.models import ETLNodeRun, ETLOutput, ETLPipelineRun, ETLQAResult
+from tdpservice.etl.models import ETLArtifact, ETLNodeRun, ETLPipelineRun, ETLQAResult
 from tdpservice.etl.registry import get_pipeline_definition, list_pipeline_definitions
 
 
@@ -65,19 +65,23 @@ class ETLQAResultSerializer(serializers.ModelSerializer):
         ]
 
 
-class ETLOutputSerializer(serializers.ModelSerializer):
-    """Serialize output references."""
+class ETLArtifactSerializer(serializers.ModelSerializer):
+    """Serialize run-scoped artifact manifests."""
 
     class Meta:
         """Serializer metadata."""
 
-        model = ETLOutput
+        model = ETLArtifact
         fields = [
             "id",
-            "output_key",
-            "output_kind",
+            "key",
+            "artifact_role",
+            "artifact_kind",
+            "storage_kind",
             "reference",
-            "output_version",
+            "schema_key",
+            "schema_version",
+            "version",
             "row_count",
             "published",
             "metadata",
@@ -90,8 +94,8 @@ class ETLPipelineRunSerializer(serializers.ModelSerializer):
 
     node_runs = ETLNodeRunSerializer(many=True, read_only=True)
     qa_results = ETLQAResultSerializer(many=True, read_only=True)
-    outputs = ETLOutputSerializer(many=True, read_only=True)
-    final_output = ETLOutputSerializer(read_only=True)
+    artifacts = ETLArtifactSerializer(many=True, read_only=True)
+    final_output = ETLArtifactSerializer(read_only=True)
 
     class Meta:
         """Serializer metadata."""
@@ -116,7 +120,7 @@ class ETLPipelineRunSerializer(serializers.ModelSerializer):
             "updated_at",
             "node_runs",
             "qa_results",
-            "outputs",
+            "artifacts",
         ]
         read_only_fields = fields
 

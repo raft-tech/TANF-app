@@ -12,7 +12,7 @@ import pytest
 
 from tdpservice.data_files.models import DataFile
 from tdpservice.etl.admin import ETLPipelineRunAdmin
-from tdpservice.etl.models import ETLOutput, ETLPipelineRun, StatisticalWeight
+from tdpservice.etl.models import ETLArtifact, ETLPipelineRun, StatisticalWeight
 from tdpservice.etl.runner import PipelineRunCreator
 
 
@@ -27,12 +27,15 @@ def _create_pipeline_run() -> ETLPipelineRun:
 def test_pipeline_run_admin_final_output_link_filters_statistical_weights_table():
     """Table outputs link directly to the filtered output table."""
     pipeline_run = _create_pipeline_run()
-    output = ETLOutput.objects.create(
+    output = ETLArtifact.objects.create(
         pipeline_run=pipeline_run,
-        output_key="statistical_weights",
-        output_kind=ETLOutput.OutputKind.TABLE,
+        key="statistical_weights",
+        artifact_role=ETLArtifact.ArtifactRole.FINAL,
+        artifact_kind=ETLArtifact.ArtifactKind.DATASET,
+        storage_kind=ETLArtifact.StorageKind.POSTGRES_TABLE,
         reference=StatisticalWeight._meta.db_table,
-        output_version=2,
+        schema_key="statistical_weights",
+        version=2,
         row_count=12,
         published=True,
         metadata=pipeline_run.output_scope,
@@ -57,12 +60,15 @@ def test_pipeline_run_admin_final_output_link_opens_filtered_admin_table(
 ):
     """The generated table link opens the admin changelist scoped to that output."""
     pipeline_run = _create_pipeline_run()
-    output = ETLOutput.objects.create(
+    output = ETLArtifact.objects.create(
         pipeline_run=pipeline_run,
-        output_key="statistical_weights",
-        output_kind=ETLOutput.OutputKind.TABLE,
+        key="statistical_weights",
+        artifact_role=ETLArtifact.ArtifactRole.FINAL,
+        artifact_kind=ETLArtifact.ArtifactKind.DATASET,
+        storage_kind=ETLArtifact.StorageKind.POSTGRES_TABLE,
         reference=StatisticalWeight._meta.db_table,
-        output_version=2,
+        schema_key="statistical_weights",
+        version=2,
         row_count=1,
         published=True,
         metadata=pipeline_run.output_scope,
@@ -112,14 +118,17 @@ def test_pipeline_run_admin_final_output_link_opens_filtered_admin_table(
 
 @pytest.mark.django_db
 def test_pipeline_run_admin_final_output_link_falls_back_to_output_change_page():
-    """Non-table outputs link to the ETLOutput admin record."""
+    """Non-table final artifacts link to the artifact admin record."""
     pipeline_run = _create_pipeline_run()
-    output = ETLOutput.objects.create(
+    output = ETLArtifact.objects.create(
         pipeline_run=pipeline_run,
-        output_key="external_file",
-        output_kind=ETLOutput.OutputKind.FILE,
+        key="external_file",
+        artifact_role=ETLArtifact.ArtifactRole.FINAL,
+        artifact_kind=ETLArtifact.ArtifactKind.FILE,
+        storage_kind=ETLArtifact.StorageKind.OBJECT,
         reference="s3://example/output.csv",
-        output_version=None,
+        schema_key="external_file",
+        version=None,
         row_count=1,
         published=True,
     )
@@ -129,7 +138,7 @@ def test_pipeline_run_admin_final_output_link_falls_back_to_output_change_page()
 
     link = str(pipeline_run_admin.final_output_link(pipeline_run))
 
-    assert reverse("admin:etl_etloutput_change", args=[output.id]) in link
+    assert reverse("admin:etl_etlartifact_change", args=[output.id]) in link
     assert "external_file (1 rows)" in link
 
 

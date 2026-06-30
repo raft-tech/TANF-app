@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from tdpservice.data_files.models import DataFile
-from tdpservice.etl.models import ETLOutput, ETLPipelineRun, StatisticalWeight
+from tdpservice.etl.models import ETLArtifact, ETLPipelineRun, StatisticalWeight
 from tdpservice.etl.runner import PipelineRunCreator
 
 
@@ -76,15 +76,27 @@ def test_pipeline_run_detail_includes_final_output(api_client, digit_team):
         parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
-    output = ETLOutput.objects.create(
+    output = ETLArtifact.objects.create(
         pipeline_run=pipeline_run,
-        output_key="statistical_weights",
-        output_kind=ETLOutput.OutputKind.TABLE,
+        key="statistical_weights",
+        artifact_role=ETLArtifact.ArtifactRole.FINAL,
+        artifact_kind=ETLArtifact.ArtifactKind.DATASET,
+        storage_kind=ETLArtifact.StorageKind.POSTGRES_TABLE,
         reference=StatisticalWeight._meta.db_table,
-        output_version=1,
+        schema_key="statistical_weights",
+        version=1,
         row_count=2,
         published=True,
         metadata=pipeline_run.output_scope,
+    )
+    artifact = ETLArtifact.objects.create(
+        pipeline_run=pipeline_run,
+        key="weights.s1",
+        artifact_kind=ETLArtifact.ArtifactKind.DATASET,
+        storage_kind=ETLArtifact.StorageKind.POSTGRES_TABLE,
+        reference="etl_statisticalweightsactivefamilycount",
+        schema_key="statistical_weights.s1",
+        row_count=2,
     )
     pipeline_run.status = ETLPipelineRun.Status.SUCCEEDED
     pipeline_run.final_output = output
@@ -95,8 +107,12 @@ def test_pipeline_run_detail_includes_final_output(api_client, digit_team):
 
     assert response.status_code == 200
     assert response.data["final_output"]["id"] == output.id
-    assert response.data["final_output"]["output_key"] == "statistical_weights"
-    assert response.data["final_output"]["output_version"] == 1
+    assert response.data["final_output"]["key"] == "statistical_weights"
+    assert response.data["final_output"]["artifact_role"] == "FINAL"
+    assert response.data["final_output"]["version"] == 1
+    artifacts = {item["key"]: item for item in response.data["artifacts"]}
+    assert artifacts["weights.s1"]["id"] == artifact.id
+    assert artifacts["weights.s1"]["row_count"] == 2
 
 
 @pytest.mark.django_db
