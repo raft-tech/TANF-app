@@ -100,7 +100,6 @@ The external seam is intentionally small:
 - pipeline definitions are code-defined and reviewed,
 - nodes receive typed run context and write declared artifact manifests.
 
-Do not build an arbitrary SQL runner. Admin users execute approved pipelines only.
 
 ### Pipeline Registry
 
@@ -127,7 +126,7 @@ Node definitions declare:
 - whether outputs are temporary, run-scoped, or durable,
 - expected QA checks or row-count reporting.
 
-`PipelineNode` is the execution interface for a node. Each concrete node owns its `execute(context)` behavior, while the shared `PipelineNode.run()` method claims and updates the matching `ETLNodeRun`, validates input artifact contracts, builds the run-scoped `NodeContext`, records row counts and metadata, and marks failures. `NodeContext` carries the pipeline run and available artifacts only; it does not carry a reference back to the node. The Celery task boundary remains thin and serializable: `run_pipeline_node` receives the run ID and node key, reloads the definition, and calls `definition.nodes[node_key].run(pipeline_run)`.
+`PipelineNode` is the execution interface for a node. Each concrete node owns its `execute(context)` behavior, while the shared `PipelineNode.run()` method claims and updates the matching `ETLNodeRun`, validates input artifact contracts, builds the run-scoped `NodeContext`, records row counts and metadata, and marks failures. `NodeContext` carries the pipeline run and available artifacts only. The Celery task boundary remains thin and serializable: `run_pipeline_node` receives the run ID and node key, reloads the definition, and calls `definition.nodes[node_key].run(pipeline_run)`.
 
 The first implementation should use a lightweight internal run launcher. The base `PipelineDefinition` validates shared node metadata, and each concrete pipeline builds its own code-owned Celery Canvas for the run. Runner services create runs, launch the Canvas, and finalize run status; node execution happens through `PipelineNode.run()`:
 
@@ -140,7 +139,6 @@ Concrete pipeline classes remain the executable DAG definitions. The registry on
 
 Celery tasks should receive stable identifiers: pipeline run ID and node key. Node and finalize signatures should be immutable (`.si`) so upstream return values and chord header results are not appended to task arguments. Tasks load run context and available artifact manifests from the database, validate declared input contracts, update `ETLNodeRun`, and persist any produced `ETLArtifact` manifests. The database remains the source of truth for orchestration state; Celery is the execution mechanism.
 
-Do not add Airflow, Prefect, or another external orchestrator for v1. Add a larger orchestrator only if future requirements need distributed DAG scheduling, cross-system backfills, or operator-managed dependency graphs beyond what Celery can safely handle.
 
 ### Run Lifecycle
 
@@ -334,7 +332,7 @@ The create endpoint accepts:
 {
   "pipeline_key": "statistical_weights",
   "parameters": {
-    "fiscal_year": 2025,
+    "fiscal_year": 2026,
     "program": "TAN"
   }
 }
@@ -393,7 +391,7 @@ Produce a database-resident statistical weights dataset for a selected fiscal ye
 
 ### Source Inputs
 
-Use database-backed data, not Databricks volume CSV paths.
+Use database-backed data.
 
 Required source models and metadata:
 
@@ -495,8 +493,6 @@ Candidate weights:
 - `weight = ROUND(cases / case_count, 4)`.
 
 Candidate rows are built in memory inside `run_weights_qa` and `publish_weights`. They are not passed through Celery result payloads and are not stored as JSON artifacts.
-
-Do not duplicate the `wght` column. The final durable output has one `weight` column rounded to four decimal places.
 
 ### QA Checks
 
@@ -675,7 +671,6 @@ Use existing dependencies for v1:
 - existing email helpers for notifications,
 - PostgreSQL for set-based calculations and durable outputs.
 
-Do not add Airflow, Prefect, NetworkX, or a SQL execution product for v1. The run launcher should be a small internal module that validates code-owned pipeline metadata, creates `ETLPipelineRun` and `ETLNodeRun` records, and queues pipeline-owned Celery Canvases because the immediate need is approved calculation workflows, not user-authored workflows. Node execution belongs to `PipelineNode.run()` and the concrete node subclasses.
 
 Potential future dependency decisions:
 
