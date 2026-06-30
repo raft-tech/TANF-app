@@ -85,7 +85,6 @@ tdpservice/
         __init__.py
         definition.py
         adapters.py
-        extractors.py
         candidates.py
         qa.py
         publishing.py
@@ -124,18 +123,20 @@ Node definitions declare:
 - node key,
 - input contracts,
 - output contracts,
-- implementation function,
+- execution class,
 - whether outputs are temporary, run-scoped, or durable,
 - expected QA checks or row-count reporting.
 
-The first implementation should use a lightweight internal runner. The base `PipelineDefinition` validates shared node metadata, and each concrete pipeline builds its own code-owned Celery Canvas for the run. Runner services create runs, launch the Canvas, execute nodes, and finalize run status:
+`PipelineNode` is the execution interface for a node. Each concrete node owns its `execute(context)` behavior, while the shared `PipelineNode.run()` method claims and updates the matching `ETLNodeRun`, validates input artifact contracts, builds the run-scoped `NodeContext`, records row counts and metadata, and marks failures. `NodeContext` carries the pipeline run and available artifacts only; it does not carry a reference back to the node. The Celery task boundary remains thin and serializable: `run_pipeline_node` receives the run ID and node key, reloads the definition, and calls `definition.nodes[node_key].run(pipeline_run)`.
+
+The first implementation should use a lightweight internal run launcher. The base `PipelineDefinition` validates shared node metadata, and each concrete pipeline builds its own code-owned Celery Canvas for the run. Runner services create runs, launch the Canvas, and finalize run status; node execution happens through `PipelineNode.run()`:
 
 | DAG shape | Celery primitive | Use |
 | --- | --- | --- |
 | Linear dependency | `chain` | Run ordered nodes where each node depends on the prior node's output. |
 | Fan-out/fan-in dependency | `chord` | Run parallel header nodes, then run the body once after every header node succeeds. |
 
-Concrete pipeline classes remain the executable DAG definitions. The registry only maps approved pipeline keys to those classes. Pipeline authors hand-write the Celery Canvas for each approved pipeline. Node metadata is limited to the execution details the runner needs: node key, implementation, and input/output contracts. The Canvas should make the DAG visible: linear dependencies use `chain`, and parallel fan-in uses `chord` with a single fan-in body task. Remaining downstream nodes continue from that body task through an immutable link chain when needed.
+Concrete pipeline classes remain the executable DAG definitions. The registry only maps approved pipeline keys to those classes. Pipeline authors hand-write the Celery Canvas for each approved pipeline. Node metadata is limited to the details the registry and API need: node key and input/output contracts. The Canvas should make the DAG visible: linear dependencies use `chain`, and parallel fan-in uses `chord` with a single fan-in body task. Remaining downstream nodes continue from that body task through an immutable link chain when needed.
 
 Celery tasks should receive stable identifiers: pipeline run ID and node key. Node and finalize signatures should be immutable (`.si`) so upstream return values and chord header results are not appended to task arguments. Tasks load run context and available artifact manifests from the database, validate declared input contracts, update `ETLNodeRun`, and persist any produced `ETLArtifact` manifests. The database remains the source of truth for orchestration state; Celery is the execution mechanism.
 
@@ -313,7 +314,7 @@ Add a unique constraint across fiscal year, reporting month, program, section, S
 
 The MVP retention rule is one month after replacement. The current version keeps `retention_expires_at` null. When a later version supersedes it, the publication transaction sets `retention_expires_at` on the older version. A scheduled cleanup can delete non-current versions whose `retention_expires_at` has passed.
 
-The DAG runner should treat version as part of the output contract. The final `ETLArtifact` records the produced statistical-weights version for the run, and downstream nodes should consume that explicit artifact instead of independently calculating `MAX(version)` during a run. If external consumers need a current-only surface, expose a read-only view or query helper that selects the latest version per output scope.
+Pipeline contracts should treat version as part of the output contract. The final `ETLArtifact` records the produced statistical-weights version for the run, and downstream nodes should consume that explicit artifact instead of independently calculating `MAX(version)` during a run. If external consumers need a current-only surface, expose a read-only view or query helper that selects the latest version per output scope.
 
 ### DRF Interface
 
@@ -362,8 +363,8 @@ Admin-triggered run:
 2. DRF computes output scope.
 3. DRF rejects the request if another active run has the same output scope.
 4. DRF creates `ETLPipelineRun` and initial `ETLNodeRun` rows.
-5. DRF queues a pipeline runner task with the run ID.
-6. The runner loads the pipeline definition and run row.
+5. DRF queues the pipeline launch task with the run ID.
+6. The launch task loads the pipeline definition and run row.
 7. The concrete `PipelineDefinition` validates node metadata and builds the pipeline-owned Celery Canvas.
 8. Celery executes node tasks with stable run/node identifiers.
 9. Each node claims its `ETLNodeRun` under a database lock, then records status, row counts, metadata, and errors.
@@ -421,14 +422,14 @@ The default accepted parser state should be `PARSE_COMPLETED`. If product or leg
 
 The first node declares three `DataFileSource` inputs, then uses the shared `DataFileSourceSnapshot` to snapshot the selected active, aggregate, and stratum `DataFile` IDs into `ETLPipelineRun.metadata["source_datafile_ids"]`. All later nodes read from that snapshot rather than recalculating "latest accepted" files. This keeps counts, QA, and publication stable if a newer file is accepted while a run is executing. The statistical weights pipeline fails validation if any required source family snapshots to an empty list; an empty source run must not reach publication as a successful zero-row output. The shared snapshot helper also rejects any source `DataFile` that is part of active reparse work, and reparse startup rejects files already snapshotted by active `PENDING` or `RUNNING` ETL runs. This disjointness rule applies to every future DataFile-backed pipeline that uses the shared snapshot helper. The snapshot helper is shared infrastructure for future pipelines; statistical weights only owns the source declarations.
 
-The statistical weights implementation is split by responsibility under `tdpservice.etl.pipelines.statistical_weights`: `definition.py` owns parameter validation, output scope, pipeline-specific `DataFileSource` declarations, node handlers, and Celery Canvas declaration; `adapters.py` owns program-specific models and field names; `extractors.py`, `candidates.py`, `qa.py`, and `publishing.py` own their respective domain behavior; and `nodes.py` owns table-backed statistical-weights artifact persistence.
+The statistical weights implementation is split by responsibility under `tdpservice.etl.pipelines.statistical_weights`: `definition.py` owns parameter validation, output scope, shared node resources, node registration, and Celery Canvas declaration; `adapters.py` owns program-specific models and field names; `nodes.py` owns the concrete node subclasses, ORM extraction queries for `s1`, `s3`, and `s4`, and table-backed statistical-weights artifact persistence; and `candidates.py`, `qa.py`, and `publishing.py` own their respective domain behavior.
 
 ### DAG
 
 The weights MVP pipeline is:
 
 ```text
-validate_parameters
+validate_run_sources
   -> chord header(
        extract_active_family_counts,
        extract_aggregate_case_counts,
@@ -439,7 +440,7 @@ validate_parameters
   -> notify_weights_run
 ```
 
-The runner executes this as one pipeline-owned Canvas. Validation runs first. The three extract nodes run as the `chord` header. The chord body is the single fan-in node, `run_weights_qa`; its immutable link chain runs `publish_weights`, `notify_weights_run`, and `finalize_pipeline_run`.
+The pipeline declares this as one pipeline-owned Canvas. Validation runs first. The three extract nodes run as the `chord` header. The chord body is the single fan-in node, `run_weights_qa`; its immutable link chain runs `publish_weights`, `notify_weights_run`, and `finalize_pipeline_run`.
 
 Do not use a full `chain` as the chord body. In local Celery testing, using the whole QA-publish-notify-finalize chain directly as the chord body caused duplicate downstream task delivery. The safe shape is a single chord body task with the remaining chain attached through `link`.
 
@@ -447,7 +448,7 @@ Node responsibilities:
 
 | Node | Responsibility |
 | --- | --- |
-| `validate_parameters` | Validate fiscal year, program, section, and output scope; snapshot source `DataFile` IDs; fail when required source families have no accepted files. |
+| `validate_run_sources` | Validate fiscal year, program, section, and output scope; snapshot source `DataFile` IDs; fail when required source families have no accepted files. |
 | `extract_active_family_counts` | Build `s1`: unique families by STT, reporting month, stratum; persist `weights.s1`. |
 | `extract_aggregate_case_counts` | Build `s3`: aggregate cases by STT and reporting month; persist `weights.s3`. |
 | `extract_stratum_case_counts` | Build `s4`: section cases by STT, reporting month, stratum for `TDRS_SECTION_IND = 1`; persist `weights.s4`. |
@@ -455,7 +456,7 @@ Node responsibilities:
 | `publish_weights` | Read persisted `s1`, `s3`, and `s4`; rebuild candidates in memory; publish a new immutable weights version and record it as a final `ETLArtifact`; reject empty candidates. |
 | `notify_weights_run` | Email run status, output, and QA summary to recipients. |
 
-The implementation materializes `s1`, `s3`, and `s4` as table-backed `ETLArtifact` manifests. All three artifacts reference `StatisticalWeightsCaseCount`, with `metadata.count_kind` identifying the relevant slice. Candidates are not persisted as a database table or artifact because they are fully derived from `s1`, `s3`, `s4`, and run parameters. The node executor validates declared input artifact contracts before executing a node; a node with a missing input contract fails before its implementation runs.
+The implementation materializes `s1`, `s3`, and `s4` as table-backed `ETLArtifact` manifests. All three artifacts reference `StatisticalWeightsCaseCount`, with `metadata.count_kind` identifying the relevant slice. Candidates are not persisted as a database table or artifact because they are fully derived from `s1`, `s3`, `s4`, and run parameters. `PipelineNode.run()` validates declared input artifact contracts before calling `execute(context)`; a node with a missing input contract fails before its business logic runs.
 
 ### Calculation Rules
 
@@ -564,7 +565,7 @@ The final `statistical_weights` table or an approved read-only view over it must
 
 ## Future Extension Path
 
-The architecture should support additional pipelines without changing the runner interface.
+The architecture should support additional pipelines without changing the node execution interface.
 
 Likely next pipelines:
 
@@ -586,7 +587,7 @@ calculation nodes
 
 `publish_report_files` should reuse the existing `ReportFile` model and permissions so the current reports download and versioning behavior continues to apply.
 
-Program-specific behavior lives behind adapters at the statistical weights node level. TANF, SSP, and Tribal TANF share one pipeline key, runner, run history, QA storage, notification path, and output publication rule set. The run parameter uses exact `DataFile.ProgramType` values: `TAN`, `SSP`, or `TRIBAL`; display aliases such as `TANF` or `Tribal TANF` are not accepted as request values.
+Program-specific behavior lives behind adapters at the statistical weights node level. TANF, SSP, and Tribal TANF share one pipeline key, run launcher, run history, QA storage, notification path, and output publication rule set. The run parameter uses exact `DataFile.ProgramType` values: `TAN`, `SSP`, or `TRIBAL`; display aliases such as `TANF` or `Tribal TANF` are not accepted as request values.
 
 ---
 
@@ -674,7 +675,7 @@ Use existing dependencies for v1:
 - existing email helpers for notifications,
 - PostgreSQL for set-based calculations and durable outputs.
 
-Do not add Airflow, Prefect, NetworkX, or a SQL execution product for v1. The DAG runner should be a small internal module that validates code-owned pipeline metadata and queues pipeline-owned Celery Canvases because the immediate need is approved calculation workflows, not user-authored workflows.
+Do not add Airflow, Prefect, NetworkX, or a SQL execution product for v1. The run launcher should be a small internal module that validates code-owned pipeline metadata, creates `ETLPipelineRun` and `ETLNodeRun` records, and queues pipeline-owned Celery Canvases because the immediate need is approved calculation workflows, not user-authored workflows. Node execution belongs to `PipelineNode.run()` and the concrete node subclasses.
 
 Potential future dependency decisions:
 

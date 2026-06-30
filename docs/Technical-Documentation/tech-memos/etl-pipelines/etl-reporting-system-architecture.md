@@ -403,14 +403,14 @@ DAG principles:
 
 ### Celery Canvas Execution
 
-The pipeline registry maps approved keys to executable, code-reviewed pipeline classes. `PipelineDefinition` is the abstract base interface; it provides shared node lookup, node-key validation, and serialization. Each concrete pipeline class validates its own run parameters, builds its own output scope, declares node metadata, and builds its Celery Canvas directly. Runner services create `ETLPipelineRun` and `ETLNodeRun` rows, launch the Canvas, execute nodes, and finalize status. The Canvas should make the business DAG visible in code instead of hiding progression behind a secondary layer scheduler or metadata-to-Canvas compiler.
+The pipeline registry maps approved keys to executable, code-reviewed pipeline classes. `PipelineDefinition` is the abstract base interface; it provides shared node lookup, node-key validation, and serialization. Each concrete pipeline class validates its own run parameters, builds its own output scope, declares node metadata, and builds its Celery Canvas directly. Runner services create `ETLPipelineRun` and `ETLNodeRun` rows, launch the Canvas, and finalize status; node execution happens through `PipelineNode.run()` on the selected node. The Canvas should make the business DAG visible in code instead of hiding progression behind a secondary layer scheduler or metadata-to-Canvas compiler.
 
 | DAG shape | Celery primitive | Use |
 | --- | --- | --- |
 | Linear dependency | `chain` | Run ordered nodes where each node depends on the prior node's output. |
 | Fan-out/fan-in dependency | `chord` | Run parallel header nodes, then run the body exactly once after every header node succeeds. |
 
-Every Celery task should receive only stable identifiers: pipeline run ID and node key. Tasks load their run context and available `ETLArtifact` manifests from the database, execute code-owned node logic, update `ETLNodeRun`, and persist any produced artifact manifests. This keeps the database as the source of truth for run state while Celery handles scheduling and parallel execution.
+Every Celery task should receive only stable identifiers: pipeline run ID and node key. Pipeline authors build the Canvas from the node registry, for example `self.nodes.run_weights_qa.task(run_id)`, rather than manually wrapping node keys in the pipeline definition. The shared Celery task reloads the definition and delegates to `definition.nodes[node_key].run(pipeline_run)`. Each `PipelineNode` owns its execution path: it loads run context and available `ETLArtifact` manifests from the database, validates declared input contracts, executes the concrete node's business logic, updates `ETLNodeRun`, and persists any produced artifact manifests. This keeps the database as the source of truth for run state while Celery handles scheduling and parallel execution.
 
 The statistical weights DAG is represented directly as a `chain` with a `chord` for the parallel extract fan-in. The three extract tasks are the chord header. The QA node, `run_weights_qa`, is the single chord body. The remaining publish, notify, and finalize path is attached as the body task's immutable continuation, avoiding Celery's duplicate-delivery behavior when a full `chain` is used as a chord body.
 
@@ -419,29 +419,30 @@ Use immutable Celery signatures (`.si`) for node and finalize tasks so upstream 
 Example execution shape:
 
 ```python
-run_weights_qa = execute_node.si(run_id, "run_weights_qa")
+nodes = self.nodes
+run_weights_qa = nodes.run_weights_qa.task(run_id)
 run_weights_qa.link(
     chain(
-        execute_node.si(run_id, "publish_weights"),
-        execute_node.si(run_id, "notify_weights_run"),
+        nodes.publish_weights.task(run_id),
+        nodes.notify_weights_run.task(run_id),
         finalize_pipeline_run.si(run_id),
     )
 )
 
 chain(
-    execute_node.si(run_id, "validate_parameters"),
+    nodes.validate_run_sources.task(run_id),
     chord(
         [
-            execute_node.si(run_id, "extract_active_family_counts"),
-            execute_node.si(run_id, "extract_aggregate_case_counts"),
-            execute_node.si(run_id, "extract_stratum_case_counts"),
+            nodes.extract_active_family_counts.task(run_id),
+            nodes.extract_aggregate_case_counts.task(run_id),
+            nodes.extract_stratum_case_counts.task(run_id),
         ],
         run_weights_qa,
     ),
 )
 ```
 
-Each concrete pipeline definition should declare its exact Celery Canvas in code. Node metadata is limited to the execution details the runner needs: node key, implementation, and input/output contracts. Node execution is claimed under a database lock, so duplicate task delivery does not run a completed or currently running node implementation again. A larger orchestrator is not needed until the team needs operator-managed DAGs, cross-environment backfills, or non-Django execution workers.
+Each concrete pipeline definition should declare its exact Celery Canvas in code. Node metadata is limited to the execution details the registry and API need: node key and input/output contracts. Concrete `PipelineNode` subclasses keep the node's execution logic with the node itself. Node execution is claimed under a database lock, so duplicate task delivery does not run a completed or currently running node implementation again. A larger orchestrator is not needed until the team needs operator-managed DAGs, cross-environment backfills, or non-Django execution workers.
 
 ---
 
@@ -625,7 +626,7 @@ Extend the post-weights report products to SSP and Tribal TANF.
 
 Goal:
 
-- reuse the same DAG runner and run history,
+- reuse the same run launcher and run history,
 - isolate non-weight source mappings and calculation differences,
 - avoid copying TANF-specific assumptions into program families where they do not apply.
 
