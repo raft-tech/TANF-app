@@ -2,18 +2,18 @@ import { GridContainer, Link } from "@trussworks/react-uswds";
 import NextLink from "next/link";
 import {
   getAuthBaseUrl,
+  getAdminLoginUrl,
   getBackendBaseUrl,
-  getLoginUrl,
-  getProviderLoginPath,
+  getAdminProviderLoginPath,
 } from "@/lib/admin-auth";
 
 export default function AdminLoginPage() {
   const backendBaseUrl = getBackendBaseUrl();
   const authBaseUrl = getAuthBaseUrl();
-  const loginGovUrl = getLoginUrl("dotgov");
-  const acfAmsUrl = getLoginUrl("ams");
-  const loginGovPath = getProviderLoginPath("dotgov");
-  const acfAmsPath = getProviderLoginPath("ams");
+  const loginGovUrl = getAdminLoginUrl("dotgov");
+  const acfAmsUrl = getAdminLoginUrl("ams");
+  const loginGovPath = getAdminProviderLoginPath("dotgov");
+  const acfAmsPath = getAdminProviderLoginPath("ams");
   const loginGovLogoSrc = "/login-gov-logo.svg";
   const acfLogoSrc = "/ACFLogo.svg";
 

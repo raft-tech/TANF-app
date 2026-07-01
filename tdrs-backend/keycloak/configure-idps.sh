@@ -5,7 +5,7 @@
 # sensitive material that cannot be expressed in the checked-in realm JSON files:
 #   - Login.gov RSA private key for private_key_jwt client authentication
 #   - Login.gov acr_values authorization parameter
-#   - tdp-django and tdp-grafana client redirect URIs and web origins
+#   - tdp-django, tdp-admin, and tdp-grafana client redirect URIs and web origins
 #
 # Run this AFTER Keycloak has started and imported the realm.
 # Prerequisites: curl, jq
@@ -22,6 +22,10 @@
 #                             (e.g. https://tdp-frontend.app.cloud.gov/*)
 #   KC_TDP_WEB_ORIGINS      - Comma-separated list of web origins for the tdp-django client
 #                             (e.g. https://tdp-frontend.app.cloud.gov)
+#   KC_TDP_ADMIN_CLIENT_SECRET - Client secret for the tdp-admin client
+#   KC_TDP_ADMIN_REDIRECT_URIS - Comma-separated list of redirect URIs for the tdp-admin client
+#   KC_TDP_ADMIN_WEB_ORIGINS   - Comma-separated list of web origins for the tdp-admin client
+#   KC_TDP_ADMIN_POST_LOGOUT_URIS - Keycloak ##-separated post logout redirect URIs
 #   KC_CLI_REDIRECT_URI     - Additional redirect URI for the tdp-cli client
 #                             (default: http://localhost/*)
 #   KC_CLI_WEB_ORIGIN       - Additional web origin for the tdp-cli client
@@ -335,12 +339,7 @@ configure_tdp_cli_api_audience() {
             -H "Authorization: Bearer ${TOKEN}" | jq -r '.[0].id')
         echo "tdp-api-audience client scope created (${scope_id})."
     else
-        scope_json=$(echo "$scope_json" | jq --arg id "$scope_id" '.id = $id')
-        kc_api -X PUT "${KEYCLOAK_URL}/admin/realms/${REALM}/client-scopes/${scope_id}" \
-            -H "Authorization: Bearer ${TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d "$scope_json" > /dev/null
-        echo "tdp-api-audience client scope updated (${scope_id})."
+        echo "tdp-api-audience client scope already exists (${scope_id}); preserving scope metadata."
     fi
 
     local mapper_json
@@ -570,6 +569,121 @@ configure_tdp_client_urls() {
     echo "tdp-django web origins:   $(echo "$web_origins" | jq -c .)"
 }
 
+configure_tdp_admin_client() {
+    echo "Configuring tdp-admin client redirect URIs and web origins (env: ${DEPLOY_ENV})..."
+
+    local client_uuid
+    client_uuid=$(get_client_uuid "tdp-admin")
+
+    local redirect_uris='[]'
+    local web_origins='[]'
+    local post_logout_uris="${KC_TDP_ADMIN_POST_LOGOUT_URIS:-}"
+    local client_secret="${KC_TDP_ADMIN_CLIENT_SECRET:-tdp-admin-local-secret}"
+
+    if [ -n "${KC_TDP_ADMIN_REDIRECT_URIS:-}" ]; then
+        IFS=',' read -ra uris <<< "$KC_TDP_ADMIN_REDIRECT_URIS"
+        for uri in "${uris[@]}"; do
+            uri=$(echo "$uri" | xargs)
+            redirect_uris=$(append_json_array_unique "$redirect_uris" "$uri")
+        done
+    fi
+
+    if [ -n "${KC_TDP_ADMIN_WEB_ORIGINS:-}" ]; then
+        IFS=',' read -ra origins <<< "$KC_TDP_ADMIN_WEB_ORIGINS"
+        for origin in "${origins[@]}"; do
+            origin=$(echo "$origin" | xargs)
+            web_origins=$(append_json_array_unique "$web_origins" "$origin")
+        done
+    fi
+
+    if [ "$DEPLOY_ENV" == "local" ] || [ "$DEPLOY_ENV" == "dev" ]; then
+        for uri in \
+            "https://tdp-admin-raft.app.cloud.gov/*" \
+            "https://tdp-admin-qasp.app.cloud.gov/*" \
+            "https://tdp-admin-a11y.app.cloud.gov/*" \
+            "http://localhost:3001/*" \
+            "http://localhost:8080/*" \
+            "http://localhost:8989/*" \
+            "http://127.0.0.1:3001/*" \
+            "http://127.0.0.1:8080/*" \
+            "http://127.0.0.1:8989/*"; do
+            redirect_uris=$(append_json_array_unique "$redirect_uris" "$uri")
+        done
+
+        for origin in \
+            "https://tdp-admin-raft.app.cloud.gov" \
+            "https://tdp-admin-qasp.app.cloud.gov" \
+            "https://tdp-admin-a11y.app.cloud.gov" \
+            "http://localhost:3001" \
+            "http://localhost:8080" \
+            "http://localhost:8989" \
+            "http://127.0.0.1:3001" \
+            "http://127.0.0.1:8080" \
+            "http://127.0.0.1:8989"; do
+            web_origins=$(append_json_array_unique "$web_origins" "$origin")
+        done
+
+        if [ -z "$post_logout_uris" ]; then
+            post_logout_uris="https://tdp-admin-raft.app.cloud.gov/*##https://tdp-admin-qasp.app.cloud.gov/*##https://tdp-admin-a11y.app.cloud.gov/*##http://localhost:3001/*##http://127.0.0.1:3001/*"
+        fi
+    fi
+
+    local client_config
+    client_config=$(jq -n \
+        --arg clientId "tdp-admin" \
+        --arg name "TDP Admin Console" \
+        --arg secret "$client_secret" \
+        --arg postLogoutUris "$post_logout_uris" \
+        --argjson redirectUris "$redirect_uris" \
+        --argjson webOrigins "$web_origins" \
+        '{
+            clientId: $clientId,
+            name: $name,
+            enabled: true,
+            clientAuthenticatorType: "client-secret",
+            secret: $secret,
+            redirectUris: $redirectUris,
+            webOrigins: $webOrigins,
+            attributes: {
+                "post.logout.redirect.uris": $postLogoutUris
+            },
+            protocol: "openid-connect",
+            publicClient: false,
+            standardFlowEnabled: true,
+            implicitFlowEnabled: false,
+            directAccessGrantsEnabled: false,
+            serviceAccountsEnabled: false,
+            authorizationServicesEnabled: false,
+            fullScopeAllowed: true,
+            defaultClientScopes: [
+                "openid",
+                "email",
+                "profile",
+                "tdp-user-attributes"
+            ],
+            optionalClientScopes: []
+        }')
+
+    if [ -z "$client_uuid" ]; then
+        kc_api -X POST "${KEYCLOAK_URL}/admin/realms/${REALM}/clients" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$client_config" > /dev/null
+        client_uuid=$(get_client_uuid "tdp-admin")
+        echo "tdp-admin client created (${client_uuid})."
+    else
+        client_config=$(echo "$client_config" | jq --arg id "$client_uuid" '.id = $id')
+        kc_api -X PUT "${KEYCLOAK_URL}/admin/realms/${REALM}/clients/${client_uuid}" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$client_config" > /dev/null
+        echo "tdp-admin client updated (${client_uuid})."
+    fi
+
+    echo "tdp-admin redirect URIs: $(echo "$redirect_uris" | jq -c .)"
+    echo "tdp-admin web origins:   $(echo "$web_origins" | jq -c .)"
+}
+
 configure_grafana_client_urls() {
     if [ -z "${KC_GRAFANA_REDIRECT_URI:-}" ] && [ "$DEPLOY_ENV" != "dev" ]; then
         echo "WARNING: KC_GRAFANA_REDIRECT_URI not set for env '${DEPLOY_ENV}', skipping Grafana client URL configuration."
@@ -684,6 +798,7 @@ main() {
     configure_login_gov_logout_params
     show_login_gov_on_login_page
     configure_tdp_client_urls
+    configure_tdp_admin_client
     configure_tdp_cli_api_audience
     configure_grafana_client_urls
     echo "=== IdP configuration complete ==="

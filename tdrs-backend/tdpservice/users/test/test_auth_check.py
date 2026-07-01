@@ -1,5 +1,7 @@
 """Test the authorization check."""
 
+from urllib.parse import parse_qs, urlparse
+
 from django.urls import reverse
 
 import pytest
@@ -82,3 +84,38 @@ def test_auth_check_deactivated_user(api_client, deactivated_user):
 
     assert user_authentication is True
     assert response.data["authenticated"] is False
+
+
+@pytest.mark.django_db
+def test_admin_auth_check_allows_ofa_system_admin(api_client, ofa_system_admin):
+    """Admin auth_check should authorize OFA System Admin users."""
+    api_client.login(username=ofa_system_admin.username, password="test_password")
+    response = api_client.get(reverse("admin-authorization-check"))
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["authenticated"] is True
+    assert response.data["authorized"] is True
+    assert response.data["csrf"]
+
+
+@pytest.mark.django_db
+def test_admin_auth_check_rejects_non_admin(api_client, user):
+    """Admin auth_check should keep Django authoritative for admin authz."""
+    api_client.login(username=user.username, password="test_password")
+    response = api_client.get(reverse("admin-authorization-check"))
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.data["authenticated"] is True
+    assert response.data["authorized"] is False
+
+
+@pytest.mark.django_db
+def test_admin_login_uses_admin_keycloak_client(api_client, settings):
+    """Admin login should initialize OIDC with the dedicated admin client."""
+    settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID = "tdp-admin"
+    response = api_client.get(reverse("admin-login-ams"))
+
+    assert response.status_code == status.HTTP_302_FOUND
+    query_params = parse_qs(urlparse(response["Location"]).query)
+    assert query_params["client_id"] == ["tdp-admin"]
+    assert query_params["kc_idp_hint"] == ["ams"]

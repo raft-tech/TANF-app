@@ -327,6 +327,27 @@ class KeycloakLoginAMSView(OIDCAuthenticationRequestView):
         return {"kc_idp_hint": "ams"}
 
 
+class AdminKeycloakLoginMixin:
+    """Use the admin Keycloak client and admin redirect target for login."""
+
+    def get(self, request, *args, **kwargs):
+        """Mark this OIDC request as admin-scoped before redirecting."""
+        request.session["oidc_client"] = "tdp-admin"
+        self.OIDC_RP_CLIENT_ID = settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID
+        response = super().get(request, *args, **kwargs)
+        if not request.session.get("oidc_login_next"):
+            request.session["oidc_login_next"] = settings.ADMIN_FRONTEND_BASE_URL
+        return response
+
+
+class AdminKeycloakLoginDotGovView(AdminKeycloakLoginMixin, KeycloakLoginDotGovView):
+    """Redirect admin Login.gov users through the admin Keycloak client."""
+
+
+class AdminKeycloakLoginAMSView(AdminKeycloakLoginMixin, KeycloakLoginAMSView):
+    """Redirect admin AMS users through the admin Keycloak client."""
+
+
 class KeycloakLogoutView(View):
     """Logout from Django session and redirect to Keycloak end_session endpoint."""
 
@@ -341,6 +362,24 @@ class KeycloakLogoutView(View):
         logout_url = settings.OIDC_OP_LOGOUT_ENDPOINT
         params = {
             "post_logout_redirect_uri": settings.FRONTEND_BASE_URL,
+        }
+        if id_token:
+            params["id_token_hint"] = id_token
+
+        return HttpResponseRedirect(f"{logout_url}?{urlencode(params)}")
+
+
+class AdminKeycloakLogoutView(KeycloakLogoutView):
+    """Logout from the admin-scoped session and return to the admin console."""
+
+    def get(self, request):
+        """Clear the Django session and redirect to Keycloak logout."""
+        id_token = request.session.get("oidc_id_token")
+        logout(request)
+
+        logout_url = settings.OIDC_OP_LOGOUT_ENDPOINT
+        params = {
+            "post_logout_redirect_uri": settings.ADMIN_FRONTEND_BASE_URL,
         }
         if id_token:
             params["id_token_hint"] = id_token

@@ -154,6 +154,16 @@ class KeycloakOIDCBackend(OIDCAuthenticationBackend):
     the same logic.
     """
 
+    def authenticate(self, request, **kwargs):
+        """Authenticate with the admin Keycloak client for admin login flows."""
+        if request and request.session.get("oidc_client") == "tdp-admin":
+            self.OIDC_RP_CLIENT_ID = settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID
+            self.OIDC_RP_CLIENT_SECRET = settings.KEYCLOAK_TDP_ADMIN_CLIENT_SECRET
+        else:
+            self.OIDC_RP_CLIENT_ID = settings.KEYCLOAK_DJANGO_CLIENT_ID
+            self.OIDC_RP_CLIENT_SECRET = settings.KEYCLOAK_DJANGO_CLIENT_SECRET
+        return super().authenticate(request, **kwargs)
+
     def filter_users_by_claims(self, claims: dict) -> list:
         """Delegate to the module-level helper shared with bearer-token auth."""
         return filter_users_by_claims(claims)
