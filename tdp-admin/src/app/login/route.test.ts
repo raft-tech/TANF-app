@@ -6,7 +6,7 @@ afterEach(() => {
   process.env = { ...originalEnv };
 });
 
-describe("login redirect routes", () => {
+describe("auth redirect routes", () => {
   it("redirects Login.gov requests through the auth host", async () => {
     process.env.NEXT_PUBLIC_AUTH_URL = "https://auth.example.gov";
 
@@ -32,5 +32,18 @@ describe("login redirect routes", () => {
     expect(response.headers.get("location")).toBe(
       "https://backend.example.gov/admin-auth/login/ams?next=https%3A%2F%2Fadmin.example.gov%2F"
     );
+  });
+
+  it("redirects logout through the backend admin logout flow", async () => {
+    process.env.NEXT_PUBLIC_AUTH_URL = "https://auth.example.gov";
+
+    const { GET } = await import("../logout/route");
+    const response = GET();
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://auth.example.gov/admin-auth/logout/oidc"
+    );
+    expect(response.headers.get("set-cookie")).toBeNull();
   });
 });

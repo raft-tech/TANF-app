@@ -14,7 +14,5 @@ export function GET() {
     );
   }
 
-  const response = NextResponse.redirect(logoutUrl, { status: 307 });
-  response.cookies.delete("tdp_admin_session");
-  return response;
+  return NextResponse.redirect(logoutUrl, { status: 307 });
 }

@@ -2,7 +2,7 @@
 
 import datetime
 import logging
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from django.conf import settings
 from django.contrib.auth import logout
@@ -299,6 +299,7 @@ class KeycloakLoginDotGovView(OIDCAuthenticationRequestView):
 
     def get(self, request, *args, **kwargs):
         """Log the Login.gov auth flow before redirecting to Keycloak."""
+        request.session.pop("oidc_client", None)
         request.session["auth_idp"] = normalize_idp("login-gov")
         logger.info(
             "Login initiated",
@@ -316,6 +317,7 @@ class KeycloakLoginAMSView(OIDCAuthenticationRequestView):
 
     def get(self, request, *args, **kwargs):
         """Log the AMS auth flow before redirecting to Keycloak."""
+        request.session.pop("oidc_client", None)
         request.session["auth_idp"] = normalize_idp("ams")
         logger.info(
             "Login initiated", extra={"auth_flow": "keycloak", "auth_idp": "ams"}
@@ -332,9 +334,16 @@ class AdminKeycloakLoginMixin:
 
     def get(self, request, *args, **kwargs):
         """Mark this OIDC request as admin-scoped before redirecting."""
-        request.session["oidc_client"] = "tdp-admin"
+        request.session.pop("oidc_client", None)
         self.OIDC_RP_CLIENT_ID = settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID
         response = super().get(request, *args, **kwargs)
+        state = parse_qs(urlparse(response["Location"]).query).get("state", [None])[
+            0
+        ]
+        if state:
+            oidc_clients = request.session.get("oidc_clients", {}).copy()
+            oidc_clients[state] = "tdp-admin"
+            request.session["oidc_clients"] = oidc_clients
         if not request.session.get("oidc_login_next"):
             request.session["oidc_login_next"] = settings.ADMIN_FRONTEND_BASE_URL
         return response

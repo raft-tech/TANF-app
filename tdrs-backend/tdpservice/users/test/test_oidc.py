@@ -1,6 +1,7 @@
 """Tests for KeycloakOIDCBackend authentication backend."""
 
 import logging
+from unittest.mock import patch
 
 from django.test import RequestFactory
 
@@ -23,6 +24,135 @@ def backend():
 def request_factory():
     """Return a Django RequestFactory."""
     return RequestFactory()
+
+
+class TestAuthenticateClientSelection:
+    """Tests for request-scoped OIDC client selection."""
+
+    def test_admin_client_is_scoped_to_one_authenticate_call(
+        self, backend, request_factory, settings
+    ):
+        """Admin client credentials are restored and the session marker is cleared."""
+        settings.KEYCLOAK_DJANGO_CLIENT_ID = "tdp-django"
+        settings.KEYCLOAK_DJANGO_CLIENT_SECRET = "django-secret"
+        settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID = "tdp-admin"
+        settings.KEYCLOAK_TDP_ADMIN_CLIENT_SECRET = "admin-secret"
+
+        backend.OIDC_RP_CLIENT_ID = "original-client"
+        backend.OIDC_RP_CLIENT_SECRET = "original-secret"
+
+        request = request_factory.get("/oidc/callback/", {"state": "admin-state"})
+        request.session = {"oidc_clients": {"admin-state": "tdp-admin"}}
+
+        seen_clients = []
+
+        def fake_super_authenticate(self, request, **kwargs):
+            seen_clients.append((self.OIDC_RP_CLIENT_ID, self.OIDC_RP_CLIENT_SECRET))
+            return None
+
+        with patch(
+            "mozilla_django_oidc.auth.OIDCAuthenticationBackend.authenticate",
+            fake_super_authenticate,
+        ):
+            backend.authenticate(request)
+
+        assert seen_clients == [("tdp-admin", "admin-secret")]
+        assert "oidc_clients" not in request.session
+        assert backend.OIDC_RP_CLIENT_ID == "original-client"
+        assert backend.OIDC_RP_CLIENT_SECRET == "original-secret"
+
+    def test_default_client_is_used_after_admin_marker_is_consumed(
+        self, backend, request_factory, settings
+    ):
+        """A reused backend instance does not leak admin credentials into later calls."""
+        settings.KEYCLOAK_DJANGO_CLIENT_ID = "tdp-django"
+        settings.KEYCLOAK_DJANGO_CLIENT_SECRET = "django-secret"
+        settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID = "tdp-admin"
+        settings.KEYCLOAK_TDP_ADMIN_CLIENT_SECRET = "admin-secret"
+
+        seen_clients = []
+
+        def fake_super_authenticate(self, request, **kwargs):
+            seen_clients.append((self.OIDC_RP_CLIENT_ID, self.OIDC_RP_CLIENT_SECRET))
+            return None
+
+        admin_request = request_factory.get("/oidc/callback/", {"state": "admin-state"})
+        admin_request.session = {"oidc_clients": {"admin-state": "tdp-admin"}}
+        standard_request = request_factory.get("/oidc/callback/", {"state": "standard-state"})
+        standard_request.session = {}
+
+        with patch(
+            "mozilla_django_oidc.auth.OIDCAuthenticationBackend.authenticate",
+            fake_super_authenticate,
+        ):
+            backend.authenticate(admin_request)
+            backend.authenticate(standard_request)
+
+        assert seen_clients == [
+            ("tdp-admin", "admin-secret"),
+            ("tdp-django", "django-secret"),
+        ]
+
+    def test_admin_client_marker_is_scoped_to_callback_state(
+        self, backend, request_factory, settings
+    ):
+        """Admin credentials are used only for the matching OIDC state."""
+        settings.KEYCLOAK_DJANGO_CLIENT_ID = "tdp-django"
+        settings.KEYCLOAK_DJANGO_CLIENT_SECRET = "django-secret"
+        settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID = "tdp-admin"
+        settings.KEYCLOAK_TDP_ADMIN_CLIENT_SECRET = "admin-secret"
+
+        request = request_factory.get("/oidc/callback/", {"state": "admin-state"})
+        request.session = {
+            "oidc_clients": {
+                "admin-state": "tdp-admin",
+                "abandoned-state": "tdp-admin",
+            }
+        }
+
+        seen_clients = []
+
+        def fake_super_authenticate(self, request, **kwargs):
+            seen_clients.append((self.OIDC_RP_CLIENT_ID, self.OIDC_RP_CLIENT_SECRET))
+            return None
+
+        with patch(
+            "mozilla_django_oidc.auth.OIDCAuthenticationBackend.authenticate",
+            fake_super_authenticate,
+        ):
+            backend.authenticate(request)
+
+        assert seen_clients == [("tdp-admin", "admin-secret")]
+        assert request.session["oidc_clients"] == {"abandoned-state": "tdp-admin"}
+
+    def test_stale_admin_state_does_not_affect_standard_callback(
+        self, backend, request_factory, settings
+    ):
+        """An abandoned admin state does not change credentials for a later login."""
+        settings.KEYCLOAK_DJANGO_CLIENT_ID = "tdp-django"
+        settings.KEYCLOAK_DJANGO_CLIENT_SECRET = "django-secret"
+        settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID = "tdp-admin"
+        settings.KEYCLOAK_TDP_ADMIN_CLIENT_SECRET = "admin-secret"
+
+        request = request_factory.get("/oidc/callback/", {"state": "standard-state"})
+        request.session = {"oidc_clients": {"abandoned-admin-state": "tdp-admin"}}
+
+        seen_clients = []
+
+        def fake_super_authenticate(self, request, **kwargs):
+            seen_clients.append((self.OIDC_RP_CLIENT_ID, self.OIDC_RP_CLIENT_SECRET))
+            return None
+
+        with patch(
+            "mozilla_django_oidc.auth.OIDCAuthenticationBackend.authenticate",
+            fake_super_authenticate,
+        ):
+            backend.authenticate(request)
+
+        assert seen_clients == [("tdp-django", "django-secret")]
+        assert request.session["oidc_clients"] == {
+            "abandoned-admin-state": "tdp-admin"
+        }
 
 
 @pytest.mark.django_db

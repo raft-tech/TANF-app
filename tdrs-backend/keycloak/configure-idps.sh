@@ -575,28 +575,96 @@ configure_tdp_admin_client() {
     local client_uuid
     client_uuid=$(get_client_uuid "tdp-admin")
 
+    local is_local_or_dev="false"
+    if [ "$DEPLOY_ENV" == "local" ] || [ "$DEPLOY_ENV" == "dev" ]; then
+        is_local_or_dev="true"
+    fi
+
+    if [ -z "$client_uuid" ] && [ "$is_local_or_dev" != "true" ] && \
+        { [ -z "${KC_TDP_ADMIN_CLIENT_SECRET:-}" ] || \
+          [ -z "${KC_TDP_ADMIN_REDIRECT_URIS:-}" ] || \
+          [ -z "${KC_TDP_ADMIN_WEB_ORIGINS:-}" ] || \
+          [ -z "${KC_TDP_ADMIN_POST_LOGOUT_URIS:-}" ]; }; then
+        echo "WARNING: tdp-admin client not found and required KC_TDP_ADMIN_* env vars are missing; skipping client creation."
+        return
+    fi
+
+    if [ -n "$client_uuid" ] && [ "$is_local_or_dev" != "true" ] && \
+        [ -z "${KC_TDP_ADMIN_CLIENT_SECRET:-}" ] && \
+        [ -z "${KC_TDP_ADMIN_REDIRECT_URIS:-}" ] && \
+        [ -z "${KC_TDP_ADMIN_WEB_ORIGINS:-}" ] && \
+        [ -z "${KC_TDP_ADMIN_POST_LOGOUT_URIS:-}" ]; then
+        echo "No KC_TDP_ADMIN_* env vars set; preserving existing tdp-admin client configuration."
+        return
+    fi
+
+    local client_config
+    if [ -n "$client_uuid" ]; then
+        client_config=$(kc_api "${KEYCLOAK_URL}/admin/realms/${REALM}/clients/${client_uuid}" \
+            -H "Authorization: Bearer ${TOKEN}")
+    else
+        client_config=$(jq -n \
+            --arg clientId "tdp-admin" \
+            --arg name "TDP Admin Console" \
+            '{
+                clientId: $clientId,
+                name: $name,
+                enabled: true,
+                clientAuthenticatorType: "client-secret",
+                redirectUris: [],
+                webOrigins: [],
+                attributes: {},
+                protocol: "openid-connect",
+                publicClient: false,
+                standardFlowEnabled: true,
+                implicitFlowEnabled: false,
+                directAccessGrantsEnabled: false,
+                serviceAccountsEnabled: false,
+                authorizationServicesEnabled: false,
+                fullScopeAllowed: true,
+                defaultClientScopes: [
+                    "openid",
+                    "email",
+                    "profile",
+                    "tdp-user-attributes"
+                ],
+                optionalClientScopes: []
+            }')
+    fi
+
     local redirect_uris='[]'
     local web_origins='[]'
     local post_logout_uris="${KC_TDP_ADMIN_POST_LOGOUT_URIS:-}"
-    local client_secret="${KC_TDP_ADMIN_CLIENT_SECRET:-tdp-admin-local-secret}"
+    redirect_uris=$(echo "$client_config" | jq '.redirectUris // []')
+    web_origins=$(echo "$client_config" | jq '.webOrigins // []')
 
     if [ -n "${KC_TDP_ADMIN_REDIRECT_URIS:-}" ]; then
+        redirect_uris='[]'
         IFS=',' read -ra uris <<< "$KC_TDP_ADMIN_REDIRECT_URIS"
         for uri in "${uris[@]}"; do
             uri=$(echo "$uri" | xargs)
-            redirect_uris=$(append_json_array_unique "$redirect_uris" "$uri")
+            if [ -n "$uri" ]; then
+                redirect_uris=$(append_json_array_unique "$redirect_uris" "$uri")
+            fi
         done
+    elif [ -n "$client_uuid" ]; then
+        echo "KC_TDP_ADMIN_REDIRECT_URIS not set; preserving existing tdp-admin redirect URIs."
     fi
 
     if [ -n "${KC_TDP_ADMIN_WEB_ORIGINS:-}" ]; then
+        web_origins='[]'
         IFS=',' read -ra origins <<< "$KC_TDP_ADMIN_WEB_ORIGINS"
         for origin in "${origins[@]}"; do
             origin=$(echo "$origin" | xargs)
-            web_origins=$(append_json_array_unique "$web_origins" "$origin")
+            if [ -n "$origin" ]; then
+                web_origins=$(append_json_array_unique "$web_origins" "$origin")
+            fi
         done
+    elif [ -n "$client_uuid" ]; then
+        echo "KC_TDP_ADMIN_WEB_ORIGINS not set; preserving existing tdp-admin web origins."
     fi
 
-    if [ "$DEPLOY_ENV" == "local" ] || [ "$DEPLOY_ENV" == "dev" ]; then
+    if [ "$is_local_or_dev" == "true" ]; then
         for uri in \
             "https://tdp-admin-raft.app.cloud.gov/*" \
             "https://tdp-admin-qasp.app.cloud.gov/*" \
@@ -628,41 +696,30 @@ configure_tdp_admin_client() {
         fi
     fi
 
-    local client_config
-    client_config=$(jq -n \
-        --arg clientId "tdp-admin" \
-        --arg name "TDP Admin Console" \
-        --arg secret "$client_secret" \
-        --arg postLogoutUris "$post_logout_uris" \
+    client_config=$(echo "$client_config" | jq \
         --argjson redirectUris "$redirect_uris" \
         --argjson webOrigins "$web_origins" \
-        '{
-            clientId: $clientId,
-            name: $name,
-            enabled: true,
-            clientAuthenticatorType: "client-secret",
-            secret: $secret,
-            redirectUris: $redirectUris,
-            webOrigins: $webOrigins,
-            attributes: {
-                "post.logout.redirect.uris": $postLogoutUris
-            },
-            protocol: "openid-connect",
-            publicClient: false,
-            standardFlowEnabled: true,
-            implicitFlowEnabled: false,
-            directAccessGrantsEnabled: false,
-            serviceAccountsEnabled: false,
-            authorizationServicesEnabled: false,
-            fullScopeAllowed: true,
-            defaultClientScopes: [
-                "openid",
-                "email",
-                "profile",
-                "tdp-user-attributes"
-            ],
-            optionalClientScopes: []
-        }')
+        '.redirectUris = $redirectUris | .webOrigins = $webOrigins')
+
+    if [ -n "${KC_TDP_ADMIN_CLIENT_SECRET:-}" ]; then
+        client_config=$(echo "$client_config" | jq \
+            --arg secret "$KC_TDP_ADMIN_CLIENT_SECRET" \
+            '.secret = $secret')
+    elif [ "$is_local_or_dev" == "true" ]; then
+        client_config=$(echo "$client_config" | jq \
+            '.secret = "tdp-admin-local-secret"')
+    elif [ -n "$client_uuid" ]; then
+        echo "KC_TDP_ADMIN_CLIENT_SECRET not set; preserving existing tdp-admin client secret."
+    fi
+
+    if [ -n "$post_logout_uris" ]; then
+        client_config=$(echo "$client_config" | jq \
+            --arg postLogoutUris "$post_logout_uris" \
+            '.attributes = (.attributes // {}) |
+             .attributes["post.logout.redirect.uris"] = $postLogoutUris')
+    elif [ -n "$client_uuid" ]; then
+        echo "KC_TDP_ADMIN_POST_LOGOUT_URIS not set; preserving existing tdp-admin post logout redirect URIs."
+    fi
 
     if [ -z "$client_uuid" ]; then
         kc_api -X POST "${KEYCLOAK_URL}/admin/realms/${REALM}/clients" \

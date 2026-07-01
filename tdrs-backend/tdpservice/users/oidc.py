@@ -155,14 +155,34 @@ class KeycloakOIDCBackend(OIDCAuthenticationBackend):
     """
 
     def authenticate(self, request, **kwargs):
-        """Authenticate with the admin Keycloak client for admin login flows."""
-        if request and request.session.get("oidc_client") == "tdp-admin":
+        """Authenticate with the request-scoped Keycloak client."""
+        original_client_id = self.OIDC_RP_CLIENT_ID
+        original_client_secret = self.OIDC_RP_CLIENT_SECRET
+        oidc_client = None
+        if request:
+            state = request.GET.get("state")
+            oidc_clients = request.session.get("oidc_clients", {}).copy()
+            if state and state in oidc_clients:
+                oidc_client = oidc_clients.pop(state)
+                if oidc_clients:
+                    request.session["oidc_clients"] = oidc_clients
+                else:
+                    request.session.pop("oidc_clients", None)
+
+            request.session.pop("oidc_client", None)
+
+        if oidc_client == "tdp-admin":
             self.OIDC_RP_CLIENT_ID = settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID
             self.OIDC_RP_CLIENT_SECRET = settings.KEYCLOAK_TDP_ADMIN_CLIENT_SECRET
         else:
             self.OIDC_RP_CLIENT_ID = settings.KEYCLOAK_DJANGO_CLIENT_ID
             self.OIDC_RP_CLIENT_SECRET = settings.KEYCLOAK_DJANGO_CLIENT_SECRET
-        return super().authenticate(request, **kwargs)
+
+        try:
+            return super().authenticate(request, **kwargs)
+        finally:
+            self.OIDC_RP_CLIENT_ID = original_client_id
+            self.OIDC_RP_CLIENT_SECRET = original_client_secret
 
     def filter_users_by_claims(self, claims: dict) -> list:
         """Delegate to the module-level helper shared with bearer-token auth."""

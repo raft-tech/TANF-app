@@ -119,3 +119,22 @@ def test_admin_login_uses_admin_keycloak_client(api_client, settings):
     query_params = parse_qs(urlparse(response["Location"]).query)
     assert query_params["client_id"] == ["tdp-admin"]
     assert query_params["kc_idp_hint"] == ["ams"]
+    state = query_params["state"][0]
+    session = api_client.session
+    assert "oidc_client" not in session
+    assert session["oidc_clients"][state] == "tdp-admin"
+
+
+@pytest.mark.django_db
+def test_standard_login_clears_legacy_admin_client_marker(api_client):
+    """Standard login should not inherit a stale unscoped admin client marker."""
+    session = api_client.session
+    session["oidc_client"] = "tdp-admin"
+    session.save()
+
+    response = api_client.get(reverse("v2-login-ams"))
+
+    assert response.status_code == status.HTTP_302_FOUND
+    query_params = parse_qs(urlparse(response["Location"]).query)
+    assert query_params["client_id"] != ["tdp-admin"]
+    assert "oidc_client" not in api_client.session
