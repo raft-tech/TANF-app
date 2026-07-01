@@ -133,7 +133,7 @@ class CloudGov(Common):
     # Cookie settings
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = "None"
-    SESSION_COOKIE_DOMAIN = ".app.cloud.gov"
+    SESSION_COOKIE_DOMAIN = ".tanfdata.acf.hhs.gov"
     CSRF_COOKIE_SECURE = True
     CSRF_COOKIE_SAMESITE = "None"
 
@@ -230,15 +230,15 @@ class Development(CloudGov):
     """Settings for applications deployed in the Cloud.gov dev space."""
 
     # https://docs.djangoproject.com/en/2.0/ref/settings/#allowed-hosts
-    ALLOWED_HOSTS = [".app.cloud.gov", ".apps.internal"]
+    ALLOWED_HOSTS = [".tanfdata.acf.hhs.gov", ".apps.internal"]
     ADMIN_FRONTEND_BASE_URL = os.getenv(
-        "ADMIN_FRONTEND_BASE_URL", "https://tdp-admin-raft.app.cloud.gov"
+        "ADMIN_FRONTEND_BASE_URL", "https://admin-test.tanfdata.acf.hhs.gov"
     )
     CORS_ORIGIN_ALLOW_ALL = False
     CORS_ALLOWED_ORIGINS = [
-        "https://tdp-frontend-raft.app.cloud.gov",
-        "https://tdp-frontend-a11y.app.cloud.gov",
-        "https://tdp-frontend-qasp.app.cloud.gov",
+        "https://test.tanfdata.acf.hhs.gov",
+        "https://a11y.tanfdata.acf.hhs.gov",
+        "https://qasp.tanfdata.acf.hhs.gov",
         ADMIN_FRONTEND_BASE_URL,
     ]
     CORS_ALLOW_CREDENTIALS = True
@@ -256,13 +256,13 @@ class Staging(CloudGov):
         "ADMIN_FRONTEND_BASE_URL", "https://tdp-admin-staging.acf.hhs.gov"
     )
     ALLOWED_HOSTS = [
-        "tdp-frontend-staging.acf.hhs.gov",
-        "tdp-frontend-develop.acf.hhs.gov",
+        "staging.tanfdata.acf.hhs.gov",
+        "develop.tanfdata.acf.hhs.gov",
         ".apps.internal",
     ]
     CORS_ALLOWED_ORIGINS = [
-        "https://tdp-frontend-staging.acf.hhs.gov",
-        "https://tdp-frontend-develop.acf.hhs.gov",
+        "https://staging.tanfdata.acf.hhs.gov",
+        "https://develop.tanfdata.acf.hhs.gov",
         ADMIN_FRONTEND_BASE_URL,
     ]
     CORS_ORIGIN_ALLOW_ALL = False
@@ -283,7 +283,7 @@ class Staging(CloudGov):
     # Cloud.gov SET integration settings
     LOGIN_GOV_SET_AUDIENCE = os.getenv(
         "LOGIN_GOV_SET_AUDIENCE",
-        "https://tdp-frontend-staging.acf.hhs.gov/v1/security/event-token/",
+        "https://staging.tanfdata.acf.hhs.gov/v1/security/event-token/",
     )
 
 
@@ -296,7 +296,6 @@ class Production(CloudGov):
     # TODO: Add production ACF domain when known
     ALLOWED_HOSTS = [
         "tanfdata.acf.hhs.gov",
-        "tdp-frontend-prod.app.cloud.gov",
         ".apps.internal",
     ]
 

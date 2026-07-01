@@ -413,7 +413,6 @@ class Common(Configuration):
     CSRF_COOKIE_HTTPONLY = False
     CSRF_TRUSTED_ORIGINS = _unique_nonempty(
         [
-            "https://*.app.cloud.gov",
             "https://*.acf.hhs.gov",
             ADMIN_FRONTEND_BASE_URL,
         ]
@@ -810,7 +809,7 @@ class Common(Configuration):
     # Cloud.gov SET integration settings
     LOGIN_GOV_SET_AUDIENCE = os.getenv(
         "LOGIN_GOV_SET_AUDIENCE",
-        "https://tdp-frontend-raft.apps.cloud.gov/v1/security/event-token/",
+        "https://test.tanfdata.acf.hhs.gov/v1/security/event-token/",
     )
     LOGIN_GOV_WELL_KNOWN_CONFIG = os.getenv(
         "LOGIN_GOV_WELL_KNOWN_CONFIG",
