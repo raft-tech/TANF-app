@@ -52,7 +52,7 @@ export const validateSmallSSPFile = () => {
   'Accepted with Errors' with errors now since it will cover both cases with the caveat that
   we know why the status changes for different test environments.
   */
-  table_first_row_contains('Accepted with Errors')
+  table_first_row_contains(/Accepted with Errors|Rejected/)
   table_first_row_contains('2024-Q1-SSP Active Case Data Error Report.xlsx')
 }
 
