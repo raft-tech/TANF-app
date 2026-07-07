@@ -76,7 +76,7 @@ def test_stt_program_participation_string_representation():
     ],
 )
 def test_stt_program_participation_status_choices(status):
-    """SttProgramParticipation supports the expected statuses."""
+    """Program participation supports the expected statuses."""
     region = Region.objects.create(id=9999)
     stt = STT.objects.create(name="Test STT", region=region, stt_code="99")
     program = _create_program()
