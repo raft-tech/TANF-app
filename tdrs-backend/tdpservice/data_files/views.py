@@ -13,7 +13,7 @@ from drf_yasg.openapi import Parameter
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
@@ -30,6 +30,8 @@ from tdpservice.data_files.models import (
 from tdpservice.data_files.s3_client import S3Client
 from tdpservice.data_files.serializers import DataFileSerializer
 from tdpservice.data_files.submission_lifecycle import (
+    InvalidTransition,
+    cancel_datafile,
     complete_datafile_av_scan,
     transition_datafile,
 )
@@ -74,7 +76,7 @@ class DataFileViewSet(ModelViewSet):
 
     http_method_names = ["get", "post", "head"]
     filterset_class = DataFileFilter
-    parser_classes = [MultiPartParser]
+    parser_classes = [MultiPartParser, JSONParser]
     permission_classes = [DataFilePermissions, IsApprovedPermission]
     serializer_class = DataFileSerializer
     pagination_class = None
@@ -367,6 +369,25 @@ class DataFileViewSet(ModelViewSet):
             datafile = self.get_object()  # reload to get the newly added file
 
         return FileResponse(datafile.summary.error_report, "report.xlsx")
+
+    @action(methods=["post"], detail=True)
+    def cancel(self, request, pk=None):
+        """Cancel processing for an in-flight DataFile."""
+        if not request.user.is_an_admin:
+            return Response(
+                {"detail": "You do not have permission to cancel this data file."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        datafile = self.get_object()
+        reason = request.data.get("reason", "")
+        try:
+            cancel_datafile(datafile, reason=reason, actor=request.user)
+        except InvalidTransition as exc:
+            return Response({"detail": str(exc)}, status=HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(datafile)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class GetYearList(APIView):

@@ -4,10 +4,12 @@ import pytest
 
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.submission_lifecycle import (
+    CANCELABLE_STATES,
     InvalidScanResult,
     InvalidTransition,
     ReparsePreparationError,
     allowed_next_states,
+    cancel_datafile,
     complete_datafile_av_scan,
     prepare_datafile_for_reparse,
     transition_datafile,
@@ -146,6 +148,53 @@ def test_transition_datafile_supports_parse_failed_state():
     data_file.refresh_from_db()
 
     assert data_file.state == SubmissionState.PARSE_FAILED
+
+
+@pytest.mark.parametrize("state", sorted(CANCELABLE_STATES, key=lambda item: item.value))
+@pytest.mark.django_db
+def test_cancel_datafile_transitions_active_states_to_canceled(state):
+    """Active submission states can be canceled."""
+    data_file = DataFileFactory(state=state)
+    payloads = []
+
+    cancel_datafile(
+        data_file,
+        reason="wrong file uploaded",
+        actor=data_file.user,
+        logger_hook=payloads.append,
+    )
+    data_file.refresh_from_db()
+
+    assert data_file.state == SubmissionState.CANCELED
+    assert payloads == [
+        {
+            "data_file_id": data_file.id,
+            "previous_state": state.value,
+            "next_state": SubmissionState.CANCELED.value,
+            "note": "canceled: wrong file uploaded",
+            "cancel_reason": "wrong file uploaded",
+            "actor": {
+                "id": data_file.user.id,
+                "username": data_file.user.username,
+            },
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        SubmissionState.COMPLETED,
+        SubmissionState.CANCELED,
+    ],
+)
+@pytest.mark.django_db
+def test_cancel_datafile_rejects_terminal_states(state):
+    """Terminal states cannot be canceled."""
+    data_file = DataFileFactory(state=state)
+
+    with pytest.raises(InvalidTransition, match=f"state {state.value}"):
+        cancel_datafile(data_file, reason="too late")
 
 
 @pytest.mark.parametrize(
@@ -391,6 +440,22 @@ def test_complete_datafile_av_scan_duplicate_result_noops_with_log_payload():
             "note": "Duplicate AV completion result; no-op.",
         }
     ]
+
+
+@pytest.mark.django_db
+def test_complete_datafile_av_scan_noops_for_canceled_datafile():
+    """AV completion callbacks should not move canceled files forward."""
+    data_file = DataFileFactory(state=SubmissionState.CANCELED)
+
+    result_file, transition_occurred = complete_datafile_av_scan(
+        data_file,
+        scan_result="clean",
+    )
+    data_file.refresh_from_db()
+
+    assert transition_occurred is False
+    assert result_file.id == data_file.id
+    assert data_file.state == SubmissionState.CANCELED
 
 
 @pytest.mark.django_db

@@ -586,6 +586,48 @@ def test_parse_success_sends_email(monkeypatch, data_analyst):
 
 
 @pytest.mark.django_db
+def test_parse_noops_for_canceled_data_file(monkeypatch, data_analyst):
+    """Queued parse tasks should not process canceled files."""
+    datafile = DataFileFactory(
+        stt=data_analyst.stt,
+        version=21,
+        state=SubmissionState.CANCELED,
+    )
+
+    def fail_get_instance(**kwargs):
+        raise AssertionError("parser should not be created for canceled files")
+
+    monkeypatch.setattr(parser_task.ParserFactory, "get_instance", fail_get_instance)
+
+    parser_task.parse(datafile.id)
+
+    datafile.refresh_from_db()
+    assert datafile.state == SubmissionState.CANCELED
+    assert not DataFileSummary.objects.filter(datafile=datafile).exists()
+
+
+@pytest.mark.django_db
+def test_post_parse_noops_for_canceled_data_file(monkeypatch, data_analyst):
+    """Queued Go post-parse tasks should not finalize canceled files."""
+    datafile = DataFileFactory(
+        stt=data_analyst.stt,
+        version=22,
+        state=SubmissionState.CANCELED,
+    )
+
+    def fail_finalize_parse(*args, **kwargs):
+        raise AssertionError("post_parse should not finalize canceled files")
+
+    monkeypatch.setattr(parser_task, "_finalize_parse", fail_finalize_parse)
+
+    parser_task.post_parse(datafile.id)
+
+    datafile.refresh_from_db()
+    assert datafile.state == SubmissionState.CANCELED
+    assert not DataFileSummary.objects.filter(datafile=datafile).exists()
+
+
+@pytest.mark.django_db
 def test_parse_success_reparse_updates_file_meta(monkeypatch, data_analyst):
     """Update reparse metadata on success."""
     datafile = DataFileFactory(

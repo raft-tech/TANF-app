@@ -164,6 +164,23 @@ def _get_post_parse_data_file(data_file_id):
     raise DataFile.DoesNotExist(f"No parser data file found for id={data_file_id}")
 
 
+def _should_skip_canceled_data_file(data_file, task_name, reparse_id=None):
+    """Return whether a task should no-op because the DataFile is canceled."""
+    if data_file.state != SubmissionState.CANCELED:
+        return False
+
+    logger.info(
+        "Skipping %s for canceled DataFile.",
+        task_name,
+        extra={
+            "data_file_id": data_file.id,
+            "state": SubmissionState.CANCELED.value,
+            "reparse_id": reparse_id,
+        },
+    )
+    return True
+
+
 def _get_summary_status(dfs, data_file, parser_error_model=ParserError):
     """Return DataFileSummary-style status using the selected parser error model."""
     if dfs.status != DataFileSummary.Status.PENDING:
@@ -420,6 +437,9 @@ def go_parse(data_file_id):
 def post_parse(data_file_id, reparse_id=0, parse_error=None):
     """Finalize Go parser output after every parse attempt."""
     data_file, parser_models = _get_post_parse_data_file(data_file_id)
+    if _should_skip_canceled_data_file(data_file, "post_parse", reparse_id):
+        return
+
     dfs, _ = parser_models.summary_model.objects.get_or_create(
         datafile=data_file,
         defaults={"status": DataFileSummary.Status.PENDING},
@@ -462,8 +482,11 @@ def parse(data_file_id, reparse_id=None):
     dfs = None
     file_meta = None
     reparse_success = True
+    data_file = DataFile.objects.get(id=data_file_id)
+    if _should_skip_canceled_data_file(data_file, "parse", reparse_id):
+        return
+
     try:
-        data_file = DataFile.objects.get(id=data_file_id)
         change_log_filename(logger, data_file)
         logger.info(
             f"\n\n\n __ Starting to {'re-' if reparse_id else ''}parse datafile {data_file.filename}__ \n\n\n"

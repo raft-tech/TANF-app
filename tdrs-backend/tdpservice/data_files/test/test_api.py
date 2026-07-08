@@ -15,6 +15,7 @@ from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile, ShadowDataFile
 from tdpservice.data_files.serializers import DataFileSerializer
 from tdpservice.data_files.submission_lifecycle import InvalidTransition
+from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.parsers import util
 from tdpservice.parsers.factory import ParserFactory
 from tdpservice.parsers.models import ParserError
@@ -276,6 +277,14 @@ class DataFileAPITestBase:
         """Download the ParserError xlsx report."""
         return api_client.get(f"{self.root_url}{data_file_id}/download_error_report/")
 
+    def cancel_data_file(self, api_client, data_file_id, reason=""):
+        """Cancel a DataFile through the API."""
+        return api_client.post(
+            f"{self.root_url}{data_file_id}/cancel/",
+            {"reason": reason},
+            format="json",
+        )
+
 
 class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
     """Test DataFileViewSet as an OFA Admin user."""
@@ -346,6 +355,32 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         assert shadow_data_file.file.name == data_file.file.name
         assert shadow_data_file.stt_id == data_file.stt_id
         assert shadow_data_file.user_id == data_file.user_id
+
+    def test_cancel_active_data_file(self, api_client, user):
+        """OFA admins can cancel active data files."""
+        data_file = DataFileFactory(user=user, state=SubmissionState.PARSE_STARTED)
+
+        response = self.cancel_data_file(
+            api_client,
+            data_file.id,
+            reason="wrong file uploaded",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data_file.refresh_from_db()
+        assert data_file.state == SubmissionState.CANCELED
+        assert response.data["state"] == SubmissionState.CANCELED
+
+    def test_cancel_completed_data_file_is_blocked(self, api_client, user):
+        """Illegal cancels from terminal states return a 400."""
+        data_file = DataFileFactory(user=user, state=SubmissionState.COMPLETED)
+
+        response = self.cancel_data_file(api_client, data_file.id, reason="too late")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        data_file.refresh_from_db()
+        assert data_file.state == SubmissionState.COMPLETED
+        assert "Cannot cancel" in response.data["detail"]
 
     @override_settings(GO_PARSER_SHADOW_MODE=False)
     def test_create_data_file_file_entry_does_not_create_shadow_when_shadow_mode_off(

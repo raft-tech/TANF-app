@@ -37,6 +37,19 @@ REPARSE_REQUESTABLE_STATES = {
     SubmissionState.PARSE_COMPLETED,
 }
 
+CANCELABLE_STATES = {
+    SubmissionState.UPLOADED,
+    SubmissionState.VIRUS_SCAN_STARTED,
+    SubmissionState.VIRUS_SCAN_FAILED,
+    SubmissionState.VIRUS_SCAN_COMPLETED,
+    SubmissionState.REPARSE_REQUESTED,
+    SubmissionState.PARSE_STARTED,
+    SubmissionState.PARSE_FAILED,
+    SubmissionState.PARSED_WITH_ERRORS,
+    SubmissionState.PARSE_COMPLETED,
+    SubmissionState.STUCK,
+}
+
 
 ALLOWED_TRANSITIONS: Dict[SubmissionState, Iterable[SubmissionState]] = {
     SubmissionState.UPLOADED: {
@@ -154,6 +167,46 @@ def transition_datafile(
         logger.info("DataFile submission state transition", extra=log_payload)
 
     return data_file
+
+
+def _actor_log_value(actor):
+    """Return a stable actor representation for lifecycle audit logs."""
+    if actor is None:
+        return None
+
+    actor_id = getattr(actor, "id", None)
+    actor_name = getattr(actor, "username", None) or str(actor)
+    if actor_id is None:
+        return actor_name
+
+    return {"id": actor_id, "username": actor_name}
+
+
+def cancel_datafile(
+    data_file,
+    reason="",
+    actor=None,
+    logger_hook: Callable | None = None,
+):
+    """Transition an in-flight DataFile into the canceled terminal state."""
+    current_state = coerce_submission_state(data_file.state)
+    if current_state not in CANCELABLE_STATES:
+        raise InvalidTransition(
+            f"Cannot cancel DataFile {data_file.id} in state {current_state.value}."
+        )
+
+    cancel_reason = reason or ""
+    note = f"canceled: {cancel_reason}"
+    return transition_datafile(
+        data_file,
+        SubmissionState.CANCELED,
+        note=note,
+        logger_hook=logger_hook,
+        log_fields={
+            "cancel_reason": cancel_reason,
+            "actor": _actor_log_value(actor),
+        },
+    )
 
 
 def _normalize_scan_result(scan_result) -> str:
