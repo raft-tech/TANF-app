@@ -57,6 +57,31 @@ class AuthorizationCheck(APIView):
             return Response({"authenticated": False})
 
 
+class AdminAuthorizationCheck(AuthorizationCheck):
+    """Check if the current Django session is authorized for the admin console."""
+
+    pattern_name = "admin-authorization-check"
+
+    def get(self, request, *args, **kwargs):
+        """Return authenticated and admin authorization state for the session."""
+        response = super().get(request, *args, **kwargs)
+
+        if not response.data.get("authenticated"):
+            return response
+
+        user = request.user
+        is_admin = getattr(user, "is_ofa_sys_admin", False)
+
+        response.data["authorized"] = is_admin
+        response.data["csrf"] = csrf.get_token(request)
+
+        if not is_admin:
+            response.status_code = 403
+            response.data["detail"] = "User is not authorized for the admin console."
+
+        return response
+
+
 class PlgAuthorizationCheck(APIView):
     """Check if user is authorized to view Grafana."""
 

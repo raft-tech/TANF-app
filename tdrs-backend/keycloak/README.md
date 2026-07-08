@@ -68,6 +68,9 @@ The `keycloak-configure` container will automatically run after Keycloak is heal
 | `KEYCLOAK_ADMIN_CLIENT_SECRET` | `tdp-django-local-secret` | Client secret for admin API access |
 | `KEYCLOAK_DJANGO_CLIENT_ID` | `tdp-django` | Client ID for OIDC authentication |
 | `KEYCLOAK_DJANGO_CLIENT_SECRET` | `tdp-django-local-secret` | Client secret for OIDC authentication |
+| `KEYCLOAK_TDP_ADMIN_CLIENT_ID` | `tdp-admin` | Client ID for the standalone admin console OIDC flow |
+| `KEYCLOAK_TDP_ADMIN_CLIENT_SECRET` | `tdp-admin-local-secret` | Client secret for the standalone admin console OIDC flow |
+| `ADMIN_FRONTEND_BASE_URL` | `http://localhost:3001` | Browser-facing admin console URL used for admin login/logout redirects |
 
 #### OIDC (mozilla-django-oidc)
 
@@ -127,6 +130,7 @@ Note: `OIDC_OP_AUTHORIZATION_ENDPOINT` and `OIDC_OP_LOGOUT_ENDPOINT` use `KEYCLO
 | Client | Type | Purpose |
 |---|---|---|
 | `tdp-django` | Confidential (service account) | Backend OIDC authentication and admin API access |
+| `tdp-admin` | Confidential | Standalone admin console browser authentication |
 | `tdp-grafana` | Confidential | Grafana SSO integration |
 | `tdp-cli` | **Public** (no secret, PKCE + Device Authorization Grant) | External API clients - Postman, CLI tools, CI/CD, security auditors |
 
@@ -194,6 +198,15 @@ The `tdp-user-attributes` client scope includes these custom attributes, synced 
 | `GET /v2/oidc/callback/` | mozilla-django-oidc | Handles authorization code callback |
 | `GET /v2/auth_check` | `AuthorizationCheck` | Returns current user authentication status |
 | `GET /v2/logout/oidc` | `KeycloakLogoutView` | Clears session and redirects to Keycloak logout |
+
+### Admin Console Endpoints
+
+| Endpoint | View | Description |
+|---|---|---|
+| `GET /admin-auth/login/dotgov` | `AdminKeycloakLoginDotGovView` | Redirects admin users to Keycloak with the `tdp-admin` client and `kc_idp_hint=login-gov` |
+| `GET /admin-auth/login/ams` | `AdminKeycloakLoginAMSView` | Redirects admin users to Keycloak with the `tdp-admin` client and `kc_idp_hint=ams` |
+| `GET /admin-auth/auth_check` | `AdminAuthorizationCheck` | Validates the Django session and OFA System Admin authorization before admin rendering |
+| `GET /admin-auth/logout/oidc` | `AdminKeycloakLogoutView` | Clears the admin-scoped Django session and redirects through Keycloak logout |
 
 ### User Sync
 

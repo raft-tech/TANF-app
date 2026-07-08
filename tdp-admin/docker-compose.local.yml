@@ -11,6 +11,7 @@ services:
       - 3001:3000
     environment:
       - NEXT_PUBLIC_AUTH_URL=http://host.docker.internal:8989
+      - NEXT_PUBLIC_AUTH_BROWSER_URL=http://localhost:8989
       - NEXT_PUBLIC_BACKEND_URL=http://host.docker.internal:8989/v1
       - NEXT_PUBLIC_BACKEND_HOST=http://host.docker.internal:8989
     volumes:

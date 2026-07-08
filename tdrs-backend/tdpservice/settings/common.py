@@ -7,6 +7,7 @@ import os
 from distutils.util import strtobool
 from os.path import join
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 import django
 from django.core.exceptions import ImproperlyConfigured
@@ -37,6 +38,15 @@ def get_required_env_var_setting(
 
 
 SAMPLER_FILTER_URLS = ["/prometheus/metrics"]
+
+
+def _host_from_url(url: str) -> str:
+    parsed_url = urlparse(url)
+    return parsed_url.netloc or parsed_url.path
+
+
+def _unique_nonempty(values: list[str]) -> list[str]:
+    return list(dict.fromkeys(value for value in values if value))
 
 
 def traces_sampler(sampling_context: SamplingContext) -> float:
@@ -187,6 +197,9 @@ class Common(Configuration):
     # Application URLs
     BASE_URL = os.getenv("BASE_URL", "http://localhost:8080/v1")
     FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
+    ADMIN_FRONTEND_BASE_URL = os.getenv(
+        "ADMIN_FRONTEND_BASE_URL", "http://localhost:3001"
+    )
 
     # Email Server
     EMAIL_BACKEND = "tdpservice.email.backend.SendgridEmailBackend"
@@ -398,7 +411,12 @@ class Common(Configuration):
     # of API POST calls to prevent false negative authorization errors.
     # https://docs.djangoproject.com/en/2.2/ref/settings/#csrf-cookie-httponly
     CSRF_COOKIE_HTTPONLY = False
-    CSRF_TRUSTED_ORIGINS = ["https://*.acf.hhs.gov"]
+    CSRF_TRUSTED_ORIGINS = _unique_nonempty(
+        [
+            "https://*.acf.hhs.gov",
+            ADMIN_FRONTEND_BASE_URL,
+        ]
+    )
 
     # Django Rest Framework
     DEFAULT_RENDERER_CLASSES = ["rest_framework.renderers.JSONRenderer"]
@@ -557,6 +575,12 @@ class Common(Configuration):
     KEYCLOAK_DJANGO_CLIENT_SECRET = os.getenv(
         "KEYCLOAK_DJANGO_CLIENT_SECRET", "tdp-django-local-secret"
     )
+    KEYCLOAK_TDP_ADMIN_CLIENT_ID = os.getenv(
+        "KEYCLOAK_TDP_ADMIN_CLIENT_ID", "tdp-admin"
+    )
+    KEYCLOAK_TDP_ADMIN_CLIENT_SECRET = os.getenv(
+        "KEYCLOAK_TDP_ADMIN_CLIENT_SECRET", "tdp-admin-local-secret"
+    )
     KEYCLOAK_BEARER_CLIENT_ID = os.getenv("KEYCLOAK_BEARER_CLIENT_ID", "tdp-cli")
     KEYCLOAK_API_AUDIENCE = os.getenv(
         "KEYCLOAK_API_AUDIENCE", KEYCLOAK_DJANGO_CLIENT_ID
@@ -596,6 +620,12 @@ class Common(Configuration):
 
     # Custom authentication backend
     OIDC_AUTHENTICATION_CALLBACK_URL = "oidc_authentication_callback"
+    OIDC_REDIRECT_ALLOWED_HOSTS = _unique_nonempty(
+        [
+            _host_from_url(FRONTEND_BASE_URL),
+            _host_from_url(ADMIN_FRONTEND_BASE_URL),
+        ]
+    )
     AUTHENTICATION_BACKENDS = (
         "tdpservice.users.oidc.KeycloakOIDCBackend",
         "tdpservice.users.authentication.CustomAuthentication",
