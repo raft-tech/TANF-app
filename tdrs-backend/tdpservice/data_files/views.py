@@ -387,7 +387,9 @@ class DataFileViewSet(ModelViewSet):
             return Response({"detail": str(exc)}, status=HTTP_400_BAD_REQUEST)
 
         serializer = self.get_serializer(datafile)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        response_data = serializer.data
+        response_data["state"] = datafile.state
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class GetYearList(APIView):

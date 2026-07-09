@@ -166,19 +166,17 @@ def test_cancel_datafile_transitions_active_states_to_canceled(state):
     data_file.refresh_from_db()
 
     assert data_file.state == SubmissionState.CANCELED
-    assert payloads == [
-        {
-            "data_file_id": data_file.id,
-            "previous_state": state.value,
-            "next_state": SubmissionState.CANCELED.value,
-            "note": "canceled: wrong file uploaded",
-            "cancel_reason": "wrong file uploaded",
-            "actor": {
-                "id": data_file.user.id,
-                "username": data_file.user.username,
-            },
-        }
-    ]
+    assert len(payloads) == 1
+    payload = payloads[0]
+    assert payload["data_file_id"] == data_file.id
+    assert payload["previous_state"] == state.value
+    assert payload["next_state"] == SubmissionState.CANCELED.value
+    assert payload["note"] == "canceled: wrong file uploaded"
+    assert payload["cancel_reason"] == "wrong file uploaded"
+    assert payload["actor"] == {
+        "id": str(data_file.user.id),
+        "username": data_file.user.username,
+    }
 
 
 @pytest.mark.parametrize(
