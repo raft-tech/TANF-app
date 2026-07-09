@@ -6,8 +6,15 @@ afterEach(() => {
   process.env = { ...originalEnv };
 });
 
+function clearAdminUrlEnv() {
+  delete process.env.NEXT_PUBLIC_AUTH_URL;
+  delete process.env.NEXT_PUBLIC_AUTH_BROWSER_URL;
+  delete process.env.NEXT_PUBLIC_BACKEND_URL;
+}
+
 describe("auth redirect routes", () => {
   it("redirects Login.gov requests through the auth host", async () => {
+    clearAdminUrlEnv();
     process.env.NEXT_PUBLIC_AUTH_URL = "https://auth.example.gov";
 
     const { GET } = await import("./dotgov/route");
@@ -20,8 +27,8 @@ describe("auth redirect routes", () => {
   });
 
   it("redirects ACF AMS requests through the auth host", async () => {
+    clearAdminUrlEnv();
     process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
-    delete process.env.NEXT_PUBLIC_AUTH_URL;
 
     const { GET } = await import("./ams/route");
     const response = GET(
@@ -35,6 +42,7 @@ describe("auth redirect routes", () => {
   });
 
   it("redirects logout through the backend admin logout flow", async () => {
+    clearAdminUrlEnv();
     process.env.NEXT_PUBLIC_AUTH_URL = "https://auth.example.gov";
 
     const { GET } = await import("../logout/route");

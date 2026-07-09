@@ -398,16 +398,16 @@ tasks:
       - docker compose -f docker-compose.local.yml exec tdp-admin sh
 
   admin-test:
-    desc: Run admin unit tests (Vitest)
+    desc: Run admin unit tests (Vitest) in Docker
     dir: tdp-admin
     cmds:
-      - yarn test
+      - docker compose -f docker-compose.local.yml run --rm --no-deps tdp-admin sh -c "corepack prepare yarn@4.6.0 && corepack yarn test"
 
   admin-test-watch:
-    desc: Run admin unit tests in watch mode
+    desc: Run admin unit tests in watch mode in Docker
     dir: tdp-admin
     cmds:
-      - yarn test:watch
+      - docker compose -f docker-compose.local.yml run --rm --no-deps tdp-admin sh -c "corepack prepare yarn@4.6.0 && corepack yarn test:watch"
 
   frontend-init:
     desc: Initialize the frontend project (localdev image with node_modules)

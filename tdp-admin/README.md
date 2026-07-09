@@ -52,11 +52,36 @@ authorization. Next.js route gating is only a user-experience guard.
 - `/api/backend-health` probes the backend auth endpoint and reports non-2xx responses as failures.
 - `/api/admin/*` forwards backend API requests with the Django session cookie
   and CSRF token required by mutating requests.
+- `/api-validation` calls a Django endpoint through the shared server-side API
+  helper and displays the returned status, cache headers, content type, and
+  response body. Use `?endpoint=test-viewset` to validate a mocked or local
+  Django viewset response.
+
+## API Boundary
+
+Use `src/lib/admin-api.ts` for server-side calls from `tdp-admin` to Django.
+The helper forwards admin session cookies, Django CSRF context for mutating
+requests, request ID/correlation headers, and provenance headers that support
+backend audit and incident response.
+
+Authenticated admin responses should default to `Cache-Control: no-store`.
+The `/api/admin/*` route is the default pass-through path for views backed by a
+single Django endpoint. BFF shaping should be limited to composing multiple
+Django responses for one admin view. Do not implement business logic,
+authorization enforcement, workflow transitions, validation authority,
+persistence, or durable audit records in Next.js.
 
 ## Testing
 
 Run the focused admin checks with:
 
 ```bash
-yarn test
+task admin-test
+```
+
+Manual validation:
+
+```bash
+yarn dev
+open http://localhost:3001/api-validation?endpoint=test-viewset
 ```

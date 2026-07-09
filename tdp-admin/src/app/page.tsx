@@ -87,6 +87,9 @@ export default async function AdminHomePage() {
                 <a className="usa-button" href="/api/backend-health">
                   Check backend health
                 </a>
+                <a className="usa-button usa-button--outline" href="/api-validation">
+                  Validate API response
+                </a>
                 <a className="usa-button usa-button--outline" href="/logout">
                   Sign out
                 </a>

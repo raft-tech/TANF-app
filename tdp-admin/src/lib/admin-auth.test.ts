@@ -22,8 +22,15 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+function clearAdminUrlEnv() {
+  delete process.env.NEXT_PUBLIC_AUTH_URL;
+  delete process.env.NEXT_PUBLIC_AUTH_BROWSER_URL;
+  delete process.env.NEXT_PUBLIC_BACKEND_URL;
+}
+
 describe("admin auth helpers", () => {
   it("prefers the explicit auth URL over the backend URL", () => {
+    clearAdminUrlEnv();
     process.env.NEXT_PUBLIC_AUTH_URL = "https://auth.example.gov/";
     process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
 
@@ -41,6 +48,7 @@ describe("admin auth helpers", () => {
   });
 
   it("uses a browser-reachable auth URL for redirects when configured", () => {
+    clearAdminUrlEnv();
     process.env.NEXT_PUBLIC_AUTH_URL = "http://host.docker.internal:8989";
     process.env.NEXT_PUBLIC_AUTH_BROWSER_URL = "http://localhost:8989";
 
@@ -55,7 +63,7 @@ describe("admin auth helpers", () => {
   });
 
   it("derives the auth base from the backend URL when needed", () => {
-    delete process.env.NEXT_PUBLIC_AUTH_URL;
+    clearAdminUrlEnv();
     process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1/";
 
     expect(getAuthBaseUrl()).toBe("https://backend.example.gov");
@@ -63,6 +71,7 @@ describe("admin auth helpers", () => {
   });
 
   it("returns a failed backend health result for non-OK responses", async () => {
+    clearAdminUrlEnv();
     process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1/";
     vi.stubGlobal(
       "fetch",
@@ -92,6 +101,7 @@ describe("admin auth helpers", () => {
   });
 
   it("checks the admin-scoped Django session", async () => {
+    clearAdminUrlEnv();
     process.env.NEXT_PUBLIC_AUTH_URL = "https://auth.example.gov";
     vi.stubGlobal(
       "fetch",
