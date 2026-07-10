@@ -111,6 +111,26 @@ def test_stt_program_participation_is_unique_per_stt_and_program():
 
 
 @pytest.mark.django_db
+def test_stt_has_active_ssp_participation():
+    """STT detects active SSP participation from participation records."""
+    region = Region.objects.create(id=9999)
+    stt = STT.objects.create(name="Test STT", region=region, stt_code="99")
+    program, _ = Program.objects.get_or_create(slug="ssp", defaults={"name": "SSP"})
+
+    assert stt.has_active_ssp_participation() is False
+
+    SttProgramParticipation.objects.create(
+        stt=stt,
+        program=program,
+        status=SttProgramParticipation.Status.FORMER,
+    )
+    assert stt.has_active_ssp_participation() is False
+
+    stt.program_participations.update(status=SttProgramParticipation.Status.ACTIVE)
+    assert stt.has_active_ssp_participation() is True
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     "filenames, expected_num_sections",
     [
@@ -135,7 +155,7 @@ def test_stt_program_participation_is_unique_per_stt_and_program():
 )
 def test_stt_num_sections_counts_unique_sections(filenames, expected_num_sections):
     """num_sections counts sections, not program-prefixed filename keys."""
-    stt = STT.objects.create(name="Section Count Test", filenames=filenames, ssp=True)
+    stt = STT.objects.create(name="Section Count Test", filenames=filenames)
 
     assert stt.num_sections == expected_num_sections
 

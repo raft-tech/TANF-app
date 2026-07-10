@@ -5,6 +5,7 @@ from django.db.models import constraints
 
 DEFAULT_NUMBER_OF_SECTIONS = 4
 LEGACY_PROGRAM_PREFIXES = ("TAN ", "SSP ", "TRIBAL ", "TRIBAL TANF ", "TRIBAL_")
+SSP_PROGRAM_SLUG = "ssp"
 
 
 def _normalize_section_name(section):
@@ -106,6 +107,20 @@ class STT(models.Model):
     def __str__(self):
         """Return the STT's name."""
         return f"{self.name} ({self.stt_code})"
+
+    def has_active_ssp_participation(self):
+        """Return whether this STT currently participates in SSP."""
+        if "program_participations" in getattr(self, "_prefetched_objects_cache", {}):
+            return any(
+                participation.program.slug == SSP_PROGRAM_SLUG
+                and participation.status == SttProgramParticipation.Status.ACTIVE
+                for participation in self.program_participations.all()
+            )
+
+        return self.program_participations.filter(
+            program__slug=SSP_PROGRAM_SLUG,
+            status=SttProgramParticipation.Status.ACTIVE,
+        ).exists()
 
 
 class SttProgramParticipation(models.Model):

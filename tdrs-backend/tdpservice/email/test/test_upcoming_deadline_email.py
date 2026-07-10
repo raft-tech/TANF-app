@@ -9,7 +9,7 @@ import pytest
 
 from tdpservice.data_files.models import DataFile
 from tdpservice.email.tasks import send_data_submission_reminder
-from tdpservice.stts.models import STT
+from tdpservice.stts.models import Program, STT, SttProgramParticipation
 from tdpservice.users.models import User
 
 QUARTERLY_PARAMS = pytest.mark.parametrize(
@@ -25,7 +25,16 @@ QUARTERLY_PARAMS = pytest.mark.parametrize(
 
 def _create_stt_with_analyst(name, filenames, ssp=False, stt_type=STT.EntityType.STATE):
     """Create an STT and an approved Data Analyst assigned to it."""
-    stt = STT.objects.create(name=name, filenames=filenames, ssp=ssp, type=stt_type)
+    stt = STT.objects.create(name=name, filenames=filenames, type=stt_type)
+    if ssp:
+        ssp_program, _ = Program.objects.get_or_create(
+            slug="ssp", defaults={"name": "SSP"}
+        )
+        SttProgramParticipation.objects.create(
+            stt=stt,
+            program=ssp_program,
+            status=SttProgramParticipation.Status.ACTIVE,
+        )
     data_analyst = User.objects.create(
         username=f"{name.lower().replace(' ', '')}@test.com",
         stt=stt,
@@ -301,6 +310,31 @@ def test_ssp_stt_no_reminder_when_all_programs_submitted():
         _submit_file(stt, analyst, program_type, "Active Case Data", "Q2")
         _submit_file(stt, analyst, program_type, "Closed Case Data", "Q2")
         _submit_file(stt, analyst, program_type, "Aggregate Data", "Q2")
+
+    send_data_submission_reminder("May 15th", "Jan - Mar", "Q2")
+
+    assert len(mail.outbox) == 0
+
+
+@pytest.mark.django_db
+def test_former_ssp_stt_only_requires_tanf_submission():
+    """A former SSP state should not be asked to submit SSP files."""
+    stt, analyst = _create_stt_with_analyst(
+        "FormerSSPState",
+        {
+            "Active Case Data": "tanf1.txt",
+            "Closed Case Data": "tanf2.txt",
+        },
+    )
+    ssp_program, _ = Program.objects.get_or_create(slug="ssp", defaults={"name": "SSP"})
+    SttProgramParticipation.objects.create(
+        stt=stt,
+        program=ssp_program,
+        status=SttProgramParticipation.Status.FORMER,
+    )
+
+    _submit_file(stt, analyst, "TAN", "Active Case Data", "Q2")
+    _submit_file(stt, analyst, "TAN", "Closed Case Data", "Q2")
 
     send_data_submission_reminder("May 15th", "Jan - Mar", "Q2")
 
