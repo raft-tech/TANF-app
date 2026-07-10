@@ -8,10 +8,12 @@ from pathlib import Path
 from django.core.management import BaseCommand
 from django.utils import timezone
 
-from ...models import STT, Region
+from ...models import Program, STT, Region, SttProgramParticipation
 
 DATA_DIR = BASE_DIR = Path(__file__).resolve().parent / "data"
 logger = logging.getLogger(__name__)
+SSP_PROGRAM_SLUG = "ssp"
+SSP_PROGRAM_NAME = "SSP"
 
 
 def _populate_regions():
@@ -43,7 +45,7 @@ def _load_csv(filename, entity):
 
             stt.type = entity
             stt.filenames = json.loads(row["filenames"].replace("'", '"'))
-            stt.ssp = row["SSP"]
+            stt.ssp = _maybe_bool(row["SSP"])
             stt.sample = row["Sample"]
             if "Timezone" in row and row["Timezone"]:
                 stt.timezone = row["Timezone"]
@@ -52,6 +54,11 @@ def _load_csv(filename, entity):
             #       https://stackoverflow.com/questions/41744096/
             # TODO: we should finish the last columns from the csvs: Sample, SSN_Encrypted
             stt.save()
+            _sync_ssp_participation(
+                stt,
+                row["SSP"],
+                inactive_status=SttProgramParticipation.Status.NEVER,
+            )
 
 
 def _maybe_bool(value):
@@ -59,6 +66,53 @@ def _maybe_bool(value):
     if isinstance(value, str):
         return value.lower() in ("1", "true", "t", "yes", "y")
     return value
+
+
+def _get_ssp_program():
+    """Return the SSP program record."""
+    program, _ = Program.objects.get_or_create(
+        slug=SSP_PROGRAM_SLUG, defaults={"name": SSP_PROGRAM_NAME}
+    )
+    return program
+
+
+def _normalize_ssp_status(
+    value, inactive_status=SttProgramParticipation.Status.FORMER
+):
+    """Map SSP override values to participation status values."""
+    if isinstance(value, str):
+        normalized = value.upper()
+        if normalized in SttProgramParticipation.Status.values:
+            return normalized
+        return (
+            SttProgramParticipation.Status.ACTIVE
+            if _maybe_bool(value)
+            else inactive_status
+        )
+
+    if value is True:
+        return SttProgramParticipation.Status.ACTIVE
+    if value is False:
+        return inactive_status
+    return SttProgramParticipation.Status.NEVER
+
+
+def _sync_ssp_participation(
+    stt, value, inactive_status=SttProgramParticipation.Status.FORMER
+):
+    """Create, update, or remove SSP participation for an STT."""
+    status = _normalize_ssp_status(value, inactive_status=inactive_status)
+    program = _get_ssp_program()
+
+    if status == SttProgramParticipation.Status.NEVER:
+        SttProgramParticipation.objects.filter(stt=stt, program=program).delete()
+        return
+
+    SttProgramParticipation.objects.update_or_create(
+        stt=stt,
+        program=program,
+        defaults={"status": status},
+    )
 
 
 def _get_override_path(overrides_path):
@@ -86,9 +140,11 @@ def _apply_overrides(overrides_path=None):
     """
     Apply overrides from a JSON file.
 
-    The override file should be a list of objects. Each object must provide a
-    lookup key (`name` or `postal_code`) and any fields to override (e.g., `ssp`,
-    `sample`, `filenames`, `region_id`, `stt_code`, `type`, `postal_code`).
+        The override file should be a list of objects. Each object must provide a
+        lookup key (`name` or `postal_code`) and any fields to override (e.g., `ssp`,
+        `sample`, `filenames`, `region_id`, `stt_code`, `type`, `postal_code`). SSP
+        overrides also update SSP program participation: true is ACTIVE, false is
+        FORMER, and "NEVER" removes the participation row.
     """
     path = _get_override_path(overrides_path)
     if not path.exists():
@@ -105,9 +161,8 @@ def _apply_overrides(overrides_path=None):
             continue
 
         # Only override fields explicitly provided
-        bool_fields = {"ssp", "sample"}
+        bool_fields = {"sample"}
         for field in [
-            "ssp",
             "sample",
             "filenames",
             "region_id",
@@ -120,7 +175,13 @@ def _apply_overrides(overrides_path=None):
                 value = _maybe_bool(override[field]) if field in bool_fields else override[field]
                 setattr(stt, field, value)
 
+        if "ssp" in override:
+            status = _normalize_ssp_status(override["ssp"])
+            stt.ssp = status == SttProgramParticipation.Status.ACTIVE
+
         stt.save()
+        if "ssp" in override:
+            _sync_ssp_participation(stt, override["ssp"])
         logger.info("Applied override for STT %s", stt.name)
 
 
