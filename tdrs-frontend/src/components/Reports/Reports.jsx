@@ -32,6 +32,8 @@ function ReportsContent() {
     getSttError,
     getFileTypeError,
     piaFeatureFlag,
+    uploadAlert,
+    processingAlert,
   } = useReportsContext()
 
   const user = useSelector((state) => state.auth.user)
@@ -126,6 +128,17 @@ function ReportsContent() {
               error={getFileTypeError()}
               errorMessage="A file type selection is required"
             />
+          </div>
+        </div>
+
+        {/* Screen-reader announcer  */}
+        <div className="usa-sr-only">
+          <div role="status" aria-live="polite" aria-atomic="true">
+            {uploadAlert.active ? uploadAlert.message : ''}
+          </div>
+
+          <div role="status" aria-live="polite" aria-atomic="true">
+            {processingAlert.active ? processingAlert.message : ''}
           </div>
         </div>
 
