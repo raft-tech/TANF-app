@@ -26,14 +26,43 @@ Content-Type application/json
             {
                 "id": 7,
                 "type": "state",
-                "code": "CT",
-                "name": "Connecticut"
+                "postal_code": "CT",
+                "name": "Connecticut",
+                "region": 1,
+                "filenames": {
+                    "Active Case Data": "ADS.E2J.FTP1.TS09",
+                    "Closed Case Data": "ADS.E2J.FTP2.TS09"
+                },
+                "stt_code": "09",
+                "ssp": false,
+                "program_participations": [],
+                "num_sections": 2
             },
             {
                 "id": 20,
                 "type": "state",
-                "code": "ME",
-                "name": "Maine"
+                "postal_code": "NY",
+                "name": "New York",
+                "region": 2,
+                "filenames": {
+                    "Active Case Data": "ADS.E2J.FTP1.TS36",
+                    "SSP Active Case Data": "ADS.E2J.FTP1.MS36"
+                },
+                "stt_code": "36",
+                "ssp": true,
+                "program_participations": [
+                    {
+                        "id": 1,
+                        "program": {
+                            "id": 1,
+                            "slug": "ssp",
+                            "name": "SSP"
+                        },
+                        "status": "ACTIVE",
+                        "sections": []
+                    }
+                ],
+                "num_sections": 1
             },
         ]
     }
@@ -46,8 +75,17 @@ This will return a JSON response with a list of all States, Tribes and Territori
 **stts:** The entities (STTs) associated with the top level region.
 **id:** (embedded) Unique Identifier of the entity (primary key)
 **type:** Type of entity
-**code:** Abbreviated version of the name
+**postal_code:** Postal code for states and territories; tribes return their associated state postal code
 **name:** The full name of the entity
+**region:** The region identifier associated with the entity
+**filenames:** File naming metadata keyed by submitted section
+**stt_code:** STT code used in TANF/SSP data files
+**ssp:** Deprecated compatibility flag for SSP participation
+**program_participations:** Program participation records for the entity
+**program_participations.program:** Program metadata including `slug` and display `name`
+**program_participations.status:** Participation status, such as `ACTIVE`, `FORMER`, or `NEVER`
+**program_participations.sections:** Responsible sections for the participation record
+**num_sections:** Count of unique section names after legacy program prefixes are normalized
 
 **Failure to Authenticate Response**
 If the user is not authenticated, the system will return the following response:
