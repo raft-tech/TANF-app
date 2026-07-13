@@ -24,6 +24,13 @@ if [[ "$DEPLOY_STRATEGY" == "rebuild" && "$APP_GUID" != "FAILED" ]]; then
   DEPLOY_STRATEGY=initial
 fi
 
+pushd tdrs-services/parser >/dev/null
+mkdir -p build
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+  -trimpath \
+  -o build/go-parser \
+  ./cmd/parser
+
 push_args=(
   "$PARSER_APP_NAME"
   -f manifest.cloudgov.yml
@@ -39,6 +46,5 @@ if [[ "$DEPLOY_STRATEGY" == "rolling" ]]; then
   push_args+=(--strategy rolling)
 fi
 
-pushd tdrs-services/parser >/dev/null
 cf push "${push_args[@]}"
 popd >/dev/null

@@ -141,6 +141,9 @@
       - get-app-deploy-strategy:
           appname: <<parameters.parser-appname>>
       - run:
+          name: Install Go
+          command: ./scripts/install-go.sh
+      - run:
           name: Deploy Go parser application
           command: |
             bash ./scripts/deploy-go-parser.sh \

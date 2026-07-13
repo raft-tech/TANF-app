@@ -229,7 +229,7 @@ go run ./cmd/parser --server.mode=celery
 
 ### Hosted deployment
 
-CircleCI deploys the parser as `tdp-go-parser-<environment>` using `manifest.cloudgov.yml`. The application has no route and runs in Celery mode against the `go-parser` queue. Cloud Foundry binds the environment's PostgreSQL, Redis, and data-file S3 services; the parser derives `DATABASE_URL`, `REDIS_URL`, and AWS credentials from `VCAP_SERVICES` without storing service credentials in the manifest.
+CircleCI deploys the parser as `tdp-go-parser-<environment>` using `manifest.cloudgov.yml`. The deploy script compiles a statically linked Linux binary and stages it with the Cloud Foundry binary buildpack. The application has no route and runs in Celery mode against the `go-parser` queue. Its startup script translates the bound PostgreSQL, Redis, and data-file S3 services into the parser's standard environment variables before executing the binary; the Go application remains independent of Cloud Foundry's `VCAP_SERVICES` format.
 
 The parser deployment runs in parallel with the Django backend and Python Celery deployments after database configuration completes. Environment verification requires every application process to be running before downstream end-to-end tests begin.
 

@@ -441,7 +441,7 @@ ENTRYPOINT ["/go-parser"]
 | **Go build step** | Add `go build` and `go test` to the CI pipeline |
 | **SQLC validation** | Run `sqlc diff` to ensure generated code matches schema |
 | **Expression validation** | Compile all YAML validators at CI time to catch syntax errors |
-| **Hosted buildpack deployment** | Stage the `go-parser` worker from source with the Cloud Foundry Go buildpack; keep the Docker image for local and CI integration |
+| **Hosted buildpack deployment** | Compile the `go-parser` worker in CircleCI and stage the resulting Linux executable with the Cloud Foundry binary buildpack; keep the Docker image for local and CI integration |
 | **Integration tests** | Run Go integration tests against a test database |
 
 ### Resource Requirements

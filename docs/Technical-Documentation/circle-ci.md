@@ -29,7 +29,7 @@ Each environment uses the same dependency graph:
 5. Configure application networking and verify that every application has a running process.
 6. Run environment-level end-to-end tests where configured.
 
-The Go parser is deployed as a no-route Cloud Foundry application with the Go buildpack. It reads PostgreSQL, Redis, and S3 credentials from its Cloud Foundry service bindings at startup.
+The Go parser deploy job compiles a statically linked Linux binary before pushing a no-route Cloud Foundry application with the binary buildpack. A startup script reads the PostgreSQL, Redis, and S3 service bindings with `jq`, exports the parser's standard environment variables, and then executes the binary.
 * Manual deployment
     * Select the desired branch from the branch dropdown on the CircleCI project page
     * Click the "Trigger Pipeline" button
