@@ -1,7 +1,7 @@
 version: 1
 applications:
 - name: ((app-name))
-  memory: 600M
+  memory: 400M
   instances: 1
   disk_quota: 7G
   no-route: true
