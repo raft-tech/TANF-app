@@ -69,5 +69,6 @@ export AWS_DEFAULT_REGION="$aws_default_region"
 export AWS_SECRET_ACCESS_KEY="$aws_secret_access_key"
 export S3_BUCKET="$s3_bucket"
 export S3_KEY_PREFIX="$CGAPPNAME_BACKEND"
+export GO_PARSER_POST_PARSE_QUEUE="${GO_PARSER_POST_PARSE_QUEUE:-$environment_name}"
 
 exec "${PARSER_BINARY:-./build/go-parser}" "$@"

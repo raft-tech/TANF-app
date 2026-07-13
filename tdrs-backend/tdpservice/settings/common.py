@@ -627,6 +627,7 @@ class Common(Configuration):
 
     CELERY_BROKER_URL = REDIS_URI + "/0"
     CELERY_RESULT_BACKEND = REDIS_URI + "/0"
+    CELERY_TASK_DEFAULT_QUEUE = os.getenv("CELERY_TASK_DEFAULT_QUEUE", "celery")
     CELERY_GO_PARSER_QUEUE = os.getenv("CELERY_GO_PARSER_QUEUE", "go-parser")
     CELERY_ACCEPT_CONTENT = ["application/json"]
     CELERY_TASK_SERIALIZER = "json"
