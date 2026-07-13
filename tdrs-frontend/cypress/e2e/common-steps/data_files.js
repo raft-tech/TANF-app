@@ -87,7 +87,9 @@ export const fillSttFyQ = (stt, fy, q, isTanf, isRegional) => {
         cy.get('.usa-file-input__input', { timeout: 1000 }).should('exist')
       } else {
         cy.get('.usa-file-input__input', { timeout: 1000 }).should('not.exist')
-        cy.contains('Submission History', { timeout: 1000 }).should('exist')
+        cy.contains('Submission & Error Reports', { timeout: 1000 }).should(
+          'exist'
+        )
       }
     })
 }
@@ -260,10 +262,6 @@ export const uploadSectionFile = (
       return cy.waitForDataFileSummary(id) // returns the poller
     })
   }
-}
-
-export const openSubmissionHistory = () => {
-  cy.contains('button', 'Submission History').click()
 }
 
 export const getLatestSubmissionHistoryRow = (section, program = 'TANF') => {
