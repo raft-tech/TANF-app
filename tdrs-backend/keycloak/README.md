@@ -71,6 +71,8 @@ The `keycloak-configure` container will automatically run after Keycloak is heal
 | `KEYCLOAK_TDP_ADMIN_CLIENT_ID` | `tdp-admin` | Client ID for the standalone admin console OIDC flow |
 | `KEYCLOAK_TDP_ADMIN_CLIENT_SECRET` | `tdp-admin-local-secret` | Client secret for the standalone admin console OIDC flow |
 | `ADMIN_FRONTEND_BASE_URL` | `http://localhost:3001` | Browser-facing admin console URL used for admin login/logout redirects |
+| `ADMIN_SESSION_COOKIE_NAME` | `admin_sessionid` | Django session cookie name used only by the admin frontend flow |
+| `ADMIN_API_PROXY_TOKEN` | empty | Shared server-side token required for admin frontend proxy requests to `/admin-api/*` |
 
 #### OIDC (mozilla-django-oidc)
 
@@ -137,8 +139,8 @@ Note: `OIDC_OP_AUTHORIZATION_ENDPOINT` and `OIDC_OP_LOGOUT_ENDPOINT` use `KEYCLO
 Realm configurations are stored as full exports in `realm-configs/`:
 
 - `realm-export.dev-local.json` is shared by `local` and `dev` and includes both hosted dev frontend URLs and localhost/`127.0.0.1`.
-- `realm-export.staging.json` allows only the hosted staging frontends.
-- `realm-export.prod.json` allows only the production frontend.
+- `realm-export.staging.json` allows the hosted staging frontends and the admin client's Django-hosted `/admin-auth/*` callbacks.
+- `realm-export.prod.json` allows the production frontend and the admin client's Django-hosted `/admin-auth/*` callback.
 
 ### Groups
 
@@ -205,8 +207,10 @@ The `tdp-user-attributes` client scope includes these custom attributes, synced 
 |---|---|---|
 | `GET /admin-auth/login/dotgov` | `AdminKeycloakLoginDotGovView` | Redirects admin users to Keycloak with the `tdp-admin` client and `kc_idp_hint=login-gov` |
 | `GET /admin-auth/login/ams` | `AdminKeycloakLoginAMSView` | Redirects admin users to Keycloak with the `tdp-admin` client and `kc_idp_hint=ams` |
+| `GET /admin-auth/oidc/callback/` | mozilla-django-oidc | Handles admin authorization code callback with the admin-scoped Django session |
 | `GET /admin-auth/auth_check` | `AdminAuthorizationCheck` | Validates the Django session and OFA System Admin authorization before admin rendering |
 | `GET /admin-auth/logout/oidc` | `AdminKeycloakLogoutView` | Clears the admin-scoped Django session and redirects through Keycloak logout |
+| `/admin-api/v1/*` | v1 API routes | Admin frontend proxy path; requires the server-side `X-Admin-Proxy-Token` header matching `ADMIN_API_PROXY_TOKEN`, an admin-scoped Django session, and OFA System Admin authorization |
 
 ### User Sync
 
@@ -347,9 +351,9 @@ Set `KEYCLOAK_BROWSER_URL` in the backend's environment to match the public rout
 
 For the checked-in realm exports:
 
-- `local` and `dev` both use `realm-export.dev-local.json`, which allows `raft`, `qasp`, and `a11y` hosted frontends plus localhost/`127.0.0.1`.
-- `staging` uses `realm-export.staging.json`, which allows only `develop` and `staging` hosted frontends.
-- `prod` uses `realm-export.prod.json`, which allows only `https://tanfdata.acf.hhs.gov`.
+- `local` and `dev` both use `realm-export.dev-local.json`, which allows `raft`, `qasp`, and `a11y` hosted frontends, admin `/admin-auth/*` callbacks on those hosts, plus localhost/`127.0.0.1`.
+- `staging` uses `realm-export.staging.json`, which allows `develop` and `staging` hosted frontends plus admin `/admin-auth/*` callbacks on those hosts.
+- `prod` uses `realm-export.prod.json`, which allows `https://tanfdata.acf.hhs.gov` plus the admin `/admin-auth/*` callback on that host.
 
 ### Required cloud.gov Environment Variables
 
@@ -361,6 +365,7 @@ Set these via `cf set-env` or a user-provided service:
 - `LOGIN_GOV_JWT_KEY`
 - `LOGIN_GOV_ACR_VALUES`
 - `AMS_CLIENT_ID` / `AMS_CLIENT_SECRET`
+- `ADMIN_API_PROXY_TOKEN`
 
 ### Network Policies
 

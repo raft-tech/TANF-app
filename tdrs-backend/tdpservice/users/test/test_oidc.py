@@ -8,7 +8,11 @@ from django.test import RequestFactory
 import pytest
 
 from tdpservice.users.models import AccountApprovalStatusChoices
-from tdpservice.users.oidc import KeycloakOIDCBackend
+from tdpservice.users.oidc import (
+    ADMIN_OIDC_CALLBACK_URL_NAME,
+    ADMIN_OIDC_CLIENT,
+    KeycloakOIDCBackend,
+)
 from tdpservice.users.test.factories import UserFactory
 
 logger = logging.getLogger(__name__)
@@ -78,7 +82,9 @@ class TestAuthenticateClientSelection:
 
         admin_request = request_factory.get("/oidc/callback/", {"state": "admin-state"})
         admin_request.session = {"oidc_clients": {"admin-state": "tdp-admin"}}
-        standard_request = request_factory.get("/oidc/callback/", {"state": "standard-state"})
+        standard_request = request_factory.get(
+            "/oidc/callback/", {"state": "standard-state"}
+        )
         standard_request.session = {}
 
         with patch(
@@ -153,6 +159,56 @@ class TestAuthenticateClientSelection:
         assert request.session["oidc_clients"] == {
             "abandoned-admin-state": "tdp-admin"
         }
+
+    def test_admin_token_request_uses_admin_callback_uri(
+        self, backend, request_factory, settings
+    ):
+        """Admin callbacks must exchange tokens with the admin redirect_uri."""
+        settings.KEYCLOAK_DJANGO_CLIENT_ID = "tdp-django"
+        settings.KEYCLOAK_DJANGO_CLIENT_SECRET = "django-secret"
+        settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID = "tdp-admin"
+        settings.KEYCLOAK_TDP_ADMIN_CLIENT_SECRET = "admin-secret"
+
+        request = request_factory.get(
+            "/admin-auth/oidc/callback/",
+            {"state": "admin-state", "code": "authorization-code"},
+            secure=True,
+            HTTP_HOST="auth.example.gov",
+        )
+        request.session = {}
+        request._oidc_client = ADMIN_OIDC_CLIENT
+        request._oidc_callback_url = ADMIN_OIDC_CALLBACK_URL_NAME
+        token_payloads = []
+        authenticated_user = object()
+
+        def capture_token_payload(payload):
+            token_payloads.append(payload.copy())
+            return {"id_token": "id-token", "access_token": "access-token"}
+
+        with (
+            patch.object(backend, "get_token", side_effect=capture_token_payload),
+            patch.object(
+                backend,
+                "verify_token",
+                return_value={"email": "admin@example.gov"},
+            ),
+            patch.object(
+                backend, "get_or_create_user", return_value=authenticated_user
+            ),
+        ):
+            user = backend.authenticate(request, nonce="nonce")
+
+        assert user is authenticated_user
+        assert token_payloads == [
+            {
+                "client_id": "tdp-admin",
+                "client_secret": "admin-secret",
+                "grant_type": "authorization_code",
+                "code": "authorization-code",
+                "redirect_uri": "https://auth.example.gov/admin-auth/oidc/callback/",
+            }
+        ]
+        assert not hasattr(backend, "_oidc_callback_url")
 
 
 @pytest.mark.django_db

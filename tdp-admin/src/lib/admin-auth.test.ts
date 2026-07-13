@@ -3,6 +3,7 @@ import {
   checkBackendHealth,
   buildAdminRequestHeaders,
   checkAdminSession,
+  getAdminBackendBaseUrl,
   getAdminAuthBaseUrl,
   getAdminAuthCheckUrl,
   getAdminLoginUrl,
@@ -28,6 +29,9 @@ describe("admin auth helpers", () => {
     process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
 
     expect(getBackendBaseUrl()).toBe("https://backend.example.gov/v1");
+    expect(getAdminBackendBaseUrl()).toBe(
+      "https://backend.example.gov/admin-api/v1"
+    );
     expect(getAuthBaseUrl()).toBe("https://auth.example.gov");
     expect(getLoginUrl("dotgov")).toBe("https://auth.example.gov/login/dotgov");
     expect(getLoginUrl("ams")).toBe("https://auth.example.gov/login/ams");
@@ -62,6 +66,15 @@ describe("admin auth helpers", () => {
     expect(getLoginUrl("dotgov")).toBe("https://backend.example.gov/login/dotgov");
   });
 
+  it("uses an explicit admin backend URL when configured", () => {
+    process.env.ADMIN_BACKEND_URL = "https://internal.example.gov/admin-api/v1/";
+    process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
+
+    expect(getAdminBackendBaseUrl()).toBe(
+      "https://internal.example.gov/admin-api/v1"
+    );
+  });
+
   it("returns a failed backend health result for non-OK responses", async () => {
     process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1/";
     vi.stubGlobal(
@@ -88,7 +101,7 @@ describe("admin auth helpers", () => {
     expect(getCsrfTokenFromCookie(cookieHeader)).toBe("my-csrf-token");
     expect(headers.get("Cookie")).toBe(cookieHeader);
     expect(headers.get("X-CSRFToken")).toBe("my-csrf-token");
-    expect(headers.get("x-service-name")).toBe("tdp-admin");
+    expect(headers.get("x-service-name")).toBeNull();
   });
 
   it("checks the admin-scoped Django session", async () => {

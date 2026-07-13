@@ -16,11 +16,16 @@ Open [http://localhost:3001](http://localhost:3001) to reach the admin login pag
 
 ## Environment
 
+Copy `.env.example` to `.env` for Docker Compose, or `.env.local` for
+`yarn dev`, then adjust values for your backend.
+
 The login and health flows use these environment variables:
 
 - `NEXT_PUBLIC_AUTH_URL`
 - `NEXT_PUBLIC_AUTH_BROWSER_URL`
 - `NEXT_PUBLIC_BACKEND_URL`
+- `ADMIN_BACKEND_URL`
+- `ADMIN_API_PROXY_TOKEN`
 
 `NEXT_PUBLIC_AUTH_URL` should point to the Django auth origin. When it is not
 set, the app derives the auth origin from `NEXT_PUBLIC_BACKEND_URL`.
@@ -41,8 +46,20 @@ The backend auth service should expose admin-scoped routes under
 - `/admin-auth/auth_check`
 - `/admin-auth/logout/oidc`
 
+Admin API proxy requests use the Django backend's admin-only API prefix:
+
+- `/admin-api/v1/*`
+
+When `ADMIN_BACKEND_URL` is not set, the app derives it from
+`NEXT_PUBLIC_BACKEND_URL` by replacing `/v1` with `/admin-api/v1`.
+`ADMIN_API_PROXY_TOKEN` must match the Django backend's
+`ADMIN_API_PROXY_TOKEN`; the Next.js server sends it to Django for
+`/admin-api/v1/*` requests.
+
 The Django backend remains authoritative for session validation and admin
 authorization. Next.js route gating is only a user-experience guard.
+Django also validates `/admin-api/v1/*` requests before API handlers run; the
+Next.js proxy only forwards request context and the server-side proxy token.
 
 ## Routes
 
@@ -50,8 +67,9 @@ authorization. Next.js route gating is only a user-experience guard.
 - `/login` renders the same login page.
 - `/logout` redirects through the admin-scoped Django/Keycloak logout flow.
 - `/api/backend-health` probes the backend auth endpoint and reports non-2xx responses as failures.
-- `/api/admin/*` forwards backend API requests with the Django session cookie
-  and CSRF token required by mutating requests.
+- `/api/admin/*` forwards backend API requests with the Django session cookie,
+  CSRF token required by mutating requests, and server-side proxy token to
+  `/admin-api/v1/*`.
 
 ## Testing
 

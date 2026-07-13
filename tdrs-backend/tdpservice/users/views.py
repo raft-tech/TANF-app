@@ -12,7 +12,10 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views import View
 
-from mozilla_django_oidc.views import OIDCAuthenticationRequestView
+from mozilla_django_oidc.views import (
+    OIDCAuthenticationCallbackView,
+    OIDCAuthenticationRequestView,
+)
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import MethodNotAllowed
@@ -28,6 +31,7 @@ from tdpservice.users.models import (
     User,
     UserChangeRequest,
 )
+from tdpservice.users.oidc import ADMIN_OIDC_CALLBACK_URL_NAME, ADMIN_OIDC_CLIENT
 from tdpservice.users.permissions import (
     CypressAdminAccountPermissions,
     DjangoModelCRUDPermissions,
@@ -332,6 +336,14 @@ class KeycloakLoginAMSView(OIDCAuthenticationRequestView):
 class AdminKeycloakLoginMixin:
     """Use the admin Keycloak client and admin redirect target for login."""
 
+    @staticmethod
+    def get_settings(attr, *args):
+        """Use the admin callback route for admin OIDC logins."""
+        if attr == "OIDC_AUTHENTICATION_CALLBACK_URL":
+            return ADMIN_OIDC_CALLBACK_URL_NAME
+
+        return OIDCAuthenticationRequestView.get_settings(attr, *args)
+
     def get(self, request, *args, **kwargs):
         """Mark this OIDC request as admin-scoped before redirecting."""
         request.session.pop("oidc_client", None)
@@ -342,7 +354,7 @@ class AdminKeycloakLoginMixin:
         ]
         if state:
             oidc_clients = request.session.get("oidc_clients", {}).copy()
-            oidc_clients[state] = "tdp-admin"
+            oidc_clients[state] = ADMIN_OIDC_CLIENT
             request.session["oidc_clients"] = oidc_clients
         if not request.session.get("oidc_login_next"):
             request.session["oidc_login_next"] = settings.ADMIN_FRONTEND_BASE_URL
@@ -355,6 +367,16 @@ class AdminKeycloakLoginDotGovView(AdminKeycloakLoginMixin, KeycloakLoginDotGovV
 
 class AdminKeycloakLoginAMSView(AdminKeycloakLoginMixin, KeycloakLoginAMSView):
     """Redirect admin AMS users through the admin Keycloak client."""
+
+
+class AdminOIDCAuthenticationCallbackView(OIDCAuthenticationCallbackView):
+    """Handle admin OIDC callbacks with admin-scoped client settings."""
+
+    def get(self, request):
+        """Mark this callback so token exchange uses the admin redirect URI."""
+        request._oidc_client = ADMIN_OIDC_CLIENT
+        request._oidc_callback_url = ADMIN_OIDC_CALLBACK_URL_NAME
+        return super().get(request)
 
 
 class KeycloakLogoutView(View):

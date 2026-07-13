@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   buildAdminRequestHeaders,
-  getBackendBaseUrl,
+  getAdminBackendBaseUrl,
   getCsrfTokenFromCookie,
 } from "@/lib/admin-auth";
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 function getBackendUrl(pathSegments: string[], search: string) {
-  const backendBaseUrl = getBackendBaseUrl();
+  const backendBaseUrl = getAdminBackendBaseUrl();
 
   if (!backendBaseUrl) {
     return null;
@@ -30,7 +30,19 @@ async function proxyAdminRequest(
     return NextResponse.json(
       {
         ok: false,
-        error: "NEXT_PUBLIC_BACKEND_URL is not configured.",
+        error: "ADMIN_BACKEND_URL or NEXT_PUBLIC_BACKEND_URL is not configured.",
+      },
+      { status: 500 }
+    );
+  }
+
+  const adminProxyToken = process.env.ADMIN_API_PROXY_TOKEN;
+
+  if (!adminProxyToken) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "ADMIN_API_PROXY_TOKEN is not configured.",
       },
       { status: 500 }
     );
@@ -49,6 +61,7 @@ async function proxyAdminRequest(
   if (contentType) {
     headers.set("content-type", contentType);
   }
+  headers.set("X-Admin-Proxy-Token", adminProxyToken);
 
   const response = await fetch(backendUrl, {
     method: request.method,

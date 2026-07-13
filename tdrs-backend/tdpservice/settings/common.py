@@ -142,10 +142,11 @@ class Common(Configuration):
     MIDDLEWARE = (
         "django_prometheus.middleware.PrometheusBeforeMiddleware",
         "django.middleware.security.SecurityMiddleware",
-        "django.contrib.sessions.middleware.SessionMiddleware",
+        "tdpservice.middleware.SessionMiddleware",
         "django.middleware.common.CommonMiddleware",
         "django.middleware.csrf.CsrfViewMiddleware",
         "django.contrib.auth.middleware.AuthenticationMiddleware",
+        "tdpservice.middleware.AdminAPIAuthorizationMiddleware",
         "mozilla_django_oidc.middleware.SessionRefresh",
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -403,6 +404,10 @@ class Common(Configuration):
     # Sessions
     SESSION_ENGINE = "tdpservice.core.custom_session_engine"
     SIGNED_COOKIE_EXPIRES = 60 * 60 * 12  # 12 hours
+    ADMIN_SESSION_COOKIE_NAME = os.getenv(
+        "ADMIN_SESSION_COOKIE_NAME", "admin_sessionid"
+    )
+    ADMIN_API_PROXY_TOKEN = os.getenv("ADMIN_API_PROXY_TOKEN", "")
     SESSION_COOKIE_HTTPONLY = True
     SESSION_SAVE_EVERY_REQUEST = True
     SESSION_COOKIE_AGE = 60 * 30  # 30 minutes
@@ -458,6 +463,7 @@ class Common(Configuration):
     CORS_ORIGIN_ALLOW_ALL = True
     CORS_ALLOW_CREDENTIALS = True
     CORS_PREFLIGHT_MAX_AGE = 1800
+    # Existing frontends send this header, but it must not drive auth decisions.
     CORS_ALLOW_HEADERS = list(default_headers) + [
         "x-service-name",
     ]
@@ -647,6 +653,7 @@ class Common(Configuration):
         "/plg_auth_check/",
         "/login/",
         "/auth_check",
+        "/admin-auth/",
         "/logout/",
     ]
 
