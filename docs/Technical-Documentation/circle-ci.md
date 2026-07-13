@@ -95,6 +95,7 @@ These all have defaults set in their respective settings modules, but may be ove
     * Build and Spin-up Django API Service (using docker-compose)
     * Run Python Linting Test (flake8)
     * Run Pytest Unit Tests
+    * Run ETL integration tests through `task backend-pytest-etl-integration`. This job installs Task to `$HOME/.local/bin`, exports that directory onto `PATH`, verifies `task --version`, then runs the root `Taskfile.yml` target from `tdrs-backend`.
     * Upload code coverage - uses Codecov
 
 ### deploy-backend

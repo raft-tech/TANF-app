@@ -136,6 +136,7 @@ class Common(Configuration):
         "tdpservice.search_indexes",
         "tdpservice.parsers",
         "tdpservice.reports",
+        "tdpservice.etl",
     )
 
     # https://docs.djangoproject.com/en/2.0/topics/http/middleware/
@@ -720,6 +721,16 @@ class Common(Configuration):
                 day_of_month="*",
                 month_of_year="*",
             ),  # Every day at 1am UTC (9pm EST)
+        },
+        "Schedule Statistical Weights ETL": {
+            "task": "tdpservice.etl.tasks.schedule_statistical_weights",
+            "schedule": crontab(
+                minute="0",
+                hour="13",
+                day_of_week="*",
+                day_of_month="*",
+                month_of_year="*",
+            ),  # Daily check at 1pm UTC (9am EST)
         },
         "Email Data Analyst Q1 Upcoming Submission Deadline Reminder": {
             "task": "tdpservice.email.tasks.send_data_submission_reminder",
