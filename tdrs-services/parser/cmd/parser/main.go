@@ -17,6 +17,9 @@ func main() {
 	if err := logging.Configure("info"); err != nil {
 		fatal("Failed to configure logging", err)
 	}
+	if err := config.ApplyCloudFoundryBindings(); err != nil {
+		fatal("Failed to load Cloud Foundry service bindings", err)
+	}
 
 	// Parse CLI flags (Kong)
 	cli, ctx, err := config.ParseCLI(os.Args[1:])

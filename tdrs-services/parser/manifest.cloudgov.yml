@@ -1,0 +1,18 @@
+version: 1
+applications:
+- name: ((app-name))
+  memory: 600M
+  instances: 1
+  disk_quota: 7G
+  no-route: true
+  health-check-type: process
+  command: parser --config-file=config/parser.yaml --server.mode=celery --storage.source=s3
+  buildpacks:
+  - go_buildpack
+  services:
+  - ((database-service))
+  - ((datafiles-service))
+  - ((redis-service))
+  env:
+    CGAPPNAME_BACKEND: ((backend-app-name))
+    GO_INSTALL_PACKAGE_SPEC: go-parser/cmd/parser

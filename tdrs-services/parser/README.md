@@ -227,6 +227,12 @@ REDIS_URL=redis://localhost:6379 \
 go run ./cmd/parser --server.mode=celery
 ```
 
+### Hosted deployment
+
+CircleCI deploys the parser as `tdp-go-parser-<environment>` using `manifest.cloudgov.yml`. The application has no route and runs in Celery mode against the `go-parser` queue. Cloud Foundry binds the environment's PostgreSQL, Redis, and data-file S3 services; the parser derives `DATABASE_URL`, `REDIS_URL`, and AWS credentials from `VCAP_SERVICES` without storing service credentials in the manifest.
+
+The parser deployment runs in parallel with the Django backend and Python Celery deployments after database configuration completes. Environment verification requires every application process to be running before downstream end-to-end tests begin.
+
 ### Profiling
 
 ```sh
