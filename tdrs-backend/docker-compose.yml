@@ -3,7 +3,7 @@ services:
   zaproxy:
     platform: linux/amd64
     image: ghcr.io/${REGISTRY_OWNER:-hhs}/zap-stable:2.17.0
-    command: apt update && apt install python3.10.8 && sleep 3600
+    command: sleep 3600
     depends_on:
       - web
     volumes:
