@@ -97,8 +97,8 @@ These all have defaults set in their respective settings modules, but may be ove
         * Only difference in values is whether `/v1` is at the end
     * Runs `yarn build` which generates the HTML needed to serve to end users
     * Copies in the nginx configuration for build packs
-    * Uploads the build output to Cloud.gov using `cf push`
-    * Creates and maps the frontend route
+    * Unmaps the existing frontend route before a rolling deployment
+    * Uploads the build output to Cloud.gov using `cf push --no-route`
 
 ## Backend CI build process
 
@@ -122,7 +122,7 @@ These all have defaults set in their respective settings modules, but may be ove
         * Run `/scripts/set-backend-env-vars.sh` (detailed above)
         * Restage the application to make environment variable and bound services live.
 
-Networking is configured only after backend, Celery, Go parser, and frontend deployment jobs succeed.
+Networking is configured only after backend, Celery, Go parser, and frontend deployment jobs succeed. The frontend public route is mapped as the final networking action so a newly deployed frontend is not exposed before the other applications are ready.
 
 ## CI/CD Pipeline
 

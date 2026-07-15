@@ -20,3 +20,9 @@ else
   SPACE_NAME=${CF_SPACE#tanf-}
   cf add-network-policy "$BACKEND_APP_NAME" "tdp-clamav-nginx-$SPACE_NAME" --protocol tcp --port 9000
 fi
+
+if [[ "$CF_SPACE" == "tanf-prod" ]]; then
+  cf map-route "$FRONTEND_APP_NAME" tanfdata.acf.hhs.gov
+else
+  cf map-route "$FRONTEND_APP_NAME" "${FRONTEND_HOSTNAME}.tanfdata.acf.hhs.gov"
+fi
