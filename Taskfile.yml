@@ -190,6 +190,34 @@ tasks:
 
         docker compose -f docker-compose.yml exec web sh -c "CELERY_GO_PARSER_QUEUE=${queue} DJANGO_SETTINGS_MODULE=tdpservice.settings.go_parser_integration DJANGO_CONFIGURATION=GoParserIntegration pytest -c pytest-go-parser.ini --basetemp=/home/tdpapp/ tdpservice/parsers/test/integration {{.PYTEST_ARGS}}"
 
+  backend-pytest-etl-integration:
+    desc: 'Run the live ETL integration suite. E.g: task backend-pytest-etl-integration PYTEST_ARGS="-k statistical_weights -vv"'
+    dir: tdrs-backend
+    vars:
+      PYTEST_ARGS: '{{.PYTEST_ARGS | default ""}}'
+    cmds:
+      - task: create-network
+      - |
+        set -e
+        db_name="tdrs_etl_integration_$(date +%s)_$$"
+
+        cleanup() {
+          docker compose -f docker-compose.yml exec -T postgres \
+            psql -U tdpuser -d postgres -v ON_ERROR_STOP=1 \
+            -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${db_name}';" \
+            -c "DROP DATABASE IF EXISTS \"${db_name}\";" >/dev/null 2>&1 || true
+        }
+        trap cleanup EXIT
+
+        docker compose -f docker-compose.yml up -d postgres redis-server localstack web
+        docker compose -f docker-compose.yml exec -T postgres sh -c 'until pg_isready -U tdpuser -d postgres; do sleep 1; done'
+        docker compose -f docker-compose.yml exec -T postgres \
+          psql -U tdpuser -d postgres -v ON_ERROR_STOP=1 \
+          -c "CREATE DATABASE \"${db_name}\" OWNER tdpuser;"
+        docker compose -f docker-compose.yml exec web sh -c "DB_NAME=${db_name} DJANGO_SETTINGS_MODULE=tdpservice.settings.etl_integration DJANGO_CONFIGURATION=ETLIntegration python manage.py migrate --noinput"
+
+        docker compose -f docker-compose.yml exec web sh -c "DB_NAME=${db_name} DJANGO_SETTINGS_MODULE=tdpservice.settings.etl_integration DJANGO_CONFIGURATION=ETLIntegration pytest -c pytest-etl.ini --basetemp=/home/tdpapp/ tdpservice/etl/test/integration {{.PYTEST_ARGS}}"
+
   backend-pytest-cov:
     desc: 'Generate coverage.json file in the backend container. E.g: task backend-pytest-cov PYTEST_ARGS="tdpservice/test/ -s -vv"'
     dir: tdrs-backend
