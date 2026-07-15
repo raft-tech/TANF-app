@@ -42,12 +42,57 @@ def test_ssp_program_participation_data_migration():
         executor.migrate(migrate_to)
         new_apps = executor.loader.project_state(migrate_to).apps
         Program = new_apps.get_model("stts", "Program")
+        Section = new_apps.get_model("stts", "Section")
         SttProgramParticipation = new_apps.get_model(
             "stts", "SttProgramParticipation"
         )
 
+        expected_program_sections = {
+            "tanf": {
+                "name": "TANF",
+                "sections": {
+                    "Active Case Data",
+                    "Closed Case Data",
+                    "Aggregate Data",
+                    "Stratum Data",
+                },
+            },
+            "ssp": {
+                "name": "SSP",
+                "sections": {
+                    "Active Case Data",
+                    "Closed Case Data",
+                    "Aggregate Data",
+                    "Stratum Data",
+                },
+            },
+            "tribal": {
+                "name": "Tribal TANF",
+                "sections": {
+                    "Active Case Data",
+                    "Closed Case Data",
+                    "Aggregate Data",
+                    "Stratum Data",
+                },
+            },
+            "fra": {
+                "name": "FRA",
+                "sections": {
+                    "Work Outcomes of TANF Exiters",
+                    "Secondary School Attainment",
+                    "Supplemental Work Outcomes",
+                },
+            },
+        }
+
+        for slug, program_data in expected_program_sections.items():
+            program = Program.objects.get(slug=slug)
+            assert program.name == program_data["name"]
+            assert set(
+                Section.objects.filter(program=program).values_list("name", flat=True)
+            ) == program_data["sections"]
+
         ssp_program = Program.objects.get(slug="ssp")
-        assert ssp_program.name == "SSP"
         assert SttProgramParticipation.objects.filter(
             stt_id=active_stt.id,
             program=ssp_program,
@@ -61,6 +106,7 @@ def test_ssp_program_participation_data_migration():
             stt_id=null_stt.id,
             program=ssp_program,
         ).exists()
+        assert SttProgramParticipation.objects.count() == 1
     finally:
         executor = MigrationExecutor(connection)
         executor.migrate(executor.loader.graph.leaf_nodes())
