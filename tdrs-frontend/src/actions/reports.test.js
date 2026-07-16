@@ -153,6 +153,7 @@ describe('actions/reports', () => {
         logger: { alert: jest.fn() },
         quarter: 'Q1',
         setUploadAlertState: jest.fn(),
+        setProcessingAlertState: jest.fn(),
         stt: { id: 10 },
         uploadedFiles: [
           {
