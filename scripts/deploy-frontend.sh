@@ -20,6 +20,24 @@ fi
 
 env=${CF_SPACE#"tanf-"}
 
+unmap_frontend_route_if_mapped()
+{
+    if APP_DETAILS=$(cf app "$CGAPPNAME_FRONTEND" 2>&1); then
+        :
+    else
+        APP_DETAILS_STATUS=$?
+        printf '%s\n' "$APP_DETAILS" >&2
+        return "$APP_DETAILS_STATUS"
+    fi
+
+    if ! printf '%s\n' "$APP_DETAILS" | grep -Fq "$FRONTEND_ROUTE"; then
+        echo "Frontend route $FRONTEND_ROUTE is already unmapped."
+        return 0
+    fi
+
+    cf unmap-route "$CGAPPNAME_FRONTEND" "$FRONTEND_ROUTE"
+}
+
 update_frontend()
 {
     echo DEPLOY_STRATEGY: "$DEPLOY_STRATEGY"
@@ -108,7 +126,7 @@ update_frontend()
         # The rolling strategy requires enough memory for two app versions.
         # Existing routes survive --no-route, so remove public access until
         # the deployment's final networking step restores it.
-        cf unmap-route "$CGAPPNAME_FRONTEND" "$FRONTEND_ROUTE" || exit 1
+        unmap_frontend_route_if_mapped || exit 1
         cf push "$CGAPPNAME_FRONTEND" --no-route -f manifest.buildpack.yml --strategy rolling || exit 1
     else
         cf push "$CGAPPNAME_FRONTEND" --no-route -f manifest.buildpack.yml
