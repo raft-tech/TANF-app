@@ -773,11 +773,6 @@ const FRAReportsContent = () => {
                 datafile: response?.data,
               },
             })
-            setProcessingAlertState({
-              active: true,
-              type: 'success',
-              message: 'Processing complete.',
-            })
           },
           (error) => {
             setProcessingAlertState({
@@ -902,7 +897,10 @@ const FRAReportsContent = () => {
       processingAlertRef &&
       processingAlertRef.current
     ) {
-      processingAlertRef.current.scrollIntoView({ behavior: 'smooth' })
+      processingAlertRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
     }
   }, [processingAlert, processingAlertRef])
 
@@ -978,20 +976,6 @@ const FRAReportsContent = () => {
                 </div>
               )}
 
-              {processingAlert.active && (
-                <div
-                  className={classNames('usa-alert usa-alert--slim', {
-                    [`usa-alert--${processingAlert.type}`]: true,
-                  })}
-                  aria-hidden="true"
-                  ref={processingAlertRef}
-                >
-                  <div className="usa-alert__body">
-                    <p className="usa-alert__text">{processingAlert.message}</p>
-                  </div>
-                </div>
-              )}
-
               <UploadForm
                 handleUpload={handleUpload}
                 handleCancel={handleCancel}
@@ -1008,6 +992,24 @@ const FRAReportsContent = () => {
                 quarter={quarterInputValue}
               />
             </>
+          )}
+
+          <h3 className="font-sans-lg margin-top-5 margin-bottom-2 text-bold">
+            Submission &amp; Error Reports
+          </h3>
+
+          {processingAlert.active && (
+            <div
+              className={classNames('usa-alert usa-alert--slim', {
+                [`usa-alert--${processingAlert.type}`]: true,
+              })}
+              aria-hidden="true"
+              ref={processingAlertRef}
+            >
+              <div className="usa-alert__body">
+                <p className="usa-alert__text">{processingAlert.message}</p>
+              </div>
+            </div>
           )}
 
           <div
