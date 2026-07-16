@@ -111,6 +111,18 @@ func TestConvertValue(t *testing.T) {
 			want:      nil,
 		},
 		{
+			name:      "hash fill value returns nil",
+			rawValue:  "####",
+			fieldType: "string",
+			want:      nil,
+		},
+		{
+			name:      "underscore fill value returns nil",
+			rawValue:  "____",
+			fieldType: "integer",
+			want:      nil,
+		},
+		{
 			name:      "integer success",
 			rawValue:  "  42 ",
 			fieldType: "integer",
@@ -198,6 +210,24 @@ func TestPositionalExtractor_Extract(t *testing.T) {
 		}
 		if got != "ABCDE" {
 			t.Errorf("got %v, want %q", got, "ABCDE")
+		}
+	})
+
+	t.Run("fill value extracts as nil", func(t *testing.T) {
+		row := decoder.NewPositionalRow(1, "M5", 66, "M520181011111111177119680701WTTTP0PYZ222221122222201121112####0000")
+		field := &schema.FieldDef{
+			Name:  "AMOUNT_EARNED_INCOME",
+			Type:  "string",
+			Start: 58,
+			End:   62,
+		}
+
+		got, err := ext.Extract(row, field, nil, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got != nil {
+			t.Errorf("got %v, want nil", got)
 		}
 	})
 
@@ -310,6 +340,23 @@ func TestPositionalExtractor_Extract(t *testing.T) {
 func TestColumnarExtractor_Extract(t *testing.T) {
 	ext := &ColumnarExtractor{}
 
+	t.Run("default value without column source", func(t *testing.T) {
+		row := decoder.NewColumnarRow(1, "TE1", 2, []any{"202401", "123456789"})
+		field := &schema.FieldDef{
+			Name:    "RecordType",
+			Type:    "string",
+			Default: "TE1",
+		}
+
+		got, err := ext.Extract(row, field, nil, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got != "TE1" {
+			t.Errorf("got %v, want TE1", got)
+		}
+	})
+
 	t.Run("regular field extraction", func(t *testing.T) {
 		row := decoder.NewColumnarRow(1, "T1", 3, []any{"Alice", 42, "active"})
 		field := &schema.FieldDef{
@@ -411,6 +458,26 @@ func TestColumnarExtractor_Extract(t *testing.T) {
 		}
 		if got != "hello" {
 			t.Errorf("got %v, want %q", got, "hello")
+		}
+	})
+
+	t.Run("with FRA exit date transform converts xlsx date to integer", func(t *testing.T) {
+		row := decoder.NewColumnarRow(1, "TE1", 2, []any{"10/1/2023", "123456789"})
+		field := &schema.FieldDef{
+			Name:   "EXIT_DATE",
+			Type:   "integer",
+			Column: 0,
+			Transform: &schema.TransformDef{
+				Name: "fra_exit_date",
+			},
+		}
+
+		got, err := ext.Extract(row, field, nil, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got != 202310 {
+			t.Errorf("got %v, want 202310", got)
 		}
 	})
 

@@ -60,7 +60,6 @@ class CloudGov(Common):
     s3_staticfiles_creds = get_cloudgov_service_creds_by_instance_name(
         cloudgov_services["s3"], f"tdp-staticfiles-{services_basename}"
     )
-
     keycloak_creds = get_cloudgov_service_creds_by_instance_name(
         cloudgov_services.get("user-provided", []),
         f"tdp-keycloak-{services_basename}",
@@ -134,7 +133,7 @@ class CloudGov(Common):
     # Cookie settings
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = "None"
-    SESSION_COOKIE_DOMAIN = ".app.cloud.gov"
+    SESSION_COOKIE_DOMAIN = ".tanfdata.acf.hhs.gov"
     CSRF_COOKIE_SECURE = True
     CSRF_COOKIE_SAMESITE = "None"
 
@@ -167,12 +166,18 @@ class CloudGov(Common):
                 "KEY_PREFIX": f"{cloudgov_name}-{c}",  # does include "prod" for prod, can specify per env in classes below
             }
 
+        CACHES["throttle"] = {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": f"{REDIS_URI}/{brokers['caches']['feature-flags']}",
+            "KEY_PREFIX": f"{cloudgov_name}-throttle",
+        }
+
     OTEL_EXPORTER_OTLP_ENDPOINT = os.getenv(
         "OTEL_EXPORTER_OTLP_ENDPOINT", "http://tempo.apps.internal:4317"
     )
 
     # Keycloak Sync
-    KEYCLOAK_SYNC_ENABLED = bool(os.getenv("KEYCLOAK_SYNC_ENABLED", ""))
+    KEYCLOAK_SYNC_ENABLED = bool(strtobool(os.getenv("KEYCLOAK_SYNC_ENABLED", "yes")))
     KEYCLOAK_SERVER_URL = os.getenv(
         "KEYCLOAK_SERVER_URL", "http://keycloak.apps.internal:8080"
     )
@@ -199,6 +204,7 @@ class CloudGov(Common):
 
     _KC_REALM_URL = f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}"
     _KC_BROWSER_REALM_URL = f"{KEYCLOAK_BROWSER_URL}/realms/{KEYCLOAK_REALM}"
+    KEYCLOAK_ISSUER = os.getenv("KEYCLOAK_ISSUER", _KC_BROWSER_REALM_URL)
 
     # Browser-facing endpoints (user's browser is redirected here)
     OIDC_OP_AUTHORIZATION_ENDPOINT = (
@@ -216,12 +222,12 @@ class Development(CloudGov):
     """Settings for applications deployed in the Cloud.gov dev space."""
 
     # https://docs.djangoproject.com/en/2.0/ref/settings/#allowed-hosts
-    ALLOWED_HOSTS = [".app.cloud.gov", ".apps.internal"]
+    ALLOWED_HOSTS = [".tanfdata.acf.hhs.gov", ".apps.internal"]
     CORS_ORIGIN_ALLOW_ALL = False
     CORS_ALLOWED_ORIGINS = [
-        "https://tdp-frontend-raft.app.cloud.gov",
-        "https://tdp-frontend-a11y.app.cloud.gov",
-        "https://tdp-frontend-qasp.app.cloud.gov",
+        "https://test.tanfdata.acf.hhs.gov",
+        "https://a11y.tanfdata.acf.hhs.gov",
+        "https://qasp.tanfdata.acf.hhs.gov",
     ]
     CORS_ALLOW_CREDENTIALS = True
     CORS_ALLOW_METHODS = (
@@ -235,13 +241,13 @@ class Staging(CloudGov):
     """Settings for applications deployed in the Cloud.gov staging space."""
 
     ALLOWED_HOSTS = [
-        "tdp-frontend-staging.acf.hhs.gov",
-        "tdp-frontend-develop.acf.hhs.gov",
+        "staging.tanfdata.acf.hhs.gov",
+        "develop.tanfdata.acf.hhs.gov",
         ".apps.internal",
     ]
     CORS_ALLOWED_ORIGINS = [
-        "https://tdp-frontend-staging.acf.hhs.gov",
-        "https://tdp-frontend-develop.acf.hhs.gov",
+        "https://staging.tanfdata.acf.hhs.gov",
+        "https://develop.tanfdata.acf.hhs.gov",
     ]
     CORS_ORIGIN_ALLOW_ALL = False
     CORS_ALLOW_CREDENTIALS = True
@@ -261,7 +267,7 @@ class Staging(CloudGov):
     # Cloud.gov SET integration settings
     LOGIN_GOV_SET_AUDIENCE = os.getenv(
         "LOGIN_GOV_SET_AUDIENCE",
-        "https://tdp-frontend-staging.acf.hhs.gov/v1/security/event-token/",
+        "https://staging.tanfdata.acf.hhs.gov/v1/security/event-token/",
     )
 
 
@@ -271,7 +277,6 @@ class Production(CloudGov):
     # TODO: Add production ACF domain when known
     ALLOWED_HOSTS = [
         "tanfdata.acf.hhs.gov",
-        "tdp-frontend-prod.app.cloud.gov",
         ".apps.internal",
     ]
 

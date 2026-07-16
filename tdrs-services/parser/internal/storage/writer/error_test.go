@@ -126,6 +126,123 @@ func TestConvertError_BasicRow(t *testing.T) {
 	}
 }
 
+func TestRenderErrorMessage_FieldMeta(t *testing.T) {
+	message := "Since person is older than 18, then {{with index .FieldMeta \"REC_OASDI_INSURANCE\"}}{{.Item}} ({{.FriendlyName}}){{else}}REC_OASDI_INSURANCE{{end}} must be 1 or 2"
+	msgTmpl, err := template.New("t5_age_oasdi").Parse(message)
+	if err != nil {
+		t.Fatalf("failed to parse message template: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		item     string
+		expected string
+	}{
+		{
+			name: "TANF T5 item number",
+			item: "19A",
+			expected: "Since person is older than 18, then 19A " +
+				"(Received Disability Benefits: OASDI Program) must be 1 or 2",
+		},
+		{
+			name: "SSP M5 item number",
+			item: "18A",
+			expected: "Since person is older than 18, then 18A " +
+				"(Received Disability Benefits: OASDI Program) must be 1 or 2",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cs := makeTestSchema("T5", []schema.FieldDef{
+				{Name: "DATE_OF_BIRTH", FriendlyName: "Date of Birth", Item: "15"},
+				{Name: "REC_OASDI_INSURANCE", FriendlyName: "Received Disability Benefits: OASDI Program", Item: tt.item},
+			})
+			rec := makeTestRecord(cs, 1, map[string]any{
+				"DATE_OF_BIRTH":       "20060901",
+				"REC_OASDI_INSURANCE": 0,
+			})
+
+			vr := &validation.ValidationResult{
+				Valid:       false,
+				ErrorType:   validation.ErrorTypeValueConsistency,
+				ValidatorID: "t5_age_oasdi",
+				Validator: &validation.CompiledValidator{
+					ID:        "t5_age_oasdi",
+					ErrorType: validation.ErrorTypeValueConsistency,
+					Message:   msgTmpl,
+					Fields:    []string{"DATE_OF_BIRTH", "REC_OASDI_INSURANCE"},
+				},
+			}
+
+			if got := renderErrorMessage(vr, rec); got != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
+func TestRenderErrorMessage_WithValidationContext(t *testing.T) {
+	cs := makeTestSchema("T2", []schema.FieldDef{
+		{Name: "SSN", FriendlyName: "Social Security Number", Item: "9"},
+	})
+	rec := makeTestRecord(cs, 12, map[string]any{"SSN": "111111111"})
+
+	msgTmpl, _ := template.New("partial_duplicate").Parse(
+		"Partial duplicate record detected with record type {{.RecordType}} at line {{.LineNumber}}. Record is a partial duplicate of the record at line number {{.ExistingLineNumber}}. Duplicated fields causing error: {{.DuplicatedFields}}",
+	)
+	vr := &validation.ValidationResult{
+		Valid:       false,
+		ErrorType:   validation.ErrorTypeCaseConsistency,
+		ValidatorID: "partial_duplicates",
+		TemplateData: map[string]any{
+			"ExistingLineNumber": 5,
+			"DuplicatedFields":   "Item 9 (Social Security Number).",
+		},
+		Validator: &validation.CompiledValidator{
+			ID:        "partial_duplicates",
+			ErrorType: validation.ErrorTypeCaseConsistency,
+			Message:   msgTmpl,
+		},
+	}
+
+	got := renderErrorMessage(vr, rec)
+	want := "Partial duplicate record detected with record type T2 at line 12. Record is a partial duplicate of the record at line number 5. Duplicated fields causing error: Item 9 (Social Security Number)."
+	if got != want {
+		t.Errorf("renderErrorMessage() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderErrorMessage_ExactDuplicateMatchesPythonMessage(t *testing.T) {
+	cs := makeTestSchema("T2", []schema.FieldDef{
+		{Name: "SSN", FriendlyName: "Social Security Number", Item: "9"},
+	})
+	rec := makeTestRecord(cs, 12, map[string]any{"SSN": "111111111"})
+
+	msgTmpl, _ := template.New("exact_duplicate").Parse(
+		"Duplicate record detected with record type {{.RecordType}} at line {{.LineNumber}}. Record is a duplicate of the record at line number {{.ExistingLineNumber}}.",
+	)
+	vr := &validation.ValidationResult{
+		Valid:       false,
+		ErrorType:   validation.ErrorTypeCaseConsistency,
+		ValidatorID: "exact_duplicates",
+		TemplateData: map[string]any{
+			"ExistingLineNumber": 5,
+		},
+		Validator: &validation.CompiledValidator{
+			ID:        "exact_duplicates",
+			ErrorType: validation.ErrorTypeCaseConsistency,
+			Message:   msgTmpl,
+		},
+	}
+
+	got := renderErrorMessage(vr, rec)
+	want := "Duplicate record detected with record type T2 at line 12. Record is a duplicate of the record at line number 5."
+	if got != want {
+		t.Errorf("renderErrorMessage() = %q, want %q", got, want)
+	}
+}
+
 func TestConvertError_NilContentTypeID(t *testing.T) {
 	cs := makeTestSchema("T1", []schema.FieldDef{
 		{Name: "CASE_NUMBER"},
@@ -177,6 +294,45 @@ func TestConvertError_NilValidatorMessage(t *testing.T) {
 	}
 	if msg != "my_validator validation failed" {
 		t.Errorf("expected default message, got %q", msg)
+	}
+}
+
+func TestSerializeError_RecordValidatorMessageIncludesRecordLength(t *testing.T) {
+	cs := makeTestSchema("T7", []schema.FieldDef{
+		{Name: "RPT_MONTH_YEAR", Type: "integer"},
+	})
+	rec := makeTestRecord(cs, 2, map[string]any{
+		"RPT_MONTH_YEAR": 202010,
+	})
+	rec.DecodedSize = 156
+
+	msgTmpl, err := template.New("record_length_min").Parse(
+		"{{.RecordType}}: record must be at least {{.Params.min}} characters, got {{.RecordLength}}",
+	)
+	if err != nil {
+		t.Fatalf("failed to parse template: %v", err)
+	}
+
+	vr := &validation.ValidationResult{
+		Valid:       false,
+		ErrorType:   validation.ErrorTypeRecordPreCheck,
+		ValidatorID: "record_length_min",
+		Validator: &validation.CompiledValidator{
+			ID:        "record_length_min",
+			ErrorType: validation.ErrorTypeRecordPreCheck,
+			Message:   msgTmpl,
+			Params:    map[string]any{"min": 247},
+		},
+	}
+
+	row := SerializeError(vr, rec, nil, 1, nil)
+
+	msg, ok := row[6].(string)
+	if !ok {
+		t.Fatalf("expected string message, got %T", row[6])
+	}
+	if msg != "T7: record must be at least 247 characters, got 156" {
+		t.Errorf("expected rendered record length message, got %q", msg)
 	}
 }
 

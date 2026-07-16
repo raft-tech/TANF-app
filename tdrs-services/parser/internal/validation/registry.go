@@ -1,8 +1,10 @@
 package validation
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"text/template"
 
 	"github.com/expr-lang/expr"
@@ -21,6 +23,12 @@ var defaultErrorTypes = map[string]string{
 	ScopeGroup:  ErrorTypeCaseConsistency,
 }
 
+const (
+	ValidationEngineExpr   = "expr"
+	ValidationEngineHybrid = "hybrid"
+	ValidationEngineNative = "native"
+)
+
 // ValidatorRegistry manages compiled validators organized by scope.
 type ValidatorRegistry struct {
 	// Deduped expressions by (scope, exprString)
@@ -32,11 +40,12 @@ type ValidatorRegistry struct {
 	predefined map[string]map[string]*validation.ValidatorDef
 
 	// Compiled validators by scope
-	field  map[string]map[string][]*CompiledValidator // recordType -> fieldName -> validators
-	record map[string][]*CompiledValidator            // recordType -> validators
+	field  map[string]map[string][]*CompiledValidator // schema path -> fieldName -> validators
+	record map[string][]*CompiledValidator            // schema path -> validators
 	group  map[string][]*CompiledValidator            // filespec key -> validators
 
 	exprOpts []expr.Option
+	engine   string
 }
 
 // NewRegistry resolves validator file globs from the Config, loads
@@ -44,6 +53,12 @@ type ValidatorRegistry struct {
 // filespecs in the Registry.
 func NewRegistry(cfg *config.Config, reg *config.Registry) (*ValidatorRegistry, error) {
 	r := newValidatorRegistry()
+
+	engine, err := normalizeValidationEngine(cfg.Validation.Engine)
+	if err != nil {
+		return nil, err
+	}
+	r.engine = engine
 
 	// 1. Register custom functions
 	r.exprOpts = RegisterFunctions()
@@ -85,6 +100,21 @@ func newValidatorRegistry() *ValidatorRegistry {
 		field:       make(map[string]map[string][]*CompiledValidator),
 		record:      make(map[string][]*CompiledValidator),
 		group:       make(map[string][]*CompiledValidator),
+		engine:      ValidationEngineExpr,
+	}
+}
+
+func normalizeValidationEngine(engine string) (string, error) {
+	engine = strings.ToLower(strings.TrimSpace(engine))
+	if engine == "" {
+		return ValidationEngineExpr, nil
+	}
+
+	switch engine {
+	case ValidationEngineExpr, ValidationEngineHybrid, ValidationEngineNative:
+		return engine, nil
+	default:
+		return "", fmt.Errorf("unknown validation engine %q (expected expr, hybrid, or native)", engine)
 	}
 }
 
@@ -141,11 +171,10 @@ func applyDefaultErrorType(vdef *validation.ValidatorDef, scope string) {
 
 // loadSchemaValidators compiles field and record validators from a schema.
 func (r *ValidatorRegistry) loadSchemaValidators(path string, cs *schema.CompiledSchema) error {
-	recordType := cs.RecordType
+	schemaKey := path
 
-	// Initialize field map for this record type
-	if r.field[recordType] == nil {
-		r.field[recordType] = make(map[string][]*CompiledValidator)
+	if r.field[schemaKey] == nil {
+		r.field[schemaKey] = make(map[string][]*CompiledValidator)
 	}
 
 	// Load record-scope validators
@@ -154,7 +183,7 @@ func (r *ValidatorRegistry) loadSchemaValidators(path string, cs *schema.Compile
 		if err != nil {
 			return fmt.Errorf("schema %s record validator %s: %w", path, vdef.ID, err)
 		}
-		r.record[recordType] = append(r.record[recordType], cv)
+		r.record[schemaKey] = append(r.record[schemaKey], cv)
 	}
 
 	// Load field-scope validators from shared fields
@@ -164,7 +193,10 @@ func (r *ValidatorRegistry) loadSchemaValidators(path string, cs *schema.Compile
 			if err != nil {
 				return fmt.Errorf("schema %s field %s validator %s: %w", path, field.Name, vdef.ID, err)
 			}
-			r.field[recordType][field.Name] = append(r.field[recordType][field.Name], cv)
+			r.field[schemaKey][field.Name] = appendUniqueValidator(
+				r.field[schemaKey][field.Name],
+				cv,
+			)
 		}
 	}
 
@@ -176,7 +208,10 @@ func (r *ValidatorRegistry) loadSchemaValidators(path string, cs *schema.Compile
 				if err != nil {
 					return fmt.Errorf("schema %s field %s validator %s: %w", path, field.Name, vdef.ID, err)
 				}
-				r.field[recordType][field.Name] = append(r.field[recordType][field.Name], cv)
+				r.field[schemaKey][field.Name] = appendUniqueValidator(
+					r.field[schemaKey][field.Name],
+					cv,
+				)
 			}
 		}
 	}
@@ -251,6 +286,39 @@ func (r *ValidatorRegistry) envTypeForScope(scope string) any {
 	}
 }
 
+func (r *ValidatorRegistry) compileExecutor(scope string, id string, exprStr string, resultMode string, params map[string]any) (ValidatorExecutor, string, error) {
+	if r.engine != ValidationEngineExpr {
+		native, ok, err := nativeExecutorFor(scope, id, params)
+		if err != nil {
+			return nil, "", fmt.Errorf("compiling native validator: %w", err)
+		}
+		if ok {
+			return native, ValidationEngineNative, nil
+		}
+		if r.engine == ValidationEngineNative {
+			return nil, "", fmt.Errorf("native validation engine has no executor for %s validator %q", scope, id)
+		}
+	}
+
+	executor, err := r.compileExprExecutor(scope, exprStr, resultMode)
+	if err != nil {
+		return nil, "", err
+	}
+	return executor, ValidationEngineExpr, nil
+}
+
+func (r *ValidatorRegistry) compileExprExecutor(scope string, exprStr string, resultMode string) (ValidatorExecutor, error) {
+	ce, err := r.getOrCompileExpr(scope, exprStr, resultMode)
+	if err != nil {
+		return nil, fmt.Errorf("compiling expression: %w", err)
+	}
+	executor, err := newExprExecutor(ce, scope, resultMode)
+	if err != nil {
+		return nil, fmt.Errorf("compiling expression executor: %w", err)
+	}
+	return executor, nil
+}
+
 // resolveValidatorByScope resolves a validator definition to a compiled validator using scope-based lookup.
 // If defaultErrorType is provided and vdef.ErrorType is empty, it will be used.
 func (r *ValidatorRegistry) resolveValidatorByScope(scope string, vdef *validation.ValidatorDef, defaultErrorType string) (*CompiledValidator, error) {
@@ -322,9 +390,9 @@ func (r *ValidatorRegistry) resolveValidatorByScope(scope string, vdef *validati
 		fields = deriveFieldsFromParams(params)
 	}
 
-	ce, err := r.getOrCompileExpr(scope, exprStr, resultMode)
+	executor, resolvedEngine, err := r.compileExecutor(scope, id, exprStr, resultMode, params)
 	if err != nil {
-		return nil, fmt.Errorf("compiling expression: %w", err)
+		return nil, err
 	}
 
 	var msgTmpl *template.Template
@@ -340,7 +408,9 @@ func (r *ValidatorRegistry) resolveValidatorByScope(scope string, vdef *validati
 		Scope:       scope,
 		ErrorType:   errorType,
 		ResultMode:  resultMode,
-		Expr:        ce,
+		Engine:      resolvedEngine,
+		Expression:  exprStr,
+		Executor:    executor,
 		Message:     msgTmpl,
 		Fields:      fields,
 		Params:      params,
@@ -386,21 +456,21 @@ func mergeParams(predefined, useSite map[string]any) map[string]any {
 }
 
 // GetFieldValidators returns field-scope validators for a specific field.
-func (r *ValidatorRegistry) GetFieldValidators(recordType, fieldName string) []*CompiledValidator {
-	if fields, ok := r.field[recordType]; ok {
+func (r *ValidatorRegistry) GetFieldValidators(schemaKey, fieldName string) []*CompiledValidator {
+	if fields, ok := r.field[schemaKey]; ok {
 		return fields[fieldName]
 	}
 	return nil
 }
 
-// GetFieldValidatorsForRecord returns all fields with field-scope validators for a record type.
-func (r *ValidatorRegistry) GetFieldValidatorsForRecord(recordType string) map[string][]*CompiledValidator {
-	return r.field[recordType]
+// GetFieldValidatorsForRecord returns all fields with field-scope validators for a schema.
+func (r *ValidatorRegistry) GetFieldValidatorsForRecord(schemaKey string) map[string][]*CompiledValidator {
+	return r.field[schemaKey]
 }
 
-// GetRecordValidators returns record-scope validators for a record type.
-func (r *ValidatorRegistry) GetRecordValidators(recordType string) []*CompiledValidator {
-	return r.record[recordType]
+// GetRecordValidators returns record-scope validators for a schema.
+func (r *ValidatorRegistry) GetRecordValidators(schemaKey string) []*CompiledValidator {
+	return r.record[schemaKey]
 }
 
 // GetGroupValidators returns group-scope validators for a filespec.
@@ -465,4 +535,59 @@ func (r *ValidatorRegistry) Stats() RegistryStats {
 func (r *ValidatorRegistry) ClearCompileTimeData() {
 	r.expressions = nil
 	r.predefined = nil
+}
+
+func appendUniqueValidator(validators []*CompiledValidator, candidate *CompiledValidator) []*CompiledValidator {
+	// Ensure that segment fields don't duplicate the same validator. This also queues us up for unique validators
+	// per segment if we ever need to do so.
+	candidateKey := validatorSemanticKey(candidate)
+	for _, existing := range validators {
+		if validatorSemanticKey(existing) == candidateKey {
+			return validators
+		}
+	}
+	return append(validators, candidate)
+}
+
+func validatorSemanticKey(cv *CompiledValidator) string {
+	if cv == nil {
+		return ""
+	}
+	fields := append([]string(nil), cv.Fields...)
+
+	key := struct {
+		ID          string         `json:"id"`
+		Scope       string         `json:"scope"`
+		ErrorType   string         `json:"error_type"`
+		ResultMode  string         `json:"result_mode"`
+		Expr        string         `json:"expr"`
+		Message     string         `json:"message"`
+		Fields      []string       `json:"fields"`
+		Params      map[string]any `json:"params"`
+		Description string         `json:"description"`
+	}{
+		ID:          cv.ID,
+		Scope:       cv.Scope,
+		ErrorType:   cv.ErrorType,
+		ResultMode:  cv.ResultMode,
+		Expr:        cv.Expression,
+		Message:     templateString(cv.Message),
+		Fields:      fields,
+		Params:      cv.Params,
+		Description: cv.Description,
+	}
+
+	encoded, err := json.Marshal(key)
+	if err != nil {
+		return fmt.Sprintf("%s|%s|%s|%s|%s|%s|%v|%v|%s",
+			key.ID, key.Scope, key.ErrorType, key.ResultMode, key.Expr, key.Message, key.Fields, key.Params, key.Description)
+	}
+	return string(encoded)
+}
+
+func templateString(tmpl *template.Template) string {
+	if tmpl == nil || tmpl.Tree == nil || tmpl.Tree.Root == nil {
+		return ""
+	}
+	return tmpl.Tree.Root.String()
 }

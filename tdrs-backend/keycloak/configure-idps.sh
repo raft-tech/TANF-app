@@ -2,7 +2,7 @@
 # configure-idps.sh
 #
 # Post-startup script to configure Keycloak identity providers with
-# sensitive material that cannot be expressed in realm-export.json:
+# sensitive material that cannot be expressed in the checked-in realm JSON files:
 #   - Login.gov RSA private key for private_key_jwt client authentication
 #   - Login.gov acr_values authorization parameter
 #   - tdp-django and tdp-grafana client redirect URIs and web origins
@@ -19,9 +19,13 @@
 #   LOGIN_GOV_JWT_KEY       - PEM or base64-encoded Login.gov private key
 #   LOGIN_GOV_ACR_VALUES    - ACR values for Login.gov (default: IAL1)
 #   KC_TDP_REDIRECT_URIS    - Comma-separated list of redirect URIs for the tdp-django client
-#                             (e.g. https://tdp-frontend.app.cloud.gov/*)
+#                             (e.g. https://tdp-frontend.tanfdata.acf.hhs.gov/*)
 #   KC_TDP_WEB_ORIGINS      - Comma-separated list of web origins for the tdp-django client
-#                             (e.g. https://tdp-frontend.app.cloud.gov)
+#                             (e.g. https://tdp-frontend.tanfdata.acf.hhs.gov)
+#   KC_CLI_REDIRECT_URI     - Additional redirect URI for the tdp-cli client
+#                             (default: http://localhost/*)
+#   KC_CLI_WEB_ORIGIN       - Additional web origin for the tdp-cli client
+#                             (default: http://localhost)
 #   SKIP_KEYCLOAK_WAIT      - Set to "true" to skip the health check wait
 #                             (useful when running as a CF task after deploy)
 
@@ -68,22 +72,41 @@ wait_for_keycloak() {
 }
 
 get_admin_token() {
-    local response
-    response=$(curl -sf -X POST "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
-        -H "Content-Type: application/x-www-form-urlencoded" \
-        -d "username=${KEYCLOAK_ADMIN}" \
-        -d "password=${KEYCLOAK_ADMIN_PASSWORD}" \
-        -d "grant_type=password" \
-        -d "client_id=admin-cli")
+    local max_attempts=30
+    local attempt=0
+    local response=""
 
-    TOKEN=$(echo "$response" | jq -r '.access_token')
+    echo "Obtaining admin token from ${KEYCLOAK_URL}..."
 
-    if [ -z "$TOKEN" ] || [ "$TOKEN" == "null" ]; then
-        echo "ERROR: Failed to obtain admin access token"
-        echo "Response: $response"
-        exit 1
+    until [ "$attempt" -ge "$max_attempts" ]; do
+        attempt=$((attempt + 1))
+
+        response=$(curl -s -X POST "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "username=${KEYCLOAK_ADMIN}" \
+            -d "password=${KEYCLOAK_ADMIN_PASSWORD}" \
+            -d "grant_type=password" \
+            -d "client_id=admin-cli") || true
+
+        TOKEN=$(echo "$response" | jq -r '.access_token // empty' 2>/dev/null || true)
+
+        if [ -n "$TOKEN" ]; then
+            echo "Admin token obtained."
+            return
+        fi
+
+        echo "  Attempt ${attempt}/${max_attempts} - admin token endpoint not ready yet..."
+        if [ -n "$response" ]; then
+            echo "  Response: $response"
+        fi
+        sleep 2
+    done
+
+    echo "ERROR: Failed to obtain admin access token after ${max_attempts} attempts"
+    if [ -n "$response" ]; then
+        echo "Final response: $response"
     fi
-    echo "Admin token obtained."
+    exit 1
 }
 
 configure_login_gov_signing_key() {
@@ -270,41 +293,200 @@ configure_master_realm_security_headers() {
     echo "Master realm X-Frame-Options set to SAMEORIGIN."
 }
 
-hide_login_gov_from_login_page() {
-    echo "Hiding Login.gov from Keycloak login page..."
+append_json_array_unique() {
+    local array_json="$1"
+    local value="$2"
+    echo "$array_json" | jq --arg value "$value" 'if index($value) then . else . + [$value] end'
+}
 
-    # TDP frontend uses kc_idp_hint=login-gov to bypass the login page entirely,
-    # so hiding Login.gov from the login page does not affect TDP auth.
-    # This ensures only AMS (and the local password form) appear on the login page,
-    # which is the correct behavior for Grafana and any other direct Keycloak login.
-    local idp_config
-    idp_config=$(kc_api "${KEYCLOAK_URL}/admin/realms/${REALM}/identity-provider/instances/login-gov" \
-        -H "Authorization: Bearer ${TOKEN}")
+get_client_uuid() {
+    local client_id="$1"
+    kc_api "${KEYCLOAK_URL}/admin/realms/${REALM}/clients?clientId=${client_id}" \
+        -H "Authorization: Bearer ${TOKEN}" | jq -r '.[0].id // empty'
+}
 
-    if [ -z "$idp_config" ] || [ "$(echo "$idp_config" | jq -r '.alias')" == "null" ]; then
-        echo "WARNING: Login.gov IdP not found, skipping."
+configure_tdp_cli_api_audience() {
+    echo "Configuring tdp-cli client and Django API audience scope..."
+
+    local scope_name="tdp-api-audience"
+    local scope_id
+    scope_id=$(kc_api "${KEYCLOAK_URL}/admin/realms/${REALM}/client-scopes?name=${scope_name}" \
+        -H "Authorization: Bearer ${TOKEN}" | jq -r '.[0].id // empty')
+
+    local scope_json
+    scope_json=$(jq -n \
+        --arg name "$scope_name" \
+        '{
+            name: $name,
+            description: "Adds the Django API audience to access tokens for external API clients.",
+            protocol: "openid-connect",
+            attributes: {
+                "include.in.token.scope": "false",
+                "display.on.consent.screen": "false"
+            }
+        }')
+
+    if [ -z "$scope_id" ]; then
+        kc_api -X POST "${KEYCLOAK_URL}/admin/realms/${REALM}/client-scopes" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$scope_json" > /dev/null
+        scope_id=$(kc_api "${KEYCLOAK_URL}/admin/realms/${REALM}/client-scopes?name=${scope_name}" \
+            -H "Authorization: Bearer ${TOKEN}" | jq -r '.[0].id')
+        echo "tdp-api-audience client scope created (${scope_id})."
+    else
+        scope_json=$(echo "$scope_json" | jq --arg id "$scope_id" '.id = $id')
+        kc_api -X PUT "${KEYCLOAK_URL}/admin/realms/${REALM}/client-scopes/${scope_id}" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$scope_json" > /dev/null
+        echo "tdp-api-audience client scope updated (${scope_id})."
+    fi
+
+    local mapper_json
+    mapper_json=$(jq -n '{
+        name: "tdp-django audience",
+        protocol: "openid-connect",
+        protocolMapper: "oidc-audience-mapper",
+        consentRequired: false,
+        config: {
+            "included.client.audience": "tdp-django",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+        }
+    }')
+
+    local mapper_id
+    mapper_id=$(kc_api "${KEYCLOAK_URL}/admin/realms/${REALM}/client-scopes/${scope_id}/protocol-mappers/models" \
+        -H "Authorization: Bearer ${TOKEN}" | jq -r 'map(select(.name == "tdp-django audience")) | first.id // empty')
+
+    if [ -n "$mapper_id" ]; then
+        mapper_json=$(echo "$mapper_json" | jq --arg id "$mapper_id" '.id = $id')
+        kc_api -X PUT "${KEYCLOAK_URL}/admin/realms/${REALM}/client-scopes/${scope_id}/protocol-mappers/models/${mapper_id}" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$mapper_json" > /dev/null
+        echo "tdp-django audience mapper updated (${mapper_id})."
+    else
+        kc_api -X POST "${KEYCLOAK_URL}/admin/realms/${REALM}/client-scopes/${scope_id}/protocol-mappers/models" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$mapper_json" > /dev/null
+        echo "tdp-django audience mapper created."
+    fi
+
+    local redirect_uris='[]'
+    local web_origins='[]'
+    for uri in \
+        "http://localhost/*" \
+        "http://127.0.0.1/*" \
+        "https://oauth.pstmn.io/v1/callback" \
+        "${KC_CLI_REDIRECT_URI:-http://localhost/*}"; do
+        redirect_uris=$(append_json_array_unique "$redirect_uris" "$uri")
+    done
+    for origin in \
+        "http://localhost" \
+        "http://127.0.0.1" \
+        "${KC_CLI_WEB_ORIGIN:-http://localhost}"; do
+        web_origins=$(append_json_array_unique "$web_origins" "$origin")
+    done
+
+    local cli_json
+    cli_json=$(jq -n \
+        --argjson redirect_uris "$redirect_uris" \
+        --argjson web_origins "$web_origins" \
+        '{
+            clientId: "tdp-cli",
+            name: "TDP CLI / Postman",
+            description: "Public client for external API tools (Postman, CLI, CI). Authorization Code + PKCE and Device Authorization Grant; no client secret.",
+            enabled: true,
+            clientAuthenticatorType: "none",
+            protocol: "openid-connect",
+            publicClient: true,
+            standardFlowEnabled: true,
+            implicitFlowEnabled: false,
+            directAccessGrantsEnabled: false,
+            serviceAccountsEnabled: false,
+            authorizationServicesEnabled: false,
+            fullScopeAllowed: true,
+            redirectUris: $redirect_uris,
+            webOrigins: $web_origins,
+            attributes: {
+                "pkce.code.challenge.method": "S256",
+                "oauth2.device.authorization.grant.enabled": "true",
+                "post.logout.redirect.uris": "+"
+            },
+            defaultClientScopes: ["openid", "email", "profile", "tdp-user-attributes", "tdp-api-audience"],
+            optionalClientScopes: []
+        }')
+
+    local cli_id
+    cli_id=$(get_client_uuid "tdp-cli")
+    if [ -z "$cli_id" ]; then
+        kc_api -X POST "${KEYCLOAK_URL}/admin/realms/${REALM}/clients" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$cli_json" > /dev/null
+        cli_id=$(get_client_uuid "tdp-cli")
+        echo "tdp-cli client created (${cli_id})."
+    else
+        cli_json=$(echo "$cli_json" | jq --arg id "$cli_id" '.id = $id')
+        kc_api -X PUT "${KEYCLOAK_URL}/admin/realms/${REALM}/clients/${cli_id}" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$cli_json" > /dev/null
+        echo "tdp-cli client updated (${cli_id})."
+    fi
+
+    ensure_default_client_scope_attached "$cli_id" "$scope_id" "$scope_name"
+
+    for client_id in "tdp-django" "tdp-grafana"; do
+        local client_uuid
+        client_uuid=$(get_client_uuid "$client_id")
+        if [ -n "$client_uuid" ]; then
+            ensure_default_client_scope_removed "$client_uuid" "$scope_id" "$scope_name" "$client_id"
+        fi
+    done
+
+    echo "tdp-cli redirect URIs: $(echo "$redirect_uris" | jq -c .)"
+    echo "tdp-cli web origins:   $(echo "$web_origins" | jq -c .)"
+}
+
+ensure_default_client_scope_attached() {
+    local client_uuid="$1"
+    local scope_id="$2"
+    local scope_name="$3"
+    local attached
+    attached=$(kc_api "${KEYCLOAK_URL}/admin/realms/${REALM}/clients/${client_uuid}/default-client-scopes" \
+        -H "Authorization: Bearer ${TOKEN}" | jq --arg id "$scope_id" 'any(.[]; .id == $id)')
+
+    if [ "$attached" == "true" ]; then
+        echo "${scope_name} already attached to tdp-cli."
         return
     fi
 
-    local already_hidden
-    already_hidden=$(echo "$idp_config" | jq -r '.hideOnLogin // false')
+    kc_api -X PUT "${KEYCLOAK_URL}/admin/realms/${REALM}/clients/${client_uuid}/default-client-scopes/${scope_id}" \
+        -H "Authorization: Bearer ${TOKEN}" > /dev/null
+    echo "${scope_name} attached to tdp-cli."
+}
 
-    if [ "$already_hidden" == "true" ]; then
-        echo "Login.gov already hidden on login page."
+ensure_default_client_scope_removed() {
+    local client_uuid="$1"
+    local scope_id="$2"
+    local scope_name="$3"
+    local client_id="$4"
+    local attached
+    attached=$(kc_api "${KEYCLOAK_URL}/admin/realms/${REALM}/clients/${client_uuid}/default-client-scopes" \
+        -H "Authorization: Bearer ${TOKEN}" | jq --arg id "$scope_id" 'any(.[]; .id == $id)')
+
+    if [ "$attached" != "true" ]; then
+        echo "${scope_name} not attached to ${client_id}; no removal needed."
         return
     fi
 
-    # Remove the masked clientSecret before PUT to avoid overwriting the real value.
-    # Keycloak's GET API returns secrets as "**********" and PUTting that back would
-    # replace the actual secret with the literal masked string.
-    idp_config=$(echo "$idp_config" | jq '.hideOnLogin = true | del(.config.clientSecret)')
-
-    kc_api -X PUT "${KEYCLOAK_URL}/admin/realms/${REALM}/identity-provider/instances/login-gov" \
-        -H "Authorization: Bearer ${TOKEN}" \
-        -H "Content-Type: application/json" \
-        -d "$idp_config" > /dev/null
-
-    echo "Login.gov hidden from login page (TDP frontend uses kc_idp_hint, unaffected)."
+    kc_api -X DELETE "${KEYCLOAK_URL}/admin/realms/${REALM}/clients/${client_uuid}/default-client-scopes/${scope_id}" \
+        -H "Authorization: Bearer ${TOKEN}" > /dev/null
+    echo "${scope_name} removed from ${client_id}."
 }
 
 configure_tdp_client_urls() {
@@ -323,46 +505,55 @@ configure_tdp_client_urls() {
     client_config=$(kc_api "${KEYCLOAK_URL}/admin/realms/${REALM}/clients/${client_id}" \
         -H "Authorization: Bearer ${TOKEN}")
 
-    # Build redirect URI and web origin arrays from env vars (comma-separated).
-    local redirect_uris='[]'
-    local web_origins='[]'
+    # Preserve current Keycloak values unless explicit replacement env vars are provided.
+    local redirect_uris
+    local web_origins
+    redirect_uris=$(echo "$client_config" | jq '.redirectUris // []')
+    web_origins=$(echo "$client_config" | jq '.webOrigins // []')
 
     if [ -n "${KC_TDP_REDIRECT_URIS:-}" ]; then
+        redirect_uris='[]'
         IFS=',' read -ra uris <<< "$KC_TDP_REDIRECT_URIS"
         for uri in "${uris[@]}"; do
             uri=$(echo "$uri" | xargs)  # trim whitespace
-            redirect_uris=$(echo "$redirect_uris" | jq --arg v "$uri" '. + [$v]')
+            redirect_uris=$(append_json_array_unique "$redirect_uris" "$uri")
         done
+    else
+        echo "KC_TDP_REDIRECT_URIS not set; preserving existing tdp-django redirect URIs."
     fi
 
     if [ -n "${KC_TDP_WEB_ORIGINS:-}" ]; then
+        web_origins='[]'
         IFS=',' read -ra origins <<< "$KC_TDP_WEB_ORIGINS"
         for origin in "${origins[@]}"; do
             origin=$(echo "$origin" | xargs)
-            web_origins=$(echo "$web_origins" | jq --arg v "$origin" '. + [$v]')
+            web_origins=$(append_json_array_unique "$web_origins" "$origin")
         done
+    else
+        echo "KC_TDP_WEB_ORIGINS not set; preserving existing tdp-django web origins."
     fi
 
     # For dev only: also allow localhost and 127.0.0.1 for local development.
     if [ "$DEPLOY_ENV" == "dev" ]; then
-        redirect_uris=$(echo "$redirect_uris" | jq '. + [
-            "http://localhost:3000/*",
-            "http://localhost:8080/*",
-            "http://localhost:8989/*",
-            "http://127.0.0.1:3000/*",
-            "http://127.0.0.1:8080/*",
-            "http://127.0.0.1:8989/*"
-        ]')
-        web_origins=$(echo "$web_origins" | jq '. + [
-            "http://localhost:3000",
-            "http://localhost:8080",
-            "http://localhost:8989",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:8080",
-            "http://127.0.0.1:8989"
-        ]')
-    elif [ -z "${KC_TDP_REDIRECT_URIS:-}" ]; then
-        echo "WARNING: KC_TDP_REDIRECT_URIS is not set for env '${DEPLOY_ENV}'. tdp-django client will have no redirect URIs."
+        for uri in \
+            "http://localhost:3000/*" \
+            "http://localhost:8080/*" \
+            "http://localhost:8989/*" \
+            "http://127.0.0.1:3000/*" \
+            "http://127.0.0.1:8080/*" \
+            "http://127.0.0.1:8989/*"; do
+            redirect_uris=$(append_json_array_unique "$redirect_uris" "$uri")
+        done
+
+        for origin in \
+            "http://localhost:3000" \
+            "http://localhost:8080" \
+            "http://localhost:8989" \
+            "http://127.0.0.1:3000" \
+            "http://127.0.0.1:8080" \
+            "http://127.0.0.1:8989"; do
+            web_origins=$(append_json_array_unique "$web_origins" "$origin")
+        done
     fi
 
     client_config=$(echo "$client_config" | jq \
@@ -444,19 +635,60 @@ configure_grafana_client_urls() {
     echo "tdp-grafana web origins:   $(echo "$web_origins" | jq -c .)"
 }
 
-# --- Main ---
-echo "=== Keycloak IdP Configuration ==="
-if [ "${SKIP_KEYCLOAK_WAIT:-false}" == "true" ]; then
-    echo "Skipping health check wait (SKIP_KEYCLOAK_WAIT=true)."
-else
-    wait_for_keycloak
+show_login_gov_on_login_page() {
+    echo "Showing Login.gov on Keycloak login page..."
+
+    # CLI and Postman users authenticate through the public Keycloak login page,
+    # so Login.gov must remain visible even though TDP frontend uses kc_idp_hint.
+    local idp_config
+    idp_config=$(kc_api "${KEYCLOAK_URL}/admin/realms/${REALM}/identity-provider/instances/login-gov" \
+        -H "Authorization: Bearer ${TOKEN}")
+
+    if [ -z "$idp_config" ] || [ "$(echo "$idp_config" | jq -r '.alias')" == "null" ]; then
+        echo "WARNING: Login.gov IdP not found, skipping."
+        return
+    fi
+
+    local already_visible
+    already_visible=$(echo "$idp_config" | jq -r '(.hideOnLogin // false) | not')
+
+    if [ "$already_visible" == "true" ]; then
+        echo "Login.gov already visible on login page."
+        return
+    fi
+
+    # Remove the masked clientSecret before PUT to avoid overwriting the real value.
+    # Keycloak's GET API returns secrets as "**********" and PUTting that back would
+    # replace the actual secret with the literal masked string.
+    idp_config=$(echo "$idp_config" | jq '.hideOnLogin = false | del(.config.clientSecret)')
+
+    kc_api -X PUT "${KEYCLOAK_URL}/admin/realms/${REALM}/identity-provider/instances/login-gov" \
+        -H "Authorization: Bearer ${TOKEN}" \
+        -H "Content-Type: application/json" \
+        -d "$idp_config" > /dev/null
+
+    echo "Login.gov visible on login page."
+}
+
+main() {
+    echo "=== Keycloak IdP Configuration ==="
+    if [ "${SKIP_KEYCLOAK_WAIT:-false}" == "true" ]; then
+        echo "Skipping health check wait (SKIP_KEYCLOAK_WAIT=true)."
+    else
+        wait_for_keycloak
+    fi
+    get_admin_token
+    configure_master_realm_security_headers
+    configure_login_gov_signing_key
+    configure_login_gov_acr_values
+    configure_login_gov_logout_params
+    show_login_gov_on_login_page
+    configure_tdp_client_urls
+    configure_tdp_cli_api_audience
+    configure_grafana_client_urls
+    echo "=== IdP configuration complete ==="
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
 fi
-get_admin_token
-configure_master_realm_security_headers
-configure_login_gov_signing_key
-configure_login_gov_acr_values
-configure_login_gov_logout_params
-hide_login_gov_from_login_page
-configure_tdp_client_urls
-configure_grafana_client_urls
-echo "=== IdP configuration complete ==="

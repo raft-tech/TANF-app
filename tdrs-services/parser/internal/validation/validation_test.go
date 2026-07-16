@@ -1,22 +1,50 @@
 package validation
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"text/template"
 
 	"github.com/expr-lang/expr"
 
+	configpkg "go-parser/internal/config"
+	"go-parser/internal/config/schema"
 	configValidation "go-parser/internal/config/validation"
 	"go-parser/internal/testutil"
 )
 
 // Package-level test schemas shared across tests.
 var (
-	t1Schema = testutil.NewTestSchema("T1", "CASE_NUMBER", "AMOUNT")
-	t2Schema = testutil.NewTestSchema("T2", "SSN", "FAMILY_AFFILIATION")
+	t1Schema = func() *schema.CompiledSchema {
+		cs := testutil.NewTestSchema("T1", "CASE_NUMBER", "AMOUNT")
+		cs.Shared[0].Required = true
+		cs.Shared[1].Required = true
+		return cs
+	}()
+	t2Schema = func() *schema.CompiledSchema {
+		cs := testutil.NewTestSchema("T2", "SSN", "FAMILY_AFFILIATION")
+		cs.Shared[0].Required = true
+		cs.Shared[0].Item = "9"
+		cs.Shared[0].FriendlyName = "Social Security Number"
+		cs.Shared[1].Item = "10"
+		cs.Shared[1].FriendlyName = "Family Affiliation"
+		return cs
+	}()
 	t3Schema = testutil.NewTestSchema("T3", "FAMILY_AFFILIATION")
 )
+
+func realConfigDir(t *testing.T) string {
+	t.Helper()
+
+	dir := filepath.Join("..", "..", "config")
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		t.Skip("config directory not found")
+	}
+
+	return dir
+}
 
 // TestFieldEnv tests the FieldEnv creation
 func TestFieldEnv(t *testing.T) {
@@ -238,6 +266,20 @@ func TestGetRecordsOfType(t *testing.T) {
 	t4Records := getRecordsOfType(group, "T4")
 	if len(t4Records) != 0 {
 		t.Errorf("expected 0 T4 records, got %d", len(t4Records))
+	}
+}
+
+func TestHasAnyRecordOfTypeWithInt(t *testing.T) {
+	group := testutil.NewTestGroup(
+		testutil.NewTestRecord(t2Schema, 1, map[string]any{"FAMILY_AFFILIATION": 1}),
+		testutil.NewTestRecord(t2Schema, 2, map[string]any{"FAMILY_AFFILIATION": 2}),
+	)
+
+	if !hasAnyRecordOfTypeWithInt(group, "T2", "FAMILY_AFFILIATION", 1) {
+		t.Error("expected true when a matching record exists")
+	}
+	if hasAnyRecordOfTypeWithInt(group, "T2", "FAMILY_AFFILIATION", 9) {
+		t.Error("expected false when no matching record exists")
 	}
 }
 
@@ -504,15 +546,237 @@ func TestResolveValidatorPreventsExprOverride(t *testing.T) {
 	})
 }
 
-// TestFamilyAffiliationExpression tests the any() with #.GetInt() syntax for Cat4
-func TestFamilyAffiliationExpression(t *testing.T) {
+func TestRealConfig_GroupValidatorBindingsAcrossPrograms(t *testing.T) {
+	cfg := configpkg.TestConfig()
+	cfg.Global.ConfigDir = realConfigDir(t)
+
+	reg, err := configpkg.NewRegistry(cfg)
+	if err != nil {
+		t.Fatalf("loading config registry: %v", err)
+	}
+
+	validators, err := NewRegistry(cfg, reg)
+	if err != nil {
+		t.Fatalf("loading validator registry: %v", err)
+	}
+
+	tests := []struct {
+		filespecKey string
+		validatorID string
+		params      map[string]any
+	}{
+		{
+			filespecKey: "TAN:1",
+			validatorID: "requires_related_record",
+			params: map[string]any{
+				"record_type":          "T1",
+				"related_record_types": []any{"T2", "T3"},
+			},
+		},
+		{
+			filespecKey: "SSP:1",
+			validatorID: "requires_related_record",
+			params: map[string]any{
+				"record_type":          "M1",
+				"related_record_types": []any{"M2", "M3"},
+			},
+		},
+		{
+			filespecKey: "TRIBAL:1",
+			validatorID: "requires_related_record",
+			params: map[string]any{
+				"record_type":          "T1",
+				"related_record_types": []any{"T2", "T3"},
+			},
+		},
+		{
+			filespecKey: "TAN:2",
+			validatorID: "requires_related_record",
+			params: map[string]any{
+				"record_type":          "T4",
+				"related_record_types": []any{"T5"},
+			},
+		},
+		{
+			filespecKey: "SSP:2",
+			validatorID: "requires_related_record",
+			params: map[string]any{
+				"record_type":          "M4",
+				"related_record_types": []any{"M5"},
+			},
+		},
+		{
+			filespecKey: "TRIBAL:2",
+			validatorID: "requires_related_record",
+			params: map[string]any{
+				"record_type":          "T4",
+				"related_record_types": []any{"T5"},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		found := false
+		for _, validator := range validators.GetGroupValidators(tc.filespecKey) {
+			if validator.ID == tc.validatorID && validatorParamsEqual(validator.Params, tc.params) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("missing validator %s with params %v in %s", tc.validatorID, tc.params, tc.filespecKey)
+		}
+	}
+}
+
+func TestRealConfig_ProgramSpecificSchemaValidatorBindings(t *testing.T) {
+	cfg := configpkg.TestConfig()
+	cfg.Global.ConfigDir = realConfigDir(t)
+
+	reg, err := configpkg.NewRegistry(cfg)
+	if err != nil {
+		t.Fatalf("loading config registry: %v", err)
+	}
+
+	validators, err := NewRegistry(cfg, reg)
+	if err != nil {
+		t.Fatalf("loading validator registry: %v", err)
+	}
+
+	requireRecordValidator := func(schemaKey string, id string) {
+		t.Helper()
+		for _, validator := range validators.GetRecordValidators(schemaKey) {
+			if validator.ID == id {
+				return
+			}
+		}
+		t.Fatalf("expected %s to have record validator %s", schemaKey, id)
+	}
+
+	requireNoRecordValidator := func(schemaKey string, id string) {
+		t.Helper()
+		for _, validator := range validators.GetRecordValidators(schemaKey) {
+			if validator.ID == id {
+				t.Fatalf("expected %s not to have record validator %s", schemaKey, id)
+			}
+		}
+	}
+
+	requireFieldValidator := func(schemaKey string, fieldName string, id string) *CompiledValidator {
+		t.Helper()
+		for _, validator := range validators.GetFieldValidators(schemaKey, fieldName) {
+			if validator.ID == id {
+				return validator
+			}
+		}
+		t.Fatalf("expected %s.%s to have field validator %s", schemaKey, fieldName, id)
+		return nil
+	}
+
+	requireRecordValidator("tanf/t2", "t2_family_affil_1_2_work_part_status")
+	requireNoRecordValidator("tribal_tanf/t2", "t2_family_affil_1_2_work_part_status")
+	requireRecordValidator("tribal_tanf/t2", "tribal_t2_family_affil_1_2_work_part_status")
+
+	requireFieldValidator("tanf/t4", "CLOSURE_REASON", "closure_reason")
+	requireFieldValidator("tribal_tanf/t4", "CLOSURE_REASON", "tribal_closure_reason")
+
+	requireRecordValidator("fra/te1", "exit_date_matches_fiscal_period")
+	if got := requireFieldValidator("fra/te1", "SSN", "fra_ssn").ErrorType; got != ErrorTypeCaseConsistency {
+		t.Fatalf("expected fra_ssn error type %s, got %s", ErrorTypeCaseConsistency, got)
+	}
+}
+
+func TestRealConfig_FRAValidationErrorsAreCaseConsistency(t *testing.T) {
+	cfg := configpkg.TestConfig()
+	cfg.Global.ConfigDir = realConfigDir(t)
+
+	reg, err := configpkg.NewRegistry(cfg)
+	if err != nil {
+		t.Fatalf("loading config registry: %v", err)
+	}
+
+	validators, err := NewRegistry(cfg, reg)
+	if err != nil {
+		t.Fatalf("loading validator registry: %v", err)
+	}
+
+	fraSchema := reg.GetSchema("fra/te1")
+	rec := testutil.NewTestRecord(fraSchema, 1, map[string]any{
+		"RecordType": "TE1",
+		"EXIT_DATE":  "202310",
+		"SSN":        "000000000",
+	})
+	for i := range fraSchema.Segments[0].Fields {
+		field := &fraSchema.Segments[0].Fields[i]
+		idx := fraSchema.FieldIndex[field.Name]
+		rec.Fields[idx].Def = field
+	}
+
+	orchestrator := NewValidationOrchestrator(validators, true)
+	result := orchestrator.ValidateGroup(
+		testutil.NewTestGroup(rec),
+		"FRA:1",
+		&DataFileContext{FiscalYear: 2024, FiscalQuarter: "Q1", Program: "FRA"},
+	)
+
+	if len(result.RecordResults) != 1 {
+		t.Fatalf("expected one record result, got %d", len(result.RecordResults))
+	}
+
+	fieldErrors := result.RecordResults[0].FieldErrors
+	if len(fieldErrors) != 1 {
+		t.Fatalf("expected one FRA field error, got %d", len(fieldErrors))
+	}
+	if got := fieldErrors[0].ErrorType; got != ErrorTypeCaseConsistency {
+		t.Fatalf("expected FRA field error type %s, got %s", ErrorTypeCaseConsistency, got)
+	}
+	if result.ShouldSerialize() {
+		t.Fatal("expected FRA CASE_CONSISTENCY field error to block serialization")
+	}
+}
+
+func validatorParamsEqual(actual map[string]any, expected map[string]any) bool {
+	if len(actual) != len(expected) {
+		return false
+	}
+
+	for key, expectedValue := range expected {
+		actualValue, ok := actual[key]
+		if !ok {
+			return false
+		}
+
+		expectedSlice, expectedIsSlice := expectedValue.([]any)
+		if expectedIsSlice {
+			actualSlice, ok := actualValue.([]any)
+			if !ok || len(actualSlice) != len(expectedSlice) {
+				return false
+			}
+			for i := range expectedSlice {
+				if actualSlice[i] != expectedSlice[i] {
+					return false
+				}
+			}
+			continue
+		}
+
+		if actualValue != expectedValue {
+			return false
+		}
+	}
+
+	return true
+}
+
+// TestGroupValidatorParameterizedExpression tests the generalized Section 1
+// relationship expression against parameterized record types.
+func TestGroupValidatorParameterizedExpression(t *testing.T) {
 	opts := RegisterFunctions()
 
-	exprStr := `RecordCounts['T1'] == 0 or any(getRecordsOfType(Group, 'T2'), .GetInt('FAMILY_AFFILIATION') == 1) or any(getRecordsOfType(Group, 'T3'), .GetInt('FAMILY_AFFILIATION') == 1)`
+	exprStr := `filter(Group.Records, { .GetRecordType() == Params.record_type and not any(Group.Records, { .GetRecordType() in Params.related_record_types and .GetInt(Params.field_name) == Params.expected_value }) })`
 
 	compileOpts := append([]expr.Option{
 		expr.Env(&GroupEnv{}),
-		expr.AsBool(),
 		expr.AllowUndefinedVariables(),
 	}, opts...)
 
@@ -521,18 +785,33 @@ func TestFamilyAffiliationExpression(t *testing.T) {
 		t.Fatalf("failed to compile expression: %v", err)
 	}
 
+	countPerRecordResults := func(t *testing.T, output any) int {
+		t.Helper()
+		outcome, err := outcomeFromOutput(output, "per_record")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(toPerRecordResults(outcome, &CompiledValidator{ID: "test_group_validator"}))
+	}
+
 	t.Run("no T1 records - should pass", func(t *testing.T) {
 		group := testutil.NewTestGroup(
 			testutil.NewTestRecord(t2Schema, 1, map[string]any{"FAMILY_AFFILIATION": 2}),
 		)
 		env := NewGroupEnv(group)
+		env.Params = map[string]any{
+			"record_type":          "T1",
+			"related_record_types": []any{"T2", "T3"},
+			"field_name":           "FAMILY_AFFILIATION",
+			"expected_value":       1,
+		}
 
 		result, err := expr.Run(program, env)
 		if err != nil {
 			t.Fatalf("failed to run: %v", err)
 		}
-		if result != true {
-			t.Errorf("expected true when no T1, got %v", result)
+		if count := countPerRecordResults(t, result); count != 0 {
+			t.Errorf("expected no records when no T1, got %d", count)
 		}
 	})
 
@@ -542,13 +821,19 @@ func TestFamilyAffiliationExpression(t *testing.T) {
 			testutil.NewTestRecord(t2Schema, 2, map[string]any{"FAMILY_AFFILIATION": 1}),
 		)
 		env := NewGroupEnv(group)
+		env.Params = map[string]any{
+			"record_type":          "T1",
+			"related_record_types": []any{"T2", "T3"},
+			"field_name":           "FAMILY_AFFILIATION",
+			"expected_value":       1,
+		}
 
 		result, err := expr.Run(program, env)
 		if err != nil {
 			t.Fatalf("failed to run: %v", err)
 		}
-		if result != true {
-			t.Errorf("expected true when T2 has FA=1, got %v", result)
+		if count := countPerRecordResults(t, result); count != 0 {
+			t.Errorf("expected no records when T2 has FA=1, got %d", count)
 		}
 	})
 
@@ -558,13 +843,19 @@ func TestFamilyAffiliationExpression(t *testing.T) {
 			testutil.NewTestRecord(t3Schema, 2, map[string]any{"FAMILY_AFFILIATION": 1}),
 		)
 		env := NewGroupEnv(group)
+		env.Params = map[string]any{
+			"record_type":          "T1",
+			"related_record_types": []any{"T2", "T3"},
+			"field_name":           "FAMILY_AFFILIATION",
+			"expected_value":       1,
+		}
 
 		result, err := expr.Run(program, env)
 		if err != nil {
 			t.Fatalf("failed to run: %v", err)
 		}
-		if result != true {
-			t.Errorf("expected true when T3 has FA=1, got %v", result)
+		if count := countPerRecordResults(t, result); count != 0 {
+			t.Errorf("expected no records when T3 has FA=1, got %d", count)
 		}
 	})
 
@@ -574,13 +865,19 @@ func TestFamilyAffiliationExpression(t *testing.T) {
 			testutil.NewTestRecord(t2Schema, 2, map[string]any{"FAMILY_AFFILIATION": 2}),
 		)
 		env := NewGroupEnv(group)
+		env.Params = map[string]any{
+			"record_type":          "T1",
+			"related_record_types": []any{"T2", "T3"},
+			"field_name":           "FAMILY_AFFILIATION",
+			"expected_value":       1,
+		}
 
 		result, err := expr.Run(program, env)
 		if err != nil {
 			t.Fatalf("failed to run: %v", err)
 		}
-		if result != false {
-			t.Errorf("expected false when no T2/T3 has FA=1, got %v", result)
+		if count := countPerRecordResults(t, result); count != 1 {
+			t.Errorf("expected 1 record when no T2/T3 has FA=1, got %d", count)
 		}
 	})
 
@@ -589,13 +886,19 @@ func TestFamilyAffiliationExpression(t *testing.T) {
 			testutil.NewTestRecord(t1Schema, 1, nil),
 		)
 		env := NewGroupEnv(group)
+		env.Params = map[string]any{
+			"record_type":          "T1",
+			"related_record_types": []any{"T2", "T3"},
+			"field_name":           "FAMILY_AFFILIATION",
+			"expected_value":       1,
+		}
 
 		result, err := expr.Run(program, env)
 		if err != nil {
 			t.Fatalf("failed to run: %v", err)
 		}
-		if result != false {
-			t.Errorf("expected false when T1 has no T2/T3, got %v", result)
+		if count := countPerRecordResults(t, result); count != 1 {
+			t.Errorf("expected 1 record when T1 has no T2/T3, got %d", count)
 		}
 	})
 
@@ -607,13 +910,19 @@ func TestFamilyAffiliationExpression(t *testing.T) {
 			testutil.NewTestRecord(t2Schema, 4, map[string]any{"FAMILY_AFFILIATION": 3}),
 		)
 		env := NewGroupEnv(group)
+		env.Params = map[string]any{
+			"record_type":          "T1",
+			"related_record_types": []any{"T2", "T3"},
+			"field_name":           "FAMILY_AFFILIATION",
+			"expected_value":       1,
+		}
 
 		result, err := expr.Run(program, env)
 		if err != nil {
 			t.Fatalf("failed to run: %v", err)
 		}
-		if result != true {
-			t.Errorf("expected true when at least one T2 has FA=1, got %v", result)
+		if count := countPerRecordResults(t, result); count != 0 {
+			t.Errorf("expected no records when at least one T2 has FA=1, got %d", count)
 		}
 	})
 }
@@ -838,12 +1147,15 @@ func TestCalculateAge(t *testing.T) {
 		name     string
 		dob      string
 		rptMonth string
-		expected int
+		expected float64
 	}{
-		{"29 years old (days/365.25 truncation)", "19940101", "202401", 29},
-		{"30 years old", "19940101", "202402", 30},
+		{"30 years old", "19940101", "202401", 30.0},
+		{"30 years and 1 month old", "19940101", "202402", 30.1},
 		{"exact birthday month", "19900601", "202006", 30},
-		{"before birthday month", "19900601", "202005", 29},
+		{"before birthday month", "19900601", "202005", 29.9},
+		{"older than 18 on first day of reporting month", "20060901", "202410", 18.1},
+		{"turns 18 after first day of reporting month", "20061002", "202410", 18.0},
+		{"turns 18 on first day of reporting month", "20061001", "202410", 18.0},
 		{"invalid dob length", "199401", "202401", -1},
 		{"invalid rptMonth length", "19940101", "20240101", -1},
 		{"invalid dob format", "99999999", "202401", -1},
@@ -855,7 +1167,7 @@ func TestCalculateAge(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := calculateAge(tt.dob, tt.rptMonth)
 			if got != tt.expected {
-				t.Errorf("calculateAge(%q, %q) = %d, want %d", tt.dob, tt.rptMonth, got, tt.expected)
+				t.Errorf("calculateAge(%q, %q) = %.1f, want %.1f", tt.dob, tt.rptMonth, got, tt.expected)
 			}
 		})
 	}
@@ -1012,8 +1324,11 @@ func TestGetExactDuplicates(t *testing.T) {
 		if len(dups) != 1 {
 			t.Errorf("expected 1 duplicate, got %d", len(dups))
 		}
-		if dups[0].GetLineNumber() != 2 {
-			t.Errorf("expected duplicate to be line 2, got %d", dups[0].GetLineNumber())
+		if dups[0].Record.GetLineNumber() != 2 {
+			t.Errorf("expected duplicate to be line 2, got %d", dups[0].Record.GetLineNumber())
+		}
+		if dups[0].ExistingLineNumber != 1 {
+			t.Errorf("expected existing line 1, got %d", dups[0].ExistingLineNumber)
 		}
 	})
 
@@ -1073,6 +1388,15 @@ func TestGetPartialDuplicates(t *testing.T) {
 		if len(dups) != 1 {
 			t.Errorf("expected 1 partial duplicate, got %d", len(dups))
 		}
+		if dups[0].Record.GetLineNumber() != 2 {
+			t.Errorf("expected duplicate record to be line 2, got %d", dups[0].Record.GetLineNumber())
+		}
+		if dups[0].ExistingLineNumber != 1 {
+			t.Errorf("expected existing line 1, got %d", dups[0].ExistingLineNumber)
+		}
+		if dups[0].DuplicatedFields != "Item 9 (Social Security Number)." {
+			t.Errorf("unexpected duplicated fields: %q", dups[0].DuplicatedFields)
+		}
 	})
 
 	t.Run("exact duplicate is excluded from partial duplicates", func(t *testing.T) {
@@ -1113,7 +1437,28 @@ func TestGetPartialDuplicatesExcluding(t *testing.T) {
 		if len(dups) != 1 {
 			t.Errorf("expected 1 partial duplicate, got %d", len(dups))
 		}
+		if dups[0].Record.GetLineNumber() != 2 {
+			t.Errorf("expected duplicate record to be line 2, got %d", dups[0].Record.GetLineNumber())
+		}
+		if dups[0].ExistingLineNumber != 1 {
+			t.Errorf("expected existing line 1, got %d", dups[0].ExistingLineNumber)
+		}
 	})
+}
+
+func TestFormatDuplicatedFields(t *testing.T) {
+	rec := testutil.NewTestRecord(t2Schema, 1, nil)
+
+	got := formatDuplicatedFields(rec, []string{"SSN", "FAMILY_AFFILIATION"})
+	want := "Item 9 (Social Security Number), and Item 10 (Family Affiliation)."
+	if got != want {
+		t.Errorf("formatDuplicatedFields() = %q, want %q", got, want)
+	}
+
+	got = formatDuplicatedFields(rec, []string{"UNKNOWN_FIELD"})
+	if got != "UNKNOWN_FIELD." {
+		t.Errorf("formatDuplicatedFields() fallback = %q, want UNKNOWN_FIELD.", got)
+	}
 }
 
 func TestBuildCompositeKey(t *testing.T) {
@@ -1482,6 +1827,95 @@ func TestRegistryGetters(t *testing.T) {
 	})
 }
 
+func TestRegistryFieldValidatorDedupe(t *testing.T) {
+	registry := newValidatorRegistry()
+	registry.exprOpts = RegisterFunctions()
+
+	cs := (&schema.SchemaDef{
+		RecordType: "T9",
+		Program:    "TAN",
+		Shared: []schema.FieldDef{
+			{
+				Name: "SHARED_CODE",
+				Type: "integer",
+				Field: []configValidation.ValidatorDef{
+					{
+						ID:      "shared_only",
+						Expr:    "Value > 0",
+						Message: "shared failed",
+					},
+				},
+			},
+		},
+		Segments: []schema.SegmentDef{
+			{
+				Fields: []schema.FieldDef{
+					{
+						Name: "CODE",
+						Type: "integer",
+						Field: []configValidation.ValidatorDef{
+							{
+								ID:      "range",
+								Expr:    "Value >= Params.min and Value <= Params.max",
+								Params:  map[string]any{"min": 0, "max": 10},
+								Message: "range failed",
+							},
+							{
+								ID:      "range",
+								Expr:    "Value >= Params.min and Value <= Params.max",
+								Params:  map[string]any{"min": 0, "max": 10},
+								Message: "range failed",
+							},
+							{
+								ID:      "range",
+								Expr:    "Value >= Params.min and Value <= Params.max",
+								Params:  map[string]any{"min": 11, "max": 20},
+								Message: "range failed",
+							},
+						},
+					},
+				},
+			},
+			{
+				Fields: []schema.FieldDef{
+					{
+						Name: "CODE",
+						Type: "integer",
+						Field: []configValidation.ValidatorDef{
+							{
+								ID:      "range",
+								Expr:    "Value >= Params.min and Value <= Params.max",
+								Params:  map[string]any{"min": 0, "max": 10},
+								Message: "range failed",
+							},
+						},
+					},
+				},
+			},
+		},
+	}).Compile()
+
+	if err := registry.loadSchemaValidators("test/t9", cs); err != nil {
+		t.Fatalf("loadSchemaValidators failed: %v", err)
+	}
+
+	codeValidators := registry.GetFieldValidators("test/t9", "CODE")
+	if len(codeValidators) != 2 {
+		t.Fatalf("CODE validators = %d, want %d", len(codeValidators), 2)
+	}
+	if codeValidators[0].ID != "range" || codeValidators[1].ID != "range" {
+		t.Fatalf("CODE validator IDs = %s, %s; want range, range", codeValidators[0].ID, codeValidators[1].ID)
+	}
+	if codeValidators[0].Params["min"] == codeValidators[1].Params["min"] {
+		t.Fatal("same validator ID with different params should remain distinct")
+	}
+
+	sharedValidators := registry.GetFieldValidators("test/t9", "SHARED_CODE")
+	if len(sharedValidators) != 1 || sharedValidators[0].ID != "shared_only" {
+		t.Fatalf("SHARED_CODE validators = %v, want one shared_only validator", sharedValidators)
+	}
+}
+
 func TestRegistryStats(t *testing.T) {
 	registry := newValidatorRegistry()
 	registry.exprOpts = RegisterFunctions()
@@ -1579,10 +2013,9 @@ func TestExecuteFunction(t *testing.T) {
 
 	t.Run("passing validation", func(t *testing.T) {
 		ce, _ := registry.getOrCompileExpr(ScopeField, "Value > 0", "single")
-		cv := &CompiledValidator{ID: "positive", Expr: ce}
-		env := &FieldEnv{Value: 42}
+		cv := mustExprValidator(t, "positive", ScopeField, ce, "single")
 
-		result := Execute(cv, env)
+		result := Execute(cv, fieldState(42))
 		if !result.Valid {
 			t.Error("expected valid result")
 		}
@@ -1590,10 +2023,9 @@ func TestExecuteFunction(t *testing.T) {
 
 	t.Run("failing validation", func(t *testing.T) {
 		ce, _ := registry.getOrCompileExpr(ScopeField, "Value > 0", "single")
-		cv := &CompiledValidator{ID: "positive", Expr: ce}
-		env := &FieldEnv{Value: -1}
+		cv := mustExprValidator(t, "positive", ScopeField, ce, "single")
 
-		result := Execute(cv, env)
+		result := Execute(cv, fieldState(-1))
 		if result.Valid {
 			t.Error("expected invalid result")
 		}
@@ -1616,6 +2048,40 @@ func TestExecuteFunction(t *testing.T) {
 		}
 		if result.Error == nil {
 			t.Error("expected error to be set")
+		}
+	})
+
+	t.Run("record validator can sum fields from params", func(t *testing.T) {
+		sumSchema := testutil.NewTestSchema("T6", "TOTAL", "PART_A", "PART_B")
+		vdef := &configValidation.ValidatorDef{
+			ID:   "sum_equals",
+			Expr: "GetInt(Params.total_field) == SumFields(Params.component_fields)",
+			Params: map[string]any{
+				"total_field":      "TOTAL",
+				"component_fields": []any{"PART_A", "PART_B"},
+			},
+		}
+		cv, err := registry.resolveValidatorByScope(ScopeRecord, vdef, "")
+		if err != nil {
+			t.Fatalf("unexpected compile error: %v", err)
+		}
+
+		validRec := testutil.NewTestRecord(sumSchema, 10, map[string]any{
+			"TOTAL":  7,
+			"PART_A": 3,
+			"PART_B": "4",
+		})
+		if result := Execute(cv, NewRecordValidationState(validRec, nil)); !result.Valid {
+			t.Fatalf("expected valid sum_equals result, got error: %v", result.Error)
+		}
+
+		invalidRec := testutil.NewTestRecord(sumSchema, 11, map[string]any{
+			"TOTAL":  8,
+			"PART_A": 3,
+			"PART_B": "4",
+		})
+		if result := Execute(cv, NewRecordValidationState(invalidRec, nil)); result.Valid {
+			t.Fatal("expected invalid sum_equals result")
 		}
 	})
 }

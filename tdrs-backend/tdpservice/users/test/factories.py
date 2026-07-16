@@ -1,11 +1,18 @@
 """Generate test data for users."""
 
+import uuid
+
 from django.utils import timezone
 
 import factory
 import factory.fuzzy
 
 from tdpservice.users.models import AccountApprovalStatusChoices, Rating
+
+
+def uuid_email() -> str:
+    """Generate a unique test email address."""
+    return f"{uuid.uuid4().hex}@example.com"
 
 
 class BaseUserFactory(factory.django.DjangoModelFactory):
@@ -16,9 +23,10 @@ class BaseUserFactory(factory.django.DjangoModelFactory):
 
         model = "users.User"
         django_get_or_create = ("username",)
+        skip_postgeneration_save = True
 
     id = factory.Faker("uuid4")
-    username = factory.Sequence(lambda n: "testuser%d@test.com" % n)
+    username = factory.LazyFunction(uuid_email)
     password = "test_password"  # Static password so we can login.
     email = factory.LazyAttribute(lambda obj: obj.username)
     first_name = factory.Faker("first_name")

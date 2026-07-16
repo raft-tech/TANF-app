@@ -69,12 +69,16 @@ field_validators:
 
   # Date validators
   - id: valid_year
-    expr: "year(Value) >= 1900 and year(Value) <= 2100"
-    message: "{{.RecordType}} Item {{.Item}}: year must be 1900-2100"
+    expr: "year(Value) >= 1900"
+    message: "{{.RecordType}} Item {{.Item}}: year must be larger than 1900"
 
   - id: year_after_1998
     expr: "year(Value) > 1998"
     message: "{{.RecordType}} Item {{.Item}}: year must be after 1998"
+
+  - id: valid_day
+    expr: "day(Value) >= 1 and day(Value) <= 31"
+    message: "{{.RecordType}} Item {{.Item}}: day must be 1-31"
 
   - id: valid_month
     expr: "month(Value) >= 1 and month(Value) <= 12"
@@ -101,7 +105,7 @@ field_validators:
 
   # Education level validator - 0-16 or 98-99
   - id: education_level
-    expr: "(int(Value) >= 0 and int(Value) <= 16) or (int(Value) >= 98 and int(Value) <= 99)"
+    expr: "(int(trim(string(Value))) >= 0 and int(trim(string(Value))) <= 16) or (int(trim(string(Value))) >= 98 and int(trim(string(Value))) <= 99)"
     message: "{{.RecordType}} Item {{.Item}}: must be 0-16 or 98-99, got {{.Value}}"
 
   # Work eligible indicator validator - 0-9 or 11, 12
@@ -124,6 +128,11 @@ field_validators:
     expr: "quarter(Value) >= 1 and quarter(Value) <= 4"
     message: "{{.RecordType}} Item {{.Item}}: quarter must be 1-4"
 
+  # Calendar quarter validator - checks YYYYQ quarter digit is 1-4
+  - id: calendar_quarter_is_valid
+    expr: "len(string(Value)) == 5 and int(string(Value)[4:5]) >= 1 and int(string(Value)[4:5]) <= 4"
+    message: "{{.RecordType}} Item {{.Item}}: quarter must be 1-4"
+
   # Closure reason validator - 01-19 or 99
   - id: closure_reason
     expr: "(int(Value) >= 1 and int(Value) <= 19) or int(Value) == 99"
@@ -132,8 +141,19 @@ field_validators:
   # Education level validator (no zero) - 1-16 or 98-99
   # Used by M2, M3 where 0 is not a valid education level
   - id: education_level_no_zero
-    expr: "(int(Value) >= 1 and int(Value) <= 16) or (int(Value) >= 98 and int(Value) <= 99)"
+    expr: "(int(trim(string(Value))) >= 1 and int(trim(string(Value))) <= 16) or (int(trim(string(Value))) >= 98 and int(trim(string(Value))) <= 99)"
     message: "{{.RecordType}} Item {{.Item}}: must be 1-16 or 98-99, got {{.Value}}"
+
+  # FRA SSN validator - matches the Python FRA validator set.
+  - id: fra_ssn
+    expr: "isNumeric(string(Value)) and len(string(Value)) == 9 and string(Value)[0:3] not in ['000', '666'] and string(Value)[3:5] != '00' and string(Value)[5:9] != '0000'"
+    error_type: CASE_CONSISTENCY
+    message: "{{.RecordType}} Item {{.Item}}: Social Security Number is not valid."
+
+  # Tribal closure reason validator - 01-18 or 99.
+  - id: tribal_closure_reason
+    expr: "(int(trim(string(Value))) >= 1 and int(trim(string(Value))) <= 18) or int(trim(string(Value))) == 99"
+    message: "{{.RecordType}} Item {{.Item}}: must be 01-18 or 99, got {{.Value}}"
 
   # =============================================================================
   # Header field validators
@@ -207,6 +227,43 @@ record_validators:
     expr: "isNotBlank(GetString('CASE_NUMBER'))"
     error_type: RECORD_PRE_CHECK
     message: "{{.RecordType}}: case number is required and cannot be blank"
+
+  - id: rpt_month_year_is_valid
+    expr: |
+      let rpt_month_year = GetString('RPT_MONTH_YEAR');
+      let year_int = int(rpt_month_year[0:4]);
+      let month_int = int(trimPrefix(rpt_month_year[4:], "0"));
+      year_int > 1900 && month_int > 0 && month_int < 13
+    error_type: RECORD_PRE_CHECK
+    fields: [RPT_MONTH_YEAR]
+
+  - id: calendar_quarter_is_valid
+    expr: |
+      let calendar_quarter = GetString('CALENDAR_QUARTER');
+      len(calendar_quarter) == 5
+        and isNumeric(calendar_quarter)
+        and int(calendar_quarter[0:4]) >= 2020
+        and int(calendar_quarter[4:5]) > 0
+        and int(calendar_quarter[4:5]) < 5
+    error_type: RECORD_PRE_CHECK
+    fields: [CALENDAR_QUARTER]
+    message: "{{.RecordType}}: {{.Values.CALENDAR_QUARTER}} is invalid. Calendar Quarter must be a numeric representing the Calendar Year and Quarter formatted as YYYYQ"
+
+  - id: rpt_month_year_matches_header_year_quarter
+    expr: >
+      year(GetString('RPT_MONTH_YEAR')) == fiscalToCalendarYear(DataFileContext.FiscalYear, DataFileContext.FiscalQuarter)
+      and string(quarter(GetString('RPT_MONTH_YEAR'))) == fiscalToCalendarQuarter(DataFileContext.FiscalYear, DataFileContext.FiscalQuarter)
+    error_type: RECORD_PRE_CHECK
+    fields: [RPT_MONTH_YEAR]
+    message: "{{.RecordType}}: Reporting month year {{.Values.RPT_MONTH_YEAR}} does not match file reporting year:{{.DataFileContext.FiscalYear}}, quarter:{{.DataFileContext.FiscalQuarter}}."
+
+  - id: exit_date_matches_fiscal_period
+    expr: >
+      year(GetString('EXIT_DATE')) == fiscalToCalendarYear(DataFileContext.FiscalYear, DataFileContext.FiscalQuarter)
+      and string(quarter(GetString('EXIT_DATE'))) == fiscalToCalendarQuarter(DataFileContext.FiscalYear, DataFileContext.FiscalQuarter)
+    error_type: CASE_CONSISTENCY
+    fields: [EXIT_DATE]
+    message: "Exit date ({{.Values.EXIT_DATE}}) is not valid. Date must be in the range of {{.DataFileContext.FiscalYear}}."
 
   # --- VALUE_CONSISTENCY validators (allow record serialization) ---
 
@@ -290,6 +347,12 @@ record_validators:
     message: "If FAMILY_AFFILIATION is 1-2, WORK_PART_STATUS must be 01, 02, 05, 07, 09, 15, 17, 18, 19, or 99"
     fields: [FAMILY_AFFILIATION, WORK_PART_STATUS]
 
+  # Tribal TANF allows WORK_PART_STATUS 01-03, 05-09, 11-19, or 99.
+  - id: tribal_t2_family_affil_1_2_work_part_status
+    expr: "if GetInt('FAMILY_AFFILIATION') in [1, 2] { (GetInt('WORK_PART_STATUS') in 1..3) or (GetInt('WORK_PART_STATUS') in 5..9) or (GetInt('WORK_PART_STATUS') in 11..19) or GetString('WORK_PART_STATUS') == '99' } else { true }"
+    message: "If FAMILY_AFFILIATION is 1-2, WORK_PART_STATUS must be 01-03, 05-09, 11-19, or 99"
+    fields: [FAMILY_AFFILIATION, WORK_PART_STATUS]
+
   # When WORK_ELIGIBLE_INDICATOR is 1-5, WORK_PART_STATUS must not be 99
   - id: t2_work_eligible_1_5_work_part_not_99
     expr: "if GetInt('WORK_ELIGIBLE_INDICATOR') in 1..5 { GetString('WORK_PART_STATUS') != '99' } else { true }"
@@ -359,12 +422,12 @@ record_validators:
   # T5 special case validators
   # =============================================================================
 
-  # When person is 18+ years old, REC_OASDI_INSURANCE must be 1-2
+  # When person is older than 18, REC_OASDI_INSURANCE must be 1-2
   # AGE is calculated from DATE_OF_BIRTH and RPT_MONTH_YEAR
   - id: t5_age_oasdi
-    expr: "if calculateAge(GetString('DATE_OF_BIRTH'), GetString('RPT_MONTH_YEAR')) >= 18 { GetInt('REC_OASDI_INSURANCE') in [1, 2] } else { true }"
-    message: "If age is 18 or older, REC_OASDI_INSURANCE must be 1 or 2"
-    fields: [DATE_OF_BIRTH, REC_OASDI_INSURANCE]
+    expr: "if calculateAge(GetString('DATE_OF_BIRTH'), GetString('RPT_MONTH_YEAR')) > 18 { GetInt('REC_OASDI_INSURANCE') in [1, 2] } else { true }"
+    message: "Since person is older than 18, then {{with index .FieldMeta \"REC_OASDI_INSURANCE\"}}{{.Item}} ({{.FriendlyName}}){{else}}REC_OASDI_INSURANCE{{end}} must be 1 or 2"
+    fields: [DATE_OF_BIRTH, RPT_MONTH_YEAR, REC_OASDI_INSURANCE]
 
   # =============================================================================
   # Sum-equals validator (parameterized)
@@ -372,7 +435,7 @@ record_validators:
   # Validates that a total field equals the sum of component fields
   # Params: total_field (string), component_fields (array of strings)
   - id: sum_equals
-    expr: "GetInt(Params.total_field) == sumFields(Params.component_fields)"
+    expr: "GetInt(Params.total_field) == SumFields(Params.component_fields)"
     message: "{{.Params.total_field}} must equal the sum of {{.Params.component_fields}}"
 
   # =============================================================================
@@ -385,6 +448,11 @@ record_validators:
     message: "HEADER: record length is {{.RecordLength}} characters but must be 23."
     description: "RecordLength includes trailing newline (23 or 24 are both valid for a 23-char header)"
 
+  - id: trailer_record_length
+    expr: "RecordLength == 23"
+    error_type: RECORD_PRE_CHECK
+    message: "TRAILER: record length is {{.RecordLength}} characters but must be 23."
+
   - id: header_tribe_fips_program_agree
     expr: >
       ((GetString('program_type') == 'TAN' and (isEmpty(GetString('state_fips')) or GetString('state_fips') == '00'))
@@ -392,6 +460,14 @@ record_validators:
     error_type: PRE_CHECK
     message: "Tribe Code ({{.Values.tribe_code}}) inconsistency with Program Type ({{.Values.program_type}}) and FIPS Code ({{.Values.state_fips}})."
     fields: [tribe_code, program_type, state_fips]
+
+  - id: header_program_type_match
+    expr: >
+      ((not isTribeCodeEmpty(GetString('tribe_code'))) and DataFileContext.Program == 'TRIBAL')
+      or (isTribeCodeEmpty(GetString('tribe_code')) and DataFileContext.Program == GetString('program_type'))
+    error_type: PRE_CHECK
+    message: 'Submitted program type ({{.DataFileContext.Program}}) does not match file program type ({{.FileProgram}}).'
+    fields: [tribe_code, program_type]
 
   - id: header_section_match
     expr: >
@@ -451,7 +527,7 @@ group_validators:
     expr: "getExactDuplicates(Group, Params.record_type)"
     error_type: CASE_CONSISTENCY
     result_mode: per_record
-    message: "Duplicate record detected with record type {{.RecordType}} at line {{.LineNumber}}."
+    message: "Duplicate record detected with record type {{.RecordType}} at line {{.LineNumber}}. Record is a duplicate of the record at line number {{.ExistingLineNumber}}."
 
   # Partial duplicate detection - specific key fields match (excludes exact dups)
   # Params: record_type (string), fields ([]string) - key fields to compare
@@ -459,7 +535,7 @@ group_validators:
     expr: "getPartialDuplicates(Group, Params.record_type, Params.fields)"
     error_type: CASE_CONSISTENCY
     result_mode: per_record
-    message: "Partial duplicate record detected with record type {{.RecordType}} at line {{.LineNumber}}."
+    message: "Partial duplicate record detected with record type {{.RecordType}} at line {{.LineNumber}}. Record is a partial duplicate of the record at line number {{.ExistingLineNumber}}. Duplicated fields causing error: {{.DuplicatedFields}}"
 
   # Partial duplicate detection with field exclusion (excludes exact dups)
   # Params: record_type, fields, exclude_field, exclude_values
@@ -467,7 +543,7 @@ group_validators:
     expr: "getPartialDuplicatesExcluding(Group, Params.record_type, Params.fields, Params.exclude_field, Params.exclude_values)"
     error_type: CASE_CONSISTENCY
     result_mode: per_record
-    message: "Partial duplicate record detected with record type {{.RecordType}} at line {{.LineNumber}}."
+    message: "Partial duplicate record detected with record type {{.RecordType}} at line {{.LineNumber}}. Record is a partial duplicate of the record at line number {{.ExistingLineNumber}}. Duplicated fields causing error: {{.DuplicatedFields}}"
 
   # =============================================================================
   # Federally funded SSN validator (group scope, per-record errors)
@@ -478,10 +554,10 @@ group_validators:
   - id: federally_funded_ssn
     expr: |
       filter(
-        getRecordsOfType(Group, 'T2'),
-        { .GetInt('FAMILY_AFFILIATION') == 1 and
-          any(getRecordsOfType(Group, 'T1'), { #.GetInt('FUNDING_STREAM') == 1 }) and
-          not isValidSSN(.GetString('SSN')) }
+        getRecordsOfType(Group, Params.recipient_record_type),
+        { .GetInt(Params.family_affiliation_field) == Params.family_affiliation_value and
+          hasAnyRecordOfTypeWithInt(Group, Params.funding_record_type, Params.funding_field, Params.funding_value) and
+          not isValidSSN(.GetString(Params.ssn_field)) }
       )
     error_type: VALUE_CONSISTENCY
     result_mode: per_record
@@ -489,60 +565,27 @@ group_validators:
     fields: [FUNDING_STREAM, FAMILY_AFFILIATION, SSN]
 
   # =============================================================================
-  # TANF Section 1 Group/Case Validators
+  # Shared Group/Case Validators
   # =============================================================================
 
-  # T1 must have at least one T2 or T3 record
-  # Python: __validate_s1_records_are_related - validates T2/T3 presence
-  # Note: This validator behaves mostly correctly in comparison to the python parser. The python parser will generate
-  # this error for every T2 record that doesn't have a corresponding T1 record, while this validator only generates
-  # the error once per group.
-  - id: t1_has_t2_or_t3
-    expr: "RecordCounts['T3'] > 0 or RecordCounts['T2'] > 0"
-    message: "Every T1 record should have at least one corresponding T2 or T3 record with the same RPT_MONTH_YEAR and CASE_NUMBER"
+  # Record type must have at least one related record in the same case.
+  # Params: record_type (string), related_record_types (array of strings)
+  - id: requires_related_record
+    expr: |
+      filter(Group.Records, {
+          .GetRecordType() == Params.record_type and not any(Params.related_record_types, { RecordCounts[#] > 0 })
+        })
+    message: "When {{.Params.record_type}} is present, at least one related record type must also be present"
+    result_mode: per_record
 
-  # T1 must have at least one T2 or T3 with FAMILY_AFFILIATION == 1
-  # Python: __validate_family_affiliation - validates family affiliation requirement
-  # Note: This validator behaves mostly correctly in comparison to the python parser. The python parser will generate
-  # this error for every T2 record that doesn't have a corresponding T1 record, while this validator only generates
-  # the error once per group.
-  - id: t1_family_affiliation
-    expr: "RecordCounts['T1'] == 0 or any(getRecordsOfType(Group, 'T2'), .GetInt('FAMILY_AFFILIATION') == 1) or any(getRecordsOfType(Group, 'T3'), .GetInt('FAMILY_AFFILIATION') == 1)"
-    message: "Every T1 record should have at least one corresponding T2 or T3 record with FAMILY_AFFILIATION == 1"
-
-  # T2 records require at least one T1 record in the same case
-  # Python: __validate_s1_records_are_related - "Every T2 record should have at least one corresponding T1..."
-  # Note: This validator behaves mostly correctly in comparison to the python parser. The python parser will generate
-  # this error for every T2 record that doesn't have a corresponding T1 record, while this validator only generates
-  # the error once per group.
-  - id: t2_requires_t1
-    expr: "RecordCounts['T2'] == 0 or RecordCounts['T1'] >= 1"
-    message: "Every T2 record should have at least one corresponding T1 record with the same RPT_MONTH_YEAR and CASE_NUMBER"
-
-  # T3 records require at least one T1 record in the same case
-  # Python: __validate_s1_records_are_related - "Every T3 record should have at least one corresponding T1..."
-  # Note: This validator behaves mostly correctly in comparison to the python parser. The python parser will generate
-  # this error for every T3 record that doesn't have a corresponding T1 record, while this validator only generates
-  # the error once per group.
-  - id: t3_requires_t1
-    expr: "RecordCounts['T3'] == 0 or RecordCounts['T1'] >= 1"
-    message: "Every T3 record should have at least one corresponding T1 record with the same RPT_MONTH_YEAR and CASE_NUMBER"
-
-  # =============================================================================
-  # TANF Section 2 Group/Case Validators
-  # =============================================================================
-
-  # T4 records require at least one T5 record in the same case
-  # Python: __validate_s2_records_are_related - "Every T4 record should have at least one corresponding T5..."
-  - id: t4_requires_t5
-    expr: "RecordCounts['T4'] == 0 or RecordCounts['T5'] >= 1"
-    message: "Every T4 record should have at least one corresponding T5 record with the same RPT_MONTH_YEAR and CASE_NUMBER"
-
-  # T5 records require at least one T4 record in the same case
-  # Python: __validate_s2_records_are_related - "Every T5 record should have at least one corresponding T4..."
-  # Note: This validator behaves mostly correctly in comparison to the python parser. The python parser will generate
-  # this error for every T5 record that doesn't have a corresponding T4 record, while this validator only generates
-  # the error once per group.
-  - id: t5_requires_t4
-    expr: "RecordCounts['T5'] == 0 or RecordCounts['T4'] >= 1"
-    message: "Every T5 record should have at least one corresponding T4 record with the same RPT_MONTH_YEAR and CASE_NUMBER"
+  # Record type must have at least one related record with a specific int field value.
+  # Params: record_type (string), related_record_types (array of strings), field_name (string), expected_value (int)
+  - id: requires_related_record_with_int_value
+    expr: |
+      filter(Group.Records, {
+          .GetRecordType() == Params.record_type and not any(Group.Records, {
+              .GetRecordType() in Params.related_record_types and .GetInt(Params.field_name) == Params.expected_value
+            })
+        })
+    message: "When {{.Params.record_type}} is present, at least one related record must have {{.Params.field_name}} == {{.Params.expected_value}}"
+    result_mode: per_record

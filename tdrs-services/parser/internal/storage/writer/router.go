@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -16,7 +15,7 @@ import (
 
 // Router coordinates writes for any file type.
 // Writers are created dynamically based on the FileSpec.
-// Router owns the serializers and handles the full pipeline:
+// Router handles the full pipeline:
 // ParsedRecord -> serialize -> release to pool -> send []any to writer
 type Router struct {
 	sink       Sink
@@ -25,13 +24,12 @@ type Router struct {
 	// Writers keyed by schema path (e.g., "tanf/t1", "tribal/t1")
 	writers map[string]*TableWriter
 
-	// Serializers keyed by schema path - manager owns serialization
-	serializers map[string]RowSerializer
-
 	// Content type IDs keyed by schema path - for error linking
 	contentTypeIDs map[string]*int32
 
 	errorWriter *TableWriter
+
+	errorTableName string
 }
 
 // Error table columns (same for all file types)
@@ -64,6 +62,9 @@ type RouterConfig struct {
 
 	// IncludeErrors controls whether errors are written. Default true.
 	IncludeErrors bool
+
+	// TablePrefix is applied to Go parser-owned output tables.
+	TablePrefix string
 }
 
 // NewRouter creates a manager based on the FileSpec.
@@ -85,8 +86,8 @@ func NewRouter(
 		sink:           sink,
 		datafileID:     datafileID,
 		writers:        make(map[string]*TableWriter),
-		serializers:    make(map[string]RowSerializer),
 		contentTypeIDs: make(map[string]*int32),
+		errorTableName: config.ParserErrorTableName(cfg.TablePrefix),
 	}
 
 	// Create a writer for each data record type in the FileSpec
@@ -120,7 +121,6 @@ func NewRouter(
 
 		// Apply schema filter if configured
 		if len(includeSet) > 0 && !includeSet[schemaPath] {
-			log.Printf("Skipping writer for %s (not in include_schemas)", schemaPath)
 			continue
 		}
 
@@ -129,17 +129,6 @@ func NewRouter(
 		if meta == nil {
 			continue
 		}
-
-		// Get the serializer for this schema path
-		// Schema path (e.g., "tanf/t1") distinguishes TANF vs Tribal T1
-		conv := GetSerializer(schemaPath)
-		if conv == nil {
-			log.Printf("Warning: no serializer for schema %s", schemaPath)
-			continue
-		}
-
-		// Store serializer in manager (serialization happens in RouteRecord)
-		router.serializers[schemaPath] = conv
 
 		// Store content type ID for error linking
 		router.contentTypeIDs[schemaPath] = meta.ContentTypeID
@@ -150,24 +139,23 @@ func NewRouter(
 			meta.Columns,
 			cfg.FlushThreshold,
 		)
-
-		log.Printf("Created writer for %s -> %s (%d columns)",
-			schemaPath, meta.TableName, len(meta.Columns))
 	}
 
 	// Create error writer with higher threshold for error volume
 	if cfg.IncludeErrors {
 		router.errorWriter = NewTableWriter(
-			"parser_error",
+			router.errorTableName,
 			parserErrorColumns,
 			cfg.ErrorFlushThreshold,
 		)
-		log.Printf("Created error writer for parser_error (%d columns)", len(parserErrorColumns))
-	} else {
-		log.Printf("Error writing disabled (include_errors=false)")
 	}
 
 	return router
+}
+
+// ErrorTableName returns the database table used for parser errors.
+func (router *Router) ErrorTableName() string {
+	return router.errorTableName
 }
 
 // Start launches all writer goroutines.
@@ -191,13 +179,8 @@ func (router *Router) RouteRecord(ctx context.Context, record *parser.ParsedReco
 		return nil
 	}
 
-	conv, ok := router.serializers[record.Schema.Path]
-	if !ok {
-		return fmt.Errorf("no serializer for schema: %s", record.Schema.Path)
-	}
-
 	// Serialize ParsedRecord to []any rows
-	rows := conv(record, router.datafileID)
+	rows, _ := serializeRecord(record, router.datafileID, writer.columns)
 
 	// Release record back to pool - it's no longer needed after serialization
 	record.Schema.ReleaseRecord(record)
@@ -246,29 +229,14 @@ func (router *Router) RouteErrorRows(ctx context.Context, rows [][]any) error {
 // SerializeRecord serializes a record to database rows and extracts the UUID.
 // Does NOT release the record or send rows - caller handles that.
 // Returns the serialized rows, the record's UUID, and any error.
-// The UUID is extracted from the serialized row at position len(row)-3 (third from end).
 func (router *Router) SerializeRecord(record *parser.ParsedRecord) ([][]any, *pgtype.UUID, error) {
-	conv, ok := router.serializers[record.Schema.Path]
+	writer, ok := router.writers[record.Schema.Path]
 	if !ok {
-		return nil, nil, fmt.Errorf("no serializer for schema: %s", record.Schema.Path)
+		return nil, nil, nil
 	}
 
-	rows := conv(record, router.datafileID)
-	if len(rows) == 0 {
-		return rows, nil, nil
-	}
-
-	// Extract UUID from first row at position len(row)-3
-	// All serializers place ID, DatafileID, LineNumber at the end
-	firstRow := rows[0]
-	uuidIdx := len(firstRow) - 3
-	if uuidIdx >= 0 {
-		if uuid, ok := firstRow[uuidIdx].(pgtype.UUID); ok {
-			return rows, &uuid, nil
-		}
-	}
-
-	return rows, nil, nil
+	rows, recordUUID := serializeRecord(record, router.datafileID, writer.columns)
+	return rows, recordUUID, nil
 }
 
 // SendRecordRowsByPath sends pre-serialized record rows to the writer for the given schema path.
@@ -279,7 +247,6 @@ func (router *Router) SendRecordRowsByPath(ctx context.Context, schemaPath strin
 		// No writer for this schema (e.g., header/trailer) - skip silently
 		return nil
 	}
-
 	for _, row := range rows {
 		if err := writer.SendRow(ctx, row); err != nil {
 			return err
@@ -323,6 +290,37 @@ func (router *Router) Stop() error {
 
 	if router.errorWriter != nil {
 		if err := router.errorWriter.Stop(); err != nil {
+			errs = append(errs, fmt.Errorf("error_writer: %w", err))
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+	return nil
+}
+
+// Abort stops all per-run writers without flushing buffered rows.
+func (router *Router) Abort() error {
+	var errs []error
+	var wg sync.WaitGroup
+	var errMu sync.Mutex
+
+	for name, writer := range router.writers {
+		wg.Add(1)
+		go func(name string, writer *TableWriter) {
+			defer wg.Done()
+			if err := writer.Abort(); err != nil {
+				errMu.Lock()
+				errs = append(errs, fmt.Errorf("%s: %w", name, err))
+				errMu.Unlock()
+			}
+		}(name, writer)
+	}
+	wg.Wait()
+
+	if router.errorWriter != nil {
+		if err := router.errorWriter.Abort(); err != nil {
 			errs = append(errs, fmt.Errorf("error_writer: %w", err))
 		}
 	}

@@ -1,18 +1,19 @@
 """Test the implementation of the parse_file method with realistic datafiles."""
 
 import logging
+
 from django.conf import settings
 from django.db.models import Q as Query
 
 import pytest
 
 from tdpservice.parsers import aggregates, util
-from tdpservice.parsers.test.helpers import parse_datafile
 from tdpservice.parsers.models import (
     DataFileSummary,
     ParserError,
     ParserErrorCategoryChoices,
 )
+from tdpservice.parsers.test.helpers import parse_datafile
 from tdpservice.search_indexes.models.fra import TANF_Exiter1
 from tdpservice.search_indexes.models.ssp import (
     SSP_M1,
@@ -89,9 +90,7 @@ class TestParse:
         return bad_trailer_file_2, dfs, parser_errors
 
     @pytest.mark.django_db
-    def test_small_correct_file_case_consistency_error(
-        self, parsed_small_correct_file
-    ):
+    def test_small_correct_file_case_consistency_error(self, parsed_small_correct_file):
         """Test case consistency errors are recorded for small_correct_file."""
         datafile, _dfs = parsed_small_correct_file
         errors = ParserError.objects.filter(file=datafile).order_by("id")
@@ -105,7 +104,9 @@ class TestParse:
         """Test case aggregates for rejected small_correct_file."""
         _datafile, dfs = parsed_small_correct_file
         dfs.status = dfs.get_status()
-        dfs.case_aggregates = aggregates.case_aggregates_by_month(dfs.datafile, dfs.status)
+        dfs.case_aggregates = aggregates.case_aggregates_by_month(
+            dfs.datafile, dfs.status
+        )
         assert dfs.case_aggregates == {
             "rejected": 1,
             "months": [
@@ -134,11 +135,16 @@ class TestParse:
         _datafile, _dfs = parsed_small_correct_file
         assert TANF_T1.objects.count() == 0
 
+    # This test was using out of date parameters but still somehow passing. However, this shows now that the go and
+    # python parsers don't cross check the datafile's program type against the datafile model's program type which
+    # can lead to confusing errors. I wrote an enhancement ticket to address this for both parsers since we will soon
+    # allow api submissions and shouldn't strictly rely on client side validation of this.
     @pytest.mark.django_db
     @pytest.mark.parametrize(
-        "section, expected_message, expected_aggregates, save_dfs",
+        "program, section, expected_message, expected_aggregates, save_dfs, num_errors",
         [
             (
+                "TAN",
                 "Closed Case Data",
                 "Data does not match the expected layout for Closed Case Data.",
                 {
@@ -162,13 +168,16 @@ class TestParse:
                     ],
                 },
                 False,
+                1,
             ),
+            # This is the proof that server side model to file program type validation is not occurring.
             (
-                "SSP Active Case Data",
-                "Data does not match the expected layout for "
-                "SSP Active Case Data.",
+                "SSP",
+                "Active Case Data",
+                "Submitted program type (SSP) does not match file program type (TAN).",
                 None,
                 True,
+                1,
             ),
         ],
     )
@@ -176,12 +185,15 @@ class TestParse:
         self,
         small_correct_file,
         dfs,
+        program,
         section,
         expected_message,
         expected_aggregates,
         save_dfs,
+        num_errors,
     ):
         """Test parsing when file metadata does not match the raw data layout."""
+        small_correct_file.program_type = program
         small_correct_file.section = section
         small_correct_file.save()
 
@@ -194,7 +206,9 @@ class TestParse:
         dfs.status = dfs.get_status()
         assert dfs.status == DataFileSummary.Status.REJECTED
         parser_errors = ParserError.objects.filter(file=small_correct_file)
-        assert parser_errors.count() == 1
+
+        # Extra error for No records created error and other cat4 errors
+        assert parser_errors.count() == num_errors
 
         if expected_aggregates is not None:
             dfs.case_aggregates = aggregates.case_aggregates_by_month(
@@ -202,12 +216,99 @@ class TestParse:
             )
             assert dfs.case_aggregates == expected_aggregates
 
+        err = parser_errors.order_by("error_type").first()
+        assert err.error_type == ParserErrorCategoryChoices.PRE_CHECK
+        assert err.error_message == expected_message
+        assert err.content_type is None
+        assert err.object_id is None
+
+        if program == "SSP" and section == "Active Case Data":
+            assert TANF_T1.objects.count() == 0
+            assert TANF_T2.objects.count() == 0
+            assert TANF_T3.objects.count() == 0
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "fixture_name, program_type, expected_message, expected_models",
+        [
+            (
+                "small_correct_file",
+                "SSP",
+                "Submitted program type (SSP) does not match file program type (TAN).",
+                (TANF_T1, TANF_T2, TANF_T3),
+            ),
+            (
+                "small_ssp_section1_datafile",
+                "TAN",
+                "Submitted program type (TAN) does not match file program type (SSP).",
+                (SSP_M1, SSP_M2, SSP_M3),
+            ),
+            (
+                "tribal_section_1_file",
+                "TAN",
+                "Submitted program type (TAN) does not match file program type (TRIBAL).",
+                (Tribal_TANF_T1, Tribal_TANF_T2, Tribal_TANF_T3),
+            ),
+        ],
+    )
+    def test_parse_program_type_mismatch_precheck(
+        self,
+        request,
+        dfs,
+        fixture_name,
+        program_type,
+        expected_message,
+        expected_models,
+    ):
+        """Test header-derived program type mismatches are rejected as prechecks."""
+        datafile = request.getfixturevalue(fixture_name)
+        datafile.program_type = program_type
+        datafile.save()
+
+        dfs.datafile = datafile
+        dfs.save()
+
+        parse_datafile(dfs, datafile)
+
+        dfs.status = dfs.get_status()
+        assert dfs.status == DataFileSummary.Status.REJECTED
+
+        parser_errors = ParserError.objects.filter(file=datafile).order_by("id")
+        assert parser_errors.count() == 1
+
         err = parser_errors.first()
         assert err.row_number == 1
         assert err.error_type == ParserErrorCategoryChoices.PRE_CHECK
         assert err.error_message == expected_message
         assert err.content_type is None
         assert err.object_id is None
+
+        for model in expected_models:
+            assert model.objects.count() == 0
+
+    @pytest.mark.django_db
+    def test_parse_tribal_header_matches_tribal_submission(
+        self, tribal_section_1_file, dfs
+    ):
+        """Test TAN tribal headers still parse when submission metadata is TRIBAL."""
+        tribal_section_1_file.year = 2022
+        tribal_section_1_file.quarter = "Q1"
+        tribal_section_1_file.program_type = "TRIBAL"
+        tribal_section_1_file.save()
+
+        dfs.datafile = tribal_section_1_file
+        dfs.save()
+
+        parse_datafile(dfs, tribal_section_1_file)
+
+        assert dfs.get_status() == DataFileSummary.Status.ACCEPTED
+        assert not ParserError.objects.filter(
+            file=tribal_section_1_file,
+            error_message__contains="Submitted program type",
+        ).exists()
+        assert Tribal_TANF_T1.objects.count() == 1
+        assert Tribal_TANF_T2.objects.count() == 1
+        assert Tribal_TANF_T3.objects.count() == 2
 
     @pytest.mark.django_db
     @pytest.mark.parametrize(
@@ -257,7 +358,9 @@ class TestParse:
             ),
         ],
     )
-    def test_parse_precheck_header_errors(self, request, fixture_name, updates, expected, dfs):
+    def test_parse_precheck_header_errors(
+        self, request, fixture_name, updates, expected, dfs
+    ):
         """Test parsing failures triggered by header/pre-check validation."""
         datafile = request.getfixturevalue(fixture_name)
         for field, value in updates.items():
@@ -425,6 +528,21 @@ class TestParse:
         assert trailer_error_4.content_type is None
         assert trailer_error_4.object_id is None
 
+    @pytest.mark.django_db(transaction=True)
+    def test_parse_big_file(self, big_file, dfs):
+        """Test parsing large TANF section 1 file."""
+        dfs.datafile = big_file
+        dfs.save()
+
+        parse_datafile(dfs, big_file)
+
+        errors = ParserError.objects.filter(file=big_file)
+        assert errors.count() == 2155
+
+        assert TANF_T1.objects.filter(datafile=big_file).count() == 815
+        assert TANF_T2.objects.filter(datafile=big_file).count() == 882
+        assert TANF_T3.objects.filter(datafile=big_file).count() == 1376
+
     @pytest.mark.django_db
     def test_parse_empty_file(self, empty_file, dfs):
         """Test parsing of empty_file."""
@@ -433,7 +551,9 @@ class TestParse:
         parse_datafile(dfs, empty_file)
 
         dfs.status = dfs.get_status()
-        dfs.case_aggregates = aggregates.case_aggregates_by_month(empty_file, dfs.status)
+        dfs.case_aggregates = aggregates.case_aggregates_by_month(
+            empty_file, dfs.status
+        )
 
         assert dfs.status == DataFileSummary.Status.REJECTED
         assert dfs.case_aggregates == {
@@ -465,7 +585,9 @@ class TestParse:
 
         assert err.row_number == 1
         assert err.error_type == ParserErrorCategoryChoices.PRE_CHECK
-        assert err.error_message == "HEADER: record length is 0 characters but must be 23."
+        assert (
+            err.error_message == "HEADER: record length is 0 characters but must be 23."
+        )
         assert err.content_type is None
         assert err.object_id is None
 
@@ -486,7 +608,9 @@ class TestParse:
         parser_errors = ParserError.objects.filter(file=small_ssp_section1_datafile)
         dfs.status = dfs.get_status()
         assert dfs.status == DataFileSummary.Status.PARTIALLY_ACCEPTED
-        dfs.case_aggregates = aggregates.case_aggregates_by_month(dfs.datafile, dfs.status)
+        dfs.case_aggregates = aggregates.case_aggregates_by_month(
+            dfs.datafile, dfs.status
+        )
 
         assert dfs.case_aggregates["rejected"] == 1
         for month in dfs.case_aggregates["months"]:
@@ -572,12 +696,26 @@ class TestParse:
 
         dfs.status = dfs.get_status()
         assert dfs.status == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
-        dfs.case_aggregates = aggregates.case_aggregates_by_month(dfs.datafile, dfs.status)
+        dfs.case_aggregates = aggregates.case_aggregates_by_month(
+            dfs.datafile, dfs.status
+        )
         assert dfs.case_aggregates == {
             "months": [
-                {"month": "Oct", "accepted_without_errors": 1, "accepted_with_errors": 4},
-                {"month": "Nov", "accepted_without_errors": 0, "accepted_with_errors": 0},
-                {"month": "Dec", "accepted_without_errors": 0, "accepted_with_errors": 0},
+                {
+                    "month": "Oct",
+                    "accepted_without_errors": 1,
+                    "accepted_with_errors": 4,
+                },
+                {
+                    "month": "Nov",
+                    "accepted_without_errors": 0,
+                    "accepted_with_errors": 0,
+                },
+                {
+                    "month": "Dec",
+                    "accepted_without_errors": 0,
+                    "accepted_with_errors": 0,
+                },
             ],
             "rejected": 0,
         }
@@ -599,7 +737,9 @@ class TestParse:
         assert t2_2.OTHER_UNEARNED_INCOME == "0000"
 
     @pytest.mark.django_db()
-    def test_parse_tanf_section1_datafile_obj_counts(self, small_tanf_section1_datafile, dfs):
+    def test_parse_tanf_section1_datafile_obj_counts(
+        self, small_tanf_section1_datafile, dfs
+    ):
         """Test parsing of small_tanf_section1_datafile in general."""
         small_tanf_section1_datafile.year = 2021
         small_tanf_section1_datafile.quarter = "Q1"
@@ -642,7 +782,9 @@ class TestParse:
         assert t3_5.EDUCATION_LEVEL == "98"
 
     @pytest.mark.django_db
-    def test_parse_bad_tfs1_missing_required(self, bad_tanf_s1__row_missing_required_field, dfs):
+    def test_parse_bad_tfs1_missing_required(
+        self, bad_tanf_s1__row_missing_required_field, dfs
+    ):
         """Test parsing a bad TANF Section 1 submission where a row is missing required data."""
         bad_tanf_s1__row_missing_required_field.year = 2021
         bad_tanf_s1__row_missing_required_field.quarter = "Q1"
@@ -683,7 +825,9 @@ class TestParse:
         assert row_5_error.object_id is None
 
     @pytest.mark.django_db()
-    def test_parse_bad_ssp_s1_missing_required(self, bad_ssp_s1__row_missing_required_field, dfs):
+    def test_parse_bad_ssp_s1_missing_required(
+        self, bad_ssp_s1__row_missing_required_field, dfs
+    ):
         """Test parsing a bad TANF Section 1 submission where a row is missing required data."""
         bad_ssp_s1__row_missing_required_field.year = 2019
         bad_ssp_s1__row_missing_required_field.quarter = "Q1"
@@ -716,9 +860,7 @@ class TestParse:
         )
         assert row_4_error.error_type == ParserErrorCategoryChoices.RECORD_PRE_CHECK
 
-        error_message = (
-            "Reporting month year None does not match file reporting year:2019, quarter:Q1."
-        )
+        error_message = "Reporting month year None does not match file reporting year:2019, quarter:Q1."
         rpt_month_errors = parser_errors.filter(error_message__contains=error_message)
         assert len(rpt_month_errors) == 3
         for i, e in enumerate(rpt_month_errors):
@@ -787,6 +929,49 @@ class TestParse:
 
         assert t5.SEX == 2
         assert t5.AMOUNT_UNEARNED_INCOME == "0000"
+
+    @pytest.mark.django_db()
+    @pytest.mark.parametrize(
+        "file_fixture,year,expected_message",
+        [
+            (
+                "oasdi_age_first_tanf_section2_file",
+                2021,
+                "Since person is older than 18, then 19A "
+                "(Received Disability Benefits: OASDI Program) must be 1 or 2",
+            ),
+            (
+                "oasdi_age_first_ssp_section2_file",
+                2019,
+                "Since person is older than 18, then 18A "
+                "(Received Disability Benefits: OASDI Program) must be 1 or 2",
+            ),
+            (
+                "oasdi_age_first_tribal_section2_file",
+                2020,
+                "Since person is older than 18, then 19A "
+                "(Received Disability Benefits: OASDI Program) must be 1 or 2",
+            ),
+        ],
+    )
+    def test_parse_oasdi_age_first_section2_files(
+        self, file_fixture, year, expected_message, request, dfs
+    ):
+        """Test committed manual fixtures exercise OASDI AGE_FIRST validation."""
+        datafile = request.getfixturevalue(file_fixture)
+        datafile.year = year
+        datafile.quarter = "Q1"
+        datafile.save()
+
+        dfs.datafile = datafile
+        dfs.save()
+
+        parse_datafile(dfs, datafile)
+
+        parser_errors = ParserError.objects.filter(file=datafile)
+        error_messages = [error.error_message for error in parser_errors]
+
+        assert expected_message in error_messages
 
     @pytest.mark.django_db()
     def test_parse_tanf_section2_file(self, tanf_section2_file, dfs):
@@ -950,9 +1135,9 @@ class TestParse:
 
         assert TANF_T7.objects.all().count() == 0
 
-        parser_errors = ParserError.objects.filter(file=bad_tanf_section4_file).order_by(
-            "id"
-        )
+        parser_errors = ParserError.objects.filter(
+            file=bad_tanf_section4_file
+        ).order_by("id")
         assert parser_errors.count() == 2
 
         error = parser_errors.first()
@@ -1016,7 +1201,9 @@ class TestParse:
         parse_datafile(dfs, ssp_section2_file)
 
         dfs.status = dfs.get_status()
-        dfs.case_aggregates = aggregates.case_aggregates_by_month(dfs.datafile, dfs.status)
+        dfs.case_aggregates = aggregates.case_aggregates_by_month(
+            dfs.datafile, dfs.status
+        )
         for dfs_case_aggregate in dfs.case_aggregates["months"]:
             assert dfs_case_aggregate["accepted_without_errors"] == 0
             assert dfs_case_aggregate["accepted_with_errors"] in [75, 78]
@@ -1105,7 +1292,8 @@ class TestParse:
         parser_errors = ParserError.objects.filter(file=datafile)
         assert parser_errors.count() == 2
         assert (
-            parser_errors.first().error_type == ParserErrorCategoryChoices.CASE_CONSISTENCY
+            parser_errors.first().error_type
+            == ParserErrorCategoryChoices.CASE_CONSISTENCY
         )
 
         datafile.year = 2023
@@ -1137,13 +1325,27 @@ class TestParse:
 
         dfs.status = dfs.get_status()
         assert dfs.status == DataFileSummary.Status.ACCEPTED
-        dfs.case_aggregates = aggregates.case_aggregates_by_month(dfs.datafile, dfs.status)
+        dfs.case_aggregates = aggregates.case_aggregates_by_month(
+            dfs.datafile, dfs.status
+        )
         assert dfs.case_aggregates == {
             "rejected": 0,
             "months": [
-                {"month": "Oct", "accepted_without_errors": 1, "accepted_with_errors": 0},
-                {"month": "Nov", "accepted_without_errors": 0, "accepted_with_errors": 0},
-                {"month": "Dec", "accepted_without_errors": 0, "accepted_with_errors": 0},
+                {
+                    "month": "Oct",
+                    "accepted_without_errors": 1,
+                    "accepted_with_errors": 0,
+                },
+                {
+                    "month": "Nov",
+                    "accepted_without_errors": 0,
+                    "accepted_with_errors": 0,
+                },
+                {
+                    "month": "Dec",
+                    "accepted_without_errors": 0,
+                    "accepted_with_errors": 0,
+                },
             ],
         }
 
@@ -1165,15 +1367,16 @@ class TestParse:
 
     @pytest.mark.django_db()
     def test_parse_tribal_section_1_inconsistency_file(
-        self,
-        tribal_section_1_inconsistency_file, dfs
+        self, tribal_section_1_inconsistency_file, dfs
     ):
         """Test parsing inconsistent Tribal TANF Section 1 submission."""
         parse_datafile(dfs, tribal_section_1_inconsistency_file)
 
         assert Tribal_TANF_T1.objects.all().count() == 0
 
-        parser_errors = ParserError.objects.filter(file=tribal_section_1_inconsistency_file)
+        parser_errors = ParserError.objects.filter(
+            file=tribal_section_1_inconsistency_file
+        )
         assert parser_errors.count() == 1
 
         assert (
@@ -1193,13 +1396,27 @@ class TestParse:
         parse_datafile(dfs, tribal_section_2_file)
 
         dfs.status = dfs.get_status()
-        dfs.case_aggregates = aggregates.case_aggregates_by_month(dfs.datafile, dfs.status)
+        dfs.case_aggregates = aggregates.case_aggregates_by_month(
+            dfs.datafile, dfs.status
+        )
         assert dfs.case_aggregates == {
             "rejected": 0,
             "months": [
-                {"accepted_without_errors": 3, "accepted_with_errors": 0, "month": "Oct"},
-                {"accepted_without_errors": 3, "accepted_with_errors": 0, "month": "Nov"},
-                {"accepted_without_errors": 0, "accepted_with_errors": 0, "month": "Dec"},
+                {
+                    "accepted_without_errors": 3,
+                    "accepted_with_errors": 0,
+                    "month": "Oct",
+                },
+                {
+                    "accepted_without_errors": 3,
+                    "accepted_with_errors": 0,
+                    "month": "Nov",
+                },
+                {
+                    "accepted_without_errors": 0,
+                    "accepted_with_errors": 0,
+                    "month": "Dec",
+                },
             ],
         }
 
@@ -1310,8 +1527,7 @@ class TestParse:
     )
     @pytest.mark.django_db()
     def test_misformatted_multi_records(
-        self,
-        file_fixture, result, number_of_errors, error_message, request, dfs
+        self, file_fixture, result, number_of_errors, error_message, request, dfs
     ):
         """Test that (not space filled) multi-records are caught."""
         file_fixture = request.getfixturevalue(file_fixture)
@@ -1324,7 +1540,9 @@ class TestParse:
         parser_errors = ParserError.objects.all()
         assert parser_errors.count() == number_of_errors
         if number_of_errors > 0:
-            error_messages = [parser_error.error_message for parser_error in parser_errors]
+            error_messages = [
+                parser_error.error_message for parser_error in parser_errors
+            ]
             assert error_message in error_messages
 
         parser_errors = (
@@ -1364,7 +1582,9 @@ class TestParse:
 
         parse_datafile(dfs, t2_invalid_dob_file)
 
-        parser_errors = ParserError.objects.filter(file=t2_invalid_dob_file).order_by("pk")
+        parser_errors = ParserError.objects.filter(file=t2_invalid_dob_file).order_by(
+            "pk"
+        )
 
         month_error = parser_errors[2]
         year_error = parser_errors[1]
@@ -1384,7 +1604,9 @@ class TestParse:
         )
 
     @pytest.mark.django_db()
-    def test_parse_tanf_section4_file_with_errors(self, tanf_section_4_file_with_errors, dfs):
+    def test_parse_tanf_section4_file_with_errors(
+        self, tanf_section_4_file_with_errors, dfs
+    ):
         """Test parsing TANF Section 4 submission."""
         tanf_section_4_file_with_errors.year = 2022
         tanf_section_4_file_with_errors.quarter = "Q1"
@@ -1435,21 +1657,27 @@ class TestParse:
 
         errors = ParserError.objects.filter(file=no_records_file)
 
-        assert errors.count() == 1
+        assert errors.count() == 2
 
-        error = errors.first()
-        assert error.error_message == "No records created."
-        assert error.error_type == ParserErrorCategoryChoices.PRE_CHECK
-        assert error.content_type is None
-        assert error.object_id is None
+        count_error = errors.get(
+            error_message="The number of records in the TRAILER row count: 1, does not match the number of records detected in the file: 0."
+        )
+        assert count_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
+        assert count_error.content_type is None
+        assert count_error.object_id is None
+
+        no_records_error = errors.get(error_message="No records created.")
+        assert no_records_error.error_type == ParserErrorCategoryChoices.PRE_CHECK
+        assert no_records_error.content_type is None
+        assert no_records_error.object_id is None
 
     @pytest.mark.django_db
-    def test_parse_aggregates_rejected_datafile(self, aggregates_rejected_datafile, dfs):
+    def test_parse_aggregates_rejected_datafile(
+        self, aggregates_rejected_datafile, dfs
+    ):
         """Test record rejection counting when record has more than one preparsing error."""
         aggregates_rejected_datafile.year = 2021
         aggregates_rejected_datafile.quarter = "Q1"
-
-        print(aggregates_rejected_datafile)
 
         dfs.datafile = aggregates_rejected_datafile
 
@@ -1457,7 +1685,9 @@ class TestParse:
 
         dfs.status = dfs.get_status()
         assert dfs.status == DataFileSummary.Status.REJECTED
-        dfs.case_aggregates = aggregates.case_aggregates_by_month(dfs.datafile, dfs.status)
+        dfs.case_aggregates = aggregates.case_aggregates_by_month(
+            dfs.datafile, dfs.status
+        )
         assert dfs.case_aggregates == {
             "months": [
                 {
@@ -1495,8 +1725,7 @@ class TestParse:
 
     @pytest.mark.django_db()
     def test_parse_tanf_section_1_file_with_bad_update_indicator(
-        self,
-        tanf_section_1_file_with_bad_update_indicator, dfs
+        self, tanf_section_1_file_with_bad_update_indicator, dfs
     ):
         """Test parsing TANF Section 1 submission update indicator."""
         dfs.datafile = tanf_section_1_file_with_bad_update_indicator
@@ -1520,7 +1749,9 @@ class TestParse:
         )
 
     @pytest.mark.django_db()
-    def test_parse_tribal_section_4_bad_quarter(self, tribal_section_4_bad_quarter, dfs):
+    def test_parse_tribal_section_4_bad_quarter(
+        self, tribal_section_4_bad_quarter, dfs
+    ):
         """Test handling invalid quarter value that raises a ValueError exception."""
         tribal_section_4_bad_quarter.year = 2021
         tribal_section_4_bad_quarter.quarter = "Q1"
@@ -1541,7 +1772,9 @@ class TestParse:
         Tribal_TANF_T7.objects.count() == 0
 
     @pytest.mark.django_db()
-    def test_parse_t3_cat2_invalid_citizenship(self, t3_cat2_invalid_citizenship_file, dfs):
+    def test_parse_t3_cat2_invalid_citizenship(
+        self, t3_cat2_invalid_citizenship_file, dfs
+    ):
         """Test parsing a TANF T3 record with an invalid CITIZENSHIP_STATUS."""
         dfs.datafile = t3_cat2_invalid_citizenship_file
         t3_cat2_invalid_citizenship_file.year = 2021
@@ -1550,9 +1783,9 @@ class TestParse:
 
         parse_datafile(dfs, t3_cat2_invalid_citizenship_file)
 
-        exclusion = Query(error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY) | Query(
-            error_type=ParserErrorCategoryChoices.PRE_CHECK
-        )
+        exclusion = Query(
+            error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY
+        ) | Query(error_type=ParserErrorCategoryChoices.PRE_CHECK)
 
         parser_errors = (
             ParserError.objects.filter(file=t3_cat2_invalid_citizenship_file)
@@ -1564,7 +1797,9 @@ class TestParse:
         assert parser_errors.count() == 0
 
     @pytest.mark.django_db()
-    def test_parse_m2_cat2_invalid_37_38_39_file(self, m2_cat2_invalid_37_38_39_file, dfs):
+    def test_parse_m2_cat2_invalid_37_38_39_file(
+        self, m2_cat2_invalid_37_38_39_file, dfs
+    ):
         """Test parsing an SSP M2 file with an invalid EDUCATION_LEVEL, CITIZENSHIP_STATUS, COOPERATION_CHILD_SUPPORT."""
         dfs.datafile = m2_cat2_invalid_37_38_39_file
         m2_cat2_invalid_37_38_39_file.year = 2024
@@ -1573,9 +1808,9 @@ class TestParse:
 
         parse_datafile(dfs, m2_cat2_invalid_37_38_39_file)
 
-        exclusion = Query(error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY) | Query(
-            error_type=ParserErrorCategoryChoices.PRE_CHECK
-        )
+        exclusion = Query(
+            error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY
+        ) | Query(error_type=ParserErrorCategoryChoices.PRE_CHECK)
 
         parser_errors = (
             ParserError.objects.filter(file=m2_cat2_invalid_37_38_39_file)
@@ -1596,9 +1831,9 @@ class TestParse:
 
         parse_datafile(dfs, m3_cat2_invalid_68_69_file)
 
-        exclusion = Query(error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY) | Query(
-            error_type=ParserErrorCategoryChoices.PRE_CHECK
-        )
+        exclusion = Query(
+            error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY
+        ) | Query(error_type=ParserErrorCategoryChoices.PRE_CHECK)
 
         parser_errors = (
             ParserError.objects.filter(file=m3_cat2_invalid_68_69_file)
@@ -1626,9 +1861,9 @@ class TestParse:
 
         parse_datafile(dfs, m5_cat2_invalid_23_24_file)
 
-        exclusion = Query(error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY) | Query(
-            error_type=ParserErrorCategoryChoices.PRE_CHECK
-        )
+        exclusion = Query(
+            error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY
+        ) | Query(error_type=ParserErrorCategoryChoices.PRE_CHECK)
 
         parser_errors = (
             ParserError.objects.filter(file=m5_cat2_invalid_23_24_file)
@@ -1750,10 +1985,68 @@ class TestParse:
         assert errors.count() == 0
         assert dfs.get_status() == DataFileSummary.Status.ACCEPTED
 
+    @pytest.mark.django_db()
+    @pytest.mark.parametrize(
+        "fixture_name",
+        [
+            "tanf_section1_no_records",
+            "tanf_section3_no_records",
+            "tanf_section4_no_records",
+        ],
+    )
+    def test_parse_tanf_zero_record_sections(self, fixture_name, request, dfs):
+        """Test parsing valid zero-record TANF files."""
+        datafile = request.getfixturevalue(fixture_name)
+        dfs.datafile = datafile
+        dfs.save()
+
+        parse_datafile(dfs, datafile)
+
+        errors = ParserError.objects.filter(file=datafile).order_by("id")
+        assert errors.count() == 0
+        assert dfs.total_number_of_records_in_file == 0
+        assert dfs.total_number_of_records_created == 0
+        assert dfs.get_status() == DataFileSummary.Status.ACCEPTED
+
+    @pytest.mark.django_db()
+    def test_parse_tanf_zero_record_bad_trailer_count_rejected(
+        self, tanf_section1_no_records_bad_trailer_count, dfs
+    ):
+        """Test zero-record files reject when trailer count is not zero."""
+        datafile = tanf_section1_no_records_bad_trailer_count
+        dfs.datafile = datafile
+        dfs.save()
+
+        parse_datafile(dfs, datafile)
+
+        errors = ParserError.objects.filter(file=datafile).order_by("id")
+        assert errors.filter(
+            error_message="The number of records in the TRAILER row count: 1, does not match the number of records detected in the file: 0.",
+            error_type=ParserErrorCategoryChoices.PRE_CHECK,
+        ).exists()
+        assert dfs.get_status() == DataFileSummary.Status.REJECTED
+
+    @pytest.mark.django_db()
+    def test_parse_tanf_detail_rows_skip_trailer_count_precheck(
+        self, tanf_section1_unknown_record_bad_trailer_count, dfs
+    ):
+        """Test trailer count precheck is limited to files with zero detail rows."""
+        datafile = tanf_section1_unknown_record_bad_trailer_count
+        dfs.datafile = datafile
+        dfs.save()
+
+        parse_datafile(dfs, datafile)
+
+        errors = ParserError.objects.filter(file=datafile)
+        assert (
+            errors.filter(error_message__startswith="TRAILER record count").count() == 0
+        )
+        assert errors.filter(error_message="No records created.").exists()
+        assert dfs.get_status() == DataFileSummary.Status.REJECTED
+
     @pytest.mark.django_db
     def test_parse_tanf_s1_federally_funded_recipients(
-        self,
-        tanf_s1_federally_funded_recipients, dfs
+        self, tanf_s1_federally_funded_recipients, dfs
     ):
         """Test parsing file that generates the tanf_s1_federally_funded_recipients error."""
         dfs.datafile = tanf_s1_federally_funded_recipients
@@ -1784,8 +2077,9 @@ class TestParse:
         dfs.status = dfs.get_status()
         assert dfs.status == DataFileSummary.Status.PARTIALLY_ACCEPTED
 
-        dfs.case_aggregates = aggregates.case_aggregates_by_month(dfs.datafile, dfs.status)
-        print(dfs.case_aggregates)
+        dfs.case_aggregates = aggregates.case_aggregates_by_month(
+            dfs.datafile, dfs.status
+        )
         assert dfs.case_aggregates == {
             "months": [
                 {

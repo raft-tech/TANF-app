@@ -4,7 +4,8 @@ import logging
 from distutils.util import strtobool
 from wsgiref.util import FileWrapper
 
-from django.db.models import Prefetch
+from django.conf import settings
+from django.db.models import Exists, OuterRef, Prefetch
 from django.http import FileResponse, Http404, HttpResponse
 
 from django_filters import rest_framework as filters
@@ -18,16 +19,26 @@ from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
-from tdpservice.data_files.enums import SubmissionState
 from tdpservice.core.utils import get_feature_flag
+from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.error_reports import ErrorReportFactory
-from tdpservice.data_files.models import DataFile, ReparseFileMeta
+from tdpservice.data_files.models import (
+    DataFile,
+    ReparseFileMeta,
+    create_or_update_shadow_data_file,
+)
 from tdpservice.data_files.s3_client import S3Client
 from tdpservice.data_files.serializers import DataFileSerializer
-from tdpservice.data_files.submission_lifecycle import transition_datafile
+from tdpservice.data_files.submission_lifecycle import (
+    complete_datafile_av_scan,
+    transition_datafile,
+)
 from tdpservice.log_handler import S3FileHandler
+from tdpservice.parsers.models import ParserError
 from tdpservice.scheduling import parser_task
 from tdpservice.scheduling.parser_task import set_error_report
+from tdpservice.security.clients import ClamAVClient
+from tdpservice.security.models import ClamAVFileScan
 from tdpservice.users.permissions import DataFilePermissions, IsApprovedPermission
 
 logger = logging.getLogger(__name__)
@@ -84,14 +95,18 @@ class DataFileViewSet(ModelViewSet):
                 to_attr="rfms",
             )
         )
+        .annotate(
+            has_error=Exists(
+                ParserError.objects.filter(
+                    file=OuterRef("pk"),
+                    deprecated=False
+                )
+            )
+        )
     )
 
-    def create(self, request, *args, **kwargs):
-        """Override create to upload in case of successful scan."""
-        logger.debug(f"{self.__class__.__name__}: {request}")
-
-        # test the PIA feature flag before creation
-        # reject if it is off or doesn't exist
+    def _validate_pia_request(self, request):
+        """Validate PIA feature flag/year range and return a failure response."""
         is_program_audit = False
         try:
             is_program_audit = strtobool(request.POST.get("is_program_audit", "false"))
@@ -101,63 +116,149 @@ class DataFileViewSet(ModelViewSet):
                 status=HTTP_400_BAD_REQUEST,
             )
 
+        if not is_program_audit:
+            return None
+
         pia_feature_flag_enabled, pia_feature_flag_config = get_feature_flag(
             "program-integrity-audit"
         )
 
-        if is_program_audit and not pia_feature_flag_enabled:
+        if not pia_feature_flag_enabled:
             return Response(
                 {"detail": "This file type is not supported."},
                 status=HTTP_400_BAD_REQUEST,
             )
 
-        if is_program_audit and pia_feature_flag_enabled:
-            pia_minYear = pia_feature_flag_config.get("minYear") or 2024
-            pia_maxYear = pia_feature_flag_config.get("maxYear") or 2024
-            year = int(request.data.get("year"))
+        pia_minYear = pia_feature_flag_config.get("minYear") or 2024
+        pia_maxYear = pia_feature_flag_config.get("maxYear") or 2024
+        year = int(request.data.get("year"))
 
-            if year < pia_minYear or year > pia_maxYear:
-                return Response(
+        if year < pia_minYear or year > pia_maxYear:
+            return Response(
+                {
+                    "detail": "This file was submitted for a reporting year not supported by this file type."
+                },
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        return None
+
+    def _scan_uploaded_file(self, uploaded_file, user, data_file):
+        """Run ClamAV before saving the uploaded file to persistent storage.
+
+        Returns a ``(failure_response, scan_result)`` tuple. ``failure_response``
+        is ``None`` when the file is clean (or scanning is disabled);,
+        derived from the underlying :class:`ClamAVFileScan.Result` so that
+        scanner ERRORs are not collapsed into INFECTED in lifecycle audit logs.
+        """
+        if not settings.CLAMAV_NEEDED or uploaded_file is None:
+            return None, "clean"
+
+        try:
+            scan_result = ClamAVClient().scan_file(
+                uploaded_file,
+                uploaded_file.name,
+                user,
+                data_file=data_file,
+            )
+        except ClamAVClient.ServiceUnavailable:
+            return (
+                Response(
                     {
-                        "detail": "This file was submitted for a reporting year not supported by this file type."
+                        "detail": "Unable to complete security inspection, please try again or contact support for assistance"
                     },
                     status=HTTP_400_BAD_REQUEST,
-                )
+                ),
+                "error",
+            )
 
-        response = super().create(request, *args, **kwargs)
+        # Reset the stream because saving to storage will read the file again.
+        uploaded_file.seek(0)
 
-        # only if file is passed the virus scan and created successfully will we perform side-effects:
-        # * Send to parsing
-        # * Send email to user
+        if scan_result == ClamAVFileScan.Result.CLEAN:
+            return None, "clean"
 
-        logger.debug(f"{self.__class__.__name__}: status: {response.status_code}")
-        if (
-            response.status_code == status.HTTP_201_CREATED
-            or response.status_code == status.HTTP_200_OK
-        ):
-            data_file_id = response.data.get("id")
-            data_file = DataFile.objects.get(id=data_file_id)
-            transition_datafile(
+        if scan_result == ClamAVFileScan.Result.ERROR:
+            return (
+                Response(
+                    {
+                        "detail": "Unable to complete security inspection, please try again or contact support for assistance"
+                    },
+                    status=HTTP_400_BAD_REQUEST,
+                ),
+                "error",
+            )
+
+        return (
+            Response(
+                {
+                    "detail": "Rejected: uploaded file did not pass security inspection"
+                },
+                status=HTTP_400_BAD_REQUEST,
+            ),
+            "infected",
+        )
+
+    def create(self, request, *args, **kwargs):
+        """Create a DataFile and persist the file only after a successful AV scan."""
+        logger.debug(f"{self.__class__.__name__}: {request}")
+
+        pia_error = self._validate_pia_request(request)
+        if pia_error is not None:
+            return pia_error
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        uploaded_file = serializer.validated_data.get("file")
+        data_file = serializer.save(file=None)
+
+        transition_datafile(
+            data_file,
+            SubmissionState.VIRUS_SCAN_STARTED,
+            note="virus scan started",
+        )
+
+        scan_failure_response, scan_result = self._scan_uploaded_file(
+            uploaded_file,
+            request.user,
+            data_file,
+        )
+        if scan_failure_response is not None:
+            complete_datafile_av_scan(
                 data_file,
-                SubmissionState.VIRUS_SCAN_STARTED,
-                note="file accepted for upload",
+                scan_result=scan_result,
+                note=scan_failure_response.data["detail"],
             )
-            transition_datafile(
-                data_file,
-                SubmissionState.VIRUS_SCAN_COMPLETED,
-                note="file passed AV validation",
-            )
+            if settings.GO_PARSER_SHADOW_MODE:
+                create_or_update_shadow_data_file(data_file)
+            return scan_failure_response
 
-            logger.info(
-                f"Preparing parse task: User META -> user: {request.user}, stt: {data_file.stt}. "
-                + f"Datafile META -> datafile: {data_file_id}, program type: {data_file.program_type}, "
-                + f"section: {data_file.section}, "
-                + f"quarter {data_file.quarter}, year {data_file.year}."
-            )
+        complete_datafile_av_scan(
+            data_file,
+            scan_result=scan_result,
+            note="file passed virus scan",
+        )
 
-            parser_task.parse.delay(data_file_id)
-            logger.info("Submitted parse task to queue for datafile %s.", data_file_id)
+        data_file.file = uploaded_file
+        data_file.save()
+        if settings.GO_PARSER_SHADOW_MODE:
+            create_or_update_shadow_data_file(data_file)
 
+        logger.info(
+            f"Preparing parse task: User META -> user: {request.user}, stt: {data_file.stt}. "
+            + f"Datafile META -> datafile: {data_file.id}, program type: {data_file.program_type}, "
+            + f"section: {data_file.section}, "
+            + f"quarter {data_file.quarter}, year {data_file.year}."
+        )
+
+        parser_task.queue_parse(data_file.id)
+        logger.info("Submitted parse task to queue for datafile %s.", data_file.id)
+
+        headers = self.get_success_headers(serializer.data)
+        response = Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
         logger.debug(f"{self.__class__.__name__}: return val: {response}")
         return response
 

@@ -65,12 +65,13 @@ accumulator:
 
   # Fields to extract the grouping key from raw row data.
   key_fields:
-    rpt_month_year:
-      start: 2
-      end: 8
-    case_number:
-      start: 8
-      end: 19
+    fields:
+      - name: rpt_month_year
+        start: 2
+        end: 8
+      - name: case_number
+        start: 8
+        end: 19
 
   batch_size: 1
 
@@ -82,3 +83,64 @@ accumulator:
   grouped_schemas:
     - tribal_tanf/t4
     - tribal_tanf/t5
+
+validation_orchestrator:
+  categories:
+  - id: 1
+    name: Record pre-check
+    default_error_type: RECORD_PRE_CHECK
+  - id: 2
+    name: Field validation
+    default_error_type: FIELD_VALUE
+  - id: 3
+    name: Cross-field
+    default_error_type: VALUE_CONSISTENCY
+  - id: 4
+    name: Group validation
+    default_error_type: CASE_CONSISTENCY
+
+# =============================================================================
+# GROUP VALIDATORS (Group/Case Level)
+# =============================================================================
+#
+# These validators run at the case/group level and validate relationships
+# between records within the same case (RPT_MONTH_YEAR + CASE_NUMBER).
+#
+# Python equivalent: case_consistency_validator.py -> __validate_s2_records_are_related
+#
+# Validation rules for Section 2:
+# 1. Every T4 must have at least one corresponding T5 in the same case
+# 2. Every T5 must have at least one corresponding T4 in the same case
+
+group_validators:
+  # T4 records require at least one T5 record in the same case
+  - id: requires_related_record
+    params:
+      record_type: T4
+      related_record_types: [T5]
+    message: "Every T4 record should have at least one corresponding T5 record with the same RPT_MONTH_YEAR and CASE_NUMBER"
+
+  # T5 records require at least one T4 record in the same case
+  - id: requires_related_record
+    params:
+      record_type: T5
+      related_record_types: [T4]
+    message: "Every T5 record should have at least one corresponding T4 record with the same RPT_MONTH_YEAR and CASE_NUMBER"
+
+  # --- Exact duplicate detection ---
+  - id: exact_duplicates
+    params:
+      record_type: T4
+  - id: exact_duplicates
+    params:
+      record_type: T5
+
+  # --- Partial duplicate detection ---
+  - id: partial_duplicates
+    params:
+      record_type: T4
+      fields: [RecordType, RPT_MONTH_YEAR, CASE_NUMBER]
+  - id: partial_duplicates
+    params:
+      record_type: T5
+      fields: [RecordType, RPT_MONTH_YEAR, CASE_NUMBER, FAMILY_AFFILIATION, DATE_OF_BIRTH, SSN]

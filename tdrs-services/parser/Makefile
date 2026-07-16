@@ -1,4 +1,5 @@
-.PHONY: test test-unit test-integration test-verbose test-short test-coverage \
+.PHONY: test test-unit test-verbose test-short test-coverage \
+       coverage-report compile-check lint validate-config ci-checks \
        build build-all build-linux build-darwin build-windows clean
 
 GOTESTSUM := gotestsum
@@ -15,18 +16,34 @@ test:
 # Alias for test
 test-unit: test
 
-# Run integration tests (requires database)
-test-integration:
-	$(GOTESTSUM) $(GOTEST_FLAGS) -- -count=1 -tags integration $(PACKAGES)
-
-# Run all tests including integration
+# Run all tests with coverage
 test-all-coverage:
-	$(GOTESTSUM) $(GOTEST_FLAGS) -- -count=1 -coverprofile=coverage.out -tags integration $(PACKAGES)
+	$(GOTESTSUM) $(GOTEST_FLAGS) -- -count=1 -coverprofile=coverage.out $(PACKAGES)
 	go tool cover -func=coverage.out
 
-# Run all tests with coverage including integration
+# Generate readable coverage artifacts from an existing coverage profile
+coverage-report:
+	go tool cover -func=coverage.out | tee coverage-summary.txt
+	go tool cover -html=coverage.out -o coverage.html
+
+# Run all tests
 test-all:
-	$(GOTESTSUM) $(GOTEST_FLAGS) -- -count=1 -tags integration $(PACKAGES)
+	$(GOTESTSUM) $(GOTEST_FLAGS) -- -count=1 $(PACKAGES)
+
+# Compile all packages and tests without running tests
+compile-check:
+	go test -run='^$$' $(PACKAGES)
+
+# Run Go static analysis checks
+lint:
+	go vet $(PACKAGES)
+
+# Load parser config and compile validator expressions to catch YAML/expr syntax issues
+validate-config:
+	go test -count=1 ./internal/validation -run 'TestProductionValidators_LoadAndCompile|TestProductionValidators_LoadHybridAndNative'
+
+# Aggregate CI checks that don't require the full test suite
+ci-checks: compile-check lint validate-config
 
 # Run tests with verbose per-test output
 test-verbose:
@@ -77,4 +94,4 @@ build-windows:
 
 # Remove build artifacts
 clean:
-	rm -rf $(BUILD_DIR) coverage.out test-results.xml
+	rm -rf $(BUILD_DIR) coverage.out coverage-summary.txt coverage.html test-results.xml

@@ -34,14 +34,16 @@ const (
 
 // ValidationResult represents the outcome of a single validator execution.
 type ValidationResult struct {
-	Valid       bool
-	ErrorType   string // The error type for serialization decisions
-	ValidatorID string
-	FieldName   string // Only set for field-scope errors
-	LineNumber  int    // For per-record attribution in group validators
-	RecordType  string // For per-record attribution in group validators
-	Error       error  // Set if expression evaluation failed
-	Validator   *CompiledValidator
+	Valid           bool
+	ErrorType       string // The error type for serialization decisions
+	ValidatorID     string
+	FieldName       string // Only set for field-scope errors
+	LineNumber      int    // For per-record attribution in group validators
+	RecordType      string // For per-record attribution in group validators
+	Error           error  // Set if expression evaluation failed
+	DataFileContext *DataFileContext
+	Validator       *CompiledValidator
+	TemplateData    map[string]any
 }
 
 // BlocksRecord returns true if this error type blocks record serialization.
@@ -55,7 +57,7 @@ func (vr *ValidationResult) BlocksGroup() bool {
 }
 
 // Message generates the error message for this validation result.
-// Context provides template variables (RecordType, Item, Value, etc.).
+// TemplateData provides template variables (RecordType, Item, Value, etc.).
 func (vr *ValidationResult) Message(ctx map[string]any) string {
 	if vr.Valid || vr.Validator == nil || vr.Validator.Message == nil {
 		return ""
@@ -150,6 +152,11 @@ func (gvr *GroupValidationResult) HasBlockingGroupErrors() bool {
 	}
 	for _, rr := range gvr.RecordResults {
 		for _, err := range rr.RecordErrors {
+			if err.BlocksGroup() {
+				return true
+			}
+		}
+		for _, err := range rr.FieldErrors {
 			if err.BlocksGroup() {
 				return true
 			}
@@ -252,7 +259,10 @@ type CompiledValidator struct {
 	Scope       string             // "field", "record", or "group"
 	ErrorType   string             // The declared error type (or default based on scope)
 	ResultMode  string             // "single" (default) or "per_record" (for group validators)
-	Expr        *CompiledExpr      // Pointer to shared compiled expr
+	Engine      string             // Resolved executor engine: "expr" or "native"
+	Expression  string             // Source expression for documentation and semantic keys
+	Executor    ValidatorExecutor  // Compiled runtime executor
+	Expr        *CompiledExpr      // Compile-time expression metadata for direct test construction
 	Message     *template.Template // Pre-resolved (default or override)
 	Fields      []string           // Fields involved (for record/group validators)
 	Params      map[string]any     // Runtime params for expressions (e.g., {n: 9})

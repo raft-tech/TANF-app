@@ -14,8 +14,9 @@ User -> Frontend -> Django /v2/ -> Keycloak -> Identity Provider (Login.gov / AM
 | File | Purpose |
 |---|---|
 | `Dockerfile` | Keycloak 26.0 image with `jq` and `curl` for IdP configuration |
-| `realm-export.json` | Complete "tdp" realm configuration (clients, groups, IdP mappers) |
-| `configure-idps.sh` | Post-startup script that configures Login.gov signing key and ACR values |
+| `realm-configs/` | Full realm exports for `dev-local`, `staging`, and `prod` |
+| `select-realm-config.sh` | Copies the correct checked-in realm export into Keycloak's import path based on `DEPLOY_ENV` |
+| `configure-idps.sh` | Post-startup script for runtime-sensitive IdP settings like signing keys and ACR values |
 | `deploy.sh` | Cloud Foundry deployment script for cloud.gov |
 | `manifest.yml` | Cloud.gov manifest template |
 
@@ -28,6 +29,8 @@ User -> Frontend -> Django /v2/ -> Keycloak -> Identity Provider (Login.gov / AM
   - **keycloak-pg** — PostgreSQL 15.7 database for Keycloak (port 5434)
   - **keycloak** — Keycloak 26.0 server (ports 8443 browser / 8080 internal / 9001 management)
   - **keycloak-configure** — Runs `configure-idps.sh` after Keycloak starts
+
+Local Docker uses `DEPLOY_ENV=local`, which selects the shared `dev-local` realm export before Keycloak starts.
 
 ### Starting Keycloak
 
@@ -88,7 +91,7 @@ Note: `OIDC_OP_AUTHORIZATION_ENDPOINT` and `OIDC_OP_LOGOUT_ENDPOINT` use `KEYCLO
 
 | Variable | Default | Description |
 |---|---|---|
-| `LOGIN_GOV_CLIENT_ID` | `urn:gov:gsa:openidconnect.profiles:sp:sso:hhs:tanf-proto-dev` | Login.gov OIDC client ID |
+| `LOGIN_GOV_CLIENT_ID` | `urn:gov:gsa:openidconnect.profiles:sp:sso:hhs:tanf-proto-{space}` | Login.gov OIDC client ID |
 | `LOGIN_GOV_AUTH_URL` | `https://idp.int.identitysandbox.gov/openid_connect/authorize` | Login.gov authorization endpoint |
 | `LOGIN_GOV_TOKEN_URL` | `https://idp.int.identitysandbox.gov/api/openid_connect/token` | Login.gov token endpoint |
 | `LOGIN_GOV_JWKS_URL` | `https://idp.int.identitysandbox.gov/api/openid_connect/certs` | Login.gov JWKS endpoint |
@@ -125,6 +128,13 @@ Note: `OIDC_OP_AUTHORIZATION_ENDPOINT` and `OIDC_OP_LOGOUT_ENDPOINT` use `KEYCLO
 |---|---|---|
 | `tdp-django` | Confidential (service account) | Backend OIDC authentication and admin API access |
 | `tdp-grafana` | Confidential | Grafana SSO integration |
+| `tdp-cli` | **Public** (no secret, PKCE + Device Authorization Grant) | External API clients - Postman, CLI tools, CI/CD, security auditors |
+
+Realm configurations are stored as full exports in `realm-configs/`:
+
+- `realm-export.dev-local.json` is shared by `local` and `dev` and includes both hosted dev frontend URLs and localhost/`127.0.0.1`.
+- `realm-export.staging.json` allows only the hosted staging frontends.
+- `realm-export.prod.json` allows only the production frontend.
 
 ### Groups
 
@@ -201,6 +211,99 @@ Sync only works if the Keycloak user already exists (i.e., user has logged in vi
 - Deactivated users are rejected at login
 - OIDC tokens stored in httpOnly session cookies
 
+## External API Clients
+
+External tools (Postman, CLI, CI/CD, auditors) authenticate against the Django API using Keycloak-issued JWT bearer tokens. Tokens are obtained via standard OAuth2 grants against the **public** `tdp-cli` Keycloak client (no client secret to distribute).
+
+Django validates incoming bearer tokens with `KeycloakBearerTokenAuthentication` (registered in DRF's `DEFAULT_AUTHENTICATION_CLASSES`), which verifies the JWT signature against `OIDC_OP_JWKS_ENDPOINT`, requires the `tdp-cli` client (`azp`) and Django API audience (`aud`), and resolves the user via the same claim-based logic used by browser logins. Authorization (permissions, STT scoping, approval status) is identical to a browser session.
+
+### Postman (Authorization Code + PKCE)
+
+In a Postman request → **Authorization** tab → Type **OAuth 2.0** → **Configure New Token**:
+
+| Field | Value |
+|---|---|
+| Grant Type | **Authorization Code (With PKCE)** |
+| Callback URL | `https://oauth.pstmn.io/v1/callback` |
+| Auth URL | `${KEYCLOAK_BROWSER_URL}/realms/tdp/protocol/openid-connect/auth` |
+| Access Token URL | `${KEYCLOAK_BROWSER_URL}/realms/tdp/protocol/openid-connect/token` |
+| Client ID | `tdp-cli` |
+| Client Secret | *(leave empty)* |
+| Code Challenge Method | **SHA-256** |
+| Scope | `openid email profile tdp-user-attributes` |
+| Client Authentication | **Send client credentials in body** |
+
+Click **Get New Access Token** → authenticate via Login.gov / AMS in the popup → token returned. Use it on requests as:
+
+```
+Authorization: Bearer <access_token>
+```
+
+### CLI (Device Authorization Grant)
+
+For headless CLI tools (no browser on the host), use the device flow. Standard OAuth2 libraries support this out of the box (same grant `gh auth login`, `aws sso login`, and `gcloud auth login` use).
+
+**1. Initiate device authorization**
+
+```bash
+curl -X POST "${KEYCLOAK_BROWSER_URL}/realms/tdp/protocol/openid-connect/auth/device" \
+  -d "client_id=tdp-cli" \
+  -d "scope=openid email profile tdp-user-attributes"
+```
+
+Response includes `device_code`, `user_code`, `verification_uri_complete`, `interval`, and `expires_in`.
+
+**2. Display the verification URL** to the user (e.g. print `verification_uri_complete`). They open it in any browser, authenticate via Login.gov or AMS, and approve the device.
+
+**3. Poll the token endpoint** every `interval` seconds until the user completes the flow:
+
+```bash
+curl -X POST "${KEYCLOAK_BROWSER_URL}/realms/tdp/protocol/openid-connect/token" \
+  -d "grant_type=urn:ietf:params:oauth:grant-type:device_code" \
+  -d "device_code=<from step 1>" \
+  -d "client_id=tdp-cli"
+```
+
+While the user hasn't approved yet, you'll get `400 authorization_pending` (keep polling). When they approve, you get the access token.
+
+### Calling the Django API
+
+```bash
+curl -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  http://localhost:8080/v1/users/
+```
+
+Same authorization rules as a browser session:
+  - the user behind the token must be approved, active, and respect ACF email / Login.gov mismatch rules.
+
+### Audit logging
+
+Every bearer-token-authenticated request emits a structured log line:
+
+```
+INFO Bearer token auth client=tdp-cli user=<email> path=/v1/users/
+```
+
+The `client_id` is the token's `azp` claim (which Keycloak client minted the token). The `tdp-api-audience` default client scope adds the Django API audience (`tdp-django`) to `tdp-cli` access tokens so Django can reject tokens intended for other clients. In Cloud.gov these flow into Loki and are queryable in Grafana.
+
+### Rate limiting
+
+`KeycloakClientRateThrottle` rate-limits per Keycloak client_id (the `azp` claim) — not per user. Default: `300/min`, configurable via the `KEYCLOAK_CLIENT_RATE` env var (DRF rate string, e.g. `60/min`, `1000/hour`). Browser sessions and other auth paths are unaffected. Counters live in the dedicated Redis-backed `throttle` cache (DB 3) so they're shared across web workers.
+
+### Local testing
+
+The `tdp-cli` client is in `realm-export.json`, so it's imported on first Keycloak start. To pick up realm changes locally after editing the file, the Keycloak image must be rebuilt and the keycloak-pg volume cleared:
+
+```bash
+task backend-down
+docker volume rm tdrs-backend_keycloak_pg_data
+docker compose build --no-cache keycloak
+task backend-up
+```
+
+For testing without going through the full Login.gov / AMS broker flow, you can manually create a Keycloak user with a password (Keycloak admin → Users → Add user → Credentials → Set password, *Temporary OFF*) whose email matches an existing approved Django user
+  - bearer auth's claim resolution falls back to email lookup, so the request resolves to the real Django user with all its STT scoping.
+
 ## Deployment (cloud.gov)
 
 ### Deploy Keycloak
@@ -216,8 +319,9 @@ This will:
 2. Bind the RDS service for the database
 3. Map the internal route `keycloak.apps.internal:8080` (for server-to-server backend/celery calls)
 4. Map the public route `<public_hostname>.app.cloud.gov` (for browser redirects and admin console)
-5. Set `KC_HOSTNAME` so Keycloak generates correct redirect URIs matching the public route
+5. Set `KC_HOSTNAME` and `DEPLOY_ENV` so the correct checked-in realm export is selected inside the container
 6. Set up network policies so backend and celery can reach Keycloak
+7. Run `configure-idps.sh` to configure runtime-sensitive IdP settings after startup
 
 ### Routing Architecture
 
@@ -227,6 +331,12 @@ Keycloak is deployed with two routes:
 - **Public** (`<hostname>.app.cloud.gov`) — used by the browser for OIDC redirects and the admin console. Configured via `KEYCLOAK_BROWSER_URL`.
 
 Set `KEYCLOAK_BROWSER_URL` in the backend's environment to match the public route (e.g., `https://tdp-keycloak-dev.app.cloud.gov`).
+
+For the checked-in realm exports:
+
+- `local` and `dev` both use `realm-export.dev-local.json`, which allows `raft`, `qasp`, and `a11y` hosted frontends plus localhost/`127.0.0.1`.
+- `staging` uses `realm-export.staging.json`, which allows only `develop` and `staging` hosted frontends.
+- `prod` uses `realm-export.prod.json`, which allows only `https://tanfdata.acf.hhs.gov`.
 
 ### Required cloud.gov Environment Variables
 

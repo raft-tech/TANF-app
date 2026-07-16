@@ -127,6 +127,97 @@ tasks:
       - task: backend-up
       - docker compose -f docker-compose.yml exec web sh -c "pytest --basetemp=/home/tdpapp/ {{.PYTEST_ARGS}}"
 
+  backend-pytest-go-integration:
+    desc: 'Run the live Go parser integration suite. E.g: task backend-pytest-go-integration PYTEST_ARGS="-k section1 -vv"'
+    dir: tdrs-backend
+    vars:
+      PYTEST_ARGS: '{{.PYTEST_ARGS | default ""}}'
+    cmds:
+      - task: create-network
+      - |
+        set -e
+        db_name="tdrs_go_integration_$(date +%s)_$$"
+        queue="go-parser-integration-$(date +%s)-$$"
+        post_parse_queue="${queue}-post-parse"
+        container="tdrs-backend-go-parser-integration-$(date +%s)-$$"
+
+        cleanup() {
+          docker rm -f "${container}" >/dev/null 2>&1 || true
+          docker compose -f docker-compose.yml exec -T redis-server \
+            redis-cli DEL "${queue}" "${post_parse_queue}" >/dev/null 2>&1 || true
+          docker compose -f docker-compose.yml exec -T postgres \
+            psql -U tdpuser -d postgres -v ON_ERROR_STOP=1 \
+            -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${db_name}';" \
+            -c "DROP DATABASE IF EXISTS \"${db_name}\";" >/dev/null 2>&1 || true
+        }
+        trap cleanup EXIT
+
+        docker compose -f docker-compose.yml up -d postgres redis-server localstack web
+        docker compose -f docker-compose.yml exec -T postgres sh -c 'until pg_isready -U tdpuser -d postgres; do sleep 1; done'
+        docker compose -f docker-compose.yml exec -T postgres \
+          psql -U tdpuser -d postgres -v ON_ERROR_STOP=1 \
+          -c "CREATE DATABASE \"${db_name}\" OWNER tdpuser;"
+        docker compose -f docker-compose.yml exec web sh -c "DB_NAME=${db_name} DJANGO_SETTINGS_MODULE=tdpservice.settings.go_parser_integration DJANGO_CONFIGURATION=GoParserIntegration python manage.py migrate --noinput"
+
+        docker compose -f docker-compose.yml build go-parser
+        docker compose -f docker-compose.yml run --rm --detach \
+          --name "${container}" \
+          -e DATABASE_URL="postgres://tdpuser:something_secure@postgres:5432/${db_name}?sslmode=disable" \
+          -e GO_PARSER_SHADOW_MODE=false \
+          -e GO_PARSER_QUEUE="${queue}" \
+          -e GO_PARSER_POST_PARSE_QUEUE="${post_parse_queue}" \
+          go-parser
+
+        docker compose -f docker-compose.yml exec web sh -c "DB_NAME=${db_name} CELERY_GO_PARSER_QUEUE=${queue} DJANGO_SETTINGS_MODULE=tdpservice.settings.go_parser_integration DJANGO_CONFIGURATION=GoParserIntegration pytest -c pytest-go-parser.ini --basetemp=/home/tdpapp/ tdpservice/parsers/test/integration {{.PYTEST_ARGS}}"
+
+  backend-pytest-go-integration-active:
+    desc: 'Run Go parser integration tests against the active local DB and go-parser service. Faster, but not isolated. E.g: task backend-pytest-go-integration-active PYTEST_ARGS="-k section1 -vv"'
+    dir: tdrs-backend
+    vars:
+      PYTEST_ARGS: '{{.PYTEST_ARGS | default ""}}'
+      GO_PARSER_QUEUE: '{{.GO_PARSER_QUEUE | default "go-parser"}}'
+    cmds:
+      - task: create-network
+      - |
+        set -e
+        queue="{{.GO_PARSER_QUEUE}}"
+
+        GO_PARSER_QUEUE="${queue}" GO_PARSER_SHADOW_MODE=false \
+          docker compose -f docker-compose.yml up -d postgres redis-server localstack celery web go-parser
+        docker compose -f docker-compose.yml exec -T postgres sh -c 'until pg_isready -U tdpuser -d tdrs_test; do sleep 1; done'
+        docker compose -f docker-compose.yml exec -T redis-server \
+          redis-cli DEL "${queue}" >/dev/null
+
+        docker compose -f docker-compose.yml exec web sh -c "CELERY_GO_PARSER_QUEUE=${queue} DJANGO_SETTINGS_MODULE=tdpservice.settings.go_parser_integration DJANGO_CONFIGURATION=GoParserIntegration pytest -c pytest-go-parser.ini --basetemp=/home/tdpapp/ tdpservice/parsers/test/integration {{.PYTEST_ARGS}}"
+
+  backend-pytest-etl-integration:
+    desc: 'Run the live ETL integration suite. E.g: task backend-pytest-etl-integration PYTEST_ARGS="-k statistical_weights -vv"'
+    dir: tdrs-backend
+    vars:
+      PYTEST_ARGS: '{{.PYTEST_ARGS | default ""}}'
+    cmds:
+      - task: create-network
+      - |
+        set -e
+        db_name="tdrs_etl_integration_$(date +%s)_$$"
+
+        cleanup() {
+          docker compose -f docker-compose.yml exec -T postgres \
+            psql -U tdpuser -d postgres -v ON_ERROR_STOP=1 \
+            -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${db_name}';" \
+            -c "DROP DATABASE IF EXISTS \"${db_name}\";" >/dev/null 2>&1 || true
+        }
+        trap cleanup EXIT
+
+        docker compose -f docker-compose.yml up -d postgres redis-server localstack web
+        docker compose -f docker-compose.yml exec -T postgres sh -c 'until pg_isready -U tdpuser -d postgres; do sleep 1; done'
+        docker compose -f docker-compose.yml exec -T postgres \
+          psql -U tdpuser -d postgres -v ON_ERROR_STOP=1 \
+          -c "CREATE DATABASE \"${db_name}\" OWNER tdpuser;"
+        docker compose -f docker-compose.yml exec web sh -c "DB_NAME=${db_name} DJANGO_SETTINGS_MODULE=tdpservice.settings.etl_integration DJANGO_CONFIGURATION=ETLIntegration python manage.py migrate --noinput"
+
+        docker compose -f docker-compose.yml exec web sh -c "DB_NAME=${db_name} DJANGO_SETTINGS_MODULE=tdpservice.settings.etl_integration DJANGO_CONFIGURATION=ETLIntegration pytest -c pytest-etl.ini --basetemp=/home/tdpapp/ tdpservice/etl/test/integration {{.PYTEST_ARGS}}"
+
   backend-pytest-cov:
     desc: 'Generate coverage.json file in the backend container. E.g: task backend-pytest-cov PYTEST_ARGS="tdpservice/test/ -s -vv"'
     dir: tdrs-backend
@@ -222,6 +313,56 @@ tasks:
       - task: frontend-up
       - task: clamav-up
 
+  admin-init:
+    desc: Initialize the admin project (localdev image with node_modules)
+    dir: tdp-admin
+    cmds:
+      - docker compose -f docker-compose.local.yml up -d --build tdp-admin
+      - docker compose -f docker-compose.local.yml exec tdp-admin sh -c "corepack prepare yarn@4.6.0 && corepack yarn install"
+      - docker compose -f docker-compose.local.yml down
+
+  admin-up:
+    desc: Start admin web server (Next.js localdev image)
+    dir: tdp-admin
+    cmds:
+      - docker compose -f docker-compose.local.yml up -d --build tdp-admin
+
+  admin-down:
+    desc: Stop admin web server
+    dir: tdp-admin
+    cmds:
+      - docker compose -f docker-compose.local.yml down
+
+  admin-logs:
+    desc: Show and follow admin web server logs
+    dir: tdp-admin
+    cmds:
+      - docker compose -f docker-compose.local.yml logs -f
+
+  admin-restart:
+    desc: Restart admin web server
+    dir: tdp-admin
+    cmds:
+      - docker compose -f docker-compose.local.yml restart
+
+  admin-bash:
+    desc: Open a shell in the admin container
+    dir: tdp-admin
+    cmds:
+      - docker compose -f docker-compose.local.yml exec tdp-admin sh
+
+  admin-test:
+    desc: Run admin unit tests (Vitest)
+    dir: tdp-admin
+    cmds:
+      - yarn test
+
+  admin-test-watch:
+    desc: Run admin unit tests in watch mode
+    dir: tdp-admin
+    cmds:
+      - yarn test:watch
+
   frontend-init:
     desc: Initialize the frontend project (localdev image with node_modules)
     dir: tdrs-frontend
@@ -294,6 +435,7 @@ tasks:
     cmds:
       - export CYPRESS_TOKEN=local-cypress-token
       - docker compose -f docker-compose.yml exec web python manage.py delete_cypress_users -usernames new-cypress@teamraft.com cypress-admin@teamraft.com cypress-data-analyst-dana@teamraft.com cypress-fra-data-analyst-derek@teamraft.com cypress-data-analyst-donna@teamraft.com cypress-fra-data-analyst-david@teamraft.com cypress-fra-ofa-regional-staff-rachel@acf.hhs.gov cypress-fra-ofa-regional-staff-robert@acf.hhs.gov cypress-fra-ofa-regional-staff-rita@acf.hhs.gov cypress-fra-ofa-regional-staff-ryan@acf.hhs.gov
+      - docker compose -f docker-compose.yml exec web python manage.py reset_cypress_profile_editing_users --allow-non-debug
       - docker compose -f docker-compose.yml exec web python manage.py loaddata cypress/users cypress/data_files cypress/regions cypress/profile_editing_regions cypress/profile_editing_users cypress/feature_flags
 
   frontend-e2e-local:
@@ -320,9 +462,9 @@ tasks:
       - env -u ELECTRON_RUN_AS_NODE npx cypress verify || env -u ELECTRON_RUN_AS_NODE npx cypress install --force
       - |
         if command -v corepack >/dev/null 2>&1; then
-          env -u ELECTRON_RUN_AS_NODE yarn test:e2e-ci
+          CYPRESS_TOKEN={{.CYPRESS_TOKEN}} env -u ELECTRON_RUN_AS_NODE yarn test:e2e-ci
         else
-          env -u ELECTRON_RUN_AS_NODE npx --yes @yarnpkg/cli-dist@4.6.0 test:e2e-ci
+          CYPRESS_TOKEN={{.CYPRESS_TOKEN}} env -u ELECTRON_RUN_AS_NODE npx --yes @yarnpkg/cli-dist@4.6.0 test:e2e-ci
         fi
 
   frontend-e2e-cmd:
@@ -349,17 +491,91 @@ tasks:
       - task: backend-up
       - task: frontend-up
 
+  up-with-admin:
+    desc: Start backend, frontend, and admin web servers
+    cmds:
+      - task: backend-up
+      - task: frontend-up
+      - task: admin-up
+
   update-deps:
     desc: Rebuild backend/frontend and apply dependency updates (no data wipe)
     cmds:
       - task: backend-update
       - task: frontend-update
 
+  update-all:
+    desc: Rebuild backend, frontend, and admin without wiping data
+    cmds:
+      - task: backend-update
+      - task: frontend-update
+      - task: admin-up
+
   down:
     desc: Stop both frontend and backend web servers
     cmds:
       - task: backend-down
       - task: frontend-down
+
+  down-with-admin:
+    desc: Stop backend, frontend, and admin web servers
+    cmds:
+      - task: backend-down
+      - task: frontend-down
+      - task: admin-down
+
+  create-infected-test-file:
+    desc: Create a test file with a valid TANF header that ClamAV will flag as infected
+    dir: tdrs-backend
+    preconditions:
+      - sh: docker compose ps clamav-rest --status running -q 2>/dev/null
+        msg: "clamav-rest container is not running. Start it first with: task backend-up"
+    cmds:
+      - |
+        printf 'HEADER20204A06   TAN1ED\nTDP-INFECTED-TEST-MARKER\nTRAILER0000001         \n' > infected_test.txt
+      - >-
+        docker compose exec -T clamav-rest sh -c
+        'echo "TDP.Test.Infected:0:*:5444502d494e4645435445442d544553542d4d41524b4552" > /var/lib/clamav/tdp-test.ndb
+        && pkill -USR2 clamd
+        && sleep 5
+        && tail -1 /var/log/clamav/clamd.log'
+      - echo "Created tdrs-backend/infected_test.txt and loaded ClamAV test signature. Upload this file through the frontend to test AV rejection."
+
+  parser:compile-check:
+    desc: Compile all Go parser packages and tests
+    dir: tdrs-services/parser
+    cmds:
+      - make compile-check
+
+  parser:lint:
+    desc: Run static analysis for the Go parser
+    dir: tdrs-services/parser
+    cmds:
+      - make lint
+
+  parser:validate-config:
+    desc: Load parser config, compile validator expressions, and verify native executor coverage
+    dir: tdrs-services/parser
+    cmds:
+      - make validate-config
+
+  parser:test-all-coverage:
+    desc: Run all Go parser tests with coverage
+    dir: tdrs-services/parser
+    cmds:
+      - make test-all-coverage
+
+  parser:coverage-report:
+    desc: Generate readable Go parser coverage summary and HTML artifacts
+    dir: tdrs-services/parser
+    cmds:
+      - make coverage-report
+
+  parser:ci-checks:
+    desc: Run the non-test CI checks for the Go parser
+    dir: tdrs-services/parser
+    cmds:
+      - make ci-checks
 
   help:
     desc: Show this help message

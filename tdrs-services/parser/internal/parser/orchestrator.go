@@ -1,9 +1,11 @@
 package parser
 
 import (
-	"log"
+	"context"
+	"log/slog"
 
 	"go-parser/internal/config/filespec"
+	"go-parser/internal/logging"
 )
 
 // ParsingOrchestrator coordinates parsing logic for decoded batches.
@@ -39,16 +41,14 @@ func (o *ParsingOrchestrator) ParseBatch(batch *DecodedBatch) *ParsedBatch {
 // processGroup parses all records in a single group.
 func (o *ParsingOrchestrator) processGroup(decodedGroup *DecodedGroup) *ParsedGroup {
 	result := &ParsedGroup{
-		Key:          decodedGroup.Key,
-		RptMonthYear: decodedGroup.RptMonthYear,
-		CaseNumber:   decodedGroup.CaseNumber,
-		Records:      make([]*ParsedRecord, 0, len(decodedGroup.DecodedRecords)),
+		Key:     decodedGroup.Key,
+		Records: make([]*ParsedRecord, 0, len(decodedGroup.DecodedRecords)),
 	}
 
 	for _, line := range decodedGroup.DecodedRecords {
 		records, err := o.parseRow(line)
 		if err != nil {
-			log.Printf("Failed to parse line %d: %v", line.Row.LineNum(), err)
+			logging.Error(context.Background(), "Failed to parse line", slog.Int("line_number", line.Row.LineNum()))
 			continue
 		}
 		result.Records = append(result.Records, records...)
@@ -69,19 +69,16 @@ func (o *ParsingOrchestrator) parseRow(decodedRecord DecodedRecord) ([]*ParsedRe
 	}
 
 	// Parse shared fields once into a cache (one small allocation per row).
-	// We use ParsedFieldCache to store both the FieldDef pointer and value,
-	// enabling O(1) field metadata access during validation.
+	// We store both FieldDef and Value, even when the value is nil, so validation
+	// can still see required/missing fields.
 	sharedCache := make(ParsedFieldCache, len(schema.Shared))
 	for i := range schema.Shared {
 		field := &schema.Shared[i]
 		value, err := o.extractor.Extract(decodedRecord.Row, field, o.parseCtx, sharedCache)
 		if err != nil {
-			log.Printf("Failed to extract shared field %s: %v", field.Name, err)
 			continue
 		}
-		if value != nil {
-			sharedCache[field.Name] = ParsedField{Def: field, Value: value}
-		}
+		sharedCache[field.Name] = ParsedField{Def: field, Value: value}
 	}
 
 	// Parse each segment into a separate record acquired from the pool
@@ -98,31 +95,28 @@ func (o *ParsingOrchestrator) parseRow(decodedRecord DecodedRecord) ([]*ParsedRe
 			record.SetField(pf.Def, pf.Value)
 		}
 
-		// Parse segment-specific fields directly into record using SetField()
-		missingRequired := false
+		// Parse segment-specific fields directly into record using SetField().
+		// We keep segment 0 records even when required fields are nil so validation
+		// can emit parser errors. Secondary segments are still suppressed when
+		// they have no source data of their own. Computed/source_field values do
+		// not count as segment data for this check because they can be populated
+		// even when the segment's real columns are blank (for example T7 month rows).
+		hasSegmentData := false
 		for i := range segment.Fields {
 			field := &segment.Fields[i]
 			// The extractor expects a FieldGetter for lookups (e.g., source_field resolution)
 			value, err := o.extractor.Extract(decodedRecord.Row, field, o.parseCtx, record)
 			if err != nil {
-				log.Printf("Failed to extract field %s: %v", field.Name, err)
 				continue
 			}
-			if value != nil {
-				record.SetField(field, value)
-			} else if field.Required || segIdx >= 1 {
-				// TODO: do we generate an error here?
-				// Most multi record schemas don't have the 2 through N segment's field's marked as required.
-				// Therefore if the value is nil and the field is required or the segment index is greater than 0
-				// we skip creating the record since it is invalid.
-				// log.Printf("Skipping record for segment %d, type %s, line %d, field %s is nil", segIdx, record.Schema.RecordType, record.LineNumber, field.Name)
-				missingRequired = true
-				break
+			record.SetField(field, value)
+			if field.SourceField == "" && value != nil {
+				hasSegmentData = true
 			}
 		}
 
-		if missingRequired {
-			// Invalid segment - release record back to pool immediately
+		if segIdx >= 1 && !hasSegmentData {
+			// Blank secondary segment - release record back to pool immediately.
 			schema.ReleaseRecord(record)
 			continue
 		}

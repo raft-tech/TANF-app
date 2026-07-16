@@ -3,12 +3,12 @@ package local
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"go-parser/internal/config"
-	"go-parser/internal/decoder"
+	"go-parser/internal/logging"
 	"go-parser/internal/pipeline"
 	"go-parser/internal/server"
 	"go-parser/internal/storage/reader"
@@ -35,6 +35,10 @@ func (local *Server) needsDatabase() bool {
 	return local.Config.Writer.Mode != "file"
 }
 
+func (local *Server) dataFileTableName() string {
+	return config.DataFileTableName(local.Config.Database.EffectiveTablePrefix())
+}
+
 // dbResources holds the database-related resources created for a local run.
 type dbResources struct {
 	pool       *pgxpool.Pool
@@ -56,15 +60,19 @@ func (local *Server) setupDatabase(ctx context.Context, dfCtx pipeline.DataFileC
 		return nil, noop, err
 	}
 
-	datafileID, err := testutil.CreateTestDatafile(ctx, pool, dfCtx.FiscalQuarter, dfCtx.FiscalYear, dfCtx.SectionName, dfCtx.Program)
+	dataFileTableName := local.dataFileTableName()
+	datafileID, err := testutil.CreateTestDatafileInTable(ctx, pool, dataFileTableName, dfCtx.FiscalQuarter, dfCtx.FiscalYear, dfCtx.SectionName, dfCtx.Program)
 	if err != nil {
 		pool.Close()
 		return nil, noop, fmt.Errorf("failed to create test datafile: %w", err)
 	}
-	log.Printf("Created test datafile with ID: %d", datafileID)
+	logging.Info(ctx, "created local test datafile",
+		slog.Int(logging.KeyFileID, int(datafileID)),
+		slog.String(logging.KeyStage, "local_database_setup"),
+	)
 
 	cleanup := func() {
-		testutil.DeleteTestDatafile(ctx, pool, datafileID)
+		testutil.DeleteTestDatafileFromTable(ctx, pool, dataFileTableName, datafileID)
 		pool.Close()
 	}
 
@@ -119,36 +127,11 @@ func (server *Server) Run(ctx context.Context) error {
 	}
 	defer sink.Close()
 
-	// ---- Open file and create decoder ----
+	// ---- Open file, decode, and run pipeline ----
 	source := reader.NewLocalSource(local.FilePath)
-	file, err := source.Open(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
-	defer source.Cleanup()
-
-	spec := server.Registry.GetFileSpec(dfCtx.Program, dfCtx.Section)
-	if spec == nil {
-		return fmt.Errorf("no file spec for %s section %d", dfCtx.Program, dfCtx.Section)
-	}
-
-	dec, err := decoder.CreateDecoder(file, spec)
-	if err != nil {
-		return fmt.Errorf("failed to create decoder: %w", err)
-	}
-	defer dec.Close()
-
-	// ---- Run pipeline ----
-	pipeln := pipeline.NewPipeline(sink, server.Registry, server.Validators, pipeline.NewConfig(server.Config))
-	result, err := pipeln.Process(ctx, dec, dfCtx)
+	_, err = server.RunPipeline(ctx, source, sink, dfCtx)
 	if err != nil {
 		return fmt.Errorf("failed to process file: %w", err)
-	}
-
-	log.Printf("File processed successfully in %s", result.Duration)
-	for table, count := range result.RecordCounts {
-		log.Printf("Written to %s: %d records", table, count)
 	}
 
 	return nil
