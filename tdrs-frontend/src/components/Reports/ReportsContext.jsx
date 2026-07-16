@@ -638,7 +638,10 @@ export const ReportsProvider = ({ isFra = false, children }) => {
       processingAlertRef &&
       processingAlertRef.current
     ) {
-      processingAlertRef.current.scrollIntoView({ behavior: 'smooth' })
+      processingAlertRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
     }
   }, [processingAlert, processingAlertRef])
 

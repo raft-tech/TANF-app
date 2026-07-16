@@ -223,7 +223,7 @@ export const submit =
           throw err
         }
 
-        setUploadAlertState({
+        setProcessingAlertState({
           active: true,
           type: 'success',
           message: `Successfully uploaded section(s): ${formattedSections} on ${new Date().toDateString()}`,
