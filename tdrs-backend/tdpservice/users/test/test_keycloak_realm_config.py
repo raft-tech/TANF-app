@@ -87,8 +87,8 @@ def test_staging_config_excludes_local_urls():
         "https://develop.tanfdata.acf.hhs.gov/*",
     ]
     assert admin_client["redirectUris"] == [
-        "https://tdp-admin-staging.acf.hhs.gov/*",
-        "https://tdp-admin-develop.acf.hhs.gov/*",
+        "https://staging.admin.tanfdata.acf.hhs.gov/*",
+        "https://develop.admin.tanfdata.acf.hhs.gov/*",
         "https://staging.tanfdata.acf.hhs.gov/admin-auth/*",
         "https://develop.tanfdata.acf.hhs.gov/admin-auth/*",
     ]

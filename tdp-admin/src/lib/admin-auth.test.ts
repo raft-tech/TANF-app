@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   checkBackendHealth,
   buildAdminRequestHeaders,
@@ -17,6 +17,11 @@ import {
 } from "./admin-auth";
 
 const originalEnv = { ...process.env };
+
+beforeEach(() => {
+  delete process.env.ADMIN_BACKEND_URL;
+  delete process.env.NEXT_PUBLIC_AUTH_BROWSER_URL;
+});
 
 afterEach(() => {
   process.env = { ...originalEnv };
@@ -91,17 +96,27 @@ describe("admin auth helpers", () => {
     expect(result.error).toContain("404");
   });
 
-  it("extracts and forwards Django CSRF context for mutating requests", () => {
+  it("forwards explicit Django CSRF context for mutating requests", () => {
     const cookieHeader = "sessionid=abc; csrftoken=my-csrf-token";
     const headers = buildAdminRequestHeaders({
       cookieHeader,
+      csrfToken: "header-csrf-token",
       includeCsrf: true,
     });
 
     expect(getCsrfTokenFromCookie(cookieHeader)).toBe("my-csrf-token");
     expect(headers.get("Cookie")).toBe(cookieHeader);
-    expect(headers.get("X-CSRFToken")).toBe("my-csrf-token");
+    expect(headers.get("X-CSRFToken")).toBe("header-csrf-token");
     expect(headers.get("x-service-name")).toBeNull();
+  });
+
+  it("does not use cookie CSRF as a header fallback", () => {
+    const headers = buildAdminRequestHeaders({
+      cookieHeader: "sessionid=abc; csrftoken=my-csrf-token",
+      includeCsrf: true,
+    });
+
+    expect(headers.get("X-CSRFToken")).toBeNull();
   });
 
   it("checks the admin-scoped Django session", async () => {

@@ -166,9 +166,8 @@ export function buildAdminRequestHeaders({
   }
 
   if (includeCsrf) {
-    const token = csrfToken ?? getCsrfTokenFromCookie(cookieHeader ?? null);
-    if (token) {
-      requestHeaders.set("X-CSRFToken", token);
+    if (csrfToken) {
+      requestHeaders.set("X-CSRFToken", csrfToken);
     }
   }
 

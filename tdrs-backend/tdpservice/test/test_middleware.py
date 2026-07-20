@@ -1,10 +1,13 @@
 """Tests for project middleware."""
 
+from types import SimpleNamespace
+
 from django.http import HttpResponse
 from django.test import RequestFactory
 from django.urls import reverse
 
-from tdpservice.middleware import SessionMiddleware
+from tdpservice.middleware import AdminAPIAuthorizationMiddleware, SessionMiddleware
+from tdpservice.users.models import AccountApprovalStatusChoices
 
 
 def _response_with_origin(origin, settings):
@@ -200,3 +203,39 @@ def test_session_middleware_varies_on_cookie_when_session_is_saved(settings):
 
     assert settings.SESSION_COOKIE_NAME in response.cookies
     assert "Cookie" in response["Vary"]
+
+
+def _admin_api_response_for_user(user):
+    middleware = AdminAPIAuthorizationMiddleware(lambda request: HttpResponse())
+    request = RequestFactory().get("/admin-api/v1/users/profile/")
+    request.user = user
+
+    return middleware(request)
+
+
+def test_admin_api_authorization_middleware_rejects_unapproved_admin_user():
+    """Admin API middleware should require approved admin users."""
+    user = SimpleNamespace(
+        is_authenticated=True,
+        is_ofa_sys_admin=True,
+        is_active=True,
+        account_approval_status=AccountApprovalStatusChoices.PENDING,
+    )
+
+    response = _admin_api_response_for_user(user)
+
+    assert response.status_code == 403
+
+
+def test_admin_api_authorization_middleware_rejects_inactive_admin_user():
+    """Admin API middleware should require active admin users."""
+    user = SimpleNamespace(
+        is_authenticated=True,
+        is_ofa_sys_admin=True,
+        is_active=False,
+        account_approval_status=AccountApprovalStatusChoices.APPROVED,
+    )
+
+    response = _admin_api_response_for_user(user)
+
+    assert response.status_code == 403

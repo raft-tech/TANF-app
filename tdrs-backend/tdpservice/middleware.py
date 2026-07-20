@@ -12,6 +12,8 @@ from django.utils.cache import add_never_cache_headers, patch_vary_headers
 from django.utils.crypto import constant_time_compare
 from django.utils.http import http_date
 
+from tdpservice.users.authorization import is_authorized_admin_user
+
 
 ADMIN_AUTH_PREFIX = "/admin-auth/"
 ADMIN_API_PREFIX = "/admin-api/"
@@ -216,7 +218,7 @@ class AdminAPIAuthorizationMiddleware:
                     status=401,
                 )
 
-            if not getattr(user, "is_ofa_sys_admin", False):
+            if not is_authorized_admin_user(user):
                 return JsonResponse(
                     {
                         "authenticated": True,

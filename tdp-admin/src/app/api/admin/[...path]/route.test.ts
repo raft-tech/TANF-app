@@ -1,8 +1,12 @@
 import { NextRequest } from "next/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET, POST } from "./route";
 
 const originalEnv = { ...process.env };
+
+beforeEach(() => {
+  delete process.env.ADMIN_BACKEND_URL;
+});
 
 afterEach(() => {
   process.env = { ...originalEnv };
@@ -124,6 +128,7 @@ describe("admin API proxy", () => {
   it("forwards CSRF context for mutating requests", async () => {
     process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
     process.env.ADMIN_API_PROXY_TOKEN = "server-only-token";
+    process.env.ADMIN_FRONTEND_ORIGIN = "https://admin.example.gov";
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({ ok: true })));
 
     const request = new NextRequest("https://admin.example.gov/api/admin/users", {
@@ -131,7 +136,9 @@ describe("admin API proxy", () => {
       body: JSON.stringify({ active: true }),
       headers: {
         "content-type": "application/json",
-        cookie: "admin_sessionid=abc; csrftoken=csrf-token",
+        "X-CSRFToken": "header-csrf-token",
+        cookie: "admin_sessionid=abc; csrftoken=cookie-csrf-token",
+        origin: "https://admin.example.gov",
       },
     });
 
@@ -147,8 +154,85 @@ describe("admin API proxy", () => {
     expect(options?.method).toBe("POST");
     expect(options?.body).toBe(JSON.stringify({ active: true }));
     expect(headers.get("content-type")).toBe("application/json");
-    expect(headers.get("X-CSRFToken")).toBe("csrf-token");
+    expect(headers.get("X-CSRFToken")).toBe("header-csrf-token");
     expect(headers.get("X-Admin-Proxy-Token")).toBe("server-only-token");
+  });
+
+  it("fails closed when the admin frontend origin is not configured for mutations", async () => {
+    process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
+    process.env.ADMIN_API_PROXY_TOKEN = "server-only-token";
+    delete process.env.ADMIN_FRONTEND_ORIGIN;
+    vi.stubGlobal("fetch", vi.fn());
+
+    const request = new NextRequest("https://admin.example.gov/api/admin/users", {
+      method: "POST",
+      body: JSON.stringify({ active: true }),
+      headers: {
+        "X-CSRFToken": "csrf-token",
+        origin: "https://admin.example.gov",
+      },
+    });
+
+    const response = await POST(request, {
+      params: Promise.resolve({ path: ["users"] }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toBe("ADMIN_FRONTEND_ORIGIN is not configured.");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects mutating requests from unexpected origins", async () => {
+    process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
+    process.env.ADMIN_API_PROXY_TOKEN = "server-only-token";
+    process.env.ADMIN_FRONTEND_ORIGIN = "https://admin.example.gov";
+    vi.stubGlobal("fetch", vi.fn());
+
+    const request = new NextRequest("https://admin.example.gov/api/admin/users", {
+      method: "POST",
+      body: JSON.stringify({ active: true }),
+      headers: {
+        "X-CSRFToken": "csrf-token",
+        origin: "https://evil.example.gov",
+      },
+    });
+
+    const response = await POST(request, {
+      params: Promise.resolve({ path: ["users"] }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(data.error).toBe("Origin is not allowed for admin API mutations.");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects mutating requests without a CSRF header", async () => {
+    process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
+    process.env.ADMIN_API_PROXY_TOKEN = "server-only-token";
+    process.env.ADMIN_FRONTEND_ORIGIN = "https://admin.example.gov";
+    vi.stubGlobal("fetch", vi.fn());
+
+    const request = new NextRequest("https://admin.example.gov/api/admin/users", {
+      method: "POST",
+      body: JSON.stringify({ active: true }),
+      headers: {
+        cookie: "admin_sessionid=abc; csrftoken=cookie-csrf-token",
+        origin: "https://admin.example.gov",
+      },
+    });
+
+    const response = await POST(request, {
+      params: Promise.resolve({ path: ["users"] }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(data.error).toBe(
+      "X-CSRFToken header is required for admin API mutations."
+    );
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("fails closed when the proxy token is not configured", async () => {

@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   buildAdminRequestHeaders,
   getAdminBackendBaseUrl,
-  getCsrfTokenFromCookie,
 } from "@/lib/admin-auth";
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+function normalizeOrigin(origin: string) {
+  return new URL(origin).origin;
+}
 
 function getBackendUrl(pathSegments: string[], search: string) {
   const backendBaseUrl = getAdminBackendBaseUrl();
@@ -17,6 +20,95 @@ function getBackendUrl(pathSegments: string[], search: string) {
   const normalizedBaseUrl = backendBaseUrl.replace(/\/$/, "");
   const normalizedPath = pathSegments.map(encodeURIComponent).join("/");
   return `${normalizedBaseUrl}/${normalizedPath}${search}`;
+}
+
+function getExpectedAdminOrigin() {
+  const expectedOrigin = process.env.ADMIN_FRONTEND_ORIGIN;
+
+  if (!expectedOrigin) {
+    return null;
+  }
+
+  try {
+    return normalizeOrigin(expectedOrigin);
+  } catch {
+    return null;
+  }
+}
+
+function validateMutatingRequest(request: NextRequest) {
+  const expectedOrigin = getExpectedAdminOrigin();
+
+  if (!expectedOrigin) {
+    return {
+      response: NextResponse.json(
+        {
+          ok: false,
+          error: "ADMIN_FRONTEND_ORIGIN is not configured.",
+        },
+        { status: 500 }
+      ),
+      csrfToken: null,
+    };
+  }
+
+  const origin = request.headers.get("origin");
+
+  if (!origin) {
+    return {
+      response: NextResponse.json(
+        {
+          ok: false,
+          error: "Origin header is required for admin API mutations.",
+        },
+        { status: 403 }
+      ),
+      csrfToken: null,
+    };
+  }
+
+  try {
+    if (normalizeOrigin(origin) !== expectedOrigin) {
+      return {
+        response: NextResponse.json(
+          {
+            ok: false,
+            error: "Origin is not allowed for admin API mutations.",
+          },
+          { status: 403 }
+        ),
+        csrfToken: null,
+      };
+    }
+  } catch {
+    return {
+      response: NextResponse.json(
+        {
+          ok: false,
+          error: "Origin header is invalid.",
+        },
+        { status: 403 }
+      ),
+      csrfToken: null,
+    };
+  }
+
+  const csrfToken = request.headers.get("X-CSRFToken")?.trim();
+
+  if (!csrfToken) {
+    return {
+      response: NextResponse.json(
+        {
+          ok: false,
+          error: "X-CSRFToken header is required for admin API mutations.",
+        },
+        { status: 403 }
+      ),
+      csrfToken: null,
+    };
+  }
+
+  return { response: null, csrfToken };
 }
 
 async function proxyAdminRequest(
@@ -48,13 +140,20 @@ async function proxyAdminRequest(
     );
   }
 
+  const isMutatingRequest = MUTATING_METHODS.has(request.method);
+  const mutatingRequestValidation = isMutatingRequest
+    ? validateMutatingRequest(request)
+    : { response: null, csrfToken: null };
+
+  if (mutatingRequestValidation.response) {
+    return mutatingRequestValidation.response;
+  }
+
   const cookieHeader = request.headers.get("cookie");
-  const csrfToken =
-    request.headers.get("X-CSRFToken") ?? getCsrfTokenFromCookie(cookieHeader);
   const headers = buildAdminRequestHeaders({
     cookieHeader,
-    csrfToken,
-    includeCsrf: MUTATING_METHODS.has(request.method),
+    csrfToken: mutatingRequestValidation.csrfToken,
+    includeCsrf: isMutatingRequest,
   });
   const contentType = request.headers.get("content-type");
 

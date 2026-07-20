@@ -25,6 +25,7 @@ The login and health flows use these environment variables:
 - `NEXT_PUBLIC_AUTH_BROWSER_URL`
 - `NEXT_PUBLIC_BACKEND_URL`
 - `ADMIN_BACKEND_URL`
+- `ADMIN_FRONTEND_ORIGIN`
 - `ADMIN_API_PROXY_TOKEN`
 
 `NEXT_PUBLIC_AUTH_URL` should point to the Django auth origin. When it is not
@@ -55,6 +56,11 @@ When `ADMIN_BACKEND_URL` is not set, the app derives it from
 `ADMIN_API_PROXY_TOKEN` must match the Django backend's
 `ADMIN_API_PROXY_TOKEN`; the Next.js server sends it to Django for
 `/admin-api/v1/*` requests.
+`ADMIN_FRONTEND_ORIGIN` must match the browser origin of the admin app, such as
+`http://localhost:3001` locally or `https://admin.tanfdata.acf.hhs.gov` in
+production. The `/api/admin/*` proxy rejects mutating requests when the request
+`Origin` does not match this value, and it forwards CSRF only from the
+`X-CSRFToken` request header.
 
 The Django backend remains authoritative for session validation and admin
 authorization. Next.js route gating is only a user-experience guard.

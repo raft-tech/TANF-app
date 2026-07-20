@@ -14,6 +14,7 @@ services:
       - NEXT_PUBLIC_AUTH_BROWSER_URL=http://localhost:8989
       - NEXT_PUBLIC_BACKEND_URL=http://host.docker.internal:8989/v1
       - ADMIN_BACKEND_URL=http://host.docker.internal:8989/admin-api/v1
+      - ADMIN_FRONTEND_ORIGIN=http://localhost:3001
       - ADMIN_API_PROXY_TOKEN=local-admin-proxy-token
       - NEXT_PUBLIC_BACKEND_HOST=http://host.docker.internal:8989
     volumes:

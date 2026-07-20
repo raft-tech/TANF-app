@@ -253,7 +253,7 @@ class Staging(CloudGov):
     """Settings for applications deployed in the Cloud.gov staging space."""
 
     ADMIN_FRONTEND_BASE_URL = os.getenv(
-        "ADMIN_FRONTEND_BASE_URL", "https://tdp-admin-staging.acf.hhs.gov"
+        "ADMIN_FRONTEND_BASE_URL", "https://staging.admin.tanfdata.acf.hhs.gov"
     )
     ALLOWED_HOSTS = [
         "staging.tanfdata.acf.hhs.gov",
@@ -278,7 +278,7 @@ class Staging(CloudGov):
     )
 
     # Cookie settings
-    SESSION_COOKIE_DOMAIN = ".acf.hhs.gov"
+    SESSION_COOKIE_DOMAIN = ".tanfdata.acf.hhs.gov"
 
     # Cloud.gov SET integration settings
     LOGIN_GOV_SET_AUDIENCE = os.getenv(
@@ -306,7 +306,7 @@ class Production(CloudGov):
 
     # Cookie settings
     SESSION_COOKIE_SAMESITE = "None"
-    SESSION_COOKIE_DOMAIN = ".acf.hhs.gov"
+    SESSION_COOKIE_DOMAIN = ".tanfdata.acf.hhs.gov"
     SESSION_COOKIE_PATH = "/;HttpOnly"
 
     # CORS allowed origins

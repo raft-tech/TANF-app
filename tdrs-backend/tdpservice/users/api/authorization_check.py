@@ -11,6 +11,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..authorization import is_authorized_admin_user
 from ..serializers import UserProfileSerializer
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ class AdminAuthorizationCheck(AuthorizationCheck):
             return response
 
         user = request.user
-        is_admin = getattr(user, "is_ofa_sys_admin", False)
+        is_admin = is_authorized_admin_user(user)
 
         response.data["authorized"] = is_admin
         response.data["csrf"] = csrf.get_token(request)

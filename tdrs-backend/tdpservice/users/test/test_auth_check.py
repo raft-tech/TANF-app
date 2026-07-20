@@ -8,6 +8,7 @@ from django.urls import reverse
 import pytest
 from rest_framework import status
 
+from ..models import AccountApprovalStatusChoices
 from ..serializers import UserProfileSerializer
 
 
@@ -242,6 +243,38 @@ def test_admin_auth_check_rejects_non_admin(api_client, user, settings):
     """Admin auth_check should keep Django authoritative for admin authz."""
     api_client.login(username=user.username, password="test_password")
     _copy_standard_session_to_admin_cookie(api_client, settings)
+    response = api_client.get(reverse("admin-authorization-check"))
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.data["authenticated"] is True
+    assert response.data["authorized"] is False
+
+
+@pytest.mark.django_db
+def test_admin_auth_check_rejects_unapproved_ofa_system_admin(
+    api_client, ofa_system_admin
+):
+    """Admin auth_check should require OFA System Admin users to be approved."""
+    ofa_system_admin.account_approval_status = AccountApprovalStatusChoices.PENDING
+    ofa_system_admin.save()
+    api_client.force_authenticate(user=ofa_system_admin)
+
+    response = api_client.get(reverse("admin-authorization-check"))
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.data["authenticated"] is True
+    assert response.data["authorized"] is False
+
+
+@pytest.mark.django_db
+def test_admin_auth_check_rejects_inactive_ofa_system_admin(
+    api_client, ofa_system_admin
+):
+    """Admin auth_check should require OFA System Admin users to be active."""
+    ofa_system_admin.is_active = False
+    ofa_system_admin.save()
+    api_client.force_authenticate(user=ofa_system_admin)
+
     response = api_client.get(reverse("admin-authorization-check"))
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
