@@ -29,39 +29,6 @@ class Region(models.Model):
         return f"Region {self.id} ({self.name})"
 
 
-class Program(models.Model):
-    """A model representing a reporting program."""
-
-    slug = models.SlugField(max_length=50, unique=True)
-    name = models.CharField(max_length=100, unique=True)
-
-    def __str__(self):
-        """Return the program name."""
-        return self.name
-
-
-class Section(models.Model):
-    """A model representing a reporting section for a program."""
-
-    program = models.ForeignKey(
-        Program, on_delete=models.CASCADE, related_name="sections"
-    )
-    name = models.CharField(max_length=100)
-
-    class Meta:
-        """Metadata."""
-
-        constraints = [
-            constraints.UniqueConstraint(
-                fields=["program", "name"], name="section_uniq_program_name"
-            ),
-        ]
-
-    def __str__(self):
-        """Return the section name."""
-        return f"{self.program.name} - {self.name}"
-
-
 class STT(models.Model):
     """A model representing a US state, tribe or territory."""
 
@@ -137,10 +104,14 @@ class SttProgramParticipation(models.Model):
         STT, on_delete=models.CASCADE, related_name="program_participations"
     )
     program = models.ForeignKey(
-        Program, on_delete=models.CASCADE, related_name="stt_participations"
+        "data_files.Program",
+        on_delete=models.CASCADE,
+        related_name="stt_participations",
     )
     status = models.CharField(max_length=10, choices=Status.choices)
-    sections = models.ManyToManyField(Section, blank=True, related_name="participations")
+    sections = models.ManyToManyField(
+        "data_files.Section", blank=True, related_name="participations"
+    )
 
     class Meta:
         """Metadata."""

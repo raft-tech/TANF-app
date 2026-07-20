@@ -12,7 +12,8 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from tdpservice.conftest import UserFactory
-from tdpservice.stts.models import Program, STT, Region, Section, SttProgramParticipation
+from tdpservice.data_files.models import Program, Section
+from tdpservice.stts.models import STT, Region, SttProgramParticipation
 from tdpservice.stts.views import STTApiAlphaView
 
 User = get_user_model()

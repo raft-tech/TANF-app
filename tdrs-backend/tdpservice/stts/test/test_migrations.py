@@ -41,8 +41,8 @@ def test_ssp_program_participation_data_migration():
         executor = MigrationExecutor(connection)
         executor.migrate(migrate_to)
         new_apps = executor.loader.project_state(migrate_to).apps
-        Program = new_apps.get_model("stts", "Program")
-        Section = new_apps.get_model("stts", "Section")
+        Program = new_apps.get_model("data_files", "Program")
+        Section = new_apps.get_model("data_files", "Section")
         SttProgramParticipation = new_apps.get_model(
             "stts", "SttProgramParticipation"
         )

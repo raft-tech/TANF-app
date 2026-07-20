@@ -8,7 +8,9 @@ from pathlib import Path
 from django.core.management import BaseCommand
 from django.utils import timezone
 
-from ...models import Program, STT, Region, SttProgramParticipation
+from tdpservice.data_files.models import Program
+
+from ...models import STT, Region, SttProgramParticipation
 
 DATA_DIR = BASE_DIR = Path(__file__).resolve().parent / "data"
 logger = logging.getLogger(__name__)

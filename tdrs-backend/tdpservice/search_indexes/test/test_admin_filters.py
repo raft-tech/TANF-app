@@ -3,7 +3,8 @@
 import pytest
 
 from tdpservice.search_indexes.admin.filters import _ssp_participating_stts
-from tdpservice.stts.models import Program, STT, Region, SttProgramParticipation
+from tdpservice.data_files.models import Program
+from tdpservice.stts.models import STT, Region, SttProgramParticipation
 
 
 def _create_stt(name):

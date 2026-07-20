@@ -1,11 +1,9 @@
 """Add STTs and Regions to Django Admin."""
 
 from django.contrib import admin
-from django.urls import reverse
-from django.utils.html import format_html
 
 from ..core.utils import ReadOnlyAdminMixin
-from .models import Program, STT, Region, Section, SttProgramParticipation
+from .models import STT, Region, SttProgramParticipation
 
 
 @admin.register(STT)
@@ -42,45 +40,6 @@ class RegionAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Read-only Admin class for STT models."""
 
     list_display = [field.name for field in Region._meta.fields]
-
-
-class SectionInline(admin.TabularInline):
-    """Read-only inline for sections associated with a program."""
-
-    model = Section
-    fields = ["section_link"]
-    readonly_fields = ["section_link"]
-    extra = 0
-    can_delete = False
-
-    def section_link(self, obj):
-        """Link to the section admin detail page."""
-        url = reverse("admin:stts_section_change", args=[obj.pk])
-        return format_html('<a href="{}">{}</a>', url, obj.name)
-
-    section_link.short_description = "Name"
-
-    def has_add_permission(self, request, obj=None):
-        """Prevent adding sections from the Program admin page."""
-        return False
-
-
-@admin.register(Program)
-class ProgramAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
-    """Read-only Admin class for Program models."""
-
-    search_fields = ["slug", "name"]
-    list_display = ["id", "slug", "name"]
-    inlines = [SectionInline]
-
-
-@admin.register(Section)
-class SectionAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
-    """Read-only Admin class for Section models."""
-
-    search_fields = ["name", "program__slug", "program__name"]
-    list_display = ["id", "program", "name"]
-    list_select_related = ["program"]
 
 
 @admin.register(SttProgramParticipation)

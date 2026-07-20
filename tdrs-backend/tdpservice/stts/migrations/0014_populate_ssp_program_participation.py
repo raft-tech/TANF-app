@@ -41,8 +41,8 @@ PROGRAMS = {
 
 
 def seed_programs_and_sections(apps):
-    Program = apps.get_model('stts', 'Program')
-    Section = apps.get_model('stts', 'Section')
+    Program = apps.get_model('data_files', 'Program')
+    Section = apps.get_model('data_files', 'Section')
 
     programs = {}
     for slug, data in PROGRAMS.items():
@@ -78,8 +78,8 @@ def populate_ssp_program_participation(apps, schema_editor):
 
 
 def reverse_ssp_program_participation(apps, schema_editor):
-    Program = apps.get_model('stts', 'Program')
-    Section = apps.get_model('stts', 'Section')
+    Program = apps.get_model('data_files', 'Program')
+    Section = apps.get_model('data_files', 'Section')
     SttProgramParticipation = apps.get_model('stts', 'SttProgramParticipation')
 
     ssp_program = Program.objects.filter(slug='ssp').first()

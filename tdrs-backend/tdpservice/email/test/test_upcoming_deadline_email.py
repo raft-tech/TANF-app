@@ -9,7 +9,8 @@ import pytest
 
 from tdpservice.data_files.models import DataFile
 from tdpservice.email.tasks import send_data_submission_reminder
-from tdpservice.stts.models import Program, STT, SttProgramParticipation
+from tdpservice.data_files.models import Program
+from tdpservice.stts.models import STT, SttProgramParticipation
 from tdpservice.users.models import User
 
 QUARTERLY_PARAMS = pytest.mark.parametrize(

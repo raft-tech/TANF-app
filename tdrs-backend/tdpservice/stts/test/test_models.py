@@ -2,7 +2,8 @@
 import pytest
 from django.db import IntegrityError, transaction
 
-from tdpservice.stts.models import Program, STT, Region, Section, SttProgramParticipation
+from tdpservice.data_files.models import Program, Section
+from tdpservice.stts.models import STT, Region, SttProgramParticipation
 
 
 def _create_program():

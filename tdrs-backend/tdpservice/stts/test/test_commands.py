@@ -6,7 +6,8 @@ from django.core.management import call_command
 
 import pytest
 
-from tdpservice.stts.models import Program, STT, Region, SttProgramParticipation
+from tdpservice.data_files.models import Program
+from tdpservice.stts.models import STT, Region, SttProgramParticipation
 
 
 def _ssp_program():

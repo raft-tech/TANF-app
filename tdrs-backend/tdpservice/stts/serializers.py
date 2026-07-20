@@ -2,7 +2,8 @@
 
 from rest_framework import serializers
 
-from tdpservice.stts.models import Program, STT, Region, Section, SttProgramParticipation
+from tdpservice.data_files.models import Program, Section
+from tdpservice.stts.models import STT, Region, SttProgramParticipation
 
 
 class ProgramSerializer(serializers.ModelSerializer):
