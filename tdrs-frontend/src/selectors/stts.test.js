@@ -1,4 +1,9 @@
-import { availableStts } from './stts'
+import {
+  availableStts,
+  canSubmitSsp,
+  canViewSsp,
+  findProgramParticipation,
+} from './stts'
 
 const baseStts = [
   { id: 1, name: 'Alabama', type: 'state' },
@@ -83,5 +88,62 @@ describe('availableStts', () => {
     const result = availableStts('/data-files')(state)
 
     expect(result).toEqual([])
+  })
+})
+
+describe('SSP program participation helpers', () => {
+  const sttWithSspStatus = (status) => ({
+    program_participations: [
+      {
+        program: { slug: 'ssp' },
+        status,
+      },
+    ],
+  })
+
+  it('finds a participation by program slug', () => {
+    const stt = {
+      program_participations: [
+        { program: { slug: 'tanf' }, status: 'ACTIVE' },
+        { program: { slug: 'ssp' }, status: 'FORMER' },
+      ],
+    }
+
+    expect(findProgramParticipation(stt, 'ssp')).toEqual({
+      program: { slug: 'ssp' },
+      status: 'FORMER',
+    })
+  })
+
+  it.each([
+    ['ACTIVE', true, true],
+    ['FORMER', true, false],
+    ['NEVER', false, false],
+    ['UNKNOWN', false, false],
+  ])(
+    'derives SSP capabilities for %s status',
+    (status, expectedCanView, expectedCanSubmit) => {
+      const stt = sttWithSspStatus(status)
+
+      expect(canViewSsp(stt)).toBe(expectedCanView)
+      expect(canSubmitSsp(stt)).toBe(expectedCanSubmit)
+    }
+  )
+
+  it.each([
+    ['missing participation array', {}],
+    ['empty participation array', { program_participations: [] }],
+    [
+      'another program only',
+      {
+        program_participations: [
+          { program: { slug: 'tanf' }, status: 'ACTIVE' },
+        ],
+      },
+    ],
+    ['malformed participation', { program_participations: [{ status: 'ACTIVE' }] }],
+  ])('fails closed for %s', (_label, stt) => {
+    expect(canViewSsp(stt)).toBe(false)
+    expect(canSubmitSsp(stt)).toBe(false)
   })
 })

@@ -13,6 +13,7 @@ import RadioSelect from '../Form/RadioSelect'
 import TanfSspReports from './tdr/TanfSspReports'
 import ProgramIntegrityAuditReports from './pia/ProgramIntegrityAuditReports'
 import { ReportsProvider, useReportsContext } from './ReportsContext'
+import { canSubmitSsp, canViewSsp } from '../../selectors/stts'
 
 function ReportsContent() {
   const {
@@ -79,7 +80,7 @@ function ReportsContent() {
 
   const radio_options = [
     { label: 'TANF', value: 'tanf' },
-    ...(fileTypeStt?.ssp ? [{ label: 'SSP-MOE', value: 'ssp-moe' }] : []),
+    ...(canViewSsp(fileTypeStt) ? [{ label: 'SSP-MOE', value: 'ssp-moe' }] : []),
     ...(piaFeatureFlag.enabled && fileTypeStt?.type !== 'tribe'
       ? [{ label: 'Program Integrity Audit', value: 'program-integrity-audit' }]
       : []),
@@ -140,6 +141,7 @@ function ReportsContent() {
             stt={stt ? stt : fileTypeStt}
             isRegionalStaff={isRegionalStaff}
             isDataAnalyst={isDataAnalyst}
+            canSubmitSsp={canSubmitSsp(stt ? stt : fileTypeStt)}
           />
         )}
       </div>

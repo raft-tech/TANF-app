@@ -1,4 +1,11 @@
 import { faker } from '@faker-js/faker'
+
+const programParticipation = (slug, status) => ({
+  program: { slug },
+  status,
+  sections: [],
+})
+
 export const AUTH_CHECK_DATA = {
   authenticated: true,
   user: {
@@ -27,6 +34,7 @@ export const STT_ALPHA_DATA = [
     type: 'state',
     code: 'AK',
     name: 'Alaska',
+    program_participations: [programParticipation('ssp', 'NEVER')],
   },
   {
     id: 3,
@@ -171,6 +179,7 @@ export const STT_ALPHA_DATA = [
     type: 'state',
     code: 'MO',
     name: 'Missouri',
+    program_participations: [programParticipation('ssp', 'ACTIVE')],
   },
   {
     id: 27,
@@ -213,6 +222,7 @@ export const STT_ALPHA_DATA = [
     type: 'state',
     code: 'NY',
     name: 'New York',
+    program_participations: [programParticipation('ssp', 'FORMER')],
   },
   {
     id: 34,
