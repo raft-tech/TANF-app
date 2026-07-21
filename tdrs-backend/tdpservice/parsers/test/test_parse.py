@@ -390,10 +390,10 @@ class TestParse:
         assert parser_errors.count() == 5
 
         trailer_error = parser_errors.get(row_number=3)
-        assert trailer_error.error_type == ParserErrorCategoryChoices.RECORD_PRE_CHECK
+        assert trailer_error.error_type == ParserErrorCategoryChoices.FIELD_VALUE
         assert (
             trailer_error.error_message
-            == "TRAILER: record length is 11 characters but must be 23."
+            == "TRAILER Item 2 (record count): field is required but a value was not provided."
         )
         assert trailer_error.content_type is None
         assert trailer_error.object_id is None
@@ -410,7 +410,6 @@ class TestParse:
             row_errors_list.append(row_error)
             assert row_error.error_type == ParserErrorCategoryChoices.RECORD_PRE_CHECK
             assert row_error.error_message in [
-                "TRAILER: record length is 11 characters but must be 23.",
                 "T1: Case number T1trash cannot contain blanks.",
                 "T1: record length should be at least 117 characters but it is 7 characters.",
                 "T1: Reporting month year None does not match file reporting year:2021, quarter:Q1.",
@@ -432,30 +431,21 @@ class TestParse:
     def test_bad_trailer_file2_trailer_errors(self, parsed_bad_trailer_file_2):
         """Test trailer errors for bad_trailer_2."""
         _datafile, _dfs, parser_errors = parsed_bad_trailer_file_2
-        assert parser_errors.count() == 9
+        assert parser_errors.count() == 8
 
         parser_errors = parser_errors.exclude(
             error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY
         )
         trailer_errors = list(parser_errors.filter(row_number=3).order_by("id"))
 
-        trailer_error_1 = trailer_errors[0]
-        assert trailer_error_1.error_type == ParserErrorCategoryChoices.RECORD_PRE_CHECK
+        trailer_error = trailer_errors[0]
+        assert trailer_error.error_type == ParserErrorCategoryChoices.RECORD_PRE_CHECK
         assert (
-            trailer_error_1.error_message
-            == "TRAILER: record length is 7 characters but must be 23."
-        )
-        assert trailer_error_1.content_type is None
-        assert trailer_error_1.object_id is None
-
-        trailer_error_2 = trailer_errors[1]
-        assert trailer_error_2.error_type == ParserErrorCategoryChoices.RECORD_PRE_CHECK
-        assert (
-            trailer_error_2.error_message
+            trailer_error.error_message
             == "Your file does not end with a TRAILER record."
         )
-        assert trailer_error_2.content_type is None
-        assert trailer_error_2.object_id is None
+        assert trailer_error.content_type is None
+        assert trailer_error.object_id is None
 
     @pytest.mark.django_db
     def test_bad_trailer_file2_row_2_error(self, parsed_bad_trailer_file_2):
@@ -480,28 +470,22 @@ class TestParse:
         parser_errors = parser_errors.exclude(
             error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY
         )
-        trailer_errors = list(parser_errors.filter(row_number=3).order_by("id"))
 
         # catch-rpt-month-year-mismatches
-        row_3_errors = parser_errors.filter(row_number=3)
-        row_3_error_list = []
+        row_3_errors = parser_errors.filter(row_number=3).order_by("id")
 
         for row_3_error in row_3_errors:
-            row_3_error_list.append(row_3_error)
             assert row_3_error.error_type == ParserErrorCategoryChoices.RECORD_PRE_CHECK
             assert row_3_error.error_message in {
                 "T1: record length should be at least 117 characters but it is 7 characters.",
                 "T1: Reporting month year None does not match file reporting year:2021, quarter:Q1.",
-                "TRAILER: record length is 7 characters but must be 23.",
                 "T1: Case number T1trash cannot contain blanks.",
                 "Your file does not end with a TRAILER record.",
             }
             assert row_3_error.content_type is None
             assert row_3_error.object_id is None
 
-        # case number validators
-        row_3_errors = [trailer_errors[2], trailer_errors[3]]
-        length_error = row_3_errors[0]
+        length_error = row_3_errors[1]
         assert length_error.error_type == ParserErrorCategoryChoices.RECORD_PRE_CHECK
         assert (
             length_error.error_message
@@ -510,7 +494,7 @@ class TestParse:
         assert length_error.content_type is None
         assert length_error.object_id is None
 
-        trailer_error_3 = trailer_errors[3]
+        trailer_error_3 = row_3_errors[2]
         assert trailer_error_3.error_type == ParserErrorCategoryChoices.RECORD_PRE_CHECK
         assert (
             trailer_error_3.error_message
@@ -519,7 +503,7 @@ class TestParse:
         assert trailer_error_3.content_type is None
         assert trailer_error_3.object_id is None
 
-        trailer_error_4 = trailer_errors[4]
+        trailer_error_4 = row_3_errors[3]
         assert trailer_error_4.error_type == ParserErrorCategoryChoices.RECORD_PRE_CHECK
         assert trailer_error_4.error_message == (
             "T1: Reporting month year None does not "
@@ -607,12 +591,12 @@ class TestParse:
 
         parser_errors = ParserError.objects.filter(file=small_ssp_section1_datafile)
         dfs.status = dfs.get_status()
-        assert dfs.status == DataFileSummary.Status.PARTIALLY_ACCEPTED
+        assert dfs.status == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
         dfs.case_aggregates = aggregates.case_aggregates_by_month(
             dfs.datafile, dfs.status
         )
 
-        assert dfs.case_aggregates["rejected"] == 1
+        assert dfs.case_aggregates["rejected"] == 0
         for month in dfs.case_aggregates["months"]:
             if month["month"] == "Oct":
                 assert month["accepted_without_errors"] == 0
@@ -622,7 +606,7 @@ class TestParse:
                 assert month["accepted_with_errors"] == 0
 
         parser_errors = ParserError.objects.filter(file=small_ssp_section1_datafile)
-        assert parser_errors.count() == 9
+        assert parser_errors.count() == 8
         assert SSP_M1.objects.count() == expected_m1_record_count
         assert SSP_M2.objects.count() == expected_m2_record_count
         assert SSP_M3.objects.count() == expected_m3_record_count
@@ -679,7 +663,7 @@ class TestParse:
             + "Item 60 (Family Affiliation), Item 61 (Date of Birth), and Item 62 (Social Security Number)."
         )
 
-        assert parser_errors.count() == 31726
+        assert parser_errors.count() == 31725
 
         assert SSP_M1.objects.count() == expected_m1_record_count
         assert SSP_M2.objects.count() == expected_m2_record_count
@@ -840,7 +824,7 @@ class TestParse:
         parser_errors = ParserError.objects.filter(
             file=bad_ssp_s1__row_missing_required_field
         )
-        assert parser_errors.count() == 6
+        assert parser_errors.count() == 5
 
         row_2_error = parser_errors.get(
             row_number=2,
@@ -874,14 +858,6 @@ class TestParse:
         assert row_5_error.error_type == ParserErrorCategoryChoices.RECORD_PRE_CHECK
         assert row_5_error.content_type is None
         assert row_5_error.object_id is None
-
-        trailer_error = parser_errors.get(
-            row_number=6,
-            error_message="TRAILER: record length is 15 characters but must be 23.",
-        )
-        assert trailer_error.error_type == ParserErrorCategoryChoices.RECORD_PRE_CHECK
-        assert trailer_error.content_type is None
-        assert trailer_error.object_id is None
 
     @pytest.mark.django_db
     def test_dfs_set_case_aggregates(self, small_correct_file, dfs):
@@ -2098,7 +2074,7 @@ class TestParse:
                     "accepted_with_errors": 1,
                 },
             ],
-            "rejected": 2,  # Rejected is 2 locally because of the trailer errors. We only generate trailer erros locally.
+            "rejected": 1,
         }
 
         assert TANF_T1.objects.count() == 3

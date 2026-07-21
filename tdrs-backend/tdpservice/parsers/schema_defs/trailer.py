@@ -9,7 +9,6 @@ trailer = TanfDataReportSchema(
     record_type="TRAILER",
     model=dict,
     preparsing_validators=[
-        category1.recordHasLength(23),
         category1.recordStartsWith(
             "TRAILER", lambda _: "Your file does not end with a TRAILER record."
         ),
