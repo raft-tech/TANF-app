@@ -69,6 +69,7 @@
             cd tdrs-backend
             docker-compose run --rm zaproxy bash -c \
               "PATH=$PATH:/home/zap/.local/bin &&
+               virtualenv venv && ./venv/bin/activate &&
                pip install wait-for-it --break-system-packages &&
                wait-for-it --service http://web:8080 --timeout 180 -- echo \"Django is ready\""
       - run:
@@ -125,6 +126,7 @@
             cd tdrs-backend
             docker-compose run --rm zaproxy bash -c \
               "PATH=$PATH:/home/zap/.local/bin &&
+               virtualenv venv && ./venv/bin/activate &&
                pip install wait-for-it --break-system-packages &&
                wait-for-it --service http://web:8080 --timeout 180 -- echo \"Django is ready\""
       - run:
