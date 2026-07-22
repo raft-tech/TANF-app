@@ -70,8 +70,9 @@
             docker-compose run --rm zaproxy bash -c \
               "PATH=$PATH:/home/zap/.local/bin &&
                virtualenv venv && ./venv/bin/activate &&
-               pip install wait-for-it --break-system-packages &&
-               wait-for-it --service http://web:8080 --timeout 180 -- echo \"Django is ready\""
+               pip install wait-for-it &&
+               wait-for-it --service http://web:8080 --timeout 180 -- echo \"Django is ready\"" &&
+               deactivate
       - run:
           name: apply the migrations
           command: |
@@ -127,8 +128,9 @@
             docker-compose run --rm zaproxy bash -c \
               "PATH=$PATH:/home/zap/.local/bin &&
                virtualenv venv && ./venv/bin/activate &&
-               pip install wait-for-it --break-system-packages &&
-               wait-for-it --service http://web:8080 --timeout 180 -- echo \"Django is ready\""
+               pip install wait-for-it &&
+               wait-for-it --service http://web:8080 --timeout 180 -- echo \"Django is ready\"" &&
+               deactivate
       - run:
           name: Compile check
           command: |

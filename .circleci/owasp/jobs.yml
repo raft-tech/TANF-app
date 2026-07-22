@@ -13,11 +13,12 @@
             cd tdrs-backend;
             docker-compose run --rm zaproxy bash -c \
               "PATH=$PATH:/home/zap/.local/bin &&
-               pip install wait-for-it --break-system-packages &&
                virtualenv venv && ./venv/bin/activate &&
+               pip install wait-for-it &&
                wait-for-it --service http://web:8080 \
                            --timeout 60 \
-                           -- echo \"Django is ready\""
+                           -- echo \"Django is ready\"" &&
+              deactivate
       - run-owasp-scan:
           environment: circle
           target: backend
@@ -37,11 +38,12 @@
             cd tdrs-frontend;
             docker-compose run --rm zaproxy bash -c \
               "PATH=$PATH:/home/zap/.local/bin &&
-               pip install wait-for-it --break-system-packages &&
                virtualenv venv && ./venv/bin/activate &&
+               pip install wait-for-it &&
                wait-for-it --service http://tdp-frontend/ \
                            --timeout 60 \
-                           -- echo \"Frontend is ready\""
+                           -- echo \"Frontend is ready\"" &&
+              deactivate
       - run-owasp-scan:
           environment: circle
           target: frontend
