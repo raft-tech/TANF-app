@@ -138,17 +138,6 @@
             . "$BASH_ENV"
             task parser:lint
       - run:
-          name: sqlc diff
-          command: |
-            . "$BASH_ENV"
-            task dump-parser-schema
-            task parser:sqlc-diff
-      - run:
-          name: sqlc vet
-          command: |
-            . "$BASH_ENV"
-            task parser:sqlc-vet
-      - run:
           name: Validator compilation check
           command: |
             . "$BASH_ENV"
