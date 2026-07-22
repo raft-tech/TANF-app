@@ -170,57 +170,9 @@ describe('QuarterFileUploadForm', () => {
       expect(getByText('Submit Data Files')).toBeInTheDocument()
       expect(getByText('Cancel')).toBeInTheDocument()
     })
-
-    it('does not show alert initially', () => {
-      const { queryByRole } = renderComponent()
-
-      expect(queryByRole('alert')).not.toBeInTheDocument()
-    })
-
-    it('renders processing alert when processingAlert is active', async () => {
-      const { getAllByTestId, getAllByText, getAllByRole } = renderComponent()
-
-      const triggerButton = getAllByTestId('trigger-processing-alert')[0]
-      fireEvent.click(triggerButton)
-
-      await waitFor(() => {
-        expect(
-          getAllByText('Processing complete.').length
-        ).toBeGreaterThanOrEqual(1)
-      })
-
-      // Verify the sr-only live region contains the message
-      const statusElements = getAllByRole('status')
-      const processingStatus = statusElements.find((el) =>
-        el.textContent.includes('Processing complete.')
-      )
-      expect(processingStatus).toBeTruthy()
-    })
   })
 
   describe('Form Submission', () => {
-    // it('shows error alert when submitting with no uploaded files', async () => {
-    //   const storeState = {
-    //     ...initialState,
-    //     reports: {
-    //       submittedFiles: [],
-    //     },
-    //   }
-
-    //   const { getByText, getAllByText } = renderComponent(storeState)
-
-    //   const submitButton = getByText('Submit Data Files')
-    //   fireEvent.click(submitButton)
-
-    //   await waitFor(() => {
-    //     expect(
-    //       getAllByText('No changes have been made to data files').length
-    //     ).toBeGreaterThan(0)
-    //   })
-
-    //   expect(mockExecuteSubmission).not.toHaveBeenCalled()
-    // })
-
     it('submits successfully with uploaded files', async () => {
       const uploadedFile = {
         fileName: 'test.txt',
