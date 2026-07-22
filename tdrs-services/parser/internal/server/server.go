@@ -13,6 +13,7 @@ import (
 	"go-parser/internal/db"
 	"go-parser/internal/decoder"
 	"go-parser/internal/logging"
+	"go-parser/internal/metrics"
 	"go-parser/internal/pipeline"
 	"go-parser/internal/sentinel"
 	"go-parser/internal/storage/reader"
@@ -65,21 +66,36 @@ func (b *Base) ConnectDB(ctx context.Context) (*pgxpool.Pool, error) {
 // RunPipeline opens the file source, resolves the file spec, creates a decoder,
 // and runs the parsing pipeline. It centralizes the shared orchestration logic
 // used by all server modes.
-func (b *Base) RunPipeline(ctx context.Context, source reader.FileSource, sink writer.Sink, dfCtx pipeline.DataFileContext) (*pipeline.ParsingResult, error) {
+func (b *Base) RunPipeline(ctx context.Context, source reader.FileSource, sink writer.Sink, dfCtx pipeline.DataFileContext) (result *pipeline.ParsingResult, err error) {
 	startTime := time.Now()
+	defer func() {
+		status := "success"
+		if err != nil {
+			status = "failed"
+		}
+		metrics.RecordFileProcessed(dfCtx.Program, dfCtx.Section, status)
+		recordResultMetrics(dfCtx, result)
+	}()
+
+	stageStart := time.Now()
 	file, err := source.Open(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
+	metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "file_open", time.Since(stageStart))
 	defer file.Close()
 	defer source.Cleanup()
 
+	stageStart = time.Now()
 	spec := b.Registry.GetFileSpec(dfCtx.Program, dfCtx.Section)
 	if spec == nil {
 		return nil, fmt.Errorf("no file spec for %s section %d", dfCtx.Program, dfCtx.Section)
 	}
+	metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "filespec_resolve", time.Since(stageStart))
 
+	stageStart = time.Now()
 	dec, err := decoder.CreateDecoder(file, spec)
+	metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "decoder_setup", time.Since(stageStart))
 	if err != nil {
 		if errors.Is(err, sentinel.ErrDecoderUnknown) {
 			return b.handleDecoderUnknown(ctx, sink, dfCtx, startTime)
@@ -89,7 +105,28 @@ func (b *Base) RunPipeline(ctx context.Context, source reader.FileSource, sink w
 	defer dec.Close()
 
 	pipeln := pipeline.NewPipeline(sink, b.Registry, b.Validators, pipeline.NewConfig(b.Config))
-	return pipeln.Process(ctx, dec, dfCtx)
+	stageStart = time.Now()
+	result, err = pipeln.Process(ctx, dec, dfCtx)
+	metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "pipeline_process", time.Since(stageStart))
+	return result, err
+}
+
+func recordResultMetrics(dfCtx pipeline.DataFileContext, result *pipeline.ParsingResult) {
+	if result == nil {
+		return
+	}
+	metrics.AddRecordsParsed(dfCtx.Program, dfCtx.Section, result.DetailRecordCount)
+	if result.ErrorStats == nil {
+		metrics.AddErrorsGenerated(dfCtx.Program, dfCtx.Section, "record_pre_check", result.ErrorCount)
+		return
+	}
+	metrics.AddErrorsGenerated(dfCtx.Program, dfCtx.Section, "record_pre_check", result.ErrorStats.RecordPreCheck)
+	metrics.AddErrorsGenerated(dfCtx.Program, dfCtx.Section, "field_value", result.ErrorStats.FieldValue)
+	metrics.AddErrorsGenerated(dfCtx.Program, dfCtx.Section, "value_consistency", result.ErrorStats.ValueConsistency)
+	metrics.AddErrorsGenerated(dfCtx.Program, dfCtx.Section, "case_consistency", result.ErrorStats.CaseConsistency)
+	if remaining := result.ErrorCount - result.ErrorStats.Total(); remaining > 0 {
+		metrics.AddErrorsGenerated(dfCtx.Program, dfCtx.Section, "record_pre_check", remaining)
+	}
 }
 
 func (b *Base) handleDecoderUnknown(ctx context.Context, sink writer.Sink, dfCtx pipeline.DataFileContext, startTime time.Time) (*pipeline.ParsingResult, error) {

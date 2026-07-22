@@ -20,6 +20,13 @@ schema_files:
 filespec_files:
   - "filespecs/**/*.yaml"
 
+# Metrics: exported for all long-running server modes. Local mode skips
+# the exporter because it is a one-shot file processing command.
+metrics:
+  enabled: true
+  listen_address: ":9809"
+  path: "/metrics"
+
 # Server: how the parser receives work
 server:
   mode: local              # celery | grpc | http | local

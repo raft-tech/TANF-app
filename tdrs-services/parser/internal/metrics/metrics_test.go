@@ -1,0 +1,94 @@
+package metrics
+
+import (
+	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestRegistryExportsPrometheusText(t *testing.T) {
+	registry := NewRegistry("celery")
+	UseDefault(registry)
+	defer ResetDefault()
+
+	RecordFileProcessed("TAN", 1, "success")
+	AddRecordsParsed("TAN", 1, 12)
+	AddErrorsGenerated("TAN", 1, "field_value", 3)
+	ObservePipelineStage("TAN", 1, "pipeline_process", 250*time.Millisecond)
+	SetWorkerPoolCapacity("TAN", 1, 4)
+	SetWorkerPoolActive("TAN", 1, 2, 4)
+	AddWorkerPoolActiveDuration("TAN", 1, 500*time.Millisecond)
+	AddWorkerPoolCapacityDuration("TAN", 1, 250*time.Millisecond, 4)
+	RecordFlush("search_indexes_tanf_t1", "success", 10*time.Millisecond)
+
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	rec := httptest.NewRecorder()
+	registry.ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	assertContains(t, body, "# TYPE go_parser_files_processed_total counter")
+	assertContains(t, body, `go_parser_files_processed_total{program="TAN",section="1",server_mode="celery",status="success"} 1`)
+	assertContains(t, body, `go_parser_records_parsed_total{program="TAN",section="1",server_mode="celery"} 12`)
+	assertContains(t, body, `go_parser_errors_generated_total{error_category="field_value",program="TAN",section="1",server_mode="celery"} 3`)
+	assertContains(t, body, `go_parser_worker_pool_active_workers{program="TAN",section="1",server_mode="celery"} 2`)
+	assertContains(t, body, `go_parser_worker_pool_utilization{program="TAN",section="1",server_mode="celery"} 0.5`)
+	assertContains(t, body, `go_parser_worker_pool_active_duration_seconds_total{program="TAN",section="1",server_mode="celery"} 0.5`)
+	assertContains(t, body, `go_parser_worker_pool_capacity_seconds_total{program="TAN",section="1",server_mode="celery"} 1`)
+	assertContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="pipeline_process"} 1`)
+	assertContains(t, body, `go_parser_flushes_total{server_mode="celery",status="success",table="search_indexes_tanf_t1"} 1`)
+	assertContains(t, body, `go_parser_flush_duration_seconds_count{server_mode="celery",status="success",table="search_indexes_tanf_t1"} 1`)
+}
+
+func TestStartServerExposesMetricsEndpoint(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	server, err := StartMetricServer(ctx, MetricServerConfig{
+		ServerMode:    "celery",
+		ListenAddress: "127.0.0.1:0",
+		Path:          "/metrics",
+	})
+	if err != nil {
+		t.Fatalf("StartServer failed: %v", err)
+	}
+	defer server.Shutdown(context.Background())
+
+	RecordFileProcessed("FRA", 1, "failed")
+
+	resp, err := http.Get("http://" + server.Address() + "/metrics")
+	if err != nil {
+		t.Fatalf("GET /metrics failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("ReadAll failed: %v", err)
+	}
+	assertContains(t, string(bodyBytes), `go_parser_files_processed_total{program="FRA",section="1",server_mode="celery",status="failed"} 1`)
+}
+
+func TestStartServerRejectsRelativePath(t *testing.T) {
+	_, err := StartMetricServer(context.Background(), MetricServerConfig{
+		ServerMode:    "celery",
+		ListenAddress: "127.0.0.1:0",
+		Path:          "metrics",
+	})
+	if err == nil {
+		t.Fatal("expected error for relative metrics path")
+	}
+}
+
+func assertContains(t *testing.T, body string, want string) {
+	t.Helper()
+	if !strings.Contains(body, want) {
+		t.Fatalf("metrics body missing %q\nbody:\n%s", want, body)
+	}
+}

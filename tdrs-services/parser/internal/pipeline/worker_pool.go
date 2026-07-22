@@ -3,9 +3,14 @@ package pipeline
 import (
 	"context"
 	"log/slog"
+	"strconv"
+	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"go-parser/internal/logging"
+	"go-parser/internal/metrics"
 	"go-parser/internal/parser"
 	"go-parser/internal/storage/writer"
 	"go-parser/internal/validation"
@@ -34,6 +39,8 @@ type WorkerPool struct {
 	dataFileContext     *validation.DataFileContext
 	filespecKey         string
 	numWorkers          int
+	metricsProgram      string
+	metricsSection      int
 
 	router     *writer.Router
 	datafileID int32
@@ -44,6 +51,10 @@ type WorkerPool struct {
 	workerStats []RouteStats
 	workerErr   error
 	errOnce     sync.Once
+
+	activeWorkers atomic.Int64
+	startedAt     time.Time
+	capacityOnce  sync.Once
 }
 
 // WorkerPoolConfig configures the worker pool.
@@ -62,12 +73,15 @@ func NewWorkerPool(
 	datafileID int32,
 	config WorkerPoolConfig,
 ) *WorkerPool {
+	metricsProgram, metricsSection := parseMetricsFilespecKey(filespecKey)
 	return &WorkerPool{
 		parsingOrchestrator: parsingOrchestrator,
 		orchestrator:        orchestrator,
 		dataFileContext:     dataFileContext,
 		filespecKey:         filespecKey,
 		numWorkers:          config.NumWorkers,
+		metricsProgram:      metricsProgram,
+		metricsSection:      metricsSection,
 		router:              router,
 		datafileID:          datafileID,
 		decodedBatches:      make(chan *parser.DecodedBatch, config.WorkBufferSize),
@@ -77,6 +91,9 @@ func NewWorkerPool(
 
 // Start launches the worker goroutines.
 func (wp *WorkerPool) Start(ctx context.Context) {
+	wp.startedAt = time.Now()
+	metrics.SetWorkerPoolCapacity(wp.metricsProgram, wp.metricsSection, wp.numWorkers)
+	metrics.SetWorkerPoolActive(wp.metricsProgram, wp.metricsSection, 0, wp.numWorkers)
 	for i := 0; i < wp.numWorkers; i++ {
 		wp.wg.Add(1)
 		go wp.worker(ctx, i)
@@ -97,6 +114,7 @@ func (wp *WorkerPool) CloseInputs() {
 // Wait blocks until all workers finish.
 func (wp *WorkerPool) Wait() {
 	wp.wg.Wait()
+	wp.recordCapacityDuration()
 }
 
 // Err returns the first routing error encountered by any worker, or nil.
@@ -134,6 +152,7 @@ func (wp *WorkerPool) worker(ctx context.Context, workerID int) {
 			if !ok {
 				return
 			}
+			startedAt := wp.activateWorker()
 			vb := wp.processBatch(batch)
 
 			// Tally errors (direct addition, no atomics needed per single goroutine)
@@ -147,6 +166,7 @@ func (wp *WorkerPool) worker(ctx context.Context, workerID int) {
 
 			// Route to writers
 			if err := routeValidatedBatch(ctx, wp.router, vb.Groups, wp.datafileID, &errorRows); err != nil {
+				wp.deactivateWorker(startedAt)
 				logging.Error(ctx, "worker batch failed",
 					slog.Int(logging.KeyFileID, int(wp.datafileID)),
 					slog.Int("worker_id", workerID),
@@ -156,8 +176,43 @@ func (wp *WorkerPool) worker(ctx context.Context, workerID int) {
 				wp.errOnce.Do(func() { wp.workerErr = err })
 				return
 			}
+			wp.deactivateWorker(startedAt)
 		}
 	}
+}
+
+func (wp *WorkerPool) activateWorker() time.Time {
+	startedAt := time.Now()
+	active := wp.activeWorkers.Add(1)
+	metrics.SetWorkerPoolActive(wp.metricsProgram, wp.metricsSection, active, wp.numWorkers)
+	return startedAt
+}
+
+func (wp *WorkerPool) deactivateWorker(startedAt time.Time) {
+	active := wp.activeWorkers.Add(-1)
+	metrics.AddWorkerPoolActiveDuration(wp.metricsProgram, wp.metricsSection, time.Since(startedAt))
+	metrics.SetWorkerPoolActive(wp.metricsProgram, wp.metricsSection, active, wp.numWorkers)
+}
+
+func (wp *WorkerPool) recordCapacityDuration() {
+	wp.capacityOnce.Do(func() {
+		if wp.startedAt.IsZero() {
+			return
+		}
+		metrics.AddWorkerPoolCapacityDuration(wp.metricsProgram, wp.metricsSection, time.Since(wp.startedAt), wp.numWorkers)
+	})
+}
+
+func parseMetricsFilespecKey(filespecKey string) (string, int) {
+	program, sectionString, ok := strings.Cut(filespecKey, ":")
+	if !ok {
+		return filespecKey, 0
+	}
+	section, err := strconv.Atoi(sectionString)
+	if err != nil {
+		return program, 0
+	}
+	return program, section
 }
 
 func (wp *WorkerPool) processBatch(batch *parser.DecodedBatch) *validatedBatch {

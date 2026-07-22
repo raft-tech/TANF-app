@@ -5,9 +5,11 @@ import (
 	"log/slog"
 	"os"
 	"runtime/pprof"
+	"time"
 
 	"go-parser/internal/config"
 	"go-parser/internal/logging"
+	"go-parser/internal/metrics"
 	"go-parser/internal/server/celery"
 	"go-parser/internal/server/local"
 	"go-parser/internal/validation"
@@ -62,6 +64,32 @@ func main() {
 	validators, err := validation.NewRegistry(cfg, reg)
 	if err != nil {
 		fatal("Failed to load validators", err)
+	}
+
+	if cfg.Server.Mode != "local" && cfg.Metrics.Enabled {
+		metricsServer, err := metrics.StartMetricServer(bgCtx, metrics.MetricServerConfig{
+			ServerMode:    cfg.Server.Mode,
+			ListenAddress: cfg.Metrics.ListenAddress,
+			Path:          cfg.Metrics.Path,
+		})
+		if err != nil {
+			fatal("Failed to start metrics server", err)
+		}
+		defer func() {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := metricsServer.Shutdown(shutdownCtx); err != nil {
+				logging.Error(context.Background(), "metrics server shutdown failed",
+					slog.String(logging.KeyStage, "metrics"),
+					slog.Any(logging.KeyError, err),
+				)
+			}
+		}()
+		logging.Info(bgCtx, "metrics server started",
+			slog.String(logging.KeyStage, "metrics"),
+			slog.String("listen_address", metricsServer.Address()),
+			slog.String("path", cfg.Metrics.Path),
+		)
 	}
 
 	// ---- Server mode dispatch ----

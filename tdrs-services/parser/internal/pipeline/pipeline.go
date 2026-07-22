@@ -13,6 +13,7 @@ import (
 	"go-parser/internal/config/schema"
 	"go-parser/internal/decoder"
 	"go-parser/internal/logging"
+	"go-parser/internal/metrics"
 	"go-parser/internal/parser"
 	"go-parser/internal/sentinel"
 	"go-parser/internal/storage/writer"
@@ -123,7 +124,9 @@ func (p *Pipeline) Process(ctx context.Context, dec decoder.Decoder, dfCtx DataF
 
 	// Step 3: Read first row. Positional files use it as HEADER; FRA uses it
 	// for a first-data-row sanity check and then processes it normally.
+	stageStart := time.Now()
 	firstRow, err := dec.ReadFirst()
+	metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "read_first_row", time.Since(stageStart))
 	if err != nil {
 		err = fmt.Errorf("failed to read first row: %w", err)
 		if rollbackErr := p.abortAndRollback(ctx, cancelRun, dfCtx, router); rollbackErr != nil {
@@ -141,7 +144,9 @@ func (p *Pipeline) Process(ctx context.Context, dec decoder.Decoder, dfCtx DataF
 		}
 	} else {
 		headerSchema := p.registry.GetSchema(parser.HeaderSchemaPath)
+		stageStart = time.Now()
 		parseCtx, err = parser.ParseHeader(firstRow, headerSchema)
+		metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "header_parse", time.Since(stageStart))
 		if err != nil {
 			return p.handleHeaderParseInvalid(err, ctx, dfCtx, router, validationOrchestrator, startTime)
 		}
@@ -150,7 +155,9 @@ func (p *Pipeline) Process(ctx context.Context, dec decoder.Decoder, dfCtx DataF
 	// Step 3b: Validate header (skip for FRA/columnar files where parseCtx is nil)
 	if parseCtx != nil {
 		parseCtx.DatafileID = dfCtx.DatafileID
+		stageStart = time.Now()
 		headerResult := validationOrchestrator.ValidateHeader(parseCtx.Header, valDfCtx)
+		metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "header_validation", time.Since(stageStart))
 		headerStats, result = p.handleHeaderValidationResult(
 			ctx,
 			headerResult,
@@ -167,10 +174,13 @@ func (p *Pipeline) Process(ctx context.Context, dec decoder.Decoder, dfCtx DataF
 	}
 
 	// Step 4: Create record type detector
+	stageStart = time.Now()
 	detector := decoder.NewRecordTypeDetector(spec, p.registry)
+	metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "record_type_detector", time.Since(stageStart))
 
 	// Step 4b: Sort the file if presort is enabled
 	if spec.Accumulator.Presort && spec.Accumulator.HasKeyFields() {
+		stageStart = time.Now()
 		if err := dec.Sort(detector, spec.Accumulator.KeyFields.OrderedFields(), spec.Accumulator.GroupedSchemas); err != nil {
 			err = fmt.Errorf("presort failed: %w", err)
 			if rollbackErr := p.abortAndRollback(ctx, cancelRun, dfCtx, router); rollbackErr != nil {
@@ -178,6 +188,7 @@ func (p *Pipeline) Process(ctx context.Context, dec decoder.Decoder, dfCtx DataF
 			}
 			return nil, err
 		}
+		metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "presort", time.Since(stageStart))
 	}
 
 	// Step 5: Create parsing orchestrator
@@ -197,7 +208,9 @@ func (p *Pipeline) Process(ctx context.Context, dec decoder.Decoder, dfCtx DataF
 	acc := parser.NewAccumulator(spec, detector)
 	fileStats := validation.NewFileRecordStats(parseCtx)
 	requireTrailer := spec.Format == filespec.FormatPositional
+	stageStart = time.Now()
 	err = accumulateBatches(runCtx, dec, acc, workers, router, dfCtx.DatafileID, trailerSchema, validationOrchestrator, valDfCtx, fileStats, requireTrailer)
+	metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "accumulate_batches", time.Since(stageStart))
 	if firstRow != nil {
 		fileStats.MaxLineNumber = max(fileStats.MaxLineNumber, firstRow.LineNum())
 	}
@@ -207,20 +220,26 @@ func (p *Pipeline) Process(ctx context.Context, dec decoder.Decoder, dfCtx DataF
 		var multipleHeaders *sentinel.MultipleHeadersError
 		if errors.As(err, &multipleHeaders) {
 			workers.CloseInputs()
+			stageStart = time.Now()
 			workers.Wait()
+			metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "worker_wait", time.Since(stageStart))
 			return p.handleMultipleHeaders(ctx, cancelRun, dfCtx, router, multipleHeaders.RowNumber(), startTime)
 		}
 
 		cancelRun()
 		workers.CloseInputs()
+		stageStart = time.Now()
 		workers.Wait()
+		metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "worker_wait", time.Since(stageStart))
 		if rollbackErr := p.abortAndRollback(ctx, cancelRun, dfCtx, router); rollbackErr != nil {
 			return nil, errors.Join(err, rollbackErr)
 		}
 		return nil, err
 	}
 	workers.CloseInputs()
+	stageStart = time.Now()
 	workers.Wait()
+	metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "worker_wait", time.Since(stageStart))
 
 	if err := workers.Err(); err != nil {
 		if rollbackErr := p.abortAndRollback(ctx, cancelRun, dfCtx, router); rollbackErr != nil {
@@ -235,12 +254,14 @@ func (p *Pipeline) Process(ctx context.Context, dec decoder.Decoder, dfCtx DataF
 	}
 
 	// Flush remaining rows in all writers
+	stageStart = time.Now()
 	if err := router.Stop(); err != nil {
 		if rollbackErr := p.rollbackDatafile(ctx, dfCtx, router); rollbackErr != nil {
 			return nil, errors.Join(err, rollbackErr)
 		}
 		return nil, err
 	}
+	metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "router_stop", time.Since(stageStart))
 
 	routeStats := workers.AggregateStats()
 	addErrorStats(&routeStats.ErrorStats, headerStats)
@@ -494,6 +515,7 @@ func (p *Pipeline) handleMultipleHeaders(ctx context.Context, cancelRun context.
 	return &ParsingResult{
 		RecordCounts: map[string]int64{"parser_error": 1},
 		ErrorCount:   1,
+		ErrorStats:   &ErrorStats{RecordPreCheck: 1},
 		Duration:     time.Since(startTime),
 	}, nil
 }
@@ -580,6 +602,7 @@ func (p *Pipeline) handleHeaderValidationResult(
 			slog.Any(logging.KeyError, err),
 		)
 	}
+	headerStats.RecordPreCheck += addedErrorCount
 	if stopErr := router.Stop(); stopErr != nil {
 		logging.Error(ctx, "failed to stop router",
 			slog.Int(logging.KeyFileID, int(dfCtx.DatafileID)),
@@ -630,6 +653,7 @@ func (p *Pipeline) handleHeaderParseInvalid(err error, ctx context.Context, dfCt
 	return &ParsingResult{
 		RecordCounts: map[string]int64{"parser_error": 1 + addedErrorCount},
 		ErrorCount:   1 + addedErrorCount,
+		ErrorStats:   &ErrorStats{RecordPreCheck: 1 + addedErrorCount},
 		Duration:     time.Since(startTime),
 	}, nil
 }

@@ -197,6 +197,7 @@ services:
       - web
       - celery-exporter
       - postgres-exporter
+      - go-parser
       - alertmanager
       - mimir
 
@@ -356,6 +357,8 @@ services:
       context: ../tdrs-services/parser
       dockerfile: Dockerfile
     command: ["--server.mode=celery", "--storage.source=s3"]
+    ports:
+      - "9809:9809"
     environment:
       - REDIS_URL=redis://redis-server:6379/0
       - GO_PARSER_QUEUE=${GO_PARSER_QUEUE:-go-parser}
