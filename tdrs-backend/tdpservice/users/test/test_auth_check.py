@@ -19,10 +19,39 @@ def _copy_standard_session_to_admin_cookie(api_client, settings):
     ].value
 
 
+def _login_standard_session(api_client, user, settings):
+    """Create a Keycloak-originated standard app session."""
+    assert api_client.login(username=user.username, password="test_password") is True
+    session = api_client.session
+    session["auth_flow"] = "keycloak"
+    session.save()
+    api_client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
+
+
+def _login_admin_session(api_client, user, settings):
+    """Create an admin-scoped session from a valid admin user login."""
+    _login_standard_session(api_client, user, settings)
+    _copy_standard_session_to_admin_cookie(api_client, settings)
+
+
 def _client_session_from_cookie(api_client, cookie_name, settings):
     """Return a session store loaded from the named test client cookie."""
     engine = import_module(settings.SESSION_ENGINE)
     return engine.SessionStore(api_client.cookies[cookie_name].value)
+
+
+def _assert_auth_state(api_client, standard_authenticated, admin_authenticated):
+    """Assert the standard and admin auth_check states."""
+    standard_response = api_client.get(reverse("authorization-check"))
+    admin_response = api_client.get(reverse("admin-authorization-check"))
+
+    assert standard_response.status_code == status.HTTP_200_OK
+    assert standard_response.data["authenticated"] is standard_authenticated
+    assert admin_response.data["authenticated"] is admin_authenticated
+
+    if admin_authenticated:
+        assert admin_response.status_code == status.HTTP_200_OK
+        assert admin_response.data["authorized"] is True
 
 
 @pytest.mark.django_db
@@ -136,6 +165,88 @@ def test_admin_session_authenticates_admin_but_not_frontend(
     assert admin_response.data["authorized"] is True
     assert frontend_response.status_code == status.HTTP_200_OK
     assert frontend_response.data["authenticated"] is False
+
+
+@pytest.mark.django_db
+def test_standard_and_admin_login_logout_end_to_end_state_sequence(
+    api_client, ofa_system_admin, settings
+):
+    """Standard and admin app sessions should remain independently scoped."""
+    settings.OIDC_OP_LOGOUT_ENDPOINT = (
+        "https://keycloak.example.gov/realms/tdp/protocol/openid-connect/logout"
+    )
+
+    _assert_auth_state(api_client, False, False)
+
+    _login_standard_session(api_client, ofa_system_admin, settings)
+    _assert_auth_state(api_client, True, False)
+
+    _copy_standard_session_to_admin_cookie(api_client, settings)
+    _assert_auth_state(api_client, True, True)
+
+    response = api_client.get(reverse("canary-oidc-logout"))
+    assert response.status_code == status.HTTP_302_FOUND
+    assert settings.OIDC_OP_LOGOUT_ENDPOINT not in response.url
+    _assert_auth_state(api_client, False, True)
+
+    _login_standard_session(api_client, ofa_system_admin, settings)
+    _assert_auth_state(api_client, True, True)
+
+    response = api_client.get(reverse("admin-oidc-logout"))
+    assert response.status_code == status.HTTP_302_FOUND
+    assert settings.OIDC_OP_LOGOUT_ENDPOINT not in response.url
+    _assert_auth_state(api_client, True, False)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "initial_state,logout_route,expected_standard,expected_admin",
+    [
+        ("none", "canary-oidc-logout", False, False),
+        ("none", "admin-oidc-logout", False, False),
+        ("standard", "canary-oidc-logout", False, False),
+        ("standard", "admin-oidc-logout", True, False),
+        ("admin", "canary-oidc-logout", False, True),
+        ("admin", "admin-oidc-logout", False, False),
+        ("both", "canary-oidc-logout", False, True),
+        ("both", "admin-oidc-logout", True, False),
+    ],
+)
+def test_logout_state_matrix(
+    api_client,
+    ofa_system_admin,
+    settings,
+    initial_state,
+    logout_route,
+    expected_standard,
+    expected_admin,
+):
+    """Each logout endpoint should clear only its matching session scope."""
+    settings.OIDC_OP_LOGOUT_ENDPOINT = (
+        "https://keycloak.example.gov/realms/tdp/protocol/openid-connect/logout"
+    )
+    initial_auth_states = {
+        "none": (False, False),
+        "standard": (True, False),
+        "admin": (False, True),
+        "both": (True, True),
+    }
+
+    if initial_state == "standard":
+        _login_standard_session(api_client, ofa_system_admin, settings)
+    elif initial_state == "admin":
+        _login_admin_session(api_client, ofa_system_admin, settings)
+        del api_client.cookies[settings.SESSION_COOKIE_NAME]
+    elif initial_state == "both":
+        _login_admin_session(api_client, ofa_system_admin, settings)
+
+    _assert_auth_state(api_client, *initial_auth_states[initial_state])
+
+    response = api_client.get(reverse(logout_route))
+
+    assert response.status_code == status.HTTP_302_FOUND
+    assert settings.OIDC_OP_LOGOUT_ENDPOINT not in response.url
+    _assert_auth_state(api_client, expected_standard, expected_admin)
 
 
 @pytest.mark.django_db

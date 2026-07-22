@@ -71,7 +71,7 @@ Next.js proxy only forwards request context and the server-side proxy token.
 
 - `/` checks the Django admin session before rendering the admin console.
 - `/login` renders the same login page.
-- `/logout` redirects through the admin-scoped Django/Keycloak logout flow.
+- `/logout` redirects through the admin-scoped Django logout flow.
 - `/api/backend-health` probes the backend auth endpoint and reports non-2xx responses as failures.
 - `/api/admin/*` forwards backend API requests with the Django session cookie,
   CSRF token required by mutating requests, and server-side proxy token to

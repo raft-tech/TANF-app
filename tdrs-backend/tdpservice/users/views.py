@@ -2,7 +2,7 @@
 
 import datetime
 import logging
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlparse
 
 from django.conf import settings
 from django.contrib.auth import logout
@@ -380,39 +380,22 @@ class AdminOIDCAuthenticationCallbackView(OIDCAuthenticationCallbackView):
 
 
 class KeycloakLogoutView(View):
-    """Logout from Django session and redirect to Keycloak end_session endpoint."""
+    """Logout from the standard Django session and return to the frontend."""
 
     def get(self, request):
-        """Clear the Django session and redirect to Keycloak logout."""
-        id_token = request.session.get("oidc_id_token")
-
-        # Clear Django session
+        """Clear only the standard app session."""
+        # Keycloak's RP-initiated logout clears the realm SSO session, which also
+        # removes client sessions for other TDP apps sharing the same browser.
         logout(request)
 
-        # Build Keycloak end_session URL
-        logout_url = settings.OIDC_OP_LOGOUT_ENDPOINT
-        params = {
-            "post_logout_redirect_uri": settings.FRONTEND_BASE_URL,
-        }
-        if id_token:
-            params["id_token_hint"] = id_token
-
-        return HttpResponseRedirect(f"{logout_url}?{urlencode(params)}")
+        return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
 
 
 class AdminKeycloakLogoutView(KeycloakLogoutView):
     """Logout from the admin-scoped session and return to the admin console."""
 
     def get(self, request):
-        """Clear the Django session and redirect to Keycloak logout."""
-        id_token = request.session.get("oidc_id_token")
+        """Clear only the admin app session."""
         logout(request)
 
-        logout_url = settings.OIDC_OP_LOGOUT_ENDPOINT
-        params = {
-            "post_logout_redirect_uri": settings.ADMIN_FRONTEND_BASE_URL,
-        }
-        if id_token:
-            params["id_token_hint"] = id_token
-
-        return HttpResponseRedirect(f"{logout_url}?{urlencode(params)}")
+        return HttpResponseRedirect(settings.ADMIN_FRONTEND_BASE_URL)

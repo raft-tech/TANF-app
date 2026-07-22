@@ -121,7 +121,7 @@ Auth endpoints live under `/v2/` (the legacy `/v1/` auth routes remain for backw
 | `GET /v2/login/ams` | `KeycloakLoginAMSView` | Redirects to Keycloak with `kc_idp_hint=ams` |
 | `GET /v2/oidc/callback/` | `mozilla-django-oidc` | Handles OIDC authorization code callback |
 | `GET /v2/auth_check` | `AuthorizationCheck` | Returns current user authentication status |
-| `GET /v2/logout/oidc` | `KeycloakLogoutView` | Clears Django session, redirects to Keycloak logout |
+| `GET /v2/logout/oidc` | `KeycloakLogoutView` | Clears the standard Django session and returns to the TDP frontend |
 
 ### OIDC Backend (`KeycloakOIDCBackend`)
 

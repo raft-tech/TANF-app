@@ -199,7 +199,7 @@ The `tdp-user-attributes` client scope includes these custom attributes, synced 
 | `GET /v2/login/ams` | `KeycloakLoginAMSView` | Redirects to Keycloak with `kc_idp_hint=ams` |
 | `GET /v2/oidc/callback/` | mozilla-django-oidc | Handles authorization code callback |
 | `GET /v2/auth_check` | `AuthorizationCheck` | Returns current user authentication status |
-| `GET /v2/logout/oidc` | `KeycloakLogoutView` | Clears session and redirects to Keycloak logout |
+| `GET /v2/logout/oidc` | `KeycloakLogoutView` | Clears the standard Django session and returns to the TDP frontend |
 
 ### Admin Console Endpoints
 
@@ -209,7 +209,7 @@ The `tdp-user-attributes` client scope includes these custom attributes, synced 
 | `GET /admin-auth/login/ams` | `AdminKeycloakLoginAMSView` | Redirects admin users to Keycloak with the `tdp-admin` client and `kc_idp_hint=ams` |
 | `GET /admin-auth/oidc/callback/` | mozilla-django-oidc | Handles admin authorization code callback with the admin-scoped Django session |
 | `GET /admin-auth/auth_check` | `AdminAuthorizationCheck` | Validates the Django session and OFA System Admin authorization before admin rendering |
-| `GET /admin-auth/logout/oidc` | `AdminKeycloakLogoutView` | Clears the admin-scoped Django session and redirects through Keycloak logout |
+| `GET /admin-auth/logout/oidc` | `AdminKeycloakLogoutView` | Clears the admin-scoped Django session and returns to the admin frontend |
 | `/admin-api/v1/*` | v1 API routes | Admin frontend proxy path; requires the server-side `X-Admin-Proxy-Token` header matching `ADMIN_API_PROXY_TOKEN`, an admin-scoped Django session, and OFA System Admin authorization |
 
 ### User Sync

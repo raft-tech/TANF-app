@@ -1,9 +1,11 @@
 """Tests for KeycloakOIDCBackend authentication backend."""
 
+from importlib import import_module
 import logging
 from unittest.mock import patch
 
 from django.test import RequestFactory
+from django.urls import reverse
 
 import pytest
 
@@ -16,6 +18,15 @@ from tdpservice.users.oidc import (
 from tdpservice.users.test.factories import UserFactory
 
 logger = logging.getLogger(__name__)
+
+
+def _session_cookie(settings, data):
+    """Return a signed session cookie with the provided data."""
+    engine = import_module(settings.SESSION_ENGINE)
+    session = engine.SessionStore()
+    session.update(data)
+    session.save()
+    return session.session_key
 
 
 @pytest.fixture
@@ -209,6 +220,59 @@ class TestAuthenticateClientSelection:
             }
         ]
         assert not hasattr(backend, "_oidc_callback_url")
+
+
+@pytest.mark.django_db
+class TestKeycloakLogout:
+    """Tests for app-scoped Keycloak logout behavior."""
+
+    def test_standard_logout_does_not_end_keycloak_sso_or_admin_session(
+        self, api_client, settings
+    ):
+        """Standard logout must only clear the standard Django session."""
+        settings.FRONTEND_BASE_URL = "https://tdp.example.gov"
+        settings.OIDC_OP_LOGOUT_ENDPOINT = (
+            "https://keycloak.example.gov/realms/tdp/protocol/openid-connect/logout"
+        )
+        api_client.cookies[settings.SESSION_COOKIE_NAME] = _session_cookie(
+            settings, {"oidc_id_token": "standard-id-token"}
+        )
+        api_client.cookies[settings.ADMIN_SESSION_COOKIE_NAME] = _session_cookie(
+            settings, {"oidc_id_token": "admin-id-token"}
+        )
+
+        response = api_client.get(reverse("v2-oidc-logout"))
+
+        assert response.status_code == 302
+        assert response.url == settings.FRONTEND_BASE_URL
+        assert settings.OIDC_OP_LOGOUT_ENDPOINT not in response.url
+        assert "id_token_hint" not in response.url
+        assert settings.SESSION_COOKIE_NAME in response.cookies
+        assert settings.ADMIN_SESSION_COOKIE_NAME not in response.cookies
+
+    def test_admin_logout_does_not_end_keycloak_sso_or_standard_session(
+        self, api_client, settings
+    ):
+        """Admin logout must only clear the admin Django session."""
+        settings.ADMIN_FRONTEND_BASE_URL = "https://admin.example.gov"
+        settings.OIDC_OP_LOGOUT_ENDPOINT = (
+            "https://keycloak.example.gov/realms/tdp/protocol/openid-connect/logout"
+        )
+        api_client.cookies[settings.SESSION_COOKIE_NAME] = _session_cookie(
+            settings, {"oidc_id_token": "standard-id-token"}
+        )
+        api_client.cookies[settings.ADMIN_SESSION_COOKIE_NAME] = _session_cookie(
+            settings, {"oidc_id_token": "admin-id-token"}
+        )
+
+        response = api_client.get(reverse("admin-oidc-logout"))
+
+        assert response.status_code == 302
+        assert response.url == settings.ADMIN_FRONTEND_BASE_URL
+        assert settings.OIDC_OP_LOGOUT_ENDPOINT not in response.url
+        assert "id_token_hint" not in response.url
+        assert settings.ADMIN_SESSION_COOKIE_NAME in response.cookies
+        assert settings.SESSION_COOKIE_NAME not in response.cookies
 
 
 @pytest.mark.django_db

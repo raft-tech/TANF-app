@@ -356,7 +356,7 @@ Required guardrails:
 - Trusted origins should be explicit to the admin hostname and backend hostname; avoid wildcard subdomain trust.
 - SameSite behavior should be chosen for the deployed cross-host flow and documented before implementation. If the admin app and Django API require cross-site cookie submission, use the narrowest `SameSite=None; Secure` scope possible and compensate with strict origin/referrer checks.
 - Next.js BFF endpoints that accept browser mutations must perform CSRF validation or forward the request to Django without weakening Django's CSRF checks.
-- Logout must clear the admin-scoped Django session and trigger Keycloak logout or session revocation behavior consistent with the broader Keycloak architecture.
+- Logout must clear only the admin-scoped app session. A global Keycloak logout or session-revocation flow should be modeled separately so a TDP frontend logout does not implicitly end the admin console session.
 
 ### Cache behavior and audit forwarding
 
