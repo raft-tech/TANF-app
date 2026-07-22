@@ -506,6 +506,9 @@ def parse(data_file_id, reparse_id=None):
         _notify_data_analysts(data_file, dfs, file_meta, reparse_id)
 
     except DecoderUnknownException:
+        if data_file is None:
+            raise
+
         _reject_dfs(dfs)
         logger.warning(
             "DecoderUnknownException during parse",
@@ -519,6 +522,9 @@ def parse(data_file_id, reparse_id=None):
         _handle_parse_failure(data_file, "decoder unknown exception", reparse_id)
         reparse_success = False
     except DatabaseError as e:
+        if data_file is None:
+            raise
+
         log_parser_exception(
             data_file,
             f"Encountered Database exception in parser_task.py: \n{e}",
@@ -561,6 +567,6 @@ def parse(data_file_id, reparse_id=None):
         _handle_parse_failure(data_file, "unexpected error during parsing", reparse_id)
         reparse_success = False
     finally:
-        if data_file is not None:
+        if data_file is not None and dfs is not None:
             _finalize_parse(data_file, dfs)
         _finalize_reparse(data_file_id, reparse_id, file_meta, dfs, reparse_success)

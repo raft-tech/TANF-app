@@ -1074,3 +1074,16 @@ def test_parse_pre_dfs_failure_surfaces_original_exception(monkeypatch, stt):
 
     with pytest.raises(ValueError, match="uploaded to parse_started"):
         parser_task.parse(datafile.id)
+
+
+def test_parse_datafile_lookup_database_error_surfaces_original_exception(monkeypatch):
+    """Lookup failures should not be masked by parser cleanup code."""
+    setup_parse_mocks(monkeypatch)
+
+    def raise_database_error(**kwargs):
+        raise DatabaseError("lookup failed")
+
+    monkeypatch.setattr(parser_task.DataFile.objects, "get", raise_database_error)
+
+    with pytest.raises(DatabaseError, match="lookup failed"):
+        parser_task.parse(123)
