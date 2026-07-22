@@ -69,11 +69,8 @@
             cd tdrs-backend
             docker-compose run --rm zaproxy bash -c \
               "PATH=$PATH:/home/zap/.local/bin &&
-               sudo apt-get install -y virtualenv &&
-               virtualenv venv && ./venv/bin/activate &&
-               pip install wait-for-it &&
-               wait-for-it --service http://web:8080 --timeout 180 -- echo \"Django is ready\"" &&
-               deactivate
+               pip install wait-for-it --break-system-packages &&
+               wait-for-it --service http://web:8080 --timeout 180 -- echo \"Django is ready\""
       - run:
           name: apply the migrations
           command: |
@@ -128,11 +125,8 @@
             cd tdrs-backend
             docker-compose run --rm zaproxy bash -c \
               "PATH=$PATH:/home/zap/.local/bin &&
-               sudo apt-get install -y virtualenv &&
-               virtualenv venv && ./venv/bin/activate &&
-               pip install wait-for-it &&
-               wait-for-it --service http://web:8080 --timeout 180 -- echo \"Django is ready\"" &&
-               deactivate
+               pip install wait-for-it --break-system-packages &&
+               wait-for-it --service http://web:8080 --timeout 180 -- echo \"Django is ready\""
       - run:
           name: Compile check
           command: |
@@ -143,6 +137,17 @@
           command: |
             . "$BASH_ENV"
             task parser:lint
+      - run:
+          name: sqlc diff
+          command: |
+            . "$BASH_ENV"
+            task dump-parser-schema
+            task parser:sqlc-diff
+      - run:
+          name: sqlc vet
+          command: |
+            . "$BASH_ENV"
+            task parser:sqlc-vet
       - run:
           name: Validator compilation check
           command: |
