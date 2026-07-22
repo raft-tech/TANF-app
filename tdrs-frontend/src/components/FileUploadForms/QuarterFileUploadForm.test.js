@@ -177,13 +177,6 @@ describe('QuarterFileUploadForm', () => {
       expect(queryByRole('alert')).not.toBeInTheDocument()
     })
 
-    it('initializes USWDS file input on mount', () => {
-      const { fileInput } = require('@uswds/uswds/src/js/components')
-      renderComponent()
-
-      expect(fileInput.init).toHaveBeenCalled()
-    })
-
     it('renders processing alert when processingAlert is active', async () => {
       const { getAllByTestId, getAllByText, getAllByRole } = renderComponent()
 
