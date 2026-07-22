@@ -165,30 +165,6 @@ export const useFileUploadForm = ({
     }
   }
 
-  // Initialize USWDS file input component
-  useEffect(() => {
-    fileInput.init()
-  }, [])
-
-  // Scroll to and focus alert when it becomes active
-  useEffect(() => {
-    if (localAlert.active && alertRef && alertRef.current) {
-      alertRef.current.scrollIntoView({ behavior: 'smooth' })
-      alertRef.current.focus({ preventScroll: true })
-    }
-  }, [localAlert, alertRef])
-
-  // Scroll to processing alert when it becomes active (uses aria-live="polite" for sequential reading)
-  useEffect(() => {
-    if (
-      processingAlert.active &&
-      processingAlertRef &&
-      processingAlertRef.current
-    ) {
-      processingAlertRef.current.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [processingAlert, processingAlertRef])
-
   return {
     // Form state
     yearInputValue,
