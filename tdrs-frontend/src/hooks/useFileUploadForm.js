@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { fileInput } from '@uswds/uswds/src/js/components'
 import {
   submit,
   SET_TANF_SUBMISSION_STATUS,
@@ -169,11 +168,6 @@ export const useFileUploadForm = ({
       handleClearAll()
     }
   }
-
-  // Initialize USWDS file input component
-  useEffect(() => {
-    fileInput.init()
-  }, [])
 
   // Scroll to and focus alert when it becomes active
   useEffect(() => {

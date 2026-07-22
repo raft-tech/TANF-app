@@ -214,13 +214,6 @@ describe('SectionFileUploadForm', () => {
       expect(processingStatus).toBeTruthy()
     })
 
-    it('initializes USWDS file input on mount', () => {
-      const { fileInput } = require('@uswds/uswds/src/js/components')
-      renderComponent()
-
-      expect(fileInput.init).toHaveBeenCalled()
-    })
-
     it('renders section labels with correct format', () => {
       const { getByText } = renderComponent()
 
