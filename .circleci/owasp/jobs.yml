@@ -13,7 +13,7 @@
             cd tdrs-backend;
             docker-compose run --rm zaproxy bash -c \
               "PATH=$PATH:/home/zap/.local/bin &&
-               sudo apt-get update && sudo apt-get install virtualenv &&
+               apt-get update && apt-get install virtualenv &&
                virtualenv venv && ./venv/bin/activate &&
                pip install wait-for-it &&
                wait-for-it --service http://web:8080 \
@@ -39,7 +39,7 @@
             cd tdrs-frontend;
             docker-compose run --rm zaproxy bash -c \
               "PATH=$PATH:/home/zap/.local/bin &&
-               sudo apt-get update && sudo apt-get install virtualenv &&
+               apt-get update && apt-get install virtualenv &&
                virtualenv venv && ./venv/bin/activate &&
                pip install wait-for-it &&
                wait-for-it --service http://tdp-frontend/ \
