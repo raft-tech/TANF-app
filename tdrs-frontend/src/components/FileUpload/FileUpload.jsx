@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import { useDispatch, useSelector } from 'react-redux'
 import fileTypeChecker from 'file-type-checker'
+import { fileInput } from '@uswds/uswds/src/js/components'
 
 import {
   clearError,
@@ -353,6 +354,13 @@ function FileUpload({
       inputRef.current.value = null
     }
   }
+
+  // Initialize USWDS file input component
+  useEffect(() => {
+    if (inputRef.current) {
+      fileInput.init(inputRef.current.parentNode)
+    }
+  }, [])
 
   return (
     <div

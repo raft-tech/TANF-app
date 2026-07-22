@@ -19,6 +19,12 @@ jest.mock('./utils', () => ({
   removeOldPreviews: jest.fn(),
 }))
 
+jest.mock('@uswds/uswds/src/js/components', () => ({
+  fileInput: {
+    init: jest.fn(),
+  },
+}))
+
 const initialState = {
   reports: {
     submittedFiles: [
@@ -154,6 +160,13 @@ describe('FileUpload', () => {
 
       expect(getByRole('alert')).toBeInTheDocument()
       expect(getByText('Need help?')).toBeInTheDocument()
+    })
+
+    it('initializes USWDS file input on mount', () => {
+      const { fileInput } = require('@uswds/uswds/src/js/components')
+      renderComponent()
+
+      expect(fileInput.init).toHaveBeenCalled()
     })
   })
 

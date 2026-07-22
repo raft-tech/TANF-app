@@ -201,6 +201,26 @@ describe('SectionFileUploadForm', () => {
       expect(fileInput.init).toHaveBeenCalled()
     })
 
+    it('renders processing alert when processingAlert is active', async () => {
+      const { getAllByTestId, getAllByText, getAllByRole } = renderComponent()
+
+      const triggerButton = getAllByTestId('trigger-processing-alert')[0]
+      fireEvent.click(triggerButton)
+
+      await waitFor(() => {
+        expect(
+          getAllByText('Processing complete.').length
+        ).toBeGreaterThanOrEqual(1)
+      })
+
+      // Verify the sr-only live region contains the message
+      const statusElements = getAllByRole('status')
+      const processingStatus = statusElements.find((el) =>
+        el.textContent.includes('Processing complete.')
+      )
+      expect(processingStatus).toBeTruthy()
+    })
+
     it('renders section labels with correct format', () => {
       const { getByText } = renderComponent()
 
