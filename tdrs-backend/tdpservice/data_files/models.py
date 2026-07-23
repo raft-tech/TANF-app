@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 class Program(models.Model):
     """A model representing a reporting program."""
 
+    code = models.CharField(max_length=32, unique=True)
     slug = models.SlugField(max_length=50, unique=True)
     name = models.CharField(max_length=100, unique=True)
 

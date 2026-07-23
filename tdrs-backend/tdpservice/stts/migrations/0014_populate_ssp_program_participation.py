@@ -3,6 +3,7 @@ from django.db import migrations
 
 PROGRAMS = {
     'tanf': {
+        'code': 'TAN',
         'name': 'TANF',
         'sections': [
             'Active Case Data',
@@ -12,6 +13,7 @@ PROGRAMS = {
         ],
     },
     'ssp': {
+        'code': 'SSP',
         'name': 'SSP',
         'sections': [
             'Active Case Data',
@@ -21,6 +23,7 @@ PROGRAMS = {
         ],
     },
     'tribal': {
+        'code': 'TRIBAL',
         'name': 'Tribal TANF',
         'sections': [
             'Active Case Data',
@@ -30,6 +33,7 @@ PROGRAMS = {
         ],
     },
     'fra': {
+        'code': 'FRA',
         'name': 'FRA',
         'sections': [
             'Work Outcomes of TANF Exiters',
@@ -47,7 +51,8 @@ def seed_programs_and_sections(apps):
     programs = {}
     for slug, data in PROGRAMS.items():
         program, _ = Program.objects.get_or_create(
-            slug=slug, defaults={'name': data['name']}
+            slug=slug,
+            defaults={'code': data['code'], 'name': data['name']},
         )
         programs[slug] = program
         for section_name in data['sections']:

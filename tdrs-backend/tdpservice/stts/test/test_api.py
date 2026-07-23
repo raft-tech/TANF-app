@@ -21,7 +21,9 @@ User = get_user_model()
 
 def _add_ssp_participation(stt):
     """Add SSP participation data to an STT for API response assertions."""
-    program, _ = Program.objects.get_or_create(slug="ssp", defaults={"name": "SSP"})
+    program, _ = Program.objects.get_or_create(
+        slug="ssp", defaults={"code": "SSP", "name": "SSP"}
+    )
     section, _ = Section.objects.get_or_create(
         program=program, name="Active Case Data"
     )

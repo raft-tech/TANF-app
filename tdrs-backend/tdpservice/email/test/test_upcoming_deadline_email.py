@@ -29,7 +29,7 @@ def _create_stt_with_analyst(name, filenames, ssp=False, stt_type=STT.EntityType
     stt = STT.objects.create(name=name, filenames=filenames, type=stt_type)
     if ssp:
         ssp_program, _ = Program.objects.get_or_create(
-            slug="ssp", defaults={"name": "SSP"}
+            slug="ssp", defaults={"code": "SSP", "name": "SSP"}
         )
         SttProgramParticipation.objects.create(
             stt=stt,
@@ -327,7 +327,9 @@ def test_former_ssp_stt_only_requires_tanf_submission():
             "Closed Case Data": "tanf2.txt",
         },
     )
-    ssp_program, _ = Program.objects.get_or_create(slug="ssp", defaults={"name": "SSP"})
+    ssp_program, _ = Program.objects.get_or_create(
+        slug="ssp", defaults={"code": "SSP", "name": "SSP"}
+    )
     SttProgramParticipation.objects.create(
         stt=stt,
         program=ssp_program,

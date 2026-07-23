@@ -13,7 +13,9 @@ def _create_stt(name):
 
 
 def _create_ssp_participation(stt, status):
-    program, _ = Program.objects.get_or_create(slug="ssp", defaults={"name": "SSP"})
+    program, _ = Program.objects.get_or_create(
+        slug="ssp", defaults={"code": "SSP", "name": "SSP"}
+    )
     return SttProgramParticipation.objects.create(
         stt=stt,
         program=program,

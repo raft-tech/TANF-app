@@ -1,10 +1,53 @@
 """Module testing for data file model."""
 
 import pytest
+from django.db import IntegrityError, transaction
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.models import DataFile, Program, Section
 from tdpservice.stts.models import STT
+
+
+def _create_program(code="TEST", slug="test-program", name="Test Program"):
+    """Create a test program without conflicting with canonical seed data."""
+    return Program.objects.create(code=code, slug=slug, name=name)
+
+
+@pytest.mark.django_db
+def test_program_code_and_string_representation():
+    """Programs expose their persisted code and display name."""
+    program = _create_program()
+
+    assert program.code == "TEST"
+    assert str(program) == "Test Program"
+
+
+@pytest.mark.django_db
+def test_program_code_is_unique():
+    """Program codes uniquely identify reporting programs."""
+    _create_program()
+
+    with pytest.raises(IntegrityError), transaction.atomic():
+        _create_program(slug="another-program", name="Another Program")
+
+
+@pytest.mark.django_db
+def test_section_string_representation():
+    """Sections display their program and section names."""
+    program = _create_program()
+    section = Section.objects.create(program=program, name="Active Case Data")
+
+    assert str(section) == "Test Program - Active Case Data"
+
+
+@pytest.mark.django_db
+def test_section_name_is_unique_per_program():
+    """Section names are unique within a program."""
+    program = _create_program()
+    Section.objects.create(program=program, name="Active Case Data")
+
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Section.objects.create(program=program, name="Active Case Data")
 
 
 @pytest.mark.django_db

@@ -2,13 +2,15 @@
 import pytest
 from django.db import IntegrityError, transaction
 
-from tdpservice.data_files.models import Program, Section
+from tdpservice.data_files.models import Program
 from tdpservice.stts.models import STT, Region, SttProgramParticipation
 
 
 def _create_program():
     """Create a test program without conflicting with migrated seed data."""
-    return Program.objects.create(slug="test-program", name="Test Program")
+    return Program.objects.create(
+        code="TEST", slug="test-program", name="Test Program"
+    )
 
 
 @pytest.mark.django_db
@@ -23,33 +25,6 @@ def test_stt_string_representation(stts):
     """Test STT string representation."""
     first_stt = STT.objects.filter(type=STT.EntityType.STATE).first()
     assert str(first_stt) == f"{first_stt.name} ({first_stt.stt_code})"
-
-
-@pytest.mark.django_db
-def test_program_string_representation():
-    """Test program string representation."""
-    program = _create_program()
-
-    assert str(program) == "Test Program"
-
-
-@pytest.mark.django_db
-def test_section_string_representation():
-    """Test section string representation."""
-    program = _create_program()
-    section = Section.objects.create(program=program, name="Active Case Data")
-
-    assert str(section) == "Test Program - Active Case Data"
-
-
-@pytest.mark.django_db
-def test_section_name_is_unique_per_program():
-    """Section names are unique within a program."""
-    program = _create_program()
-    Section.objects.create(program=program, name="Active Case Data")
-
-    with pytest.raises(IntegrityError), transaction.atomic():
-        Section.objects.create(program=program, name="Active Case Data")
 
 
 @pytest.mark.django_db
@@ -116,7 +91,9 @@ def test_stt_has_active_ssp_participation():
     """STT detects active SSP participation from participation records."""
     region = Region.objects.create(id=9999)
     stt = STT.objects.create(name="Test STT", region=region, stt_code="99")
-    program, _ = Program.objects.get_or_create(slug="ssp", defaults={"name": "SSP"})
+    program, _ = Program.objects.get_or_create(
+        slug="ssp", defaults={"code": "SSP", "name": "SSP"}
+    )
 
     assert stt.has_active_ssp_participation() is False
 

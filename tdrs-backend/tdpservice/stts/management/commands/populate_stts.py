@@ -15,6 +15,7 @@ from ...models import STT, Region, SttProgramParticipation
 DATA_DIR = BASE_DIR = Path(__file__).resolve().parent / "data"
 logger = logging.getLogger(__name__)
 SSP_PROGRAM_SLUG = "ssp"
+SSP_PROGRAM_CODE = "SSP"
 SSP_PROGRAM_NAME = "SSP"
 
 
@@ -73,7 +74,8 @@ def _maybe_bool(value):
 def _get_ssp_program():
     """Return the SSP program record."""
     program, _ = Program.objects.get_or_create(
-        slug=SSP_PROGRAM_SLUG, defaults={"name": SSP_PROGRAM_NAME}
+        slug=SSP_PROGRAM_SLUG,
+        defaults={"code": SSP_PROGRAM_CODE, "name": SSP_PROGRAM_NAME},
     )
     return program
 

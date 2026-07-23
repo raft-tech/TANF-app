@@ -49,6 +49,7 @@ def test_ssp_program_participation_data_migration():
 
         expected_program_sections = {
             "tanf": {
+                "code": "TAN",
                 "name": "TANF",
                 "sections": {
                     "Active Case Data",
@@ -58,6 +59,7 @@ def test_ssp_program_participation_data_migration():
                 },
             },
             "ssp": {
+                "code": "SSP",
                 "name": "SSP",
                 "sections": {
                     "Active Case Data",
@@ -67,6 +69,7 @@ def test_ssp_program_participation_data_migration():
                 },
             },
             "tribal": {
+                "code": "TRIBAL",
                 "name": "Tribal TANF",
                 "sections": {
                     "Active Case Data",
@@ -76,6 +79,7 @@ def test_ssp_program_participation_data_migration():
                 },
             },
             "fra": {
+                "code": "FRA",
                 "name": "FRA",
                 "sections": {
                     "Work Outcomes of TANF Exiters",
@@ -87,6 +91,7 @@ def test_ssp_program_participation_data_migration():
 
         for slug, program_data in expected_program_sections.items():
             program = Program.objects.get(slug=slug)
+            assert program.code == program_data["code"]
             assert program.name == program_data["name"]
             assert set(
                 Section.objects.filter(program=program).values_list("name", flat=True)
