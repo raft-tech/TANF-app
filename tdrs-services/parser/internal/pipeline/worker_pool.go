@@ -25,8 +25,9 @@ type validatedGroup struct {
 // validatedBatch is the output of processBatch: parsed and validated records
 // ready for routing to database writers.
 type validatedBatch struct {
-	BatchID int
-	Groups  []*validatedGroup
+	BatchID   int
+	Groups    []*validatedGroup
+	Durations validation.PhaseDurations
 }
 
 // WorkerPool manages goroutines that parse, validate, and route batches.
@@ -163,9 +164,12 @@ func (wp *WorkerPool) worker(ctx context.Context, workerID int) {
 			stats.CaseConsistency += cc
 			stats.BatchCount++
 			stats.GroupCount += int64(len(vb.Groups))
+			wp.recordValidationDurations(vb.Durations)
 
 			// Route to writers
+			routeStart := time.Now()
 			if err := routeValidatedBatch(ctx, wp.router, vb.Groups, wp.datafileID, &errorRows); err != nil {
+				metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "routing", time.Since(routeStart))
 				wp.deactivateWorker(startedAt)
 				logging.Error(ctx, "worker batch failed",
 					slog.Int(logging.KeyFileID, int(wp.datafileID)),
@@ -176,6 +180,7 @@ func (wp *WorkerPool) worker(ctx context.Context, workerID int) {
 				wp.errOnce.Do(func() { wp.workerErr = err })
 				return
 			}
+			metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "routing", time.Since(routeStart))
 			wp.deactivateWorker(startedAt)
 		}
 	}
@@ -203,6 +208,12 @@ func (wp *WorkerPool) recordCapacityDuration() {
 	})
 }
 
+func (wp *WorkerPool) recordValidationDurations(durations validation.PhaseDurations) {
+	metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "group_validation", durations.GroupValidation)
+	metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "record_validation", durations.RecordValidation)
+	metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "field_validation", durations.FieldValidation)
+}
+
 func parseMetricsFilespecKey(filespecKey string) (string, int) {
 	program, sectionString, ok := strings.Cut(filespecKey, ":")
 	if !ok {
@@ -216,11 +227,15 @@ func parseMetricsFilespecKey(filespecKey string) (string, int) {
 }
 
 func (wp *WorkerPool) processBatch(batch *parser.DecodedBatch) *validatedBatch {
+	stageStart := time.Now()
 	parsed := wp.parsingOrchestrator.ParseBatch(batch)
+	metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "parsing", time.Since(stageStart))
 
 	groups := make([]*validatedGroup, 0, len(parsed.Groups))
+	var durations validation.PhaseDurations
 	for _, group := range parsed.Groups {
 		vr := wp.orchestrator.ValidateGroup(group, wp.filespecKey, wp.dataFileContext)
+		durations.Add(vr.Durations)
 		groups = append(groups, &validatedGroup{
 			Group:  group,
 			Result: vr,
@@ -228,7 +243,8 @@ func (wp *WorkerPool) processBatch(batch *parser.DecodedBatch) *validatedBatch {
 	}
 
 	return &validatedBatch{
-		BatchID: parsed.BatchID,
-		Groups:  groups,
+		BatchID:   parsed.BatchID,
+		Groups:    groups,
+		Durations: durations,
 	}
 }

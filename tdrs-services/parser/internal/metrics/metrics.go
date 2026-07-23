@@ -19,6 +19,7 @@ import (
 
 const (
 	filesProcessedTotal       = "go_parser_files_processed_total"
+	fileDuration              = "go_parser_file_duration_seconds"
 	recordsParsedTotal        = "go_parser_records_parsed_total"
 	errorsGeneratedTotal      = "go_parser_errors_generated_total"
 	pipelineStageDuration     = "go_parser_pipeline_stage_duration_seconds"
@@ -56,6 +57,10 @@ var metricDefs = map[string]metricDef{
 	filesProcessedTotal: {
 		kind: metricCounter,
 		help: "Total files processed by the Go parser.",
+	},
+	fileDuration: {
+		kind: metricHistogram,
+		help: "Go parser end-to-end file processing duration in seconds.",
 	},
 	recordsParsedTotal: {
 		kind: metricCounter,
@@ -380,6 +385,16 @@ func RecordFileProcessed(program string, section int, status string) {
 	recorder().IncCounter(filesProcessedTotal, parseLabels(program, section, Labels{
 		"status": status,
 	}), 1)
+}
+
+// ObserveFileDuration records end-to-end processing duration for one file.
+func ObserveFileDuration(program string, section int, status string, duration time.Duration) {
+	if duration < 0 {
+		return
+	}
+	recorder().ObserveHistogram(fileDuration, parseLabels(program, section, Labels{
+		"status": status,
+	}), duration.Seconds())
 }
 
 // AddRecordsParsed increments the detail-record counter.

@@ -73,29 +73,24 @@ func (b *Base) RunPipeline(ctx context.Context, source reader.FileSource, sink w
 		if err != nil {
 			status = "failed"
 		}
+		metrics.ObserveFileDuration(dfCtx.Program, dfCtx.Section, status, time.Since(startTime))
 		metrics.RecordFileProcessed(dfCtx.Program, dfCtx.Section, status)
 		recordResultMetrics(dfCtx, result)
 	}()
 
-	stageStart := time.Now()
 	file, err := source.Open(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "file_open", time.Since(stageStart))
 	defer file.Close()
 	defer source.Cleanup()
 
-	stageStart = time.Now()
 	spec := b.Registry.GetFileSpec(dfCtx.Program, dfCtx.Section)
 	if spec == nil {
 		return nil, fmt.Errorf("no file spec for %s section %d", dfCtx.Program, dfCtx.Section)
 	}
-	metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "filespec_resolve", time.Since(stageStart))
 
-	stageStart = time.Now()
 	dec, err := decoder.CreateDecoder(file, spec)
-	metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "decoder_setup", time.Since(stageStart))
 	if err != nil {
 		if errors.Is(err, sentinel.ErrDecoderUnknown) {
 			return b.handleDecoderUnknown(ctx, sink, dfCtx, startTime)
@@ -105,9 +100,7 @@ func (b *Base) RunPipeline(ctx context.Context, source reader.FileSource, sink w
 	defer dec.Close()
 
 	pipeln := pipeline.NewPipeline(sink, b.Registry, b.Validators, pipeline.NewConfig(b.Config))
-	stageStart = time.Now()
-	result, err = pipeln.Process(ctx, dec, dfCtx)
-	metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "pipeline_process", time.Since(stageStart))
+	result, err = pipeln.Process(ctx, dec, dfCtx, time.Since(startTime))
 	return result, err
 }
 
