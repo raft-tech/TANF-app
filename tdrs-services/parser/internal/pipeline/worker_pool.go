@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"go-parser/internal/logging"
@@ -25,9 +24,10 @@ type validatedGroup struct {
 // validatedBatch is the output of processBatch: parsed and validated records
 // ready for routing to database writers.
 type validatedBatch struct {
-	BatchID   int
-	Groups    []*validatedGroup
-	Durations validation.PhaseDurations
+	BatchID             int
+	Groups              []*validatedGroup
+	ParsingDuration     time.Duration
+	ValidationDurations validation.PhaseDurations
 }
 
 // WorkerPool manages goroutines that parse, validate, and route batches.
@@ -53,9 +53,9 @@ type WorkerPool struct {
 	workerErr   error
 	errOnce     sync.Once
 
-	activeWorkers atomic.Int64
-	startedAt     time.Time
-	capacityOnce  sync.Once
+	startedAt    time.Time
+	capacityOnce sync.Once
+	metricsOnce  sync.Once
 }
 
 // WorkerPoolConfig configures the worker pool.
@@ -116,6 +116,7 @@ func (wp *WorkerPool) CloseInputs() {
 func (wp *WorkerPool) Wait() {
 	wp.wg.Wait()
 	wp.recordCapacityDuration()
+	wp.recordWorkerMetrics()
 }
 
 // Err returns the first routing error encountered by any worker, or nil.
@@ -135,6 +136,10 @@ func (wp *WorkerPool) AggregateStats() *RouteStats {
 		total.CaseConsistency += s.CaseConsistency
 		total.BatchCount += s.BatchCount
 		total.GroupCount += s.GroupCount
+		total.ParsingDuration += s.ParsingDuration
+		total.RoutingDuration += s.RoutingDuration
+		total.ActiveDuration += s.ActiveDuration
+		total.ValidationDurations.Add(s.ValidationDurations)
 	}
 	return &total
 }
@@ -164,13 +169,14 @@ func (wp *WorkerPool) worker(ctx context.Context, workerID int) {
 			stats.CaseConsistency += cc
 			stats.BatchCount++
 			stats.GroupCount += int64(len(vb.Groups))
-			wp.recordValidationDurations(vb.Durations)
+			stats.ParsingDuration += vb.ParsingDuration
+			stats.ValidationDurations.Add(vb.ValidationDurations)
 
 			// Route to writers
 			routeStart := time.Now()
 			if err := routeValidatedBatch(ctx, wp.router, vb.Groups, wp.datafileID, &errorRows); err != nil {
-				metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "routing", time.Since(routeStart))
-				wp.deactivateWorker(startedAt)
+				stats.RoutingDuration += time.Since(routeStart)
+				stats.ActiveDuration += wp.deactivateWorker(startedAt)
 				logging.Error(ctx, "worker batch failed",
 					slog.Int(logging.KeyFileID, int(wp.datafileID)),
 					slog.Int("worker_id", workerID),
@@ -180,23 +186,18 @@ func (wp *WorkerPool) worker(ctx context.Context, workerID int) {
 				wp.errOnce.Do(func() { wp.workerErr = err })
 				return
 			}
-			metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "routing", time.Since(routeStart))
-			wp.deactivateWorker(startedAt)
+			stats.RoutingDuration += time.Since(routeStart)
+			stats.ActiveDuration += wp.deactivateWorker(startedAt)
 		}
 	}
 }
 
 func (wp *WorkerPool) activateWorker() time.Time {
-	startedAt := time.Now()
-	active := wp.activeWorkers.Add(1)
-	metrics.SetWorkerPoolActive(wp.metricsProgram, wp.metricsSection, active, wp.numWorkers)
-	return startedAt
+	return time.Now()
 }
 
-func (wp *WorkerPool) deactivateWorker(startedAt time.Time) {
-	active := wp.activeWorkers.Add(-1)
-	metrics.AddWorkerPoolActiveDuration(wp.metricsProgram, wp.metricsSection, time.Since(startedAt))
-	metrics.SetWorkerPoolActive(wp.metricsProgram, wp.metricsSection, active, wp.numWorkers)
+func (wp *WorkerPool) deactivateWorker(startedAt time.Time) time.Duration {
+	return time.Since(startedAt)
 }
 
 func (wp *WorkerPool) recordCapacityDuration() {
@@ -208,10 +209,17 @@ func (wp *WorkerPool) recordCapacityDuration() {
 	})
 }
 
-func (wp *WorkerPool) recordValidationDurations(durations validation.PhaseDurations) {
-	metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "group_validation", durations.GroupValidation)
-	metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "record_validation", durations.RecordValidation)
-	metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "field_validation", durations.FieldValidation)
+func (wp *WorkerPool) recordWorkerMetrics() {
+	wp.metricsOnce.Do(func() {
+		stats := wp.AggregateStats()
+		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "parsing", stats.ParsingDuration)
+		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "group_validation", stats.ValidationDurations.GroupValidation)
+		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "record_validation", stats.ValidationDurations.RecordValidation)
+		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "field_validation", stats.ValidationDurations.FieldValidation)
+		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "routing", stats.RoutingDuration)
+		metrics.AddWorkerPoolActiveDuration(wp.metricsProgram, wp.metricsSection, stats.ActiveDuration)
+		metrics.SetWorkerPoolActive(wp.metricsProgram, wp.metricsSection, 0, wp.numWorkers)
+	})
 }
 
 func parseMetricsFilespecKey(filespecKey string) (string, int) {
@@ -227,9 +235,9 @@ func parseMetricsFilespecKey(filespecKey string) (string, int) {
 }
 
 func (wp *WorkerPool) processBatch(batch *parser.DecodedBatch) *validatedBatch {
-	stageStart := time.Now()
+	parseStart := time.Now()
 	parsed := wp.parsingOrchestrator.ParseBatch(batch)
-	metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "parsing", time.Since(stageStart))
+	parsingDuration := time.Since(parseStart)
 
 	groups := make([]*validatedGroup, 0, len(parsed.Groups))
 	var durations validation.PhaseDurations
@@ -243,8 +251,9 @@ func (wp *WorkerPool) processBatch(batch *parser.DecodedBatch) *validatedBatch {
 	}
 
 	return &validatedBatch{
-		BatchID:   parsed.BatchID,
-		Groups:    groups,
-		Durations: durations,
+		BatchID:             parsed.BatchID,
+		Groups:              groups,
+		ParsingDuration:     parsingDuration,
+		ValidationDurations: durations,
 	}
 }
