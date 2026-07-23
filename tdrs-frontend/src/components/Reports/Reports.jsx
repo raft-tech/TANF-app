@@ -131,17 +131,6 @@ function ReportsContent() {
           </div>
         </div>
 
-        {/* Screen-reader announcer  */}
-        <div className="usa-sr-only">
-          <div role="status" aria-live="polite" aria-atomic="true">
-            {uploadAlert.active ? uploadAlert.message : ''}
-          </div>
-
-          <div role="status" aria-live="polite" aria-atomic="true">
-            {processingAlert.active ? processingAlert.message : ''}
-          </div>
-        </div>
-
         {fileTypeInputValue === 'program-integrity-audit' &&
         piaFeatureFlag.enabled === true ? (
           <ProgramIntegrityAuditReports
