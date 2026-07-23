@@ -68,10 +68,10 @@ const TanfSspReports = ({ stt, isRegionalStaff, isDataAnalyst }) => {
               className={classNames('usa-alert usa-alert--slim', {
                 [`usa-alert--${uploadAlert.type}`]: true,
               })}
-              role="alert"
+              tabIndex={-1}
               ref={uploadAlertRef}
             >
-              <div className="usa-alert__body">
+              <div className="usa-alert__body" role="alert">
                 <p className="usa-alert__text">{uploadAlert.message}</p>
               </div>
             </div>
@@ -90,10 +90,10 @@ const TanfSspReports = ({ stt, isRegionalStaff, isDataAnalyst }) => {
               className={classNames('usa-alert usa-alert--slim', {
                 [`usa-alert--${processingAlert.type}`]: true,
               })}
-              role="alert"
+              tabIndex={-1}
               ref={processingAlertRef}
             >
-              <div className="usa-alert__body">
+              <div className="usa-alert__body" role="alert">
                 <p className="usa-alert__text">{processingAlert.message}</p>
               </div>
             </div>
