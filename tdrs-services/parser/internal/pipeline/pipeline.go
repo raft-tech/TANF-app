@@ -217,8 +217,16 @@ func (p *Pipeline) Process(ctx context.Context, dec decoder.Decoder, dfCtx DataF
 	acc := parser.NewAccumulator(spec, detector)
 	fileStats := validation.NewFileRecordStats(parseCtx)
 	requireTrailer := spec.Format == filespec.FormatPositional
-	decodingDuration, err := accumulateBatches(runCtx, dec, acc, workers, router, dfCtx.DatafileID, trailerSchema, validationOrchestrator, valDfCtx, fileStats, requireTrailer)
-	metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "decoding", decodingDuration)
+	parseValidateStartedAt := time.Now()
+	parseValidateRecorded := false
+	recordParseValidate := func() {
+		if parseValidateRecorded {
+			return
+		}
+		metrics.ObservePipelineStage(dfCtx.Program, dfCtx.Section, "parse_validate", time.Since(parseValidateStartedAt))
+		parseValidateRecorded = true
+	}
+	_, err = accumulateBatches(runCtx, dec, acc, workers, router, dfCtx.DatafileID, trailerSchema, validationOrchestrator, valDfCtx, fileStats, requireTrailer)
 	if firstRow != nil {
 		fileStats.MaxLineNumber = max(fileStats.MaxLineNumber, firstRow.LineNum())
 	}
@@ -229,12 +237,14 @@ func (p *Pipeline) Process(ctx context.Context, dec decoder.Decoder, dfCtx DataF
 		if errors.As(err, &multipleHeaders) {
 			workers.CloseInputs()
 			workers.Wait()
+			recordParseValidate()
 			return p.handleMultipleHeaders(ctx, cancelRun, dfCtx, router, multipleHeaders.RowNumber(), startTime)
 		}
 
 		cancelRun()
 		workers.CloseInputs()
 		workers.Wait()
+		recordParseValidate()
 		if rollbackErr := p.abortAndRollback(ctx, cancelRun, dfCtx, router); rollbackErr != nil {
 			return nil, errors.Join(err, rollbackErr)
 		}
@@ -244,6 +254,7 @@ func (p *Pipeline) Process(ctx context.Context, dec decoder.Decoder, dfCtx DataF
 	workers.Wait()
 
 	if err := workers.Err(); err != nil {
+		recordParseValidate()
 		if rollbackErr := p.abortAndRollback(ctx, cancelRun, dfCtx, router); rollbackErr != nil {
 			return nil, errors.Join(err, rollbackErr)
 		}
@@ -251,6 +262,7 @@ func (p *Pipeline) Process(ctx context.Context, dec decoder.Decoder, dfCtx DataF
 	}
 
 	addedTrailerCountError, err := p.writeTrailerRecordCountError(ctx, router, dfCtx.DatafileID, fileStats)
+	recordParseValidate()
 	if err != nil {
 		return nil, err
 	}

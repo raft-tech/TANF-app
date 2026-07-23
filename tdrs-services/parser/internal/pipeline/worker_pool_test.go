@@ -418,23 +418,23 @@ func TestWorkerPool_RecordWorkerMetrics_EmitsAggregatedMetricsOnce(t *testing.T)
 	}
 
 	body := scrapeWorkerPoolMetrics(registry)
-	assertMetricsMissing(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="parsing"}`)
+	assertMetricsMissing(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_parsing"}`)
 	assertMetricsMissing(t, body, `go_parser_worker_pool_active_duration_seconds_total{program="TAN",section="1",server_mode="celery"}`)
 
 	wp.recordWorkerMetrics()
 	wp.recordWorkerMetrics()
 
 	body = scrapeWorkerPoolMetrics(registry)
-	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="parsing"} 1`)
-	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_sum{program="TAN",section="1",server_mode="celery",stage="parsing"} 3`)
-	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="group_validation"} 1`)
-	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_sum{program="TAN",section="1",server_mode="celery",stage="group_validation"} 10`)
-	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="record_validation"} 1`)
-	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_sum{program="TAN",section="1",server_mode="celery",stage="record_validation"} 12`)
-	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="field_validation"} 1`)
-	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_sum{program="TAN",section="1",server_mode="celery",stage="field_validation"} 14`)
-	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="routing"} 1`)
-	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_sum{program="TAN",section="1",server_mode="celery",stage="routing"} 5`)
+	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_parsing"} 1`)
+	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_sum{program="TAN",section="1",server_mode="celery",stage="worker_parsing"} 3`)
+	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_group_validation"} 1`)
+	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_sum{program="TAN",section="1",server_mode="celery",stage="worker_group_validation"} 10`)
+	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_record_validation"} 1`)
+	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_sum{program="TAN",section="1",server_mode="celery",stage="worker_record_validation"} 12`)
+	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_field_validation"} 1`)
+	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_sum{program="TAN",section="1",server_mode="celery",stage="worker_field_validation"} 14`)
+	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_routing"} 1`)
+	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_sum{program="TAN",section="1",server_mode="celery",stage="worker_routing"} 5`)
 	assertMetricsContains(t, body, `go_parser_worker_pool_active_duration_seconds_total{program="TAN",section="1",server_mode="celery"} 7`)
 	assertMetricsContains(t, body, `go_parser_worker_pool_active_workers{program="TAN",section="1",server_mode="celery"} 0`)
 	assertMetricsContains(t, body, `go_parser_worker_pool_utilization{program="TAN",section="1",server_mode="celery"} 0`)
@@ -491,10 +491,10 @@ func TestWorkerPool_ProcessBatch_AccumulatesTimingWithoutMetrics(t *testing.T) {
 	}
 
 	body := scrapeWorkerPoolMetrics(registry)
-	assertMetricsMissing(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="parsing"}`)
-	assertMetricsMissing(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="group_validation"}`)
-	assertMetricsMissing(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="record_validation"}`)
-	assertMetricsMissing(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="field_validation"}`)
+	assertMetricsMissing(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_parsing"}`)
+	assertMetricsMissing(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_group_validation"}`)
+	assertMetricsMissing(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_record_validation"}`)
+	assertMetricsMissing(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_field_validation"}`)
 }
 
 func TestWorkerPool_ContextCancellation(t *testing.T) {

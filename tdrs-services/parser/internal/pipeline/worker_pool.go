@@ -212,11 +212,11 @@ func (wp *WorkerPool) recordCapacityDuration() {
 func (wp *WorkerPool) recordWorkerMetrics() {
 	wp.metricsOnce.Do(func() {
 		stats := wp.AggregateStats()
-		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "parsing", stats.ParsingDuration)
-		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "group_validation", stats.ValidationDurations.GroupValidation)
-		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "record_validation", stats.ValidationDurations.RecordValidation)
-		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "field_validation", stats.ValidationDurations.FieldValidation)
-		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "routing", stats.RoutingDuration)
+		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "worker_parsing", stats.ParsingDuration)
+		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "worker_group_validation", stats.ValidationDurations.GroupValidation)
+		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "worker_record_validation", stats.ValidationDurations.RecordValidation)
+		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "worker_field_validation", stats.ValidationDurations.FieldValidation)
+		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "worker_routing", stats.RoutingDuration)
 		metrics.AddWorkerPoolActiveDuration(wp.metricsProgram, wp.metricsSection, stats.ActiveDuration)
 		metrics.SetWorkerPoolActive(wp.metricsProgram, wp.metricsSection, 0, wp.numWorkers)
 	})
