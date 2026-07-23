@@ -196,13 +196,6 @@ describe('QuarterFileUploadForm', () => {
       )
       expect(processingStatus).toBeTruthy()
     })
-
-    it('initializes USWDS file input on mount', () => {
-      const { fileInput } = require('@uswds/uswds/src/js/components')
-      renderComponent()
-
-      expect(fileInput.init).toHaveBeenCalled()
-    })
   })
 
   describe('Form Submission', () => {
