@@ -205,6 +205,13 @@ class DataFile(FileRecord):
     section = models.CharField(
         max_length=32, blank=False, null=False, choices=Section.choices
     )
+    section_ref = models.ForeignKey(
+        "data_files.Section",
+        on_delete=models.PROTECT,
+        related_name="data_files",
+        blank=True,
+        null=True,
+    )
     is_program_audit = models.BooleanField(default=False)
 
     version = models.IntegerField()
@@ -241,6 +248,13 @@ class DataFile(FileRecord):
         help_text="Reparse events this file has been associated with.",
         related_name="files",
     )
+
+    @property
+    def program(self):
+        """Return the program associated with the canonical section."""
+        if self.section_ref_id is None:
+            return None
+        return self.section_ref.program
 
     @property
     def filename(self):
@@ -401,6 +415,7 @@ ShadowDataFile = create_shadow_model(
             null=False,
         ),
     },
+    exclude_fields={"section_ref"},
 )
 
 

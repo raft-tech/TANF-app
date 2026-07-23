@@ -51,6 +51,25 @@ def test_section_name_is_unique_per_program():
 
 
 @pytest.mark.django_db
+def test_data_file_program_comes_from_section_ref(data_file_instance):
+    """Data files expose the program associated with their canonical section."""
+    program = _create_program()
+    section = Section.objects.create(program=program, name="Active Case Data")
+    data_file_instance.section_ref = section
+    data_file_instance.save(update_fields=["section_ref"])
+    data_file_instance.refresh_from_db()
+
+    assert data_file_instance.program == program
+
+
+@pytest.mark.django_db
+def test_data_file_program_is_none_without_section_ref(data_file_instance):
+    """Data files without a canonical section do not expose a program."""
+    assert data_file_instance.section_ref is None
+    assert data_file_instance.program is None
+
+
+@pytest.mark.django_db
 def test_create_new_data_file_version(data_file_instance):
     """Test version incrementing logic for data files."""
     new_version = DataFile.create_new_version(
