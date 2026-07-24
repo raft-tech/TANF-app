@@ -29,6 +29,39 @@ from tdpservice.users.models import User
 logger = logging.getLogger(__name__)
 
 
+class Program(models.Model):
+    """A model representing a reporting program."""
+
+    slug = models.SlugField(max_length=50, unique=True)
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        """Return the program name."""
+        return self.name
+
+
+class Section(models.Model):
+    """A model representing a reporting section for a program."""
+
+    program = models.ForeignKey(
+        Program, on_delete=models.CASCADE, related_name="sections"
+    )
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        """Metadata."""
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=["program", "name"], name="section_uniq_program_name"
+            ),
+        ]
+
+    def __str__(self):
+        """Return the section name."""
+        return f"{self.program.name} - {self.name}"
+
+
 def get_file_shasum(file: Union[File, StringIO]) -> str:
     """Derive the SHA256 checksum of a file."""
     _hash = sha256()

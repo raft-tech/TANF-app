@@ -12,10 +12,26 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from tdpservice.conftest import UserFactory
-from tdpservice.stts.models import STT, Region
+from tdpservice.data_files.models import Program, Section
+from tdpservice.stts.models import STT, Region, SttProgramParticipation
 from tdpservice.stts.views import STTApiAlphaView
 
 User = get_user_model()
+
+
+def _add_ssp_participation(stt):
+    """Add SSP participation data to an STT for API response assertions."""
+    program, _ = Program.objects.get_or_create(slug="ssp", defaults={"name": "SSP"})
+    section, _ = Section.objects.get_or_create(
+        program=program, name="Active Case Data"
+    )
+    participation = SttProgramParticipation.objects.create(
+        stt=stt,
+        program=program,
+        status=SttProgramParticipation.Status.ACTIVE,
+    )
+    participation.sections.add(section)
+    return participation
 
 
 @pytest.mark.django_db
@@ -66,6 +82,10 @@ def test_stts_by_region_blocks_unauthorized(api_client, stt_user):
 @pytest.mark.django_db
 def test_can_get_stts(api_client, stt_user, stts):
     """Test endpoint returns a listing of states, tribes and territories."""
+    stt = STT.objects.filter(type=STT.EntityType.STATE).first()
+    participation = _add_ssp_participation(stt)
+    section = participation.sections.first()
+
     api_client.login(username=stt_user.username, password="test_password")
     response = api_client.get(reverse("stts"))
     assert response.status_code == status.HTTP_200_OK
@@ -74,10 +94,34 @@ def test_can_get_stts(api_client, stt_user, stts):
     state_name = response.data[0]["name"]
     assert STT.objects.filter(name=state_name).exists()
 
+    response_stt = next(datum for datum in response.data if datum["id"] == stt.id)
+    assert "ssp" in response_stt
+    assert response_stt["program_participations"] == [
+        {
+            "id": stt.program_participations.first().id,
+            "program": {"id": participation.program.id, "slug": "ssp", "name": "SSP"},
+            "status": "ACTIVE",
+            "sections": [
+                {
+                    "id": section.id,
+                    "program": {
+                        "id": participation.program.id,
+                        "slug": "ssp",
+                        "name": "SSP",
+                    },
+                    "name": "Active Case Data",
+                }
+            ],
+        }
+    ]
+
 
 @pytest.mark.django_db
 def test_can_get_by_region_stts(api_client, stt_user, stts):
     """Test endpoint returns the alphabetized listing of STTs."""
+    stt = STT.objects.filter(type=STT.EntityType.STATE).first()
+    _add_ssp_participation(stt)
+
     api_client.login(username=stt_user.username, password="test_password")
     response = api_client.get(reverse("stts-by-region"))
     assert response.status_code == status.HTTP_200_OK
@@ -98,6 +142,14 @@ def test_can_get_by_region_stts(api_client, stt_user, stts):
 
     region_id = response.data[0]["id"]
     assert Region.objects.filter(id=region_id).exists()
+
+    response_stts = [
+        response_stt
+        for region in response.data
+        for response_stt in region["stts"]
+        if response_stt["id"] == stt.id
+    ]
+    assert response_stts[0]["program_participations"][0]["status"] == "ACTIVE"
 
 
 @pytest.mark.django_db
@@ -130,6 +182,10 @@ def test_stts_and_stts_alpha_are_dissimilar(api_client, stt_user, stts):
 )
 def test_can_get_alpha_stts(api_client, stt_user, stts):
     """Test endpoint returns the alphabetized listing of STTs."""
+    stt = STT.objects.filter(type=STT.EntityType.STATE).first()
+    _add_ssp_participation(stt)
+    caches["stts"].clear()
+
     api_client.login(username=stt_user.username, password="test_password")
     response = api_client.get(reverse("stts-alpha"))
     assert response.status_code == status.HTTP_200_OK
@@ -137,6 +193,9 @@ def test_can_get_alpha_stts(api_client, stt_user, stts):
 
     state_name = response.data[0]["name"]
     assert STT.objects.filter(name=state_name).exists()
+
+    response_stt = next(datum for datum in response.data if datum["id"] == stt.id)
+    assert response_stt["program_participations"][0]["status"] == "ACTIVE"
 
 
 @pytest.mark.django_db

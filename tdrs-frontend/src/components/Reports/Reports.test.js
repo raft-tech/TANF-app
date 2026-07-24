@@ -47,6 +47,12 @@ describe('Reports', () => {
     jest.restoreAllMocks()
   })
 
+  const participation = (slug, status) => ({
+    program: { slug },
+    status,
+    sections: [],
+  })
+
   const initialState = {
     reports: {
       files: [
@@ -115,7 +121,15 @@ describe('Reports', () => {
           type: 'state',
           code: 'CA',
           name: 'California',
-          ssp: true,
+          program_participations: [participation('ssp', 'ACTIVE')],
+          num_sections: 4,
+        },
+        {
+          id: 33,
+          type: 'state',
+          code: 'NY',
+          name: 'New York',
+          program_participations: [participation('ssp', 'FORMER')],
           num_sections: 4,
         },
         {
@@ -123,7 +137,7 @@ describe('Reports', () => {
           type: 'state',
           code: 'AK',
           name: 'Alaska',
-          ssp: false,
+          program_participations: [participation('ssp', 'NEVER')],
           num_sections: 4,
         },
       ],
@@ -213,9 +227,9 @@ describe('Reports', () => {
 
     const options = select.children
 
-    // There are only two STTs in the mock list but the combobox
+    // There are three STTs in the mock list but the combobox
     // has a default option
-    expect(options.length).toEqual(3)
+    expect(options.length).toEqual(4)
   })
 
   it('should not render the STT if the user is not an OFA Admin', () => {
@@ -822,7 +836,7 @@ describe('Reports', () => {
     expect(expected).toEqual(currentYear.toString())
   })
 
-  it('Non OFA Admin should show the data files section when the user has an stt with ssp set to true', () => {
+  it('Data Analysts should see SSP-MOE when their profile STT has active SSP participation', () => {
     const store = mockStore({
       ...initialState,
       auth: {
@@ -848,8 +862,33 @@ describe('Reports', () => {
     expect(getByText('SSP-MOE')).toBeInTheDocument()
   })
 
-  // should not render the File Type section if the user is not an OFA Admin and the stt has ssp set to false
-  it('Non OFA Admin should not show the data files section when the user has an stt with ssp set to false', () => {
+  it('Data Analysts should see SSP-MOE when their profile STT has former SSP participation', () => {
+    const store = mockStore({
+      ...initialState,
+      auth: {
+        ...initialState.auth,
+        user: {
+          ...initialState.auth.user,
+          roles: [{ id: 1, name: 'Data Analyst', permission: [] }],
+          stt: {
+            name: 'New York',
+          },
+        },
+      },
+    })
+
+    const { getByText } = render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Reports />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    expect(getByText('SSP-MOE')).toBeInTheDocument()
+  })
+
+  it('Data Analysts should not see SSP-MOE when their profile STT has never participated in SSP', () => {
     const store = mockStore({
       ...initialState,
       auth: {
@@ -875,7 +914,7 @@ describe('Reports', () => {
     expect(queryByText('SSP-MOE')).not.toBeInTheDocument()
   })
 
-  it('OFA Admin should see the data files section when they select a stt with ssp set to true', () => {
+  it('OFA Admin should see SSP-MOE when they select an active SSP STT', () => {
     const store = mockStore({
       ...initialState,
       reports: {
@@ -895,7 +934,27 @@ describe('Reports', () => {
     expect(getByText('SSP-MOE')).toBeInTheDocument()
   })
 
-  it('OFA Admin should not see the data files section when they select a stt with ssp set to false', () => {
+  it('OFA Admin should see SSP-MOE when they select a former SSP STT', () => {
+    const store = mockStore({
+      ...initialState,
+      reports: {
+        ...initialState.reports,
+        stt: 'New York',
+      },
+    })
+
+    const { getByText } = render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Reports />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    expect(getByText('SSP-MOE')).toBeInTheDocument()
+  })
+
+  it('OFA Admin should not see SSP-MOE when they select a never SSP STT', () => {
     const store = mockStore({
       ...initialState,
       reports: {
@@ -937,7 +996,7 @@ describe('Reports', () => {
                   num_sections: 3,
                   postal_code: 'AK',
                   region: 10,
-                  ssp: false,
+                  program_participations: [participation('ssp', 'FORMER')],
                   stt_code: '02',
                   type: 'state',
                 },
@@ -1594,7 +1653,7 @@ describe('Reports', () => {
             type: 'state',
             code: 'AK',
             name: 'Alaska',
-            ssp: false,
+            program_participations: [participation('ssp', 'NEVER')],
             num_sections: 3,
           },
           {
@@ -1602,7 +1661,7 @@ describe('Reports', () => {
             type: 'tribe',
             code: 'MT',
             name: 'Blackfeet Nation',
-            ssp: false,
+            program_participations: [],
             num_sections: 3,
           },
           {
@@ -1610,7 +1669,7 @@ describe('Reports', () => {
             type: 'territory',
             code: 'GU',
             name: 'Guam',
-            ssp: false,
+            program_participations: [participation('ssp', 'NEVER')],
             num_sections: 3,
           },
         ],
@@ -1669,7 +1728,7 @@ describe('Reports', () => {
             type: 'state',
             code: 'AK',
             name: 'Alaska',
-            ssp: false,
+            program_participations: [participation('ssp', 'NEVER')],
             num_sections: 3,
           },
           {
@@ -1677,7 +1736,7 @@ describe('Reports', () => {
             type: 'tribe',
             code: 'MT',
             name: 'Blackfeet Nation',
-            ssp: false,
+            program_participations: [],
             num_sections: 3,
           },
           {
@@ -1685,7 +1744,7 @@ describe('Reports', () => {
             type: 'territory',
             code: 'GU',
             name: 'Guam',
-            ssp: false,
+            program_participations: [participation('ssp', 'NEVER')],
             num_sections: 3,
           },
         ],
@@ -1744,7 +1803,7 @@ describe('Reports', () => {
             type: 'state',
             code: 'AK',
             name: 'Alaska',
-            ssp: false,
+            program_participations: [participation('ssp', 'NEVER')],
             num_sections: 3,
           },
           {
@@ -1752,7 +1811,7 @@ describe('Reports', () => {
             type: 'tribe',
             code: 'MT',
             name: 'Blackfeet Nation',
-            ssp: false,
+            program_participations: [],
             num_sections: 3,
           },
           {
@@ -1760,7 +1819,7 @@ describe('Reports', () => {
             type: 'territory',
             code: 'GU',
             name: 'Guam',
-            ssp: false,
+            program_participations: [participation('ssp', 'NEVER')],
             num_sections: 3,
           },
         ],
@@ -1919,6 +1978,51 @@ describe('Reports', () => {
     })
   })
 
+  it('should keep SSP selected when changing from active SSP to former SSP', async () => {
+    const store = appConfigureStore({
+      ...initialState,
+      reports: {
+        ...initialState.reports,
+        stt: 'California',
+      },
+    })
+
+    const { getByLabelText, getByTestId, queryByText } = render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Reports />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    const sttDropdown = getByTestId('stt-combobox')
+    fireEvent.change(sttDropdown, { target: { value: 'California' } })
+    fireEvent.click(getByLabelText('SSP-MOE'))
+    setReportInputs('2021', 'Q3', getByLabelText)
+
+    await waitFor(() => {
+      expect(
+        queryByText(
+          'California - SSP-MOE - Fiscal Year 2021 - Quarter 3 (April - June)'
+        )
+      ).toBeInTheDocument()
+    })
+
+    fireEvent.change(sttDropdown, { target: { value: 'New York' } })
+
+    await waitFor(() => {
+      expect(getByLabelText('SSP-MOE').checked).toBe(true)
+      expect(
+        queryByText(
+          'New York - SSP-MOE - Fiscal Year 2021 - Quarter 3 (April - June)'
+        )
+      ).toBeInTheDocument()
+      expect(queryByText('Current Submission')).not.toBeInTheDocument()
+      expect(queryByText('Submit Data Files')).not.toBeInTheDocument()
+      expect(queryByText('Submission History')).toBeInTheDocument()
+    })
+  })
+
   it('should reset file type to TANF when confirming STT change with uploaded files from SSP to non-SSP STT', async () => {
     const store = appConfigureStore({
       ...initialState,
@@ -1997,6 +2101,69 @@ describe('Reports', () => {
       ).toBeInTheDocument()
 
       // File should be cleared
+      expect(queryByText('section1.txt')).not.toBeInTheDocument()
+    })
+  })
+
+  it('should keep SSP selected when confirming STT change with uploaded files from active SSP to former SSP', async () => {
+    const store = appConfigureStore({
+      ...initialState,
+      reports: {
+        ...initialState.reports,
+        stt: 'California',
+      },
+    })
+
+    const { getByLabelText, getByTestId, getByText, queryByText } = render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Reports />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    const sttDropdown = getByTestId('stt-combobox')
+    fireEvent.change(sttDropdown, { target: { value: 'California' } })
+    fireEvent.click(getByLabelText('SSP-MOE'))
+    setReportInputs('2021', 'Q3', getByLabelText)
+
+    await waitFor(() => {
+      expect(
+        getByText('Section 1 - SSP-MOE - Active Case Data')
+      ).toBeInTheDocument()
+    })
+
+    fireEvent.change(getByLabelText('Section 1 - SSP-MOE - Active Case Data'), {
+      target: {
+        files: [makeTestFile('section1.txt', ['HEADER20212A53000SSP1ED\n'])],
+      },
+    })
+
+    await waitFor(() => {
+      expect(getByText('section1.txt')).toBeInTheDocument()
+      expect(getByText('Submit Data Files')).toHaveAttribute(
+        'data-has-uploaded-files',
+        'true'
+      )
+    })
+
+    fireEvent.change(sttDropdown, { target: { value: 'New York' } })
+
+    await waitFor(() => {
+      expect(queryByText('Files Not Submitted')).toBeInTheDocument()
+    })
+
+    fireEvent.click(getByText(/OK/, { selector: '#modal button' }))
+
+    await waitFor(() => {
+      expect(getByLabelText('SSP-MOE').checked).toBe(true)
+      expect(
+        queryByText(
+          'New York - SSP-MOE - Fiscal Year 2021 - Quarter 3 (April - June)'
+        )
+      ).toBeInTheDocument()
+      expect(queryByText('Current Submission')).not.toBeInTheDocument()
+      expect(queryByText('Submit Data Files')).not.toBeInTheDocument()
       expect(queryByText('section1.txt')).not.toBeInTheDocument()
     })
   })
@@ -2443,6 +2610,46 @@ describe('Reports', () => {
         expect(yearSelect.value).toBe('2023')
         expect(quarterSelect.value).toBe('Q1')
         expect(sttInput.value).toBe('California')
+      })
+    })
+
+    it('should normalize SSP deep links to TANF for STTs that cannot view SSP', async () => {
+      const store = mockStore(initialState)
+      const { getByLabelText, queryByText } = render(
+        <Provider store={store}>
+          <MemoryRouter
+            initialEntries={['/?fy=2023&q=Q1&type=ssp-moe&stt=Alaska']}
+          >
+            <Reports />
+          </MemoryRouter>
+        </Provider>
+      )
+
+      await waitFor(() => {
+        expect(getByLabelText('TANF').checked).toBe(true)
+        expect(queryByText('SSP-MOE')).not.toBeInTheDocument()
+      })
+    })
+
+    it('should coerce former SSP deep links to submission history', async () => {
+      const store = mockStore(initialState)
+      const { getByLabelText, queryByText } = render(
+        <Provider store={store}>
+          <MemoryRouter
+            initialEntries={[
+              '/?fy=2023&q=Q1&type=ssp-moe&stt=New York&tab=1',
+            ]}
+          >
+            <Reports />
+          </MemoryRouter>
+        </Provider>
+      )
+
+      await waitFor(() => {
+        expect(getByLabelText('SSP-MOE').checked).toBe(true)
+        expect(queryByText('Current Submission')).not.toBeInTheDocument()
+        expect(queryByText('Submit Data Files')).not.toBeInTheDocument()
+        expect(queryByText('Submission History')).toBeInTheDocument()
       })
     })
 

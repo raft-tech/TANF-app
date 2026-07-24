@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { quarters } from '../utils'
 import { FiscalQuarterExplainer } from '../components/Explainers'
 import SectionFileUploadForm from '../../FileUploadForms/SectionFileUploadForm'
@@ -11,7 +11,12 @@ import { POLLING_TIMEOUT_MESSAGE } from '../constants'
 import { useReportsContext } from '../ReportsContext'
 import { REPORT_TYPES } from '../../FeedbackReports/FeedbackReportsConstants'
 
-const TanfSspReports = ({ stt, isRegionalStaff, isDataAnalyst }) => {
+const TanfSspReports = ({
+  stt,
+  isRegionalStaff,
+  isDataAnalyst,
+  canSubmitSsp,
+}) => {
   const {
     yearInputValue,
     quarterInputValue,
@@ -27,6 +32,13 @@ const TanfSspReports = ({ stt, isRegionalStaff, isDataAnalyst }) => {
     stt?.type?.toLowerCase() === 'tribe'
       ? REPORT_TYPES.TRIBAL_TANF
       : REPORT_TYPES.TANF_SSP
+  const isHistoryOnlySsp = fileTypeInputValue === 'ssp-moe' && !canSubmitSsp
+
+  useEffect(() => {
+    if (isHistoryOnlySsp && selectedSubmissionTab !== 2) {
+      setSelectedSubmissionTab(2)
+    }
+  }, [isHistoryOnlySsp, selectedSubmissionTab, setSelectedSubmissionTab])
 
   return (
     <>
@@ -71,7 +83,7 @@ const TanfSspReports = ({ stt, isRegionalStaff, isDataAnalyst }) => {
               </div>
             )}
 
-          {isRegionalStaff ? (
+          {isRegionalStaff || isHistoryOnlySsp ? (
             <h3 className="font-sans-lg margin-top-5 margin-bottom-2 text-bold">
               Submission History
             </h3>
@@ -93,11 +105,13 @@ const TanfSspReports = ({ stt, isRegionalStaff, isDataAnalyst }) => {
             />
           )}
 
-          {!isRegionalStaff && selectedSubmissionTab === 1 && (
-            <SectionFileUploadForm stt={stt} />
-          )}
+          {!isRegionalStaff &&
+            !isHistoryOnlySsp &&
+            selectedSubmissionTab === 1 && <SectionFileUploadForm stt={stt} />}
 
-          {(isRegionalStaff || selectedSubmissionTab === 2) && (
+          {(isRegionalStaff ||
+            isHistoryOnlySsp ||
+            selectedSubmissionTab === 2) && (
             <SectionSubmissionHistory
               filterValues={{
                 quarter: quarterInputValue,

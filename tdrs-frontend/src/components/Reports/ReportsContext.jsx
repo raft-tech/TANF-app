@@ -17,6 +17,7 @@ import {
 import { openFeedbackWidget } from '../../reducers/feedbackWidget'
 import { useSearchParams } from 'react-router-dom'
 import { accountCanSelectStt } from '../../selectors/auth'
+import { canViewSsp, canSubmitSsp } from '../../selectors/stts'
 import { usePollingTimer } from '../../hooks/usePollingTimer'
 import { getCurrentFiscalYear, quarters } from './utils'
 import {
@@ -147,6 +148,8 @@ export const ReportsProvider = ({ isFra = false, children }) => {
   const dispatch = useDispatch()
   const canSelectStt = useSelector(accountCanSelectStt)
   const sttList = useSelector((state) => state?.stts?.sttList)
+  const user = useSelector((state) => state.auth.user)
+  const selectedReportStt = useSelector((state) => state.reports.stt)
   const featureFlags = useSelector(selectFeatureFlags)
   const piaFeatureFlag = getFlagOrDefault(
     'program-integrity-audit',
@@ -276,6 +279,39 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     [files]
   )
 
+  const selectedSttObject = useMemo(() => {
+    const selectedSttName = canSelectStt
+      ? sttInputValue || selectedReportStt
+      : user?.stt?.name
+    return (
+      sttList?.find((stt) => stt?.name === selectedSttName) ||
+      (!canSelectStt ? user?.stt : null)
+    )
+  }, [canSelectStt, selectedReportStt, sttInputValue, sttList, user?.stt])
+
+  useEffect(() => {
+    if (isFra || fileTypeInputValue !== 'ssp-moe' || !selectedSttObject) {
+      return
+    }
+
+    if (!canViewSsp(selectedSttObject)) {
+      setFileTypeInputValue('tanf')
+      dispatch(clearFileList({ fileType: 'tanf' }))
+      dispatch(reinitializeSubmittedFiles('tanf'))
+      return
+    }
+
+    if (!canSubmitSsp(selectedSttObject) && selectedSubmissionTab !== 2) {
+      setSelectedSubmissionTab(2)
+    }
+  }, [
+    dispatch,
+    fileTypeInputValue,
+    isFra,
+    selectedSttObject,
+    selectedSubmissionTab,
+  ])
+
   // FRA-specific derived state
   const fraHasUploadedFile = !!fraSelectedFile && !fraSelectedFile.id
 
@@ -320,11 +356,11 @@ export const ReportsProvider = ({ isFra = false, children }) => {
       case 'stt':
         setSttInputValue(pendingChange.value)
         dispatch(setStt(pendingChange.value))
-        // Check if current file type is valid for the new STT
+        // Check if current file type is viewable for the new STT
         if (
           pendingChange.sttObject &&
           fileTypeInputValue === 'ssp-moe' &&
-          !pendingChange.sttObject.ssp
+          !canViewSsp(pendingChange.sttObject)
         ) {
           setFileTypeInputValue('tanf')
           dispatch(clearFileList({ fileType: 'tanf' }))
@@ -453,9 +489,13 @@ export const ReportsProvider = ({ isFra = false, children }) => {
         message: null,
       })
 
-      // Check if current file type is valid for the new STT
-      // If SSP is selected but new STT doesn't support SSP, reset to TANF
-      if (sttObject && fileTypeInputValue === 'ssp-moe' && !sttObject.ssp) {
+      // Check if current file type is viewable for the new STT
+      // If SSP is selected but new STT cannot view SSP, reset to TANF
+      if (
+        sttObject &&
+        fileTypeInputValue === 'ssp-moe' &&
+        !canViewSsp(sttObject)
+      ) {
         setFileTypeInputValue('tanf')
         dispatch(clearFileList({ fileType: 'tanf' }))
         dispatch(reinitializeSubmittedFiles('tanf'))
