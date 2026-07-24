@@ -77,6 +77,38 @@ func TestStartServerExposesMetricsEndpoint(t *testing.T) {
 	assertContains(t, string(bodyBytes), `go_parser_files_processed_total{program="FRA",section="1",server_mode="celery",status="failed"} 1`)
 }
 
+func TestStartServerExposesLocalServerModeMetrics(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	server, err := StartMetricServer(ctx, MetricServerConfig{
+		ServerMode:    "local",
+		ListenAddress: "127.0.0.1:0",
+		Path:          "/metrics",
+	})
+	if err != nil {
+		t.Fatalf("StartServer failed: %v", err)
+	}
+	defer server.Shutdown(context.Background())
+
+	RecordFileProcessed("TAN", 1, "success")
+
+	resp, err := http.Get("http://" + server.Address() + "/metrics")
+	if err != nil {
+		t.Fatalf("GET /metrics failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("ReadAll failed: %v", err)
+	}
+	assertContains(t, string(bodyBytes), `go_parser_files_processed_total{program="TAN",section="1",server_mode="local",status="success"} 1`)
+}
+
 func TestStartServerRejectsRelativePath(t *testing.T) {
 	_, err := StartMetricServer(context.Background(), MetricServerConfig{
 		ServerMode:    "celery",

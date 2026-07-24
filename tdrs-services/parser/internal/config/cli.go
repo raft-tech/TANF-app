@@ -27,7 +27,7 @@ type CLI struct {
 	GlobalConfigDir string `kong:"name='global.config-dir',help='Config directory'"`
 
 	// Metrics
-	MetricsEnabled       bool   `kong:"name='metrics.enabled',env='GO_PARSER_METRICS_ENABLED',help='Enable Prometheus metrics exporter for non-local server modes'"`
+	MetricsEnabled       bool   `kong:"name='metrics.enabled',env='GO_PARSER_METRICS_ENABLED',help='Enable Prometheus metrics exporter'"`
 	MetricsListenAddress string `kong:"name='metrics.listen-address',env='GO_PARSER_METRICS_LISTEN_ADDRESS',help='Prometheus metrics listen address'"`
 	MetricsPath          string `kong:"name='metrics.path',env='GO_PARSER_METRICS_PATH',help='Prometheus metrics endpoint path'"`
 
