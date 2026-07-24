@@ -507,15 +507,23 @@ tasks:
         msg: "clamav-rest container is not running. Start it first with: task backend-up"
     cmds:
       - |
-        printf 'HEADER20204A06   TAN1ED\nX5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*\nTDP-INFECTED-TEST-MARKER\nTRAILER0000001         \n' > infected_test.txt
+        cat > infected_test.txt <<'EOF'
+        HEADER20204A06   TAN1ED
+        X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*
+        TDP-INFECTED-TEST-MARKER
+        TRAILER0000001         
+        EOF
       - >-
         docker compose exec -T clamav-rest sh -c
         'echo "TDP.Test.Infected:0:*:5444502d494e4645435445442d544553542d4d41524b4552" > /var/lib/clamav/tdp-test.ndb
         && pkill -USR2 clamd
         && sleep 5
         && tail -1 /var/log/clamav/clamd.log'
-      - |
-        docker compose exec -T clamav-rest sh -c "cat > /tmp/tdp-infected-test-file.txt <<'EOF'\nHEADER20204A06   TAN1ED\nX5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*\nTDP-INFECTED-TEST-MARKER\nTRAILER0000001         \nEOF\nclamscan /tmp/tdp-infected-test-file.txt | tee /tmp/tdp-infected-scan-result.txt\nif ! grep -q \"FOUND\" /tmp/tdp-infected-scan-result.txt; then\n  echo \"Infected marker file was not detected by clamav-rest test signature.\" >&2\n  exit 1\nfi"
+      - docker compose cp infected_test.txt clamav-rest:/tmp/infected_test.txt
+      - >-
+        docker compose exec -T clamav-rest sh -c
+        'clamscan /tmp/infected_test.txt | tee /tmp/tdp-infected-scan-result.txt
+        && if ! grep -q "FOUND" /tmp/tdp-infected-scan-result.txt; then echo "Infected marker file was not detected by clamav-rest test signature." >&2; exit 1; fi'
       - echo "Created tdrs-backend/infected_test.txt and loaded ClamAV test signature. Upload this file through the frontend to test AV rejection."
 
   parser:compile-check:
