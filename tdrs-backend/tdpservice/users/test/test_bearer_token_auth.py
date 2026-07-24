@@ -8,12 +8,12 @@ from unittest.mock import patch
 from django.core.cache import cache
 from django.test import RequestFactory, override_settings
 
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 import jwt
 import pytest
-
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.request import Request
 
 from tdpservice.users.authentication import KeycloakBearerTokenAuthentication
 from tdpservice.users.models import AccountApprovalStatusChoices
@@ -26,9 +26,7 @@ from tdpservice.users.throttling import (
 logger = logging.getLogger(__name__)
 
 KEYCLOAK_TEST_ISSUER = "http://keycloak:8080/realms/tdp"
-KEYCLOAK_TEST_JWKS_ENDPOINT = (
-    f"{KEYCLOAK_TEST_ISSUER}/protocol/openid-connect/certs"
-)
+KEYCLOAK_TEST_JWKS_ENDPOINT = f"{KEYCLOAK_TEST_ISSUER}/protocol/openid-connect/certs"
 KEYCLOAK_TEST_KEY_ID = "bearer-token-test-key"
 
 
@@ -133,9 +131,7 @@ class TestBearerHeaderParsing:
 
     def test_empty_bearer_returns_none(self, auth):
         """A bare ``Bearer`` header with no token is not handled."""
-        request = RequestFactory().get(
-            "/v1/users/me/", HTTP_AUTHORIZATION="Bearer "
-        )
+        request = RequestFactory().get("/v1/users/me/", HTTP_AUTHORIZATION="Bearer ")
         assert auth.authenticate(request) is None
 
 
@@ -179,9 +175,7 @@ class TestTokenVerification:
             auth.authenticate(request_with_token())
 
     @patch("tdpservice.users.authentication._verify_keycloak_bearer_token")
-    def test_deactivated_user_rejected(
-        self, mock_verify, auth, request_with_token
-    ):
+    def test_deactivated_user_rejected(self, mock_verify, auth, request_with_token):
         """A deactivated user gets 401 even with a valid token."""
         user = UserFactory(
             account_approval_status=AccountApprovalStatusChoices.DEACTIVATED,
@@ -193,9 +187,7 @@ class TestTokenVerification:
             auth.authenticate(request_with_token())
 
     @patch("tdpservice.users.authentication._verify_keycloak_bearer_token")
-    def test_inactive_user_rejected(
-        self, mock_verify, auth, request_with_token
-    ):
+    def test_inactive_user_rejected(self, mock_verify, auth, request_with_token):
         """A Django-inactive user gets 401."""
         user = UserFactory(is_active=False)
         mock_verify.return_value = _claims(
@@ -228,13 +220,36 @@ class TestBearerTokenIntentVerification:
             email=user.email,
             login_gov_uuid=str(user.login_gov_uuid),
         )
+        request = request_with_token(token)
 
-        result = auth.authenticate(request_with_token(token))
+        result = auth.authenticate(request)
 
         assert result is not None
         resolved_user, returned_token = result
         assert str(resolved_user.id) == str(user.id)
         assert returned_token == token
+        assert request._keycloak_client_id == "tdp-cli"
+
+    def test_signed_token_stashes_client_id_on_underlying_django_request(
+        self, auth, signed_bearer_token
+    ):
+        """Middleware can read the verified client id after DRF authentication."""
+        user = UserFactory(
+            account_approval_status=AccountApprovalStatusChoices.APPROVED,
+        )
+        token = signed_bearer_token(
+            email=user.email,
+            login_gov_uuid=str(user.login_gov_uuid),
+        )
+        django_request = RequestFactory().get(
+            "/v1/users/me/", HTTP_AUTHORIZATION=f"Bearer {token}"
+        )
+        drf_request = Request(django_request)
+
+        auth.authenticate(drf_request)
+
+        assert drf_request._keycloak_client_id == "tdp-cli"
+        assert django_request._keycloak_client_id == "tdp-cli"
 
     def test_signed_token_with_wrong_azp_is_rejected(
         self, auth, request_with_token, signed_bearer_token
@@ -421,9 +436,19 @@ class TestUserResolution:
         self, mock_verify, auth, request_with_token
     ):
         """Two users sharing an email is treated as a security failure, not a guess."""
-        UserFactory(username="dup@example.com", email="dup@example.com", hhs_id=None, login_gov_uuid=None)
+        UserFactory(
+            username="dup@example.com",
+            email="dup@example.com",
+            hhs_id=None,
+            login_gov_uuid=None,
+        )
         # A second account that would also match the email-fallback lookup.
-        UserFactory.create(username="dup-alt", email="dup@example.com", hhs_id=None, login_gov_uuid=None)
+        UserFactory.create(
+            username="dup-alt",
+            email="dup@example.com",
+            hhs_id=None,
+            login_gov_uuid=None,
+        )
         # filter_users_by_claims falls back to username lookup, which is unique,
         # so simulate the multi-match by patching the helper directly:
         with patch(

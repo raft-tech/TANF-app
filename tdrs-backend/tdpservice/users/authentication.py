@@ -112,9 +112,7 @@ def _verify_keycloak_bearer_token(token):
 
     expected_client_id = _expected_keycloak_bearer_client_id()
     if payload.get("azp") != expected_client_id:
-        raise jwt.InvalidTokenError(
-            f"Token azp must be {expected_client_id}."
-        )
+        raise jwt.InvalidTokenError(f"Token azp must be {expected_client_id}.")
 
     return payload
 
@@ -183,9 +181,13 @@ class KeycloakBearerTokenAuthentication(BaseAuthentication):
                 "path": request.path,
             },
         )
-        # Stashed for KeycloakClientRateThrottle to key on; safe attr names.
+        # Stashed for middleware metrics and KeycloakClientRateThrottle to key on.
         request._keycloak_client_id = client_id
         request._keycloak_throttle_ident = f"{client_id}:{user.id}"
+        django_request = getattr(request, "_request", None)
+        if django_request is not None:
+            django_request._keycloak_client_id = client_id
+            django_request._keycloak_throttle_ident = request._keycloak_throttle_ident
         return user, token
 
     def authenticate_header(self, request):

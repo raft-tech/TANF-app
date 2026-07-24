@@ -286,6 +286,27 @@ INFO Bearer token auth client=tdp-cli user=<email> path=/v1/users/
 
 The `client_id` is the token's `azp` claim (which Keycloak client minted the token). The `tdp-api-audience` default client scope adds the Django API audience (`tdp-django`) to `tdp-cli` access tokens so Django can reject tokens intended for other clients. In Cloud.gov these flow into Loki and are queryable in Grafana.
 
+### Request attribution metrics
+
+Django also emits the Prometheus counter `tdp_api_requests_total` through the existing `/prometheus/metrics` scrape path. The metric is intended for low-cardinality API source attribution in Grafana.
+
+Direct tools such as Postman and curl are not expected to send a custom service header. Requests without `x-service-name: tdp-frontend` are still attributed as API clients when Django observes a verified bearer token, another Authorization header, an authenticated session, or a known auth cookie. Cookie/session-authenticated tools are grouped as `session_cookie`; only verified bearer tokens expose the real Keycloak `azp` client id such as `tdp-cli`.
+
+Labels:
+
+| Label | Meaning |
+|---|---|
+| `source` | `frontend`, `api_client`, or `unknown` |
+| `client_id` | `tdp-frontend`, a verified Keycloak `azp` value such as `tdp-cli`, a fixed bucket such as `session_cookie`, `authorization_header`, or `unrecognized_service`, or `unknown` |
+| `user_stt` | Authenticated user's assigned STT name such as `Alabama`; `none` for authenticated users without an STT; `unknown` when no authenticated user is available |
+| `user_group` | Authenticated user's primary group such as `OFA System Admin` or `Data Analyst`; `none` for authenticated users without a group; `unknown` when no authenticated user is available |
+| `attribution` | Why attribution landed there: `bearer_verified`, `bearer_unverified`, `frontend_header`, `authenticated_session`, `auth_cookie_present`, `unrecognized_service_header`, `non_bearer_authorization`, `cors_preflight`, or `no_attribution` |
+| `method` | HTTP method |
+| `status_code` | HTTP response status code |
+| `status_class` | Response status class such as `2xx` or `4xx` |
+| `view` | Django `resolver_match.view_name`; raw paths and user identifiers are not included |
+
+
 ### Rate limiting
 
 `KeycloakClientRateThrottle` rate-limits per Keycloak client_id (the `azp` claim) — not per user. Default: `300/min`, configurable via the `KEYCLOAK_CLIENT_RATE` env var (DRF rate string, e.g. `60/min`, `1000/hour`). Browser sessions and other auth paths are unaffected. Counters live in the dedicated Redis-backed `throttle` cache (DB 3) so they're shared across web workers.
