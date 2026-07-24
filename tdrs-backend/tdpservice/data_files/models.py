@@ -62,6 +62,11 @@ class Section(models.Model):
         """Return the section name."""
         return f"{self.program.name} - {self.name}"
 
+    @classmethod
+    def from_legacy_values(cls, program_code: str, section_name: str) -> "Section":
+        """Resolve a canonical section from legacy DataFile values."""
+        return cls.objects.get(program__code=program_code, name=section_name)
+
 
 def get_file_shasum(file: Union[File, StringIO]) -> str:
     """Derive the SHA256 checksum of a file."""
@@ -380,6 +385,19 @@ class DataFile(FileRecord):
             stt=stt,
             is_program_audit=is_program_audit,
         ).first()
+
+    def save(self, *args, **kwargs):
+        """Populate the canonical section when legacy values are available."""
+        if self.section_ref_id is None:
+            self.section_ref = Section.from_legacy_values(
+                self.program_type,
+                self.section,
+            )
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"section_ref"}
+
+        return super().save(*args, **kwargs)
 
     def __repr__(self):
         """Return a string representation of the model."""

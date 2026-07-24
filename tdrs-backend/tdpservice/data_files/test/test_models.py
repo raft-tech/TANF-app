@@ -5,6 +5,7 @@ from django.db import IntegrityError, transaction
 
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile, Program, Section
+from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.stts.models import STT
 
 
@@ -65,8 +66,42 @@ def test_data_file_program_comes_from_section_ref(data_file_instance):
 @pytest.mark.django_db
 def test_data_file_program_is_none_without_section_ref(data_file_instance):
     """Data files without a canonical section do not expose a program."""
+    data_file_instance.section_ref = None
+
     assert data_file_instance.section_ref is None
     assert data_file_instance.program is None
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "program_type,section_name,is_program_audit",
+    [
+        (DataFile.ProgramType.TANF, DataFile.Section.ACTIVE_CASE_DATA, False),
+        (DataFile.ProgramType.SSP, DataFile.Section.CLOSED_CASE_DATA, False),
+        (DataFile.ProgramType.TRIBAL, DataFile.Section.AGGREGATE_DATA, False),
+        (
+            DataFile.ProgramType.FRA,
+            DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+            False,
+        ),
+        (DataFile.ProgramType.TANF, DataFile.Section.ACTIVE_CASE_DATA, True),
+    ],
+)
+def test_new_data_file_resolves_section_ref(
+    program_type, section_name, is_program_audit
+):
+    """Normal ORM writes resolve canonical sections without changing legacy data."""
+    data_file = DataFileFactory.create(
+        program_type=program_type,
+        section=section_name,
+        is_program_audit=is_program_audit,
+    )
+
+    assert data_file.section_ref.program.code == program_type
+    assert data_file.section_ref.name == section_name
+    assert data_file.program_type == program_type
+    assert data_file.section == section_name
+    assert data_file.is_program_audit is is_program_audit
 
 
 @pytest.mark.django_db
@@ -87,6 +122,8 @@ def test_create_new_data_file_version(data_file_instance):
         }
     )
     assert new_version.version == data_file_instance.version + 1
+    assert new_version.section_ref.program.code == data_file_instance.program_type
+    assert new_version.section_ref.name == data_file_instance.section
 
 
 @pytest.mark.django_db
