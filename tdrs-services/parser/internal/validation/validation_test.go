@@ -787,7 +787,11 @@ func TestGroupValidatorParameterizedExpression(t *testing.T) {
 
 	countPerRecordResults := func(t *testing.T, output any) int {
 		t.Helper()
-		return len(toPerRecordResults(output, &CompiledValidator{ID: "test_group_validator"}))
+		outcome, err := outcomeFromOutput(output, "per_record")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(toPerRecordResults(outcome, &CompiledValidator{ID: "test_group_validator"}))
 	}
 
 	t.Run("no T1 records - should pass", func(t *testing.T) {
@@ -1143,12 +1147,15 @@ func TestCalculateAge(t *testing.T) {
 		name     string
 		dob      string
 		rptMonth string
-		expected int
+		expected float64
 	}{
-		{"29 years old (days/365.25 truncation)", "19940101", "202401", 29},
-		{"30 years old", "19940101", "202402", 30},
+		{"30 years old", "19940101", "202401", 30.0},
+		{"30 years and 1 month old", "19940101", "202402", 30.1},
 		{"exact birthday month", "19900601", "202006", 30},
-		{"before birthday month", "19900601", "202005", 29},
+		{"before birthday month", "19900601", "202005", 29.9},
+		{"older than 18 on first day of reporting month", "20060901", "202410", 18.1},
+		{"turns 18 after first day of reporting month", "20061002", "202410", 18.0},
+		{"turns 18 on first day of reporting month", "20061001", "202410", 18.0},
 		{"invalid dob length", "199401", "202401", -1},
 		{"invalid rptMonth length", "19940101", "20240101", -1},
 		{"invalid dob format", "99999999", "202401", -1},
@@ -1160,7 +1167,7 @@ func TestCalculateAge(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := calculateAge(tt.dob, tt.rptMonth)
 			if got != tt.expected {
-				t.Errorf("calculateAge(%q, %q) = %d, want %d", tt.dob, tt.rptMonth, got, tt.expected)
+				t.Errorf("calculateAge(%q, %q) = %.1f, want %.1f", tt.dob, tt.rptMonth, got, tt.expected)
 			}
 		})
 	}
@@ -2006,10 +2013,9 @@ func TestExecuteFunction(t *testing.T) {
 
 	t.Run("passing validation", func(t *testing.T) {
 		ce, _ := registry.getOrCompileExpr(ScopeField, "Value > 0", "single")
-		cv := &CompiledValidator{ID: "positive", Expr: ce}
-		env := &FieldEnv{Value: 42}
+		cv := mustExprValidator(t, "positive", ScopeField, ce, "single")
 
-		result := Execute(cv, env)
+		result := Execute(cv, fieldState(42))
 		if !result.Valid {
 			t.Error("expected valid result")
 		}
@@ -2017,10 +2023,9 @@ func TestExecuteFunction(t *testing.T) {
 
 	t.Run("failing validation", func(t *testing.T) {
 		ce, _ := registry.getOrCompileExpr(ScopeField, "Value > 0", "single")
-		cv := &CompiledValidator{ID: "positive", Expr: ce}
-		env := &FieldEnv{Value: -1}
+		cv := mustExprValidator(t, "positive", ScopeField, ce, "single")
 
-		result := Execute(cv, env)
+		result := Execute(cv, fieldState(-1))
 		if result.Valid {
 			t.Error("expected invalid result")
 		}
@@ -2066,8 +2071,7 @@ func TestExecuteFunction(t *testing.T) {
 			"PART_A": 3,
 			"PART_B": "4",
 		})
-		validEnv := NewRecordEnvWithParams(validRec, cv.Params)
-		if result := Execute(cv, validEnv); !result.Valid {
+		if result := Execute(cv, NewRecordValidationState(validRec, nil)); !result.Valid {
 			t.Fatalf("expected valid sum_equals result, got error: %v", result.Error)
 		}
 
@@ -2076,8 +2080,7 @@ func TestExecuteFunction(t *testing.T) {
 			"PART_A": 3,
 			"PART_B": "4",
 		})
-		invalidEnv := NewRecordEnvWithParams(invalidRec, cv.Params)
-		if result := Execute(cv, invalidEnv); result.Valid {
+		if result := Execute(cv, NewRecordValidationState(invalidRec, nil)); result.Valid {
 			t.Fatal("expected invalid sum_equals result")
 		}
 	})

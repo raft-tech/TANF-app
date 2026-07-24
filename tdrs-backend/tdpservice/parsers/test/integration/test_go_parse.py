@@ -52,6 +52,7 @@ logger = logging.getLogger(__name__)
 
 GO_PARSE_TASK_NAME = "tdpservice.scheduling.parser_task.go_parse"
 GO_PARSE_TIMEOUT_SECONDS = 300
+GO_PARSE_LARGE_FILE_TIMEOUT_SECONDS = 300
 _GO_PARSER_DATAFILE_IDS = None
 
 os.environ["GO_PARSER_SHADOW_MODE"] = "False"
@@ -330,8 +331,7 @@ class TestGoParse:
             (
                 "SSP",
                 "Active Case Data",
-                # Go parser is explicitely looking for records prefixed with "M"
-                "Unknown record type was found.",
+                "Submitted program type (SSP) does not match file program type (TAN).",
                 None,
                 True,
                 2,
@@ -352,6 +352,7 @@ class TestGoParse:
         """Test parsing when file metadata does not match the raw data layout."""
         small_correct_file.program_type = program
         small_correct_file.section = section
+        small_correct_file.version = small_correct_file.id
         small_correct_file.save()
 
         dfs.datafile = small_correct_file
@@ -374,13 +375,18 @@ class TestGoParse:
             assert dfs.case_aggregates == expected_aggregates
 
         err = parser_errors.first()
-        assert (
-            err.error_type == ParserErrorCategoryChoices.PRE_CHECK
-            or ParserErrorCategoryChoices.RECORD_PRE_CHECK
-        )
+        assert err.error_type in [
+            ParserErrorCategoryChoices.PRE_CHECK,
+            ParserErrorCategoryChoices.RECORD_PRE_CHECK,
+        ]
         assert err.error_message == expected_message
         assert err.content_type is None
         assert err.object_id is None
+
+        if program == "SSP" and section == "Active Case Data":
+            assert TANF_T1.objects.filter(datafile=small_correct_file).count() == 0
+            assert TANF_T2.objects.filter(datafile=small_correct_file).count() == 0
+            assert TANF_T3.objects.filter(datafile=small_correct_file).count() == 0
 
     @pytest.mark.django_db(transaction=True)
     @pytest.mark.parametrize(
@@ -679,12 +685,12 @@ class TestGoParse:
         dfs.status = dfs.get_status()
 
         # Go parser doesnt generate Trailer errors which is why the status is different
-        assert dfs.status == DataFileSummary.Status.PARTIALLY_ACCEPTED
+        assert dfs.status == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
         dfs.case_aggregates = aggregates.case_aggregates_by_month(
             dfs.datafile, dfs.status
         )
 
-        assert dfs.case_aggregates["rejected"] == 1
+        assert dfs.case_aggregates["rejected"] == 0
         for month in dfs.case_aggregates["months"]:
             if month["month"] == "Oct":
                 assert month["accepted_without_errors"] == 0
@@ -694,7 +700,7 @@ class TestGoParse:
                 assert month["accepted_with_errors"] == 0
 
         parser_errors = ParserError.objects.filter(file=small_ssp_section1_datafile)
-        assert parser_errors.filter(file=small_ssp_section1_datafile).count() == 9
+        assert parser_errors.filter(file=small_ssp_section1_datafile).count() == 8
         assert (
             SSP_M1.objects.filter(datafile=small_ssp_section1_datafile).count()
             == expected_m1_record_count
@@ -755,7 +761,7 @@ class TestGoParse:
         # We have a few more errors because the go parser separates the the OR'd
         # category1.validate_fieldYearMonth_with_headerYearQuarter(). and
         # category1.validateRptMonthYear() into separate checks.
-        assert parser_errors.count() == 31739
+        assert parser_errors.count() == 31738
 
         assert (
             SSP_M1.objects.filter(datafile=ssp_section1_datafile).count()
@@ -931,7 +937,7 @@ class TestGoParse:
         )
         # Again we get more errors here because the Go parser splits the RPT_MONTH_YEAR Cat1 validator
         # into two validators
-        assert parser_errors.count() == 9
+        assert parser_errors.count() == 8
 
         row_2_error = parser_errors.get(
             row_number=2,
@@ -1391,6 +1397,10 @@ class TestGoParse:
         assert (
             Tribal_TANF_T3.objects.filter(datafile=tribal_section_1_file).count() == 2
         )
+        assert not ParserError.objects.filter(
+            file=tribal_section_1_file,
+            error_message__contains="Submitted program type",
+        ).exists()
 
         t1_objs = Tribal_TANF_T1.objects.filter(
             datafile=tribal_section_1_file
@@ -2206,7 +2216,7 @@ class TestGoParse:
                     "accepted_with_errors": 1,
                 },
             ],
-            "rejected": 2,
+            "rejected": 1,
         }
 
         assert TANF_T1.objects.filter(datafile=case_aggregates_edge_case).count() == 3
@@ -2224,7 +2234,11 @@ class TestGoParse:
         dfs.datafile = super_big_s1_file
         dfs.save()
 
-        parse_datafile(dfs, super_big_s1_file)
+        parse_datafile(
+            dfs,
+            super_big_s1_file,
+            timeout_seconds=GO_PARSE_LARGE_FILE_TIMEOUT_SECONDS,
+        )
         expected_t1_record_count = 96497
         expected_t2_record_count = 112622
         expected_t3_record_count = 172552
