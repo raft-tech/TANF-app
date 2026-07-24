@@ -145,6 +145,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
                     "quarter",
                     "year",
                     "section",
+                    "section_ref",
                     "program_type",
                     "is_program_audit",
                     "stt",
