@@ -23,7 +23,7 @@ type CLI struct {
 	MemProfile string `kong:"type=path,name='memprofile',help='Write memory profile to file'"`
 
 	// Global
-	GlobalLogLevel  string `kong:"name='global.log-level',help='Log level (debug, info, warn, error)'"`
+	GlobalLogLevel  string `kong:"name='global.log-level',env='GO_PARSER_LOG_LEVEL',help='Log level (debug, info, warn, error)'"`
 	GlobalConfigDir string `kong:"name='global.config-dir',help='Config directory'"`
 
 	// Server
@@ -31,6 +31,8 @@ type CLI struct {
 	ServerCeleryRedisURL    string `kong:"name='server.celery.redis-url',help='Redis URL for Celery broker'"`
 	ServerCeleryQueue       string `kong:"name='server.celery.queue',env='GO_PARSER_QUEUE',help='Redis queue name for Celery tasks'"`
 	ServerCeleryNumWorkers  int    `kong:"name='server.celery.num-workers',help='Number of concurrent celery task workers'"`
+	ServerPostParseTaskName string `kong:"name='server.celery.post-parse-task-name',env='GO_PARSER_POST_PARSE_TASK_NAME',help='Python Celery post-parse task name'"`
+	ServerPostParseQueue    string `kong:"name='server.celery.post-parse-queue',env='GO_PARSER_POST_PARSE_QUEUE',help='Python Celery queue for post-parse tasks'"`
 	ServerGRPCListenAddress string `kong:"name='server.grpc.listen-address',help='gRPC listen address'"`
 	ServerHTTPListenAddress string `kong:"name='server.http.listen-address',help='HTTP listen address'"`
 	ServerLocalFilePath     string `kong:"name='server.local.file-path',help='File path for local processing'"`
@@ -59,7 +61,8 @@ type CLI struct {
 	DryRun bool `kong:"name='dry-run',help='Run without database: output records/errors to local files'"`
 
 	// Validation
-	ValidationShortCircuit bool `kong:"name='validation.short-circuit',help='Skip field/consistency validators on precheck failure'"`
+	ValidationShortCircuit bool   `kong:"name='validation.short-circuit',help='Skip field/consistency validators on precheck failure'"`
+	ValidationEngine       string `kong:"name='validation.engine',env='GO_PARSER_VALIDATION_ENGINE',help='Validation engine: expr, hybrid, or native'"`
 
 	// Database
 	DatabaseURL               string        `kong:"name='database.url',env='DATABASE_URL',help='Database connection URL'"`
@@ -129,6 +132,12 @@ func (c *CLI) ApplyTo(cfg *Config, ctx *kong.Context) {
 	if set["server.celery.num-workers"] {
 		cfg.Server.Celery.NumWorkers = c.ServerCeleryNumWorkers
 	}
+	if set["server.celery.post-parse-task-name"] {
+		cfg.Server.Celery.PostParseTaskName = c.ServerPostParseTaskName
+	}
+	if set["server.celery.post-parse-queue"] {
+		cfg.Server.Celery.PostParseQueue = c.ServerPostParseQueue
+	}
 	if set["server.grpc.listen-address"] {
 		cfg.Server.GRPC.ListenAddress = c.ServerGRPCListenAddress
 	}
@@ -196,6 +205,9 @@ func (c *CLI) ApplyTo(cfg *Config, ctx *kong.Context) {
 
 	if set["validation.short-circuit"] {
 		cfg.Validation.ShortCircuit = c.ValidationShortCircuit
+	}
+	if set["validation.engine"] {
+		cfg.Validation.Engine = c.ValidationEngine
 	}
 
 	if set["database.url"] {

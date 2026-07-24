@@ -286,7 +286,10 @@ The Go parser writes to the same PostgreSQL tables as the Python parser:
 | `parser_error` | Validation errors | `COPY FROM` |
 | `parsers_datafilesummary` | Processing status | UPDATE via query |
 
-Schema compatibility is enforced by SQLC: `schema.sql` mirrors the Django model definitions, and `sqlc generate` produces Go structs that match the database columns exactly. The `writer/convert` package handles the translation from internal `ParsedRecord` types to these DB model structs.
+Schema compatibility is enforced by the backend Django/Go schema contract test.
+Active Django search index model fields are compared to Go YAML schema fields,
+while the Go writer derives table metadata and row serialization from the YAML
+schemas at runtime.
 
 ### Blob Storage
 
@@ -351,6 +354,10 @@ Define which schemas belong to a file, how to detect record types, and how to gr
 - **Record type detection**: prefix matching (positional) or fixed schema (FRA)
 - **Accumulator**: key-based grouping for case data (sections 1-2), batching for independent records (sections 3-4, FRA)
 - **Presort**: enabled for grouped schemas to guarantee in-memory duplicate detection
+
+Presort is intentionally performed before accumulation for grouped files so records with the same case key (`RPT_MONTH_YEAR`, `CASE_NUMBER`) are grouped together before group validators run. This allows exact and partial duplicate to be performed for each complete case group in- memory without relying on database cleanup queries.
+
+The tradeoff is memory. Presort does not hold only the raw file bytes; it also keeps decoded row objects, sort keys, row references, and sorted/unkeyed slices before the downstream parse and validation workers consume them. For the current largest known submitted file size, roughly 60 MB, this is expected to be sufficient when the parser has controlled concurrency and sufficient container headroom, but peak heap/RSS can be several times the input size. To account for this, we should size the parser container against measured peak memory rather than input file size alone. If measured memory pressure becomes unacceptable, we could implement disk-backed external presort that preserves the same accumulator and validation model while capping heap usage.
 
 ### Schemas
 
@@ -435,7 +442,7 @@ ENTRYPOINT ["/go-parser"]
 | Change | Description |
 |--------|-------------|
 | **Go build step** | Add `go build` and `go test` to the CI pipeline |
-| **SQLC validation** | Run `sqlc diff` to ensure generated code matches schema |
+| **Schema contract validation** | Run the backend Django/Go schema contract test to ensure active model fields match Go YAML schemas |
 | **Expression validation** | Compile all YAML validators at CI time to catch syntax errors |
 | **Docker image build** | Build and push the `go-parser` image alongside the existing `tdp` image |
 | **Integration tests** | Run Go integration tests against a test database |
@@ -553,7 +560,7 @@ Before widening the canary beyond the initial allowlist, the Go parser must hand
 
 | Risk | Impact | Likelihood | Mitigation |
 |------|--------|------------|------------|
-| **Schema drift** — Django model migrations diverge from SQLC schema | Go parser writes fail or corrupt data | Medium | CI step runs `sqlc diff`; integration tests run against migrated DB |
+| **Schema drift** — Django model migrations diverge from Go YAML schemas | Go parser writes fail or corrupt data | Medium | Backend contract test compares active Django model fields to Go YAML fields; integration tests run against migrated DB |
 | **Validation parity gaps** — Go parser misses edge cases in Python validators | Incorrect acceptance or rejection of records | Medium | Canary routing with narrow allowlist; automatic Python fallback; comprehensive integration test suite |
 | **Memory pressure** — Large files during presort exhaust container memory | OOM kill, failed parse | Low | Monitor container memory; set memory limits; most files are well under 100MB |
 | **gocelery compatibility** — `gocelery` library may not support all Celery protocol features | Task consumption failures | Low | Validate against actual Redis task payloads; the library is used only for basic task/result protocol |

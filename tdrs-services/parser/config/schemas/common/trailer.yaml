@@ -23,6 +23,10 @@ segments:
         end: 7
         type: string
         required: true
+        field_validators:
+          - id: equals
+            params:
+              value: TRAILER
 
       - name: record_count
         friendly_name: Record Count
@@ -31,3 +35,8 @@ segments:
         end: 14
         type: integer
         required: true
+        field_validators:
+          - id: in_range_int
+            params:
+              min: 0
+              max: 9999999

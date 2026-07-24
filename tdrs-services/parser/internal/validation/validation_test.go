@@ -26,6 +26,10 @@ var (
 	t2Schema = func() *schema.CompiledSchema {
 		cs := testutil.NewTestSchema("T2", "SSN", "FAMILY_AFFILIATION")
 		cs.Shared[0].Required = true
+		cs.Shared[0].Item = "9"
+		cs.Shared[0].FriendlyName = "Social Security Number"
+		cs.Shared[1].Item = "10"
+		cs.Shared[1].FriendlyName = "Family Affiliation"
 		return cs
 	}()
 	t3Schema = testutil.NewTestSchema("T3", "FAMILY_AFFILIATION")
@@ -781,6 +785,15 @@ func TestGroupValidatorParameterizedExpression(t *testing.T) {
 		t.Fatalf("failed to compile expression: %v", err)
 	}
 
+	countPerRecordResults := func(t *testing.T, output any) int {
+		t.Helper()
+		outcome, err := outcomeFromOutput(output, "per_record")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(toPerRecordResults(outcome, &CompiledValidator{ID: "test_group_validator"}))
+	}
+
 	t.Run("no T1 records - should pass", func(t *testing.T) {
 		group := testutil.NewTestGroup(
 			testutil.NewTestRecord(t2Schema, 1, map[string]any{"FAMILY_AFFILIATION": 2}),
@@ -797,8 +810,8 @@ func TestGroupValidatorParameterizedExpression(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to run: %v", err)
 		}
-		if records := toRecordSlice(result); len(records) != 0 {
-			t.Errorf("expected no records when no T1, got %d", len(records))
+		if count := countPerRecordResults(t, result); count != 0 {
+			t.Errorf("expected no records when no T1, got %d", count)
 		}
 	})
 
@@ -819,8 +832,8 @@ func TestGroupValidatorParameterizedExpression(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to run: %v", err)
 		}
-		if records := toRecordSlice(result); len(records) != 0 {
-			t.Errorf("expected no records when T2 has FA=1, got %d", len(records))
+		if count := countPerRecordResults(t, result); count != 0 {
+			t.Errorf("expected no records when T2 has FA=1, got %d", count)
 		}
 	})
 
@@ -841,8 +854,8 @@ func TestGroupValidatorParameterizedExpression(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to run: %v", err)
 		}
-		if records := toRecordSlice(result); len(records) != 0 {
-			t.Errorf("expected no records when T3 has FA=1, got %d", len(records))
+		if count := countPerRecordResults(t, result); count != 0 {
+			t.Errorf("expected no records when T3 has FA=1, got %d", count)
 		}
 	})
 
@@ -863,8 +876,8 @@ func TestGroupValidatorParameterizedExpression(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to run: %v", err)
 		}
-		if records := toRecordSlice(result); len(records) != 1 {
-			t.Errorf("expected 1 record when no T2/T3 has FA=1, got %d", len(records))
+		if count := countPerRecordResults(t, result); count != 1 {
+			t.Errorf("expected 1 record when no T2/T3 has FA=1, got %d", count)
 		}
 	})
 
@@ -884,8 +897,8 @@ func TestGroupValidatorParameterizedExpression(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to run: %v", err)
 		}
-		if records := toRecordSlice(result); len(records) != 1 {
-			t.Errorf("expected 1 record when T1 has no T2/T3, got %d", len(records))
+		if count := countPerRecordResults(t, result); count != 1 {
+			t.Errorf("expected 1 record when T1 has no T2/T3, got %d", count)
 		}
 	})
 
@@ -908,8 +921,8 @@ func TestGroupValidatorParameterizedExpression(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to run: %v", err)
 		}
-		if records := toRecordSlice(result); len(records) != 0 {
-			t.Errorf("expected no records when at least one T2 has FA=1, got %d", len(records))
+		if count := countPerRecordResults(t, result); count != 0 {
+			t.Errorf("expected no records when at least one T2 has FA=1, got %d", count)
 		}
 	})
 }
@@ -1134,12 +1147,15 @@ func TestCalculateAge(t *testing.T) {
 		name     string
 		dob      string
 		rptMonth string
-		expected int
+		expected float64
 	}{
-		{"29 years old (days/365.25 truncation)", "19940101", "202401", 29},
-		{"30 years old", "19940101", "202402", 30},
+		{"30 years old", "19940101", "202401", 30.0},
+		{"30 years and 1 month old", "19940101", "202402", 30.1},
 		{"exact birthday month", "19900601", "202006", 30},
-		{"before birthday month", "19900601", "202005", 29},
+		{"before birthday month", "19900601", "202005", 29.9},
+		{"older than 18 on first day of reporting month", "20060901", "202410", 18.1},
+		{"turns 18 after first day of reporting month", "20061002", "202410", 18.0},
+		{"turns 18 on first day of reporting month", "20061001", "202410", 18.0},
 		{"invalid dob length", "199401", "202401", -1},
 		{"invalid rptMonth length", "19940101", "20240101", -1},
 		{"invalid dob format", "99999999", "202401", -1},
@@ -1151,7 +1167,7 @@ func TestCalculateAge(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := calculateAge(tt.dob, tt.rptMonth)
 			if got != tt.expected {
-				t.Errorf("calculateAge(%q, %q) = %d, want %d", tt.dob, tt.rptMonth, got, tt.expected)
+				t.Errorf("calculateAge(%q, %q) = %.1f, want %.1f", tt.dob, tt.rptMonth, got, tt.expected)
 			}
 		})
 	}
@@ -1308,8 +1324,11 @@ func TestGetExactDuplicates(t *testing.T) {
 		if len(dups) != 1 {
 			t.Errorf("expected 1 duplicate, got %d", len(dups))
 		}
-		if dups[0].GetLineNumber() != 2 {
-			t.Errorf("expected duplicate to be line 2, got %d", dups[0].GetLineNumber())
+		if dups[0].Record.GetLineNumber() != 2 {
+			t.Errorf("expected duplicate to be line 2, got %d", dups[0].Record.GetLineNumber())
+		}
+		if dups[0].ExistingLineNumber != 1 {
+			t.Errorf("expected existing line 1, got %d", dups[0].ExistingLineNumber)
 		}
 	})
 
@@ -1369,6 +1388,15 @@ func TestGetPartialDuplicates(t *testing.T) {
 		if len(dups) != 1 {
 			t.Errorf("expected 1 partial duplicate, got %d", len(dups))
 		}
+		if dups[0].Record.GetLineNumber() != 2 {
+			t.Errorf("expected duplicate record to be line 2, got %d", dups[0].Record.GetLineNumber())
+		}
+		if dups[0].ExistingLineNumber != 1 {
+			t.Errorf("expected existing line 1, got %d", dups[0].ExistingLineNumber)
+		}
+		if dups[0].DuplicatedFields != "Item 9 (Social Security Number)." {
+			t.Errorf("unexpected duplicated fields: %q", dups[0].DuplicatedFields)
+		}
 	})
 
 	t.Run("exact duplicate is excluded from partial duplicates", func(t *testing.T) {
@@ -1409,7 +1437,28 @@ func TestGetPartialDuplicatesExcluding(t *testing.T) {
 		if len(dups) != 1 {
 			t.Errorf("expected 1 partial duplicate, got %d", len(dups))
 		}
+		if dups[0].Record.GetLineNumber() != 2 {
+			t.Errorf("expected duplicate record to be line 2, got %d", dups[0].Record.GetLineNumber())
+		}
+		if dups[0].ExistingLineNumber != 1 {
+			t.Errorf("expected existing line 1, got %d", dups[0].ExistingLineNumber)
+		}
 	})
+}
+
+func TestFormatDuplicatedFields(t *testing.T) {
+	rec := testutil.NewTestRecord(t2Schema, 1, nil)
+
+	got := formatDuplicatedFields(rec, []string{"SSN", "FAMILY_AFFILIATION"})
+	want := "Item 9 (Social Security Number), and Item 10 (Family Affiliation)."
+	if got != want {
+		t.Errorf("formatDuplicatedFields() = %q, want %q", got, want)
+	}
+
+	got = formatDuplicatedFields(rec, []string{"UNKNOWN_FIELD"})
+	if got != "UNKNOWN_FIELD." {
+		t.Errorf("formatDuplicatedFields() fallback = %q, want UNKNOWN_FIELD.", got)
+	}
 }
 
 func TestBuildCompositeKey(t *testing.T) {
@@ -1964,10 +2013,9 @@ func TestExecuteFunction(t *testing.T) {
 
 	t.Run("passing validation", func(t *testing.T) {
 		ce, _ := registry.getOrCompileExpr(ScopeField, "Value > 0", "single")
-		cv := &CompiledValidator{ID: "positive", Expr: ce}
-		env := &FieldEnv{Value: 42}
+		cv := mustExprValidator(t, "positive", ScopeField, ce, "single")
 
-		result := Execute(cv, env)
+		result := Execute(cv, fieldState(42))
 		if !result.Valid {
 			t.Error("expected valid result")
 		}
@@ -1975,10 +2023,9 @@ func TestExecuteFunction(t *testing.T) {
 
 	t.Run("failing validation", func(t *testing.T) {
 		ce, _ := registry.getOrCompileExpr(ScopeField, "Value > 0", "single")
-		cv := &CompiledValidator{ID: "positive", Expr: ce}
-		env := &FieldEnv{Value: -1}
+		cv := mustExprValidator(t, "positive", ScopeField, ce, "single")
 
-		result := Execute(cv, env)
+		result := Execute(cv, fieldState(-1))
 		if result.Valid {
 			t.Error("expected invalid result")
 		}
@@ -2024,8 +2071,7 @@ func TestExecuteFunction(t *testing.T) {
 			"PART_A": 3,
 			"PART_B": "4",
 		})
-		validEnv := NewRecordEnvWithParams(validRec, cv.Params)
-		if result := Execute(cv, validEnv); !result.Valid {
+		if result := Execute(cv, NewRecordValidationState(validRec, nil)); !result.Valid {
 			t.Fatalf("expected valid sum_equals result, got error: %v", result.Error)
 		}
 
@@ -2034,8 +2080,7 @@ func TestExecuteFunction(t *testing.T) {
 			"PART_A": 3,
 			"PART_B": "4",
 		})
-		invalidEnv := NewRecordEnvWithParams(invalidRec, cv.Params)
-		if result := Execute(cv, invalidEnv); result.Valid {
+		if result := Execute(cv, NewRecordValidationState(invalidRec, nil)); result.Valid {
 			t.Fatal("expected invalid sum_equals result")
 		}
 	})

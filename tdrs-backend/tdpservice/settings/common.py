@@ -126,6 +126,7 @@ class Common(Configuration):
         "tdpservice.search_indexes",
         "tdpservice.parsers",
         "tdpservice.reports",
+        "tdpservice.etl",
     )
 
     # https://docs.djangoproject.com/en/2.0/topics/http/middleware/
@@ -398,7 +399,7 @@ class Common(Configuration):
     # of API POST calls to prevent false negative authorization errors.
     # https://docs.djangoproject.com/en/2.2/ref/settings/#csrf-cookie-httponly
     CSRF_COOKIE_HTTPONLY = False
-    CSRF_TRUSTED_ORIGINS = ["https://*.app.cloud.gov", "https://*.acf.hhs.gov"]
+    CSRF_TRUSTED_ORIGINS = ["https://*.acf.hhs.gov"]
 
     # Django Rest Framework
     DEFAULT_RENDERER_CLASSES = ["rest_framework.renderers.JSONRenderer"]
@@ -416,6 +417,7 @@ class Common(Configuration):
         "DEFAULT_RENDERER_CLASSES": DEFAULT_RENDERER_CLASSES,
         "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
         "DEFAULT_AUTHENTICATION_CLASSES": (
+            "tdpservice.users.authentication.KeycloakBearerTokenAuthentication",
             "tdpservice.users.authentication.CustomAuthentication",
             "rest_framework.authentication.SessionAuthentication",
             "tdpservice.security.utils.ExpTokenAuthentication",
@@ -423,6 +425,12 @@ class Common(Configuration):
         "DEFAULT_FILTER_BACKENDS": [
             "django_filters.rest_framework.DjangoFilterBackend",
         ],
+        "DEFAULT_THROTTLE_CLASSES": (
+            "tdpservice.users.throttling.KeycloakClientRateThrottle",
+        ),
+        "DEFAULT_THROTTLE_RATES": {
+            "keycloak_client": os.getenv("KEYCLOAK_CLIENT_RATE", "300/min"),
+        },
         "TEST_REQUEST_DEFAULT_FORMAT": "json",
         "TEST_REQUEST_RENDERER_CLASSES": TEST_REQUEST_RENDERER_CLASSES,
     }
@@ -550,6 +558,11 @@ class Common(Configuration):
     KEYCLOAK_DJANGO_CLIENT_SECRET = os.getenv(
         "KEYCLOAK_DJANGO_CLIENT_SECRET", "tdp-django-local-secret"
     )
+    KEYCLOAK_BEARER_CLIENT_ID = os.getenv("KEYCLOAK_BEARER_CLIENT_ID", "tdp-cli")
+    KEYCLOAK_API_AUDIENCE = os.getenv(
+        "KEYCLOAK_API_AUDIENCE", KEYCLOAK_DJANGO_CLIENT_ID
+    )
+    KEYCLOAK_JWKS_CACHE_TTL = int(os.getenv("KEYCLOAK_JWKS_CACHE_TTL", 300))
 
     ####################################
     # mozilla-django-oidc Settings     #
@@ -569,6 +582,7 @@ class Common(Configuration):
 
     _KC_REALM_URL = f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}"
     _KC_BROWSER_REALM_URL = f"{KEYCLOAK_BROWSER_URL}/realms/{KEYCLOAK_REALM}"
+    KEYCLOAK_ISSUER = os.getenv("KEYCLOAK_ISSUER", _KC_BROWSER_REALM_URL)
 
     # Browser-facing endpoints (user's browser is redirected here)
     OIDC_OP_AUTHORIZATION_ENDPOINT = (
@@ -671,6 +685,16 @@ class Common(Configuration):
                 month_of_year="*",
             ),  # Every day at 1am UTC (9pm EST)
         },
+        "Schedule Statistical Weights ETL": {
+            "task": "tdpservice.etl.tasks.schedule_statistical_weights",
+            "schedule": crontab(
+                minute="0",
+                hour="13",
+                day_of_week="*",
+                day_of_month="*",
+                month_of_year="*",
+            ),  # Daily check at 1pm UTC (9am EST)
+        },
         "Email Data Analyst Q1 Upcoming Submission Deadline Reminder": {
             "task": "tdpservice.email.tasks.send_data_submission_reminder",
             # Feb 9 at 1pm UTC (9am EST)
@@ -738,12 +762,16 @@ class Common(Configuration):
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
             "LOCATION": f"{REDIS_URI}/2",
         },
+        "throttle": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": f"{REDIS_URI}/3",
+        },
     }
 
     CYPRESS_TOKEN = os.getenv("CYPRESS_TOKEN", None)
     FIXTURE_DIRS = [os.path.join(BASE_DIR, "fixtures")]
 
-    GENERATE_TRAILER_ERRORS = os.getenv("GENERATE_TRAILER_ERRORS", False)
+    GENERATE_TRAILER_ERRORS = os.getenv("GENERATE_TRAILER_ERRORS", True)
     IGNORE_DUPLICATE_ERROR_PRECEDENCE = os.getenv(
         "IGNORE_DUPLICATE_ERROR_PRECEDENCE", False
     )
@@ -762,7 +790,7 @@ class Common(Configuration):
     # Cloud.gov SET integration settings
     LOGIN_GOV_SET_AUDIENCE = os.getenv(
         "LOGIN_GOV_SET_AUDIENCE",
-        "https://tdp-frontend-raft.apps.cloud.gov/v1/security/event-token/",
+        "https://test.tanfdata.acf.hhs.gov/v1/security/event-token/",
     )
     LOGIN_GOV_WELL_KNOWN_CONFIG = os.getenv(
         "LOGIN_GOV_WELL_KNOWN_CONFIG",

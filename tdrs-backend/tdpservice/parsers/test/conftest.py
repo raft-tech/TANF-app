@@ -214,6 +214,14 @@ def small_tanf_section2_file(stt_user, stt):
 
 
 @pytest.fixture
+def oasdi_age_first_tanf_section2_file(stt_user, stt):
+    """Fixture for TANF Section 2 OASDI AGE_FIRST validation."""
+    return util.create_test_datafile(
+        "oasdi_age_first_tanf_section2.txt", stt_user, stt, "Closed Case Data"
+    )
+
+
+@pytest.fixture
 def tanf_section2_file(stt_user, stt):
     """Fixture for ADS.E2J.FTP2.TS06."""
     return util.create_test_datafile(
@@ -278,6 +286,19 @@ def ssp_section2_rec_oadsi_file(stt_user, stt):
 
 
 @pytest.fixture
+def oasdi_age_first_ssp_section2_file(stt_user, stt):
+    """Fixture for SSP Section 2 OASDI AGE_FIRST validation."""
+    return util.create_test_datafile(
+        "oasdi_age_first_ssp_section2.txt",
+        stt_user,
+        stt,
+        "Closed Case Data",
+        DataFile.ProgramType.SSP,
+        year=2019,
+    )
+
+
+@pytest.fixture
 def ssp_section2_file(stt_user, stt):
     """Fixture for ADS.E2J.NDM2.MS24."""
     return util.create_test_datafile(
@@ -333,6 +354,18 @@ def tribal_section_2_file(stt_user, stt):
     """Fixture for ADS.E2J.FTP4.TS06."""
     return util.create_test_datafile(
         "ADS.E2J.FTP2.TS142.txt",
+        stt_user,
+        stt,
+        "Closed Case Data",
+        DataFile.ProgramType.TRIBAL,
+    )
+
+
+@pytest.fixture
+def oasdi_age_first_tribal_section2_file(stt_user, stt):
+    """Fixture for Tribal TANF Section 2 OASDI AGE_FIRST validation."""
+    return util.create_test_datafile(
+        "oasdi_age_first_tribal_section2.txt",
         stt_user,
         stt,
         "Closed Case Data",
@@ -1162,9 +1195,83 @@ def section2_no_records():
         file__name="section2_no_records.txt",
         file__section="Closed Case Data",
         program_type=DataFile.ProgramType.TANF,
-        file__data=(b"HEADER20244C06   TAN1ED\n" b"TRAILER0000001         "),
+        file__data=(b"HEADER20244C06   TAN1ED\n" b"TRAILER0000000         "),
     )
     return parsing_file
+
+
+@pytest.fixture
+def tanf_section1_no_records():
+    """Fixture for a valid active TANF file with no records."""
+    return ParsingFileFactory(
+        year=2025,
+        quarter="Q1",
+        section="Active Case Data",
+        file__name="tanf_section1_no_records.txt",
+        file__section="Active Case Data",
+        program_type=DataFile.ProgramType.TANF,
+        file__data=(b"HEADER20244A06   TAN1ED\n" b"TRAILER0000000         "),
+    )
+
+
+@pytest.fixture
+def tanf_section3_no_records():
+    """Fixture for a valid aggregate TANF file with no records."""
+    return ParsingFileFactory(
+        year=2025,
+        quarter="Q1",
+        section="Aggregate Data",
+        file__name="tanf_section3_no_records.txt",
+        file__section="Aggregate Data",
+        program_type=DataFile.ProgramType.TANF,
+        file__data=(b"HEADER20244G06   TAN1ED\n" b"TRAILER0000000         "),
+    )
+
+
+@pytest.fixture
+def tanf_section4_no_records():
+    """Fixture for a valid stratum TANF file with no records."""
+    return ParsingFileFactory(
+        year=2025,
+        quarter="Q1",
+        section="Stratum Data",
+        file__name="tanf_section4_no_records.txt",
+        file__section="Stratum Data",
+        program_type=DataFile.ProgramType.TANF,
+        file__data=(b"HEADER20244S06   TAN1ED\n" b"TRAILER0000000         "),
+    )
+
+
+@pytest.fixture
+def tanf_section1_no_records_bad_trailer_count():
+    """Fixture for an active TANF zero-record file with a bad trailer count."""
+    return ParsingFileFactory(
+        year=2025,
+        quarter="Q1",
+        section="Active Case Data",
+        file__name="tanf_section1_no_records_bad_trailer_count.txt",
+        file__section="Active Case Data",
+        program_type=DataFile.ProgramType.TANF,
+        file__data=(b"HEADER20244A06   TAN1ED\n" b"TRAILER0000001         "),
+    )
+
+
+@pytest.fixture
+def tanf_section1_unknown_record_bad_trailer_count():
+    """Fixture for an active TANF file with one rejected detail row and bad count."""
+    return ParsingFileFactory(
+        year=2025,
+        quarter="Q1",
+        section="Active Case Data",
+        file__name="tanf_section1_unknown_record_bad_trailer_count.txt",
+        file__section="Active Case Data",
+        program_type=DataFile.ProgramType.TANF,
+        file__data=(
+            b"HEADER20244A06   TAN1ED\n"
+            b"ThisLineShouldError\n"
+            b"TRAILER0000000         "
+        ),
+    )
 
 
 @pytest.fixture

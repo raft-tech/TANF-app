@@ -3,7 +3,7 @@ package celery
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"os/signal"
 	"syscall"
 	"time"
@@ -14,6 +14,7 @@ import (
 
 	"go-parser/internal/config"
 	"go-parser/internal/db"
+	"go-parser/internal/logging"
 	"go-parser/internal/pipeline"
 	"go-parser/internal/server"
 	"go-parser/internal/storage"
@@ -25,17 +26,18 @@ import (
 // taskName is the fully-qualified Celery task name that Django dispatches.
 // We use a different task name to not collide with the python parser while developing.
 const taskName = "tdpservice.scheduling.parser_task.go_parse"
+const postParseTaskName = "tdpservice.scheduling.parser_task.post_parse"
 const defaultQueueName = "go-parser"
+const defaultPostParseQueueName = "celery"
 
 const statusUpdateTimeout = 5 * time.Second
 
 const (
-	dataFileStateParseStarted     = "parse_started"
-	dataFileStateParseFailed      = "parse_failed"
-	dataFileStateParsedWithErrors = "parsed_with_errors"
-	dataFileStateParseCompleted   = "parse_completed"
+	dataFileStateParseStarted   = "parse_started"
+	dataFileStateParseFailed    = "parse_failed"
+	dataFileStateParseCompleted = "parse_completed"
 
-	summaryStatusRejected           = "Rejected"
+	summaryStatusRejected = "Rejected"
 )
 
 // Server owns the full lifecycle for celery worker mode.
@@ -45,6 +47,10 @@ type Server struct {
 	server.Base
 	dbPool    *pgxpool.Pool
 	s3Storage *storage.S3Storage
+}
+
+type celeryTaskSender interface {
+	Delay(task string, args ...interface{}) (*gocelery.AsyncResult, error)
 }
 
 // New creates a celery mode runner. It connects to the database,
@@ -106,6 +112,12 @@ func (s *Server) Run(parentCtx context.Context) error {
 
 	broker := gocelery.NewRedisBroker(redisPool)
 	broker.QueueName = queueName
+	postParseQueueName := s.Config.Server.Celery.PostParseQueue
+	if postParseQueueName == "" {
+		postParseQueueName = defaultPostParseQueueName
+	}
+	postParseBroker := gocelery.NewRedisBroker(redisPool)
+	postParseBroker.QueueName = postParseQueueName
 
 	celeryClient, err := gocelery.NewCeleryClient(
 		broker,
@@ -115,36 +127,114 @@ func (s *Server) Run(parentCtx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create celery client: %w", err)
 	}
+	postParseClient, err := gocelery.NewCeleryClient(
+		postParseBroker,
+		newRedisCeleryBackend(redisPool),
+		1,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create post-parse celery client: %w", err)
+	}
 
 	// Register the parse task handler. Django sends data_file_id as a
 	// positional arg which arrives as float64 after JSON deserialization.
 	// The closure includes panic recovery so a single bad task cannot kill
 	// the worker goroutine.
 	taskCtx := context.WithoutCancel(parentCtx)
-	celeryClient.Register(taskName, func(dataFileID float64) (result string) {
+	celeryClient.Register(taskName, func(dataFileID float64, reparseID float64) (result string) {
 		id := int32(dataFileID)
+		reparse := int32(reparseID)
+		parseError := ""
 
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("PANIC in task for data_file_id=%d: %v", id, r)
-				result = fmt.Sprintf("panic: %v", r)
+				parseError = fmt.Sprintf("panic: %v", r)
+				logging.Error(taskCtx, "panic in parse task",
+					slog.Int(logging.KeyFileID, int(id)),
+					slog.Int("reparse_id", int(reparse)),
+					slog.String(logging.KeyStage, "task"),
+					slog.Any("panic", r),
+				)
+				result = parseError
 				if err := s.updateDataFileSummaryStatus(taskCtx, id, summaryStatusRejected); err != nil {
-					log.Printf("Failed to update DataFileSummary status for data_file_id=%d during worker panic: %v", id, err)
+					logging.Error(taskCtx, "failed to update DataFileSummary status during worker panic",
+						slog.Int(logging.KeyFileID, int(id)),
+						slog.Int("reparse_id", int(reparse)),
+						slog.String(logging.KeyStage, "status_update"),
+						slog.Any(logging.KeyError, err),
+					)
 				}
 				if err := s.updateDataFileState(taskCtx, id, dataFileStateParseFailed); err != nil {
-					log.Printf("Failed to update shadow DataFile state for data_file_id=%d during worker panic: %v", id, err)
+					logging.Error(taskCtx, "failed to update DataFile state during worker panic",
+						slog.Int(logging.KeyFileID, int(id)),
+						slog.Int("reparse_id", int(reparse)),
+						slog.String(logging.KeyStage, "status_update"),
+						slog.Any(logging.KeyError, err),
+					)
 				}
+			}
+			postParseStart := time.Now()
+			if err := s.enqueuePostParseTask(postParseClient, id, reparse, parseError); err != nil {
+				logging.Error(taskCtx, "failed to enqueue post-parse task",
+					slog.Int(logging.KeyFileID, int(id)),
+					slog.Int("reparse_id", int(reparse)),
+					slog.String(logging.KeyStage, "post_parse_enqueue"),
+					slog.Int64(logging.KeyDurationMS, time.Since(postParseStart).Milliseconds()),
+					slog.Any(logging.KeyError, err),
+				)
+				if updateErr := s.updateDataFileSummaryStatus(taskCtx, id, summaryStatusRejected); updateErr != nil {
+					logging.Error(taskCtx, "failed to update DataFileSummary status after post-parse enqueue failure",
+						slog.Int(logging.KeyFileID, int(id)),
+						slog.Int("reparse_id", int(reparse)),
+						slog.String(logging.KeyStage, "status_update"),
+						slog.Any(logging.KeyError, updateErr),
+					)
+				}
+				if updateErr := s.updateDataFileState(taskCtx, id, dataFileStateParseFailed); updateErr != nil {
+					logging.Error(taskCtx, "failed to update DataFile state after post-parse enqueue failure",
+						slog.Int(logging.KeyFileID, int(id)),
+						slog.Int("reparse_id", int(reparse)),
+						slog.String(logging.KeyStage, "status_update"),
+						slog.Any(logging.KeyError, updateErr),
+					)
+				}
+				result = fmt.Sprintf("post-parse enqueue error: %v", err)
+			} else {
+				logging.Info(taskCtx, "post-parse task enqueued",
+					slog.Int(logging.KeyFileID, int(id)),
+					slog.Int("reparse_id", int(reparse)),
+					slog.String(logging.KeyStage, "post_parse_enqueue"),
+					slog.Int64(logging.KeyDurationMS, time.Since(postParseStart).Milliseconds()),
+					slog.Bool("parse_error", parseError != ""),
+				)
 			}
 		}()
 
-		log.Printf("Received parse task for data_file_id=%d", id)
+		taskStart := time.Now()
+		logging.Info(taskCtx, "received parse task",
+			slog.Int(logging.KeyFileID, int(id)),
+			slog.Int("reparse_id", int(reparse)),
+			slog.String(logging.KeyStage, "task_receive"),
+		)
 
 		if err := s.processTask(taskCtx, id); err != nil {
-			log.Printf("Task failed for data_file_id=%d: %v", id, err)
-			return fmt.Sprintf("error: %v", err)
+			parseError = fmt.Sprintf("error: %v", err)
+			logging.Error(taskCtx, "parse task failed",
+				slog.Int(logging.KeyFileID, int(id)),
+				slog.Int("reparse_id", int(reparse)),
+				slog.String(logging.KeyStage, "task"),
+				slog.Int64(logging.KeyDurationMS, time.Since(taskStart).Milliseconds()),
+				slog.Any(logging.KeyError, err),
+			)
+			return parseError
 		}
 
-		log.Printf("Task completed successfully for data_file_id=%d", id)
+		logging.Info(taskCtx, "parse task completed",
+			slog.Int(logging.KeyFileID, int(id)),
+			slog.Int("reparse_id", int(reparse)),
+			slog.String(logging.KeyStage, "task"),
+			slog.Int64(logging.KeyDurationMS, time.Since(taskStart).Milliseconds()),
+		)
 		return "success"
 	})
 
@@ -152,24 +242,39 @@ func (s *Server) Run(parentCtx context.Context) error {
 	workerCtx, stop := signal.NotifyContext(parentCtx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	log.Printf(
-		"Starting celery worker (%d goroutines), listening for '%s' tasks on queue %q via %s",
-		numWorkers,
-		taskName,
-		queueName,
-		s.Config.Server.Celery.RedisURL,
+	logging.Info(workerCtx, "starting celery worker",
+		slog.String(logging.KeyStage, "worker_start"),
+		slog.Int("worker_count", numWorkers),
+		slog.String("task_name", taskName),
+		slog.String("queue", queueName),
+		slog.String("redis_url", s.Config.Server.Celery.RedisURL),
 	)
 	celeryClient.StartWorkerWithContext(workerCtx)
 
 	// Block until the context is cancelled (signal received).
 	<-workerCtx.Done()
-	log.Println("Shutting down celery worker...")
+	logging.Info(workerCtx, "shutting down celery worker", slog.String(logging.KeyStage, "worker_shutdown"))
 
 	// Wait for any in-flight task to complete.
 	celeryClient.StopWorker()
-	log.Println("Celery worker stopped")
+	logging.Info(context.Background(), "celery worker stopped", slog.String(logging.KeyStage, "worker_shutdown"))
 
 	return nil
+}
+
+func (s *Server) enqueuePostParseTask(client celeryTaskSender, dataFileID int32, reparseID int32, parseError string) error {
+	task := s.Config.Server.Celery.PostParseTaskName
+	if task == "" {
+		task = postParseTaskName
+	}
+
+	var parseErrorArg any
+	if parseError != "" {
+		parseErrorArg = parseError
+	}
+
+	_, err := client.Delay(task, dataFileID, reparseID, parseErrorArg)
+	return err
 }
 
 func (s *Server) updateDataFileSummaryStatus(parentCtx context.Context, dataFileID int32, status string) error {
@@ -251,40 +356,31 @@ func (s *Server) processTask(taskCtx context.Context, dataFileID int32) error {
 	if err != nil {
 		// Update status to indicate failure before returning.
 		if updateErr := s.updateDataFileSummaryStatus(taskCtx, dataFileID, summaryStatusRejected); updateErr != nil {
-			log.Printf("Failed to update DataFileSummary status for data_file_id=%d: %v", dataFileID, updateErr)
+			logging.Error(taskCtx, "failed to update DataFileSummary status",
+				slog.Int(logging.KeyFileID, int(dataFileID)),
+				slog.String(logging.KeyStage, "status_update"),
+				slog.Any(logging.KeyError, updateErr),
+			)
 		}
 		if updateErr := s.updateDataFileState(taskCtx, dataFileID, dataFileStateParseFailed); updateErr != nil {
-			log.Printf("Failed to update shadow DataFile state for data_file_id=%d: %v", dataFileID, updateErr)
+			logging.Error(taskCtx, "failed to update DataFile state",
+				slog.Int(logging.KeyFileID, int(dataFileID)),
+				slog.String(logging.KeyStage, "status_update"),
+				slog.Any(logging.KeyError, updateErr),
+			)
 		}
 		return fmt.Errorf("pipeline processing failed: %w", err)
 	}
 
-	dataFileState := dataFileStateForParsingResult(result)
 	totalCreated, totalInFile := recordTotalsForResult(result)
 	if err := db.UpdateDataFileSummaryResult(taskCtx, s.dbPool, summaryTable, dataFileID, totalInFile, totalCreated); err != nil {
 		return fmt.Errorf("failed to update shadow datafile summary result: %w", err)
 	}
-	if err := db.UpdateDataFileState(taskCtx, s.dbPool, dataFileTable, dataFileID, dataFileState); err != nil {
+	if err := db.UpdateDataFileState(taskCtx, s.dbPool, dataFileTable, dataFileID, dataFileStateParseCompleted); err != nil {
 		return fmt.Errorf("failed to update shadow datafile state: %w", err)
 	}
 
-	// 6. Log results.
-	log.Printf("data_file_id=%d processed in %s", dataFileID, result.Duration)
-	for table, count := range result.RecordCounts {
-		log.Printf("  %s: %d records", table, count)
-	}
-
 	return nil
-}
-
-func dataFileStateForParsingResult(result *pipeline.ParsingResult) string {
-	if result == nil {
-		return dataFileStateParseFailed
-	}
-	if result.ErrorCount > 0 {
-		return dataFileStateParsedWithErrors
-	}
-	return dataFileStateParseCompleted
 }
 
 func recordTotalsForResult(result *pipeline.ParsingResult) (created int64, total int64) {
@@ -297,7 +393,7 @@ func recordTotalsForResult(result *pipeline.ParsingResult) (created int64, total
 		}
 		created += count
 	}
-	total = created
+	total = result.DetailRecordCount
 	return created, total
 }
 

@@ -3,7 +3,6 @@
 
 model                  = "gpt-5.5"
 model_provider         = "openai"
-model_reasoning_effort = "high"
 
 # Sandbox: allow writing within the workspace but not outside it.
 sandbox_mode         = "workspace-write"
@@ -16,14 +15,14 @@ default_permissions  = "tdp-workspace"
 [permissions.tdp-workspace.filesystem]
 glob_scan_max_depth = 12
 
-[permissions.tdp-workspace.filesystem.":project_roots"]
+[permissions.tdp-workspace.filesystem.":workspace_roots"]
 "." = "write"
-"**/.env" = "none"
-"**/.env.*" = "none"
-"**/*.tfvars" = "none"
-"**/*.pem" = "none"
-"**/*.rsa" = "none"
-"**/*.key" = "none"
+"**/.env" = "deny"
+"**/.env.*" = "deny"
+"**/*.tfvars" = "deny"
+"**/*.pem" = "deny"
+"**/*.rsa" = "deny"
+"**/*.key" = "deny"
 
 # ---------------------------------------------------------------------------
 # Shell environment

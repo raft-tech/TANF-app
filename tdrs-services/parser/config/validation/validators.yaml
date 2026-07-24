@@ -422,12 +422,12 @@ record_validators:
   # T5 special case validators
   # =============================================================================
 
-  # When person is 18+ years old, REC_OASDI_INSURANCE must be 1-2
+  # When person is older than 18, REC_OASDI_INSURANCE must be 1-2
   # AGE is calculated from DATE_OF_BIRTH and RPT_MONTH_YEAR
   - id: t5_age_oasdi
-    expr: "if calculateAge(GetString('DATE_OF_BIRTH'), GetString('RPT_MONTH_YEAR')) >= 18 { GetInt('REC_OASDI_INSURANCE') in [1, 2] } else { true }"
-    message: "If age is 18 or older, REC_OASDI_INSURANCE must be 1 or 2"
-    fields: [DATE_OF_BIRTH, REC_OASDI_INSURANCE]
+    expr: "if calculateAge(GetString('DATE_OF_BIRTH'), GetString('RPT_MONTH_YEAR')) > 18 { GetInt('REC_OASDI_INSURANCE') in [1, 2] } else { true }"
+    message: "Since person is older than 18, then {{with index .FieldMeta \"REC_OASDI_INSURANCE\"}}{{.Item}} ({{.FriendlyName}}){{else}}REC_OASDI_INSURANCE{{end}} must be 1 or 2"
+    fields: [DATE_OF_BIRTH, RPT_MONTH_YEAR, REC_OASDI_INSURANCE]
 
   # =============================================================================
   # Sum-equals validator (parameterized)
@@ -448,6 +448,11 @@ record_validators:
     message: "HEADER: record length is {{.RecordLength}} characters but must be 23."
     description: "RecordLength includes trailing newline (23 or 24 are both valid for a 23-char header)"
 
+  - id: trailer_record_length
+    expr: "RecordLength == 23"
+    error_type: RECORD_PRE_CHECK
+    message: "TRAILER: record length is {{.RecordLength}} characters but must be 23."
+
   - id: header_tribe_fips_program_agree
     expr: >
       ((GetString('program_type') == 'TAN' and (isEmpty(GetString('state_fips')) or GetString('state_fips') == '00'))
@@ -455,6 +460,14 @@ record_validators:
     error_type: PRE_CHECK
     message: "Tribe Code ({{.Values.tribe_code}}) inconsistency with Program Type ({{.Values.program_type}}) and FIPS Code ({{.Values.state_fips}})."
     fields: [tribe_code, program_type, state_fips]
+
+  - id: header_program_type_match
+    expr: >
+      ((not isTribeCodeEmpty(GetString('tribe_code'))) and DataFileContext.Program == 'TRIBAL')
+      or (isTribeCodeEmpty(GetString('tribe_code')) and DataFileContext.Program == GetString('program_type'))
+    error_type: PRE_CHECK
+    message: 'Submitted program type ({{.DataFileContext.Program}}) does not match file program type ({{.FileProgram}}).'
+    fields: [tribe_code, program_type]
 
   - id: header_section_match
     expr: >
@@ -514,7 +527,7 @@ group_validators:
     expr: "getExactDuplicates(Group, Params.record_type)"
     error_type: CASE_CONSISTENCY
     result_mode: per_record
-    message: "Duplicate record detected with record type {{.RecordType}} at line {{.LineNumber}}."
+    message: "Duplicate record detected with record type {{.RecordType}} at line {{.LineNumber}}. Record is a duplicate of the record at line number {{.ExistingLineNumber}}."
 
   # Partial duplicate detection - specific key fields match (excludes exact dups)
   # Params: record_type (string), fields ([]string) - key fields to compare
@@ -522,7 +535,7 @@ group_validators:
     expr: "getPartialDuplicates(Group, Params.record_type, Params.fields)"
     error_type: CASE_CONSISTENCY
     result_mode: per_record
-    message: "Partial duplicate record detected with record type {{.RecordType}} at line {{.LineNumber}}."
+    message: "Partial duplicate record detected with record type {{.RecordType}} at line {{.LineNumber}}. Record is a partial duplicate of the record at line number {{.ExistingLineNumber}}. Duplicated fields causing error: {{.DuplicatedFields}}"
 
   # Partial duplicate detection with field exclusion (excludes exact dups)
   # Params: record_type, fields, exclude_field, exclude_values
@@ -530,7 +543,7 @@ group_validators:
     expr: "getPartialDuplicatesExcluding(Group, Params.record_type, Params.fields, Params.exclude_field, Params.exclude_values)"
     error_type: CASE_CONSISTENCY
     result_mode: per_record
-    message: "Partial duplicate record detected with record type {{.RecordType}} at line {{.LineNumber}}."
+    message: "Partial duplicate record detected with record type {{.RecordType}} at line {{.LineNumber}}. Record is a partial duplicate of the record at line number {{.ExistingLineNumber}}. Duplicated fields causing error: {{.DuplicatedFields}}"
 
   # =============================================================================
   # Federally funded SSN validator (group scope, per-record errors)

@@ -26,6 +26,7 @@ type WriterConfig struct {
 // ValidationConfig controls validation behavior.
 type ValidationConfig struct {
 	ShortCircuit   bool     `yaml:"short_circuit"`   // Skip field/consistency validators when precheck or group validators fail
+	Engine         string   `yaml:"engine"`          // "expr", "hybrid", or "native"
 	ValidatorFiles []string `yaml:"validator_files"` // Glob patterns for validator definition files (resolved relative to config_dir)
 }
 
@@ -91,9 +92,11 @@ type ServerConfig struct {
 
 // CeleryConfig holds Celery worker settings.
 type CeleryConfig struct {
-	RedisURL   string `yaml:"redis_url"`
-	Queue      string `yaml:"queue"`
-	NumWorkers int    `yaml:"num_workers"` // Number of concurrent celery task workers (default 1)
+	RedisURL          string `yaml:"redis_url"`
+	Queue             string `yaml:"queue"`
+	NumWorkers        int    `yaml:"num_workers"` // Number of concurrent celery task workers (default 1)
+	PostParseTaskName string `yaml:"post_parse_task_name"`
+	PostParseQueue    string `yaml:"post_parse_queue"`
 }
 
 // GRPCConfig holds gRPC server settings.
@@ -137,7 +140,9 @@ func DefaultConfig() *Config {
 		Server: ServerConfig{
 			Mode: "local",
 			Celery: CeleryConfig{
-				Queue: "go-parser",
+				Queue:             "go-parser",
+				PostParseTaskName: "tdpservice.scheduling.parser_task.post_parse",
+				PostParseQueue:    "celery",
 			},
 			GRPC: GRPCConfig{
 				ListenAddress: ":50051",
@@ -162,6 +167,7 @@ func DefaultConfig() *Config {
 		},
 		Validation: ValidationConfig{
 			ShortCircuit:   true,
+			Engine:         "expr",
 			ValidatorFiles: []string{"validation/validators.yaml"},
 		},
 		Database: DatabaseConfig{

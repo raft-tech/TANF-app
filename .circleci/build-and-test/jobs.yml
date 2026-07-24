@@ -16,11 +16,14 @@
             cd tdrs-backend;
             docker-compose run --rm web bash -c "./wait_for_services.sh && pytest --cov-report=xml"
       - run:
-          name: Run Go parser integration tests
+          name: Run ETL integration tests
           command: |
             cd tdrs-backend
-            GO_PARSER_SHADOW_MODE=False docker compose up --build -d go-parser
-            docker compose -f docker-compose.yml exec web sh -c "DJANGO_SETTINGS_MODULE=tdpservice.settings.go_parser_integration DJANGO_CONFIGURATION=GoParserIntegration pytest -c pytest-go-parser.ini --basetemp=/home/tdpapp/ tdpservice/parsers/test/integration"
+            mkdir -p "$HOME/.local/bin"
+            sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b "$HOME/.local/bin"
+            export PATH="$HOME/.local/bin:$PATH"
+            task --version
+            task backend-pytest-etl-integration
       - upload-codecov:
           component: backend
           coverage-report: ./tdrs-backend/coverage.xml
@@ -135,21 +138,15 @@
             . "$BASH_ENV"
             task parser:lint
       - run:
-          name: sqlc diff
-          command: |
-            . "$BASH_ENV"
-            task dump-parser-schema
-            task parser:sqlc-diff
-      - run:
-          name: sqlc vet
-          command: |
-            . "$BASH_ENV"
-            task parser:sqlc-vet
-      - run:
           name: Validator compilation check
           command: |
             . "$BASH_ENV"
             task parser:validate-config
+      - run:
+          name: Run Go parser integration tests
+          command: |
+            cd tdrs-backend
+            task backend-pytest-go-integration
       - run:
           name: Run Go parser tests with coverage
           command: |
