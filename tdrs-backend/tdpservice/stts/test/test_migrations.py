@@ -7,139 +7,6 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 
 
-@pytest.mark.django_db(transaction=True)
-def test_ssp_program_participation_data_migration():
-    """The SSP backfill creates active rows only for current SSP STTs."""
-    migrate_from = [("stts", "0013_program_section_sttprogramparticipation")]
-    migrate_to = [("stts", "0014_populate_ssp_program_participation")]
-    executor = MigrationExecutor(connection)
-
-    try:
-        executor.migrate(migrate_from)
-        old_apps = executor.loader.project_state(migrate_from).apps
-        Region = old_apps.get_model("stts", "Region")
-        STT = old_apps.get_model("stts", "STT")
-
-        region = Region.objects.create(id=9999)
-        active_stt = STT.objects.create(
-            name="Active SSP STT",
-            region=region,
-            stt_code="901",
-            ssp=True,
-            type="state",
-            filenames={
-                "Active Case Data": "tanf-active.txt",
-                "Closed Case Data": "tanf-closed.txt",
-                "Aggregate Data": "tanf-aggregate.txt",
-                "SSP Active Case Data": "ssp-active.txt",
-                "SSP Closed Case Data": "ssp-closed.txt",
-                "SSP Aggregate Data": "ssp-aggregate.txt",
-            },
-        )
-        inactive_stt = STT.objects.create(
-            name="Inactive SSP STT",
-            region=region,
-            stt_code="902",
-            ssp=False,
-            type="state",
-            filenames={
-                "Active Case Data": "tanf-active.txt",
-                "Closed Case Data": "tanf-closed.txt",
-                "Aggregate Data": "tanf-aggregate.txt",
-            },
-        )
-        null_stt = STT.objects.create(
-            name="Null SSP STT",
-            region=region,
-            stt_code="903",
-            ssp=None,
-            type="state",
-            filenames={
-                "Active Case Data": "tanf-active.txt",
-                "Closed Case Data": "tanf-closed.txt",
-                "Aggregate Data": "tanf-aggregate.txt",
-            },
-        )
-
-        executor = MigrationExecutor(connection)
-        executor.migrate(migrate_to)
-        new_apps = executor.loader.project_state(migrate_to).apps
-        Program = new_apps.get_model("data_files", "Program")
-        Section = new_apps.get_model("data_files", "Section")
-        SttProgramParticipation = new_apps.get_model(
-            "stts", "SttProgramParticipation"
-        )
-
-        expected_program_sections = {
-            "tanf": {
-                "code": "TAN",
-                "name": "TANF",
-                "sections": {
-                    "Active Case Data",
-                    "Closed Case Data",
-                    "Aggregate Data",
-                    "Stratum Data",
-                },
-            },
-            "ssp": {
-                "code": "SSP",
-                "name": "SSP",
-                "sections": {
-                    "Active Case Data",
-                    "Closed Case Data",
-                    "Aggregate Data",
-                    "Stratum Data",
-                },
-            },
-            "tribal": {
-                "code": "TRIBAL",
-                "name": "Tribal TANF",
-                "sections": {
-                    "Active Case Data",
-                    "Closed Case Data",
-                    "Aggregate Data",
-                    "Stratum Data",
-                },
-            },
-            "fra": {
-                "code": "FRA",
-                "name": "FRA",
-                "sections": {
-                    "Work Outcomes of TANF Exiters",
-                    "Secondary School Attainment",
-                    "Supplemental Work Outcomes",
-                },
-            },
-        }
-
-        for slug, program_data in expected_program_sections.items():
-            program = Program.objects.get(slug=slug)
-            assert program.code == program_data["code"]
-            assert program.name == program_data["name"]
-            assert set(
-                Section.objects.filter(program=program).values_list("name", flat=True)
-            ) == program_data["sections"]
-
-        ssp_program = Program.objects.get(slug="ssp")
-        assert SttProgramParticipation.objects.filter(
-            stt_id=active_stt.id,
-            program=ssp_program,
-            status="ACTIVE",
-        ).exists()
-        assert not SttProgramParticipation.objects.filter(
-            stt_id=inactive_stt.id,
-            program=ssp_program,
-        ).exists()
-        assert not SttProgramParticipation.objects.filter(
-            stt_id=null_stt.id,
-            program=ssp_program,
-        ).exists()
-        assert SttProgramParticipation.objects.count() == 1
-    finally:
-        executor = MigrationExecutor(connection)
-        executor.migrate(executor.loader.graph.leaf_nodes())
-
-
 def _migration_targets(executor, stts_target):
     """Keep other apps at their leaves while targeting an STTs migration."""
     return [
@@ -153,9 +20,9 @@ def test_general_program_participation_data_migration():
     """The generalized backfill creates exact primary and SSP participation data."""
     executor = MigrationExecutor(connection)
     migrate_from = _migration_targets(
-        executor, "0014_populate_ssp_program_participation"
+        executor, "0013_program_section_sttprogramparticipation"
     )
-    migrate_to = _migration_targets(executor, "0015_populate_program_participations")
+    migrate_to = _migration_targets(executor, "0014_populate_program_participations")
 
     try:
         executor.migrate(migrate_from)
@@ -183,6 +50,13 @@ def test_general_program_participation_data_migration():
             type="state",
             filenames=core_sections,
             ssp=False,
+        )
+        null_ssp_state = STT.objects.create(
+            name="Null SSP State",
+            region=region,
+            type="state",
+            filenames=core_sections,
+            ssp=None,
         )
         territory = STT.objects.create(
             name="Four Section Territory",
@@ -244,6 +118,9 @@ def test_general_program_participation_data_migration():
 
         expected_participations = {
             state.id: {"TAN": {"Active Case Data", "Closed Case Data", "Aggregate Data"}},
+            null_ssp_state.id: {
+                "TAN": {"Active Case Data", "Closed Case Data", "Aggregate Data"}
+            },
             territory.id: {
                 "TAN": {
                     "Active Case Data",
@@ -305,7 +182,7 @@ def test_general_program_participation_data_migration():
             [Section.objects.get(program__code="TAN", name="Active Case Data")]
         )
         migration = importlib.import_module(
-            "tdpservice.stts.migrations.0015_populate_program_participations"
+            "tdpservice.stts.migrations.0014_populate_program_participations"
         )
         migration.populate_program_participations(new_apps, None)
 

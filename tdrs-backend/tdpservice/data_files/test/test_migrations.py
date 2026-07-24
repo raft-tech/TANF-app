@@ -15,7 +15,7 @@ def _migration_targets(executor, data_files_target):
     """Target DataFiles before the dependent STTs participation backfill."""
     target_overrides = {
         "data_files": data_files_target,
-        "stts": "0014_populate_ssp_program_participation",
+        "stts": "0013_program_section_sttprogramparticipation",
     }
     return [
         (app_label, target_overrides.get(app_label, migration))
@@ -51,8 +51,11 @@ def test_data_file_section_ref_backfill():
         executor.migrate(migrate_from)
         old_apps = executor.loader.project_state(migrate_from).apps
         DataFile = old_apps.get_model("data_files", "DataFile")
+        Program = old_apps.get_model("data_files", "Program")
         STT = old_apps.get_model("stts", "STT")
         User = old_apps.get_model("users", "User")
+
+        Program.objects.all().delete()
 
         stt = STT.objects.create(name="DataFile migration STT")
         user = User.objects.create(username="datafile-migration@example.com")
@@ -144,6 +147,7 @@ def test_data_file_section_ref_backfill():
         new_apps = executor.loader.project_state(migrate_to).apps
         DataFile = new_apps.get_model("data_files", "DataFile")
         Program = new_apps.get_model("data_files", "Program")
+        Section = new_apps.get_model("data_files", "Section")
 
         for old_data_file, program_code, section_name, audit in expected_files:
             data_file = DataFile.objects.get(id=old_data_file.id)
@@ -157,6 +161,37 @@ def test_data_file_section_ref_backfill():
             "TRIBAL",
             "FRA",
         }
+        expected_sections = {
+            "TAN": {
+                "Active Case Data",
+                "Closed Case Data",
+                "Aggregate Data",
+                "Stratum Data",
+            },
+            "SSP": {
+                "Active Case Data",
+                "Closed Case Data",
+                "Aggregate Data",
+                "Stratum Data",
+            },
+            "TRIBAL": {
+                "Active Case Data",
+                "Closed Case Data",
+                "Aggregate Data",
+                "Stratum Data",
+            },
+            "FRA": {
+                "Work Outcomes of TANF Exiters",
+                "Secondary School Attainment",
+                "Supplemental Work Outcomes",
+            },
+        }
+        for program_code, section_names in expected_sections.items():
+            assert set(
+                Section.objects.filter(program__code=program_code).values_list(
+                    "name", flat=True
+                )
+            ) == section_names
         assert not Program.objects.filter(code="PIA").exists()
 
         migration = importlib.import_module(

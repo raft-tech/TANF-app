@@ -112,7 +112,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("data_files", "0031_backfill_datafile_section_ref"),
-        ("stts", "0014_populate_ssp_program_participation"),
+        ("stts", "0013_program_section_sttprogramparticipation"),
     ]
 
     operations = [
