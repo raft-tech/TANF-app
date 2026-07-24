@@ -48,7 +48,7 @@ def _get_required_program_types(stt: STT) -> set[str]:
         return {DataFile.ProgramType.TRIBAL}
 
     program_types = {DataFile.ProgramType.TANF}
-    if stt.has_active_ssp_participation():
+    if stt.ssp:
         program_types.add(DataFile.ProgramType.SSP)
 
     return program_types
@@ -207,7 +207,7 @@ def send_data_submission_reminder(due_date, reporting_period, fiscal_quarter):
     """Send all Data Analysts a reminder to submit if they have not already."""
     fiscal_year = datetime.now().year
 
-    all_locations = STT.objects.prefetch_related("program_participations__program")
+    all_locations = STT.objects.all()
 
     reminder_locations = []
     year_quarter_files = DataFile.objects.all().filter(
@@ -240,7 +240,7 @@ def send_data_submission_reminder(due_date, reporting_period, fiscal_quarter):
     )
 
     for loc in reminder_locations:
-        tanf_ssp_label = "TANF and SSP" if loc.has_active_ssp_participation() else "TANF"
+        tanf_ssp_label = "TANF and SSP" if loc.ssp else "TANF"
         subject = f"Action Requested: Please submit your {tanf_ssp_label} data files"
 
         recipients = all_data_analysts.filter(stt=loc)
