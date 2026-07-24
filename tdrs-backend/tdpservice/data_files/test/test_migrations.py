@@ -12,9 +12,13 @@ MIGRATE_TO = "0031_backfill_datafile_section_ref"
 
 
 def _migration_targets(executor, data_files_target):
-    """Keep other apps at their leaves while targeting a DataFiles migration."""
+    """Target DataFiles before the dependent STTs participation backfill."""
+    target_overrides = {
+        "data_files": data_files_target,
+        "stts": "0014_populate_ssp_program_participation",
+    }
     return [
-        (app_label, data_files_target if app_label == "data_files" else migration)
+        (app_label, target_overrides.get(app_label, migration))
         for app_label, migration in executor.loader.graph.leaf_nodes()
     ]
 
