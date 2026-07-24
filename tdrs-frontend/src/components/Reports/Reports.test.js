@@ -435,7 +435,7 @@ describe('Reports', () => {
 
     fireEvent.click(getByText('Submit Data Files'))
     await waitFor(() => {
-      const statusElements = getAllByRole('status')
+      const statusElements = getAllByRole('alert')
       expect(
         statusElements.some((el) =>
           el.textContent.includes('Successfully uploaded')
@@ -1202,7 +1202,7 @@ describe('Reports', () => {
       expect(
         queryByText(
           `Successfully uploaded section(s): 1 on ${new Date().toDateString()}`,
-          { selector: 'div' }
+          { selector: 'p' }
         )
       ).toBeInTheDocument()
     })
