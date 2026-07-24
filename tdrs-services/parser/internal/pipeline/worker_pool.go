@@ -158,7 +158,7 @@ func (wp *WorkerPool) worker(ctx context.Context, workerID int) {
 			if !ok {
 				return
 			}
-			startedAt := wp.activateWorker()
+			startedAt := wp.startWorkerTimer()
 			vb := wp.processBatch(batch)
 
 			// Tally errors (direct addition, no atomics needed per single goroutine)
@@ -176,7 +176,7 @@ func (wp *WorkerPool) worker(ctx context.Context, workerID int) {
 			routeStart := time.Now()
 			if err := routeValidatedBatch(ctx, wp.router, vb.Groups, wp.datafileID, &errorRows); err != nil {
 				stats.RoutingDuration += time.Since(routeStart)
-				stats.ActiveDuration += wp.deactivateWorker(startedAt)
+				stats.ActiveDuration += wp.stopWorkerTimer(startedAt)
 				logging.Error(ctx, "worker batch failed",
 					slog.Int(logging.KeyFileID, int(wp.datafileID)),
 					slog.Int("worker_id", workerID),
@@ -187,16 +187,16 @@ func (wp *WorkerPool) worker(ctx context.Context, workerID int) {
 				return
 			}
 			stats.RoutingDuration += time.Since(routeStart)
-			stats.ActiveDuration += wp.deactivateWorker(startedAt)
+			stats.ActiveDuration += wp.stopWorkerTimer(startedAt)
 		}
 	}
 }
 
-func (wp *WorkerPool) activateWorker() time.Time {
+func (wp *WorkerPool) startWorkerTimer() time.Time {
 	return time.Now()
 }
 
-func (wp *WorkerPool) deactivateWorker(startedAt time.Time) time.Duration {
+func (wp *WorkerPool) stopWorkerTimer(startedAt time.Time) time.Duration {
 	return time.Since(startedAt)
 }
 

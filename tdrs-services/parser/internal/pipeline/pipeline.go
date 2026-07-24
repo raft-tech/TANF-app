@@ -691,6 +691,7 @@ func accumulateBatches(
 	}
 	startedAt := time.Now()
 	var submitWait time.Duration
+	// Report accumulator time separately from worker backpressure.
 	duration := func() time.Duration {
 		elapsed := time.Since(startedAt) - submitWait
 		if elapsed < 0 {
@@ -698,6 +699,7 @@ func accumulateBatches(
 		}
 		return elapsed
 	}
+	// Track time blocked on the worker queue so duration reflects decoding work.
 	submit := func(batch *parser.DecodedBatch) {
 		waitStartedAt := time.Now()
 		workers.Submit(batch)
