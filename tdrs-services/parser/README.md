@@ -10,7 +10,6 @@ For architecture details, see [docs/GO_PARSER_ARCHITECTURE.md](docs/GO_PARSER_AR
 
 - **Go 1.25+** (see `go.mod` for exact version)
 - **gotestsum** (test runner): `go install gotest.tools/gotestsum@latest`
-- **sqlc** (database code generation): `go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest`
 - **PostgreSQL** (for integration tests and database mode)
 
 ---
@@ -28,9 +27,6 @@ parser/
 │   ├── schemas/         # Field layouts per record type
 │   └── validation/      # Validator definitions
 ├── internal/            # Private implementation packages
-├── schema.sql           # PostgreSQL schema (mirrors Django models)
-├── query.sql            # SQL queries for SQLC
-├── sqlc.yaml            # SQLC configuration
 └── Makefile             # Build and test targets
 ```
 
@@ -75,7 +71,7 @@ The primary config file is `config/parser.yaml`. Key sections:
 | `server`     | How the parser receives work (`local`, `celery`, `grpc`, `http`) |
 | `pipeline`   | Worker pool sizes and buffer depths                              |
 | `writer`     | Output mode (`database` or `file`), flush thresholds             |
-| `validation` | Short-circuit behavior, validator file paths                     |
+| `validation` | Short-circuit behavior, validation engine, validator file paths   |
 | `database`   | PostgreSQL connection pool settings                              |
 | `storage`    | File acquisition (`local` or `s3`)                               |
 
@@ -239,6 +235,61 @@ go run ./cmd/parser --memprofile=mem.prof ...
 go tool pprof mem.prof
 ```
 
+Validation supports three execution engines:
+
+| Engine   | Behavior                                                                 |
+| -------- | ------------------------------------------------------------------------ |
+| `expr`   | Runs every validator through the compiled expr program. This is default. |
+| `hybrid` | Runs native validators when present and falls back to expr otherwise.    |
+| `native` | Requires every configured production validator to have a native executor. |
+
+Select the engine in `config/parser.yaml`, with `GO_PARSER_VALIDATION_ENGINE`, or with `--validation.engine=expr|hybrid|native`.
+
+Use the validation benchmarks to compare isolated validator cost:
+
+```sh
+go test -run '^$' -bench '^BenchmarkValidation' -benchmem -count=10 ./internal/validation
+```
+
+Use the large backend fixture to compare full dry-run parser profiles:
+
+```sh
+go run ./cmd/parser \
+  --dry-run \
+  --validation.engine=expr \
+  --cpuprofile=/tmp/parser-expr.pprof \
+  --server.local.file-path=../../tdrs-backend/tdpservice/parsers/test/data/ADS.E2J.NDM1.TS53_fake.txt \
+  --server.local.program=TAN \
+  --server.local.section=1 \
+  --server.local.fiscal-year=2023 \
+  --server.local.quarter=2 \
+  --writer.output-dir=/tmp/parser-expr
+
+go run ./cmd/parser \
+  --dry-run \
+  --validation.engine=hybrid \
+  --cpuprofile=/tmp/parser-hybrid.pprof \
+  --server.local.file-path=../../tdrs-backend/tdpservice/parsers/test/data/ADS.E2J.NDM1.TS53_fake.txt \
+  --server.local.program=TAN \
+  --server.local.section=1 \
+  --server.local.fiscal-year=2023 \
+  --server.local.quarter=2 \
+  --writer.output-dir=/tmp/parser-hybrid
+
+go run ./cmd/parser \
+  --dry-run \
+  --validation.engine=native \
+  --cpuprofile=/tmp/parser-native.pprof \
+  --server.local.file-path=../../tdrs-backend/tdpservice/parsers/test/data/ADS.E2J.NDM1.TS53_fake.txt \
+  --server.local.program=TAN \
+  --server.local.section=1 \
+  --server.local.fiscal-year=2023 \
+  --server.local.quarter=2 \
+  --writer.output-dir=/tmp/parser-native
+```
+
+Inspect the profiles with `go tool pprof /tmp/parser-expr.pprof`, `go tool pprof /tmp/parser-hybrid.pprof`, and `go tool pprof /tmp/parser-native.pprof`.
+
 ---
 
 ## Running Docgen
@@ -293,15 +344,6 @@ make compile-check
 # Run Go static analysis
 make lint
 
-# Verify sqlc-generated code is in sync with schema.sql and query.sql
-make sqlc-diff
-
-# Run sqlc static analysis checks
-make sqlc-vet
-
-# Verify parser SQL against the configured engine and schema
-make sqlc-verify
-
 # Load config and compile validator expressions from YAML
 make validate-config
 
@@ -325,22 +367,13 @@ gotestsum -- -count=1 -run TestAccumulatorKeyedGrouping ./internal/parser/...
 gotestsum -- -count=1 ./internal/validation/...
 ```
 
-## SQLC (Database Code Generation)
+## Database Access
 
-The Go parser uses [SQLC](https://sqlc.dev) to generate type-safe Go code from SQL. The schema in `schema.sql` mirrors the Django model definitions, with Go-owned output tables prefixed as `shadow_*` so Python/Django parser output remains isolated.
-
-```sh
-# Regenerate Go code from schema.sql and query.sql
-sqlc generate
-
-# Check if generated code is up to date (useful for CI)
-sqlc diff
-
-# Run sqlc lint-style checks
-sqlc vet
-```
-
-Generated code lives in `internal/db/` and should not be edited by hand.
+The parser writes record rows through YAML-derived table metadata and pgx `COPY`.
+Small datafile, summary, and content-type queries live in `internal/db/` as
+handwritten pgx helpers. Record table schemas are owned by the Django search
+index models, and `tdrs-backend/tdpservice/parsers/test/test_go_schema_contract.py`
+checks that active Django fields match the Go YAML schemas.
 
 ---
 
@@ -351,9 +384,6 @@ The CircleCI parser job runs these checks from `tdrs-services/parser/`:
 ```sh
 task parser:compile-check
 task parser:lint
-task parser:sqlc-diff
-task parser:sqlc-vet
-task parser:sqlc-verify
 task parser:validate-config
 task parser:test-all-coverage
 ```
@@ -455,8 +485,10 @@ For integration tests in CI, CircleCI reuses the existing backend docker-compose
 1. Create a schema YAML in `config/schemas/<program>/<type>.yaml`
 2. Add the schema path to the relevant filespec in `config/filespecs/`
 3. Add validators for the new fields in `config/validation/validators.yaml`
-4. Add a row serializer in `internal/storage/writer/`
-5. Add the table to `schema.sql` and run `sqlc generate`
+4. Add or update the Django search index model and migration for the persisted table
+
+Writer table names, COPY columns, and row values are derived from the schema
+YAML. Do not add record-specific row serializers for new record types.
 
 ### Modifying a Validator
 
