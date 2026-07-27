@@ -76,6 +76,7 @@ def _expected_labels(**overrides):
     """Return the default expected metric labels with selected overrides."""
     labels = {
         "source": "unknown",
+        "auth_state": "unauthenticated",
         "client_id": "unknown",
         "user_stt": "unknown",
         "user_group": "unknown",
@@ -90,7 +91,24 @@ def _expected_labels(**overrides):
 
 
 def test_request_attribution_records_frontend_header(counter_spy, request_factory):
-    """Frontend requests are attributed by the exact service-name header."""
+    """Frontend service headers are informational when no auth is available."""
+    request = _tracked_request(
+        request_factory,
+        HTTP_X_SERVICE_NAME="tdp-frontend",
+    )
+
+    _call_middleware(request, status_code=204)
+
+    assert _last_labels(counter_spy) == _expected_labels(
+        attribution="frontend_header",
+        status_code="204",
+    )
+
+
+def test_request_attribution_records_session_over_frontend_header(
+    counter_spy, request_factory
+):
+    """Authenticated sessions are the browser-session signal, not headers."""
     request = _tracked_request(
         request_factory,
         HTTP_X_SERVICE_NAME="tdp-frontend",
@@ -98,15 +116,14 @@ def test_request_attribution_records_frontend_header(counter_spy, request_factor
     request.user = SimpleNamespace(is_authenticated=True)
     request.COOKIES["id_token"] = "cookie-token"
 
-    _call_middleware(request, status_code=204)
+    _call_middleware(request)
 
     assert _last_labels(counter_spy) == _expected_labels(
-        source="frontend",
-        client_id="tdp-frontend",
+        source="browser_session",
+        auth_state="authenticated",
         user_stt="none",
         user_group="none",
-        attribution="frontend_header",
-        status_code="204",
+        attribution="authenticated_session",
     )
 
 
@@ -125,7 +142,32 @@ def test_request_attribution_records_verified_bearer_client(
 
     assert _last_labels(counter_spy) == _expected_labels(
         source="api_client",
+        auth_state="authenticated",
         client_id="tdp-cli",
+        attribution="bearer_verified",
+    )
+
+
+def test_request_attribution_records_bearer_client_over_session(
+    counter_spy, request_factory
+):
+    """Authorization headers identify API clients even when cookies are present."""
+    request = _tracked_request(
+        request_factory,
+        HTTP_AUTHORIZATION="Bearer signed-token",
+        HTTP_COOKIE="id_token=abc123",
+    )
+    request._keycloak_client_id = "tdp-cli"
+    request.user = SimpleNamespace(is_authenticated=True)
+
+    _call_middleware(request)
+
+    assert _last_labels(counter_spy) == _expected_labels(
+        source="api_client",
+        auth_state="authenticated",
+        client_id="tdp-cli",
+        user_stt="none",
+        user_group="none",
         attribution="bearer_verified",
     )
 
@@ -173,8 +215,6 @@ def test_request_attribution_records_unrecognized_service_header(
     _call_middleware(request)
 
     assert _last_labels(counter_spy) == _expected_labels(
-        source="api_client",
-        client_id="unrecognized_service",
         attribution="unrecognized_service_header",
     )
 
@@ -192,7 +232,6 @@ def test_request_attribution_records_non_bearer_authorization(
 
     assert _last_labels(counter_spy) == _expected_labels(
         source="api_client",
-        client_id="authorization_header",
         attribution="non_bearer_authorization",
         status_code="403",
         status_class="4xx",
@@ -202,15 +241,15 @@ def test_request_attribution_records_non_bearer_authorization(
 def test_request_attribution_records_authenticated_session(
     counter_spy, request_factory
 ):
-    """Authenticated non-frontend session requests are direct API clients."""
+    """Authenticated requests without Authorization are browser-session traffic."""
     request = _tracked_request(request_factory)
     request.user = SimpleNamespace(is_authenticated=True)
 
     _call_middleware(request)
 
     assert _last_labels(counter_spy) == _expected_labels(
-        source="api_client",
-        client_id="session_cookie",
+        source="browser_session",
+        auth_state="authenticated",
         user_stt="none",
         user_group="none",
         attribution="authenticated_session",
@@ -220,7 +259,7 @@ def test_request_attribution_records_authenticated_session(
 def test_request_attribution_records_authenticated_user_identity(
     counter_spy, request_factory
 ):
-    """Authenticated API clients include DB-backed STT and group labels."""
+    """Authenticated users include DB-backed STT and group labels."""
     request = _tracked_request(request_factory)
     request.user = SimpleNamespace(
         is_authenticated=True,
@@ -232,8 +271,8 @@ def test_request_attribution_records_authenticated_user_identity(
     _call_middleware(request)
 
     assert _last_labels(counter_spy) == _expected_labels(
-        source="api_client",
-        client_id="session_cookie",
+        source="browser_session",
+        auth_state="authenticated",
         user_stt="Alabama",
         user_group="Data Analyst",
         attribution="authenticated_session",
@@ -243,7 +282,7 @@ def test_request_attribution_records_authenticated_user_identity(
 def test_request_attribution_records_admin_group_without_stt(
     counter_spy, request_factory
 ):
-    """Admin API clients are identifiable by group when no STT is assigned."""
+    """Admin sessions are identifiable by group when no STT is assigned."""
     request = _tracked_request(request_factory)
     request.user = SimpleNamespace(
         is_authenticated=True,
@@ -255,8 +294,8 @@ def test_request_attribution_records_admin_group_without_stt(
     _call_middleware(request)
 
     assert _last_labels(counter_spy) == _expected_labels(
-        source="api_client",
-        client_id="session_cookie",
+        source="browser_session",
+        auth_state="authenticated",
         user_stt="none",
         user_group="OFA System Admin",
         attribution="authenticated_session",
@@ -264,15 +303,13 @@ def test_request_attribution_records_admin_group_without_stt(
 
 
 def test_request_attribution_records_auth_cookie(counter_spy, request_factory):
-    """Auth cookies from tools like Postman are direct but not named clients."""
+    """Auth cookies without verified authentication stay unknown-source."""
     request = _tracked_request(request_factory, HTTP_COOKIE="id_token=abc123")
     request.user = SimpleNamespace(is_authenticated=False)
 
     _call_middleware(request, status_code=401)
 
     assert _last_labels(counter_spy) == _expected_labels(
-        source="api_client",
-        client_id="session_cookie",
         attribution="auth_cookie_present",
         status_code="401",
         status_class="4xx",

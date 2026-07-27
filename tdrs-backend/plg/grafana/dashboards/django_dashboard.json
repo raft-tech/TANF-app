@@ -1403,7 +1403,7 @@
         "type": "prometheus",
         "uid": "$datasource"
       },
-      "description": "Percentage of selected-range backend-observed requests attributed to direct API clients.",
+      "description": "Percentage of selected-range authenticated requests attributed to direct API clients.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1479,7 +1479,7 @@
         "type": "prometheus",
         "uid": "$datasource"
       },
-      "description": "Total selected-range requests by direct API client, user group, user STT when assigned, route, and exact response code.",
+      "description": "Total selected-range authenticated requests by direct API client, user group, user STT when assigned, route, and exact response code.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1545,12 +1545,12 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "topk(10, round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",user_stt!=\"none\"}[$__range])) by (client_id, user_group, user_stt, method, view, status_code)) > 0)",
+          "expr": "topk(10, round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",user_stt!=\"none\"}[$__range])) by (client_id, attribution, user_group, user_stt, method, view, status_code)) > 0)",
           "format": "table",
           "instant": true,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{client_id}} {{user_group}} {{user_stt}} {{method}} {{view}} {{status_code}}",
+          "legendFormat": "{{client_id}} {{attribution}} {{user_group}} {{user_stt}} {{method}} {{view}} {{status_code}}",
           "range": false,
           "refId": "A"
         },
@@ -1561,12 +1561,12 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "topk(10, round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",user_stt=\"none\"}[$__range])) by (client_id, user_group, method, view, status_code)) > 0)",
+          "expr": "topk(10, round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",user_stt=\"none\"}[$__range])) by (client_id, attribution, user_group, method, view, status_code)) > 0)",
           "format": "table",
           "instant": true,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{client_id}} {{user_group}} {{method}} {{view}} {{status_code}}",
+          "legendFormat": "{{client_id}} {{attribution}} {{user_group}} {{method}} {{view}} {{status_code}}",
           "range": false,
           "refId": "B"
         }
@@ -1580,7 +1580,7 @@
         "type": "prometheus",
         "uid": "$datasource"
       },
-      "description": "Total selected-range response codes returned to direct API clients by user group and assigned user STT.",
+      "description": "Total selected-range response codes returned to direct API-client attempts by user group and assigned user STT.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1646,12 +1646,12 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",user_stt!=\"none\"}[$__range])) by (client_id, user_group, user_stt, status_code)) > 0",
+          "expr": "round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",user_stt!=\"none\"}[$__range])) by (client_id, attribution, user_group, user_stt, status_code)) > 0",
           "format": "table",
           "instant": true,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{client_id}} {{user_group}} {{user_stt}} {{status_code}}",
+          "legendFormat": "{{client_id}} {{attribution}} {{user_group}} {{user_stt}} {{status_code}}",
           "range": false,
           "refId": "A"
         },
@@ -1662,12 +1662,12 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",user_stt=\"none\"}[$__range])) by (client_id, user_group, status_code)) > 0",
+          "expr": "round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",user_stt=\"none\"}[$__range])) by (client_id, attribution, user_group, status_code)) > 0",
           "format": "table",
           "instant": true,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{client_id}} {{user_group}} {{status_code}}",
+          "legendFormat": "{{client_id}} {{attribution}} {{user_group}} {{status_code}}",
           "range": false,
           "refId": "B"
         }

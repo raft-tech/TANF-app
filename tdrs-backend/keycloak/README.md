@@ -290,21 +290,36 @@ The `client_id` is the token's `azp` claim (which Keycloak client minted the tok
 
 Django also emits the Prometheus counter `tdp_api_requests_total` through the existing `/prometheus/metrics` scrape path. The metric is intended for low-cardinality API source attribution in Grafana.
 
-Direct tools such as Postman and curl are not expected to send a custom service header. Requests without `x-service-name: tdp-frontend` are still attributed as API clients when Django observes a verified bearer token, another Authorization header, an authenticated session, or a known auth cookie. Cookie/session-authenticated tools are grouped as `session_cookie`; only verified bearer tokens expose the real Keycloak `azp` client id such as `tdp-cli`.
+Direct tools such as Postman and curl are identified by the presence of an `Authorization` header. Verified bearer tokens expose the real Keycloak `azp` client id such as `tdp-cli`; invalid bearer tokens and other Authorization schemes remain API-client attempts with `client_id="unknown"`. Authenticated requests without an Authorization header are tracked separately as `browser_session`, because the backend can observe the authenticated Django session but cannot prove a specific OAuth client id. Unauthenticated requests, including requests that only carry an expired or unverified auth cookie, remain `source="unknown"`.
 
 Labels:
 
 | Label | Meaning |
 |---|---|
-| `source` | `frontend`, `api_client`, or `unknown` |
-| `client_id` | `tdp-frontend`, a verified Keycloak `azp` value such as `tdp-cli`, a fixed bucket such as `session_cookie`, `authorization_header`, or `unrecognized_service`, or `unknown` |
+| `source` | `api_client`, `browser_session`, or `unknown` |
+| `auth_state` | `authenticated` when the backend verified a bearer client or authenticated user, otherwise `unauthenticated` |
+| `client_id` | A verified Keycloak `azp` value such as `tdp-cli`, or `unknown` when no client id was verified |
 | `user_stt` | Authenticated user's assigned STT name such as `Alabama`; `none` for authenticated users without an STT; `unknown` when no authenticated user is available |
 | `user_group` | Authenticated user's primary group such as `OFA System Admin` or `Data Analyst`; `none` for authenticated users without a group; `unknown` when no authenticated user is available |
-| `attribution` | Why attribution landed there: `bearer_verified`, `bearer_unverified`, `frontend_header`, `authenticated_session`, `auth_cookie_present`, `unrecognized_service_header`, `non_bearer_authorization`, `cors_preflight`, or `no_attribution` |
+| `attribution` | Why attribution landed there: `bearer_verified`, `bearer_unverified`, `non_bearer_authorization`, `authenticated_session`, `auth_cookie_present`, `frontend_header`, `unrecognized_service_header`, `cors_preflight`, or `no_attribution` |
 | `method` | HTTP method |
 | `status_code` | HTTP response status code |
 | `status_class` | Response status class such as `2xx` or `4xx` |
 | `view` | Django `resolver_match.view_name`; raw paths and user identifiers are not included |
+
+Examples:
+
+```promql
+100 * (
+  (sum(increase(tdp_api_requests_total{source="api_client",auth_state="authenticated"}[$__range])) or vector(0))
+  / clamp_min((sum(increase(tdp_api_requests_total{auth_state="authenticated"}[$__range])) or vector(0)), 1)
+)
+```
+
+```promql
+sum(increase(tdp_api_requests_total{source="api_client",auth_state="authenticated"}[$__range]))
+  by (client_id, attribution, user_group, user_stt, method, view, status_code)
+```
 
 
 ### Rate limiting
