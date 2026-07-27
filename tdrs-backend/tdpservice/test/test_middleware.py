@@ -375,8 +375,8 @@ def test_request_attribution_records_admin_group_without_stt(
     )
 
 
-def test_request_attribution_records_deterministic_group(counter_spy, request_factory):
-    """Multiple user groups are collapsed to a stable low-cardinality label."""
+def test_request_attribution_records_first_group(counter_spy, request_factory):
+    """Multiple user groups are collapsed to the first returned group label."""
     request = _tracked_request(request_factory)
     request.user = SimpleNamespace(
         is_authenticated=True,
@@ -391,7 +391,7 @@ def test_request_attribution_records_deterministic_group(counter_spy, request_fa
         source="browser_session",
         auth_method="session",
         user_stt="Alabama",
-        user_group="Data Analyst",
+        user_group="OFA System Admin",
     )
 
 
