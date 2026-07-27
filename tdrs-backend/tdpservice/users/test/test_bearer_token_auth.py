@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 
+from tdpservice.request_attribution import RequestAttribution
 from tdpservice.users.authentication import KeycloakBearerTokenAuthentication
 from tdpservice.users.models import AccountApprovalStatusChoices
 from tdpservice.users.test.factories import UserFactory
@@ -229,6 +230,11 @@ class TestBearerTokenIntentVerification:
         assert str(resolved_user.id) == str(user.id)
         assert returned_token == token
         assert request._keycloak_client_id == "tdp-cli"
+        assert request.tdp_attribution == RequestAttribution(
+            source="api_client",
+            client_id="tdp-cli",
+            auth_method="bearer",
+        )
 
     def test_signed_token_stashes_client_id_on_underlying_django_request(
         self, auth, signed_bearer_token
@@ -250,6 +256,12 @@ class TestBearerTokenIntentVerification:
 
         assert drf_request._keycloak_client_id == "tdp-cli"
         assert django_request._keycloak_client_id == "tdp-cli"
+        assert drf_request.tdp_attribution == django_request.tdp_attribution
+        assert django_request.tdp_attribution == RequestAttribution(
+            source="api_client",
+            client_id="tdp-cli",
+            auth_method="bearer",
+        )
 
     def test_signed_token_with_wrong_azp_is_rejected(
         self, auth, request_with_token, signed_bearer_token

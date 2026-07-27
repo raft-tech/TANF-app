@@ -290,36 +290,41 @@ The `client_id` is the token's `azp` claim (which Keycloak client minted the tok
 
 Django also emits the Prometheus counter `tdp_api_requests_total` through the existing `/prometheus/metrics` scrape path. The metric is intended for low-cardinality API source attribution in Grafana.
 
-Direct tools such as Postman and curl are identified by the presence of an `Authorization` header. Verified bearer tokens expose the real Keycloak `azp` client id such as `tdp-cli`; invalid bearer tokens and other Authorization schemes remain API-client attempts with `client_id="unknown"`. Authenticated requests without an Authorization header are tracked separately as `browser_session`, because the backend can observe the authenticated Django session but cannot prove a specific OAuth client id. Unauthenticated requests, including requests that only carry an expired or unverified auth cookie, remain `source="unknown"`.
+Direct tools such as Postman and curl are identified by verified bearer-auth context or the presence of an `Authorization` header. Verified bearer tokens expose the real Keycloak `azp` client id such as `tdp-cli` and use `auth_method="bearer"`. Invalid bearer tokens and other Authorization schemes remain API-client attempts with `client_id="unknown"` and `auth_method="authorization_header"`. Authenticated requests without verified bearer context or an Authorization header are tracked separately as `browser_session`, because the backend can observe the authenticated Django session but cannot prove a specific OAuth client id. Unauthenticated requests without an Authorization header remain `source="unknown"` and `auth_method="none"`. Frontend-provided service headers are not used for attribution because they are request-supplied and spoofable.
 
 Labels:
 
 | Label | Meaning |
 |---|---|
 | `source` | `api_client`, `browser_session`, or `unknown` |
-| `auth_state` | `authenticated` when the backend verified a bearer client or authenticated user, otherwise `unauthenticated` |
-| `client_id` | A verified Keycloak `azp` value such as `tdp-cli`, or `unknown` when no client id was verified |
+| `auth_method` | `bearer` for verified bearer context, `session` for authenticated browser sessions, `authorization_header` for unverified Authorization attempts, or `none` |
+| `client_id` | A verified Keycloak `azp` value such as `tdp-cli`, `unknown` when an Authorization header was present but no client id was verified, or `none` |
 | `user_stt` | Authenticated user's assigned STT name such as `Alabama`; `none` for authenticated users without an STT; `unknown` when no authenticated user is available |
-| `user_group` | Authenticated user's primary group such as `OFA System Admin` or `Data Analyst`; `none` for authenticated users without a group; `unknown` when no authenticated user is available |
-| `attribution` | Why attribution landed there: `bearer_verified`, `bearer_unverified`, `non_bearer_authorization`, `authenticated_session`, `auth_cookie_present`, `frontend_header`, `unrecognized_service_header`, `cors_preflight`, or `no_attribution` |
+| `user_group` | Authenticated user's group such as `OFA System Admin` or `Data Analyst`; `none` for authenticated users without a group; `unknown` when no authenticated user is available |
 | `method` | HTTP method |
 | `status_code` | HTTP response status code |
-| `status_class` | Response status class such as `2xx` or `4xx` |
 | `view` | Django `resolver_match.view_name`; raw paths and user identifiers are not included |
 
 Examples:
 
 ```promql
 100 * (
-  (sum(increase(tdp_api_requests_total{source="api_client",auth_state="authenticated"}[$__range])) or vector(0))
-  / clamp_min((sum(increase(tdp_api_requests_total{auth_state="authenticated"}[$__range])) or vector(0)), 1)
+  (sum(increase(tdp_api_requests_total{source="api_client",auth_method="bearer"}[$__range])) or vector(0))
+  / clamp_min((sum(increase(tdp_api_requests_total{auth_method=~"bearer|session"}[$__range])) or vector(0)), 1)
 )
 ```
 
 ```promql
-sum(increase(tdp_api_requests_total{source="api_client",auth_state="authenticated"}[$__range]))
-  by (client_id, attribution, user_group, user_stt, method, view, status_code)
+sum(increase(tdp_api_requests_total{source="api_client",auth_method="bearer"}[$__range]))
+  by (client_id, auth_method, user_group, user_stt, method, view, status_code)
 ```
+
+```promql
+sum(increase(tdp_api_requests_total{source="api_client",status_code=~"4.."}[$__range]))
+  by (client_id, auth_method, user_group, user_stt, method, view, status_code)
+```
+
+Use the 4XX query for failed API-client traffic. Expired or invalid bearer tokens appear as `auth_method="authorization_header"` and `client_id="unknown"` because the backend observed an API-client attempt but did not verify the token or client id. Verified bearer clients that fail authorization, including STT-scoping issues, keep `auth_method="bearer"` and include the authenticated user's low-cardinality STT/group labels.
 
 
 ### Rate limiting

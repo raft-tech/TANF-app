@@ -7,6 +7,7 @@ from django.test import RequestFactory
 import pytest
 
 from tdpservice import middleware
+from tdpservice.request_attribution import RequestAttribution
 
 
 class CounterSpy:
@@ -76,22 +77,29 @@ def _expected_labels(**overrides):
     """Return the default expected metric labels with selected overrides."""
     labels = {
         "source": "unknown",
-        "auth_state": "unauthenticated",
-        "client_id": "unknown",
+        "auth_method": "none",
+        "client_id": "none",
         "user_stt": "unknown",
         "user_group": "unknown",
-        "attribution": "no_attribution",
         "method": "GET",
         "status_code": "200",
-        "status_class": "2xx",
         "view": "user-list",
     }
     labels.update(overrides)
     return labels
 
 
+def _set_bearer_attribution(request, client_id="tdp-cli"):
+    """Attach verified bearer attribution like the DRF authenticator does."""
+    request.tdp_attribution = RequestAttribution(
+        source="api_client",
+        client_id=client_id,
+        auth_method="bearer",
+    )
+
+
 def test_request_attribution_records_frontend_header(counter_spy, request_factory):
-    """Frontend service headers are informational when no auth is available."""
+    """Frontend service headers do not identify unauthenticated request source."""
     request = _tracked_request(
         request_factory,
         HTTP_X_SERVICE_NAME="tdp-frontend",
@@ -99,10 +107,7 @@ def test_request_attribution_records_frontend_header(counter_spy, request_factor
 
     _call_middleware(request, status_code=204)
 
-    assert _last_labels(counter_spy) == _expected_labels(
-        attribution="frontend_header",
-        status_code="204",
-    )
+    assert _last_labels(counter_spy) == _expected_labels(status_code="204")
 
 
 def test_request_attribution_records_session_over_frontend_header(
@@ -120,10 +125,9 @@ def test_request_attribution_records_session_over_frontend_header(
 
     assert _last_labels(counter_spy) == _expected_labels(
         source="browser_session",
-        auth_state="authenticated",
+        auth_method="session",
         user_stt="none",
         user_group="none",
-        attribution="authenticated_session",
     )
 
 
@@ -136,15 +140,71 @@ def test_request_attribution_records_verified_bearer_client(
         HTTP_AUTHORIZATION="Bearer signed-token",
         HTTP_X_SERVICE_NAME="tdp-frontend",
     )
-    request._keycloak_client_id = "tdp-cli"
+    _set_bearer_attribution(request)
 
     _call_middleware(request)
 
     assert _last_labels(counter_spy) == _expected_labels(
         source="api_client",
-        auth_state="authenticated",
+        auth_method="bearer",
         client_id="tdp-cli",
-        attribution="bearer_verified",
+    )
+
+
+def test_request_attribution_records_verified_bearer_context_without_header(
+    counter_spy, request_factory
+):
+    """Verified bearer auth context is enough to identify the API client."""
+    request = _tracked_request(request_factory)
+    _set_bearer_attribution(request)
+    request.user = SimpleNamespace(is_authenticated=True)
+
+    _call_middleware(request)
+
+    assert _last_labels(counter_spy) == _expected_labels(
+        source="api_client",
+        auth_method="bearer",
+        client_id="tdp-cli",
+        user_stt="none",
+        user_group="none",
+    )
+
+
+def test_request_attribution_keeps_verified_bearer_on_error_response(
+    counter_spy, request_factory
+):
+    """A verified bearer client remains attributed even when the view rejects it."""
+    request = _tracked_request(
+        request_factory,
+        HTTP_AUTHORIZATION="Bearer signed-token",
+    )
+    _set_bearer_attribution(request)
+
+    _call_middleware(request, status_code=401)
+
+    assert _last_labels(counter_spy) == _expected_labels(
+        source="api_client",
+        auth_method="bearer",
+        client_id="tdp-cli",
+        status_code="401",
+    )
+
+
+def test_request_attribution_records_authorization_meta_fallback(
+    counter_spy, request_factory
+):
+    """Authorization fallback keys still identify API-client attempts."""
+    request = _tracked_request(request_factory)
+    request.META.pop("HTTP_AUTHORIZATION", None)
+    request.META["Authorization"] = "Bearer signed-token"
+
+    _call_middleware(request, status_code=401)
+
+    assert _last_labels(counter_spy) == _expected_labels(
+        source="api_client",
+        auth_method="authorization_header",
+        client_id="unknown",
+        status_code="401",
     )
 
 
@@ -157,18 +217,17 @@ def test_request_attribution_records_bearer_client_over_session(
         HTTP_AUTHORIZATION="Bearer signed-token",
         HTTP_COOKIE="id_token=abc123",
     )
-    request._keycloak_client_id = "tdp-cli"
+    _set_bearer_attribution(request)
     request.user = SimpleNamespace(is_authenticated=True)
 
     _call_middleware(request)
 
     assert _last_labels(counter_spy) == _expected_labels(
         source="api_client",
-        auth_state="authenticated",
+        auth_method="bearer",
         client_id="tdp-cli",
         user_stt="none",
         user_group="none",
-        attribution="bearer_verified",
     )
 
 
@@ -185,9 +244,29 @@ def test_request_attribution_records_unknown_bearer_client(
 
     assert _last_labels(counter_spy) == _expected_labels(
         source="api_client",
-        attribution="bearer_unverified",
+        auth_method="authorization_header",
+        client_id="unknown",
         status_code="401",
-        status_class="4xx",
+    )
+
+
+def test_request_attribution_does_not_verify_expired_bearer_token(
+    counter_spy, request_factory
+):
+    """Legacy client id attributes do not prove bearer attribution."""
+    request = _tracked_request(
+        request_factory,
+        HTTP_AUTHORIZATION="Bearer expired-token",
+    )
+    request._keycloak_client_id = "tdp-cli"
+
+    _call_middleware(request, status_code=401)
+
+    assert _last_labels(counter_spy) == _expected_labels(
+        source="api_client",
+        auth_method="authorization_header",
+        client_id="unknown",
+        status_code="401",
     )
 
 
@@ -199,14 +278,13 @@ def test_request_attribution_records_missing_source(counter_spy, request_factory
 
     assert _last_labels(counter_spy) == _expected_labels(
         status_code="403",
-        status_class="4xx",
     )
 
 
-def test_request_attribution_records_unrecognized_service_header(
+def test_request_attribution_ignores_unrecognized_service_header(
     counter_spy, request_factory
 ):
-    """Unexpected service-name values are categorized without storing the value."""
+    """Unexpected service-name values do not identify request source."""
     request = _tracked_request(
         request_factory,
         HTTP_X_SERVICE_NAME="postman",
@@ -214,9 +292,7 @@ def test_request_attribution_records_unrecognized_service_header(
 
     _call_middleware(request)
 
-    assert _last_labels(counter_spy) == _expected_labels(
-        attribution="unrecognized_service_header",
-    )
+    assert _last_labels(counter_spy) == _expected_labels()
 
 
 def test_request_attribution_records_non_bearer_authorization(
@@ -232,9 +308,9 @@ def test_request_attribution_records_non_bearer_authorization(
 
     assert _last_labels(counter_spy) == _expected_labels(
         source="api_client",
-        attribution="non_bearer_authorization",
+        auth_method="authorization_header",
+        client_id="unknown",
         status_code="403",
-        status_class="4xx",
     )
 
 
@@ -249,10 +325,9 @@ def test_request_attribution_records_authenticated_session(
 
     assert _last_labels(counter_spy) == _expected_labels(
         source="browser_session",
-        auth_state="authenticated",
+        auth_method="session",
         user_stt="none",
         user_group="none",
-        attribution="authenticated_session",
     )
 
 
@@ -272,10 +347,9 @@ def test_request_attribution_records_authenticated_user_identity(
 
     assert _last_labels(counter_spy) == _expected_labels(
         source="browser_session",
-        auth_state="authenticated",
+        auth_method="session",
         user_stt="Alabama",
         user_group="Data Analyst",
-        attribution="authenticated_session",
     )
 
 
@@ -288,44 +362,56 @@ def test_request_attribution_records_admin_group_without_stt(
         is_authenticated=True,
         stt_id=None,
         stt=None,
-        groups=GroupSpy(["Data Analyst", "OFA System Admin"]),
+        groups=GroupSpy(["OFA System Admin"]),
     )
 
     _call_middleware(request)
 
     assert _last_labels(counter_spy) == _expected_labels(
         source="browser_session",
-        auth_state="authenticated",
+        auth_method="session",
         user_stt="none",
         user_group="OFA System Admin",
-        attribution="authenticated_session",
+    )
+
+
+def test_request_attribution_records_deterministic_group(counter_spy, request_factory):
+    """Multiple user groups are collapsed to a stable low-cardinality label."""
+    request = _tracked_request(request_factory)
+    request.user = SimpleNamespace(
+        is_authenticated=True,
+        stt_id=1,
+        stt=SimpleNamespace(name="Alabama"),
+        groups=GroupSpy(["OFA System Admin", "Data Analyst"]),
+    )
+
+    _call_middleware(request)
+
+    assert _last_labels(counter_spy) == _expected_labels(
+        source="browser_session",
+        auth_method="session",
+        user_stt="Alabama",
+        user_group="Data Analyst",
     )
 
 
 def test_request_attribution_records_auth_cookie(counter_spy, request_factory):
-    """Auth cookies without verified authentication stay unknown-source."""
+    """Auth cookies without verified authentication do not identify source."""
     request = _tracked_request(request_factory, HTTP_COOKIE="id_token=abc123")
     request.user = SimpleNamespace(is_authenticated=False)
 
     _call_middleware(request, status_code=401)
 
-    assert _last_labels(counter_spy) == _expected_labels(
-        attribution="auth_cookie_present",
-        status_code="401",
-        status_class="4xx",
-    )
+    assert _last_labels(counter_spy) == _expected_labels(status_code="401")
 
 
 def test_request_attribution_records_cors_preflight(counter_spy, request_factory):
-    """CORS preflight requests are identifiable without using raw headers."""
+    """CORS preflight requests without auth are left unknown."""
     request = _tracked_request(request_factory, method="options")
 
     _call_middleware(request)
 
-    assert _last_labels(counter_spy) == _expected_labels(
-        attribution="cors_preflight",
-        method="OPTIONS",
-    )
+    assert _last_labels(counter_spy) == _expected_labels(method="OPTIONS")
 
 
 def test_request_attribution_skips_prometheus_scrape_path(counter_spy, request_factory):

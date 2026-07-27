@@ -14,6 +14,7 @@ import requests
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
+from tdpservice.request_attribution import RequestAttribution, set_request_attribution
 from tdpservice.users.oidc import (
     KeycloakOIDCBackend,
     apply_user_updates,
@@ -184,6 +185,14 @@ class KeycloakBearerTokenAuthentication(BaseAuthentication):
         # Stashed for middleware metrics and KeycloakClientRateThrottle to key on.
         request._keycloak_client_id = client_id
         request._keycloak_throttle_ident = f"{client_id}:{user.id}"
+        set_request_attribution(
+            request,
+            RequestAttribution(
+                source="api_client",
+                client_id=client_id,
+                auth_method="bearer",
+            ),
+        )
         django_request = getattr(request, "_request", None)
         if django_request is not None:
             django_request._keycloak_client_id = client_id

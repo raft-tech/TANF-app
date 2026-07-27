@@ -1460,7 +1460,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "100 * ((sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\"}[$__range])) or vector(0)) / clamp_min((sum(increase(tdp_api_requests_total{app=~\"^$application$\"}[$__range])) or vector(0)), 1))",
+          "expr": "100 * ((sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",auth_method=\"bearer\"}[$__range])) or vector(0)) / clamp_min((sum(increase(tdp_api_requests_total{app=~\"^$application$\",auth_method=~\"bearer|session\"}[$__range])) or vector(0)), 1))",
           "format": "time_series",
           "instant": true,
           "interval": "",
@@ -1545,12 +1545,12 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "topk(10, round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",user_stt!=\"none\"}[$__range])) by (client_id, attribution, user_group, user_stt, method, view, status_code)) > 0)",
+          "expr": "topk(10, round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",auth_method=\"bearer\",user_stt!=\"none\"}[$__range])) by (client_id, auth_method, user_group, user_stt, method, view, status_code)) > 0)",
           "format": "table",
           "instant": true,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{client_id}} {{attribution}} {{user_group}} {{user_stt}} {{method}} {{view}} {{status_code}}",
+          "legendFormat": "{{client_id}} {{auth_method}} {{user_group}} {{user_stt}} {{method}} {{view}} {{status_code}}",
           "range": false,
           "refId": "A"
         },
@@ -1561,12 +1561,12 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "topk(10, round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",user_stt=\"none\"}[$__range])) by (client_id, attribution, user_group, method, view, status_code)) > 0)",
+          "expr": "topk(10, round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",auth_method=\"bearer\",user_stt=\"none\"}[$__range])) by (client_id, auth_method, user_group, method, view, status_code)) > 0)",
           "format": "table",
           "instant": true,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{client_id}} {{attribution}} {{user_group}} {{method}} {{view}} {{status_code}}",
+          "legendFormat": "{{client_id}} {{auth_method}} {{user_group}} {{method}} {{view}} {{status_code}}",
           "range": false,
           "refId": "B"
         }
@@ -1646,12 +1646,12 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",user_stt!=\"none\"}[$__range])) by (client_id, attribution, user_group, user_stt, status_code)) > 0",
+          "expr": "round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",user_stt!=\"none\"}[$__range])) by (client_id, auth_method, user_group, user_stt, status_code)) > 0",
           "format": "table",
           "instant": true,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{client_id}} {{attribution}} {{user_group}} {{user_stt}} {{status_code}}",
+          "legendFormat": "{{client_id}} {{auth_method}} {{user_group}} {{user_stt}} {{status_code}}",
           "range": false,
           "refId": "A"
         },
@@ -1662,17 +1662,102 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",user_stt=\"none\"}[$__range])) by (client_id, attribution, user_group, status_code)) > 0",
+          "expr": "round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",user_stt=\"none\"}[$__range])) by (client_id, auth_method, user_group, status_code)) > 0",
           "format": "table",
           "instant": true,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{client_id}} {{attribution}} {{user_group}} {{status_code}}",
+          "legendFormat": "{{client_id}} {{auth_method}} {{user_group}} {{status_code}}",
           "range": false,
           "refId": "B"
         }
       ],
       "title": "API Client Response Code Totals",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "default": true,
+        "type": "prometheus",
+        "uid": "$datasource"
+      },
+      "description": "Total selected-range 4XX responses for API-client traffic by auth method, client id, user group, user STT, route, and response code. Unverified or expired bearer-token attempts appear as auth_method=authorization_header with client_id=unknown.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 20
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
+      "id": 42,
+      "options": {
+        "displayMode": "gradient",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "namePlacement": "top",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "limit": 15,
+          "values": true
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "text": {},
+        "valueMode": "color"
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "topk(15, round(sum(increase(tdp_api_requests_total{app=~\"^$application$\",source=\"api_client\",status_code=~\"4..\"}[$__range])) by (client_id, auth_method, user_group, user_stt, method, view, status_code)) > 0)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{client_id}} {{auth_method}} {{user_group}} {{user_stt}} {{method}} {{view}} {{status_code}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "API Client 4XX Route Totals",
       "type": "bargauge"
     }
   ],

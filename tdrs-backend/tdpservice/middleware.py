@@ -5,18 +5,22 @@ from django.utils.cache import add_never_cache_headers
 
 from prometheus_client import Counter
 
+from tdpservice.request_attribution import (
+    REQUEST_ATTRIBUTION_ATTRIBUTE,
+    RequestAttribution,
+)
+
 API_REQUESTS_TOTAL = Counter(
     "tdp_api_requests_total",
     "Total Django API requests by backend-observed request source.",
     (
         "source",
+        "auth_method",
         "client_id",
         "user_stt",
         "user_group",
-        "attribution",
         "method",
         "status_code",
-        "status_class",
         "view",
     ),
 )
@@ -25,7 +29,6 @@ API_REQUESTS_TOTAL = Counter(
 class RequestAttributionMetricsMiddleware(object):
     """Emit low-cardinality Prometheus metrics for API request attribution."""
 
-    FRONTEND_SERVICE_NAME = "tdp-frontend"
     UNKNOWN_LABEL = "unknown"
     NONE_LABEL = "none"
     SKIPPED_PATH_PREFIXES = (
@@ -55,59 +58,63 @@ class RequestAttributionMetricsMiddleware(object):
             return
 
         user = getattr(request, "user", None)
-        authenticated_user = bool(getattr(user, "is_authenticated", False))
-        authorization_header = request.META.get("HTTP_AUTHORIZATION", "")
-        bearer_request = authorization_header.lower().startswith("bearer ")
-        verified_client_id = getattr(request, "_keycloak_client_id", None)
-        has_verified_bearer_client = (
-            bearer_request and verified_client_id != self.UNKNOWN_LABEL
-        )
-
-        source = self.UNKNOWN_LABEL
-        client_id = self.UNKNOWN_LABEL
-        attribution = "no_attribution"
-        if authorization_header:
-            source = "api_client"
-            client_id = (
-                verified_client_id if has_verified_bearer_client else self.UNKNOWN_LABEL
-            )
-            attribution = (
-                "bearer_verified" if has_verified_bearer_client else "bearer_unverified"
-            )
-        elif authenticated_user:
-            source = "browser_session"
-            attribution = "authenticated_session"
-        else:
-            source = "browser_session"
-            attribution = "unauthenticated_session"
+        user_is_authenticated = bool(getattr(user, "is_authenticated", False))
+        attribution = self._request_attribution(request, user_is_authenticated)
+        status_code_label = str(status_code)
 
         user_stt, user_group = (
             self._authenticated_user_labels(user)
-            if authenticated_user
+            if user_is_authenticated
             else (self.UNKNOWN_LABEL, self.UNKNOWN_LABEL)
         )
 
-        try:
-            numeric_status_code = int(status_code)
-        except (TypeError, ValueError):
-            status_code_label = self.UNKNOWN_LABEL
-            status_class = self.UNKNOWN_LABEL
-        else:
-            status_code_label = str(numeric_status_code)
-            status_class = f"{numeric_status_code // 100}xx"
-
         resolver_match = getattr(request, "resolver_match", None)
         API_REQUESTS_TOTAL.labels(
-            source=source,
-            client_id=client_id,
+            source=attribution.source,
+            auth_method=attribution.auth_method,
+            client_id=attribution.client_id,
             user_stt=user_stt,
             user_group=user_group,
-            attribution=attribution,
             method=request.method.upper(),
             status_code=status_code_label,
-            status_class=status_class,
-            view=getattr(resolver_match, "view_name", None),
+            view=getattr(resolver_match, "view_name", None) or self.UNKNOWN_LABEL,
         ).inc()
+
+    def _request_attribution(self, request, user_is_authenticated):
+        """Return the attribution context for a request."""
+        attribution = getattr(request, REQUEST_ATTRIBUTION_ATTRIBUTE, None)
+        if attribution is not None:
+            return attribution
+
+        if self._authorization_header(request):
+            return RequestAttribution(
+                source="api_client",
+                client_id=self.UNKNOWN_LABEL,
+                auth_method="authorization_header",
+            )
+
+        if user_is_authenticated:
+            return RequestAttribution(
+                source="browser_session",
+                auth_method="session",
+            )
+
+        return RequestAttribution()
+
+    def _authorization_header(self, request):
+        """Return the Authorization header value, if Django exposed one."""
+        headers = getattr(request, "headers", None)
+        if headers:
+            authorization_header = headers.get("Authorization", "")
+            if authorization_header:
+                return authorization_header
+
+        return (
+            request.META.get("HTTP_AUTHORIZATION")
+            or request.META.get("Authorization")
+            or request.META.get("REDIRECT_HTTP_AUTHORIZATION")
+            or ""
+        )
 
     def _should_record_request(self, request):
         """Return whether the route should be included in API attribution metrics."""
@@ -139,7 +146,7 @@ class RequestAttributionMetricsMiddleware(object):
 
         groups = getattr(user, "groups", None)
         try:
-            group_names = groups.values_list("name", flat=True) if groups else list()
+            group_names = groups.values_list("name", flat=True) if groups else []
         except Exception:
             return user_stt, self.UNKNOWN_LABEL
 
