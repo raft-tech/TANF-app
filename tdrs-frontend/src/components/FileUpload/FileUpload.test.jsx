@@ -45,11 +45,11 @@ const makeTestFile = (name, contents = 'test content', type = 'text/plain') =>
   new File([contents], name, { type })
 
 describe('FileUpload', () => {
-  let mockSetLocalAlertState
+  let mockSetUploadAlertState
   let mockDispatch
 
   beforeEach(() => {
-    mockSetLocalAlertState = jest.fn()
+    mockSetUploadAlertState = jest.fn()
     jest.clearAllMocks()
 
     // Mock FileReader
@@ -93,7 +93,7 @@ describe('FileUpload', () => {
       quarter: 'Q1',
       fileType: 'tanf',
       label: 'Active Case Data',
-      setLocalAlertState: mockSetLocalAlertState,
+      setUploadAlertState: mockSetUploadAlertState,
     }
   ) => {
     const store = mockStore(storeState)
@@ -180,7 +180,7 @@ describe('FileUpload', () => {
       fireEvent.change(input, { target: { files: [file] } })
 
       await waitFor(() => {
-        expect(mockSetLocalAlertState).toHaveBeenCalledWith({
+        expect(mockSetUploadAlertState).toHaveBeenCalledWith({
           active: false,
           type: null,
           message: null,
