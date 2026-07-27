@@ -87,7 +87,15 @@ export const getAvailableFileList =
   }
 
 export const download =
-  ({ id, quarter = 'Q1', section, year, s3_version_id, fileName }) =>
+  ({
+    id,
+    quarter = 'Q1',
+    program_type,
+    section,
+    year,
+    s3_version_id,
+    fileName,
+  }) =>
   async (dispatch) => {
     try {
       if (!id) throw new Error('No id was provided to download action.')
@@ -110,7 +118,7 @@ export const download =
       const baseName = fileNameParts.slice(0, -1).join('.')
       link.setAttribute(
         'download',
-        `${baseName} (${year}-${quarter}-${section}).txt`
+        `${baseName} (${year}-${quarter}-${program_type}-${section}).txt`
       )
 
       document.body.appendChild(link)
@@ -173,7 +181,8 @@ export const submit =
       formattedSections,
       logger,
       quarter,
-      setLocalAlertState,
+      setUploadAlertState,
+      setProcessingAlertState,
       stt,
       uploadedFiles,
       user,
@@ -214,11 +223,12 @@ export const submit =
           throw err
         }
 
-        setLocalAlertState({
+        setProcessingAlertState({
           active: true,
           type: 'success',
-          message: `Successfully submitted section(s): ${formattedSections} on ${new Date().toDateString()}`,
+          message: `Successfully uploaded section(s): ${formattedSections} on ${new Date().toDateString()}`,
         })
+
         removeFileInputErrorState()
 
         const submittedFileObjects = []
@@ -263,7 +273,7 @@ export const submit =
             : error_response?.file
               ? error_response.file
               : null
-        setLocalAlertState({
+        setUploadAlertState({
           active: true,
           type: 'error',
           message: ''.concat(error.message, ': ', msg),
