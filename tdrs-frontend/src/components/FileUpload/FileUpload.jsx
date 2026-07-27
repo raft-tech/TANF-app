@@ -116,7 +116,7 @@ function FileUpload({
   quarter,
   fileType,
   label,
-  setLocalAlertState,
+  setUploadAlertState,
   setProcessingAlertState,
 }) {
   // e.g. 'Aggregate Case Data' => 'aggregate-case-data'
@@ -179,7 +179,7 @@ function FileUpload({
   const inputRef = useRef(null)
 
   const validateAndUploadFile = async (event) => {
-    setLocalAlertState({
+    setUploadAlertState({
       active: false,
       type: null,
       message: null,
