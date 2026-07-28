@@ -1,10 +1,12 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   checkBackendHealth,
   buildAdminRequestHeaders,
   checkAdminSession,
+  getAdminBackendBaseUrl,
   getAdminAuthBaseUrl,
   getAdminAuthCheckUrl,
+  getAdminCookieHeader,
   getAdminLoginUrl,
   getAdminLogoutUrl,
   getAuthBaseUrl,
@@ -17,24 +19,25 @@ import {
 
 const originalEnv = { ...process.env };
 
+beforeEach(() => {
+  delete process.env.ADMIN_BACKEND_URL;
+  delete process.env.NEXT_PUBLIC_AUTH_BROWSER_URL;
+});
+
 afterEach(() => {
   process.env = { ...originalEnv };
   vi.restoreAllMocks();
 });
 
-function clearAdminUrlEnv() {
-  delete process.env.NEXT_PUBLIC_AUTH_URL;
-  delete process.env.NEXT_PUBLIC_AUTH_BROWSER_URL;
-  delete process.env.NEXT_PUBLIC_BACKEND_URL;
-}
-
 describe("admin auth helpers", () => {
   it("prefers the explicit auth URL over the backend URL", () => {
-    clearAdminUrlEnv();
     process.env.NEXT_PUBLIC_AUTH_URL = "https://auth.example.gov/";
     process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
 
     expect(getBackendBaseUrl()).toBe("https://backend.example.gov/v1");
+    expect(getAdminBackendBaseUrl()).toBe(
+      "https://backend.example.gov/admin-api/v1"
+    );
     expect(getAuthBaseUrl()).toBe("https://auth.example.gov");
     expect(getLoginUrl("dotgov")).toBe("https://auth.example.gov/login/dotgov");
     expect(getLoginUrl("ams")).toBe("https://auth.example.gov/login/ams");
@@ -48,7 +51,6 @@ describe("admin auth helpers", () => {
   });
 
   it("uses a browser-reachable auth URL for redirects when configured", () => {
-    clearAdminUrlEnv();
     process.env.NEXT_PUBLIC_AUTH_URL = "http://host.docker.internal:8989";
     process.env.NEXT_PUBLIC_AUTH_BROWSER_URL = "http://localhost:8989";
 
@@ -63,15 +65,23 @@ describe("admin auth helpers", () => {
   });
 
   it("derives the auth base from the backend URL when needed", () => {
-    clearAdminUrlEnv();
+    delete process.env.NEXT_PUBLIC_AUTH_URL;
     process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1/";
 
     expect(getAuthBaseUrl()).toBe("https://backend.example.gov");
     expect(getLoginUrl("dotgov")).toBe("https://backend.example.gov/login/dotgov");
   });
 
+  it("uses an explicit admin backend URL when configured", () => {
+    process.env.ADMIN_BACKEND_URL = "https://internal.example.gov/admin-api/v1/";
+    process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
+
+    expect(getAdminBackendBaseUrl()).toBe(
+      "https://internal.example.gov/admin-api/v1"
+    );
+  });
+
   it("returns a failed backend health result for non-OK responses", async () => {
-    clearAdminUrlEnv();
     process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1/";
     vi.stubGlobal(
       "fetch",
@@ -87,21 +97,36 @@ describe("admin auth helpers", () => {
     expect(result.error).toContain("404");
   });
 
-  it("extracts and forwards Django CSRF context for mutating requests", () => {
-    const cookieHeader = "sessionid=abc; csrftoken=my-csrf-token";
+  it("forwards explicit Django CSRF context for mutating requests", () => {
+    const cookieHeader =
+      "sessionid=standard; admin_sessionid=admin; csrftoken=my-csrf-token; preference=compact";
     const headers = buildAdminRequestHeaders({
       cookieHeader,
+      csrfToken: "header-csrf-token",
       includeCsrf: true,
     });
 
     expect(getCsrfTokenFromCookie(cookieHeader)).toBe("my-csrf-token");
-    expect(headers.get("Cookie")).toBe(cookieHeader);
-    expect(headers.get("X-CSRFToken")).toBe("my-csrf-token");
-    expect(headers.get("x-service-name")).toBe("tdp-admin");
+    expect(getAdminCookieHeader(cookieHeader)).toBe(
+      "admin_sessionid=admin; csrftoken=my-csrf-token"
+    );
+    expect(headers.get("Cookie")).toBe(
+      "admin_sessionid=admin; csrftoken=my-csrf-token"
+    );
+    expect(headers.get("X-CSRFToken")).toBe("header-csrf-token");
+    expect(headers.get("x-service-name")).toBeNull();
+  });
+
+  it("does not use cookie CSRF as a header fallback", () => {
+    const headers = buildAdminRequestHeaders({
+      cookieHeader: "admin_sessionid=abc; csrftoken=my-csrf-token",
+      includeCsrf: true,
+    });
+
+    expect(headers.get("X-CSRFToken")).toBeNull();
   });
 
   it("checks the admin-scoped Django session", async () => {
-    clearAdminUrlEnv();
     process.env.NEXT_PUBLIC_AUTH_URL = "https://auth.example.gov";
     vi.stubGlobal(
       "fetch",
@@ -115,7 +140,7 @@ describe("admin auth helpers", () => {
       )
     );
 
-    const result = await checkAdminSession("sessionid=abc");
+    const result = await checkAdminSession("admin_sessionid=abc");
 
     expect(result.authenticated).toBe(true);
     expect(result.authorized).toBe(true);

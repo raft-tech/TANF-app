@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  buildAdminApiHeaders,
-  fetchDjangoAdminApi,
+  adminApi,
   getAdminApiUrl,
   isMutatingAdminApiMethod,
+  requestAdminApi,
   setAuthenticatedNoStore,
 } from "./admin-api";
 
@@ -14,91 +14,74 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("admin API helper", () => {
-  it("builds encoded Django admin API URLs from the configured backend", () => {
+describe("admin API service", () => {
+  it("builds encoded URLs under the Django admin API boundary", () => {
     process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1/";
 
-    expect(getAdminApiUrl(["admin", "users and roles"], "?page=1")).toBe(
-      "https://backend.example.gov/v1/admin/users%20and%20roles?page=1"
+    expect(getAdminApiUrl(["data_files", "file name"], "?page=1")).toBe(
+      "https://backend.example.gov/admin-api/v1/data_files/file%20name?page=1"
     );
   });
 
-  it("forwards session, CSRF, request ID, and provenance context", () => {
+  it("forwards the scoped session, CSRF token, and server proxy identity", async () => {
+    process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
+    process.env.ADMIN_API_PROXY_TOKEN = "server-only-token";
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ ok: true })));
     const incomingHeaders = new Headers({
-      "x-request-id": "request-123",
+      "x-correlation-id": "correlation-123",
       "x-forwarded-for": "203.0.113.9",
       "user-agent": "vitest",
-      origin: "https://admin.example.gov",
     });
 
-    const headers = buildAdminApiHeaders({
-      method: "POST",
-      cookieHeader: "sessionid=abc; csrftoken=csrf-cookie",
+    await requestAdminApi(["users"], {
+      method: "PATCH",
+      body: JSON.stringify({ active: true }),
+      cookieHeader: "admin_sessionid=abc; csrftoken=csrf-cookie",
+      csrfToken: "csrf-header",
       incomingHeaders,
-      sourceRoute: "/api/admin/test-viewset",
+      headers: { "content-type": "application/json" },
+      sourceRoute: "/api/admin/users",
+      requestId: "request-123",
     });
 
-    expect(headers.get("Cookie")).toBe("sessionid=abc; csrftoken=csrf-cookie");
-    expect(headers.get("X-CSRFToken")).toBe("csrf-cookie");
-    expect(headers.get("x-request-id")).toBe("request-123");
+    const [, options] = vi.mocked(fetch).mock.calls[0];
+    const headers = options?.headers as Headers;
+    expect(options?.method).toBe("PATCH");
+    expect(options?.cache).toBe("no-store");
+    expect(headers.get("Cookie")).toBe(
+      "admin_sessionid=abc; csrftoken=csrf-cookie"
+    );
+    expect(headers.get("X-CSRFToken")).toBe("csrf-header");
+    expect(headers.get("X-Admin-Proxy-Token")).toBe("server-only-token");
+    expect(headers.get("X-Request-ID")).toBe("request-123");
+    expect(headers.get("X-TDP-Admin-Source-Route")).toBe("/api/admin/users");
+    expect(headers.get("x-correlation-id")).toBe("correlation-123");
     expect(headers.get("x-forwarded-for")).toBe("203.0.113.9");
     expect(headers.get("user-agent")).toBe("vitest");
-    expect(headers.get("origin")).toBe("https://admin.example.gov");
-    expect(headers.get("x-service-name")).toBe("tdp-admin");
-    expect(headers.get("x-tdp-admin-proxy")).toBe("nextjs");
-    expect(headers.get("x-tdp-admin-source-route")).toBe(
-      "/api/admin/test-viewset"
+  });
+
+  it("exposes resource-specific data file reads", async () => {
+    process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
+    process.env.ADMIN_API_PROXY_TOKEN = "server-only-token";
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ id: 42 })));
+
+    await adminApi.dataFiles.get(42, {
+      cookieHeader: "admin_sessionid=abc",
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://backend.example.gov/admin-api/v1/data_files/42",
+      expect.objectContaining({ method: "GET" })
     );
   });
 
-  it("does not add CSRF headers for read-only requests", () => {
-    const headers = buildAdminApiHeaders({
-      method: "GET",
-      cookieHeader: "sessionid=abc; csrftoken=csrf-cookie",
-    });
-
+  it("identifies mutating methods and disables authenticated caching", () => {
     expect(isMutatingAdminApiMethod("GET")).toBe(false);
-    expect(headers.get("X-CSRFToken")).toBeNull();
-    expect(headers.get("x-request-id")).toBeTruthy();
-  });
+    expect(isMutatingAdminApiMethod("patch")).toBe(true);
 
-  it("defaults authenticated response cache headers to no-store", () => {
-    const headers = setAuthenticatedNoStore(new Headers({ "x-test": "ok" }));
-
+    const headers = setAuthenticatedNoStore(new Headers());
     expect(headers.get("Cache-Control")).toBe("no-store");
     expect(headers.get("Pragma")).toBe("no-cache");
     expect(headers.get("Expires")).toBe("0");
-    expect(headers.get("x-test")).toBe("ok");
-  });
-
-  it("fetches Django with no-store and no business logic shaping", async () => {
-    process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () =>
-        Response.json({ results: [{ id: 1, status: "from Django" }] })
-      )
-    );
-
-    const response = await fetchDjangoAdminApi(["test-viewset"], {
-      search: "?page=1",
-      context: {
-        method: "GET",
-        cookieHeader: "sessionid=abc",
-        sourceRoute: "/api-validation",
-      },
-    });
-
-    expect(await response.json()).toEqual({
-      results: [{ id: 1, status: "from Django" }],
-    });
-    expect(fetch).toHaveBeenCalledWith(
-      "https://backend.example.gov/v1/test-viewset?page=1",
-      expect.objectContaining({
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-      })
-    );
   });
 });

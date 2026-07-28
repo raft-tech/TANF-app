@@ -297,7 +297,8 @@
       "clientAuthenticatorType": "client-secret",
       "secret": "${KC_TDP_ADMIN_CLIENT_SECRET}",
       "redirectUris": [
-        "https://admin.tanfdata.acf.hhs.gov/*"
+        "https://admin.tanfdata.acf.hhs.gov/*",
+        "https://tanfdata.acf.hhs.gov/admin-auth/*"
       ],
       "webOrigins": [
         "https://admin.tanfdata.acf.hhs.gov"

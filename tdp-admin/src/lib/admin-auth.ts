@@ -28,27 +28,57 @@ export function getBackendBaseUrl() {
   );
 }
 
+function normalizeUrl(url: string) {
+  return url.replace(/\/$/, "");
+}
+
+function deriveAdminBackendBaseUrl(backendUrl: string) {
+  const normalizedBackendUrl = normalizeUrl(backendUrl);
+
+  if (normalizedBackendUrl.endsWith("/admin-api/v1")) {
+    return normalizedBackendUrl;
+  }
+
+  if (normalizedBackendUrl.endsWith("/v1")) {
+    return `${normalizedBackendUrl.slice(0, -"/v1".length)}/admin-api/v1`;
+  }
+
+  return `${normalizedBackendUrl}/admin-api/v1`;
+}
+
+export function getAdminBackendBaseUrl() {
+  const explicitAdminBackendUrl = process.env.ADMIN_BACKEND_URL;
+
+  if (explicitAdminBackendUrl) {
+    return normalizeUrl(explicitAdminBackendUrl);
+  }
+
+  const backendUrl = getBackendBaseUrl();
+  return backendUrl ? deriveAdminBackendBaseUrl(backendUrl) : null;
+}
+
 export function getAuthBaseUrl() {
   const authUrl = process.env.NEXT_PUBLIC_AUTH_URL;
 
   if (authUrl) {
-    return authUrl.replace(/\/$/, "");
+    return normalizeUrl(authUrl);
   }
 
-  const backendUrl = getBackendBaseUrl();
+  const backendUrl = getBackendBaseUrl() ?? getAdminBackendBaseUrl();
 
   if (!backendUrl) {
     return null;
   }
 
-  return backendUrl.replace(/\/v1\/?$/, "").replace(/\/$/, "");
+  return backendUrl
+    .replace(/\/admin-api\/v1\/?$/, "")
+    .replace(/\/v1\/?$/, "")
+    .replace(/\/$/, "");
 }
 
 export function getBrowserAuthBaseUrl() {
-  return (
-    process.env.NEXT_PUBLIC_AUTH_BROWSER_URL?.replace(/\/$/, "") ??
-    getAuthBaseUrl()
-  );
+  const browserAuthUrl = process.env.NEXT_PUBLIC_AUTH_BROWSER_URL;
+  return browserAuthUrl ? normalizeUrl(browserAuthUrl) : getAuthBaseUrl();
 }
 
 export function getAdminAuthBaseUrl() {
@@ -118,6 +148,30 @@ export function getCsrfTokenFromCookie(cookieHeader: string | null) {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+export function getAdminCookieHeader(cookieHeader: string | null) {
+  if (!cookieHeader) {
+    return null;
+  }
+
+  const adminSessionCookieName =
+    process.env.ADMIN_SESSION_COOKIE_NAME || "admin_sessionid";
+  const forwardedCookieNames = new Set([
+    adminSessionCookieName,
+    "csrftoken",
+  ]);
+  const adminCookies = cookieHeader
+    .split(";")
+    .map((cookie) => cookie.trim())
+    .filter((cookie) => {
+      const separatorIndex = cookie.indexOf("=");
+      const name =
+        separatorIndex === -1 ? cookie : cookie.slice(0, separatorIndex);
+      return forwardedCookieNames.has(name);
+    });
+
+  return adminCookies.length ? adminCookies.join("; ") : null;
+}
+
 export function buildAdminRequestHeaders({
   cookieHeader,
   csrfToken,
@@ -130,16 +184,15 @@ export function buildAdminRequestHeaders({
   headers?: HeadersInit;
 }) {
   const requestHeaders = new Headers(headers);
-  requestHeaders.set("x-service-name", "tdp-admin");
+  const adminCookieHeader = getAdminCookieHeader(cookieHeader ?? null);
 
-  if (cookieHeader) {
-    requestHeaders.set("Cookie", cookieHeader);
+  if (adminCookieHeader) {
+    requestHeaders.set("Cookie", adminCookieHeader);
   }
 
   if (includeCsrf) {
-    const token = csrfToken ?? getCsrfTokenFromCookie(cookieHeader ?? null);
-    if (token) {
-      requestHeaders.set("X-CSRFToken", token);
+    if (csrfToken) {
+      requestHeaders.set("X-CSRFToken", csrfToken);
     }
   }
 

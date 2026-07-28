@@ -1,8 +1,8 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { forbidden, redirect } from "next/navigation";
 import { GridContainer } from "@trussworks/react-uswds";
 import NextLink from "next/link";
-import { fetchDjangoAdminApi, setAuthenticatedNoStore } from "@/lib/admin-api";
+import { requestAdminApi, setAuthenticatedNoStore } from "@/lib/admin-api";
 import { checkAdminSession } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
@@ -17,18 +17,17 @@ function toPathSegments(endpoint: string) {
 async function fetchValidationResponse({
   endpoint,
   cookieHeader,
-  sourceRoute,
+  incomingHeaders,
 }: {
   endpoint: string;
   cookieHeader: string | null;
-  sourceRoute: string;
+  incomingHeaders: Awaited<ReturnType<typeof headers>>;
 }) {
-  const response = await fetchDjangoAdminApi(toPathSegments(endpoint), {
-    context: {
-      method: "GET",
-      cookieHeader,
-      sourceRoute,
-    },
+  const response = await requestAdminApi(toPathSegments(endpoint), {
+    method: "GET",
+    cookieHeader,
+    incomingHeaders,
+    sourceRoute: "/api-validation",
   });
   const body = await response.text();
 
@@ -56,12 +55,16 @@ export default async function ApiValidationPage({
     redirect("/login");
   }
 
+  if (session.authorized !== true) {
+    forbidden();
+  }
+
   const params = await searchParams;
   const endpoint = params.endpoint ?? "auth_check";
   const validation = await fetchValidationResponse({
     endpoint,
     cookieHeader,
-    sourceRoute: "/api-validation",
+    incomingHeaders: requestHeaders,
   }).catch((err) => ({
     status: 500,
     statusText: "Validation request failed",

@@ -1,6 +1,10 @@
-import { getBackendBaseUrl, getCsrfTokenFromCookie } from "./admin-auth";
+import {
+  buildAdminRequestHeaders,
+  getAdminBackendBaseUrl,
+} from "./admin-auth";
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+const BODYLESS_METHODS = new Set(["GET", "HEAD"]);
 
 const PROVENANCE_HEADER_NAMES = [
   "x-request-id",
@@ -17,12 +21,20 @@ const PROVENANCE_HEADER_NAMES = [
   "x-auth-flow",
 ];
 
-export type AdminApiRequestContext = {
+type HeaderGetter = {
+  get(name: string): string | null;
+};
+
+export type AdminApiRequestOptions = {
   method?: string;
+  search?: string;
+  body?: BodyInit | null;
   cookieHeader?: string | null;
   csrfToken?: string | null;
-  incomingHeaders?: Headers;
+  incomingHeaders?: HeaderGetter;
+  headers?: HeadersInit;
   sourceRoute?: string;
+  requestId?: string | null;
 };
 
 export function isMutatingAdminApiMethod(method = "GET") {
@@ -30,7 +42,7 @@ export function isMutatingAdminApiMethod(method = "GET") {
 }
 
 export function getAdminApiUrl(pathSegments: string[], search = "") {
-  const backendBaseUrl = getBackendBaseUrl();
+  const backendBaseUrl = getAdminBackendBaseUrl();
 
   if (!backendBaseUrl) {
     return null;
@@ -41,46 +53,6 @@ export function getAdminApiUrl(pathSegments: string[], search = "") {
   return `${normalizedBaseUrl}/${normalizedPath}${search}`;
 }
 
-export function buildAdminApiHeaders({
-  method = "GET",
-  cookieHeader,
-  csrfToken,
-  incomingHeaders,
-  sourceRoute,
-}: AdminApiRequestContext = {}) {
-  const headers = new Headers();
-  headers.set("x-service-name", "tdp-admin");
-  headers.set("x-tdp-admin-proxy", "nextjs");
-
-  if (sourceRoute) {
-    headers.set("x-tdp-admin-source-route", sourceRoute);
-  }
-
-  if (cookieHeader) {
-    headers.set("Cookie", cookieHeader);
-  }
-
-  if (isMutatingAdminApiMethod(method)) {
-    const token = csrfToken ?? getCsrfTokenFromCookie(cookieHeader ?? null);
-    if (token) {
-      headers.set("X-CSRFToken", token);
-    }
-  }
-
-  for (const headerName of PROVENANCE_HEADER_NAMES) {
-    const value = incomingHeaders?.get(headerName);
-    if (value && !headers.has(headerName)) {
-      headers.set(headerName, value);
-    }
-  }
-
-  if (!headers.has("x-request-id")) {
-    headers.set("x-request-id", crypto.randomUUID());
-  }
-
-  return headers;
-}
-
 export function setAuthenticatedNoStore(headers: Headers) {
   headers.set("Cache-Control", "no-store");
   headers.set("Pragma", "no-cache");
@@ -88,39 +60,85 @@ export function setAuthenticatedNoStore(headers: Headers) {
   return headers;
 }
 
-export async function fetchDjangoAdminApi(
+function forwardProvenanceHeaders(
+  requestHeaders: Headers,
+  incomingHeaders?: HeaderGetter
+) {
+  for (const headerName of PROVENANCE_HEADER_NAMES) {
+    const value = incomingHeaders?.get(headerName);
+    if (value && !requestHeaders.has(headerName)) {
+      requestHeaders.set(headerName, value);
+    }
+  }
+
+  return requestHeaders;
+}
+
+export async function requestAdminApi(
   pathSegments: string[],
   {
+    method = "GET",
     search = "",
     body,
-    headers,
-    context,
-  }: {
-    search?: string;
-    body?: BodyInit | null;
-    headers?: HeadersInit;
-    context?: AdminApiRequestContext;
-  } = {}
+    cookieHeader,
+    csrfToken,
+    incomingHeaders,
+    headers = {},
+    sourceRoute,
+    requestId,
+  }: AdminApiRequestOptions = {}
 ) {
   const url = getAdminApiUrl(pathSegments, search);
 
   if (!url) {
-    throw new Error("NEXT_PUBLIC_BACKEND_URL is not configured.");
+    throw new Error(
+      "ADMIN_BACKEND_URL or NEXT_PUBLIC_BACKEND_URL is not configured."
+    );
   }
 
-  const method = context?.method ?? "GET";
-  const requestHeaders = buildAdminApiHeaders(context);
-  const extraHeaders = new Headers(headers);
+  const adminProxyToken = process.env.ADMIN_API_PROXY_TOKEN;
 
-  extraHeaders.forEach((value, key) => {
-    requestHeaders.set(key, value);
+  if (!adminProxyToken) {
+    throw new Error("ADMIN_API_PROXY_TOKEN is not configured.");
+  }
+
+  const normalizedMethod = method.toUpperCase();
+  const requestHeaders = buildAdminRequestHeaders({
+    cookieHeader,
+    csrfToken,
+    includeCsrf: isMutatingAdminApiMethod(normalizedMethod),
+    headers,
   });
+  forwardProvenanceHeaders(requestHeaders, incomingHeaders);
+  requestHeaders.set("X-Admin-Proxy-Token", adminProxyToken);
+  requestHeaders.set(
+    "X-Request-ID",
+    requestId || requestHeaders.get("X-Request-ID") || crypto.randomUUID()
+  );
+
+  if (sourceRoute) {
+    requestHeaders.set("X-TDP-Admin-Source-Route", sourceRoute);
+  }
 
   return fetch(url, {
-    method,
+    method: normalizedMethod,
     credentials: "include",
     cache: "no-store",
     headers: requestHeaders,
-    body: method === "GET" || method === "HEAD" ? undefined : body,
+    body: BODYLESS_METHODS.has(normalizedMethod) ? undefined : body,
   });
 }
+
+type ReadAdminResourceOptions = Omit<
+  AdminApiRequestOptions,
+  "method" | "body"
+>;
+
+export const adminApi = {
+  dataFiles: {
+    list: (options?: ReadAdminResourceOptions) =>
+      requestAdminApi(["data_files"], options),
+    get: (id: string | number, options?: ReadAdminResourceOptions) =>
+      requestAdminApi(["data_files", String(id)], options),
+  },
+};

@@ -33,6 +33,7 @@ from .users.api.login_redirect_oidc import LoginRedirectAMS, LoginRedirectLoginD
 from .users.api.logout import LogoutUser
 from .users.api.logout_redirect_oidc import LogoutRedirectOIDC
 from .users.views import (
+    AdminOIDCAuthenticationCallbackView,
     AdminKeycloakLoginAMSView,
     AdminKeycloakLoginDotGovView,
     AdminKeycloakLogoutView,
@@ -62,6 +63,7 @@ urlpatterns = [
     path("stts/", include("tdpservice.stts.urls")),
     path("data_files/", include("tdpservice.data_files.urls")),
     path("reports/", include("tdpservice.reports.urls")),
+    path("etl/", include("tdpservice.etl.urls")),
     path("logs/", write_logs),
     path("security/", include("tdpservice.security.urls")),
 ]
@@ -105,6 +107,11 @@ admin_auth_urlpatterns = [
     ),
     path("login/ams", AdminKeycloakLoginAMSView.as_view(), name="admin-login-ams"),
     path(
+        "oidc/callback/",
+        AdminOIDCAuthenticationCallbackView.as_view(),
+        name="admin_oidc_authentication_callback",
+    ),
+    path(
         "auth_check",
         AdminAuthorizationCheck.as_view(),
         name="admin-authorization-check",
@@ -118,8 +125,13 @@ admin_auth_urlpatterns = [
 
 # Add 'prefix' to all urlpatterns to make it easier to version/group endpoints
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+api_urlpatterns = urlpatterns
 urlpatterns = [
-    path("v1/", include(urlpatterns)),
+    path("v1/", include(api_urlpatterns)),
+    path(
+        "admin-api/v1/",
+        include((api_urlpatterns, "admin_api"), namespace="admin-api"),
+    ),
     path("v2/", include(v2_urlpatterns)),
     path("admin-auth/", include(admin_auth_urlpatterns)),
     path("", include(canary_auth_urlpatterns)),

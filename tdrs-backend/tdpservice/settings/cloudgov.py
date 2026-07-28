@@ -48,6 +48,7 @@ class CloudGov(Common):
     cloudgov_name = cloudgov_app.get("name").split("-")[
         -1
     ]  # converting "tdp-backend-name" to just "name"
+    CELERY_TASK_DEFAULT_QUEUE = os.getenv("CELERY_TASK_DEFAULT_QUEUE", cloudgov_name)
     # TODO: does this break prod?
     services_basename = cloudgov_space_suffix
 
@@ -253,7 +254,7 @@ class Staging(CloudGov):
     """Settings for applications deployed in the Cloud.gov staging space."""
 
     ADMIN_FRONTEND_BASE_URL = os.getenv(
-        "ADMIN_FRONTEND_BASE_URL", "https://tdp-admin-staging.acf.hhs.gov"
+        "ADMIN_FRONTEND_BASE_URL", "https://staging.admin.tanfdata.acf.hhs.gov"
     )
     ALLOWED_HOSTS = [
         "staging.tanfdata.acf.hhs.gov",
@@ -278,7 +279,7 @@ class Staging(CloudGov):
     )
 
     # Cookie settings
-    SESSION_COOKIE_DOMAIN = ".acf.hhs.gov"
+    SESSION_COOKIE_DOMAIN = ".tanfdata.acf.hhs.gov"
 
     # Cloud.gov SET integration settings
     LOGIN_GOV_SET_AUDIENCE = os.getenv(
@@ -306,10 +307,8 @@ class Production(CloudGov):
 
     # Cookie settings
     SESSION_COOKIE_SAMESITE = "None"
-    SESSION_COOKIE_DOMAIN = ".acf.hhs.gov"
+    SESSION_COOKIE_DOMAIN = ".tanfdata.acf.hhs.gov"
     SESSION_COOKIE_PATH = "/;HttpOnly"
-
-    MIDDLEWARE = ("tdpservice.middleware.SessionMiddleware", *Common.MIDDLEWARE)
 
     # CORS allowed origins
     CORS_ALLOWED_ORIGINS = [

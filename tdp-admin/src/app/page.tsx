@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { forbidden, redirect } from "next/navigation";
 import { GridContainer } from "@trussworks/react-uswds";
 import NextLink from "next/link";
 import { checkAdminSession } from "@/lib/admin-auth";
@@ -13,6 +13,10 @@ export default async function AdminHomePage() {
     redirect("/login");
   }
 
+  if (session.authorized !== true) {
+    forbidden();
+  }
+
   const displayName =
     [session.user?.first_name, session.user?.last_name].filter(Boolean).join(" ") ||
     session.user?.email ||
@@ -20,14 +24,10 @@ export default async function AdminHomePage() {
   const roles = session.user?.roles?.length
     ? session.user.roles.join(", ")
     : "No roles returned";
-  const sessionStatus = session.authorized
-    ? "Authenticated and admin-authorized"
-    : "Authenticated, but not admin-authorized";
+  const sessionStatus = "Authenticated and admin-authorized";
   const statusDetail =
     session.detail ??
-    (session.authorized
-      ? "Django validated your admin session and authorized this view."
-      : "Django validated your login session, but this user is not in an admin role.");
+    "Django validated your admin session and authorized this view.";
   const acfLogoSrc = "/ACFLogo.svg";
 
   return (
@@ -59,7 +59,7 @@ export default async function AdminHomePage() {
           <GridContainer className="grid-container-widescreen admin-success__shell">
             <div className="admin-success__panel">
               <p className="admin-console__eyebrow">Login successful</p>
-              <h1>{session.authorized ? "Welcome to the admin console" : "Admin access required"}</h1>
+              <h1>Welcome to the admin console</h1>
               <p className="admin-success__lede">
                 {statusDetail}
               </p>

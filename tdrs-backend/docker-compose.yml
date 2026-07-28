@@ -274,6 +274,7 @@ services:
       - DJANGO_CONFIGURATION=${DJANGO_CONFIGURATION:-Local}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-tdp-dev-insecure}
       - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-tdpservice.settings.local}
+      - ADMIN_API_PROXY_TOKEN=${ADMIN_API_PROXY_TOKEN:-local-admin-proxy-token}
       - LOCALSTACK_HOST=localstack
       - DJANGO_SU_NAME
       - JWT_CERT_TEST
@@ -317,6 +318,7 @@ services:
       - KEYCLOAK_AUTH_PERCENTAGE
     volumes:
       - .:/tdpapp
+      - ../tdrs-services/parser/config/schemas:/tdrs-services/parser/config/schemas:ro
       - logs:/tmp
 
     build:

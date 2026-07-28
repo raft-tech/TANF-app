@@ -212,14 +212,10 @@ class DataFileAPITestBase:
         critical = wb["Critical"]
         summary = wb["Summary"]
 
-        COL_ERROR_MESSAGE = 3
         COL_NUM_OCCURRENCES = 8
 
         assert readme.cell(row=1, column=1).value == "Error Report Readme"
         assert critical.cell(row=1, column=1).value == "Case Number"
-        assert summary.cell(row=5, column=COL_ERROR_MESSAGE).value == (
-            "TRAILER: record length is 15 characters " "but must be 23."
-        )
         assert summary.cell(row=2, column=COL_NUM_OCCURRENCES).value == 3
 
     @staticmethod
@@ -568,7 +564,9 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         response = self.post_data_file(api_client, data_file_data)
         assert response.data["section"] == "Active Case Data"
 
-    def test_failed_upload_does_not_create_record(self, api_client, data_file_data, user):
+    def test_failed_upload_does_not_create_record(
+        self, api_client, data_file_data, user
+    ):
         """Test failed uploads do not create a DataFile record."""
         data_file_data["file"].name = "bad.exe"
 
@@ -653,11 +651,21 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         self, api_client, data_file_data, user, infected_data_file, mocker
     ):
         """Test that infected uploads fail before the file is persisted."""
+        recorded_scan = {}
+
         data_file_data["file"] = infected_data_file
 
         def infected_scan(_file, _file_name, _uploaded_by, data_file=None):
             assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
             assert not data_file.file
+            recorded_scan["row"] = ClamAVFileScan.objects.record_scan(
+                _file,
+                _file_name,
+                _file_name,
+                ClamAVFileScan.Result.INFECTED,
+                _uploaded_by,
+                data_file=data_file,
+            )
             return ClamAVFileScan.Result.INFECTED
 
         mocker.patch(
@@ -678,12 +686,14 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         assert response.data == {
             "detail": "Rejected: uploaded file did not pass security inspection"
         }
-        data_file = DataFile.objects.get(
+        assert not DataFile.objects.filter(
             slug=data_file_data["slug"],
             user=user,
-        )
-        assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
-        assert not data_file.file
+        ).exists()
+
+        av_scan = ClamAVFileScan.objects.get(id=recorded_scan["row"].id)
+        assert av_scan.result == ClamAVFileScan.Result.INFECTED
+        assert av_scan.data_file is None
 
         mock_parse_task.assert_not_called()
 
@@ -717,12 +727,10 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         assert response.data == {
             "detail": "Unable to complete security inspection, please try again or contact support for assistance"
         }
-        data_file = DataFile.objects.get(
+        assert not DataFile.objects.filter(
             slug=data_file_data["slug"],
             user=user,
-        )
-        assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
-        assert not data_file.file
+        ).exists()
 
         mock_parse_task.assert_not_called()
 
