@@ -444,7 +444,7 @@ ENTRYPOINT ["/go-parser"]
 | **Go build step** | Add `go build` and `go test` to the CI pipeline |
 | **Schema contract validation** | Run the backend Django/Go schema contract test to ensure active model fields match Go YAML schemas |
 | **Expression validation** | Compile all YAML validators at CI time to catch syntax errors |
-| **Docker image build** | Build and push the `go-parser` image alongside the existing `tdp` image |
+| **Hosted buildpack deployment** | Compile the `go-parser` worker in CircleCI and stage the resulting Linux executable with the Cloud Foundry binary buildpack; keep the Docker image for local and CI integration |
 | **Integration tests** | Run Go integration tests against a test database |
 
 ### Resource Requirements
