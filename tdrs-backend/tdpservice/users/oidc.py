@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 FEDERAL_STAFF_EMAIL_DOMAINS = ("@acf.hhs.gov", "@hhs.gov")
+STANDARD_SESSION_SCOPE = "standard"
+ADMIN_SESSION_SCOPE = "admin"
 ADMIN_OIDC_CLIENT = "tdp-admin"
 ADMIN_OIDC_CALLBACK_URL_NAME = "admin_oidc_authentication_callback"
 

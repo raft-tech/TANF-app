@@ -27,6 +27,7 @@ The login and health flows use these environment variables:
 - `ADMIN_BACKEND_URL`
 - `ADMIN_FRONTEND_ORIGIN`
 - `ADMIN_API_PROXY_TOKEN`
+- `ADMIN_SESSION_COOKIE_NAME` (defaults to `admin_sessionid`)
 
 `NEXT_PUBLIC_AUTH_URL` should point to the Django auth origin. When it is not
 set, the app derives the auth origin from `NEXT_PUBLIC_BACKEND_URL`.
@@ -76,6 +77,24 @@ Next.js proxy only forwards request context and the server-side proxy token.
 - `/api/admin/*` forwards backend API requests with the Django session cookie,
   CSRF token required by mutating requests, and server-side proxy token to
   `/admin-api/v1/*`.
+
+## API Boundary
+
+`src/app/api/admin/[...path]/route.ts` is the Next.js catch-all BFF route. The
+`[...path]` segment preserves the Django viewset path while keeping the
+server-only proxy token out of browser code. Next.js requires each supported
+HTTP verb to be exported from that route.
+
+Use `src/lib/admin-api.ts` for server-side calls from admin pages and route
+handlers. It centralizes backend URL construction, admin session and CSRF
+forwarding, proxy identity, request metadata, and no-store behavior. Resource
+methods such as `adminApi.dataFiles.list()` and `adminApi.dataFiles.get()` are
+the component-facing API and should be expanded as admin viewsets are migrated.
+
+The proxy intentionally does not make a second auth-check request before each
+API call. Django's `/admin-api/v1/*` middleware validates the admin session and
+authorization before the requested viewset runs, avoiding a redundant
+time-of-check/time-of-use gate in Next.js.
 
 ## Testing
 

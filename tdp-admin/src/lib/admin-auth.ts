@@ -148,6 +148,30 @@ export function getCsrfTokenFromCookie(cookieHeader: string | null) {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+export function getAdminCookieHeader(cookieHeader: string | null) {
+  if (!cookieHeader) {
+    return null;
+  }
+
+  const adminSessionCookieName =
+    process.env.ADMIN_SESSION_COOKIE_NAME || "admin_sessionid";
+  const forwardedCookieNames = new Set([
+    adminSessionCookieName,
+    "csrftoken",
+  ]);
+  const adminCookies = cookieHeader
+    .split(";")
+    .map((cookie) => cookie.trim())
+    .filter((cookie) => {
+      const separatorIndex = cookie.indexOf("=");
+      const name =
+        separatorIndex === -1 ? cookie : cookie.slice(0, separatorIndex);
+      return forwardedCookieNames.has(name);
+    });
+
+  return adminCookies.length ? adminCookies.join("; ") : null;
+}
+
 export function buildAdminRequestHeaders({
   cookieHeader,
   csrfToken,
@@ -160,9 +184,10 @@ export function buildAdminRequestHeaders({
   headers?: HeadersInit;
 }) {
   const requestHeaders = new Headers(headers);
+  const adminCookieHeader = getAdminCookieHeader(cookieHeader ?? null);
 
-  if (cookieHeader) {
-    requestHeaders.set("Cookie", cookieHeader);
+  if (adminCookieHeader) {
+    requestHeaders.set("Cookie", adminCookieHeader);
   }
 
   if (includeCsrf) {

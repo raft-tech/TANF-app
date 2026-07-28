@@ -123,6 +123,12 @@ Auth endpoints live under `/v2/` (the legacy `/v1/` auth routes remain for backw
 | `GET /v2/auth_check` | `AuthorizationCheck` | Returns current user authentication status |
 | `GET /v2/logout/oidc` | `KeycloakLogoutView` | Clears the standard Django session and returns to the TDP frontend |
 
+Standard and admin browser sessions use different cookie names and signed
+session scopes. The standard auth routes accept `sessionid` sessions scoped to
+`standard`; `/admin-auth/*` and trusted `/admin-api/*` routes accept
+`admin_sessionid` sessions scoped to `admin`. A cookie copied into the other
+name is rejected.
+
 ### OIDC Backend (`KeycloakOIDCBackend`)
 
 Extends `mozilla-django-oidc`'s `OIDCAuthenticationBackend` with TDP-specific logic:

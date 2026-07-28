@@ -23,7 +23,8 @@ describe("admin API proxy", () => {
       "https://admin.example.gov/api/admin/users?active=true",
       {
         headers: {
-          cookie: "admin_sessionid=abc; csrftoken=csrf-token",
+          cookie:
+            "sessionid=standard; admin_sessionid=abc; csrftoken=csrf-token",
         },
       }
     );
@@ -45,7 +46,9 @@ describe("admin API proxy", () => {
 
     const [, options] = vi.mocked(fetch).mock.calls[0];
     const headers = options?.headers as Headers;
-    expect(headers.get("Cookie")).toBe("admin_sessionid=abc; csrftoken=csrf-token");
+    expect(headers.get("Cookie")).toBe(
+      "admin_sessionid=abc; csrftoken=csrf-token"
+    );
     expect(headers.get("x-service-name")).toBeNull();
     expect(headers.get("X-Admin-Proxy-Token")).toBe("server-only-token");
   });

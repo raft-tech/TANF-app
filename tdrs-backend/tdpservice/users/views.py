@@ -31,7 +31,12 @@ from tdpservice.users.models import (
     User,
     UserChangeRequest,
 )
-from tdpservice.users.oidc import ADMIN_OIDC_CALLBACK_URL_NAME, ADMIN_OIDC_CLIENT
+from tdpservice.users.oidc import (
+    ADMIN_OIDC_CALLBACK_URL_NAME,
+    ADMIN_OIDC_CLIENT,
+    ADMIN_SESSION_SCOPE,
+    STANDARD_SESSION_SCOPE,
+)
 from tdpservice.users.permissions import (
     CypressAdminAccountPermissions,
     DjangoModelCRUDPermissions,
@@ -304,6 +309,7 @@ class KeycloakLoginDotGovView(OIDCAuthenticationRequestView):
     def get(self, request, *args, **kwargs):
         """Log the Login.gov auth flow before redirecting to Keycloak."""
         request.session.pop("oidc_client", None)
+        request.session["session_scope"] = STANDARD_SESSION_SCOPE
         request.session["auth_idp"] = normalize_idp("login-gov")
         logger.info(
             "Login initiated",
@@ -322,6 +328,7 @@ class KeycloakLoginAMSView(OIDCAuthenticationRequestView):
     def get(self, request, *args, **kwargs):
         """Log the AMS auth flow before redirecting to Keycloak."""
         request.session.pop("oidc_client", None)
+        request.session["session_scope"] = STANDARD_SESSION_SCOPE
         request.session["auth_idp"] = normalize_idp("ams")
         logger.info(
             "Login initiated", extra={"auth_flow": "keycloak", "auth_idp": "ams"}
@@ -349,6 +356,7 @@ class AdminKeycloakLoginMixin:
         request.session.pop("oidc_client", None)
         self.OIDC_RP_CLIENT_ID = settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID
         response = super().get(request, *args, **kwargs)
+        request.session["session_scope"] = ADMIN_SESSION_SCOPE
         state = parse_qs(urlparse(response["Location"]).query).get("state", [None])[
             0
         ]
@@ -374,6 +382,7 @@ class AdminOIDCAuthenticationCallbackView(OIDCAuthenticationCallbackView):
 
     def get(self, request):
         """Mark this callback so token exchange uses the admin redirect URI."""
+        request.session["session_scope"] = ADMIN_SESSION_SCOPE
         request._oidc_client = ADMIN_OIDC_CLIENT
         request._oidc_callback_url = ADMIN_OIDC_CALLBACK_URL_NAME
         return super().get(request)
@@ -384,8 +393,7 @@ class KeycloakLogoutView(View):
 
     def get(self, request):
         """Clear only the standard app session."""
-        # Keycloak's RP-initiated logout clears the realm SSO session, which also
-        # removes client sessions for other TDP apps sharing the same browser.
+        # RP-initiated logout would terminate the shared Keycloak SSO session.
         logout(request)
 
         return HttpResponseRedirect(settings.FRONTEND_BASE_URL)

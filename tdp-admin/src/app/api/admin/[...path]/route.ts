@@ -1,25 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  buildAdminRequestHeaders,
-  getAdminBackendBaseUrl,
-} from "@/lib/admin-auth";
-
-const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+  isMutatingAdminApiMethod,
+  requestAdminApi,
+  setAuthenticatedNoStore,
+} from "@/lib/admin-api";
 
 function normalizeOrigin(origin: string) {
   return new URL(origin).origin;
-}
-
-function getBackendUrl(pathSegments: string[], search: string) {
-  const backendBaseUrl = getAdminBackendBaseUrl();
-
-  if (!backendBaseUrl) {
-    return null;
-  }
-
-  const normalizedBaseUrl = backendBaseUrl.replace(/\/$/, "");
-  const normalizedPath = pathSegments.map(encodeURIComponent).join("/");
-  return `${normalizedBaseUrl}/${normalizedPath}${search}`;
 }
 
 function getExpectedAdminOrigin() {
@@ -116,31 +103,7 @@ async function proxyAdminRequest(
   context: { params: Promise<{ path: string[] }> }
 ) {
   const { path } = await context.params;
-  const backendUrl = getBackendUrl(path, request.nextUrl.search);
-
-  if (!backendUrl) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "ADMIN_BACKEND_URL or NEXT_PUBLIC_BACKEND_URL is not configured.",
-      },
-      { status: 500 }
-    );
-  }
-
-  const adminProxyToken = process.env.ADMIN_API_PROXY_TOKEN;
-
-  if (!adminProxyToken) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "ADMIN_API_PROXY_TOKEN is not configured.",
-      },
-      { status: 500 }
-    );
-  }
-
-  const isMutatingRequest = MUTATING_METHODS.has(request.method);
+  const isMutatingRequest = isMutatingAdminApiMethod(request.method);
   const mutatingRequestValidation = isMutatingRequest
     ? validateMutatingRequest(request)
     : { response: null, csrfToken: null };
@@ -150,33 +113,49 @@ async function proxyAdminRequest(
   }
 
   const cookieHeader = request.headers.get("cookie");
-  const headers = buildAdminRequestHeaders({
-    cookieHeader,
-    csrfToken: mutatingRequestValidation.csrfToken,
-    includeCsrf: isMutatingRequest,
-  });
+  const headers = new Headers();
   const contentType = request.headers.get("content-type");
 
   if (contentType) {
     headers.set("content-type", contentType);
   }
-  headers.set("X-Admin-Proxy-Token", adminProxyToken);
+  let response: Response;
 
-  const response = await fetch(backendUrl, {
-    method: request.method,
-    credentials: "include",
-    cache: "no-store",
-    headers,
-    body:
-      request.method === "GET" || request.method === "HEAD"
-        ? undefined
-        : await request.text(),
-  });
+  try {
+    // Django validates the admin session and role on every proxied API request.
+    response = await requestAdminApi(path, {
+      method: request.method,
+      search: request.nextUrl.search,
+      body:
+        request.method === "GET" || request.method === "HEAD"
+          ? undefined
+          : await request.text(),
+      cookieHeader,
+      csrfToken: mutatingRequestValidation.csrfToken,
+      headers,
+      sourceRoute: request.nextUrl.pathname,
+      requestId: request.headers.get("x-request-id"),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: message,
+      },
+      {
+        status: 500,
+        headers: setAuthenticatedNoStore(new Headers()),
+      }
+    );
+  }
+
+  const responseHeaders = setAuthenticatedNoStore(new Headers(response.headers));
 
   return new NextResponse(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers: response.headers,
+    headers: responseHeaders,
   });
 }
 

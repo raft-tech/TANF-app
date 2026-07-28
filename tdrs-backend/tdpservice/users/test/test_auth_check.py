@@ -12,17 +12,24 @@ from ..models import AccountApprovalStatusChoices
 from ..serializers import UserProfileSerializer
 
 
-def _copy_standard_session_to_admin_cookie(api_client, settings):
-    """Use the current signed test session as an admin-scoped session."""
-    api_client.cookies[settings.ADMIN_SESSION_COOKIE_NAME] = api_client.cookies[
-        settings.SESSION_COOKIE_NAME
-    ].value
+def _create_admin_session_from_standard(api_client, settings):
+    """Create an independently signed admin session for the current user."""
+    engine = import_module(settings.SESSION_ENGINE)
+    standard_session = engine.SessionStore(
+        api_client.cookies[settings.SESSION_COOKIE_NAME].value
+    )
+    admin_session = engine.SessionStore()
+    admin_session.update(dict(standard_session.items()))
+    admin_session["session_scope"] = "admin"
+    admin_session.save()
+    api_client.cookies[settings.ADMIN_SESSION_COOKIE_NAME] = admin_session.session_key
 
 
 def _login_standard_session(api_client, user, settings):
     """Create a Keycloak-originated standard app session."""
     assert api_client.login(username=user.username, password="test_password") is True
     session = api_client.session
+    session["session_scope"] = "standard"
     session["auth_flow"] = "keycloak"
     session.save()
     api_client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
@@ -31,7 +38,7 @@ def _login_standard_session(api_client, user, settings):
 def _login_admin_session(api_client, user, settings):
     """Create an admin-scoped session from a valid admin user login."""
     _login_standard_session(api_client, user, settings)
-    _copy_standard_session_to_admin_cookie(api_client, settings)
+    _create_admin_session_from_standard(api_client, settings)
 
 
 def _client_session_from_cookie(api_client, cookie_name, settings):
@@ -154,7 +161,7 @@ def test_admin_session_authenticates_admin_but_not_frontend(
 ):
     """An admin session should not authenticate the regular TDP frontend."""
     api_client.login(username=ofa_system_admin.username, password="test_password")
-    _copy_standard_session_to_admin_cookie(api_client, settings)
+    _create_admin_session_from_standard(api_client, settings)
     del api_client.cookies[settings.SESSION_COOKIE_NAME]
 
     admin_response = api_client.get(reverse("admin-authorization-check"))
@@ -181,7 +188,11 @@ def test_standard_and_admin_login_logout_end_to_end_state_sequence(
     _login_standard_session(api_client, ofa_system_admin, settings)
     _assert_auth_state(api_client, True, False)
 
-    _copy_standard_session_to_admin_cookie(api_client, settings)
+    _create_admin_session_from_standard(api_client, settings)
+    assert (
+        api_client.cookies[settings.SESSION_COOKIE_NAME].value
+        != api_client.cookies[settings.ADMIN_SESSION_COOKIE_NAME].value
+    )
     _assert_auth_state(api_client, True, True)
 
     response = api_client.get(reverse("canary-oidc-logout"))
@@ -255,7 +266,7 @@ def test_forged_service_header_does_not_use_admin_session(
 ):
     """A regular API request cannot opt into the admin session by header."""
     api_client.login(username=ofa_system_admin.username, password="test_password")
-    _copy_standard_session_to_admin_cookie(api_client, settings)
+    _create_admin_session_from_standard(api_client, settings)
     del api_client.cookies[settings.SESSION_COOKIE_NAME]
 
     response = api_client.get(
@@ -267,11 +278,43 @@ def test_forged_service_header_does_not_use_admin_session(
 
 
 @pytest.mark.django_db
+def test_standard_cookie_cannot_authenticate_admin(
+    api_client, ofa_system_admin, settings
+):
+    """A standard signed session cannot be replayed as an admin session."""
+    _login_standard_session(api_client, ofa_system_admin, settings)
+    api_client.cookies[settings.ADMIN_SESSION_COOKIE_NAME] = api_client.cookies[
+        settings.SESSION_COOKIE_NAME
+    ].value
+
+    response = api_client.get(reverse("admin-authorization-check"))
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["authenticated"] is False
+
+
+@pytest.mark.django_db
+def test_admin_cookie_cannot_authenticate_frontend(
+    api_client, ofa_system_admin, settings
+):
+    """An admin signed session cannot be replayed as a standard session."""
+    _login_admin_session(api_client, ofa_system_admin, settings)
+    api_client.cookies[settings.SESSION_COOKIE_NAME] = api_client.cookies[
+        settings.ADMIN_SESSION_COOKIE_NAME
+    ].value
+
+    response = api_client.get(reverse("authorization-check"))
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["authenticated"] is False
+
+
+@pytest.mark.django_db
 def test_admin_api_path_uses_admin_session(api_client, ofa_system_admin, settings):
     """Admin API traffic should use the admin session on the backend path."""
     settings.ADMIN_API_PROXY_TOKEN = "server-only-token"
     api_client.login(username=ofa_system_admin.username, password="test_password")
-    _copy_standard_session_to_admin_cookie(api_client, settings)
+    _create_admin_session_from_standard(api_client, settings)
     del api_client.cookies[settings.SESSION_COOKIE_NAME]
 
     response = api_client.get(
@@ -290,7 +333,7 @@ def test_admin_api_path_rejects_missing_proxy_token(
     """Admin API traffic should not be directly browser-callable."""
     settings.ADMIN_API_PROXY_TOKEN = "server-only-token"
     api_client.login(username=ofa_system_admin.username, password="test_password")
-    _copy_standard_session_to_admin_cookie(api_client, settings)
+    _create_admin_session_from_standard(api_client, settings)
     del api_client.cookies[settings.SESSION_COOKIE_NAME]
 
     response = api_client.get("/admin-api/v1/auth_check")
@@ -310,7 +353,7 @@ def test_admin_api_path_rejects_unauthenticated_session(api_client, settings):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {
         "authenticated": False,
-        "detail": "Admin authentication is required.",
+        "detail": "An admin-scoped session is required.",
     }
 
 
@@ -319,7 +362,7 @@ def test_admin_api_path_rejects_non_admin_session(api_client, user, settings):
     """Admin API traffic should require OFA System Admin authorization in Django."""
     settings.ADMIN_API_PROXY_TOKEN = "server-only-token"
     api_client.login(username=user.username, password="test_password")
-    _copy_standard_session_to_admin_cookie(api_client, settings)
+    _create_admin_session_from_standard(api_client, settings)
     del api_client.cookies[settings.SESSION_COOKIE_NAME]
 
     response = api_client.get(
@@ -340,7 +383,7 @@ def test_admin_auth_check_allows_ofa_system_admin(
 ):
     """Admin auth_check should authorize OFA System Admin users."""
     api_client.login(username=ofa_system_admin.username, password="test_password")
-    _copy_standard_session_to_admin_cookie(api_client, settings)
+    _create_admin_session_from_standard(api_client, settings)
     response = api_client.get(reverse("admin-authorization-check"))
 
     assert response.status_code == status.HTTP_200_OK
@@ -353,7 +396,7 @@ def test_admin_auth_check_allows_ofa_system_admin(
 def test_admin_auth_check_rejects_non_admin(api_client, user, settings):
     """Admin auth_check should keep Django authoritative for admin authz."""
     api_client.login(username=user.username, password="test_password")
-    _copy_standard_session_to_admin_cookie(api_client, settings)
+    _create_admin_session_from_standard(api_client, settings)
     response = api_client.get(reverse("admin-authorization-check"))
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -363,12 +406,12 @@ def test_admin_auth_check_rejects_non_admin(api_client, user, settings):
 
 @pytest.mark.django_db
 def test_admin_auth_check_rejects_unapproved_ofa_system_admin(
-    api_client, ofa_system_admin
+    api_client, ofa_system_admin, settings
 ):
     """Admin auth_check should require OFA System Admin users to be approved."""
+    _login_admin_session(api_client, ofa_system_admin, settings)
     ofa_system_admin.account_approval_status = AccountApprovalStatusChoices.PENDING
     ofa_system_admin.save()
-    api_client.force_authenticate(user=ofa_system_admin)
 
     response = api_client.get(reverse("admin-authorization-check"))
 
@@ -379,12 +422,12 @@ def test_admin_auth_check_rejects_unapproved_ofa_system_admin(
 
 @pytest.mark.django_db
 def test_admin_auth_check_rejects_inactive_ofa_system_admin(
-    api_client, ofa_system_admin
+    api_client, ofa_system_admin, settings
 ):
     """Admin auth_check should require OFA System Admin users to be active."""
+    _login_admin_session(api_client, ofa_system_admin, settings)
     ofa_system_admin.is_active = False
     ofa_system_admin.save()
-    api_client.force_authenticate(user=ofa_system_admin)
 
     response = api_client.get(reverse("admin-authorization-check"))
 
@@ -408,6 +451,7 @@ def test_admin_login_uses_admin_keycloak_client(api_client, settings):
     session = _client_session_from_cookie(
         api_client, settings.ADMIN_SESSION_COOKIE_NAME, settings
     )
+    assert session["session_scope"] == "admin"
     assert "oidc_client" not in session
     assert session["oidc_clients"][state] == "tdp-admin"
 
@@ -424,4 +468,5 @@ def test_standard_login_clears_legacy_admin_client_marker(api_client):
     assert response.status_code == status.HTTP_302_FOUND
     query_params = parse_qs(urlparse(response["Location"]).query)
     assert query_params["client_id"] != ["tdp-admin"]
+    assert api_client.session["session_scope"] == "standard"
     assert "oidc_client" not in api_client.session

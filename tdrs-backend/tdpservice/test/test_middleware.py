@@ -87,8 +87,12 @@ def test_admin_api_routes_do_not_override_standard_route_names():
 def test_session_middleware_uses_standard_cookie_by_default(settings):
     """Standard frontend requests should use the default Django session cookie."""
     middleware = SessionMiddleware(lambda request: HttpResponse())
-    standard_cookie = _session_cookie(middleware, {"scope": "standard"})
-    admin_cookie = _session_cookie(middleware, {"scope": "admin"})
+    standard_cookie = _session_cookie(
+        middleware, {"scope": "standard", "session_scope": "standard"}
+    )
+    admin_cookie = _session_cookie(
+        middleware, {"scope": "admin", "session_scope": "admin"}
+    )
     request = RequestFactory().get(
         "/v1/auth_check",
         HTTP_COOKIE=(
@@ -106,8 +110,12 @@ def test_session_middleware_uses_standard_cookie_by_default(settings):
 def test_session_middleware_uses_admin_cookie_for_admin_auth(settings):
     """Admin auth routes should use the admin session cookie."""
     middleware = SessionMiddleware(lambda request: HttpResponse())
-    standard_cookie = _session_cookie(middleware, {"scope": "standard"})
-    admin_cookie = _session_cookie(middleware, {"scope": "admin"})
+    standard_cookie = _session_cookie(
+        middleware, {"scope": "standard", "session_scope": "standard"}
+    )
+    admin_cookie = _session_cookie(
+        middleware, {"scope": "admin", "session_scope": "admin"}
+    )
     request = RequestFactory().get(
         "/admin-auth/auth_check",
         HTTP_COOKIE=(
@@ -125,8 +133,12 @@ def test_session_middleware_uses_admin_cookie_for_admin_auth(settings):
 def test_session_middleware_ignores_service_header_for_standard_api(settings):
     """Client-controlled headers should not switch /v1 to the admin session."""
     middleware = SessionMiddleware(lambda request: HttpResponse())
-    standard_cookie = _session_cookie(middleware, {"scope": "standard"})
-    admin_cookie = _session_cookie(middleware, {"scope": "admin"})
+    standard_cookie = _session_cookie(
+        middleware, {"scope": "standard", "session_scope": "standard"}
+    )
+    admin_cookie = _session_cookie(
+        middleware, {"scope": "admin", "session_scope": "admin"}
+    )
     request = RequestFactory().get(
         "/v1/users/profile/",
         HTTP_X_SERVICE_NAME="tdp-admin",
@@ -146,8 +158,12 @@ def test_session_middleware_uses_admin_cookie_for_admin_api(settings):
     """Admin API routes should use the admin session cookie."""
     settings.ADMIN_API_PROXY_TOKEN = "server-only-token"
     middleware = SessionMiddleware(lambda request: HttpResponse())
-    standard_cookie = _session_cookie(middleware, {"scope": "standard"})
-    admin_cookie = _session_cookie(middleware, {"scope": "admin"})
+    standard_cookie = _session_cookie(
+        middleware, {"scope": "standard", "session_scope": "standard"}
+    )
+    admin_cookie = _session_cookie(
+        middleware, {"scope": "admin", "session_scope": "admin"}
+    )
     request = RequestFactory().get(
         "/admin-api/v1/users/profile/",
         HTTP_X_ADMIN_PROXY_TOKEN="server-only-token",
@@ -161,6 +177,38 @@ def test_session_middleware_uses_admin_cookie_for_admin_api(settings):
 
     assert request._tdp_session_cookie_name == settings.ADMIN_SESSION_COOKIE_NAME
     assert request.session["scope"] == "admin"
+
+
+def test_session_middleware_rejects_admin_scope_on_standard_api(settings):
+    """Admin signed sessions cannot authenticate standard API routes."""
+    middleware = SessionMiddleware(lambda request: HttpResponse())
+    admin_cookie = _session_cookie(
+        middleware, {"scope": "admin", "session_scope": "admin"}
+    )
+    request = RequestFactory().get(
+        "/v1/users/profile/",
+        HTTP_COOKIE=f"{settings.SESSION_COOKIE_NAME}={admin_cookie}",
+    )
+
+    middleware.process_request(request)
+
+    assert request.session.is_empty()
+
+
+def test_session_middleware_rejects_standard_scope_on_admin_auth(settings):
+    """Standard signed sessions cannot authenticate admin auth routes."""
+    middleware = SessionMiddleware(lambda request: HttpResponse())
+    standard_cookie = _session_cookie(
+        middleware, {"scope": "standard", "session_scope": "standard"}
+    )
+    request = RequestFactory().get(
+        "/admin-auth/auth_check",
+        HTTP_COOKIE=f"{settings.ADMIN_SESSION_COOKIE_NAME}={standard_cookie}",
+    )
+
+    middleware.process_request(request)
+
+    assert request.session.is_empty()
 
 
 def test_session_middleware_rejects_admin_api_without_proxy_token(settings):
@@ -185,6 +233,7 @@ def test_session_middleware_sets_admin_cookie_for_admin_auth(settings):
     request = RequestFactory().get("/admin-auth/auth_check")
     middleware.process_request(request)
     request.session["scope"] = "admin"
+    request.session["session_scope"] = "admin"
 
     response = middleware.process_response(request, HttpResponse())
 
@@ -208,9 +257,22 @@ def test_session_middleware_varies_on_cookie_when_session_is_saved(settings):
 def _admin_api_response_for_user(user):
     middleware = AdminAPIAuthorizationMiddleware(lambda request: HttpResponse())
     request = RequestFactory().get("/admin-api/v1/users/profile/")
+    request.session = {"session_scope": "admin"}
     request.user = user
 
     return middleware(request)
+
+
+def test_admin_api_authorization_middleware_rejects_standard_session():
+    """The trusted proxy path still requires an explicitly admin-scoped session."""
+    middleware = AdminAPIAuthorizationMiddleware(lambda request: HttpResponse())
+    request = RequestFactory().get("/admin-api/v1/users/profile/")
+    request.session = {"session_scope": "standard"}
+    request.user = SimpleNamespace(is_authenticated=True)
+
+    response = middleware(request)
+
+    assert response.status_code == 401
 
 
 def test_admin_api_authorization_middleware_rejects_unapproved_admin_user():

@@ -212,6 +212,17 @@ The `tdp-user-attributes` client scope includes these custom attributes, synced 
 | `GET /admin-auth/logout/oidc` | `AdminKeycloakLogoutView` | Clears the admin-scoped Django session and returns to the admin frontend |
 | `/admin-api/v1/*` | v1 API routes | Admin frontend proxy path; requires the server-side `X-Admin-Proxy-Token` header matching `ADMIN_API_PROXY_TOKEN`, an admin-scoped Django session, and OFA System Admin authorization |
 
+The standard and admin cookies contain explicit signed `standard` and `admin`
+session scopes. Django rejects a session whose signed scope does not match the
+auth or API route, even if the cookie value is copied under the other cookie
+name.
+
+App sign-out deliberately does not call Keycloak's RP-initiated logout
+endpoint. Keycloak maintains one realm SSO user session with child sessions for
+`tdp-django`, `tdp-admin`, and other clients; RP-initiated logout terminates the
+shared SSO session and can continue to Login.gov or AMS. A separate global
+sign-out flow is required if the product needs "sign out everywhere" behavior.
+
 ### User Sync
 
 When `KEYCLOAK_SYNC_ENABLED=true`:

@@ -13,6 +13,7 @@ from django.utils.crypto import constant_time_compare
 from django.utils.http import http_date
 
 from tdpservice.users.authorization import is_authorized_admin_user
+from tdpservice.users.oidc import ADMIN_SESSION_SCOPE, STANDARD_SESSION_SCOPE
 
 
 ADMIN_AUTH_PREFIX = "/admin-auth/"
@@ -91,6 +92,12 @@ class SessionMiddleware(DjangoSessionMiddleware):
             return settings.ADMIN_SESSION_COOKIE_NAME
         return settings.SESSION_COOKIE_NAME
 
+    def _get_expected_session_scope(self, request):
+        """Return the signed session scope allowed for this request."""
+        if self._is_admin_session_request(request):
+            return ADMIN_SESSION_SCOPE
+        return STANDARD_SESSION_SCOPE
+
     @staticmethod
     def _set_cors_allow_headers(response):
         """Set CORS allow headers from settings when not already provided."""
@@ -113,6 +120,14 @@ class SessionMiddleware(DjangoSessionMiddleware):
         request._tdp_session_cookie_name = cookie_name
         session_key = request.COOKIES.get(cookie_name)
         request.session = self.SessionStore(session_key)
+        current_scope = request.session.get("session_scope")
+        expected_scope = self._get_expected_session_scope(request)
+
+        if (
+            current_scope != expected_scope
+            and not (current_scope is None and expected_scope == STANDARD_SESSION_SCOPE)
+        ):
+            request.session = self.SessionStore()
 
     def process_response(self, request, response):
         """Save the session and ensure cross-origin cookie headers are correct."""
@@ -207,6 +222,15 @@ class AdminAPIAuthorizationMiddleware:
     def __call__(self, request):
         """Reject admin API requests unless Django recognizes an admin user."""
         if SessionMiddleware._path_matches_prefix(request, ADMIN_API_PREFIX):
+            if request.session.get("session_scope") != ADMIN_SESSION_SCOPE:
+                return JsonResponse(
+                    {
+                        "authenticated": False,
+                        "detail": "An admin-scoped session is required.",
+                    },
+                    status=401,
+                )
+
             user = getattr(request, "user", None)
 
             if not getattr(user, "is_authenticated", False):

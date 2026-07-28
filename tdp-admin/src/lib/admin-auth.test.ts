@@ -6,6 +6,7 @@ import {
   getAdminBackendBaseUrl,
   getAdminAuthBaseUrl,
   getAdminAuthCheckUrl,
+  getAdminCookieHeader,
   getAdminLoginUrl,
   getAdminLogoutUrl,
   getAuthBaseUrl,
@@ -97,7 +98,8 @@ describe("admin auth helpers", () => {
   });
 
   it("forwards explicit Django CSRF context for mutating requests", () => {
-    const cookieHeader = "sessionid=abc; csrftoken=my-csrf-token";
+    const cookieHeader =
+      "sessionid=standard; admin_sessionid=admin; csrftoken=my-csrf-token; preference=compact";
     const headers = buildAdminRequestHeaders({
       cookieHeader,
       csrfToken: "header-csrf-token",
@@ -105,14 +107,19 @@ describe("admin auth helpers", () => {
     });
 
     expect(getCsrfTokenFromCookie(cookieHeader)).toBe("my-csrf-token");
-    expect(headers.get("Cookie")).toBe(cookieHeader);
+    expect(getAdminCookieHeader(cookieHeader)).toBe(
+      "admin_sessionid=admin; csrftoken=my-csrf-token"
+    );
+    expect(headers.get("Cookie")).toBe(
+      "admin_sessionid=admin; csrftoken=my-csrf-token"
+    );
     expect(headers.get("X-CSRFToken")).toBe("header-csrf-token");
     expect(headers.get("x-service-name")).toBeNull();
   });
 
   it("does not use cookie CSRF as a header fallback", () => {
     const headers = buildAdminRequestHeaders({
-      cookieHeader: "sessionid=abc; csrftoken=my-csrf-token",
+      cookieHeader: "admin_sessionid=abc; csrftoken=my-csrf-token",
       includeCsrf: true,
     });
 
@@ -133,7 +140,7 @@ describe("admin auth helpers", () => {
       )
     );
 
-    const result = await checkAdminSession("sessionid=abc");
+    const result = await checkAdminSession("admin_sessionid=abc");
 
     expect(result.authenticated).toBe(true);
     expect(result.authorized).toBe(true);
