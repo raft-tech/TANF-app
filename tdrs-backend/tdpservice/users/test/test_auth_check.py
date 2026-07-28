@@ -9,6 +9,7 @@ import pytest
 from rest_framework import status
 
 from ..models import AccountApprovalStatusChoices
+from ..oidc import STANDARD_SESSION_SCOPE
 from ..serializers import UserProfileSerializer
 
 
@@ -67,6 +68,24 @@ def test_auth_check_endpoint_with_no_user(api_client):
     response = api_client.get(reverse("authorization-check"))
     assert response.status_code == status.HTTP_200_OK
     assert response.data["authenticated"] is False
+
+
+@pytest.mark.django_db
+def test_cypress_login_creates_standard_scoped_session(api_client, user, settings):
+    """Cypress E2E login should follow the standard frontend session contract."""
+    settings.CYPRESS_TOKEN = "cypress-test-token"
+
+    response = api_client.get(
+        reverse("login-cypress"),
+        {"username": user.username},
+        HTTP_X_CYPRESS_TOKEN=settings.CYPRESS_TOKEN,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    session = _client_session_from_cookie(
+        api_client, settings.SESSION_COOKIE_NAME, settings
+    )
+    assert session["session_scope"] == STANDARD_SESSION_SCOPE
 
 
 @pytest.mark.django_db
