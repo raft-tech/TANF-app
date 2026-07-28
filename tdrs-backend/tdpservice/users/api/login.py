@@ -18,7 +18,7 @@ from rest_framework.response import Response
 from tdpservice.core.utils import log
 from tdpservice.security.models import SecurityEventToken, SecurityEventType
 from tdpservice.users.models import AccountApprovalStatusChoices
-from tdpservice.users.oidc import FEDERAL_STAFF_EMAIL_DOMAINS
+from tdpservice.users.oidc import FEDERAL_STAFF_EMAIL_DOMAINS, STANDARD_SESSION_SCOPE
 from tdpservice.users.serializers import UserProfileSerializer
 
 from ..authentication import CustomAuthentication
@@ -544,6 +544,7 @@ class CypressLoginDotGovAuthenticationOverride(TokenAuthorizationOIDC):
         except User.DoesNotExist:
             return Response({"error": "User does not exist"}, status=400)
 
+        request.session["session_scope"] = STANDARD_SESSION_SCOPE
         request.session["auth_idp"] = self.get_cypress_idp(username)
         login(
             request,
