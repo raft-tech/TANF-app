@@ -136,16 +136,18 @@ class Common(Configuration):
         "tdpservice.search_indexes",
         "tdpservice.parsers",
         "tdpservice.reports",
+        "tdpservice.etl",
     )
 
     # https://docs.djangoproject.com/en/2.0/topics/http/middleware/
     MIDDLEWARE = (
         "django_prometheus.middleware.PrometheusBeforeMiddleware",
         "django.middleware.security.SecurityMiddleware",
-        "django.contrib.sessions.middleware.SessionMiddleware",
+        "tdpservice.middleware.SessionMiddleware",
         "django.middleware.common.CommonMiddleware",
         "django.middleware.csrf.CsrfViewMiddleware",
         "django.contrib.auth.middleware.AuthenticationMiddleware",
+        "tdpservice.middleware.AdminAPIAuthorizationMiddleware",
         "mozilla_django_oidc.middleware.SessionRefresh",
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -403,6 +405,10 @@ class Common(Configuration):
     # Sessions
     SESSION_ENGINE = "tdpservice.core.custom_session_engine"
     SIGNED_COOKIE_EXPIRES = 60 * 60 * 12  # 12 hours
+    ADMIN_SESSION_COOKIE_NAME = os.getenv(
+        "ADMIN_SESSION_COOKIE_NAME", "admin_sessionid"
+    )
+    ADMIN_API_PROXY_TOKEN = os.getenv("ADMIN_API_PROXY_TOKEN", "")
     SESSION_COOKIE_HTTPONLY = True
     SESSION_SAVE_EVERY_REQUEST = True
     SESSION_COOKIE_AGE = 60 * 30  # 30 minutes
@@ -458,6 +464,7 @@ class Common(Configuration):
     CORS_ORIGIN_ALLOW_ALL = True
     CORS_ALLOW_CREDENTIALS = True
     CORS_PREFLIGHT_MAX_AGE = 1800
+    # Existing frontends send this header, but it must not drive auth decisions.
     CORS_ALLOW_HEADERS = list(default_headers) + [
         "x-service-name",
     ]
@@ -647,6 +654,7 @@ class Common(Configuration):
         "/plg_auth_check/",
         "/login/",
         "/auth_check",
+        "/admin-auth/",
         "/logout/",
     ]
 
@@ -656,6 +664,7 @@ class Common(Configuration):
 
     CELERY_BROKER_URL = REDIS_URI + "/0"
     CELERY_RESULT_BACKEND = REDIS_URI + "/0"
+    CELERY_TASK_DEFAULT_QUEUE = os.getenv("CELERY_TASK_DEFAULT_QUEUE", "celery")
     CELERY_GO_PARSER_QUEUE = os.getenv("CELERY_GO_PARSER_QUEUE", "go-parser")
     CELERY_ACCEPT_CONTENT = ["application/json"]
     CELERY_TASK_SERIALIZER = "json"
@@ -713,6 +722,16 @@ class Common(Configuration):
                 day_of_month="*",
                 month_of_year="*",
             ),  # Every day at 1am UTC (9pm EST)
+        },
+        "Schedule Statistical Weights ETL": {
+            "task": "tdpservice.etl.tasks.schedule_statistical_weights",
+            "schedule": crontab(
+                minute="0",
+                hour="13",
+                day_of_week="*",
+                day_of_month="*",
+                month_of_year="*",
+            ),  # Daily check at 1pm UTC (9am EST)
         },
         "Email Data Analyst Q1 Upcoming Submission Deadline Reminder": {
             "task": "tdpservice.email.tasks.send_data_submission_reminder",

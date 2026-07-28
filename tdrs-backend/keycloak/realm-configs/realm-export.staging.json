@@ -299,15 +299,17 @@
       "clientAuthenticatorType": "client-secret",
       "secret": "${KC_TDP_ADMIN_CLIENT_SECRET}",
       "redirectUris": [
-        "https://tdp-admin-staging.acf.hhs.gov/*",
-        "https://tdp-admin-develop.acf.hhs.gov/*"
+        "https://staging.admin.tanfdata.acf.hhs.gov/*",
+        "https://develop.admin.tanfdata.acf.hhs.gov/*",
+        "https://staging.tanfdata.acf.hhs.gov/admin-auth/*",
+        "https://develop.tanfdata.acf.hhs.gov/admin-auth/*"
       ],
       "webOrigins": [
-        "https://tdp-admin-staging.acf.hhs.gov",
-        "https://tdp-admin-develop.acf.hhs.gov"
+        "https://staging.admin.tanfdata.acf.hhs.gov",
+        "https://develop.admin.tanfdata.acf.hhs.gov"
       ],
       "attributes": {
-        "post.logout.redirect.uris": "https://tdp-admin-staging.acf.hhs.gov/*##https://tdp-admin-develop.acf.hhs.gov/*"
+        "post.logout.redirect.uris": "https://staging.admin.tanfdata.acf.hhs.gov/*##https://develop.admin.tanfdata.acf.hhs.gov/*"
       },
       "protocol": "openid-connect",
       "publicClient": false,

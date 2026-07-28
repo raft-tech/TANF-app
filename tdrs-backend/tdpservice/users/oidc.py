@@ -20,6 +20,10 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 FEDERAL_STAFF_EMAIL_DOMAINS = ("@acf.hhs.gov", "@hhs.gov")
+STANDARD_SESSION_SCOPE = "standard"
+ADMIN_SESSION_SCOPE = "admin"
+ADMIN_OIDC_CLIENT = "tdp-admin"
+ADMIN_OIDC_CALLBACK_URL_NAME = "admin_oidc_authentication_callback"
 
 
 def keycloak_username_algo(email: Optional[str], claims: Optional[dict] = None) -> str:
@@ -154,11 +158,23 @@ class KeycloakOIDCBackend(OIDCAuthenticationBackend):
     the same logic.
     """
 
+    def get_settings(self, attr, *args):
+        """Return request-scoped OIDC settings when needed."""
+        if attr == "OIDC_AUTHENTICATION_CALLBACK_URL" and getattr(
+            self, "_oidc_callback_url", None
+        ):
+            return self._oidc_callback_url
+
+        return super().get_settings(attr, *args)
+
     def authenticate(self, request, **kwargs):
         """Authenticate with the request-scoped Keycloak client."""
         original_client_id = self.OIDC_RP_CLIENT_ID
         original_client_secret = self.OIDC_RP_CLIENT_SECRET
+        had_callback_url = hasattr(self, "_oidc_callback_url")
+        original_callback_url = getattr(self, "_oidc_callback_url", None)
         oidc_client = None
+        oidc_callback_url = None
         if request:
             state = request.GET.get("state")
             oidc_clients = request.session.get("oidc_clients", {}).copy()
@@ -170,10 +186,15 @@ class KeycloakOIDCBackend(OIDCAuthenticationBackend):
                     request.session.pop("oidc_clients", None)
 
             request.session.pop("oidc_client", None)
+            oidc_client = oidc_client or getattr(request, "_oidc_client", None)
+            oidc_callback_url = getattr(request, "_oidc_callback_url", None)
 
-        if oidc_client == "tdp-admin":
+        if oidc_client == ADMIN_OIDC_CLIENT:
             self.OIDC_RP_CLIENT_ID = settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID
             self.OIDC_RP_CLIENT_SECRET = settings.KEYCLOAK_TDP_ADMIN_CLIENT_SECRET
+            self._oidc_callback_url = (
+                oidc_callback_url or ADMIN_OIDC_CALLBACK_URL_NAME
+            )
         else:
             self.OIDC_RP_CLIENT_ID = settings.KEYCLOAK_DJANGO_CLIENT_ID
             self.OIDC_RP_CLIENT_SECRET = settings.KEYCLOAK_DJANGO_CLIENT_SECRET
@@ -183,6 +204,10 @@ class KeycloakOIDCBackend(OIDCAuthenticationBackend):
         finally:
             self.OIDC_RP_CLIENT_ID = original_client_id
             self.OIDC_RP_CLIENT_SECRET = original_client_secret
+            if had_callback_url:
+                self._oidc_callback_url = original_callback_url
+            elif hasattr(self, "_oidc_callback_url"):
+                del self._oidc_callback_url
 
     def filter_users_by_claims(self, claims: dict) -> list:
         """Delegate to the module-level helper shared with bearer-token auth."""

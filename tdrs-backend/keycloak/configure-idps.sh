@@ -594,8 +594,7 @@ configure_tdp_admin_client() {
         [ -z "${KC_TDP_ADMIN_REDIRECT_URIS:-}" ] && \
         [ -z "${KC_TDP_ADMIN_WEB_ORIGINS:-}" ] && \
         [ -z "${KC_TDP_ADMIN_POST_LOGOUT_URIS:-}" ]; then
-        echo "No KC_TDP_ADMIN_* env vars set; preserving existing tdp-admin client configuration."
-        return
+        echo "No KC_TDP_ADMIN_* env vars set; preserving existing tdp-admin client configuration and appending required callback URIs."
     fi
 
     local client_config
@@ -669,6 +668,9 @@ configure_tdp_admin_client() {
             "https://tdp-admin-raft.app.cloud.gov/*" \
             "https://tdp-admin-qasp.app.cloud.gov/*" \
             "https://tdp-admin-a11y.app.cloud.gov/*" \
+            "https://test.tanfdata.acf.hhs.gov/admin-auth/*" \
+            "https://qasp.tanfdata.acf.hhs.gov/admin-auth/*" \
+            "https://a11y.tanfdata.acf.hhs.gov/admin-auth/*" \
             "http://localhost:3001/*" \
             "http://localhost:8080/*" \
             "http://localhost:8989/*" \
@@ -694,6 +696,18 @@ configure_tdp_admin_client() {
         if [ -z "$post_logout_uris" ]; then
             post_logout_uris="https://tdp-admin-raft.app.cloud.gov/*##https://tdp-admin-qasp.app.cloud.gov/*##https://tdp-admin-a11y.app.cloud.gov/*##http://localhost:3001/*##http://127.0.0.1:3001/*"
         fi
+    fi
+
+    if [ "$DEPLOY_ENV" == "staging" ]; then
+        for uri in \
+            "https://staging.tanfdata.acf.hhs.gov/admin-auth/*" \
+            "https://develop.tanfdata.acf.hhs.gov/admin-auth/*"; do
+            redirect_uris=$(append_json_array_unique "$redirect_uris" "$uri")
+        done
+    elif [ "$DEPLOY_ENV" == "prod" ]; then
+        redirect_uris=$(append_json_array_unique \
+            "$redirect_uris" \
+            "https://tanfdata.acf.hhs.gov/admin-auth/*")
     fi
 
     client_config=$(echo "$client_config" | jq \
