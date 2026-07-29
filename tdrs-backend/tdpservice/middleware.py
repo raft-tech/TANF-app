@@ -12,18 +12,17 @@ from django.utils.cache import add_never_cache_headers, patch_vary_headers
 from django.utils.crypto import constant_time_compare
 from django.utils.http import http_date
 
-from tdpservice.users.authorization import is_authorized_admin_user
-from tdpservice.users.oidc import ADMIN_SESSION_SCOPE, STANDARD_SESSION_SCOPE
-
-ADMIN_AUTH_PREFIX = "/admin-auth/"
-ADMIN_API_PREFIX = "/admin-api/"
-
 from prometheus_client import Counter
 
 from tdpservice.request_attribution import (
     REQUEST_ATTRIBUTION_ATTRIBUTE,
     RequestAttribution,
 )
+from tdpservice.users.authorization import is_authorized_admin_user
+from tdpservice.users.oidc import ADMIN_SESSION_SCOPE, STANDARD_SESSION_SCOPE
+
+ADMIN_AUTH_PREFIX = "/admin-auth/"
+ADMIN_API_PREFIX = "/admin-api/"
 
 API_REQUESTS_TOTAL = Counter(
     "tdp_api_requests_total",
