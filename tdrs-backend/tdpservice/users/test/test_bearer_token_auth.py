@@ -237,7 +237,7 @@ class TestBearerTokenIntentVerification:
             client_id="tdp-cli",
             auth_method="bearer",
             user_stt="1",
-            user_group="Data Analyst",
+            user_group="data-analyst",
         )
 
     def test_signed_token_stashes_client_id_on_underlying_django_request(
@@ -268,7 +268,7 @@ class TestBearerTokenIntentVerification:
             client_id="tdp-cli",
             auth_method="bearer",
             user_stt="2",
-            user_group="OFA System Admin",
+            user_group="ofa-system-admin",
         )
 
     def test_signed_token_with_wrong_azp_is_rejected(
