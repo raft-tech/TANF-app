@@ -2,23 +2,17 @@
 
 ## Overview
 
-- Finalized the descriptions for centralized feedback reports in Knowledge Center, so users get clearer feedback. ([#5504](https://github.com/raft-tech/TANF-app/issues/5504))
-
-- Added a cancel hook to stop data-file submission processing when canceled, preventing downstream work. ([#5550](https://github.com/raft-tech/TANF-app/issues/5550))
-
-- Completed the Statistical Weights Dataset for TANF Active Report Measures, enabling more accurate metrics. ([#5699](https://github.com/raft-tech/TANF-app/issues/5699))
-
-- Wrapped up the spike to improve Django model validation for Go parser schemas, strengthening data checks. ([#5866](https://github.com/raft-tech/TANF-app/issues/5866))
-
-- Released Tracker version 4.20.0, completing that release. ([#5897](https://github.com/raft-tech/TANF-app/issues/5897))
-
-- Fixed the Admin STT switch rendering issue that could misrender Section 4 inputs; the fix is done. ([#5919](https://github.com/raft-tech/TANF-app/issues/5919))
+- Finalized descriptions for centralized feedback reports in the Knowledge Center, delivering clearer guidance for users. ([#5504](https://github.com/raft-tech/TANF-app/issues/5504))
+- Completed the Statistical Weights Dataset for TANF Active Report Measures, improving accuracy of metrics. ([#5699](https://github.com/raft-tech/TANF-app/issues/5699))
+- Completed admin security improvements, including admin authentication, session handling, and CSRF boundaries. ([#5836](https://github.com/raft-tech/TANF-app/issues/5836))
+- Released Release Tracker v4.20.0 as part of sprint progress. ([#5897](https://github.com/raft-tech/TANF-app/issues/5897))
+- Deployed Celery, backend, and Go parser apps in parallel via CI/CD, speeding up production readiness. ([#5910](https://github.com/raft-tech/TANF-app/issues/5910))
 
 ---
 
 ⚪️ **Total Issues:** 31  
-✅ **Closed:** 6  
-➡️ **Moved:** 20  
+✅ **Closed:** 11  
+➡️ **Moved:** 15  
 ⬛️ **Unchanged:** 5  
 🛑 **Blocked:** 0  
 
@@ -69,10 +63,10 @@ _Remained in **In Progress**_
 _Moved from **Next Up: DEV** to **Current Sprint Backlog**_  
 
 
-## [Migrate Knowledge Center to `.tanfdata.acf.hhs.gov` domain](https://github.com/raft-tech/TANF-app/issues/5916)
+## [Migrate to tanfdata.acf.hhs.gov](https://github.com/raft-tech/TANF-app/issues/5993)
 
-- ➡️ [Knowledge Center Audit/Remove absolute links (#5929)](https://github.com/raft-tech/TANF-app/issues/5929)  
-_Moved from **Product Backlog** to **In Progress**_  
+- ✅ [Knowledge Center Audit/Remove absolute links (#5929)](https://github.com/raft-tech/TANF-app/issues/5929)  
+_**Closed**_ - _Moved from **Product Backlog**_  
 
 
 ## [New React Admin](https://github.com/raft-tech/TANF-app/issues/5700)
@@ -80,8 +74,8 @@ _Moved from **Product Backlog** to **In Progress**_
 - ⬛️ [React Admin: UX Design Exploration & IA Improvements (#5651)](https://github.com/raft-tech/TANF-app/issues/5651)  
 _Remained in **In Progress**_  
 
-- ➡️ [2. Configure Admin Authentication, Session, and CSRF Boundaries (#5836)](https://github.com/raft-tech/TANF-app/issues/5836)  
-_Moved from **In Progress** to **Raft (Dev) Review**_  
+- ✅ [2. Configure Admin Authentication, Session, and CSRF Boundaries (#5836)](https://github.com/raft-tech/TANF-app/issues/5836)  
+_**Closed**_ - _Moved from **In Progress**_  
 
 - ➡️ [3. Establish Admin API Boundary (#5837)](https://github.com/raft-tech/TANF-app/issues/5837)  
 _Moved from **Product Backlog** to **In Progress**_  
@@ -94,6 +88,12 @@ _Remained in **In Progress**_
 
 - ➡️ [Update ZAP (#5798)](https://github.com/raft-tech/TANF-app/issues/5798)  
 _Moved from **Current Sprint Backlog** to **In Progress**_  
+
+
+## [Release Tracking](https://github.com/raft-tech/TANF-app/issues/5789)
+
+- ✅ [Release Tracker v4.20.0 (#5897)](https://github.com/raft-tech/TANF-app/issues/5897)  
+_**Closed**_ - _Moved from **In Progress**_  
 
 
 ## [User Experience Enhancements](https://github.com/raft-tech/TANF-app/issues/4444)
@@ -113,8 +113,8 @@ _Moved from **Next Up: DEV** to **In Progress**_
 - ➡️ [Django query optimization (#5383)](https://github.com/raft-tech/TANF-app/issues/5383)  
 _Moved from **Product Backlog** to **Current Sprint Backlog**_  
 
-- ➡️ [Fix Callback state_nonce_tracker KeyError and Return Friendly “Session Expired” Message (#5574)](https://github.com/raft-tech/TANF-app/issues/5574)  
-_Moved from **Next Up: DEV** to **In Progress**_  
+- ✅ [Fix Callback state_nonce_tracker KeyError and Return Friendly “Session Expired” Message (#5574)](https://github.com/raft-tech/TANF-app/issues/5574)  
+_**Closed**_ - _Moved from **Next Up: DEV**_  
 
 - ➡️ [File submission error message and form reset (#5603)](https://github.com/raft-tech/TANF-app/issues/5603)  
 _Moved from **Next Up: DEV** to **In Progress**_  
@@ -131,14 +131,11 @@ _Remained in **No Pipeline Info**_
 - ✅ [[Spike] Create better Django model validation for Go parser schemas (#5866)](https://github.com/raft-tech/TANF-app/issues/5866)  
 _**Closed**_ - _Moved from **Raft (Dev) Review**_  
 
-- ➡️ [Combine Submission History and File Upload tabs for Data File Submissions (#5885)](https://github.com/raft-tech/TANF-app/issues/5885)  
-_Moved from **In Progress** to **Raft (Dev) Review**_  
-
-- ✅ [Release Tracker v4.20.0 (#5897)](https://github.com/raft-tech/TANF-app/issues/5897)  
+- ✅ [Combine Submission History and File Upload tabs for Data File Submissions (#5885)](https://github.com/raft-tech/TANF-app/issues/5885)  
 _**Closed**_ - _Moved from **In Progress**_  
 
-- ➡️ [Deploy Celery, backend, and Go parser apps in parallel via CI/CD (#5910)](https://github.com/raft-tech/TANF-app/issues/5910)  
-_Moved from **Product Backlog** to **Next Up: DEV**_  
+- ✅ [Deploy Celery, backend, and Go parser apps in parallel via CI/CD (#5910)](https://github.com/raft-tech/TANF-app/issues/5910)  
+_**Closed**_ - _Moved from **Product Backlog**_  
 
 - ➡️ [[BUG] Keycloak configure script fails when tdp-api-audience client scope already exists (#5911)](https://github.com/raft-tech/TANF-app/issues/5911)  
 _Moved from **Product Backlog** to **Next Up: DEV**_  
