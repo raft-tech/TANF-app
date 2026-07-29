@@ -48,6 +48,7 @@ class CloudGov(Common):
     cloudgov_name = cloudgov_app.get("name").split("-")[
         -1
     ]  # converting "tdp-backend-name" to just "name"
+    CELERY_TASK_DEFAULT_QUEUE = os.getenv("CELERY_TASK_DEFAULT_QUEUE", cloudgov_name)
     # TODO: does this break prod?
     services_basename = cloudgov_space_suffix
 
@@ -194,6 +195,14 @@ class CloudGov(Common):
     KEYCLOAK_DJANGO_CLIENT_SECRET = keycloak_creds.get(
         "django_client_secret", os.getenv("KEYCLOAK_DJANGO_CLIENT_SECRET", "")
     )
+    KEYCLOAK_TDP_ADMIN_CLIENT_ID = keycloak_creds.get(
+        "tdp_admin_client_id",
+        os.getenv("KEYCLOAK_TDP_ADMIN_CLIENT_ID", "tdp-admin"),
+    )
+    KEYCLOAK_TDP_ADMIN_CLIENT_SECRET = keycloak_creds.get(
+        "tdp_admin_client_secret",
+        os.getenv("KEYCLOAK_TDP_ADMIN_CLIENT_SECRET", ""),
+    )
 
     # mozilla-django-oidc: derive OIDC settings from Keycloak URLs
     OIDC_RP_CLIENT_ID = KEYCLOAK_DJANGO_CLIENT_ID
@@ -223,11 +232,15 @@ class Development(CloudGov):
 
     # https://docs.djangoproject.com/en/2.0/ref/settings/#allowed-hosts
     ALLOWED_HOSTS = [".tanfdata.acf.hhs.gov", ".apps.internal"]
+    ADMIN_FRONTEND_BASE_URL = os.getenv(
+        "ADMIN_FRONTEND_BASE_URL", "https://admin-test.tanfdata.acf.hhs.gov"
+    )
     CORS_ORIGIN_ALLOW_ALL = False
     CORS_ALLOWED_ORIGINS = [
         "https://test.tanfdata.acf.hhs.gov",
         "https://a11y.tanfdata.acf.hhs.gov",
         "https://qasp.tanfdata.acf.hhs.gov",
+        ADMIN_FRONTEND_BASE_URL,
     ]
     CORS_ALLOW_CREDENTIALS = True
     CORS_ALLOW_METHODS = (
@@ -240,6 +253,9 @@ class Development(CloudGov):
 class Staging(CloudGov):
     """Settings for applications deployed in the Cloud.gov staging space."""
 
+    ADMIN_FRONTEND_BASE_URL = os.getenv(
+        "ADMIN_FRONTEND_BASE_URL", "https://staging.admin.tanfdata.acf.hhs.gov"
+    )
     ALLOWED_HOSTS = [
         "staging.tanfdata.acf.hhs.gov",
         "develop.tanfdata.acf.hhs.gov",
@@ -248,6 +264,7 @@ class Staging(CloudGov):
     CORS_ALLOWED_ORIGINS = [
         "https://staging.tanfdata.acf.hhs.gov",
         "https://develop.tanfdata.acf.hhs.gov",
+        ADMIN_FRONTEND_BASE_URL,
     ]
     CORS_ORIGIN_ALLOW_ALL = False
     CORS_ALLOW_CREDENTIALS = True
@@ -262,7 +279,7 @@ class Staging(CloudGov):
     )
 
     # Cookie settings
-    SESSION_COOKIE_DOMAIN = ".acf.hhs.gov"
+    SESSION_COOKIE_DOMAIN = ".tanfdata.acf.hhs.gov"
 
     # Cloud.gov SET integration settings
     LOGIN_GOV_SET_AUDIENCE = os.getenv(
@@ -274,6 +291,9 @@ class Staging(CloudGov):
 class Production(CloudGov):
     """Settings for applications deployed in the Cloud.gov production space."""
 
+    ADMIN_FRONTEND_BASE_URL = os.getenv(
+        "ADMIN_FRONTEND_BASE_URL", "https://admin.tanfdata.acf.hhs.gov"
+    )
     # TODO: Add production ACF domain when known
     ALLOWED_HOSTS = [
         "tanfdata.acf.hhs.gov",
@@ -287,13 +307,14 @@ class Production(CloudGov):
 
     # Cookie settings
     SESSION_COOKIE_SAMESITE = "None"
-    SESSION_COOKIE_DOMAIN = ".acf.hhs.gov"
+    SESSION_COOKIE_DOMAIN = ".tanfdata.acf.hhs.gov"
     SESSION_COOKIE_PATH = "/;HttpOnly"
 
-    MIDDLEWARE = ("tdpservice.middleware.SessionMiddleware", *Common.MIDDLEWARE)
-
     # CORS allowed origins
-    CORS_ALLOWED_ORIGINS = ["https://tanfdata.acf.hhs.gov"]
+    CORS_ALLOWED_ORIGINS = [
+        "https://tanfdata.acf.hhs.gov",
+        ADMIN_FRONTEND_BASE_URL,
+    ]
     CORS_ORIGIN_ALLOW_ALL = False
     CORS_ALLOW_CREDENTIALS = True
     CORS_ALLOW_METHODS = (
