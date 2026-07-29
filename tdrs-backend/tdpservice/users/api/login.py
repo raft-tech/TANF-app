@@ -276,10 +276,6 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
             meta.get("HTTP_X_REQUEST_ID")
             or meta.get("HTTP_X_VCAP_REQUEST_ID")
             or meta.get("HTTP_X_CORRELATION_ID")
-            or meta.get("HTTP_X_B3_TRACEID")
-            or meta.get("HTTP_B3")
-            or meta.get("HTTP_X_AMZN_TRACE_ID")
-            or meta.get("HTTP_TRACEPARENT")
         )
 
     def _validate_state_nonce_tracker(self, request, state):
@@ -308,15 +304,12 @@ class TokenAuthorizationOIDC(ObtainAuthToken):
     def _get_user_id_token(self, request, state, token_data):
         """Get the user and id_token from the request."""
         try:
-            self._validate_state_nonce_tracker(request, state)
             decoded_payload = self.validate_and_decode_payload(
                 request, state, token_data
             )
             id_token = token_data.get("id_token")
             user = self.handle_user(request, id_token, decoded_payload)
             return response_redirect(user, id_token)
-        except InvalidOIDCLoginSession as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except (InactiveUser, ExpiredToken) as e:
             logger.exception(e)
             return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
