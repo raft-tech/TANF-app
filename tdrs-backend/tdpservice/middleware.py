@@ -62,19 +62,13 @@ class RequestAttributionMetricsMiddleware(object):
         attribution = self._request_attribution(request, user_is_authenticated)
         status_code_label = str(status_code)
 
-        user_stt, user_group = (
-            self._authenticated_user_labels(user)
-            if user_is_authenticated
-            else (self.UNKNOWN_LABEL, self.UNKNOWN_LABEL)
-        )
-
         resolver_match = getattr(request, "resolver_match", None)
         API_REQUESTS_TOTAL.labels(
             source=attribution.source,
             auth_method=attribution.auth_method,
             client_id=attribution.client_id,
-            user_stt=user_stt,
-            user_group=user_group,
+            user_stt=attribution.user_stt,
+            user_group=attribution.user_group,
             method=request.method.upper(),
             status_code=status_code_label,
             view=getattr(resolver_match, "view_name", None) or self.UNKNOWN_LABEL,
@@ -134,26 +128,6 @@ class RequestAttributionMetricsMiddleware(object):
             return False
 
         return True
-
-    def _authenticated_user_labels(self, user):
-        """Return STT and group labels for an authenticated Django user."""
-        stt = getattr(user, "stt", None)
-        user_stt = (
-            self.NONE_LABEL
-            if not getattr(user, "stt_id", None) and stt is None
-            else getattr(stt, "name", self.NONE_LABEL)
-        )
-
-        groups = getattr(user, "groups", None)
-        try:
-            group_names = groups.values_list("name", flat=True) if groups else []
-        except Exception:
-            return user_stt, self.UNKNOWN_LABEL
-
-        if not group_names:
-            return user_stt, self.NONE_LABEL
-
-        return user_stt, group_names[0]
 
 
 class NoCacheMiddleware(object):

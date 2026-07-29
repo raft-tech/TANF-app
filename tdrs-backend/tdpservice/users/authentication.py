@@ -33,6 +33,21 @@ def _bearer_token_from_request(request):
     return header[7:].strip() or None
 
 
+def _user_stt_label(claims):
+    """Return the STT metric label from verified Keycloak token claims."""
+    stt = claims.get("stt_id", None)
+    return str(stt) if stt else "none"
+
+
+def _user_group_label(claims):
+    """Return the first user group metric label from verified Keycloak claims."""
+    groups = claims.get("groups", None)
+    if not groups or len(groups) < 1:
+        return "none"
+
+    return groups[0].lstrip("/")
+
+
 def _expected_keycloak_issuer():
     """Return the Keycloak issuer expected for bearer access tokens."""
     return getattr(
@@ -191,6 +206,8 @@ class KeycloakBearerTokenAuthentication(BaseAuthentication):
                 source="api_client",
                 client_id=client_id,
                 auth_method="bearer",
+                user_stt=_user_stt_label(payload),
+                user_group=_user_group_label(payload),
             ),
         )
         django_request = getattr(request, "_request", None)

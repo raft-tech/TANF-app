@@ -220,6 +220,8 @@ class TestBearerTokenIntentVerification:
         token = signed_bearer_token(
             email=user.email,
             login_gov_uuid=str(user.login_gov_uuid),
+            stt_id="1",
+            groups=["data-analyst"],
         )
         request = request_with_token(token)
 
@@ -234,6 +236,8 @@ class TestBearerTokenIntentVerification:
             source="api_client",
             client_id="tdp-cli",
             auth_method="bearer",
+            user_stt="1",
+            user_group="Data Analyst",
         )
 
     def test_signed_token_stashes_client_id_on_underlying_django_request(
@@ -246,6 +250,8 @@ class TestBearerTokenIntentVerification:
         token = signed_bearer_token(
             email=user.email,
             login_gov_uuid=str(user.login_gov_uuid),
+            stt_id="2",
+            groups=["ofa-system-admin"],
         )
         django_request = RequestFactory().get(
             "/v1/users/me/", HTTP_AUTHORIZATION=f"Bearer {token}"
@@ -261,6 +267,8 @@ class TestBearerTokenIntentVerification:
             source="api_client",
             client_id="tdp-cli",
             auth_method="bearer",
+            user_stt="2",
+            user_group="OFA System Admin",
         )
 
     def test_signed_token_with_wrong_azp_is_rejected(

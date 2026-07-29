@@ -12,6 +12,8 @@ class RequestAttribution:
     source: str = "unknown"
     client_id: str = "none"
     auth_method: str = "none"
+    user_stt: str = "unknown"
+    user_group: str = "unknown"
 
 
 def set_request_attribution(request: Any, attribution: RequestAttribution) -> None:

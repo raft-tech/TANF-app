@@ -37,6 +37,22 @@ class GroupSpy:
         return self.group_names
 
 
+class UserRelationTrap:
+    """Authenticated user double that fails if relation labels are accessed."""
+
+    is_authenticated = True
+
+    @property
+    def stt(self):
+        """Fail if middleware tries to read the STT relation."""
+        raise AssertionError("stt relation should not be touched")
+
+    @property
+    def groups(self):
+        """Fail if middleware tries to read the groups relation."""
+        raise AssertionError("groups relation should not be touched")
+
+
 @pytest.fixture
 def counter_spy(monkeypatch):
     """Patch the request attribution counter with a local spy."""
@@ -95,6 +111,34 @@ def _set_bearer_attribution(request, client_id="tdp-cli"):
         source="api_client",
         client_id=client_id,
         auth_method="bearer",
+    )
+
+
+def test_request_attribution_uses_verified_bearer_identity_labels(
+    counter_spy, request_factory
+):
+    """Bearer auth labels come from verified attribution, not user ORM relations."""
+    request = _tracked_request(
+        request_factory,
+        HTTP_AUTHORIZATION="Bearer signed-token",
+    )
+    request.user = UserRelationTrap()
+    request.tdp_attribution = RequestAttribution(
+        source="api_client",
+        client_id="tdp-cli",
+        auth_method="bearer",
+        user_stt="1",
+        user_group="Data Analyst",
+    )
+
+    _call_middleware(request)
+
+    assert _last_labels(counter_spy) == _expected_labels(
+        source="api_client",
+        auth_method="bearer",
+        client_id="tdp-cli",
+        user_stt="1",
+        user_group="Data Analyst",
     )
 
 
