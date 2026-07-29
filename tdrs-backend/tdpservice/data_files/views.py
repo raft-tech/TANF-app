@@ -230,8 +230,7 @@ class DataFileViewSet(ModelViewSet):
                 scan_result=scan_result,
                 note=scan_failure_response.data["detail"],
             )
-            if settings.GO_PARSER_SHADOW_MODE:
-                create_or_update_shadow_data_file(data_file)
+            data_file.delete()
             return scan_failure_response
 
         complete_datafile_av_scan(
