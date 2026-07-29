@@ -59,16 +59,13 @@ def test_dev_local_config_includes_hosted_and_local_urls():
     assert "http://localhost:3000/*" in django_client["redirectUris"]
     assert "http://127.0.0.1:8989/*" in django_client["redirectUris"]
     assert (
-        "https://test.tanfdata.acf.hhs.gov/admin-auth/*"
-        in admin_client["redirectUris"]
+        "https://test.tanfdata.acf.hhs.gov/admin-auth/*" in admin_client["redirectUris"]
     )
     assert (
-        "https://qasp.tanfdata.acf.hhs.gov/admin-auth/*"
-        in admin_client["redirectUris"]
+        "https://qasp.tanfdata.acf.hhs.gov/admin-auth/*" in admin_client["redirectUris"]
     )
     assert (
-        "https://a11y.tanfdata.acf.hhs.gov/admin-auth/*"
-        in admin_client["redirectUris"]
+        "https://a11y.tanfdata.acf.hhs.gov/admin-auth/*" in admin_client["redirectUris"]
     )
     assert "http://localhost:8989/*" in admin_client["redirectUris"]
     assert grafana_client["attributes"]["post.logout.redirect.uris"] == (
@@ -159,7 +156,8 @@ def test_configure_idps_applies_cli_audience_to_existing_realms():
     assert "configure_tdp_cli_api_audience()" in script
     assert "configure_tdp_cli_api_audience" in script.split("main()", maxsplit=1)[1]
     assert 'scope_name="tdp-api-audience"' in script
-    assert "/client-scopes?name=${scope_name}" in script
+    assert "get_client_scope_uuid()" in script
+    assert "select(.name == $name)" in script
     assert 'get_client_uuid "tdp-cli"' in script
     assert "default-client-scopes" in script
 
