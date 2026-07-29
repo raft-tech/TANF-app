@@ -64,6 +64,11 @@ class ErrorReportBase(ABC):
         """Get the columns for header."""
         pass
 
+    @abstractmethod
+    def hide_columns(self):
+        """Hide columns by index."""
+        pass
+
     def format_header(self, header_list: list):
         """Format header."""
         return " ".join(
@@ -129,6 +134,10 @@ class FRADataErrorReport(ErrorReportBase):
         """Get the columns for header."""
         return ["exit_date", "SSN", "row_number_in_file", "error_description"]
 
+    def hide_columns(self):
+        """Hide columns by index."""
+        pass
+
     def _obscure_ssn(self, ssn):
         """Obscure SSN."""
         if ssn is None:
@@ -174,6 +183,7 @@ class TanfDataErrorReportBase(ErrorReportBase):
         prioritized_sheet.set_column(0, 0, 20)
         aggregate_sheet.autofit()
         aggregate_sheet.set_column(0, 0, 20)
+        self.hide_columns()
 
         self.workbook.close()
         self.output.seek(0)
@@ -282,15 +292,19 @@ class TanfDataErrorReportBase(ErrorReportBase):
             {"bold": True, "bg_color": header_fill, "top": 1, "right": 1, "bottom": 1}
         )
         section_header_wrapped = self.workbook.add_format(
-            {"bold": True, "bg_color": header_fill, "top": 1, "bottom": 1, "text_wrap": True}
+            {
+                "bold": True,
+                "bg_color": header_fill,
+                "top": 1,
+                "bottom": 1,
+                "text_wrap": True,
+            }
         )
         wrapped_text = self.workbook.add_format({"text_wrap": True, "align": "left"})
         wrapped_text_top = self.workbook.add_format(
             {"text_wrap": True, "valign": "top"}
         )
-        link = self.workbook.add_format(
-            {"font_color": "#0070C0", "underline": True}
-        )
+        link = self.workbook.add_format({"font_color": "#0070C0", "underline": True})
         link_top = self.workbook.add_format(
             {"font_color": "#0070C0", "underline": True, "valign": "top"}
         )
@@ -509,6 +523,19 @@ class ActiveClosedErrorReport(TanfDataErrorReportBase):
         ]
         return columns
 
+    def hide_columns(self):
+        """Hide columns by index."""
+        # Only hiding `internal_variable_name` for now in both sheets.
+        prioritized_columns = [6]
+        prioritized_sheet = self.workbook.get_worksheet_by_name(name="Critical")
+        for col in prioritized_columns:
+            prioritized_sheet.set_column(col, col, 0)
+
+        aggregate_columns = [5]
+        aggregate_sheet = self.workbook.get_worksheet_by_name(name="Summary")
+        for col in aggregate_columns:
+            aggregate_sheet.set_column(col, col, 0)
+
 
 class AggregateStratumErrorReport(TanfDataErrorReportBase):
     """TANF Data Report Error Report generator for Aggregate and Stratum files."""
@@ -551,3 +578,16 @@ class AggregateStratumErrorReport(TanfDataErrorReportBase):
             "error_type",
         ]
         return columns
+
+    def hide_columns(self):
+        """Hide columns by index."""
+        # Only hiding `internal_variable_name` for now in both sheets.
+        prioritized_columns = [5]
+        prioritized_sheet = self.workbook.get_worksheet_by_name(name="Critical")
+        for col in prioritized_columns:
+            prioritized_sheet.set_column(col, col, 0)
+
+        aggregate_columns = [5]
+        aggregate_sheet = self.workbook.get_worksheet_by_name(name="Summary")
+        for col in aggregate_columns:
+            aggregate_sheet.set_column(col, col, 0)
