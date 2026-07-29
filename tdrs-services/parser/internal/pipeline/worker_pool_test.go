@@ -436,8 +436,8 @@ func TestWorkerPool_RecordWorkerMetrics_EmitsAggregatedMetricsOnce(t *testing.T)
 	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_routing"} 1`)
 	assertMetricsContains(t, body, `go_parser_pipeline_stage_duration_seconds_sum{program="TAN",section="1",server_mode="celery",stage="worker_routing"} 5`)
 	assertMetricsContains(t, body, `go_parser_worker_pool_active_duration_seconds_total{program="TAN",section="1",server_mode="celery"} 7`)
-	assertMetricsContains(t, body, `go_parser_worker_pool_active_workers{program="TAN",section="1",server_mode="celery"} 0`)
-	assertMetricsContains(t, body, `go_parser_worker_pool_utilization{program="TAN",section="1",server_mode="celery"} 0`)
+	assertMetricsMissing(t, body, `go_parser_worker_pool_active_workers{program="TAN",section="1",server_mode="celery"}`)
+	assertMetricsMissing(t, body, `go_parser_worker_pool_utilization{program="TAN",section="1",server_mode="celery"}`)
 }
 
 func TestWorkerPool_ProcessBatch_AccumulatesTimingWithoutMetrics(t *testing.T) {

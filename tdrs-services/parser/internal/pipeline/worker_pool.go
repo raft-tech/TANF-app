@@ -94,7 +94,6 @@ func NewWorkerPool(
 func (wp *WorkerPool) Start(ctx context.Context) {
 	wp.startedAt = time.Now()
 	metrics.SetWorkerPoolCapacity(wp.metricsProgram, wp.metricsSection, wp.numWorkers)
-	metrics.SetWorkerPoolActive(wp.metricsProgram, wp.metricsSection, 0, wp.numWorkers)
 	for i := 0; i < wp.numWorkers; i++ {
 		wp.wg.Add(1)
 		go wp.worker(ctx, i)
@@ -218,7 +217,6 @@ func (wp *WorkerPool) recordWorkerMetrics() {
 		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "worker_field_validation", stats.ValidationDurations.FieldValidation)
 		metrics.ObservePipelineStage(wp.metricsProgram, wp.metricsSection, "worker_routing", stats.RoutingDuration)
 		metrics.AddWorkerPoolActiveDuration(wp.metricsProgram, wp.metricsSection, stats.ActiveDuration)
-		metrics.SetWorkerPoolActive(wp.metricsProgram, wp.metricsSection, 0, wp.numWorkers)
 	})
 }
 

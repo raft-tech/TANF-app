@@ -1325,26 +1325,14 @@
             "uid": "$datasource"
           },
           "editorMode": "code",
-          "expr": "sum(go_parser_worker_pool_active_workers{service=\"go-parser\",env=~\"$env\",server_mode=~\"$server_mode\",program=~\"$program\",section=~\"$section\"}) by (program, section)",
-          "format": "time_series",
-          "legendFormat": "active {{program}} section {{section}}",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "$datasource"
-          },
-          "editorMode": "code",
           "expr": "sum(go_parser_worker_pool_configured_workers{service=\"go-parser\",env=~\"$env\",server_mode=~\"$server_mode\",program=~\"$program\",section=~\"$section\"}) by (program, section)",
           "format": "time_series",
           "legendFormat": "configured {{program}} section {{section}}",
           "range": true,
-          "refId": "B"
+          "refId": "A"
         }
       ],
-      "title": "Worker Pool Size",
+      "title": "Configured Worker Pool Size",
       "type": "timeseries"
     },
     {

@@ -23,9 +23,7 @@ const (
 	recordsParsedTotal        = "go_parser_records_parsed_total"
 	errorsGeneratedTotal      = "go_parser_errors_generated_total"
 	pipelineStageDuration     = "go_parser_pipeline_stage_duration_seconds"
-	workerPoolActiveWorkers   = "go_parser_worker_pool_active_workers"
 	workerPoolConfigured      = "go_parser_worker_pool_configured_workers"
-	workerPoolUtilization     = "go_parser_worker_pool_utilization"
 	workerPoolActiveDuration  = "go_parser_worker_pool_active_duration_seconds_total"
 	workerPoolCapacitySeconds = "go_parser_worker_pool_capacity_seconds_total"
 	flushesTotal              = "go_parser_flushes_total"
@@ -74,17 +72,9 @@ var metricDefs = map[string]metricDef{
 		kind: metricHistogram,
 		help: "Go parser pipeline stage durations in seconds.",
 	},
-	workerPoolActiveWorkers: {
-		kind: metricGauge,
-		help: "Current active Go parser pipeline workers.",
-	},
 	workerPoolConfigured: {
 		kind: metricGauge,
 		help: "Configured Go parser pipeline worker count.",
-	},
-	workerPoolUtilization: {
-		kind: metricGauge,
-		help: "Current Go parser worker utilization ratio.",
 	},
 	workerPoolActiveDuration: {
 		kind: metricCounter,
@@ -431,20 +421,6 @@ func SetWorkerPoolCapacity(program string, section int, workers int) {
 		return
 	}
 	recorder().SetGauge(workerPoolConfigured, parseLabels(program, section, nil), float64(workers))
-}
-
-// SetWorkerPoolActive records the current active worker count and utilization.
-func SetWorkerPoolActive(program string, section int, active int64, configured int) {
-	if active < 0 {
-		active = 0
-	}
-	labels := parseLabels(program, section, nil)
-	recorder().SetGauge(workerPoolActiveWorkers, labels, float64(active))
-	utilization := 0.0
-	if configured > 0 {
-		utilization = float64(active) / float64(configured)
-	}
-	recorder().SetGauge(workerPoolUtilization, labels, utilization)
 }
 
 // AddWorkerPoolActiveDuration records elapsed processing time for one active worker.
