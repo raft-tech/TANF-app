@@ -467,8 +467,10 @@ class ActiveClosedErrorReport(TanfDataErrorReportBase):
         )
 
         # All cat1/4 errors
-        error_type_query = Q(error_type=ParserErrorCategoryChoices.PRE_CHECK) | Q(
-            error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY
+        error_type_query = (
+            Q(error_type=ParserErrorCategoryChoices.PRE_CHECK)
+            | Q(error_type=ParserErrorCategoryChoices.CASE_CONSISTENCY)
+            | Q(error_type=ParserErrorCategoryChoices.RECORD_PRE_CHECK)
         )
         filtered_errors = self.parser_errors.filter(error_type_query)
 
