@@ -304,12 +304,6 @@ export const ReportsProvider = ({ isFra = false, children }) => {
         // Reset year if it's invalid for the new file type
         resetPiaYear(pendingChange.value)
         break
-      case 'year':
-        setYearInputValue(pendingChange.value)
-        break
-      case 'quarter':
-        setQuarterInputValue(pendingChange.value)
-        break
       case 'stt':
         setSttInputValue(pendingChange.value)
         dispatch(setStt(pendingChange.value))
@@ -393,15 +387,10 @@ export const ReportsProvider = ({ isFra = false, children }) => {
   const selectYear = ({ target: { value } }) => {
     setYearTouched(true)
     handleFieldSelection('year')
-
-    if (uploadedFiles.length > 0 || fraHasUploadedFile) {
-      setModalTriggerSource('input-change')
-      setPendingChange({ type: 'year', value })
-      setErrorModalVisible(true)
-    } else {
-      setYearInputValue(value)
-      setUploadAlertState({ active: false, type: null, message: null })
-      setProcessingAlertState({ active: false, type: null, message: null })
+    setYearInputValue(value)
+    setUploadAlertState({ active: false, type: null, message: null })
+    setProcessingAlertState({ active: false, type: null, message: null })
+    if (uploadedFiles.length === 0 && !fraHasUploadedFile) {
       dispatch(clearFileList({ fileType: fileTypeInputValue }))
       setFraSelectedFile(null)
     }
@@ -410,15 +399,10 @@ export const ReportsProvider = ({ isFra = false, children }) => {
   const selectQuarter = ({ target: { value } }) => {
     setQuarterTouched(true)
     handleFieldSelection('quarter')
-
-    if (uploadedFiles.length > 0 || fraHasUploadedFile) {
-      setModalTriggerSource('input-change')
-      setPendingChange({ type: 'quarter', value })
-      setErrorModalVisible(true)
-    } else {
-      setQuarterInputValue(value)
-      setUploadAlertState({ active: false, type: null, message: null })
-      setProcessingAlertState({ active: false, type: null, message: null })
+    setQuarterInputValue(value)
+    setUploadAlertState({ active: false, type: null, message: null })
+    setProcessingAlertState({ active: false, type: null, message: null })
+    if (uploadedFiles.length === 0 && !fraHasUploadedFile) {
       dispatch(clearFileList({ fileType: fileTypeInputValue }))
       setFraSelectedFile(null)
     }

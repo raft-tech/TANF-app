@@ -599,7 +599,7 @@ describe('FRA Reports Page', () => {
       expect(dispatch).toHaveBeenCalledTimes(3)
     })
 
-    it('Shows a message if input is changed with an non-uploaded file', async () => {
+    it('retains a selected file when the fiscal period changes', async () => {
       const { getByText, container, getByLabelText, queryByText } =
         await setup()
 
@@ -619,20 +619,94 @@ describe('FRA Reports Page', () => {
       const yearsDropdown = getByLabelText('Fiscal Year (October - September)*')
       fireEvent.change(yearsDropdown, { target: { value: '2024' } })
 
-      await waitFor(() =>
-        expect(queryByText('Files Not Submitted')).toBeInTheDocument()
-      )
-
-      fireEvent.click(getByText(/OK/, { selector: '#modal button' }))
-
       const quarterDropdown = getByLabelText('Fiscal Quarter*')
       fireEvent.change(quarterDropdown, { target: { value: 'Q2' } })
 
       await waitFor(() => {
+        expect(queryByText('Files Not Submitted')).not.toBeInTheDocument()
+        expect(
+          getByText(
+            'Selected File report.csv. To change the selected file, click this button.'
+          )
+        ).toBeInTheDocument()
+        expect(getByText('2024', { selector: 'option' }).selected).toBe(true)
         expect(
           getByText('Quarter 2 (January - March)', { selector: 'option' })
             .selected
         ).toBe(true)
+      })
+    })
+
+    it('clears a selected file after a confirmed STT change', async () => {
+      const state = {
+        ...initialState,
+        auth: {
+          authenticated: true,
+          user: {
+            email: 'hi@bye.com',
+            stt: null,
+            roles: [{ id: 1, name: 'OFA System Admin', permission: [] }],
+            account_approval_status: 'Approved',
+          },
+        },
+      }
+      const store = mockStore(state)
+      const { container, getByLabelText, getByTestId, getByText, queryByText } =
+        render(
+          <Provider store={store}>
+            <MemoryRouter>
+              <FRAReports />
+            </MemoryRouter>
+          </Provider>
+        )
+
+      fireEvent.change(getByTestId('stt-combobox'), {
+        target: { value: 'Alaska' },
+      })
+      fireEvent.change(getByLabelText('Fiscal Year (October - September)*'), {
+        target: { value: '2021' },
+      })
+      fireEvent.change(getByLabelText('Fiscal Quarter*'), {
+        target: { value: 'Q1' },
+      })
+
+      await waitFor(() => {
+        expect(getByText('Submit Report')).toBeInTheDocument()
+      })
+
+      fireEvent.change(container.querySelector('#fra-file-upload'), {
+        target: { files: [makeTestFile('report.csv')] },
+      })
+
+      await waitFor(() => {
+        expect(
+          getByText(
+            'Selected File report.csv. To change the selected file, click this button.'
+          )
+        ).toBeInTheDocument()
+      })
+
+      fireEvent.change(getByTestId('stt-combobox'), {
+        target: { value: 'Alabama' },
+      })
+
+      await waitFor(() => {
+        expect(queryByText('Files Not Submitted')).toBeInTheDocument()
+      })
+
+      fireEvent.click(getByText('OK', { selector: '#modal button' }))
+
+      await waitFor(() => {
+        expect(
+          queryByText(
+            'Selected File report.csv. To change the selected file, click this button.'
+          )
+        ).not.toBeInTheDocument()
+        expect(
+          getByText(
+            'Alabama - Work Outcomes of TANF Exiters - Fiscal Year 2021 - Quarter 1 (October - December)'
+          )
+        ).toBeInTheDocument()
       })
     })
 
@@ -719,113 +793,6 @@ describe('FRA Reports Page', () => {
       await waitFor(() =>
         expect(queryByText('Files Not Submitted')).not.toBeInTheDocument()
       )
-    })
-
-    it('Allows the user to cancel the error modal and retain previous search selections', async () => {
-      const { getByText, queryByText, getByLabelText, container, dispatch } =
-        await setup()
-
-      const uploadForm = container.querySelector('#fra-file-upload')
-      fireEvent.change(uploadForm, {
-        target: { files: [makeTestFile('report.csv')] },
-      })
-      await waitFor(() =>
-        expect(
-          getByText(
-            'Selected File report.csv. To change the selected file, click this button.'
-          )
-        ).toBeInTheDocument()
-      )
-
-      // make a change to the search selections and click search
-      const yearsDropdown = getByLabelText('Fiscal Year (October - September)*')
-      fireEvent.change(yearsDropdown, { target: { value: '2024' } })
-
-      await waitFor(() =>
-        expect(queryByText('Files Not Submitted')).toBeInTheDocument()
-      )
-
-      // click cancel
-      fireEvent.click(getByText(/Cancel/, { selector: '#modal button' }))
-
-      // assert file still exists, search params are the same as initial, dispatch not called
-      await waitFor(() => {
-        expect(dispatch).toHaveBeenCalledTimes(3)
-        expect(queryByText('Files Not Submitted')).not.toBeInTheDocument()
-        expect(
-          getByText(
-            'Selected File report.csv. To change the selected file, click this button.'
-          )
-        ).toBeInTheDocument()
-        expect(getByText('2021', { selector: 'option' }).selected).toBe(true)
-        expect(
-          getByText('Quarter 1 (October - December)', { selector: 'option' })
-            .selected
-        ).toBe(true)
-      })
-    })
-
-    it('Allows the user to discard the error modal and continue with a new search', async () => {
-      const { getByText, queryByText, getByLabelText, container } =
-        await setup()
-
-      const uploadForm = container.querySelector('#fra-file-upload')
-      fireEvent.change(uploadForm, {
-        target: { files: [makeTestFile('report.csv')] },
-      })
-      await waitFor(() =>
-        expect(
-          getByText(
-            'Selected File report.csv. To change the selected file, click this button.'
-          )
-        ).toBeInTheDocument()
-      )
-
-      // make a change to the search selections
-      const yearsDropdown = getByLabelText('Fiscal Year (October - September)*')
-      fireEvent.change(yearsDropdown, { target: { value: '2024' } })
-
-      await waitFor(() =>
-        expect(queryByText('Files Not Submitted')).toBeInTheDocument()
-      )
-
-      // click discard
-      const button = getByText(/OK/, {
-        selector: '#modal button',
-      })
-      fireEvent.click(button)
-
-      const quarterDropdown = getByLabelText('Fiscal Quarter*')
-      fireEvent.change(quarterDropdown, { target: { value: 'Q2' } })
-
-      await waitFor(() => {
-        expect(getByText('2024', { selector: 'option' }).selected).toBe(true)
-        expect(
-          getByText('Quarter 2 (January - March)', { selector: 'option' })
-            .selected
-        ).toBe(true)
-      })
-
-      // assert file discarded, search params updated
-      await waitFor(() => {
-        // expect(dispatch).toHaveBeenCalledTimes(2)
-        expect(queryByText('Files Not Submitted')).not.toBeInTheDocument()
-        expect(
-          queryByText(
-            'Selected File report.csv. To change the selected file, click this button.'
-          )
-        ).not.toBeInTheDocument()
-        expect(getByText('2024', { selector: 'option' }).selected).toBe(true)
-        expect(
-          getByText('Quarter 2 (January - March)', { selector: 'option' })
-            .selected
-        ).toBe(true)
-        expect(
-          getByText(
-            'Alaska - Work Outcomes of TANF Exiters - Fiscal Year 2024 - Quarter 2 (January - March)'
-          )
-        ).toBeInTheDocument()
-      })
     })
   })
 
