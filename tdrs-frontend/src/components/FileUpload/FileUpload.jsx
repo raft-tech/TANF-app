@@ -151,15 +151,6 @@ function FileUpload({
     ? `Selected File ${selectedFile?.fileName}. To change the selected file, click this button.`
     : `Drag file here or choose from folder.`
 
-  // Reset the underlying input and preview when fiscal params change
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.value = null
-    }
-    const deps = checkPreviewDependencies(targetClassName)
-    if (deps.rendered) removeOldPreviews(deps.dropTarget, deps.instructions)
-  }, [year, quarter, targetClassName])
-
   useEffect(() => {
     const trySettingPreview = () => {
       const previewState = handlePreview(fileName, targetClassName)
@@ -177,6 +168,8 @@ function FileUpload({
   }, [hasPreview, hasFile, fileName, targetClassName])
 
   const inputRef = useRef(null)
+  const previousFiscalPeriodRef = useRef(null)
+  const validateAndUploadFileRef = useRef(null)
 
   const validateAndUploadFile = async (event) => {
     setUploadAlertState({
@@ -354,6 +347,27 @@ function FileUpload({
       inputRef.current.value = null
     }
   }
+
+  validateAndUploadFileRef.current = validateAndUploadFile
+
+  useEffect(() => {
+    const previousFiscalPeriod = previousFiscalPeriodRef.current
+    const fiscalPeriodChanged =
+      previousFiscalPeriod &&
+      (previousFiscalPeriod.year !== year ||
+        previousFiscalPeriod.quarter !== quarter)
+
+    previousFiscalPeriodRef.current = { year, quarter }
+
+    if (
+      (previousFiscalPeriod === null || fiscalPeriodChanged) &&
+      selectedFile?.file
+    ) {
+      validateAndUploadFileRef.current({
+        target: { name: section, files: [selectedFile.file] },
+      })
+    }
+  }, [year, quarter, section, selectedFile?.file])
 
   // Initialize USWDS file input component
   useEffect(() => {

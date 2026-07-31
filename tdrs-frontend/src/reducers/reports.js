@@ -179,13 +179,27 @@ const reports = (state = initialState, action) => {
       }
     }
     case SET_FILE_ERROR: {
-      const { error, section } = payload
-      const updatedFiles = getUpdatedFiles({ state, section, error })
+      const { error, file, fileName, fileType, section } = payload
+      const updatedFiles = getUpdatedFiles({
+        state,
+        error,
+        file,
+        fileName,
+        fileType,
+        section,
+      })
       return { ...state, submittedFiles: updatedFiles }
     }
     case FILE_EXT_ERROR: {
-      const { error, section } = payload
-      const updatedFiles = getUpdatedFiles({ state, section, error })
+      const { error, file, fileName, fileType, section } = payload
+      const updatedFiles = getUpdatedFiles({
+        state,
+        error,
+        file,
+        fileName,
+        fileType,
+        section,
+      })
       return { ...state, submittedFiles: updatedFiles }
     }
     case CLEAR_ERROR: {

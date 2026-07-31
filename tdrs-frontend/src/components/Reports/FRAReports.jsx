@@ -176,6 +176,8 @@ const UploadForm = ({
   quarter,
 }) => {
   const inputRef = useRef(null)
+  const previousFiscalPeriodRef = useRef(null)
+  const onFileChangedRef = useRef(null)
 
   useEffect(() => {
     // `init` for the uswds fileInput must be called on the
@@ -204,18 +206,6 @@ const UploadForm = ({
       if (deps.rendered) removeOldPreviews(deps.dropTarget, deps.instructions)
     }
   }, [file])
-
-  useEffect(() => {
-    // Clear the input and any previews when fiscal params change
-    if (inputRef.current) {
-      inputRef.current.value = null
-    }
-    const targetClassName = '.usa-file-input__target input#fra-file-upload'
-    const deps = checkPreviewDependencies(targetClassName)
-    if (deps.rendered) removeOldPreviews(deps.dropTarget, deps.instructions)
-    setSelectedFile(null)
-    setError(null)
-  }, [year, quarter, setError, setSelectedFile])
 
   const onFileChanged = async (e) => {
     setSelectedFile(null)
@@ -292,6 +282,26 @@ const UploadForm = ({
       inputRef.current.value = null
     }
   }
+
+  onFileChangedRef.current = onFileChanged
+
+  useEffect(() => {
+    const previousFiscalPeriod = previousFiscalPeriodRef.current
+    const fiscalPeriodChanged =
+      previousFiscalPeriod &&
+      (previousFiscalPeriod.year !== year ||
+        previousFiscalPeriod.quarter !== quarter)
+
+    previousFiscalPeriodRef.current = { year, quarter }
+
+    if (
+      (previousFiscalPeriod === null || fiscalPeriodChanged) &&
+      file &&
+      !file.id
+    ) {
+      onFileChangedRef.current({ target: { files: [file] } })
+    }
+  }, [year, quarter, file])
 
   const onSubmit = (e) => {
     e.preventDefault()
