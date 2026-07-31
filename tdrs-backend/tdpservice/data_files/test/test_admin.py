@@ -3,7 +3,9 @@ from datetime import datetime, timedelta, timezone
 
 from django.conf import settings
 from django.contrib.admin.sites import AdminSite
+from django.db import connection
 from django.test import RequestFactory
+from django.test.utils import CaptureQueriesContext
 
 import pytest
 
@@ -11,7 +13,9 @@ from tdpservice.data_files.admin import admin as data_file_admin_module
 from tdpservice.data_files.admin.admin import DataFileAdmin
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.parser_error_choices import ParserErrorCategoryChoices
 from tdpservice.data_files.test.factories import DataFileFactory
+from tdpservice.parsers.models import DataFileSummary, ParserError
 from tdpservice.parsers.test.factories import DataFileSummaryFactory
 
 
@@ -51,6 +55,39 @@ def test_DataFileAdmin_parsing_state_uses_choice_label():
     data_file_admin = DataFileAdmin(DataFile, AdminSite())
 
     assert data_file_admin.parsing_state(data_file) == "Parse failed"
+
+
+@pytest.mark.django_db
+def test_DataFileAdmin_changelist_summary_and_error_count_are_eager_loaded(
+    admin_user,
+):
+    """DataFile admin should not query per row for summary links or error counts."""
+    for _ in range(3):
+        data_file = DataFileFactory()
+        DataFileSummaryFactory(
+            datafile=data_file,
+            status=DataFileSummary.Status.ACCEPTED,
+        )
+        ParserError.objects.create(
+            file=data_file,
+            error_type=ParserErrorCategoryChoices.PRE_CHECK,
+        )
+
+    request = RequestFactory().get("/admin/data_files/datafile/")
+    request.user = admin_user
+    data_file_admin = DataFileAdmin(DataFile, AdminSite())
+
+    data_files = list(data_file_admin.get_queryset(request))
+
+    with CaptureQueriesContext(connection) as captured_queries:
+        for data_file in data_files:
+            str(data_file.stt)
+            data_file_admin.status(data_file)
+            data_file_admin.case_totals(data_file)
+            data_file_admin.data_file_summary(data_file)
+            data_file_admin.error_report_link(data_file)
+
+    assert len(captured_queries) == 0
 
 
 @pytest.mark.django_db
