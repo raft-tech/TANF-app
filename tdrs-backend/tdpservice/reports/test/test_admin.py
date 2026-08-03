@@ -14,7 +14,7 @@ from tdpservice.reports.test.factories import ReportFileFactory, ReportSourceFac
 
 @pytest.mark.django_db
 def test_report_file_admin_changelist_relations_are_eager_loaded():
-    """ReportFile admin should not query per row for displayed relations."""
+    """The report file admin should not query per row for displayed relations."""
     ReportFileFactory.create_batch(3)
     request = RequestFactory().get("/admin/reports/reportfile/")
     model_admin = ReportFileAdmin(ReportFile, AdminSite())
@@ -31,7 +31,7 @@ def test_report_file_admin_changelist_relations_are_eager_loaded():
 
 @pytest.mark.django_db
 def test_report_source_admin_changelist_relations_are_eager_loaded():
-    """ReportSource admin should not query per row for displayed relations."""
+    """The report source admin should not query per row for displayed relations."""
     ReportSourceFactory.create_batch(3)
     request = RequestFactory().get("/admin/reports/reportsource/")
     model_admin = ReportSourceAdmin(ReportSource, AdminSite())

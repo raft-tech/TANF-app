@@ -61,7 +61,7 @@ def test_DataFileAdmin_parsing_state_uses_choice_label():
 def test_DataFileAdmin_changelist_summary_and_error_count_are_eager_loaded(
     admin_user,
 ):
-    """DataFile admin should not query per row for summary links or error counts."""
+    """The data file admin should not query per row for summary links or error counts."""
     for _ in range(3):
         data_file = DataFileFactory()
         DataFileSummaryFactory(
