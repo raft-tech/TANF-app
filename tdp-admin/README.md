@@ -77,6 +77,10 @@ Next.js proxy only forwards request context and the server-side proxy token.
 - `/api/admin/*` forwards backend API requests with the Django session cookie,
   CSRF token required by mutating requests, and server-side proxy token to
   `/admin-api/v1/*`.
+- `/api-validation` calls a Django endpoint through the shared server-side API
+  helper and displays the returned status, cache headers, content type, and
+  response body. Use `?endpoint=test-viewset` to validate a mocked or local
+  Django viewset response.
 
 ## API Boundary
 
@@ -87,14 +91,22 @@ HTTP verb to be exported from that route.
 
 Use `src/lib/admin-api.ts` for server-side calls from admin pages and route
 handlers. It centralizes backend URL construction, admin session and CSRF
-forwarding, proxy identity, request metadata, and no-store behavior. Resource
-methods such as `adminApi.dataFiles.list()` and `adminApi.dataFiles.get()` are
-the component-facing API and should be expanded as admin viewsets are migrated.
+forwarding, proxy identity, request ID/correlation headers, provenance headers,
+and no-store behavior. Resource methods such as `adminApi.dataFiles.list()` and
+`adminApi.dataFiles.get()` are the component-facing API and should be expanded
+as admin viewsets are migrated.
 
 The proxy intentionally does not make a second auth-check request before each
 API call. Django's `/admin-api/v1/*` middleware validates the admin session and
 authorization before the requested viewset runs, avoiding a redundant
 time-of-check/time-of-use gate in Next.js.
+
+Authenticated admin responses should default to `Cache-Control: no-store`.
+The `/api/admin/*` route is the default pass-through path for views backed by a
+single Django endpoint. BFF shaping should be limited to composing multiple
+Django responses for one admin view. Do not implement business logic,
+authorization enforcement, workflow transitions, validation authority,
+persistence, or durable audit records in Next.js.
 
 ## Testing
 
@@ -102,4 +114,11 @@ Run the focused admin checks with:
 
 ```bash
 yarn test
+```
+
+Manual validation:
+
+```bash
+yarn dev
+open http://localhost:3001/api-validation?endpoint=test-viewset
 ```
