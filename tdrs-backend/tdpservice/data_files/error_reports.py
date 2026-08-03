@@ -64,11 +64,6 @@ class ErrorReportBase(ABC):
         """Get the columns for header."""
         pass
 
-    @abstractmethod
-    def hide_columns(self):
-        """Hide columns by index."""
-        pass
-
     def format_header(self, header_list: list):
         """Format header."""
         return " ".join(
@@ -86,7 +81,11 @@ class ErrorReportBase(ABC):
         return ",".join([i for i in fields_json["friendly_name"].values()])
 
     def internal_names(self, fields_json):
-        """Return comma separated string of internal names."""
+        """
+        Return comma separated string of internal names.
+
+        No longer used, but keeping in case we decide to re-add internal variable names to the report.
+        """
         return ",".join([i for i in fields_json["friendly_name"].keys()])
 
     def check_fields_json(self, fields_json, field_name):
@@ -134,10 +133,6 @@ class FRADataErrorReport(ErrorReportBase):
         """Get the columns for header."""
         return ["exit_date", "SSN", "row_number_in_file", "error_description"]
 
-    def hide_columns(self):
-        """Hide columns by index."""
-        pass
-
     def _obscure_ssn(self, ssn):
         """Obscure SSN."""
         if ssn is None:
@@ -183,7 +178,6 @@ class TanfDataErrorReportBase(ErrorReportBase):
         prioritized_sheet.set_column(0, 0, 20)
         aggregate_sheet.autofit()
         aggregate_sheet.set_column(0, 0, 20)
-        self.hide_columns()
 
         self.workbook.close()
         self.output.seek(0)
@@ -224,7 +218,6 @@ class TanfDataErrorReportBase(ErrorReportBase):
             "error_message",
             "item_number",
             "item_name",
-            "internal_variable_name",
             "error_type",
             "number_of_occurrences",
         ]
@@ -270,13 +263,12 @@ class TanfDataErrorReportBase(ErrorReportBase):
                 )
                 worksheet.write(row_idx, 3, error["item_number"])
                 worksheet.write(row_idx, 4, self.friendly_names(fields_json))
-                worksheet.write(row_idx, 5, self.internal_names(fields_json))
                 worksheet.write(
                     row_idx,
-                    6,
+                    5,
                     str(ParserErrorCategoryChoices(error["error_type"]).label),
                 )
-                worksheet.write(row_idx, 7, error["num_occurrences"])
+                worksheet.write(row_idx, 6, error["num_occurrences"])
                 row_idx += 1
 
     def write_readme_sheet(self, worksheet):
@@ -505,7 +497,6 @@ class ActiveClosedErrorReport(TanfDataErrorReportBase):
             self.format_error_msg(error.error_message, fields_json),
             error.item_number,
             self.friendly_names(fields_json),
-            self.internal_names(fields_json),
             error.row_number,
             str(ParserErrorCategoryChoices(error.error_type).label),
         )
@@ -519,24 +510,10 @@ class ActiveClosedErrorReport(TanfDataErrorReportBase):
             "error_message",
             "item_number",
             "item_name",
-            "internal_variable_name",
             "row_number",
             "error_type",
         ]
         return columns
-
-    def hide_columns(self):
-        """Hide columns by index."""
-        # Only hiding `internal_variable_name` for now in both sheets.
-        prioritized_columns = [6]
-        prioritized_sheet = self.workbook.get_worksheet_by_name(name="Critical")
-        for col in prioritized_columns:
-            prioritized_sheet.set_column(col, col, 0)
-
-        aggregate_columns = [5]
-        aggregate_sheet = self.workbook.get_worksheet_by_name(name="Summary")
-        for col in aggregate_columns:
-            aggregate_sheet.set_column(col, col, 0)
 
 
 class AggregateStratumErrorReport(TanfDataErrorReportBase):
@@ -562,7 +539,6 @@ class AggregateStratumErrorReport(TanfDataErrorReportBase):
             self.format_error_msg(error.error_message, fields_json),
             error.item_number,
             self.friendly_names(fields_json),
-            self.internal_names(fields_json),
             error.row_number,
             str(ParserErrorCategoryChoices(error.error_type).label),
         )
@@ -575,21 +551,7 @@ class AggregateStratumErrorReport(TanfDataErrorReportBase):
             "error_message",
             "item_number",
             "item_name",
-            "internal_variable_name",
             "row_number",
             "error_type",
         ]
         return columns
-
-    def hide_columns(self):
-        """Hide columns by index."""
-        # Only hiding `internal_variable_name` for now in both sheets.
-        prioritized_columns = [5]
-        prioritized_sheet = self.workbook.get_worksheet_by_name(name="Critical")
-        for col in prioritized_columns:
-            prioritized_sheet.set_column(col, col, 0)
-
-        aggregate_columns = [5]
-        aggregate_sheet = self.workbook.get_worksheet_by_name(name="Summary")
-        for col in aggregate_columns:
-            aggregate_sheet.set_column(col, col, 0)
