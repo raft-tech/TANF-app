@@ -186,6 +186,13 @@ Promise.all([
 
 The rule of thumb: if a single Django endpoint can serve the view, pass-through. If the view needs to join data that Django doesn't serve in a single response, use BFF shaping — but do not add business logic or authorization checks in the BFF layer.
 
+Implementation guidance for `tdp-admin`:
+
+- Use the shared server-side admin API helper for Django calls so session cookies, CSRF context, request IDs, and provenance headers are forwarded consistently.
+- Keep `/api/admin/*` as the default pass-through route for single-endpoint views.
+- BFF shaping must only compose multiple Django responses for one view. It must not introduce authorization enforcement, workflow transitions, domain validation, persistence, or durable audit records in Next.js.
+- Reviewers should ask whether Django remains authoritative for every permission decision, mutation, validation result, and audit record before approving a new admin route or server action.
+
 ---
 
 ## Form Metadata and Validation
@@ -379,6 +386,12 @@ When Next.js calls Django on behalf of an admin user, requests must preserve pro
 - Keycloak client/auth flow identifier when available.
 
 Django remains responsible for durable audit records. Next.js may add request context, but it must not be the only place where privileged admin activity is recorded.
+
+Current `tdp-admin` server-side helpers forward the Django session cookie, CSRF
+token for mutating calls, request/correlation headers, source route, proxy
+identity, and source IP chain headers. Authenticated admin proxy responses set
+`Cache-Control: no-store` by default so refreshes and back/forward navigation do
+not expose stale privileged data from browser or shared caches.
 
 ### Session validation flow
 
