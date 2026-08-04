@@ -194,7 +194,7 @@ class DataFileAPITestBase:
         summary = wb["Summary"]
 
         COL_ERROR_MESSAGE = 4
-        COL_NUM_OCCURRENCES = 8
+        COL_NUM_OCCURRENCES = 7
 
         assert readme.cell(row=1, column=1).value == "Error Report Readme"
         assert critical.cell(row=1, column=1).value == "Case Number"
@@ -212,7 +212,7 @@ class DataFileAPITestBase:
         critical = wb["Critical"]
         summary = wb["Summary"]
 
-        COL_NUM_OCCURRENCES = 8
+        COL_NUM_OCCURRENCES = 7
 
         assert readme.cell(row=1, column=1).value == "Error Report Readme"
         assert critical.cell(row=1, column=1).value == "Case Number"
@@ -227,7 +227,7 @@ class DataFileAPITestBase:
         summary = wb["Summary"]
 
         COL_ERROR_MESSAGE = 4
-        COL_NUM_OCCURRENCES = 8
+        COL_NUM_OCCURRENCES = 7
 
         assert readme.cell(row=1, column=1).value == "Error Report Readme"
         assert critical.cell(row=1, column=1).value == "Case Number"
