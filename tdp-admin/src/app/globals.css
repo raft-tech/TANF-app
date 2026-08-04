@@ -290,6 +290,21 @@ a {
   gap: 1rem;
 }
 
+.admin-api-validation__body {
+  background: #f5f5f0;
+  border: 1px solid #dfe1e2;
+  border-radius: 4px;
+  color: #1b1b1b;
+  font-size: 0.94rem;
+  line-height: 1.5;
+  margin-top: 1.5rem;
+  max-height: 30rem;
+  overflow: auto;
+  padding: 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .margin-left-neg-205 {
   margin-left: -1.25rem;
 }

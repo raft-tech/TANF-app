@@ -25,6 +25,8 @@ describe("admin API proxy", () => {
         headers: {
           cookie:
             "sessionid=standard; admin_sessionid=abc; csrftoken=csrf-token",
+          "x-correlation-id": "correlation-123",
+          "x-forwarded-for": "203.0.113.9",
         },
       }
     );
@@ -51,6 +53,8 @@ describe("admin API proxy", () => {
     );
     expect(headers.get("x-service-name")).toBeNull();
     expect(headers.get("X-Admin-Proxy-Token")).toBe("server-only-token");
+    expect(headers.get("x-correlation-id")).toBe("correlation-123");
+    expect(headers.get("x-forwarded-for")).toBe("203.0.113.9");
   });
 
   it("returns Django admin authorization failures", async () => {
