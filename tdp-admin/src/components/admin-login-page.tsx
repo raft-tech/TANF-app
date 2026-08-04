@@ -5,11 +5,15 @@ import {
   getAdminLoginUrl,
   getBackendBaseUrl,
   getAdminProviderLoginPath,
+  checkBackendHealth,
 } from "@/lib/admin-auth";
+import { getBackendHealthSummary } from "@/lib/backend-health-display";
 
-export default function AdminLoginPage() {
+export default async function AdminLoginPage() {
   const backendBaseUrl = getBackendBaseUrl();
   const authBaseUrl = getAuthBaseUrl();
+  const backendHealth = await checkBackendHealth();
+  const backendHealthSummary = getBackendHealthSummary(backendHealth);
   const loginGovUrl = getAdminLoginUrl("dotgov");
   const acfAmsUrl = getAdminLoginUrl("ams");
   const loginGovPath = getAdminProviderLoginPath("dotgov");
@@ -111,9 +115,6 @@ export default function AdminLoginPage() {
                   </span>
                 )}
 
-                <Link href="/api/backend-health" className="usa-button usa-button--outline width-full margin-top-3">
-                  Check backend health
-                </Link>
               </div>
 
               <div className="admin-login-page__details">
@@ -122,6 +123,9 @@ export default function AdminLoginPage() {
                 </p>
                 <p>
                   <strong>Configured backend:</strong> {backendBaseUrl ?? "Not configured"}
+                </p>
+                <p>
+                  <strong>Backend health:</strong> {backendHealthSummary}
                 </p>
               </div>
             </div>

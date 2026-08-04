@@ -2,7 +2,9 @@ import { headers } from "next/headers";
 import { forbidden, redirect } from "next/navigation";
 import { GridContainer } from "@trussworks/react-uswds";
 import NextLink from "next/link";
-import { checkAdminSession } from "@/lib/admin-auth";
+import { checkAdminSession, checkBackendHealth } from "@/lib/admin-auth";
+import { getBackendHealthSummary } from "@/lib/backend-health-display";
+import { getAdminRoleSummary } from "@/lib/admin-session-display";
 
 export default async function AdminHomePage() {
   const requestHeaders = await headers();
@@ -17,13 +19,13 @@ export default async function AdminHomePage() {
     forbidden();
   }
 
+  const backendHealth = await checkBackendHealth();
+  const backendHealthSummary = getBackendHealthSummary(backendHealth);
   const displayName =
     [session.user?.first_name, session.user?.last_name].filter(Boolean).join(" ") ||
     session.user?.email ||
     "Admin user";
-  const roles = session.user?.roles?.length
-    ? session.user.roles.join(", ")
-    : "No roles returned";
+  const roles = getAdminRoleSummary(session.user?.roles);
   const sessionStatus = "Authenticated and admin-authorized";
   const statusDetail =
     session.detail ??
@@ -81,14 +83,19 @@ export default async function AdminHomePage() {
                   <dt>Session</dt>
                   <dd>{sessionStatus}</dd>
                 </div>
+                <div>
+                  <dt>Backend health</dt>
+                  <dd>{backendHealthSummary}</dd>
+                </div>
+                <div>
+                  <dt>Backend URL</dt>
+                  <dd>{backendHealth.backendUrl ?? "Not configured"}</dd>
+                </div>
               </dl>
 
               <div className="admin-success__actions">
                 <a className="usa-button" href="/users">
                   Manage users
-                </a>
-                <a className="usa-button" href="/api/backend-health">
-                  Check backend health
                 </a>
                 <a className="usa-button usa-button--outline" href="/api-validation">
                   Validate API response
