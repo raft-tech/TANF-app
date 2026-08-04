@@ -9,8 +9,12 @@ from django.db.migrations.executor import MigrationExecutor
 
 def _migration_targets(executor, stts_target):
     """Keep other apps at their leaves while targeting an STTs migration."""
+    target_overrides = {
+        "stts": stts_target,
+        "users": "0059_reconcile_role_permissions",
+    }
     return [
-        (app_label, stts_target if app_label == "stts" else migration)
+        (app_label, target_overrides.get(app_label, migration))
         for app_label, migration in executor.loader.graph.leaf_nodes()
     ]
 

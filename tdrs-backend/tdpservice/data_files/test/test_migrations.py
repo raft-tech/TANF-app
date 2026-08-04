@@ -16,6 +16,7 @@ def _migration_targets(executor, data_files_target):
     target_overrides = {
         "data_files": data_files_target,
         "stts": "0013_program_section_sttprogramparticipation",
+        "users": "0059_reconcile_role_permissions",
     }
     return [
         (app_label, target_overrides.get(app_label, migration))
