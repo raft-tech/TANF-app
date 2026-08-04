@@ -687,11 +687,21 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         self, api_client, data_file_data, user, infected_data_file, mocker
     ):
         """Test that infected uploads fail before the file is persisted."""
+        recorded_scan = {}
+
         data_file_data["file"] = infected_data_file
 
         def infected_scan(_file, _file_name, _uploaded_by, data_file=None):
             assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
             assert not data_file.file
+            recorded_scan["row"] = ClamAVFileScan.objects.record_scan(
+                _file,
+                _file_name,
+                _file_name,
+                ClamAVFileScan.Result.INFECTED,
+                _uploaded_by,
+                data_file=data_file,
+            )
             return ClamAVFileScan.Result.INFECTED
 
         mocker.patch(
@@ -712,12 +722,14 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         assert response.data == {
             "detail": "Rejected: uploaded file did not pass security inspection"
         }
-        data_file = DataFile.objects.get(
+        assert not DataFile.objects.filter(
             slug=data_file_data["slug"],
             user=user,
-        )
-        assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
-        assert not data_file.file
+        ).exists()
+
+        av_scan = ClamAVFileScan.objects.get(id=recorded_scan["row"].id)
+        assert av_scan.result == ClamAVFileScan.Result.INFECTED
+        assert av_scan.data_file is None
 
         mock_parse_task.assert_not_called()
 
@@ -751,12 +763,10 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         assert response.data == {
             "detail": "Unable to complete security inspection, please try again or contact support for assistance"
         }
-        data_file = DataFile.objects.get(
+        assert not DataFile.objects.filter(
             slug=data_file_data["slug"],
             user=user,
-        )
-        assert data_file.state == SubmissionState.VIRUS_SCAN_FAILED
-        assert not data_file.file
+        ).exists()
 
         mock_parse_task.assert_not_called()
 

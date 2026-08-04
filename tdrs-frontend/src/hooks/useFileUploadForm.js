@@ -30,16 +30,16 @@ export const useFileUploadForm = ({
 }) => {
   const dispatch = useDispatch()
   const logger = useEventLogger()
-  const alertRef = useRef(null)
 
   const {
     yearInputValue,
     quarterInputValue,
     fileTypeInputValue,
-    localAlert,
-    setLocalAlertState,
+    uploadAlert,
+    setUploadAlertState,
     processingAlert,
     setProcessingAlertState,
+    uploadAlertRef,
     processingAlertRef,
     uploadedFiles,
     setErrorModalVisible,
@@ -74,14 +74,9 @@ export const useFileUploadForm = ({
                 datafile: response?.data,
               },
             })
-            setProcessingAlertState({
-              active: true,
-              type: 'success',
-              message: 'Processing complete.',
-            })
           },
           (error) => {
-            setLocalAlertState({
+            setProcessingAlertState({
               active: true,
               type: error.type ? error.type : 'error',
               message: error.message,
@@ -118,7 +113,7 @@ export const useFileUploadForm = ({
     event.preventDefault()
 
     if (uploadedFiles.length === 0) {
-      setLocalAlertState({
+      setUploadAlertState({
         active: true,
         type: 'error',
         message: 'No changes have been made to data files',
@@ -138,7 +133,8 @@ export const useFileUploadForm = ({
         year: yearInputValue,
         formattedSections,
         logger,
-        setLocalAlertState,
+        setUploadAlertState,
+        setProcessingAlertState,
         stt: stt?.id,
         uploadedFiles: filesToSubmit,
         user,
@@ -151,7 +147,7 @@ export const useFileUploadForm = ({
       handleOpenFeedbackWidget(submittedFiles)
     } catch (error) {
       console.error('Error during form submission:', error)
-      setLocalAlertState({
+      setUploadAlertState({
         active: true,
         type: 'error',
         message: 'An error occurred during submission. Please try again.',
@@ -169,35 +165,16 @@ export const useFileUploadForm = ({
     }
   }
 
-  // Scroll to and focus alert when it becomes active
-  useEffect(() => {
-    if (localAlert.active && alertRef && alertRef.current) {
-      alertRef.current.scrollIntoView({ behavior: 'smooth' })
-      alertRef.current.focus({ preventScroll: true })
-    }
-  }, [localAlert, alertRef])
-
-  // Scroll to processing alert when it becomes active (uses aria-live="polite" for sequential reading)
-  useEffect(() => {
-    if (
-      processingAlert.active &&
-      processingAlertRef &&
-      processingAlertRef.current
-    ) {
-      processingAlertRef.current.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [processingAlert, processingAlertRef])
-
   return {
     // Form state
     yearInputValue,
     quarterInputValue,
     fileTypeInputValue,
-    localAlert,
+    uploadAlert,
     processingAlert,
     uploadedFiles,
     isSubmitting,
-    alertRef,
+    uploadAlertRef,
     processingAlertRef,
     formattedSections,
 
@@ -206,7 +183,7 @@ export const useFileUploadForm = ({
     handleCancel,
 
     // Context setters (for FileUpload components)
-    setLocalAlertState,
+    setUploadAlertState,
     setProcessingAlertState,
   }
 }
