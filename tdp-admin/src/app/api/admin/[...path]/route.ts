@@ -126,6 +126,7 @@ async function proxyAdminRequest(
     response = await requestAdminApi(path, {
       method: request.method,
       search: request.nextUrl.search,
+      trailingSlash: request.nextUrl.pathname.endsWith("/"),
       body:
         request.method === "GET" || request.method === "HEAD"
           ? undefined

@@ -84,6 +84,9 @@ export default async function AdminHomePage() {
               </dl>
 
               <div className="admin-success__actions">
+                <a className="usa-button" href="/users">
+                  Manage users
+                </a>
                 <a className="usa-button" href="/api/backend-health">
                   Check backend health
                 </a>

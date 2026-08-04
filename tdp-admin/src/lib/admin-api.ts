@@ -28,6 +28,7 @@ type HeaderGetter = {
 export type AdminApiRequestOptions = {
   method?: string;
   search?: string;
+  trailingSlash?: boolean;
   body?: BodyInit | null;
   cookieHeader?: string | null;
   csrfToken?: string | null;
@@ -41,7 +42,11 @@ export function isMutatingAdminApiMethod(method = "GET") {
   return MUTATING_METHODS.has(method.toUpperCase());
 }
 
-export function getAdminApiUrl(pathSegments: string[], search = "") {
+export function getAdminApiUrl(
+  pathSegments: string[],
+  search = "",
+  trailingSlash = false
+) {
   const backendBaseUrl = getAdminBackendBaseUrl();
 
   if (!backendBaseUrl) {
@@ -50,7 +55,7 @@ export function getAdminApiUrl(pathSegments: string[], search = "") {
 
   const normalizedBaseUrl = backendBaseUrl.replace(/\/$/, "");
   const normalizedPath = pathSegments.map(encodeURIComponent).join("/");
-  return `${normalizedBaseUrl}/${normalizedPath}${search}`;
+  return `${normalizedBaseUrl}/${normalizedPath}${trailingSlash ? "/" : ""}${search}`;
 }
 
 export function setAuthenticatedNoStore(headers: Headers) {
@@ -79,6 +84,7 @@ export async function requestAdminApi(
   {
     method = "GET",
     search = "",
+    trailingSlash = false,
     body,
     cookieHeader,
     csrfToken,
@@ -88,7 +94,7 @@ export async function requestAdminApi(
     requestId,
   }: AdminApiRequestOptions = {}
 ) {
-  const url = getAdminApiUrl(pathSegments, search);
+  const url = getAdminApiUrl(pathSegments, search, trailingSlash);
 
   if (!url) {
     throw new Error(
@@ -140,5 +146,14 @@ export const adminApi = {
       requestAdminApi(["data_files"], options),
     get: (id: string | number, options?: ReadAdminResourceOptions) =>
       requestAdminApi(["data_files", String(id)], options),
+  },
+  users: {
+    list: (options?: ReadAdminResourceOptions) =>
+      requestAdminApi(["users"], { ...options, trailingSlash: true }),
+    formMetadata: (id: string | number, options?: ReadAdminResourceOptions) =>
+      requestAdminApi(["users", String(id), "admin-form-metadata"], {
+        ...options,
+        trailingSlash: true,
+      }),
   },
 };

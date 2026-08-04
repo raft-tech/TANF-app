@@ -75,6 +75,21 @@ describe("admin API service", () => {
     );
   });
 
+  it("exposes resource-specific user admin reads", async () => {
+    process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
+    process.env.ADMIN_API_PROXY_TOKEN = "server-only-token";
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ id: "user-1" })));
+
+    await adminApi.users.formMetadata("user 1", {
+      cookieHeader: "admin_sessionid=abc",
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://backend.example.gov/admin-api/v1/users/user%201/admin-form-metadata/",
+      expect.objectContaining({ method: "GET" })
+    );
+  });
+
   it("identifies mutating methods and disables authenticated caching", () => {
     expect(isMutatingAdminApiMethod("GET")).toBe(false);
     expect(isMutatingAdminApiMethod("patch")).toBe(true);
