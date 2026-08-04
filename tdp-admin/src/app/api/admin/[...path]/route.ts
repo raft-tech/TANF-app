@@ -132,6 +132,7 @@ async function proxyAdminRequest(
           : await request.text(),
       cookieHeader,
       csrfToken: mutatingRequestValidation.csrfToken,
+      incomingHeaders: request.headers,
       headers,
       sourceRoute: request.nextUrl.pathname,
       requestId: request.headers.get("x-request-id"),
