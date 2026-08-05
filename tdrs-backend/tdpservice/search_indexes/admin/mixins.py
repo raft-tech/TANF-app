@@ -67,7 +67,13 @@ class CsvExportAdminMixin(AdminModelMixin, ExportCsvMixin, SttMixin):
     """Class to encapsulate CSV related mixins."""
 
     actions = ["export_as_csv"]
+    list_per_page = 25
     ordering = ["datafile__stt__stt_code"]
+    show_full_result_count = False
+
+    def get_queryset(self, request):
+        """Return the queryset with displayed DataFile relations eager loaded."""
+        return super().get_queryset(request).select_related("datafile", "datafile__stt")
 
 
 class ReadOnlyAdminMixin(AdminModelMixin):
