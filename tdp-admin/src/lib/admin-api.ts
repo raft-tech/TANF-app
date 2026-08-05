@@ -130,6 +130,7 @@ export async function requestAdminApi(
     method: normalizedMethod,
     credentials: "include",
     cache: "no-store",
+    redirect: "manual",
     headers: requestHeaders,
     body: BODYLESS_METHODS.has(normalizedMethod) ? undefined : body,
   });

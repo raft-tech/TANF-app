@@ -116,6 +116,10 @@ a {
   vertical-align: middle;
 }
 
+.admin-login-page__alert {
+  margin-bottom: 1rem;
+}
+
 .usa-hero__heading--alt {
   color: var(--primary-acf-blue);
 }

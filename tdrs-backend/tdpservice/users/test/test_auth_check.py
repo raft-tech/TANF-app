@@ -6,6 +6,7 @@ from urllib.parse import parse_qs, urlparse
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.urls import reverse
 
+from mozilla_django_oidc.middleware import SessionRefresh
 import pytest
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
@@ -14,6 +15,12 @@ from ..api.login import CypressLoginDotGovAuthenticationOverride
 from ..models import AccountApprovalStatusChoices
 from ..oidc import STANDARD_SESSION_SCOPE
 from ..serializers import UserProfileSerializer
+
+
+class AuthenticatedUser:
+    """Minimal authenticated user for middleware tests."""
+
+    is_authenticated = True
 
 
 def _create_admin_session_from_standard(api_client, settings):
@@ -63,6 +70,24 @@ def _assert_auth_state(api_client, standard_authenticated, admin_authenticated):
     if admin_authenticated:
         assert admin_response.status_code == status.HTTP_200_OK
         assert admin_response.data["authorized"] is True
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/admin-auth/login/dotgov",
+        "/admin-auth/oidc/callback/",
+        "/admin-auth/auth_check",
+        "/admin-api/v1/users/",
+    ],
+)
+def test_session_refresh_exempts_admin_paths(path):
+    """Expired OIDC sessions should not hijack admin routes."""
+    request = APIRequestFactory().get(path)
+    request.user = AuthenticatedUser()
+    request.session = {"oidc_id_token_expiration": 0}
+
+    assert SessionRefresh(lambda request: None).is_refreshable_url(request) is False
 
 
 @pytest.mark.django_db
@@ -462,6 +487,7 @@ def test_admin_auth_check_rejects_inactive_ofa_system_admin(
 def test_admin_login_uses_admin_keycloak_client(api_client, settings):
     """Admin login should initialize OIDC with the dedicated admin client."""
     settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID = "tdp-admin"
+    settings.ADMIN_FRONTEND_BASE_URL = "http://localhost:3001"
     response = api_client.get(reverse("admin-login-ams"))
 
     assert response.status_code == status.HTTP_302_FOUND
@@ -476,6 +502,26 @@ def test_admin_login_uses_admin_keycloak_client(api_client, settings):
     assert session["session_scope"] == "admin"
     assert "oidc_client" not in session
     assert session["oidc_clients"][state] == "tdp-admin"
+    assert session["oidc_login_next"] == settings.ADMIN_FRONTEND_BASE_URL
+
+
+@pytest.mark.django_db
+def test_admin_login_preserves_allowed_admin_next_url(api_client, settings):
+    """Admin login should return to the admin frontend when next is supplied."""
+    settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID = "tdp-admin"
+    settings.ADMIN_FRONTEND_BASE_URL = "http://localhost:3001"
+    settings.OIDC_REDIRECT_ALLOWED_HOSTS = {"localhost:3001"}
+
+    response = api_client.get(
+        reverse("admin-login-dotgov"),
+        {"next": "http://localhost:3001/users"},
+    )
+
+    assert response.status_code == status.HTTP_302_FOUND
+    session = _client_session_from_cookie(
+        api_client, settings.ADMIN_SESSION_COOKIE_NAME, settings
+    )
+    assert session["oidc_login_next"] == "http://localhost:3001/users"
 
 
 @pytest.mark.django_db

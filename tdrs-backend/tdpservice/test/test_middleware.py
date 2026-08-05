@@ -8,6 +8,7 @@ from django.urls import reverse
 
 from tdpservice.middleware import AdminAPIAuthorizationMiddleware, SessionMiddleware
 from tdpservice.users.models import AccountApprovalStatusChoices
+from tdpservice.users.oidc import ADMIN_OIDC_CLIENT
 
 
 def _response_with_origin(origin, settings):
@@ -118,6 +119,35 @@ def test_session_middleware_uses_admin_cookie_for_admin_auth(settings):
     )
     request = RequestFactory().get(
         "/admin-auth/auth_check",
+        HTTP_COOKIE=(
+            f"{settings.SESSION_COOKIE_NAME}={standard_cookie}; "
+            f"{settings.ADMIN_SESSION_COOKIE_NAME}={admin_cookie}"
+        ),
+    )
+
+    middleware.process_request(request)
+
+    assert request._tdp_session_cookie_name == settings.ADMIN_SESSION_COOKIE_NAME
+    assert request.session["scope"] == "admin"
+
+
+def test_session_middleware_uses_admin_cookie_for_admin_oidc_callback(settings):
+    """Versionless callbacks with admin OIDC state should use the admin session."""
+    middleware = SessionMiddleware(lambda request: HttpResponse())
+    standard_cookie = _session_cookie(
+        middleware, {"scope": "standard", "session_scope": "standard"}
+    )
+    admin_cookie = _session_cookie(
+        middleware,
+        {
+            "scope": "admin",
+            "session_scope": "admin",
+            "oidc_clients": {"admin-state": ADMIN_OIDC_CLIENT},
+        },
+    )
+    request = RequestFactory().get(
+        "/oidc/callback/",
+        {"state": "admin-state"},
         HTTP_COOKIE=(
             f"{settings.SESSION_COOKIE_NAME}={standard_cookie}; "
             f"{settings.ADMIN_SESSION_COOKIE_NAME}={admin_cookie}"

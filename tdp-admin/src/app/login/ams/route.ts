@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { getAdminLoginUrl } from "@/lib/admin-auth";
 
 export function GET(request: Request) {
-  const nextUrl = new URL(request.url).searchParams.get("next") ?? undefined;
+  const requestUrl = new URL(request.url);
+  const nextUrl =
+    requestUrl.searchParams.get("next") ?? `${requestUrl.origin}/`;
   const loginUrl = getAdminLoginUrl("ams", nextUrl);
 
   if (!loginUrl) {

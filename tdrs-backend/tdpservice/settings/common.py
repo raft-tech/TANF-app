@@ -4,6 +4,7 @@ import json
 import logging
 import logging.handlers
 import os
+import re
 from distutils.util import strtobool
 from os.path import join
 from typing import Any, Optional
@@ -648,14 +649,15 @@ class Common(Configuration):
 
     # SessionRefresh middleware: exempt API endpoints from silent re-auth redirects
     OIDC_EXEMPT_URLS = [
-        "/v1/",
-        "/admin/",
-        "/prometheus/",
-        "/plg_auth_check/",
-        "/login/",
+        re.compile(r"^/v1/"),
+        re.compile(r"^/admin/"),
+        re.compile(r"^/prometheus/"),
+        re.compile(r"^/plg_auth_check/"),
+        re.compile(r"^/login/"),
         "/auth_check",
-        "/admin-auth/",
-        "/logout/",
+        re.compile(r"^/admin-auth/"),
+        re.compile(r"^/admin-api/"),
+        re.compile(r"^/logout/"),
     ]
 
     # -------- CELERY CONFIG

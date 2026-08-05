@@ -104,6 +104,12 @@ export default async function ApiValidationPage({
               displays the response returned by Django.
             </p>
 
+            <div className="admin-success__actions">
+              <NextLink className="usa-button usa-button--outline" href="/">
+                Return to main page
+              </NextLink>
+            </div>
+
             <dl className="admin-success__details">
               <div>
                 <dt>Endpoint</dt>

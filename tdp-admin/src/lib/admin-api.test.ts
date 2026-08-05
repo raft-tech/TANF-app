@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   adminApi,
   getAdminApiUrl,
@@ -8,6 +8,10 @@ import {
 } from "./admin-api";
 
 const originalEnv = { ...process.env };
+
+beforeEach(() => {
+  delete process.env.ADMIN_BACKEND_URL;
+});
 
 afterEach(() => {
   process.env = { ...originalEnv };
@@ -48,6 +52,7 @@ describe("admin API service", () => {
     const headers = options?.headers as Headers;
     expect(options?.method).toBe("PATCH");
     expect(options?.cache).toBe("no-store");
+    expect(options?.redirect).toBe("manual");
     expect(headers.get("Cookie")).toBe(
       "admin_sessionid=abc; csrftoken=csrf-cookie"
     );

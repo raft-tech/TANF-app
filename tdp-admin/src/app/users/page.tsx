@@ -70,6 +70,12 @@ export default async function UsersPage() {
             <p className="admin-console__eyebrow">Users</p>
             <h1>User accounts</h1>
 
+            <div className="admin-success__actions">
+              <NextLink className="usa-button usa-button--outline" href="/">
+                Return to main page
+              </NextLink>
+            </div>
+
             {!response.ok && (
               <div
                 className="usa-alert usa-alert--error admin-form__alert"

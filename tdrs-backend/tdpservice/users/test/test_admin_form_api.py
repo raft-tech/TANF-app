@@ -110,6 +110,31 @@ def test_user_admin_form_mutation_saves_valid_form(
 
 
 @pytest.mark.django_db
+def test_user_admin_form_mutation_saves_valid_role_location_transition(
+    api_client, settings, ofa_system_admin, ofa_admin, stt
+):
+    """Save a valid role/location transition when current DB groups differ."""
+    _login_admin_api_session(api_client, ofa_system_admin, settings)
+    payload = _admin_form_payload(ofa_admin)
+    payload["groups"] = [str(Group.objects.get(name="Data Analyst").id)]
+    payload["stt"] = str(stt.id)
+    payload["regions"] = []
+
+    response = api_client.patch(
+        f"/admin-api/v1/users/{ofa_admin.pk}/admin-form/",
+        payload,
+        format="json",
+        **_admin_headers(settings),
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["ok"] is True
+    ofa_admin.refresh_from_db()
+    assert ofa_admin.stt_id == stt.id
+    assert set(ofa_admin.groups.values_list("name", flat=True)) == {"Data Analyst"}
+
+
+@pytest.mark.django_db
 def test_user_admin_form_mutation_returns_normalized_field_errors(
     api_client, settings, ofa_system_admin, data_analyst
 ):
@@ -159,4 +184,32 @@ def test_user_admin_form_mutation_returns_normalized_non_field_errors(
     assert response.data["errors"]["field_errors"] == {}
     assert response.data["errors"]["non_field_errors"] == [
         "Users in regional roles must have at least one region or location assigned."
+    ]
+
+
+@pytest.mark.django_db
+def test_user_admin_form_mutation_returns_location_role_errors(
+    api_client, settings, ofa_system_admin, data_analyst
+):
+    """Return a validation response when role and location data conflict."""
+    _login_admin_api_session(api_client, ofa_system_admin, settings)
+    payload = _admin_form_payload(data_analyst)
+    payload["first_name"] = "Updated"
+    payload["groups"] = [str(Group.objects.get(name="OFA Admin").id)]
+    payload["stt"] = str(data_analyst.stt_id)
+    payload["regions"] = []
+
+    response = api_client.patch(
+        f"/admin-api/v1/users/{data_analyst.pk}/admin-form/",
+        payload,
+        format="json",
+        **_admin_headers(settings),
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data["ok"] is False
+    assert response.data["errors"]["field_errors"] == {}
+    assert response.data["errors"]["non_field_errors"] == [
+        "Users other than Regional Staff, Developers, Data Analysts do not get "
+        "assigned a location"
     ]

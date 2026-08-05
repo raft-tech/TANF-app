@@ -9,7 +9,13 @@ import {
 } from "@/lib/admin-auth";
 import { getBackendHealthSummary } from "@/lib/backend-health-display";
 
-export default async function AdminLoginPage() {
+type AdminLoginPageProps = {
+  loginErrorMessage?: string;
+};
+
+export default async function AdminLoginPage({
+  loginErrorMessage = "",
+}: AdminLoginPageProps) {
   const backendBaseUrl = getBackendBaseUrl();
   const authBaseUrl = getAuthBaseUrl();
   const backendHealth = await checkBackendHealth();
@@ -59,6 +65,18 @@ export default async function AdminLoginPage() {
                 improves the federal reporting experience for TANF grantees and
                 federal staff.
               </p>
+
+              {loginErrorMessage && (
+                <div
+                  className="usa-alert usa-alert--error admin-login-page__alert"
+                  role="alert"
+                >
+                  <div className="usa-alert__body">
+                    <h2 className="usa-alert__heading">Could not sign in</h2>
+                    <p className="usa-alert__text">{loginErrorMessage}</p>
+                  </div>
+                </div>
+              )}
 
               <div className="admin-login-page__actions">
                 {loginGovUrl ? (
