@@ -12,7 +12,7 @@ class Local(Common):
     """Define class for local configuration settings."""
 
     # Default DEBUG to True in local environments
-    DEBUG = strtobool(os.getenv("DJANGO_DEBUG", "no"))
+    DEBUG = strtobool(os.getenv("DJANGO_DEBUG", "yes"))
 
     # Whether to use localstack in place of a live AWS S3 environment
     # NOTE: Defaults to True when this settings module is in use
