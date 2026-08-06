@@ -430,7 +430,7 @@ class Common(Configuration):
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.MultiPartRenderer",
     ]
-    if DEBUG:
+    if DEBUG and True:
         DEFAULT_RENDERER_CLASSES.append("rest_framework.renderers.BrowsableAPIRenderer")
 
     REST_FRAMEWORK = {
