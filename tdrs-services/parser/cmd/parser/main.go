@@ -75,6 +75,20 @@ func main() {
 		fatal("Failed to start metrics server", err)
 	}
 	defer metricsServers.Shutdown()
+	metricTableNames := map[string]struct{}{
+		config.ParserErrorTableName(reg.TablePrefix()): {},
+	}
+	for _, spec := range reg.FileSpecs() {
+		metrics.InitializeParserMetrics(spec.Program, spec.Section)
+		for _, schemaPath := range spec.Schemas {
+			if meta := reg.GetSchemaMetadata(schemaPath); meta != nil {
+				metricTableNames[meta.TableName] = struct{}{}
+			}
+		}
+	}
+	for tableName := range metricTableNames {
+		metrics.InitializeWriterMetrics(tableName)
+	}
 
 	// ---- Server mode dispatch ----
 	switch cfg.Server.Mode {

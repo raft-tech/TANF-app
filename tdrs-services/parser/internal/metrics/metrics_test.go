@@ -43,6 +43,90 @@ func TestRegistryExportsPrometheusText(t *testing.T) {
 	assertContains(t, body, `go_parser_flush_duration_seconds_count{server_mode="celery",status="success",table="search_indexes_tanf_t1"} 1`)
 }
 
+func TestInitializeParserMetricsExportsZeroSeries(t *testing.T) {
+	registry := NewRegistry("celery")
+	UseDefault(registry)
+	defer ResetDefault()
+
+	InitializeParserMetrics("TAN", 1)
+
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	rec := httptest.NewRecorder()
+	registry.ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	assertContains(t, body, `go_parser_records_parsed_total{program="TAN",section="1",server_mode="celery"} 0`)
+	assertContains(t, body, `go_parser_files_processed_total{program="TAN",section="1",server_mode="celery",status="success"} 0`)
+	assertContains(t, body, `go_parser_files_processed_total{program="TAN",section="1",server_mode="celery",status="failed"} 0`)
+	assertContains(t, body, `go_parser_errors_generated_total{error_category="record_pre_check",program="TAN",section="1",server_mode="celery"} 0`)
+	assertContains(t, body, `go_parser_errors_generated_total{error_category="field_value",program="TAN",section="1",server_mode="celery"} 0`)
+	assertContains(t, body, `go_parser_errors_generated_total{error_category="value_consistency",program="TAN",section="1",server_mode="celery"} 0`)
+	assertContains(t, body, `go_parser_errors_generated_total{error_category="case_consistency",program="TAN",section="1",server_mode="celery"} 0`)
+	assertContains(t, body, `go_parser_worker_pool_configured_workers{program="TAN",section="1",server_mode="celery"} 0`)
+	assertContains(t, body, `go_parser_worker_pool_active_duration_seconds_total{program="TAN",section="1",server_mode="celery"} 0`)
+	assertContains(t, body, `go_parser_worker_pool_capacity_seconds_total{program="TAN",section="1",server_mode="celery"} 0`)
+	assertContains(t, body, `go_parser_file_duration_seconds_count{program="TAN",section="1",server_mode="celery",status="success"} 0`)
+	assertContains(t, body, `go_parser_file_duration_seconds_sum{program="TAN",section="1",server_mode="celery",status="success"} 0`)
+	assertContains(t, body, `go_parser_file_duration_seconds_bucket{le="+Inf",program="TAN",section="1",server_mode="celery",status="success"} 0`)
+	assertContains(t, body, `go_parser_file_duration_seconds_count{program="TAN",section="1",server_mode="celery",status="failed"} 0`)
+	assertContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="setup"} 0`)
+	assertContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="parse_validate"} 0`)
+	assertContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="flush"} 0`)
+	assertContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_parsing"} 0`)
+	assertContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_group_validation"} 0`)
+	assertContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_record_validation"} 0`)
+	assertContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_field_validation"} 0`)
+	assertContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="worker_routing"} 0`)
+}
+
+func TestInitializedParserMetricsIncrementFromZero(t *testing.T) {
+	registry := NewRegistry("celery")
+	UseDefault(registry)
+	defer ResetDefault()
+
+	InitializeParserMetrics("TAN", 1)
+	AddRecordsParsed("TAN", 1, 12)
+	AddErrorsGenerated("TAN", 1, "field_value", 3)
+	RecordFileProcessed("TAN", 1, "success")
+	ObserveFileDuration("TAN", 1, "success", 2*time.Second)
+	ObservePipelineStage("TAN", 1, "setup", 250*time.Millisecond)
+	AddWorkerPoolActiveDuration("TAN", 1, 500*time.Millisecond)
+	AddWorkerPoolCapacityDuration("TAN", 1, 250*time.Millisecond, 4)
+
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	rec := httptest.NewRecorder()
+	registry.ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	assertContains(t, body, `go_parser_records_parsed_total{program="TAN",section="1",server_mode="celery"} 12`)
+	assertContains(t, body, `go_parser_errors_generated_total{error_category="field_value",program="TAN",section="1",server_mode="celery"} 3`)
+	assertContains(t, body, `go_parser_files_processed_total{program="TAN",section="1",server_mode="celery",status="success"} 1`)
+	assertContains(t, body, `go_parser_file_duration_seconds_count{program="TAN",section="1",server_mode="celery",status="success"} 1`)
+	assertContains(t, body, `go_parser_file_duration_seconds_sum{program="TAN",section="1",server_mode="celery",status="success"} 2`)
+	assertContains(t, body, `go_parser_pipeline_stage_duration_seconds_count{program="TAN",section="1",server_mode="celery",stage="setup"} 1`)
+	assertContains(t, body, `go_parser_worker_pool_active_duration_seconds_total{program="TAN",section="1",server_mode="celery"} 0.5`)
+	assertContains(t, body, `go_parser_worker_pool_capacity_seconds_total{program="TAN",section="1",server_mode="celery"} 1`)
+}
+
+func TestInitializeWriterMetricsExportsZeroSeries(t *testing.T) {
+	registry := NewRegistry("celery")
+	UseDefault(registry)
+	defer ResetDefault()
+
+	InitializeWriterMetrics("shadow_parser_error")
+
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	rec := httptest.NewRecorder()
+	registry.ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	assertContains(t, body, `go_parser_flushes_total{server_mode="celery",status="success",table="shadow_parser_error"} 0`)
+	assertContains(t, body, `go_parser_flushes_total{server_mode="celery",status="failed",table="shadow_parser_error"} 0`)
+	assertContains(t, body, `go_parser_flush_duration_seconds_count{server_mode="celery",status="success",table="shadow_parser_error"} 0`)
+	assertContains(t, body, `go_parser_flush_duration_seconds_sum{server_mode="celery",status="success",table="shadow_parser_error"} 0`)
+	assertContains(t, body, `go_parser_flush_duration_seconds_bucket{le="+Inf",server_mode="celery",status="success",table="shadow_parser_error"} 0`)
+}
+
 func TestStartServerExposesMetricsEndpoint(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

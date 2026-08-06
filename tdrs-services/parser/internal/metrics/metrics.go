@@ -104,6 +104,11 @@ type Recorder interface {
 	ObserveHistogram(name string, labels Labels, value float64)
 }
 
+type metricInitializer interface {
+	InitCounter(name string, labels Labels)
+	InitHistogram(name string, labels Labels)
+}
+
 type noopRecorder struct{}
 
 func (noopRecorder) IncCounter(string, Labels, float64)       {}
@@ -113,6 +118,27 @@ func (noopRecorder) ObserveHistogram(string, Labels, float64) {}
 var (
 	defaultMu       sync.RWMutex
 	defaultRecorder Recorder = noopRecorder{}
+)
+
+var (
+	fileStatuses    = []string{"success", "failed"}
+	errorCategories = []string{
+		"record_pre_check",
+		"field_value",
+		"value_consistency",
+		"case_consistency",
+	}
+	pipelineStages = []string{
+		"setup",
+		"parse_validate",
+		"flush",
+		"worker_parsing",
+		"worker_group_validation",
+		"worker_record_validation",
+		"worker_field_validation",
+		"worker_routing",
+	}
+	flushStatuses = []string{"success", "failed"}
 )
 
 // UseDefault installs the process-wide recorder used by package-level helpers.
@@ -180,6 +206,27 @@ func (r *Registry) IncCounter(name string, labels Labels, value float64) {
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	sample := r.counterSampleLocked(name, key, labels)
+	sample.value += value
+}
+
+// InitCounter creates a zero-valued counter series for the given label set.
+// Prometheus can only calculate increase() from samples it has observed, so
+// known parser counters are initialized before the first parse creates a large
+// first increment.
+func (r *Registry) InitCounter(name string, labels Labels) {
+	if r == nil || !isCounter(name) {
+		return
+	}
+	labels = r.withServerMode(labels)
+	key := labelKey(labels)
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.counterSampleLocked(name, key, labels)
+}
+
+func (r *Registry) counterSampleLocked(name string, key string, labels Labels) *numberSample {
 	samples := r.counters[name]
 	if samples == nil {
 		samples = make(map[string]*numberSample)
@@ -190,7 +237,7 @@ func (r *Registry) IncCounter(name string, labels Labels, value float64) {
 		sample = &numberSample{labels: labels}
 		samples[key] = sample
 	}
-	sample.value += value
+	return sample
 }
 
 func (r *Registry) SetGauge(name string, labels Labels, value float64) {
@@ -219,6 +266,31 @@ func (r *Registry) ObserveHistogram(name string, labels Labels, value float64) {
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	sample := r.histogramSampleLocked(name, key, labels)
+	for i, bucket := range durationBuckets {
+		if value <= bucket {
+			sample.buckets[i]++
+		}
+	}
+	sample.count++
+	sample.sum += value
+}
+
+// InitHistogram creates zero-valued bucket, count, and sum series for the
+// given histogram label set.
+func (r *Registry) InitHistogram(name string, labels Labels) {
+	if r == nil || !isHistogram(name) {
+		return
+	}
+	labels = r.withServerMode(labels)
+	key := labelKey(labels)
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.histogramSampleLocked(name, key, labels)
+}
+
+func (r *Registry) histogramSampleLocked(name string, key string, labels Labels) *histogramSample {
 	samples := r.histograms[name]
 	if samples == nil {
 		samples = make(map[string]*histogramSample)
@@ -232,13 +304,7 @@ func (r *Registry) ObserveHistogram(name string, labels Labels, value float64) {
 		}
 		samples[key] = sample
 	}
-	for i, bucket := range durationBuckets {
-		if value <= bucket {
-			sample.buckets[i]++
-		}
-	}
-	sample.count++
-	sample.sum += value
+	return sample
 }
 
 func (r *Registry) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
@@ -403,6 +469,57 @@ func AddErrorsGenerated(program string, section int, category string, count int6
 	recorder().IncCounter(errorsGeneratedTotal, parseLabels(program, section, Labels{
 		"error_category": category,
 	}), float64(count))
+}
+
+// InitializeParserMetrics exposes zero-valued parser series for a
+// program/section before the first file is processed.
+func InitializeParserMetrics(program string, section int) {
+	initializer, ok := recorder().(metricInitializer)
+	if !ok {
+		return
+	}
+
+	initializer.InitCounter(recordsParsedTotal, parseLabels(program, section, nil))
+	initializer.InitCounter(workerPoolActiveDuration, parseLabels(program, section, nil))
+	initializer.InitCounter(workerPoolCapacitySeconds, parseLabels(program, section, nil))
+	SetWorkerPoolCapacity(program, section, 0)
+
+	for _, status := range fileStatuses {
+		initializer.InitCounter(filesProcessedTotal, parseLabels(program, section, Labels{
+			"status": status,
+		}))
+		initializer.InitHistogram(fileDuration, parseLabels(program, section, Labels{
+			"status": status,
+		}))
+	}
+	for _, category := range errorCategories {
+		initializer.InitCounter(errorsGeneratedTotal, parseLabels(program, section, Labels{
+			"error_category": category,
+		}))
+	}
+	for _, stage := range pipelineStages {
+		initializer.InitHistogram(pipelineStageDuration, parseLabels(program, section, Labels{
+			"stage": stage,
+		}))
+	}
+}
+
+// InitializeWriterMetrics exposes zero-valued writer flush series for a table
+// before the first flush for that table occurs.
+func InitializeWriterMetrics(tableName string) {
+	initializer, ok := recorder().(metricInitializer)
+	if !ok {
+		return
+	}
+
+	for _, status := range flushStatuses {
+		labels := Labels{
+			"table":  tableName,
+			"status": status,
+		}
+		initializer.InitCounter(flushesTotal, labels)
+		initializer.InitHistogram(flushDuration, labels)
+	}
 }
 
 // ObservePipelineStage records a parser pipeline stage duration.

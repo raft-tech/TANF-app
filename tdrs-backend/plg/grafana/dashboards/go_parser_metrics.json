@@ -172,7 +172,7 @@
             "uid": "$datasource"
           },
           "editorMode": "code",
-          "expr": "go_parser_files_processed_total{service=\"go-parser\",env=~\"$env\",server_mode=~\"$server_mode\",program=~\"$program\",section=~\"$section\"}",
+          "expr": "sum(go_parser_files_processed_total{service=\"go-parser\",env=~\"$env\",server_mode=~\"$server_mode\",program=~\"$program\",section=~\"$section\"})",
           "format": "time_series",
           "legendFormat": "__auto",
           "range": true,
@@ -529,7 +529,7 @@
               }
             ]
           },
-          "unit": "ops"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -564,14 +564,14 @@
             "uid": "$datasource"
           },
           "editorMode": "code",
-          "expr": "sum(rate(go_parser_files_processed_total{service=\"go-parser\",env=~\"$env\",server_mode=~\"$server_mode\",program=~\"$program\",section=~\"$section\"}[$__rate_interval])) by (status, server_mode)",
+          "expr": "sum(rate(go_parser_files_processed_total{service=\"go-parser\",env=~\"$env\",server_mode=~\"$server_mode\",program=~\"$program\",section=~\"$section\"}[$__rate_interval]) * 60) by (status, server_mode)",
           "format": "time_series",
-          "legendFormat": "{{server_mode}} {{status}}",
+          "legendFormat": "{{server_mode}} {{status}} files/min",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Files Processed Rate",
+      "title": "Files Processed Per Minute",
       "type": "timeseries"
     },
     {
