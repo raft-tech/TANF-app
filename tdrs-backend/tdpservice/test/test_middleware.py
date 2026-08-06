@@ -65,8 +65,7 @@ def test_session_middleware_allows_configured_admin_origin(settings):
     response = _response_with_origin("https://admin.tanfdata.acf.hhs.gov", settings)
 
     assert (
-        response["Access-Control-Allow-Origin"]
-        == "https://admin.tanfdata.acf.hhs.gov"
+        response["Access-Control-Allow-Origin"] == "https://admin.tanfdata.acf.hhs.gov"
     )
     assert response["Vary"] == "Origin"
 
@@ -252,6 +251,26 @@ def test_session_middleware_varies_on_cookie_when_session_is_saved(settings):
 
     assert settings.SESSION_COOKIE_NAME in response.cookies
     assert "Cookie" in response["Vary"]
+
+
+def test_login_dotgov_session_cookie_is_host_only(settings):
+    """Login.gov session cookies should not be scoped to the parent domain."""
+    settings.SESSION_COOKIE_DOMAIN = None
+    settings.SESSION_COOKIE_SECURE = True
+    settings.SESSION_COOKIE_HTTPONLY = True
+    settings.SESSION_COOKIE_SAMESITE = "None"
+    middleware = SessionMiddleware(lambda request: HttpResponse())
+    request = RequestFactory().get("/login/dotgov")
+    middleware.process_request(request)
+    request.session["session_scope"] = "standard"
+
+    response = middleware.process_response(request, HttpResponse())
+    session_cookie = response.cookies[settings.SESSION_COOKIE_NAME]
+
+    assert session_cookie["domain"] == ""
+    assert session_cookie["secure"]
+    assert session_cookie["httponly"]
+    assert session_cookie["samesite"] == "None"
 
 
 def _admin_api_response_for_user(user):
