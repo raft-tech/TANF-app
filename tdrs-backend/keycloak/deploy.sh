@@ -16,14 +16,29 @@ REQUIRED_ENV_VARS=(
     "KEYCLOAK_ADMIN"              # Admin console username
     "KEYCLOAK_ADMIN_PASSWORD"     # Admin console password
     "KC_TDP_DJANGO_CLIENT_SECRET" # tdp-django client secret (realm config)
+    "KC_TDP_ADMIN_CLIENT_SECRET"  # tdp-admin client secret (realm config)
+    "KC_TDP_GRAFANA_CLIENT_SECRET" # tdp-grafana client secret (realm config)
     "LOGIN_GOV_JWT_KEY"           # Login.gov RSA private key (PEM or base64)
     "CF_DOCKER_PASSWORD"          # Docker registry password/token (used by cf push)
     "AMS_CLIENT_ID"                # AMS OIDC client ID
     "AMS_CLIENT_SECRET"            # AMS OIDC client secret
 )
 OPTIONAL_ENV_VARS=(
-    "KC_TDP_GRAFANA_CLIENT_SECRET" # tdp-grafana client secret (realm config)
     "LOGIN_GOV_ACR_VALUES"         # Login.gov identity assurance level
+    "LOGIN_GOV_CLIENT_ID"           # Login.gov OIDC client ID
+    "LOGIN_GOV_AUTH_URL"            # Login.gov authorization endpoint
+    "LOGIN_GOV_TOKEN_URL"           # Login.gov token endpoint
+    "LOGIN_GOV_JWKS_URL"            # Login.gov JWKS endpoint
+    "LOGIN_GOV_LOGOUT_URL"          # Login.gov logout endpoint
+    "LOGIN_GOV_ISSUER"              # Login.gov issuer
+    "AMS_AUTH_URL"                  # AMS authorization endpoint
+    "AMS_TOKEN_URL"                 # AMS token endpoint
+    "AMS_JWKS_URL"                  # AMS JWKS endpoint
+    "AMS_LOGOUT_URL"                # AMS logout endpoint
+    "AMS_USERINFO_URL"              # AMS userinfo endpoint
+    "AMS_ISSUER"                    # AMS issuer
+    "KC_CLI_REDIRECT_URI"           # Additional redirect URI for tdp-cli
+    "KC_CLI_WEB_ORIGIN"             # Additional web origin for tdp-cli
 )
 
 help() {
@@ -98,6 +113,50 @@ inject_env_vars() {
     done
 }
 
+set_manifest_env() {
+    local manifest="$1"
+    local var="$2"
+    local value="$3"
+
+    export "$var=$value"
+    yq eval -i ".applications[0].env.$var = strenv($var)" "$manifest"
+}
+
+inject_default_config_cli_env_vars() {
+    local manifest="$1"
+    local default_login_gov_client_id
+
+    case "$DEPLOY_ENV" in
+        dev)
+            default_login_gov_client_id="urn:gov:gsa:openidconnect.profiles:sp:sso:hhs:tanf-proto-dev"
+            ;;
+        staging)
+            default_login_gov_client_id="urn:gov:gsa:openidconnect.profiles:sp:sso:hhs:tanf-proto-staging"
+            ;;
+        prod)
+            default_login_gov_client_id="urn:gov:gsa:openidconnect.profiles:sp:sso:hhs:tanf-prod"
+            ;;
+    esac
+
+    set_manifest_env "$manifest" "LOGIN_GOV_CLIENT_ID" "${LOGIN_GOV_CLIENT_ID:-$default_login_gov_client_id}"
+    set_manifest_env "$manifest" "LOGIN_GOV_AUTH_URL" "${LOGIN_GOV_AUTH_URL:-https://idp.int.identitysandbox.gov/openid_connect/authorize}"
+    set_manifest_env "$manifest" "LOGIN_GOV_TOKEN_URL" "${LOGIN_GOV_TOKEN_URL:-https://idp.int.identitysandbox.gov/api/openid_connect/token}"
+    set_manifest_env "$manifest" "LOGIN_GOV_JWKS_URL" "${LOGIN_GOV_JWKS_URL:-https://idp.int.identitysandbox.gov/api/openid_connect/certs}"
+    set_manifest_env "$manifest" "LOGIN_GOV_LOGOUT_URL" "${LOGIN_GOV_LOGOUT_URL:-https://idp.int.identitysandbox.gov/openid_connect/logout}"
+    set_manifest_env "$manifest" "LOGIN_GOV_ISSUER" "${LOGIN_GOV_ISSUER:-https://idp.int.identitysandbox.gov/}"
+    set_manifest_env "$manifest" "LOGIN_GOV_ACR_VALUES" "${LOGIN_GOV_ACR_VALUES:-http://idmanagement.gov/ns/assurance/ial/1}"
+
+    set_manifest_env "$manifest" "AMS_AUTH_URL" "${AMS_AUTH_URL:-https://sso-stage.acf.hhs.gov/auth/realms/ACF-SSO/protocol/openid-connect/auth}"
+    set_manifest_env "$manifest" "AMS_TOKEN_URL" "${AMS_TOKEN_URL:-https://sso-stage.acf.hhs.gov/auth/realms/ACF-SSO/protocol/openid-connect/token}"
+    set_manifest_env "$manifest" "AMS_JWKS_URL" "${AMS_JWKS_URL:-https://sso-stage.acf.hhs.gov/auth/realms/ACF-SSO/protocol/openid-connect/certs}"
+    set_manifest_env "$manifest" "AMS_LOGOUT_URL" "${AMS_LOGOUT_URL:-https://sso-stage.acf.hhs.gov/auth/realms/ACF-SSO/protocol/openid-connect/logout}"
+    set_manifest_env "$manifest" "AMS_USERINFO_URL" "${AMS_USERINFO_URL:-https://sso-stage.acf.hhs.gov/auth/realms/ACF-SSO/protocol/openid-connect/userinfo}"
+    set_manifest_env "$manifest" "AMS_ISSUER" "${AMS_ISSUER:-https://sso-stage.acf.hhs.gov/auth/realms/ACF-SSO}"
+
+    set_manifest_env "$manifest" "KC_CLI_REDIRECT_URI" "${KC_CLI_REDIRECT_URI:-http://localhost/*}"
+    set_manifest_env "$manifest" "KC_CLI_WEB_ORIGIN" "${KC_CLI_WEB_ORIGIN:-http://localhost}"
+}
+
 deploy_keycloak() {
     local app_name="$1"
     local db_service="$2"
@@ -116,6 +175,7 @@ deploy_keycloak() {
     yq eval -i ".applications[0].env.DEPLOY_ENV = \"${DEPLOY_ENV}\"" $MANIFEST
     yq eval -i ".applications[0].docker.image = \"${docker_image}\"" $MANIFEST
     inject_env_vars $MANIFEST
+    inject_default_config_cli_env_vars $MANIFEST
 
     local strategy_flag=""
     if [ "$rolling" == "true" ]; then
@@ -136,12 +196,68 @@ deploy_keycloak() {
 configure_keycloak_idps() {
     local app_name="$1"
     local internal_base="http://${app_name}.apps.internal"
-    echo "Running IdP configuration task..."
-    # /health/ready is proxied through nginx on port 8080, so the management URL
-    # uses port 8080 (not 9000, which is only accessible within the container).
+    local realm_file
+    local task_name
+    local task_command
+
+    case "$DEPLOY_ENV" in
+        dev)
+            realm_file="/opt/keycloak/realm-configs/realm-export.dev-local.json"
+            ;;
+        staging)
+            realm_file="/opt/keycloak/realm-configs/realm-export.staging.json"
+            ;;
+        prod)
+            realm_file="/opt/keycloak/realm-configs/realm-export.prod.json"
+            ;;
+    esac
+
+    task_name="keycloak-config-cli-$(date +%s)"
+    task_command="export KEYCLOAK_URL=${internal_base}:8080 KEYCLOAK_USER=\${KEYCLOAK_ADMIN} KEYCLOAK_PASSWORD=\${KEYCLOAK_ADMIN_PASSWORD} KEYCLOAK_AVAILABILITYCHECK_ENABLED=true KEYCLOAK_AVAILABILITYCHECK_TIMEOUT=120s IMPORT_FILES_LOCATIONS=${realm_file} IMPORT_VARSUBSTITUTION_ENABLED=true IMPORT_VARSUBSTITUTION_NESTED=true IMPORT_CACHE_ENABLED=false KEYCLOAK_CONFIG_CLI_JAR=/opt/keycloak/keycloak-config-cli.jar && /opt/keycloak/normalize-login-gov-key.sh"
+
+    echo "Running Keycloak config-cli task..."
     cf run-task "$app_name" \
-        --command "export KEYCLOAK_URL=${internal_base}:8080 KEYCLOAK_MANAGEMENT_URL=${internal_base}:8080 && /opt/keycloak/configure-idps.sh" \
-        --name "configure-idps"
+        --command "$task_command" \
+        --name "$task_name"
+
+    wait_for_keycloak_config_task "$app_name" "$task_name"
+}
+
+wait_for_keycloak_config_task() {
+    local app_name="$1"
+    local task_name="$2"
+    local max_attempts=120
+    local attempt=0
+    local state=""
+
+    echo "Waiting for Keycloak config-cli task '${task_name}' to finish..."
+    while [ "$attempt" -lt "$max_attempts" ]; do
+        state=$(cf tasks "$app_name" | awk -v name="$task_name" '$2 == name {print $3; exit}')
+
+        case "$state" in
+            SUCCEEDED)
+                echo "Keycloak config-cli task succeeded."
+                return
+                ;;
+            FAILED|CANCELLED|CANCELED)
+                echo "ERROR: Keycloak config-cli task ended with state '${state}'."
+                echo "Check task logs with: cf logs ${app_name} --recent"
+                exit 1
+                ;;
+            "")
+                echo "  Task not visible yet..."
+                ;;
+            *)
+                echo "  Task state: ${state}"
+                ;;
+        esac
+
+        attempt=$((attempt + 1))
+        sleep 5
+    done
+
+    echo "ERROR: Keycloak config-cli task did not finish after $((max_attempts * 5)) seconds."
+    exit 1
 }
 
 setup_keycloak_net_pols() {
