@@ -87,7 +87,7 @@ services:
       - keycloak-pg
 
   keycloak-configure:
-    image: adorsys/keycloak-config-cli
+    image: adorsys/keycloak-config-cli:6.5.1-26.5.5
     entrypoint: ["/bin/sh", "/opt/normalize-login-gov-key.sh"]
     environment:
       - KEYCLOAK_URL=http://keycloak:8080

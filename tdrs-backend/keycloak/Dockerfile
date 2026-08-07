@@ -17,7 +17,7 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal AS ubi-libs
 RUN microdnf install -y libxcrypt-compat && \
     mkdir /ubi-libs && cp -L /usr/lib64/libcrypt.so.1* /ubi-libs/
 
-FROM adorsys/keycloak-config-cli AS keycloak-config-cli
+FROM adorsys/keycloak-config-cli:6.5.1-26.5.5 AS keycloak-config-cli
 
 FROM quay.io/keycloak/keycloak:26.5.5
 
