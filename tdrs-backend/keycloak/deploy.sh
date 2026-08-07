@@ -17,7 +17,6 @@ REQUIRED_ENV_VARS=(
     "KEYCLOAK_ADMIN_PASSWORD"     # Admin console password
     "KC_TDP_DJANGO_CLIENT_SECRET" # tdp-django client secret (realm config)
     "KC_TDP_ADMIN_CLIENT_SECRET"  # tdp-admin client secret (realm config)
-    "KC_TDP_GRAFANA_CLIENT_SECRET" # tdp-grafana client secret (realm config)
     "LOGIN_GOV_JWT_KEY"           # Login.gov RSA private key (PEM or base64)
     "CF_DOCKER_PASSWORD"          # Docker registry password/token (used by cf push)
     "AMS_CLIENT_ID"                # AMS OIDC client ID
@@ -39,6 +38,7 @@ OPTIONAL_ENV_VARS=(
     "AMS_ISSUER"                    # AMS issuer
     "KC_CLI_REDIRECT_URI"           # Additional redirect URI for tdp-cli
     "KC_CLI_WEB_ORIGIN"             # Additional web origin for tdp-cli
+    "KC_TDP_GRAFANA_CLIENT_SECRET" # tdp-grafana client secret (realm config)
 )
 
 help() {
