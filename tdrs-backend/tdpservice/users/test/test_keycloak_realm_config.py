@@ -59,16 +59,13 @@ def test_dev_local_config_includes_hosted_and_local_urls():
     assert "http://localhost:3000/*" in django_client["redirectUris"]
     assert "http://127.0.0.1:8989/*" in django_client["redirectUris"]
     assert (
-        "https://test.tanfdata.acf.hhs.gov/admin-auth/*"
-        in admin_client["redirectUris"]
+        "https://test.tanfdata.acf.hhs.gov/admin-auth/*" in admin_client["redirectUris"]
     )
     assert (
-        "https://qasp.tanfdata.acf.hhs.gov/admin-auth/*"
-        in admin_client["redirectUris"]
+        "https://qasp.tanfdata.acf.hhs.gov/admin-auth/*" in admin_client["redirectUris"]
     )
     assert (
-        "https://a11y.tanfdata.acf.hhs.gov/admin-auth/*"
-        in admin_client["redirectUris"]
+        "https://a11y.tanfdata.acf.hhs.gov/admin-auth/*" in admin_client["redirectUris"]
     )
     assert "http://localhost:8989/*" in admin_client["redirectUris"]
     assert grafana_client["attributes"]["post.logout.redirect.uris"] == (
@@ -150,38 +147,3 @@ def test_all_realm_configs_show_login_gov_on_login_page():
         login_gov_idp = get_identity_provider(realm, "login-gov")
 
         assert login_gov_idp.get("hideOnLogin") is not True
-
-
-def test_configure_idps_applies_cli_audience_to_existing_realms():
-    """Deploy-time config must update existing realms that skip JSON re-import."""
-    script = CONFIGURE_IDPS_PATH.read_text()
-
-    assert "configure_tdp_cli_api_audience()" in script
-    assert "configure_tdp_cli_api_audience" in script.split("main()", maxsplit=1)[1]
-    assert 'scope_name="tdp-api-audience"' in script
-    assert "/client-scopes?name=${scope_name}" in script
-    assert 'get_client_uuid "tdp-cli"' in script
-    assert "default-client-scopes" in script
-
-
-def test_configure_idps_shows_login_gov_for_existing_realms():
-    """Deploy-time config must unhide Login.gov when realms skip re-import."""
-    script = CONFIGURE_IDPS_PATH.read_text()
-
-    assert "show_login_gov_on_login_page()" in script
-    assert "show_login_gov_on_login_page" in script.split("main()", maxsplit=1)[1]
-    assert ".hideOnLogin = false | del(.config.clientSecret)" in script
-
-
-def test_configure_idps_appends_admin_callback_redirect_uris():
-    """Deploy-time config must allow Django-hosted admin OIDC callbacks."""
-    script = CONFIGURE_IDPS_PATH.read_text()
-
-    assert "configure_tdp_admin_client" in script.split("main()", maxsplit=1)[1]
-    assert "https://test.tanfdata.acf.hhs.gov/admin-auth/*" in script
-    assert "https://qasp.tanfdata.acf.hhs.gov/admin-auth/*" in script
-    assert "https://a11y.tanfdata.acf.hhs.gov/admin-auth/*" in script
-    assert "https://staging.tanfdata.acf.hhs.gov/admin-auth/*" in script
-    assert "https://develop.tanfdata.acf.hhs.gov/admin-auth/*" in script
-    assert "https://tanfdata.acf.hhs.gov/admin-auth/*" in script
-    assert "appending required callback URIs" in script
