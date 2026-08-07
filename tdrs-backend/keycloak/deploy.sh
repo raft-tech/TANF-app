@@ -146,6 +146,8 @@ inject_default_config_cli_env_vars() {
     set_manifest_env "$manifest" "LOGIN_GOV_ISSUER" "${LOGIN_GOV_ISSUER:-https://idp.int.identitysandbox.gov/}"
     set_manifest_env "$manifest" "LOGIN_GOV_ACR_VALUES" "${LOGIN_GOV_ACR_VALUES:-http://idmanagement.gov/ns/assurance/ial/1}"
 
+    set_manifest_env "$manifest" "KC_TDP_GRAFANA_CLIENT_SECRET" "${KC_TDP_GRAFANA_CLIENT_SECRET:-}"
+
     set_manifest_env "$manifest" "AMS_AUTH_URL" "${AMS_AUTH_URL:-https://sso-stage.acf.hhs.gov/auth/realms/ACF-SSO/protocol/openid-connect/auth}"
     set_manifest_env "$manifest" "AMS_TOKEN_URL" "${AMS_TOKEN_URL:-https://sso-stage.acf.hhs.gov/auth/realms/ACF-SSO/protocol/openid-connect/token}"
     set_manifest_env "$manifest" "AMS_JWKS_URL" "${AMS_JWKS_URL:-https://sso-stage.acf.hhs.gov/auth/realms/ACF-SSO/protocol/openid-connect/certs}"

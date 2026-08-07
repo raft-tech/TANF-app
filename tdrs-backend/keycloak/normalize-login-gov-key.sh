@@ -22,7 +22,12 @@ fi
 
 LOGIN_GOV_JWT_KEY_PEM="$(
     printf '%s' "$normalized_key" |
-        awk 'BEGIN { ORS = "" } { gsub(/\\/, "\\\\"); gsub(/"/, "\\\""); printf "%s%s", (NR == 1 ? "" : "\\n"), $0 }'
+        sed -e ':a' \
+            -e 'N' \
+            -e '$!ba' \
+            -e 's/\\/\\\\/g' \
+            -e 's/"/\\"/g' \
+            -e 's/\n/\\n/g'
 )"
 export LOGIN_GOV_JWT_KEY_PEM
 
@@ -31,4 +36,4 @@ if [ ! -f "$KEYCLOAK_CONFIG_CLI_JAR" ] && [ -f /opt/keycloak/keycloak-config-cli
     KEYCLOAK_CONFIG_CLI_JAR="/opt/keycloak/keycloak-config-cli.jar"
 fi
 
-exec java $JAVA_OPTS -jar "$KEYCLOAK_CONFIG_CLI_JAR" "$@"
+exec java ${JAVA_OPTS:-} -jar "$KEYCLOAK_CONFIG_CLI_JAR" "$@"
