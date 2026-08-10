@@ -134,7 +134,7 @@ class CloudGov(Common):
     # Cookie settings
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = "None"
-    SESSION_COOKIE_DOMAIN = ".tanfdata.acf.hhs.gov"
+    SESSION_COOKIE_DOMAIN = None
     CSRF_COOKIE_SECURE = True
     CSRF_COOKIE_SAMESITE = "None"
 
