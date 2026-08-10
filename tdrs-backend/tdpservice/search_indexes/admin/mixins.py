@@ -77,11 +77,12 @@ class ReadOnlyAdminMixin(AdminModelMixin):
 
     def get_readonly_fields(self, request, obj=None):
         """Force all fields to read only."""
-        return (
+        readonly_fields = (
             list(self.readonly_fields)
             + [field.name for field in obj._meta.fields]
             + [field.name for field in obj._meta.many_to_many]
         )
+        return list(dict.fromkeys(readonly_fields))
 
     def has_add_permission(self, request):
         """Deny add permisison."""
