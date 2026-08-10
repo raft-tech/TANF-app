@@ -17,6 +17,7 @@
 	allowed = ./tdrs-backend/plg/tempo/manifest.yml:*
 	allowed = ./tdrs-backend/plg/deploy.sh:*
 	allowed = ./tdrs-backend/docker-compose.yml:[0-9]+:      - LOGIN_GOV_JWT_KEY=[$][{]JWT_KEY[}]
+	allowed = .*tdrs-backend/docker-compose.yml:[0-9]+:      - LOGIN_GOV_JWT_KEY=[$][{]JWT_KEY:-[}]
 	allowed = ./tdrs-backend/docker-compose.yml:[0-9]+:      - JWT_KEY=[$][{]JWT_KEY[}]
 	allowed = ./tdrs-backend/docker-compose.yml:[0-9]+:      - AWS_SECRET_ACCESS_KEY=test
 	allowed = ./tdrs-services/parser/cloudgov_start.sh:69
