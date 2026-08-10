@@ -18,7 +18,7 @@ from mozilla_django_oidc.views import (
     OIDCAuthenticationCallbackView,
     OIDCAuthenticationRequestView,
 )
-from rest_framework import mixins, permissions, status, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.generics import ListAPIView
@@ -26,12 +26,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from tdpservice.users.api.canary import normalize_idp
-from tdpservice.users.authorization import is_authorized_admin_user
-from tdpservice.users.forms import (
-    UserAdminWorkflowForm,
-    build_user_admin_form_metadata,
-    normalize_form_errors,
-)
 from tdpservice.users.models import (
     AccountApprovalStatusChoices,
     ChangeRequestAuditLog,
@@ -90,19 +84,6 @@ def _admin_login_error_redirect(error, message):
     return HttpResponseRedirect(_admin_login_error_url(error, message))
 
 
-class IsAdminConsoleFormUser(permissions.BasePermission):
-    """Allow React admin form access only for admin-scoped system admins."""
-
-    message = "User is not authorized for this admin form workflow."
-
-    def has_permission(self, request, view):
-        """Return whether the request may use React admin form endpoints."""
-        return (
-            request.session.get("session_scope") == ADMIN_SESSION_SCOPE
-            and is_authorized_admin_user(request.user)
-        )
-
-
 class UserViewSet(
     ListAPIView,
     mixins.RetrieveModelMixin,
@@ -135,9 +116,7 @@ class UserViewSet(
 
     def get_permissions(self):
         """Determine the permissions to apply based on action."""
-        if self.action in ["admin_form_metadata", "admin_form"]:
-            permission_classes = [IsAdminConsoleFormUser]
-        elif self.action in ["list", "retrieve"]:
+        if self.action in ["list", "retrieve"]:
             permission_classes = [
                 IsAuthenticated,
                 IsApprovedPermission,
@@ -153,51 +132,6 @@ class UserViewSet(
         self.check_object_permissions(request, item)
         serializer = self.get_serializer_class()(item)
         return Response(serializer.data)
-
-    @action(methods=["GET"], detail=True, url_path="admin-form-metadata")
-    def admin_form_metadata(self, request, pk=None):
-        """Return Django-derived metadata for the first React admin form."""
-        user = self.get_object()
-        form = UserAdminWorkflowForm(instance=user)
-        return Response(build_user_admin_form_metadata(form, user))
-
-    @action(methods=["PATCH"], detail=True, url_path="admin-form")
-    def admin_form(self, request, pk=None):
-        """Validate and save the first React admin user form through Django."""
-        user = self.get_object()
-        form = UserAdminWorkflowForm(data=request.data, instance=user)
-
-        if not form.is_valid():
-            return Response(
-                {
-                    "ok": False,
-                    "errors": normalize_form_errors(form.errors),
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        instance = form.save(commit=False)
-        try:
-            instance.save()
-            form.save_m2m()
-        except ValidationError as exc:
-            form.add_error(None, exc)
-            return Response(
-                {
-                    "ok": False,
-                    "errors": normalize_form_errors(form.errors),
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        refreshed_form = UserAdminWorkflowForm(instance=instance)
-        return Response(
-            {
-                "ok": True,
-                "object": UserSerializer(instance).data,
-                "metadata": build_user_admin_form_metadata(refreshed_form, instance),
-            }
-        )
 
     @action(methods=["GET", "PATCH"], detail=False)
     def request_access(self, request):

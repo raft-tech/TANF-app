@@ -80,17 +80,17 @@ describe("admin API service", () => {
     );
   });
 
-  it("exposes resource-specific user admin reads", async () => {
+  it("exposes generic admin form metadata reads", async () => {
     process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
     process.env.ADMIN_API_PROXY_TOKEN = "server-only-token";
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({ id: "user-1" })));
 
-    await adminApi.users.formMetadata("user 1", {
+    await adminApi.adminForms.metadata("users.user.change", "user 1", {
       cookieHeader: "admin_sessionid=abc",
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://backend.example.gov/admin-api/v1/users/user%201/admin-form-metadata/",
+      "https://backend.example.gov/admin-api/v1/admin-forms/users.user.change/user%201/metadata/",
       expect.objectContaining({ method: "GET" })
     );
   });

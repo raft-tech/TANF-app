@@ -25,9 +25,11 @@ import {
   type NormalizedAdminFormErrors,
 } from "@/lib/admin-form";
 
-type UserAdminFormProps = {
+type AdminFormProps = {
   metadata: AdminFormMetadata;
   csrfToken: string | null;
+  cancelHref?: string;
+  cancelLabel?: string;
 };
 
 type AdminFormMutationResponse = {
@@ -58,7 +60,12 @@ function fieldErrorMessage(error?: FieldError) {
   return typeof error?.message === "string" ? error.message : "";
 }
 
-export function UserAdminForm({ metadata, csrfToken }: UserAdminFormProps) {
+export function AdminForm({
+  metadata,
+  csrfToken,
+  cancelHref,
+  cancelLabel = "Back",
+}: AdminFormProps) {
   const [formMetadata, setFormMetadata] = useState(metadata);
   const [serverErrors, setServerErrors] = useState<string[]>([]);
   const [statusMessage, setStatusMessage] = useState("");
@@ -122,7 +129,7 @@ export function UserAdminForm({ metadata, csrfToken }: UserAdminFormProps) {
       reset(getDefaultAdminFormValues(data.metadata));
     }
 
-    setStatusMessage("User saved.");
+    setStatusMessage("Saved.");
   }
 
   return (
@@ -141,7 +148,7 @@ export function UserAdminForm({ metadata, csrfToken }: UserAdminFormProps) {
       {serverErrors.length > 0 && (
         <Alert
           type="error"
-          heading="Could not save user"
+          heading="Could not save form"
           headingLevel="h2"
           className="admin-form__alert"
           validation
@@ -170,13 +177,15 @@ export function UserAdminForm({ metadata, csrfToken }: UserAdminFormProps) {
 
           return (
             <FormGroup key={field.name} error={hasError}>
-              <Label
-                htmlFor={fieldId(field)}
-                error={hasError}
-                requiredMarker={field.required}
-              >
-                {field.label}
-              </Label>
+              {field.type !== "checkbox" && (
+                <Label
+                  htmlFor={fieldId(field)}
+                  error={hasError}
+                  requiredMarker={field.required}
+                >
+                  {field.label}
+                </Label>
+              )}
               {field.help_text && (
                 <div className="usa-hint" id={`${fieldId(field)}-hint`}>
                   {field.help_text}
@@ -234,6 +243,29 @@ export function UserAdminForm({ metadata, csrfToken }: UserAdminFormProps) {
                 </Select>
               )}
 
+              {field.type === "checkbox" && (
+                <div className="usa-checkbox">
+                  <input
+                    className="usa-checkbox__input"
+                    id={fieldId(field)}
+                    type="checkbox"
+                    aria-describedby={describedBy(field, hasError)}
+                    {...registration}
+                  />
+                  <label className="usa-checkbox__label" htmlFor={fieldId(field)}>
+                    {field.label}
+                    {field.required && (
+                      <abbr
+                        title="required"
+                        className="usa-hint usa-hint--required"
+                      >
+                        *
+                      </abbr>
+                    )}
+                  </label>
+                </div>
+              )}
+
               {field.type === "textarea" && (
                 <Textarea
                   id={fieldId(field)}
@@ -248,6 +280,7 @@ export function UserAdminForm({ metadata, csrfToken }: UserAdminFormProps) {
 
               {field.type !== "select" &&
                 field.type !== "multiselect" &&
+                field.type !== "checkbox" &&
                 field.type !== "textarea" && (
                   <TextInput
                     id={fieldId(field)}
@@ -264,11 +297,13 @@ export function UserAdminForm({ metadata, csrfToken }: UserAdminFormProps) {
 
       <div className="admin-form__actions">
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Save user"}
+          {isSubmitting ? "Saving..." : "Save"}
         </Button>
-        <a className="usa-button usa-button--outline" href="/users">
-          Back to users
-        </a>
+        {cancelHref && (
+          <a className="usa-button usa-button--outline" href={cancelHref}>
+            {cancelLabel}
+          </a>
+        )}
       </div>
     </form>
   );

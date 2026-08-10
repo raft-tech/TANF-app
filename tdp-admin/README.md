@@ -85,8 +85,8 @@ Next.js proxy only forwards request context and the server-side proxy token.
   Django viewset response.
 - `/users` lists Django user accounts through `/admin-api/v1/users/`.
 - `/users/[id]/edit` renders the first migrated admin form from Django-derived
-  metadata at `/admin-api/v1/users/[id]/admin-form-metadata/` and submits
-  mutations to `/admin-api/v1/users/[id]/admin-form/`.
+  metadata at `/admin-api/v1/admin-forms/users.user.change/[id]/metadata/` and
+  submits mutations to the generic `submit_url` returned by that metadata.
 
 ## API Boundary
 
@@ -98,10 +98,10 @@ HTTP verb to be exported from that route.
 Use `src/lib/admin-api.ts` for server-side calls from admin pages and route
 handlers. It centralizes backend URL construction, admin session and CSRF
 forwarding, proxy identity, request ID/correlation headers, provenance headers,
-and no-store behavior. Resource methods such as `adminApi.dataFiles.list()` and
-`adminApi.dataFiles.get()` are the component-facing API and should be expanded
-as admin viewsets are migrated. The user admin form uses `adminApi.users.list()`
-and `adminApi.users.formMetadata()` for the first metadata-backed workflow.
+and no-store behavior. Resource methods such as `adminApi.dataFiles.list()`,
+`adminApi.dataFiles.get()`, and `adminApi.adminForms.metadata()` are the
+component-facing API and should be expanded as admin viewsets and allowlisted
+admin form workflows are migrated.
 
 Django remains the source of truth for migrated admin form validation. React
 Hook Form should consume Django metadata for generic client-side feedback, then

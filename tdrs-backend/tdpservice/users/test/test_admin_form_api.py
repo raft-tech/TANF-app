@@ -7,6 +7,8 @@ from django.contrib.auth.models import Group
 import pytest
 from rest_framework import status
 
+USER_ADMIN_WORKFLOW = "users.user.change"
+
 
 def _login_admin_api_session(api_client, user, settings):
     """Create an admin-scoped API session for the given user."""
@@ -49,17 +51,20 @@ def _admin_form_payload(user):
 def test_user_admin_form_metadata_endpoint(
     api_client, settings, ofa_system_admin, data_analyst
 ):
-    """Return Django-derived metadata for the user admin workflow."""
+    """Return Django-derived metadata through the generic admin form engine."""
     _login_admin_api_session(api_client, ofa_system_admin, settings)
 
     response = api_client.get(
-        f"/admin-api/v1/users/{data_analyst.pk}/admin-form-metadata/",
+        f"/admin-api/v1/admin-forms/{USER_ADMIN_WORKFLOW}/{data_analyst.pk}/metadata/",
         **_admin_headers(settings),
     )
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.data["workflow"] == "users.user.change"
-    assert response.data["submit_url"] == f"/users/{data_analyst.pk}/admin-form/"
+    assert response.data["workflow"] == USER_ADMIN_WORKFLOW
+    assert (
+        response.data["submit_url"]
+        == f"/admin-forms/{USER_ADMIN_WORKFLOW}/{data_analyst.pk}/"
+    )
 
     fields = {field["name"]: field for field in response.data["fields"]}
     assert set(fields) == {
@@ -96,7 +101,7 @@ def test_user_admin_form_mutation_saves_valid_form(
     payload["first_name"] = "Updated"
 
     response = api_client.patch(
-        f"/admin-api/v1/users/{data_analyst.pk}/admin-form/",
+        f"/admin-api/v1/admin-forms/{USER_ADMIN_WORKFLOW}/{data_analyst.pk}/",
         payload,
         format="json",
         **_admin_headers(settings),
@@ -121,7 +126,7 @@ def test_user_admin_form_mutation_saves_valid_role_location_transition(
     payload["regions"] = []
 
     response = api_client.patch(
-        f"/admin-api/v1/users/{ofa_admin.pk}/admin-form/",
+        f"/admin-api/v1/admin-forms/{USER_ADMIN_WORKFLOW}/{ofa_admin.pk}/",
         payload,
         format="json",
         **_admin_headers(settings),
@@ -147,7 +152,7 @@ def test_user_admin_form_mutation_returns_normalized_field_errors(
     ]
 
     response = api_client.patch(
-        f"/admin-api/v1/users/{data_analyst.pk}/admin-form/",
+        f"/admin-api/v1/admin-forms/{USER_ADMIN_WORKFLOW}/{data_analyst.pk}/",
         payload,
         format="json",
         **_admin_headers(settings),
@@ -173,7 +178,7 @@ def test_user_admin_form_mutation_returns_normalized_non_field_errors(
     payload["regions"] = []
 
     response = api_client.patch(
-        f"/admin-api/v1/users/{data_analyst.pk}/admin-form/",
+        f"/admin-api/v1/admin-forms/{USER_ADMIN_WORKFLOW}/{data_analyst.pk}/",
         payload,
         format="json",
         **_admin_headers(settings),
@@ -200,7 +205,7 @@ def test_user_admin_form_mutation_returns_location_role_errors(
     payload["regions"] = []
 
     response = api_client.patch(
-        f"/admin-api/v1/users/{data_analyst.pk}/admin-form/",
+        f"/admin-api/v1/admin-forms/{USER_ADMIN_WORKFLOW}/{data_analyst.pk}/",
         payload,
         format="json",
         **_admin_headers(settings),
@@ -213,3 +218,18 @@ def test_user_admin_form_mutation_returns_location_role_errors(
         "Users other than Regional Staff, Developers, Data Analysts do not get "
         "assigned a location"
     ]
+
+
+@pytest.mark.django_db
+def test_admin_form_rejects_unregistered_workflows(
+    api_client, settings, ofa_system_admin, data_analyst
+):
+    """Reject admin form requests for workflows outside the explicit registry."""
+    _login_admin_api_session(api_client, ofa_system_admin, settings)
+
+    response = api_client.get(
+        f"/admin-api/v1/admin-forms/users.user.delete/{data_analyst.pk}/metadata/",
+        **_admin_headers(settings),
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND

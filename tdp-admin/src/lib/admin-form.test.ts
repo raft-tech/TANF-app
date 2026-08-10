@@ -10,7 +10,7 @@ const metadata: AdminFormMetadata = {
   workflow: "users.user.change",
   title: "Edit user",
   object: { id: "user-1", label: "user@example.com" },
-  submit_url: "/users/user-1/admin-form/",
+  submit_url: "/admin-forms/users.user.change/user-1/",
   fields: [
     {
       name: "username",

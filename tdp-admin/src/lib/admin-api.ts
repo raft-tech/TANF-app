@@ -151,8 +151,14 @@ export const adminApi = {
   users: {
     list: (options?: ReadAdminResourceOptions) =>
       requestAdminApi(["users"], { ...options, trailingSlash: true }),
-    formMetadata: (id: string | number, options?: ReadAdminResourceOptions) =>
-      requestAdminApi(["users", String(id), "admin-form-metadata"], {
+  },
+  adminForms: {
+    metadata: (
+      workflow: string,
+      objectId: string | number,
+      options?: ReadAdminResourceOptions
+    ) =>
+      requestAdminApi(["admin-forms", workflow, String(objectId), "metadata"], {
         ...options,
         trailingSlash: true,
       }),

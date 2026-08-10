@@ -176,7 +176,7 @@ describe("admin API proxy", () => {
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({ ok: true })));
 
     const request = new NextRequest(
-      "https://admin.example.gov/api/admin/users/user-1/admin-form",
+      "https://admin.example.gov/api/admin/admin-forms/users.user.change/user-1",
       {
         method: "PATCH",
         body: JSON.stringify({ first_name: "Updated" }),
@@ -190,12 +190,14 @@ describe("admin API proxy", () => {
     );
 
     const response = await PATCH(request, {
-      params: Promise.resolve({ path: ["users", "user-1", "admin-form"] }),
+      params: Promise.resolve({
+        path: ["admin-forms", "users.user.change", "user-1"],
+      }),
     });
 
     expect(response.status).toBe(200);
     expect(fetch).toHaveBeenCalledWith(
-      "https://backend.example.gov/admin-api/v1/users/user-1/admin-form/",
+      "https://backend.example.gov/admin-api/v1/admin-forms/users.user.change/user-1/",
       expect.objectContaining({
         method: "PATCH",
         body: JSON.stringify({ first_name: "Updated" }),

@@ -2,12 +2,13 @@ import { headers } from "next/headers";
 import { forbidden, notFound, redirect } from "next/navigation";
 import { GridContainer } from "@trussworks/react-uswds";
 import NextLink from "next/link";
-import { UserAdminForm } from "@/components/user-admin-form";
+import { AdminForm } from "@/components/admin-form";
 import { adminApi } from "@/lib/admin-api";
 import { checkAdminSession } from "@/lib/admin-auth";
 import type { AdminFormMetadata } from "@/lib/admin-form";
 
 export const dynamic = "force-dynamic";
+const USER_ADMIN_WORKFLOW = "users.user.change";
 
 export default async function UserEditPage({
   params,
@@ -27,7 +28,7 @@ export default async function UserEditPage({
   }
 
   const { id } = await params;
-  const response = await adminApi.users.formMetadata(id, {
+  const response = await adminApi.adminForms.metadata(USER_ADMIN_WORKFLOW, id, {
     cookieHeader,
     incomingHeaders: requestHeaders,
     sourceRoute: `/users/${id}/edit`,
@@ -78,7 +79,12 @@ export default async function UserEditPage({
                 </div>
               </div>
             ) : (
-              <UserAdminForm metadata={metadata} csrfToken={session.csrf ?? null} />
+              <AdminForm
+                metadata={metadata}
+                csrfToken={session.csrf ?? null}
+                cancelHref="/users"
+                cancelLabel="Back to users"
+              />
             )}
           </div>
         </GridContainer>
