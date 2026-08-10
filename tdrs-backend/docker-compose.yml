@@ -69,31 +69,7 @@ services:
       - KC_EVENT_METRICS_USER_TAGS=realm,idp,clientId
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
-    ports:
-      - "8443:8080"
-      - "9001:9000"
-    command: start-dev
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -sf http://localhost:9000/health/ready >/dev/null && curl -sf http://localhost:8080/realms/master/.well-known/openid-configuration >/dev/null",
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 24
-      start_period: 30s
-    depends_on:
-      - keycloak-pg
-
-  keycloak-configure:
-    image: adorsys/keycloak-config-cli:6.5.1-26.5.5
-    entrypoint: ["/bin/sh", "/opt/normalize-login-gov-key.sh"]
-    environment:
-      - KEYCLOAK_URL=http://keycloak:8080
-      - KEYCLOAK_USER=admin
-      - KEYCLOAK_PASSWORD=admin
-      - IMPORT_FILES_LOCATIONS=/config/*.json
+      - KEYCLOAK_CONFIG_IMPORT_ON_STARTUP=true
       - LOGIN_GOV_JWT_KEY=${JWT_KEY:-}
       - IMPORT_VARSUBSTITUTION_ENABLED=true
       - IMPORT_VARSUBSTITUTION_NESTED=true
@@ -120,12 +96,12 @@ services:
       - AMS_LOGOUT_URL=https://sso-stage.acf.hhs.gov/auth/realms/ACF-SSO/protocol/openid-connect/logout
       - AMS_USERINFO_URL=https://sso-stage.acf.hhs.gov/auth/realms/ACF-SSO/protocol/openid-connect/userinfo
       - AMS_ISSUER=https://sso-stage.acf.hhs.gov/auth/realms/ACF-SSO
+    ports:
+      - "8443:8080"
+      - "9001:9000"
+    command: start-dev
     depends_on:
-      keycloak:
-        condition: service_healthy
-    volumes:
-      - ./keycloak/realm-configs/realm-export.dev-local.json:/config/local.json
-      - ./keycloak/normalize-login-gov-key.sh:/opt/normalize-login-gov-key.sh:ro
+      - keycloak-pg
 
   clamav-rest:
     image: rafttech/clamav-rest:0.103.2

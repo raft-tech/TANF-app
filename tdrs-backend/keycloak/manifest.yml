@@ -17,6 +17,7 @@ applications:
       KC_EVENT_METRICS_USER_ENABLED: "true"
       KC_EVENT_METRICS_USER_EVENTS: client_login,code_to_token,login,logout,refresh_token,token_exchange
       KC_EVENT_METRICS_USER_TAGS: realm,idp,clientId
+      KEYCLOAK_CONFIG_IMPORT_ON_STARTUP: "true"
     command: |
       DB_HOST=$(echo $VCAP_SERVICES | jq -r '."aws-rds"[0].credentials.host')
       DB_PORT=$(echo $VCAP_SERVICES | jq -r '."aws-rds"[0].credentials.port')

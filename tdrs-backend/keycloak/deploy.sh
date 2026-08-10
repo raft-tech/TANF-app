@@ -23,6 +23,7 @@ REQUIRED_ENV_VARS=(
     "AMS_CLIENT_SECRET"            # AMS OIDC client secret
 )
 OPTIONAL_ENV_VARS=(
+    "KEYCLOAK_CONFIG_IMPORT_ON_STARTUP" # Run config-cli from entrypoint after Keycloak readiness
     "LOGIN_GOV_ACR_VALUES"         # Login.gov identity assurance level
     "LOGIN_GOV_CLIENT_ID"           # Login.gov OIDC client ID
     "LOGIN_GOV_AUTH_URL"            # Login.gov authorization endpoint
@@ -126,6 +127,8 @@ inject_default_config_cli_env_vars() {
     local manifest="$1"
     local default_login_gov_client_id
 
+    set_manifest_env "$manifest" "KEYCLOAK_CONFIG_IMPORT_ON_STARTUP" "${KEYCLOAK_CONFIG_IMPORT_ON_STARTUP:-true}"
+
     case "$DEPLOY_ENV" in
         dev)
             default_login_gov_client_id="urn:gov:gsa:openidconnect.profiles:sp:sso:hhs:tanf-proto-dev"
@@ -195,78 +198,8 @@ deploy_keycloak() {
     rm $MANIFEST
 }
 
-configure_keycloak_idps() {
-    local app_name="$1"
-    local internal_base="http://${app_name}.apps.internal"
-    local realm_file
-    local task_name
-    local task_command
-
-    case "$DEPLOY_ENV" in
-        dev)
-            realm_file="/opt/keycloak/realm-configs/realm-export.dev-local.json"
-            ;;
-        staging)
-            realm_file="/opt/keycloak/realm-configs/realm-export.staging.json"
-            ;;
-        prod)
-            realm_file="/opt/keycloak/realm-configs/realm-export.prod.json"
-            ;;
-    esac
-
-    task_name="keycloak-config-cli-$(date +%s)"
-    task_command="export KEYCLOAK_URL=${internal_base}:8080 KEYCLOAK_USER=\${KEYCLOAK_ADMIN} KEYCLOAK_PASSWORD=\${KEYCLOAK_ADMIN_PASSWORD} KEYCLOAK_AVAILABILITYCHECK_ENABLED=true KEYCLOAK_AVAILABILITYCHECK_TIMEOUT=120s IMPORT_FILES_LOCATIONS=${realm_file} IMPORT_VARSUBSTITUTION_ENABLED=true IMPORT_VARSUBSTITUTION_NESTED=true IMPORT_CACHE_ENABLED=false KEYCLOAK_CONFIG_CLI_JAR=/opt/keycloak/keycloak-config-cli.jar && /opt/keycloak/normalize-login-gov-key.sh"
-
-    echo "Running Keycloak config-cli task..."
-    cf run-task "$app_name" \
-        --command "$task_command" \
-        --name "$task_name"
-
-    wait_for_keycloak_config_task "$app_name" "$task_name"
-}
-
-wait_for_keycloak_config_task() {
-    local app_name="$1"
-    local task_name="$2"
-    local max_attempts=120
-    local attempt=0
-    local state=""
-
-    echo "Waiting for Keycloak config-cli task '${task_name}' to finish..."
-    while [ "$attempt" -lt "$max_attempts" ]; do
-        state=$(cf tasks "$app_name" | awk -v name="$task_name" '$2 == name {print $3; exit}')
-
-        case "$state" in
-            SUCCEEDED)
-                echo "Keycloak config-cli task succeeded."
-                return
-                ;;
-            FAILED|CANCELLED|CANCELED)
-                echo "ERROR: Keycloak config-cli task ended with state '${state}'."
-                echo "Check task logs with: cf logs ${app_name} --recent"
-                exit 1
-                ;;
-            "")
-                echo "  Task not visible yet..."
-                ;;
-            *)
-                echo "  Task state: ${state}"
-                ;;
-        esac
-
-        attempt=$((attempt + 1))
-        sleep 5
-    done
-
-    echo "ERROR: Keycloak config-cli task did not finish after $((max_attempts * 5)) seconds."
-    exit 1
-}
-
 setup_keycloak_net_pols() {
     local app_name="$1"
-    # Allow keycloak tasks to reach the running keycloak app via internal route
-    cf add-network-policy "$app_name" "$app_name" --protocol tcp --port 8080
-
     CURRENT_SPACE=$(cf target | grep -Eo "tanf-[a-z]+")
 
     if [ "$CURRENT_SPACE" == "tanf-dev" ]; then
@@ -391,6 +324,5 @@ echo ""
 
 deploy_keycloak "$APP_NAME" "$DB_SERVICE_NAME" "$PUBLIC_HOSTNAME" "$DOCKER_IMAGE" "$DOCKER_USERNAME" "$ROLLING"
 setup_keycloak_net_pols "$APP_NAME"
-configure_keycloak_idps "$APP_NAME"
 
 popd

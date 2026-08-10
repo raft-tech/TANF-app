@@ -24,12 +24,11 @@ User -> Frontend -> Django /v2/ -> Keycloak -> Identity Provider (Login.gov / AM
 ### Prerequisites
 
 - Docker and Docker Compose
-- The backend `docker-compose.yml` defines three Keycloak-related services:
+- The backend `docker-compose.yml` defines two Keycloak-related services:
   - **keycloak-pg** — PostgreSQL 15.7 database for Keycloak (port 5434)
-  - **keycloak** — Keycloak 26.5 server (ports 8443 browser / 8080 internal / 9001 management)
-  - **keycloak-configure** — Runs `adorsys/keycloak-config-cli` after Keycloak is healthy
+  - **keycloak** — Keycloak 26.5 server (ports 8443 browser / 8080 internal / 9001 management) that runs config-cli during startup
 
-Local Docker starts Keycloak first, then imports `realm-export.dev-local.json` with config-cli. This mirrors cloud.gov, where the deploy script runs config-cli as a post-start task.
+Local Docker starts Keycloak first, then the Keycloak entrypoint imports `realm-export.dev-local.json` with config-cli after Keycloak is healthy. Cloud.gov uses the same startup import path.
 
 ### Starting Keycloak
 
@@ -38,7 +37,7 @@ cd tdrs-backend
 docker compose up keycloak
 ```
 
-The `keycloak-configure` container automatically runs after Keycloak is healthy. It imports the local realm export, decodes `JWT_KEY` into the Login.gov signing key, applies Login.gov `acr_values`, configures AMS, and updates the browser flow used by `kc_idp_hint`.
+The Keycloak entrypoint automatically imports the local realm export after Keycloak is healthy. It decodes `JWT_KEY` into the Login.gov signing key, applies Login.gov `acr_values`, configures AMS, and updates the browser flow used by `kc_idp_hint`.
 
 ### Accessing the Admin Console
 
@@ -350,9 +349,9 @@ This will:
 4. Map the public route `<public_hostname>.app.cloud.gov` (for browser redirects and admin console)
 5. Set `KC_HOSTNAME`, `DEPLOY_ENV`, and config-cli substitution variables
 6. Set up network policies so backend and celery can reach Keycloak
-7. Run a Cloud Foundry task that executes `/opt/keycloak/normalize-login-gov-key.sh`, which decodes the Login.gov key and invokes `keycloak-config-cli` against the selected realm export
+7. Start Keycloak with `KEYCLOAK_CONFIG_IMPORT_ON_STARTUP=true`, causing the entrypoint to run `/opt/keycloak/normalize-login-gov-key.sh` after Keycloak is healthy. This decodes the Login.gov key and invokes `keycloak-config-cli` against the selected realm export before nginx starts.
 
-Cloud deployment does **not** use Keycloak's native `--import-realm`. The app starts first, then config-cli creates or updates the realm through the Admin API. This is what allows checked-in realm JSON to contain `$(env:...)`, `$(urlEncoder:...)`, and the decoded Login.gov signing key.
+Cloud deployment does **not** use Keycloak's native `--import-realm`. The app starts Keycloak first, then the entrypoint runs config-cli against the local Keycloak port through the Admin API. This is what allows checked-in realm JSON to contain `$(env:...)`, `$(urlEncoder:...)`, and the decoded Login.gov signing key.
 
 ### Routing Architecture
 
@@ -392,30 +391,29 @@ Optional Keycloak config values:
 
 The deploy script creates network policies allowing the backend (`tdp-backend-<space>`) and celery (`tdp-backend-<space>-celery`) apps to communicate with Keycloak on port 8080.
 
-### Manual Config Import
+### Rerun Config Import
 
-Use the operations runbook's config import task when a deploy succeeds but the realm import fails, or after changing a Keycloak app env var that is consumed by realm JSON.
-
-At a high level:
+The cloud.gov config import runs from `entrypoint.sh` during Keycloak startup when `KEYCLOAK_CONFIG_IMPORT_ON_STARTUP=true`. To rerun it after changing a Keycloak app env var or realm JSON, restage or restart the Keycloak app:
 
 ```bash
-APP_NAME=keycloak-staging
-REALM_FILE=/opt/keycloak/realm-configs/realm-export.staging.json
-
-cf run-task "$APP_NAME" \
-  --command "export KEYCLOAK_URL=http://${APP_NAME}.apps.internal:8080 KEYCLOAK_USER=\${KEYCLOAK_ADMIN} KEYCLOAK_PASSWORD=\${KEYCLOAK_ADMIN_PASSWORD} KEYCLOAK_AVAILABILITYCHECK_ENABLED=true KEYCLOAK_AVAILABILITYCHECK_TIMEOUT=120s IMPORT_FILES_LOCATIONS=${REALM_FILE} IMPORT_VARSUBSTITUTION_ENABLED=true IMPORT_VARSUBSTITUTION_NESTED=true IMPORT_CACHE_ENABLED=false KEYCLOAK_CONFIG_CLI_JAR=/opt/keycloak/keycloak-config-cli.jar && /opt/keycloak/normalize-login-gov-key.sh" \
-  --name "keycloak-config-cli"
+cf restage keycloak-staging
+cf logs keycloak-staging --recent
 ```
 
-Use `realm-export.dev-local.json` for `keycloak-dev`, `realm-export.staging.json` for `keycloak-staging`, and `realm-export.prod.json` for `keycloak`.
+Use the app name for the target environment:
+
+| Environment | App |
+|---|---|
+| Dev | `keycloak-dev` |
+| Staging | `keycloak-staging` |
+| Prod | `keycloak` |
 
 ## Secret Rotation
 
 Detailed steps live in [keycloak-operations.md](keycloak-operations.md#secret-rotation). The short version is:
 
 - Rotate `KC_TDP_DJANGO_CLIENT_SECRET`, `KC_TDP_ADMIN_CLIENT_SECRET`, `KC_TDP_GRAFANA_CLIENT_SECRET`, `LOGIN_GOV_JWT_KEY`, or AMS credentials in the Keycloak app environment.
-- Restage Keycloak so the new env is available to CF tasks.
-- Run the config import task so config-cli updates the realm.
+- Restage Keycloak so the entrypoint reruns config-cli with the new env and updates the realm.
 - Update and restage downstream apps that use the same secret, such as backend/celery for `tdp-django` and `tdp-admin`, or Grafana for `tdp-grafana`.
 
 `LOGIN_GOV_JWT_KEY` must be a base64-encoded PEM private key in cloud.gov. `KC_TDP_GRAFANA_CLIENT_SECRET` is optional and defaults to an empty string so config-cli can resolve the realm placeholder when Grafana SSO is not deployed.
@@ -425,25 +423,25 @@ Detailed steps live in [keycloak-operations.md](keycloak-operations.md#secret-ro
 Detailed steps live in [keycloak-operations.md](keycloak-operations.md#restart-and-recovery) and [keycloak-operations.md](keycloak-operations.md#backup-and-restore).
 
 - If Keycloak is unhealthy, check `cf logs keycloak --recent`, verify the bound RDS service, and restart or redeploy.
-- If the app is healthy but realm changes are missing, inspect the `keycloak-config-cli-*` task and rerun the config import task after fixing env or JSON issues.
-- After RDS restore or a new Keycloak instance, redeploy Keycloak, run the config import task, then run `./manage.py sync_users_to_keycloak` from a backend app to reconcile Django user state.
+- If realm changes are missing, check startup logs for the `Running Keycloak config import...` and `Keycloak config import complete.` messages, then restage after fixing env or JSON issues.
+- After RDS restore or a new Keycloak instance, redeploy or restage Keycloak so startup config import runs, then run `./manage.py sync_users_to_keycloak` from a backend app to reconcile Django user state.
 
 ## Troubleshooting
 
 **Keycloak won't start**
 - Check `keycloak-pg` is running: `docker compose ps keycloak-pg`
-- Verify `JWT_KEY` / `LOGIN_GOV_JWT_KEY` is set to a base64-encoded PEM private key before running config-cli
+- Verify `JWT_KEY` / `LOGIN_GOV_JWT_KEY` is set to a base64-encoded PEM private key before config import runs
 
 **Login redirects fail**
 - Verify `KEYCLOAK_BROWSER_URL` matches what the browser can reach (e.g., `http://localhost:8443`)
 - Check IdP is enabled in realm admin console
 - Verify redirect URIs in the client configuration match the application URLs
 
-**Config-cli task fails**
+**Config-cli startup import fails**
 - `Failed to decode private key`: `LOGIN_GOV_JWT_KEY` did not decode to a PEM private key with a `BEGIN ... PRIVATE KEY` header.
 - `Cannot resolve variable 'env:...'`: the referenced env var was not present in the Keycloak app environment. Optional values must still be injected as empty strings when the realm JSON references them.
 - `awk: command not found` or `JAVA_OPTS: unbound variable`: rebuild and redeploy the Keycloak image with the current `normalize-login-gov-key.sh`.
-- Check task state and logs with `cf tasks keycloak` and `cf logs keycloak --recent`.
+- Check startup logs with `cf logs keycloak --recent`, then restage after fixing the app env or image.
 
 **Keycloak sync errors**
 - Ensure `KEYCLOAK_SYNC_ENABLED=true` in backend env
