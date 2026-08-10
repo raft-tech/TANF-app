@@ -31,8 +31,8 @@ def test_DataFileAdmin_status():
     )
 
 
-def test_DataFileAdmin_exposes_state_in_admin():
-    """Test DataFileAdmin surfaces state in changelist and detail view."""
+def test_DataFileAdmin_exposes_transitional_fields_in_admin():
+    """Test DataFileAdmin surfaces state and canonical section details."""
     data_file_admin = DataFileAdmin(DataFile, AdminSite())
     properties_fieldset = next(
         fieldset
@@ -42,6 +42,7 @@ def test_DataFileAdmin_exposes_state_in_admin():
 
     assert "parsing_state" in data_file_admin.list_display
     assert "parsing_state" in properties_fieldset[1]["fields"]
+    assert "section_ref" in properties_fieldset[1]["fields"]
 
 
 @pytest.mark.django_db
