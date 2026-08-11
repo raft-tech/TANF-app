@@ -309,13 +309,18 @@ get_client_uuid() {
         -H "Authorization: Bearer ${TOKEN}" | jq -r '.[0].id // empty'
 }
 
+get_client_scope_uuid() {
+    local scope_name="$1"
+    kc_api "${KEYCLOAK_URL}/admin/realms/${REALM}/client-scopes" \
+        -H "Authorization: Bearer ${TOKEN}" | jq -r --arg name "$scope_name" 'map(select(.name == $name)) | first.id // empty'
+}
+
 configure_tdp_cli_api_audience() {
     echo "Configuring tdp-cli client and Django API audience scope..."
 
     local scope_name="tdp-api-audience"
     local scope_id
-    scope_id=$(kc_api "${KEYCLOAK_URL}/admin/realms/${REALM}/client-scopes?name=${scope_name}" \
-        -H "Authorization: Bearer ${TOKEN}" | jq -r '.[0].id // empty')
+    scope_id=$(get_client_scope_uuid "$scope_name")
 
     local scope_json
     scope_json=$(jq -n \
@@ -335,8 +340,7 @@ configure_tdp_cli_api_audience() {
             -H "Authorization: Bearer ${TOKEN}" \
             -H "Content-Type: application/json" \
             -d "$scope_json" > /dev/null
-        scope_id=$(kc_api "${KEYCLOAK_URL}/admin/realms/${REALM}/client-scopes?name=${scope_name}" \
-            -H "Authorization: Bearer ${TOKEN}" | jq -r '.[0].id')
+        scope_id=$(get_client_scope_uuid "$scope_name")
         echo "tdp-api-audience client scope created (${scope_id})."
     else
         echo "tdp-api-audience client scope already exists (${scope_id}); preserving scope metadata."
