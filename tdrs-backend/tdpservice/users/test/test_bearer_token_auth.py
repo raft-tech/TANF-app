@@ -146,9 +146,13 @@ class TestTokenVerification:
     ):
         """A signature-verification error is surfaced as 401, not 500."""
         mock_verify.side_effect = jwt.InvalidTokenError("bad signature")
+        request = request_with_token()
+
         with pytest.raises(AuthenticationFailed) as exc_info:
-            auth.authenticate(request_with_token())
+            auth.authenticate(request)
+
         assert str(exc_info.value.detail) == "Invalid bearer token."
+        assert not hasattr(request, "tdp_attribution")
 
     @patch("tdpservice.users.authentication._verify_keycloak_bearer_token")
     def test_missing_email_in_claims_rejects(
@@ -158,6 +162,31 @@ class TestTokenVerification:
         mock_verify.return_value = {"azp": "tdp-cli"}  # no email
         with pytest.raises(AuthenticationFailed):
             auth.authenticate(request_with_token())
+
+    @patch("tdpservice.users.authentication._verify_keycloak_bearer_token")
+    def test_verified_token_rejected_by_claims_keeps_client_attribution(
+        self, mock_verify, auth, request_with_token
+    ):
+        """A verified token remains attributable when later auth checks reject it."""
+        mock_verify.return_value = {
+            "azp": "tdp-cli",
+            "stt_id": "1",
+            "groups": ["/Data Analyst"],
+        }
+        request = request_with_token()
+
+        with pytest.raises(AuthenticationFailed):
+            auth.authenticate(request)
+
+        assert request._keycloak_client_id == "tdp-cli"
+        assert not hasattr(request, "_keycloak_throttle_ident")
+        assert request.tdp_attribution == RequestAttribution(
+            source="api_client",
+            client_id="tdp-cli",
+            auth_method="bearer",
+            user_stt="1",
+            user_group="Data Analyst",
+        )
 
     @patch("tdpservice.users.authentication._verify_keycloak_bearer_token")
     def test_acf_user_via_login_gov_rejected(

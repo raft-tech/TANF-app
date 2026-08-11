@@ -48,6 +48,24 @@ def _user_group_label(claims):
     return groups[0].lstrip("/")
 
 
+def _set_verified_bearer_attribution(request, payload, client_id):
+    """Attach request attribution after JWT verification proves the client."""
+    request._keycloak_client_id = client_id
+    set_request_attribution(
+        request,
+        RequestAttribution(
+            source="api_client",
+            client_id=client_id,
+            auth_method="bearer",
+            user_stt=_user_stt_label(payload),
+            user_group=_user_group_label(payload),
+        ),
+    )
+    django_request = getattr(request, "_request", None)
+    if django_request is not None:
+        django_request._keycloak_client_id = client_id
+
+
 def _expected_keycloak_issuer():
     """Return the Keycloak issuer expected for bearer access tokens."""
     return getattr(
@@ -164,6 +182,9 @@ class KeycloakBearerTokenAuthentication(BaseAuthentication):
             logger.info("Bearer token verification failed: %s", exc)
             raise AuthenticationFailed(_("Invalid bearer token."))
 
+        client_id = payload.get("azp", "unknown")
+        _set_verified_bearer_attribution(request, payload, client_id)
+
         if not verify_claims(payload):
             raise AuthenticationFailed(_("Token claims rejected."))
 
@@ -184,7 +205,6 @@ class KeycloakBearerTokenAuthentication(BaseAuthentication):
         if user is None:
             raise AuthenticationFailed(_("Could not resolve user from token."))
 
-        client_id = payload.get("azp", "unknown")
         logger.info(
             "Bearer token auth client=%s user=%s path=%s",
             client_id,
@@ -197,22 +217,10 @@ class KeycloakBearerTokenAuthentication(BaseAuthentication):
                 "path": request.path,
             },
         )
-        # Stashed for middleware metrics and KeycloakClientRateThrottle to key on.
-        request._keycloak_client_id = client_id
+        # Stashed for KeycloakClientRateThrottle after the user is known.
         request._keycloak_throttle_ident = f"{client_id}:{user.id}"
-        set_request_attribution(
-            request,
-            RequestAttribution(
-                source="api_client",
-                client_id=client_id,
-                auth_method="bearer",
-                user_stt=_user_stt_label(payload),
-                user_group=_user_group_label(payload),
-            ),
-        )
         django_request = getattr(request, "_request", None)
         if django_request is not None:
-            django_request._keycloak_client_id = client_id
             django_request._keycloak_throttle_ident = request._keycloak_throttle_ident
         return user, token
 
