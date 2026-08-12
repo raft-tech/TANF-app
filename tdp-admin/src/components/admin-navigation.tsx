@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type MouseEvent } from "react";
 import {
   ADMIN_DASHBOARD_NAV_ITEMS,
   ADMIN_PRIMARY_NAV_ITEMS,
@@ -303,6 +303,8 @@ export default function AdminNavigation({
   const [searchQuery, setSearchQuery] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isHoverExpansionDisabled, setIsHoverExpansionDisabled] =
+    useState(false);
   const [expandedIds, setExpandedIds] = useState(defaultExpandedIds);
   const filteredPrimaryItems = useMemo(
     () => filterNavItemsBySearch(primaryItems, searchQuery),
@@ -324,11 +326,26 @@ export default function AdminNavigation({
     );
   }
 
+  function toggleCollapsed(event: MouseEvent<HTMLButtonElement>) {
+    const nextCollapsed = !isCollapsed;
+
+    setIsCollapsed(nextCollapsed);
+    setIsHoverExpansionDisabled(nextCollapsed);
+
+    if (nextCollapsed) {
+      event.currentTarget.blur();
+    }
+  }
+
   return (
     <aside
       className="admin-sidenav"
       aria-label="Admin navigation"
       data-collapsed={isCollapsed ? "true" : undefined}
+      data-hover-expansion-disabled={
+        isHoverExpansionDisabled ? "true" : undefined
+      }
+      onMouseLeave={() => setIsHoverExpansionDisabled(false)}
     >
       <button
         className="admin-sidenav__mobile-toggle usa-button usa-button--outline"
@@ -408,7 +425,7 @@ export default function AdminNavigation({
           className="admin-sidenav__collapse-button"
           type="button"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          onClick={() => setIsCollapsed((collapsed) => !collapsed)}
+          onClick={toggleCollapsed}
         >
           <NavIcon name="collapse" />
           <span className="admin-sidenav__label">

@@ -161,7 +161,10 @@ a {
   width: 3.5rem;
 }
 
-.admin-sidenav[data-collapsed="true"]:hover .admin-sidenav__nav,
+.admin-sidenav[data-collapsed="true"]:not(
+    [data-hover-expansion-disabled="true"]
+  ):hover
+  .admin-sidenav__nav,
 .admin-sidenav[data-collapsed="true"]:focus-within .admin-sidenav__nav {
   width: 15rem;
   box-shadow: 0 0.5rem 1.25rem rgb(27 27 27 / 15%);
@@ -369,9 +372,15 @@ a {
   opacity: 0;
 }
 
-.admin-sidenav[data-collapsed="true"]:hover .admin-sidenav__label,
+.admin-sidenav[data-collapsed="true"]:not(
+    [data-hover-expansion-disabled="true"]
+  ):hover
+  .admin-sidenav__label,
 .admin-sidenav[data-collapsed="true"]:focus-within .admin-sidenav__label,
-.admin-sidenav[data-collapsed="true"]:hover .admin-sidenav__chevron,
+.admin-sidenav[data-collapsed="true"]:not(
+    [data-hover-expansion-disabled="true"]
+  ):hover
+  .admin-sidenav__chevron,
 .admin-sidenav[data-collapsed="true"]:focus-within .admin-sidenav__chevron {
   max-width: 12rem;
   opacity: 1;
@@ -386,13 +395,19 @@ a {
   color: transparent;
 }
 
-.admin-sidenav[data-collapsed="true"]:hover .admin-sidenav__search-input,
+.admin-sidenav[data-collapsed="true"]:not(
+    [data-hover-expansion-disabled="true"]
+  ):hover
+  .admin-sidenav__search-input,
 .admin-sidenav[data-collapsed="true"]:focus-within .admin-sidenav__search-input {
   color: var(--primary-graphite);
   padding-right: 0.7rem;
 }
 
-.admin-sidenav[data-collapsed="true"]:hover .admin-sidenav__search-input::placeholder,
+.admin-sidenav[data-collapsed="true"]:not(
+    [data-hover-expansion-disabled="true"]
+  ):hover
+  .admin-sidenav__search-input::placeholder,
 .admin-sidenav[data-collapsed="true"]:focus-within
   .admin-sidenav__search-input::placeholder {
   color: #71767a;
@@ -402,7 +417,9 @@ a {
   display: none;
 }
 
-.admin-sidenav[data-collapsed="true"]:hover
+.admin-sidenav[data-collapsed="true"]:not(
+    [data-hover-expansion-disabled="true"]
+  ):hover
   .admin-sidenav__children:not([hidden]),
 .admin-sidenav[data-collapsed="true"]:focus-within
   .admin-sidenav__children:not([hidden]) {
