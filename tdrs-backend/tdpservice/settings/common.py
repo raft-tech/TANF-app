@@ -156,6 +156,7 @@ class Common(Configuration):
         "csp.middleware.CSPMiddleware",
         "tdpservice.middleware.NoCacheMiddleware",
         "simple_history.middleware.HistoryRequestMiddleware",
+        "tdpservice.middleware.RequestAttributionMetricsMiddleware",
         "django_prometheus.middleware.PrometheusAfterMiddleware",
     )
 
