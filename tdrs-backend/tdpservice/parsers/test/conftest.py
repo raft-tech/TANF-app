@@ -2,7 +2,7 @@
 
 import pytest
 
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.models import DataFile, Program, Section
 from tdpservice.parsers import util
 from tdpservice.parsers.test.factories import DataFileSummaryFactory, ParsingFileFactory
 
@@ -85,6 +85,14 @@ def t3_cat2_invalid_citizenship_file():
 @pytest.fixture
 def big_file(stt_user, stt):
     """Fixture for ADS.E2J.FTP1.TS06."""
+    program, _ = Program.objects.get_or_create(
+        code=DataFile.ProgramType.TANF,
+        defaults={"slug": "tanf", "name": "TANF"},
+    )
+    Section.objects.get_or_create(
+        program=program,
+        name=DataFile.Section.ACTIVE_CASE_DATA,
+    )
     return util.create_test_datafile("ADS.E2J.FTP1.TS06", stt_user, stt, year=2022)
 
 

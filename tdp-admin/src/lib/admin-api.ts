@@ -6,12 +6,32 @@ import {
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const BODYLESS_METHODS = new Set(["GET", "HEAD"]);
 
+const PROVENANCE_HEADER_NAMES = [
+  "x-request-id",
+  "x-correlation-id",
+  "x-forwarded-for",
+  "x-real-ip",
+  "cf-connecting-ip",
+  "x-forwarded-host",
+  "x-forwarded-proto",
+  "user-agent",
+  "referer",
+  "origin",
+  "x-keycloak-client",
+  "x-auth-flow",
+];
+
+type HeaderGetter = {
+  get(name: string): string | null;
+};
+
 export type AdminApiRequestOptions = {
   method?: string;
   search?: string;
   body?: BodyInit | null;
   cookieHeader?: string | null;
   csrfToken?: string | null;
+  incomingHeaders?: HeaderGetter;
   headers?: HeadersInit;
   sourceRoute?: string;
   requestId?: string | null;
@@ -40,6 +60,20 @@ export function setAuthenticatedNoStore(headers: Headers) {
   return headers;
 }
 
+function forwardProvenanceHeaders(
+  requestHeaders: Headers,
+  incomingHeaders?: HeaderGetter
+) {
+  for (const headerName of PROVENANCE_HEADER_NAMES) {
+    const value = incomingHeaders?.get(headerName);
+    if (value && !requestHeaders.has(headerName)) {
+      requestHeaders.set(headerName, value);
+    }
+  }
+
+  return requestHeaders;
+}
+
 export async function requestAdminApi(
   pathSegments: string[],
   {
@@ -48,6 +82,7 @@ export async function requestAdminApi(
     body,
     cookieHeader,
     csrfToken,
+    incomingHeaders,
     headers = {},
     sourceRoute,
     requestId,
@@ -74,8 +109,12 @@ export async function requestAdminApi(
     includeCsrf: isMutatingAdminApiMethod(normalizedMethod),
     headers,
   });
+  forwardProvenanceHeaders(requestHeaders, incomingHeaders);
   requestHeaders.set("X-Admin-Proxy-Token", adminProxyToken);
-  requestHeaders.set("X-Request-ID", requestId || crypto.randomUUID());
+  requestHeaders.set(
+    "X-Request-ID",
+    requestId || requestHeaders.get("X-Request-ID") || crypto.randomUUID()
+  );
 
   if (sourceRoute) {
     requestHeaders.set("X-TDP-Admin-Source-Route", sourceRoute);

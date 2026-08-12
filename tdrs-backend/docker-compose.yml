@@ -2,7 +2,7 @@
 services:
   zaproxy:
     platform: linux/amd64
-    image: ghcr.io/${REGISTRY_OWNER:-hhs}/zap-stable:2.14.0
+    image: ghcr.io/${REGISTRY_OWNER:-hhs}/zap-stable:2.17.0
     command: sleep 3600
     depends_on:
       - web
@@ -192,6 +192,7 @@ services:
       - web
       - celery-exporter
       - postgres-exporter
+      - go-parser
       - alertmanager
       - mimir
 
@@ -354,6 +355,8 @@ services:
       context: ../tdrs-services/parser
       dockerfile: Dockerfile
     command: ["--server.mode=celery", "--storage.source=s3"]
+    ports:
+      - "9809:9809"
     environment:
       - REDIS_URL=redis://redis-server:6379/0
       - GO_PARSER_QUEUE=${GO_PARSER_QUEUE:-go-parser}
