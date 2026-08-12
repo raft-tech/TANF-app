@@ -12,7 +12,7 @@ DEV_FRONTEND_APPS=("tdp-frontend-test" "tdp-frontend-qasp" "tdp-frontend-a11y")
 STAGING_FRONTEND_APPS=("tdp-frontend-develop" "tdp-frontend-staging")
 PROD_FRONTEND="tdp-frontend-prod"
 
-PUBLIC_DOMAIN="app.cloud.gov"
+PUBLIC_DOMAIN="tanfdata.acf.hhs.gov"
 
 help() {
     echo "Deploy the PLG stack or a Postgres exporter to the Cloud Foundry space you're currently authenticated in."
@@ -23,7 +23,7 @@ help() {
     echo "p     Deploy a postgres exporter, expects the environment name (dev, staging, production) to be passed with switch. Requires -u and -d"
     echo "u     Requires -p. The database URI the exporter should connect with."
     echo "d     The Cloud Foundry service name of the RDS instance. Should be included with all deployments."
-    echo "g     The public hostname for Grafana (e.g. tdp-grafana). Creates a public route at <hostname>.${PUBLIC_DOMAIN}"
+    echo "g     The public hostname for Grafana (e.g. grafana). Creates a public route at <hostname>.${PUBLIC_DOMAIN}"
     echo
 }
 

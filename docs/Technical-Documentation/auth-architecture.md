@@ -99,7 +99,7 @@ Keycloak is deployed with two routes:
 | Route | Purpose | Used by |
 |-------|---------|---------|
 | `keycloak.apps.internal:8080` (internal) | Server-to-server API calls | Django backend, Celery, Grafana |
-| `<hostname>.app.cloud.gov` (public) | Browser OIDC redirects, admin console | User browsers |
+| `<hostname>.tanfdata.acf.hhs.gov` (public) | Browser OIDC redirects, admin console | User browsers |
 
 Django settings use:
 - `KEYCLOAK_SERVER_URL` → internal route (token exchange, user sync, JWKS validation)
@@ -269,7 +269,7 @@ The frontend uses `REACT_APP_AUTH_URL` for auth endpoints and `REACT_APP_BACKEND
 | Login.gov client ID | `tanf-proto-dev` | `tanf-proto-staging` | `tanf-prod` |
 | Login.gov endpoints | `idp.int.identitysandbox.gov` | `idp.int.identitysandbox.gov` | `secure.login.gov` |
 | AMS endpoint | `sso-stage.acf.hhs.gov` | `sso-stage.acf.hhs.gov` | Production AMS |
-| Keycloak public route | `tdp-keycloak-dev.app.cloud.gov` | `tdp-keycloak-staging.acf.hhs.gov` | `tdp-keycloak-prod.acf.hhs.gov` |
+| Keycloak public route | `dev.auth.tanfdata.acf.hhs.gov` | `staging.auth.tanfdata.acf.hhs.gov` | `auth.tanfdata.acf.hhs.gov` |
 
 The `realm-export.json` uses Keycloak's `${ENV_VAR}` syntax for environment-specific values (Login.gov client ID, endpoints, redirect URIs). These are injected as environment variables per space.
 

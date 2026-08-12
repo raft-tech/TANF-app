@@ -75,7 +75,7 @@ Each Keycloak instance is deployed with two Cloud Foundry routes:
 | Route Type | Route | Used By |
 |------------|-------|---------|
 | Internal | `keycloak.apps.internal:8080` | Django backend, Celery, Grafana (token exchange, user sync, JWKS) |
-| Public | `<hostname>.app.cloud.gov` | User browsers (OIDC redirects, admin console) |
+| Public | `<hostname>.tanfdata.acf.hhs.gov` | User browsers (OIDC redirects, admin console) |
 
 Django settings split these: `KEYCLOAK_SERVER_URL` (internal, server-to-server) and `KEYCLOAK_BROWSER_URL` (public, browser-facing).
 
@@ -130,7 +130,7 @@ Grafana has two orgs: **Admin** (ID 1) for system administrators and developers,
 
 Developer accounts for Grafana are **local Keycloak accounts** in the prod instance — manually created in the admin console and assigned to the `developer` group. This is a practical exception to the "Django is source of truth" rule: these accounts avoid requiring developers to exist in the prod Django database.
 
-Grafana currently runs behind the frontend nginx proxy at a subpath. Grafana **will be** moved to a public URL at `grafana.app.cloud.gov`.
+Grafana currently runs behind the frontend nginx proxy at a subpath. Grafana **will be** moved to a public URL at `grafana.tanfdata.acf.hhs.gov`.
 
 Role mapping uses a JMESPath expression on the `groups` token claim (no fallback — unrecognized users denied):
 ```
@@ -523,7 +523,7 @@ Keycloak stores its schema version in the database and runs automatic migrations
 |----------|--------|-------|
 | Should Keycloak admin console access be IP-restricted in production? | Open | ACF Tech |
 | What is the Login.gov IAL2 (identity proofing) strategy if required in the future? | Open — Keycloak supports configurable ACR values per IdP, so IAL2 can be enabled by changing `LOGIN_GOV_ACR_VALUES` | Product |
-| What is the Grafana public URL domain and timeline for the move from the current subpath? | Planned — Grafana will be moved to `grafana.app.cloud.gov`. Requires updating `tdp-grafana` client redirect URIs, web origins, and post-logout URI in realm config + Grafana `custom.ini` auth URLs. | Ops |
+| What is the Grafana public URL domain and timeline for the move from the current subpath? | Planned — Grafana will be moved to `grafana.tanfdata.acf.hhs.gov`. Requires updating `tdp-grafana` client redirect URIs, web origins, and post-logout URI in realm config + Grafana `custom.ini` auth URLs. | Ops |
 
 ---
 
