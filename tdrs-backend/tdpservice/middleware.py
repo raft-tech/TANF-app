@@ -12,12 +12,136 @@ from django.utils.cache import add_never_cache_headers, patch_vary_headers
 from django.utils.crypto import constant_time_compare
 from django.utils.http import http_date
 
+from prometheus_client import Counter
+
+from tdpservice.request_attribution import (
+    REQUEST_ATTRIBUTION_ATTRIBUTE,
+    RequestAttribution,
+)
 from tdpservice.users.authorization import is_authorized_admin_user
 from tdpservice.users.oidc import ADMIN_SESSION_SCOPE, STANDARD_SESSION_SCOPE
 
-
 ADMIN_AUTH_PREFIX = "/admin-auth/"
 ADMIN_API_PREFIX = "/admin-api/"
+
+API_REQUESTS_TOTAL = Counter(
+    "tdp_api_requests_total",
+    "Total Django API requests by backend-observed request source.",
+    (
+        "source",
+        "auth_method",
+        "client_id",
+        "user_stt",
+        "user_group",
+        "method",
+        "status_code",
+        "view",
+    ),
+)
+
+
+class RequestAttributionMetricsMiddleware(object):
+    """Emit low-cardinality Prometheus metrics for API request attribution."""
+
+    UNKNOWN_LABEL = "unknown"
+    NONE_LABEL = "none"
+    SKIPPED_PATH_PREFIXES = (
+        "/admin/",
+        "/prometheus/",
+        "/redocs",
+        "/swagger",
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        """Record request attribution after the downstream response is known."""
+        try:
+            response = self.get_response(request)
+        except Exception:
+            self._record_request_attribution(request, 500)
+            raise
+
+        self._record_request_attribution(request, response.status_code)
+        return response
+
+    def _record_request_attribution(self, request, status_code):
+        """Increment the request attribution counter for a completed request."""
+        if not self._should_record_request(request):
+            return
+
+        user = getattr(request, "user", None)
+        user_is_authenticated = bool(getattr(user, "is_authenticated", False))
+        attribution = self._request_attribution(request, user_is_authenticated)
+        status_code_label = str(status_code)
+
+        resolver_match = getattr(request, "resolver_match", None)
+        API_REQUESTS_TOTAL.labels(
+            source=attribution.source,
+            auth_method=attribution.auth_method,
+            client_id=attribution.client_id,
+            user_stt=attribution.user_stt,
+            user_group=attribution.user_group,
+            method=request.method.upper(),
+            status_code=status_code_label,
+            view=getattr(resolver_match, "view_name", None) or self.UNKNOWN_LABEL,
+        ).inc()
+
+    def _request_attribution(self, request, user_is_authenticated):
+        """Return the attribution context for a request."""
+        attribution = getattr(request, REQUEST_ATTRIBUTION_ATTRIBUTE, None)
+        if attribution is not None:
+            return attribution
+
+        if self._authorization_header(request):
+            return RequestAttribution(
+                source="api_client",
+                client_id=self.UNKNOWN_LABEL,
+                auth_method="authorization_header",
+            )
+
+        if user_is_authenticated:
+            return RequestAttribution(
+                source="browser_session",
+                auth_method="session",
+            )
+
+        return RequestAttribution()
+
+    def _authorization_header(self, request):
+        """Return the Authorization header value, if Django exposed one."""
+        headers = getattr(request, "headers", None)
+        if headers:
+            authorization_header = headers.get("Authorization", "")
+            if authorization_header:
+                return authorization_header
+
+        return (
+            request.META.get("HTTP_AUTHORIZATION")
+            or request.META.get("Authorization")
+            or request.META.get("REDIRECT_HTTP_AUTHORIZATION")
+            or ""
+        )
+
+    def _should_record_request(self, request):
+        """Return whether the route should be included in API attribution metrics."""
+        path = getattr(request, "path_info", None) or getattr(request, "path", "")
+        if any(
+            path == prefix.rstrip("/") or path.startswith(prefix)
+            for prefix in self.SKIPPED_PATH_PREFIXES
+        ):
+            return False
+
+        static_url = getattr(settings, "STATIC_URL", None)
+        if static_url and path.startswith(static_url):
+            return False
+
+        media_url = getattr(settings, "MEDIA_URL", None)
+        if media_url and path.startswith(media_url):
+            return False
+
+        return True
 
 
 class NoCacheMiddleware(object):
@@ -123,9 +247,8 @@ class SessionMiddleware(DjangoSessionMiddleware):
         current_scope = request.session.get("session_scope")
         expected_scope = self._get_expected_session_scope(request)
 
-        if (
-            current_scope != expected_scope
-            and not (current_scope is None and expected_scope == STANDARD_SESSION_SCOPE)
+        if current_scope != expected_scope and not (
+            current_scope is None and expected_scope == STANDARD_SESSION_SCOPE
         ):
             request.session = self.SessionStore()
 
@@ -199,9 +322,7 @@ class SessionMiddleware(DjangoSessionMiddleware):
             self._set_cors_allow_headers(response)
 
         if cookie_name in response.cookies:
-            response.cookies[cookie_name][
-                "samesite"
-            ] = settings.SESSION_COOKIE_SAMESITE
+            response.cookies[cookie_name]["samesite"] = settings.SESSION_COOKIE_SAMESITE
 
         if settings.CSRF_COOKIE_NAME in response.cookies:
             response.cookies[settings.CSRF_COOKIE_NAME][
