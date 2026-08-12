@@ -434,7 +434,7 @@ The deploy script creates network policies allowing the backend (`tdp-backend-<s
 
 ### Rerun Config Import
 
-The cloud.gov config import runs from `entrypoint.sh` during Keycloak startup when `KEYCLOAK_CONFIG_IMPORT_ON_STARTUP=true`. To rerun it after changing a Keycloak app env var or realm JSON, restage or restart the Keycloak app:
+The cloud.gov config import runs from `entrypoint.sh` during Keycloak startup when `KEYCLOAK_CONFIG_IMPORT_ON_STARTUP=true`. To rerun it after changing only a Keycloak app env var, restage or restart the Keycloak app:
 
 ```bash
 cf restage keycloak-staging
@@ -448,6 +448,8 @@ Use the app name for the target environment:
 | Dev | `keycloak-dev` |
 | Staging | `keycloak-staging` |
 | Prod | `keycloak` |
+
+Checked-in realm JSON is packaged into the Keycloak container image. To apply realm JSON changes in cloud.gov, rebuild the Keycloak container, push it to the container registry, then redeploy Keycloak with that image so startup config import runs against the new realm export.
 
 ## Secret Rotation
 
@@ -464,7 +466,7 @@ Detailed steps live in [keycloak-operations.md](keycloak-operations.md#secret-ro
 Detailed steps live in [keycloak-operations.md](keycloak-operations.md#restart-and-recovery) and [keycloak-operations.md](keycloak-operations.md#backup-and-restore).
 
 - If Keycloak is unhealthy, check `cf logs keycloak --recent`, verify the bound RDS service, and restart or redeploy.
-- If realm changes are missing, check startup logs for the `Running Keycloak config import...` and `Keycloak config import complete.` messages, then restage after fixing env or JSON issues.
+- If realm changes are missing, check startup logs for the `Running Keycloak config import...` and `Keycloak config import complete.` messages. Restage after fixing env issues; rebuild, push, and redeploy after fixing realm JSON.
 - After RDS restore or a new Keycloak instance, redeploy or restage Keycloak so startup config import runs, then run `./manage.py sync_users_to_keycloak` from a backend app to reconcile Django user state.
 
 ## Troubleshooting
