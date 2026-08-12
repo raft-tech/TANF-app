@@ -13,7 +13,7 @@ services:
       - ../scripts/zap-hook.py:/zap/scripts/zap-hook.py:ro
   tdp-frontend:
     stdin_open: true # docker run -i
-    tty: true        # docker run -t
+    tty: true # docker run -t
     build:
       context: .
       args:
@@ -35,16 +35,14 @@ services:
       - ALERTS=alertmanager
       - FARO_RECEIVER=alloy
     command: >
-      /bin/sh -c
-      "echo 'starting nginx' &&
+      /bin/sh -c "echo 'starting nginx' &&
         envsubst '$${BACK_END} $${GRAFANA} $${ALERTS} $${FARO_RECEIVER}' < /etc/nginx/locations.conf > /etc/nginx/locations_.conf &&
         rm /etc/nginx/locations.conf &&
         cp /etc/nginx/locations_.conf /etc/nginx/locations.conf &&
        envsubst '
-      $${BACK_END} $${NGINX_FRONTEND} $${LOCAL_DEV}
-      '< /etc/nginx/default.conf.template
-      > /etc/nginx/nginx.conf &&
-      nginx -g 'daemon off;'"
+      $${BACK_END} $${NGINX_FRONTEND} $${LOCAL_DEV} '<
+      /etc/nginx/default.conf.template > /etc/nginx/nginx.conf && nginx -g
+      'daemon off;'"
 
 networks:
   default:

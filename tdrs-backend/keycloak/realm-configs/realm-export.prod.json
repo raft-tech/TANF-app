@@ -492,6 +492,7 @@
       "displayName": "ACF AMS",
       "providerId": "oidc",
       "enabled": true,
+      "hideOnLogin": false,
       "trustEmail": true,
       "storeToken": false,
       "addReadTokenRoleOnCreate": false,

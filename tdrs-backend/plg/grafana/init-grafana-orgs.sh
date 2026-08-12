@@ -3,7 +3,7 @@
 # Org 1 ("Main Org.") is created automatically by Grafana — renamed to "Admin".
 # DIGIT org is created as ID 2 locally (ID 3 in deployed).
 #
-# Runs as a one-shot container after Grafana is healthy.
+# Runs as a one-shot container after Grafana is healthy. Local only!
 
 set -eu
 

@@ -40,7 +40,7 @@ cd tdrs-backend/keycloak
 | Flag | Description | Example |
 |------|-------------|---------|
 | `-d` | Cloud Foundry RDS service name | `tdp-keycloak-db-dev` |
-| `-p` | Public hostname (creates `<hostname>.app.cloud.gov`) | `tdp-keycloak-dev` |
+| `-p` | Public hostname (creates `<hostname>.tanfdata.acf.hhs.gov`) | `dev.auth` |
 | `-i` | Docker image URI | `ghcr.io/hhs/tdp-keycloak:latest` |
 | `-u` | Docker registry username | `myuser` |
 
@@ -69,22 +69,22 @@ cd tdrs-backend/keycloak
 1. Copies `manifest.yml` → `manifest.tmp.yml` and injects environment-specific values via `yq`
 2. Pushes the Docker image to Cloud Foundry with rolling strategy
 3. Maps the **internal** route: `keycloak-<ENV>.apps.internal:8080` (server-to-server)
-4. Maps the **public** route: `<hostname>.app.cloud.gov` (browser redirects, admin console)
+4. Maps the **public** route: `<hostname>.tanfdata.acf.hhs.gov` (browser redirects, admin console)
 5. Sets `DEPLOY_ENV` so the container selects the correct checked-in realm export before import
 6. Creates network policies so backend and celery apps can reach Keycloak on port 8080
-7. Runs the `configure-idps.sh` script as a CF task to configure Login.gov signing key, ACR values, master realm security headers, and Grafana client IdP restriction
+7. Runs the `configure-idps.sh` script as a CF task to configure Login.gov signing key, ACR values, and master realm security headers.
 
 ### Per-Space Deployment Examples
 
 ```bash
 # Dev
-./deploy.sh -e dev -d tdp-keycloak-db-dev -p tdp-keycloak-dev -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
+./deploy.sh -e dev -d tdp-keycloak-db-dev -p dev.auth -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
 
 # Staging
-./deploy.sh -e staging -d tdp-keycloak-db-staging -p tdp-keycloak-staging -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
+./deploy.sh -e staging -d tdp-keycloak-db-staging -p staging.auth -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
 
 # Production
-./deploy.sh -e prod -d tdp-keycloak-db-prod -p tdp-keycloak-prod -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
+./deploy.sh -e prod -d tdp-keycloak-db-prod -p auth -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
 ```
 
 ---
@@ -282,7 +282,7 @@ The realms are defined in `tdrs-backend/keycloak/realm-configs/`. Changes to cli
 
 For one-off changes that don't warrant a full redeployment:
 
-1. Access the admin console at `https://<hostname>.app.cloud.gov/admin`
+1. Access the admin console at `https://<hostname>.tanfdata.acf.hhs.gov/admin`
 2. Log in with admin credentials
 3. Select the `tdp` realm
 4. Make changes through the UI
@@ -516,7 +516,7 @@ If the Keycloak instance is completely lost:
 
 ```bash
 # Via public route
-curl -sf https://<hostname>.app.cloud.gov/health/ready
+curl -sf https://<hostname>.tanfdata.acf.hhs.gov/health/ready
 
 # Via internal route (from within a CF app)
 curl -sf http://keycloak-<ENV>.apps.internal:8080/health/ready
@@ -551,7 +551,7 @@ cf tasks keycloak
 Verify the realm is properly configured:
 
 ```bash
-curl -sf https://<hostname>.app.cloud.gov/realms/tdp/.well-known/openid-configuration | jq .
+curl -sf https://<hostname>.tanfdata.acf.hhs.gov/realms/tdp/.well-known/openid-configuration | jq .
 ```
 
 This should return all OIDC endpoints (authorization, token, userinfo, JWKS, end_session, etc.).
@@ -648,7 +648,7 @@ The nginx proxy in the Keycloak container strips `X-Frame-Options: DENY` and rep
 
 1. Verify the response header:
    ```bash
-   curl -sI https://<hostname>.app.cloud.gov/ | grep -i x-frame
+   curl -sI https://<hostname>.tanfdata.acf.hhs.gov/ | grep -i x-frame
    ```
    Should show `X-Frame-Options: SAMEORIGIN`.
 
