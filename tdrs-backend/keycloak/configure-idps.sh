@@ -310,7 +310,13 @@ append_json_array_unique() {
 
 get_client_uuid() {
     local client_id="$1"
-    kc_api "${KEYCLOAK_URL}/admin/realms/${REALM}/clients?clientId=${client_id}" \
+    get_client_uuid_in_realm "$REALM" "$client_id"
+}
+
+get_client_uuid_in_realm() {
+    local realm_name="$1"
+    local client_id="$2"
+    kc_api "${KEYCLOAK_URL}/admin/realms/${realm_name}/clients?clientId=${client_id}" \
         -H "Authorization: Bearer ${TOKEN}" | jq -r '.[0].id // empty'
 }
 
@@ -458,6 +464,34 @@ configure_tdp_cli_api_audience() {
 
     echo "tdp-cli redirect URIs: $(echo "$redirect_uris" | jq -c .)"
     echo "tdp-cli web origins:   $(echo "$web_origins" | jq -c .)"
+}
+
+remove_legacy_admin_client_from_standard_realm() {
+    if [ "$TDP_REALM" == "$TDP_ADMIN_REALM" ]; then
+        echo "Standard and admin realms are the same; preserving tdp-admin client."
+        return
+    fi
+
+    local admin_client_uuid
+    admin_client_uuid=$(get_client_uuid_in_realm "$TDP_ADMIN_REALM" "tdp-admin")
+
+    if [ -z "$admin_client_uuid" ]; then
+        echo "WARNING: tdp-admin client not found in admin realm ${TDP_ADMIN_REALM}; preserving legacy client in standard realm."
+        return
+    fi
+
+    local client_uuid
+    client_uuid=$(get_client_uuid_in_realm "$TDP_REALM" "tdp-admin")
+
+    if [ -z "$client_uuid" ]; then
+        echo "No legacy tdp-admin client found in standard realm ${TDP_REALM}."
+        return
+    fi
+
+    echo "Removing legacy tdp-admin client from standard realm ${TDP_REALM} (${client_uuid})..."
+    kc_api -X DELETE "${KEYCLOAK_URL}/admin/realms/${TDP_REALM}/clients/${client_uuid}" \
+        -H "Authorization: Bearer ${TOKEN}" > /dev/null
+    echo "Legacy tdp-admin client removed from standard realm ${TDP_REALM}."
 }
 
 ensure_default_client_scope_attached() {
@@ -896,6 +930,7 @@ main() {
     REALM="${TDP_ADMIN_REALM}"
     echo "Configuring admin TDP client in realm ${REALM}..."
     configure_tdp_admin_client
+    remove_legacy_admin_client_from_standard_realm
 
     echo "=== IdP configuration complete ==="
 }
