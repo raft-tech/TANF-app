@@ -5,7 +5,8 @@
 # sensitive material that cannot be expressed in the checked-in realm JSON files:
 #   - Login.gov RSA private key for private_key_jwt client authentication
 #   - Login.gov acr_values authorization parameter
-#   - tdp-django, tdp-admin, and tdp-grafana client redirect URIs and web origins
+#   - tdp-django, tdp-cli, and tdp-grafana client settings in the standard realm
+#   - tdp-admin client settings in the dedicated admin realm
 #
 # Run this AFTER Keycloak has started and imported the realm.
 # Prerequisites: curl, jq
@@ -14,6 +15,8 @@
 #   KEYCLOAK_URL            - Keycloak base URL (default: http://localhost:8443)
 #   KEYCLOAK_ADMIN          - Admin username (default: admin)
 #   KEYCLOAK_ADMIN_PASSWORD - Admin password (default: admin)
+#   KEYCLOAK_REALM          - Standard TDP realm name (default: tdp)
+#   KEYCLOAK_TDP_ADMIN_REALM - Admin TDP realm name (default: tdp-admin)
 #   DEPLOY_ENV              - Deployment environment: dev, staging, or prod.
 #                             dev includes localhost redirect URIs; staging/prod do not.
 #   LOGIN_GOV_JWT_KEY       - PEM or base64-encoded Login.gov private key
@@ -39,7 +42,9 @@ KEYCLOAK_MANAGEMENT_URL="${KEYCLOAK_MANAGEMENT_URL:-http://localhost:9001}"
 KEYCLOAK_URL="${KEYCLOAK_URL:-http://localhost:8443}"
 KEYCLOAK_ADMIN="${KEYCLOAK_ADMIN:-admin}"
 KEYCLOAK_ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:-admin}"
-REALM="tdp"
+TDP_REALM="${KEYCLOAK_REALM:-tdp}"
+TDP_ADMIN_REALM="${KEYCLOAK_TDP_ADMIN_REALM:-tdp-admin}"
+REALM="${TDP_REALM}"
 DEPLOY_ENV="${DEPLOY_ENV:-dev}"
 LOGIN_GOV_ACR_VALUES="${LOGIN_GOV_ACR_VALUES:-http://idmanagement.gov/ns/assurance/ial/1}"
 
@@ -574,7 +579,7 @@ configure_tdp_client_urls() {
 }
 
 configure_tdp_admin_client() {
-    echo "Configuring tdp-admin client redirect URIs and web origins (env: ${DEPLOY_ENV})..."
+    echo "Configuring tdp-admin client redirect URIs and web origins in realm ${REALM} (env: ${DEPLOY_ENV})..."
 
     local client_uuid
     client_uuid=$(get_client_uuid "tdp-admin")
@@ -622,7 +627,7 @@ configure_tdp_admin_client() {
                 standardFlowEnabled: true,
                 implicitFlowEnabled: false,
                 directAccessGrantsEnabled: false,
-                serviceAccountsEnabled: false,
+                serviceAccountsEnabled: true,
                 authorizationServicesEnabled: false,
                 fullScopeAllowed: true,
                 defaultClientScopes: [
@@ -717,7 +722,9 @@ configure_tdp_admin_client() {
     client_config=$(echo "$client_config" | jq \
         --argjson redirectUris "$redirect_uris" \
         --argjson webOrigins "$web_origins" \
-        '.redirectUris = $redirectUris | .webOrigins = $webOrigins')
+        '.redirectUris = $redirectUris |
+         .webOrigins = $webOrigins |
+         .serviceAccountsEnabled = true')
 
     if [ -n "${KC_TDP_ADMIN_CLIENT_SECRET:-}" ]; then
         client_config=$(echo "$client_config" | jq \
@@ -861,6 +868,8 @@ show_login_gov_on_login_page() {
 
 main() {
     echo "=== Keycloak IdP Configuration ==="
+    echo "Standard realm: ${TDP_REALM}"
+    echo "Admin realm:    ${TDP_ADMIN_REALM}"
     if [ "${SKIP_KEYCLOAK_WAIT:-false}" == "true" ]; then
         echo "Skipping health check wait (SKIP_KEYCLOAK_WAIT=true)."
     else
@@ -868,14 +877,26 @@ main() {
     fi
     get_admin_token
     configure_master_realm_security_headers
-    configure_login_gov_signing_key
-    configure_login_gov_acr_values
-    configure_login_gov_logout_params
-    show_login_gov_on_login_page
+
+    for realm in "${TDP_REALM}" "${TDP_ADMIN_REALM}"; do
+        REALM="${realm}"
+        echo "Configuring shared IdP settings for realm ${REALM}..."
+        configure_login_gov_signing_key
+        configure_login_gov_acr_values
+        configure_login_gov_logout_params
+        show_login_gov_on_login_page
+    done
+
+    REALM="${TDP_REALM}"
+    echo "Configuring standard TDP clients in realm ${REALM}..."
     configure_tdp_client_urls
-    configure_tdp_admin_client
     configure_tdp_cli_api_audience
     configure_grafana_client_urls
+
+    REALM="${TDP_ADMIN_REALM}"
+    echo "Configuring admin TDP client in realm ${REALM}..."
+    configure_tdp_admin_client
+
     echo "=== IdP configuration complete ==="
 }
 

@@ -1,5 +1,5 @@
 {
-  "realm": "tdp",
+  "realm": "tdp-admin",
   "enabled": true,
   "sslRequired": "external",
   "registrationAllowed": false,
@@ -30,8 +30,8 @@
   "roles": {
     "realm": [
       {
-        "name": "default-roles-tdp",
-        "description": "Default roles for TDRS realm",
+        "name": "default-roles-tdp-admin",
+        "description": "Default roles for TDP admin realm",
         "composite": true,
         "composites": {
           "realm": [],
@@ -237,45 +237,25 @@
           }
         }
       ]
-    },
-    {
-      "name": "tdp-api-audience",
-      "description": "Adds the Django API audience to access tokens for external API clients.",
-      "protocol": "openid-connect",
-      "attributes": {
-        "include.in.token.scope": "false",
-        "display.on.consent.screen": "false"
-      },
-      "protocolMappers": [
-        {
-          "name": "tdp-django audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "consentRequired": false,
-          "config": {
-            "included.client.audience": "tdp-django",
-            "id.token.claim": "false",
-            "access.token.claim": "true"
-          }
-        }
-      ]
     }
   ],
   "clients": [
     {
-      "clientId": "tdp-django",
-      "name": "TDP Django Backend",
+      "clientId": "tdp-admin",
+      "name": "TDP Admin Console",
       "enabled": true,
       "clientAuthenticatorType": "client-secret",
-      "secret": "${KC_TDP_DJANGO_CLIENT_SECRET}",
+      "secret": "${KC_TDP_ADMIN_CLIENT_SECRET}",
       "redirectUris": [
-        "https://staging.tanfdata.acf.hhs.gov/*",
-        "https://develop.tanfdata.acf.hhs.gov/*"
+        "https://admin.tanfdata.acf.hhs.gov/*",
+        "https://tanfdata.acf.hhs.gov/admin-auth/*"
       ],
       "webOrigins": [
-        "https://staging.tanfdata.acf.hhs.gov",
-        "https://develop.tanfdata.acf.hhs.gov"
+        "https://admin.tanfdata.acf.hhs.gov"
       ],
+      "attributes": {
+        "post.logout.redirect.uris": "https://admin.tanfdata.acf.hhs.gov/*"
+      },
       "protocol": "openid-connect",
       "publicClient": false,
       "standardFlowEnabled": true,
@@ -291,85 +271,15 @@
         "tdp-user-attributes"
       ],
       "optionalClientScopes": []
-    },
-    {
-      "clientId": "tdp-grafana",
-      "name": "TDP Grafana",
-      "enabled": true,
-      "clientAuthenticatorType": "client-secret",
-      "secret": "${KC_TDP_GRAFANA_CLIENT_SECRET}",
-      "redirectUris": [
-        "https://grafana.tanfdata.acf.hhs.gov/login/generic_oauth"
-      ],
-      "webOrigins": [
-        "https://grafana.tanfdata.acf.hhs.gov"
-      ],
-      "protocol": "openid-connect",
-      "publicClient": false,
-      "standardFlowEnabled": true,
-      "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": false,
-      "authorizationServicesEnabled": false,
-      "fullScopeAllowed": true,
-      "defaultClientScopes": [
-        "openid",
-        "email",
-        "profile",
-        "tdp-user-attributes"
-      ],
-      "optionalClientScopes": [],
-      "attributes": {
-        "post.logout.redirect.uris": "https://grafana.tanfdata.acf.hhs.gov/*"
-      }
-    },
-    {
-      "clientId": "tdp-cli",
-      "name": "TDP CLI / Postman",
-      "description": "Public client for external API tools (Postman, CLI, CI). Authorization Code + PKCE and Device Authorization Grant; no client secret.",
-      "enabled": true,
-      "clientAuthenticatorType": "none",
-      "redirectUris": [
-        "http://localhost/*",
-        "http://127.0.0.1/*",
-        "https://oauth.pstmn.io/v1/callback",
-        "${KC_CLI_REDIRECT_URI:http://localhost/*}"
-      ],
-      "webOrigins": [
-        "http://localhost",
-        "http://127.0.0.1",
-        "${KC_CLI_WEB_ORIGIN:http://localhost}"
-      ],
-      "protocol": "openid-connect",
-      "publicClient": true,
-      "standardFlowEnabled": true,
-      "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": false,
-      "authorizationServicesEnabled": false,
-      "fullScopeAllowed": true,
-      "attributes": {
-        "pkce.code.challenge.method": "S256",
-        "oauth2.device.authorization.grant.enabled": "true",
-        "post.logout.redirect.uris": "+"
-      },
-      "defaultClientScopes": [
-        "openid",
-        "email",
-        "profile",
-        "tdp-user-attributes",
-        "tdp-api-audience"
-      ],
-      "optionalClientScopes": []
     }
   ],
   "users": [
     {
-      "username": "service-account-tdp-django",
+      "username": "service-account-tdp-admin",
       "enabled": true,
-      "serviceAccountClientId": "tdp-django",
+      "serviceAccountClientId": "tdp-admin",
       "realmRoles": [
-        "default-roles-tdp"
+        "default-roles-tdp-admin"
       ],
       "clientRoles": {
         "realm-management": [
@@ -438,7 +348,7 @@
       "linkOnly": false,
       "firstBrokerLoginFlowAlias": "tdp-first-broker-login",
       "config": {
-        "clientId": "${LOGIN_GOV_CLIENT_ID:urn:gov:gsa:openidconnect.profiles:sp:sso:hhs:tanf-proto-staging}",
+        "clientId": "${LOGIN_GOV_CLIENT_ID:urn:gov:gsa:openidconnect.profiles:sp:sso:hhs:tanf-prod}",
         "clientSecret": "unused-private-key-jwt-auth",
         "clientAuthMethod": "private_key_jwt",
         "authorizationUrl": "${LOGIN_GOV_AUTH_URL:https://idp.int.identitysandbox.gov/openid_connect/authorize}",

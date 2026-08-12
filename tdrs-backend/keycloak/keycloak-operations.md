@@ -260,7 +260,7 @@ cf restage keycloak
 
 ### Updating the Realm Export
 
-The realms are defined in `tdrs-backend/keycloak/realm-configs/`. Changes to clients, groups, IdP mappers, authentication flows, or token settings should be made in the environment-specific file you intend to deploy.
+The realms are defined in `tdrs-backend/keycloak/realm-configs/`. Changes to clients, groups, IdP mappers, authentication flows, or token settings should be made in the environment-specific standard or admin file you intend to deploy.
 
 1. Make changes to the relevant file in `realm-configs/`
 2. Test locally:
@@ -284,7 +284,7 @@ For one-off changes that don't warrant a full redeployment:
 
 1. Access the admin console at `https://<hostname>.app.cloud.gov/admin`
 2. Log in with admin credentials
-3. Select the `tdp` realm
+3. Select the `tdp` realm for standard frontend/API/Grafana changes, or `tdp-admin` for standalone admin frontend changes
 4. Make changes through the UI
 
 **Remember to back-port durable realm changes to the matching file in `realm-configs/`** so they persist across redeployments.
@@ -304,10 +304,10 @@ The script is idempotent — safe to run multiple times.
 
 Realm selection happens before Keycloak starts:
 
-- `realm-configs/realm-export.dev-local.json` is used for both `local` and `dev`.
-- `realm-configs/realm-export.staging.json` is used for `staging`.
-- `realm-configs/realm-export.prod.json` is used for `prod`.
-- `select-realm-config.sh` copies the selected file into Keycloak's import path using `DEPLOY_ENV`.
+- `realm-configs/realm-export.dev-local.json` and `realm-configs/admin-realm-export.dev-local.json` are used for both `local` and `dev`.
+- `realm-configs/realm-export.staging.json` and `realm-configs/admin-realm-export.staging.json` are used for `staging`.
+- `realm-configs/realm-export.prod.json` and `realm-configs/admin-realm-export.prod.json` are used for `prod`.
+- `select-realm-config.sh` copies the selected standard and admin files into Keycloak's import path using `DEPLOY_ENV`.
 
 ### Updating Token Lifespans
 
@@ -463,7 +463,9 @@ Export the current realm configuration from a running instance:
 cf ssh keycloak
 /tmp/lifecycle/shell
 /opt/keycloak/bin/kc.sh export --dir /tmp/export --realm tdp
+/opt/keycloak/bin/kc.sh export --dir /tmp/export --realm tdp-admin
 cat /tmp/export/tdp-realm.json
+cat /tmp/export/tdp-admin-realm.json
 ```
 
 Note: This exports realm configuration but **not** user credentials or sessions.
