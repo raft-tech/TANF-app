@@ -2,22 +2,17 @@
 
 ## Overview
 
-- Tightened admin access by finalizing authentication, session handling, and CSRF boundaries to boost security and reduce risk. ([#5836](https://github.com/raft-tech/TANF-app/issues/5836), [#5837](https://github.com/raft-tech/TANF-app/issues/5837))
-
-- Enabled parallel deployments and formalized releases by automating Celery, backend, and Go parser deployments, plus publishing release notes. ([#5910](https://github.com/raft-tech/TANF-app/issues/5910), [#5969](https://github.com/raft-tech/TANF-app/issues/5969))
-
-- Simplified the data file submission experience by merging the submission history with the file upload tabs. ([#5885](https://github.com/raft-tech/TANF-app/issues/5885))
-
-- Fixed a session-related error and added friendlier messaging when a session expires to improve user experience. ([#5574](https://github.com/raft-tech/TANF-app/issues/5574))
-
-- Gained momentum on the Go parser effort by adding metrics and advancing deployment tasks toward review and readiness. ([#5739](https://github.com/raft-tech/TANF-app/issues/5739), [#5909](https://github.com/raft-tech/TANF-app/issues/5909))
+- Completed key backend work this sprint, including new models to define STTs participation in a program, faster database queries, and a fix for a session-expired message. ([#5370](https://github.com/raft-tech/TANF-app/issues/5370), [#5383](https://github.com/raft-tech/TANF-app/issues/5383), [#5574](https://github.com/raft-tech/TANF-app/issues/5574))
+- Improved user-facing reliability and submission workflows: merged the Submission History and File Upload tabs for Data File Submissions, and finished deployment of Celery, backend, and Go parser through CI/CD, plus added metrics to the Go parser for monitoring. ([#5885](https://github.com/raft-tech/TANF-app/issues/5885), [#5910](https://github.com/raft-tech/TANF-app/issues/5910), [#5739](https://github.com/raft-tech/TANF-app/issues/5739))
+- Advanced admin security groundwork with completed admin authentication and admin API boundary setup. ([#5836](https://github.com/raft-tech/TANF-app/issues/5836), [#5837](https://github.com/raft-tech/TANF-app/issues/5837))
+- Increased reliability through parser cleanup and fixing duplicated counts in the reparse model. ([#5806](https://github.com/raft-tech/TANF-app/issues/5806), [#5985](https://github.com/raft-tech/TANF-app/issues/5985))
 
 ---
 
 ⚪️ **Total Issues:** 38  
-✅ **Closed:** 9  
-➡️ **Moved:** 17  
-⬛️ **Unchanged:** 12  
+✅ **Closed:** 18  
+➡️ **Moved:** 10  
+⬛️ **Unchanged:** 10  
 🛑 **Blocked:** 0  
 
 ---
@@ -36,8 +31,8 @@ _Remained in **In Progress**_
 
 ## [Go Parser](https://github.com/raft-tech/TANF-app/issues/5702)
 
-- ➡️ [Go Parser: Add Prometheus metrics (#5739)](https://github.com/raft-tech/TANF-app/issues/5739)  
-_Moved from **Current Sprint Backlog** to **Raft (Dev) Review**_  
+- ✅ [Go Parser: Add Prometheus metrics (#5739)](https://github.com/raft-tech/TANF-app/issues/5739)  
+_**Closed**_ - _Moved from **Current Sprint Backlog**_  
 
 - ⬛️ [Deploy the Go parser through the standard CI/CD process (#5909)](https://github.com/raft-tech/TANF-app/issues/5909)  
 _Remained in **Raft (Dev) Review**_  
@@ -51,8 +46,8 @@ _Remained in **In Progress**_
 - ⬛️ [Keycloak: Promote Keycloak into the Production Space (#5761)](https://github.com/raft-tech/TANF-app/issues/5761)  
 _Remained in **In Progress**_  
 
-- ➡️ [Track direct API client request metrics in Grafana (#5900)](https://github.com/raft-tech/TANF-app/issues/5900)  
-_Moved from **Current Sprint Backlog** to **Raft (Dev) Review**_  
+- ✅ [Track direct API client request metrics in Grafana (#5900)](https://github.com/raft-tech/TANF-app/issues/5900)  
+_**Closed**_ - _Moved from **Current Sprint Backlog**_  
 
 
 ## [Migrate to tanfdata.acf.hhs.gov](https://github.com/raft-tech/TANF-app/issues/5993)
@@ -90,8 +85,8 @@ _Moved from **Product Backlog** to **Next Up: DEV**_
 - ⬛️ [Planning & Facilitation: How We Work Workshop (#5593)](https://github.com/raft-tech/TANF-app/issues/5593)  
 _Remained in **In Progress**_  
 
-- ⬛️ [Update ZAP (#5798)](https://github.com/raft-tech/TANF-app/issues/5798)  
-_Remained in **Raft (Dev) Review**_  
+- ✅ [Update ZAP (#5798)](https://github.com/raft-tech/TANF-app/issues/5798)  
+_**Closed**_ - _Moved from **Raft (Dev) Review**_  
 
 
 ## [Release Tracking](https://github.com/raft-tech/TANF-app/issues/5789)
@@ -111,20 +106,20 @@ _Moved from **Product Backlog** to **In Progress**_
 - ➡️ [[Spike]: Design proper pagination for History tables (#5538)](https://github.com/raft-tech/TANF-app/issues/5538)  
 _Moved from **Current Sprint Backlog** to **In Progress**_  
 
-- ➡️ [Validate Feedback Reports source uploads match selected program type (#5992)](https://github.com/raft-tech/TANF-app/issues/5992)  
-_Moved from **Product Backlog** to **Next Up: DEV**_  
+- ✅ [Validate Feedback Reports source uploads match selected program type (#5992)](https://github.com/raft-tech/TANF-app/issues/5992)  
+_**Closed**_ - _Moved from **Product Backlog**_  
 
 
 ## Issues without Parent
 
-- ⬛️ [Create new models to define an STTs participation in a particular Program (#5370)](https://github.com/raft-tech/TANF-app/issues/5370)  
-_Remained in **Raft (Dev) Review**_  
+- ✅ [Create new models to define an STTs participation in a particular Program (#5370)](https://github.com/raft-tech/TANF-app/issues/5370)  
+_**Closed**_ - _Moved from **Raft (Dev) Review**_  
 
 - ⬛️ [Front end changes to decouple SSP data from the STT model. (#5376)](https://github.com/raft-tech/TANF-app/issues/5376)  
 _Remained in **Raft (Dev) Review**_  
 
-- ➡️ [Django query optimization (#5383)](https://github.com/raft-tech/TANF-app/issues/5383)  
-_Moved from **Current Sprint Backlog** to **In Progress**_  
+- ✅ [Django query optimization (#5383)](https://github.com/raft-tech/TANF-app/issues/5383)  
+_**Closed**_ - _Moved from **Current Sprint Backlog**_  
 
 - ✅ [Fix Callback state_nonce_tracker KeyError and Return Friendly “Session Expired” Message (#5574)](https://github.com/raft-tech/TANF-app/issues/5574)  
 _**Closed**_ - _Moved from **Raft (Dev) Review**_  
@@ -147,8 +142,8 @@ _**Closed**_ - _Moved from **QASP Review**_
 - ⬛️ [[BUG] Keycloak configure script fails when tdp-api-audience client scope already exists (#5911)](https://github.com/raft-tech/TANF-app/issues/5911)  
 _Remained in **Current Sprint Backlog**_  
 
-- ➡️ [Remove Internal Variable Name Column and Adjust Widths in Generated Error Reports (#5927)](https://github.com/raft-tech/TANF-app/issues/5927)  
-_Moved from **Product Backlog** to **Next Up: DEV**_  
+- ✅ [Remove Internal Variable Name Column and Adjust Widths in Generated Error Reports (#5927)](https://github.com/raft-tech/TANF-app/issues/5927)  
+_**Closed**_ - _Moved from **Product Backlog**_  
 
 - ➡️ [Knowledge Center Update: Add Guidance on Timely Data Submission Expectations (#5940)](https://github.com/raft-tech/TANF-app/issues/5940)  
 _Moved from **Product Backlog** to **In Progress**_  
@@ -156,13 +151,13 @@ _Moved from **Product Backlog** to **In Progress**_
 - ⬛️ [Replace configure-idps.sh with declarative Keycloak configuration management (#5958)](https://github.com/raft-tech/TANF-app/issues/5958)  
 _Remained in **Current Sprint Backlog**_  
 
-- ➡️ [[BUG] Duplicated counts in the reparse model (#5985)](https://github.com/raft-tech/TANF-app/issues/5985)  
-_Moved from **Product Backlog** to **In Progress**_  
+- ✅ [[BUG] Duplicated counts in the reparse model (#5985)](https://github.com/raft-tech/TANF-app/issues/5985)  
+_**Closed**_ - _Moved from **Product Backlog**_  
 
 - ➡️ [Isolate TDP Admin Authentication in a Separate Keycloak Realm (#5986)](https://github.com/raft-tech/TANF-app/issues/5986)  
 _Moved from **Product Backlog** to **Next Up: DEV**_  
 
-- ➡️ [Remediate parent-domain scope on sessionid cookie (#5999)](https://github.com/raft-tech/TANF-app/issues/5999)  
-_Moved from **Product Backlog** to **Next Up: DEV**_  
+- ✅ [Remediate parent-domain scope on sessionid cookie (#5999)](https://github.com/raft-tech/TANF-app/issues/5999)  
+_**Closed**_ - _Moved from **Product Backlog**_  
 
 
