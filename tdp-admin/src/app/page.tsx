@@ -1,23 +1,11 @@
-import { headers } from "next/headers";
-import { forbidden, redirect } from "next/navigation";
 import { GridContainer } from "@trussworks/react-uswds";
-import NextLink from "next/link";
-import { checkAdminSession, checkBackendHealth } from "@/lib/admin-auth";
+import { checkBackendHealth } from "@/lib/admin-auth";
+import { requireAdminSession } from "@/lib/admin-page-auth";
 import { getBackendHealthSummary } from "@/lib/backend-health-display";
 import { getAdminRoleSummary } from "@/lib/admin-session-display";
 
 export default async function AdminHomePage() {
-  const requestHeaders = await headers();
-  const cookieHeader = requestHeaders.get("cookie");
-  const session = await checkAdminSession(cookieHeader);
-
-  if (!session.authenticated) {
-    redirect("/login");
-  }
-
-  if (session.authorized !== true) {
-    forbidden();
-  }
+  const { session } = await requireAdminSession();
 
   const backendHealth = await checkBackendHealth();
   const backendHealthSummary = getBackendHealthSummary(backendHealth);
@@ -34,29 +22,6 @@ export default async function AdminHomePage() {
 
   return (
     <>
-      <a className="usa-skipnav" href="#main-content">
-        Skip to main content
-      </a>
-      <main className="admin-login-page" id="main-content">
-        <section className="admin-gov-banner" aria-label="Official government website">
-          <div className="grid-container-widescreen admin-gov-banner__inner">
-            <p>A Demo website of the United States government</p>
-            <p>Here&apos;s how you know</p>
-          </div>
-        </section>
-
-        <header className="usa-header usa-header--extended admin-header">
-          <div className="grid-container-widescreen usa-nav__wide desktop:padding-left-4 desktop:border-bottom-0 mobile:border-bottom-1px mobile:padding-left-0 mobile:padding-right-0">
-            <div className="usa-logo" id="extended-logo">
-              <em className="usa-logo__text">
-                <NextLink href="/" aria-label="TANF Data Portal Admin Home">
-                  TANF Data Portal Admin
-                </NextLink>
-              </em>
-            </div>
-          </div>
-        </header>
-
         <section className="admin-success" aria-label="Admin login success">
           <GridContainer className="grid-container-widescreen admin-success__shell">
             <div className="admin-success__panel">
@@ -163,7 +128,6 @@ export default async function AdminHomePage() {
             </div>
           </div>
         </footer>
-      </main>
     </>
   );
 }

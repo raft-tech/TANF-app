@@ -1,12 +1,13 @@
 """Allowlisted React admin form workflows."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import quote
 
 from django import forms
 from django.core.exceptions import ImproperlyConfigured
+from django.db import models, transaction
 from django.db.models import QuerySet
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -19,6 +20,7 @@ from tdpservice.users.serializers import UserSerializer
 QuerysetFactory = Callable[[], QuerySet]
 ObjectLabel = Callable[[Any], str]
 SaveCallback = Callable[[forms.Form], Any]
+ModelFormFields = Sequence[str] | str
 
 
 @dataclass(frozen=True)
@@ -27,15 +29,61 @@ class AdminFormWorkflow:
 
     key: str
     title: str
-    form_class: type[forms.Form]
-    queryset: QuerySet | QuerysetFactory
+    form_class: type[forms.Form] | None = None
+    queryset: QuerySet | QuerysetFactory | None = None
+    model: type[models.Model] | None = None
+    fields: ModelFormFields | None = None
     object_serializer_class: type | None = None
     object_label: ObjectLabel = str
     save_callback: SaveCallback | None = None
 
+    def _get_model(self) -> type[models.Model] | None:
+        """Return the workflow model when it can be inferred."""
+        if self.model is not None:
+            return self.model
+
+        form_class = self.form_class
+        if form_class is None or not issubclass(form_class, forms.ModelForm):
+            return None
+
+        return form_class._meta.model
+
+    def get_form_class(self) -> type[forms.Form]:
+        """Return the explicit or generated workflow form class."""
+        if self.fields is None:
+            if self.form_class is None:
+                raise ImproperlyConfigured(
+                    f"{self.key} must define form_class or model and fields."
+                )
+            return self.form_class
+
+        model = self._get_model()
+        if model is None:
+            raise ImproperlyConfigured(
+                f"{self.key} must define model when fields are configured."
+            )
+
+        form_class = self.form_class or forms.ModelForm
+        if not issubclass(form_class, forms.ModelForm):
+            raise ImproperlyConfigured(
+                f"{self.key} form_class must inherit ModelForm when fields are "
+                "configured."
+            )
+
+        return forms.modelform_factory(model, form=form_class, fields=self.fields)
+
     def get_queryset(self) -> QuerySet:
         """Return the workflow queryset."""
-        queryset = self.queryset() if callable(self.queryset) else self.queryset
+        if self.queryset is not None:
+            queryset = self.queryset() if callable(self.queryset) else self.queryset
+        else:
+            model = self._get_model()
+            if model is None:
+                raise ImproperlyConfigured(
+                    f"{self.key} must define queryset or model."
+                )
+            queryset = model._default_manager
+
         return queryset.all()
 
     def get_object(self, object_id: str) -> Any:
@@ -47,9 +95,10 @@ class AdminFormWorkflow:
         kwargs = {}
         if data is not None:
             kwargs["data"] = data
-        if issubclass(self.form_class, forms.ModelForm):
+        form_class = self.get_form_class()
+        if issubclass(form_class, forms.ModelForm):
             kwargs["instance"] = instance
-        return self.form_class(**kwargs)
+        return form_class(**kwargs)
 
     def save(self, form: forms.Form) -> Any:
         """Persist a valid workflow form and return the saved object."""
@@ -61,9 +110,10 @@ class AdminFormWorkflow:
                 f"{self.key} must define save_callback for non-ModelForm saves."
             )
 
-        instance = form.save(commit=False)
-        instance.save()
-        form.save_m2m()
+        with transaction.atomic():
+            instance = form.save(commit=False)
+            instance.save()
+            form.save_m2m()
         return instance
 
     def serialize_metadata_object(self, instance: Any) -> dict[str, str]:

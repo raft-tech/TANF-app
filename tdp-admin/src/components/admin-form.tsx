@@ -7,19 +7,20 @@ import {
   ErrorMessage,
   FormGroup,
   Label,
-  Select,
-  TextInput,
-  Textarea,
+  Select as UswdsSelect,
+  Textarea as UswdsTextarea,
+  TextInput as UswdsTextInput,
 } from "@trussworks/react-uswds";
 import {
   useForm,
   type FieldError,
   type RegisterOptions,
+  type UseFormRegisterReturn,
 } from "react-hook-form";
 import {
   getClientValidationRules,
   getDefaultAdminFormValues,
-  type AdminFormField,
+  type AdminFormField as AdminFormFieldMetadata,
   type AdminFormMetadata,
   type AdminFormValues,
   type NormalizedAdminFormErrors,
@@ -38,11 +39,29 @@ type AdminFormMutationResponse = {
   metadata?: AdminFormMetadata;
 };
 
-function fieldId(field: AdminFormField) {
+type FormFieldProps = {
+  field: AdminFormFieldMetadata;
+  error?: FieldError;
+  registration: UseFormRegisterReturn;
+};
+
+type FieldInputProps = FieldInputControlProps & {
+  type: AdminFormFieldMetadata["type"];
+};
+
+type FieldInputControlProps = {
+  field: AdminFormFieldMetadata;
+  hasError: boolean;
+  id: string;
+  registration: UseFormRegisterReturn;
+  describedById?: string;
+};
+
+function fieldId(field: AdminFormFieldMetadata) {
   return `admin-field-${field.name}`;
 }
 
-function describedBy(field: AdminFormField, hasError: boolean) {
+function describedBy(field: AdminFormFieldMetadata, hasError: boolean) {
   const ids = [];
 
   if (field.help_text) {
@@ -58,6 +77,194 @@ function describedBy(field: AdminFormField, hasError: boolean) {
 
 function fieldErrorMessage(error?: FieldError) {
   return typeof error?.message === "string" ? error.message : "";
+}
+
+function FieldLabel({
+  field,
+  hasError,
+}: {
+  field: AdminFormFieldMetadata;
+  hasError: boolean;
+}) {
+  if (field.type === "checkbox") {
+    return null;
+  }
+
+  return (
+    <Label
+      htmlFor={fieldId(field)}
+      error={hasError}
+      requiredMarker={field.required}
+    >
+      {field.label}
+    </Label>
+  );
+}
+
+function SelectInput({
+  field,
+  hasError,
+  id,
+  registration,
+  describedById,
+}: FieldInputControlProps) {
+  return (
+    <UswdsSelect
+      id={id}
+      name={registration.name}
+      inputRef={registration.ref}
+      onBlur={registration.onBlur}
+      onChange={registration.onChange}
+      validationStatus={hasError ? "error" : undefined}
+      aria-describedby={describedById}
+    >
+      {field.choices.map((choice) => (
+        <option key={`${field.name}-${choice.value}`} value={choice.value}>
+          {choice.label}
+        </option>
+      ))}
+    </UswdsSelect>
+  );
+}
+
+function MultiSelectInput({
+  field,
+  hasError,
+  id,
+  registration,
+  describedById,
+}: FieldInputControlProps) {
+  return (
+    <UswdsSelect
+      id={id}
+      name={registration.name}
+      inputRef={registration.ref}
+      onBlur={registration.onBlur}
+      onChange={registration.onChange}
+      validationStatus={hasError ? "error" : undefined}
+      aria-describedby={describedById}
+      multiple
+      size={Math.min(Math.max(field.choices.length, 3), 8)}
+    >
+      {field.choices
+        .filter((choice) => choice.value !== "")
+        .map((choice) => (
+          <option key={`${field.name}-${choice.value}`} value={choice.value}>
+            {choice.label}
+          </option>
+        ))}
+    </UswdsSelect>
+  );
+}
+
+function CheckboxInput({
+  field,
+  id,
+  registration,
+  describedById,
+}: FieldInputControlProps) {
+  return (
+    <div className="usa-checkbox">
+      <input
+        className="usa-checkbox__input"
+        id={id}
+        type="checkbox"
+        aria-describedby={describedById}
+        {...registration}
+      />
+      <label className="usa-checkbox__label" htmlFor={id}>
+        {field.label}
+        {field.required && (
+          <abbr title="required" className="usa-hint usa-hint--required">
+            *
+          </abbr>
+        )}
+      </label>
+    </div>
+  );
+}
+
+function TextareaInput({
+  hasError,
+  id,
+  registration,
+  describedById,
+}: FieldInputControlProps) {
+  return (
+    <UswdsTextarea
+      id={id}
+      name={registration.name}
+      inputRef={registration.ref}
+      onBlur={registration.onBlur}
+      onChange={registration.onChange}
+      error={hasError}
+      aria-describedby={describedById}
+    />
+  );
+}
+
+function TextInput({
+  hasError,
+  id,
+  registration,
+  describedById,
+  type,
+}: FieldInputControlProps & { type: "email" | "number" | "text" }) {
+  return (
+    <UswdsTextInput
+      id={id}
+      type={type}
+      validationStatus={hasError ? "error" : undefined}
+      aria-describedby={describedById}
+      {...registration}
+    />
+  );
+}
+
+function textInputType(type: AdminFormFieldMetadata["type"]) {
+  return type === "number" || type === "email" ? type : "text";
+}
+
+function FieldInput({ type, ...inputProps }: FieldInputProps) {
+  switch (type) {
+    case "select":
+      return <SelectInput {...inputProps} />;
+    case "multiselect":
+      return <MultiSelectInput {...inputProps} />;
+    case "checkbox":
+      return <CheckboxInput {...inputProps} />;
+    case "textarea":
+      return <TextareaInput {...inputProps} />;
+    default:
+      return <TextInput type={textInputType(type)} {...inputProps} />;
+  }
+}
+
+function FormField({ field, error, registration }: FormFieldProps) {
+  const message = fieldErrorMessage(error);
+  const hasError = Boolean(message);
+  const id = fieldId(field);
+  const describedById = describedBy(field, hasError);
+  const inputProps = {
+    field,
+    hasError,
+    id,
+    registration,
+    describedById,
+  };
+
+  return (
+    <FormGroup error={hasError}>
+      <FieldLabel field={field} hasError={hasError} />
+      {field.help_text && (
+        <div className="usa-hint" id={`${id}-hint`}>
+          {field.help_text}
+        </div>
+      )}
+      {hasError && <ErrorMessage id={`${id}-error`}>{message}</ErrorMessage>}
+      <FieldInput type={field.type} {...inputProps} />
+    </FormGroup>
+  );
 }
 
 export function AdminForm({
@@ -163,134 +370,18 @@ export function AdminForm({
 
       <div className="admin-form__fields">
         {formMetadata.fields.map((field) => {
-          const error = errors[field.name];
-          const message = fieldErrorMessage(error as FieldError | undefined);
-          const hasError = Boolean(message);
           const registration = register(
             field.name,
             getClientValidationRules(field) as RegisterOptions<AdminFormValues>
           );
-          const textInputType =
-            field.type === "number" || field.type === "email"
-              ? field.type
-              : "text";
 
           return (
-            <FormGroup key={field.name} error={hasError}>
-              {field.type !== "checkbox" && (
-                <Label
-                  htmlFor={fieldId(field)}
-                  error={hasError}
-                  requiredMarker={field.required}
-                >
-                  {field.label}
-                </Label>
-              )}
-              {field.help_text && (
-                <div className="usa-hint" id={`${fieldId(field)}-hint`}>
-                  {field.help_text}
-                </div>
-              )}
-              {hasError && (
-                <ErrorMessage id={`${fieldId(field)}-error`}>
-                  {message}
-                </ErrorMessage>
-              )}
-
-              {field.type === "select" && (
-                <Select
-                  id={fieldId(field)}
-                  name={registration.name}
-                  inputRef={registration.ref}
-                  onBlur={registration.onBlur}
-                  onChange={registration.onChange}
-                  validationStatus={hasError ? "error" : undefined}
-                  aria-describedby={describedBy(field, hasError)}
-                >
-                  {field.choices.map((choice) => (
-                    <option
-                      key={`${field.name}-${choice.value}`}
-                      value={choice.value}
-                    >
-                      {choice.label}
-                    </option>
-                  ))}
-                </Select>
-              )}
-
-              {field.type === "multiselect" && (
-                <Select
-                  id={fieldId(field)}
-                  name={registration.name}
-                  inputRef={registration.ref}
-                  onBlur={registration.onBlur}
-                  onChange={registration.onChange}
-                  validationStatus={hasError ? "error" : undefined}
-                  aria-describedby={describedBy(field, hasError)}
-                  multiple
-                  size={Math.min(Math.max(field.choices.length, 3), 8)}
-                >
-                  {field.choices
-                    .filter((choice) => choice.value !== "")
-                    .map((choice) => (
-                      <option
-                        key={`${field.name}-${choice.value}`}
-                        value={choice.value}
-                      >
-                        {choice.label}
-                      </option>
-                    ))}
-                </Select>
-              )}
-
-              {field.type === "checkbox" && (
-                <div className="usa-checkbox">
-                  <input
-                    className="usa-checkbox__input"
-                    id={fieldId(field)}
-                    type="checkbox"
-                    aria-describedby={describedBy(field, hasError)}
-                    {...registration}
-                  />
-                  <label className="usa-checkbox__label" htmlFor={fieldId(field)}>
-                    {field.label}
-                    {field.required && (
-                      <abbr
-                        title="required"
-                        className="usa-hint usa-hint--required"
-                      >
-                        *
-                      </abbr>
-                    )}
-                  </label>
-                </div>
-              )}
-
-              {field.type === "textarea" && (
-                <Textarea
-                  id={fieldId(field)}
-                  name={registration.name}
-                  inputRef={registration.ref}
-                  onBlur={registration.onBlur}
-                  onChange={registration.onChange}
-                  error={hasError}
-                  aria-describedby={describedBy(field, hasError)}
-                />
-              )}
-
-              {field.type !== "select" &&
-                field.type !== "multiselect" &&
-                field.type !== "checkbox" &&
-                field.type !== "textarea" && (
-                  <TextInput
-                    id={fieldId(field)}
-                    type={textInputType}
-                    validationStatus={hasError ? "error" : undefined}
-                    aria-describedby={describedBy(field, hasError)}
-                    {...registration}
-                  />
-                )}
-            </FormGroup>
+            <FormField
+              key={field.name}
+              field={field}
+              error={errors[field.name] as FieldError | undefined}
+              registration={registration}
+            />
           );
         })}
       </div>
