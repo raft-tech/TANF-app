@@ -130,7 +130,7 @@ function FileUpload({
   )
 
   const hasPreview = files?.some(
-    (file) => file.section.includes(section) && file.name
+    (file) => file.section.includes(section) && file.file
   )
 
   const selectedFile = files?.find((file) => file.section.includes(section))
@@ -171,7 +171,7 @@ function FileUpload({
   const previousFiscalPeriodRef = useRef(null)
   const validateAndUploadFileRef = useRef(null)
 
-  const validateAndUploadFile = async (event) => {
+  const validateAndUploadFile = async (event, isRevalidation = false) => {
     setUploadAlertState({
       active: false,
       type: null,
@@ -196,10 +196,11 @@ function FileUpload({
       fileType: file.type,
     }
 
-    // Clear existing errors and the current
-    // file in the state if the user is re-uploading
-    dispatch(clearError({ section }))
-    dispatch(clearFile({ section }))
+    if (!isRevalidation) {
+      // Clear existing errors and the current file if the user is replacing it.
+      dispatch(clearError({ section }))
+      dispatch(clearFile({ section }))
+    }
 
     const input = inputRef.current
     const dropTarget = inputRef.current.parentNode
@@ -363,9 +364,12 @@ function FileUpload({
       (previousFiscalPeriod === null || fiscalPeriodChanged) &&
       selectedFile?.file
     ) {
-      validateAndUploadFileRef.current({
-        target: { name: section, files: [selectedFile.file] },
-      })
+      validateAndUploadFileRef.current(
+        {
+          target: { name: section, files: [selectedFile.file] },
+        },
+        true
+      )
     }
   }, [year, quarter, section, selectedFile?.file])
 

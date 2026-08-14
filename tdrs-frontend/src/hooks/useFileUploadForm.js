@@ -112,7 +112,10 @@ export const useFileUploadForm = ({
   const onSubmit = async (event) => {
     event.preventDefault()
 
-    if (uploadedFiles.length === 0) {
+    if (
+      uploadedFiles.length === 0 ||
+      uploadedFiles.some((file) => file.error)
+    ) {
       setUploadAlertState({
         active: true,
         type: 'error',

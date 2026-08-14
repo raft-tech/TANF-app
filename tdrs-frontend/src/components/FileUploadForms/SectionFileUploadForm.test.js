@@ -268,6 +268,29 @@ describe('SectionFileUploadForm', () => {
       })
     })
 
+    it('does not submit files with validation errors', async () => {
+      const storeState = {
+        ...initialState,
+        reports: {
+          submittedFiles: [
+            {
+              fileName: 'test.txt',
+              section: 'Active Case Data',
+              error: { message: 'Fiscal period does not match' },
+            },
+          ],
+        },
+      }
+
+      const { getByText } = renderComponent(storeState)
+
+      fireEvent.click(getByText('Submit Data Files'))
+
+      await waitFor(() => {
+        expect(mockExecuteSubmission).not.toHaveBeenCalled()
+      })
+    })
+
     it('formats sections correctly for single file', () => {
       const uploadedFiles = [
         {

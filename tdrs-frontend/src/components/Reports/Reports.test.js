@@ -988,7 +988,17 @@ describe('Reports', () => {
           `, Quarter 1. Adjust your search parameters or upload a different file.`
       )
       expect(divElement).toBeInTheDocument()
+      expect(getByText('test2.txt')).toBeInTheDocument()
     })
+
+    fireEvent.click(getByText('Submit Data Files'))
+
+    await waitFor(() => {
+      expect(
+        getByText('No changes have been made to data files')
+      ).toBeInTheDocument()
+    })
+    expect(post).not.toHaveBeenCalled()
 
     const quarterSelect = getByLabelText('Fiscal Quarter*')
     fireEvent.change(quarterSelect, { target: { value: 'Q1' } })
