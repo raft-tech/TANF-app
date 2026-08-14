@@ -12,6 +12,7 @@ import pytest
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import (
     DataFile,
+    DataFileStateTransition,
     ReparseFileMeta,
     create_or_update_shadow_data_file,
 )
@@ -420,6 +421,37 @@ def test_post_parse_parse_error_rejects_shadow_summary(stt):
     assert shadow_summary.status == DataFileSummary.Status.REJECTED
     assert shadow_datafile.state == SubmissionState.PARSE_FAILED
     assert datafile.state == SubmissionState.VIRUS_SCAN_COMPLETED
+    assert DataFileStateTransition.objects.filter(data_file=datafile).count() == 0
+
+
+@pytest.mark.django_db
+@override_settings(GO_PARSER_SHADOW_MODE=False)
+def test_post_parse_parse_error_records_production_state_transition(stt):
+    """Production Go post-parse errors should persist transition history."""
+    datafile = DataFileFactory(
+        stt=stt,
+        version=4,
+        state=SubmissionState.VIRUS_SCAN_COMPLETED,
+    )
+    summary = DataFileSummary.objects.create(
+        datafile=datafile,
+        status=DataFileSummary.Status.PENDING,
+    )
+
+    parser_task.post_parse(datafile.id, reparse_id=7, parse_error="pipeline failed")
+
+    summary.refresh_from_db()
+    datafile.refresh_from_db()
+    transition = DataFileStateTransition.objects.get(data_file=datafile)
+    assert summary.status == DataFileSummary.Status.REJECTED
+    assert datafile.state == SubmissionState.PARSE_FAILED
+    assert transition.previous_state == SubmissionState.VIRUS_SCAN_COMPLETED
+    assert transition.next_state == SubmissionState.PARSE_FAILED
+    assert transition.note == "Go parser post-parse received parse_error"
+    assert transition.source == "go_parser"
+    assert transition.task_name == parser_task.GO_PARSER_POST_PARSE_TASK_NAME
+    assert transition.reparse_meta_id == 7
+    assert transition.metadata["parse_error"] == "pipeline failed"
 
 
 @pytest.mark.django_db

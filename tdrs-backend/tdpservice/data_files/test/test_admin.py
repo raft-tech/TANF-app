@@ -10,9 +10,12 @@ from django.test.utils import CaptureQueriesContext
 import pytest
 
 from tdpservice.data_files.admin import admin as data_file_admin_module
-from tdpservice.data_files.admin.admin import DataFileAdmin
+from tdpservice.data_files.admin.admin import (
+    DataFileAdmin,
+    DataFileStateTransitionInline,
+)
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.models import DataFile, DataFileStateTransition
 from tdpservice.data_files.parser_error_choices import ParserErrorCategoryChoices
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.parsers.models import DataFileSummary, ParserError
@@ -47,6 +50,18 @@ def test_DataFileAdmin_exposes_transitional_fields_in_admin():
     assert "parsing_state" in data_file_admin.list_display
     assert "parsing_state" in properties_fieldset[1]["fields"]
     assert "section_ref" in properties_fieldset[1]["fields"]
+    assert data_file_admin.inlines[0] is DataFileStateTransitionInline
+
+
+def test_DataFileStateTransitionInline_is_read_only():
+    """State transition history should be visible but not editable in admin."""
+    inline = DataFileStateTransitionInline(DataFile, AdminSite())
+
+    assert inline.ordering == ["-created_at", "-id"]
+    assert inline.has_view_permission(None) is True
+    assert inline.has_add_permission(None) is False
+    assert inline.has_change_permission(None) is False
+    assert inline.has_delete_permission(None) is False
 
 
 @pytest.mark.django_db
@@ -143,6 +158,11 @@ def test_DataFileAdmin_reparse_requests_reparse_for_safe_files(
     assert any(
         f"Skipped 2 file(s): {uploaded_file.id}" in message for message, _ in messages
     )
+    transition = DataFileStateTransition.objects.get(data_file=ready_file)
+    assert transition.previous_state == SubmissionState.PARSE_COMPLETED
+    assert transition.next_state == SubmissionState.REPARSE_REQUESTED
+    assert transition.actor == admin_user
+    assert transition.source == "django_admin"
 
 
 @pytest.mark.django_db
@@ -216,6 +236,12 @@ def test_DataFileAdmin_reparse_rolls_back_state_when_queue_fails(
 
     ready_file.refresh_from_db()
     assert ready_file.state == SubmissionState.PARSE_COMPLETED
+    transitions = list(DataFileStateTransition.objects.filter(data_file=ready_file))
+    assert [transition.next_state for transition in transitions] == [
+        SubmissionState.PARSE_COMPLETED,
+        SubmissionState.REPARSE_REQUESTED,
+    ]
+    assert all(transition.actor == admin_user for transition in transitions)
     assert any("Could not queue the reparse task" in message for message, _ in messages)
     assert not any(
         "file successfully submitted for reparsing" in message

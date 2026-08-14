@@ -411,6 +411,63 @@ class DataFile(FileRecord):
         return f"filename: {self.original_filename}"
 
 
+class DataFileStateTransition(models.Model):
+    """Persistent audit record for a DataFile submission state transition."""
+
+    data_file = models.ForeignKey(
+        "data_files.DataFile",
+        on_delete=models.DO_NOTHING,
+        related_name="state_transitions",
+        db_constraint=False,
+    )
+    previous_state = models.CharField(
+        max_length=32,
+        choices=SubmissionState.choices,
+    )
+    next_state = models.CharField(
+        max_length=32,
+        choices=SubmissionState.choices,
+    )
+    note = models.TextField(blank=True, default="")
+    metadata = models.JSONField(blank=True, default=dict)
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name="data_file_state_transitions",
+        blank=True,
+        null=True,
+    )
+    source = models.CharField(max_length=64, blank=True, null=True)
+    task_name = models.CharField(max_length=255, blank=True, null=True)
+    celery_task_id = models.CharField(max_length=255, blank=True, null=True)
+    reparse_meta_id = models.PositiveIntegerField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        """Metadata."""
+
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(
+                fields=["data_file", "-created_at"],
+                name="dfstate_datafile_created_idx",
+            ),
+            models.Index(fields=["source"], name="data_files_source_3a5de1_idx"),
+            models.Index(fields=["task_name"], name="data_files_task_na_94f15f_idx"),
+            models.Index(
+                fields=["reparse_meta_id"],
+                name="data_files_reparse_4ba50f_idx",
+            ),
+        ]
+
+    def __str__(self):
+        """Return a string representation of the transition."""
+        return (
+            f"DataFile {self.data_file_id}: "
+            f"{self.previous_state} -> {self.next_state}"
+        )
+
+
 ShadowDataFile = create_shadow_model(
     "ShadowDataFile",
     DataFile,

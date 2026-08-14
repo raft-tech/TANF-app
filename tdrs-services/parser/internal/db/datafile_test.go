@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -73,5 +74,64 @@ func TestInt64ToInt4(t *testing.T) {
 	}
 	if _, err := int64ToInt4(1 << 40); err == nil {
 		t.Fatal("int64ToInt4(1 << 40) error = nil, want error")
+	}
+}
+
+func TestMarshalStateTransitionMetadataIncludesCorrelation(t *testing.T) {
+	got, err := marshalStateTransitionMetadata(
+		42,
+		"parse_started",
+		"parse_failed",
+		DataFileStateTransitionContext{
+			Note:          "Go parser pipeline processing failed",
+			Source:        "go_parser",
+			TaskName:      "tdpservice.scheduling.parser_task.go_parse",
+			ReparseMetaID: 7,
+			Metadata: map[string]any{
+				"stage": "pipeline",
+			},
+		},
+	)
+	if err != nil {
+		t.Fatalf("marshalStateTransitionMetadata() error = %v", err)
+	}
+
+	var metadata map[string]any
+	if err := json.Unmarshal(got, &metadata); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+
+	if metadata["data_file_id"] != float64(42) {
+		t.Errorf("data_file_id = %#v, want 42", metadata["data_file_id"])
+	}
+	if metadata["previous_state"] != "parse_started" {
+		t.Errorf("previous_state = %#v", metadata["previous_state"])
+	}
+	if metadata["next_state"] != "parse_failed" {
+		t.Errorf("next_state = %#v", metadata["next_state"])
+	}
+	if metadata["source"] != "go_parser" {
+		t.Errorf("source = %#v", metadata["source"])
+	}
+	if metadata["task_name"] != "tdpservice.scheduling.parser_task.go_parse" {
+		t.Errorf("task_name = %#v", metadata["task_name"])
+	}
+	if metadata["reparse_meta_id"] != float64(7) {
+		t.Errorf("reparse_meta_id = %#v", metadata["reparse_meta_id"])
+	}
+	if metadata["reparse_id"] != float64(7) {
+		t.Errorf("reparse_id = %#v", metadata["reparse_id"])
+	}
+	if metadata["stage"] != "pipeline" {
+		t.Errorf("stage = %#v", metadata["stage"])
+	}
+	if metadata["transition_path"] != "go_sql" {
+		t.Errorf("transition_path = %#v", metadata["transition_path"])
+	}
+}
+
+func TestProductionStateTransitionSQLTargetsAuditTable(t *testing.T) {
+	if !strings.Contains(insertProductionDataFileStateTransition, "data_files_datafilestatetransition") {
+		t.Fatalf("production state transition insert does not target audit table")
 	}
 }

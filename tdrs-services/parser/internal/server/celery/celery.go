@@ -164,7 +164,13 @@ func (s *Server) Run(parentCtx context.Context) error {
 						slog.Any(logging.KeyError, err),
 					)
 				}
-				if err := s.updateDataFileState(taskCtx, id, dataFileStateParseFailed); err != nil {
+				if err := s.updateDataFileState(
+					taskCtx,
+					id,
+					dataFileStateParseFailed,
+					"Go parser worker panic",
+					reparse,
+				); err != nil {
 					logging.Error(taskCtx, "failed to update DataFile state during worker panic",
 						slog.Int(logging.KeyFileID, int(id)),
 						slog.Int("reparse_id", int(reparse)),
@@ -190,7 +196,13 @@ func (s *Server) Run(parentCtx context.Context) error {
 						slog.Any(logging.KeyError, updateErr),
 					)
 				}
-				if updateErr := s.updateDataFileState(taskCtx, id, dataFileStateParseFailed); updateErr != nil {
+				if updateErr := s.updateDataFileState(
+					taskCtx,
+					id,
+					dataFileStateParseFailed,
+					"Go parser post-parse enqueue failure",
+					reparse,
+				); updateErr != nil {
 					logging.Error(taskCtx, "failed to update DataFile state after post-parse enqueue failure",
 						slog.Int(logging.KeyFileID, int(id)),
 						slog.Int("reparse_id", int(reparse)),
@@ -217,7 +229,7 @@ func (s *Server) Run(parentCtx context.Context) error {
 			slog.String(logging.KeyStage, "task_receive"),
 		)
 
-		if err := s.processTask(taskCtx, id); err != nil {
+		if err := s.processTask(taskCtx, id, reparse); err != nil {
 			parseError = fmt.Sprintf("error: %v", err)
 			logging.Error(taskCtx, "parse task failed",
 				slog.Int(logging.KeyFileID, int(id)),
@@ -285,17 +297,40 @@ func (s *Server) updateDataFileSummaryStatus(parentCtx context.Context, dataFile
 	return db.UpdateDataFileSummaryStatus(statusCtx, s.dbPool, summaryTable, dataFileID, status)
 }
 
-func (s *Server) updateDataFileState(parentCtx context.Context, dataFileID int32, state string) error {
+func (s *Server) updateDataFileState(
+	parentCtx context.Context,
+	dataFileID int32,
+	state string,
+	note string,
+	reparseID int32,
+) error {
 	statusCtx, cancel := context.WithTimeout(context.WithoutCancel(parentCtx), statusUpdateTimeout)
 	defer cancel()
 
 	dataFileTable := config.DataFileTableName(s.Config.Database.EffectiveTablePrefix())
-	return db.UpdateDataFileState(statusCtx, s.dbPool, dataFileTable, dataFileID, state)
+	metadata := map[string]any{}
+	if reparseID > 0 {
+		metadata["reparse_id"] = reparseID
+	}
+	return db.UpdateDataFileState(
+		statusCtx,
+		s.dbPool,
+		dataFileTable,
+		dataFileID,
+		state,
+		db.DataFileStateTransitionContext{
+			Note:          note,
+			Source:        "go_parser",
+			TaskName:      taskName,
+			ReparseMetaID: reparseID,
+			Metadata:      metadata,
+		},
+	)
 }
 
 // processTask handles a single parse task end-to-end:
 // DB lookup → S3 download → decode → pipeline → status update.
-func (s *Server) processTask(taskCtx context.Context, dataFileID int32) error {
+func (s *Server) processTask(taskCtx context.Context, dataFileID int32, reparseID int32) error {
 	dataFileTable := config.DataFileTableName(s.Config.Database.EffectiveTablePrefix())
 
 	// 1. Look up datafile metadata from the database.
@@ -312,7 +347,13 @@ func (s *Server) processTask(taskCtx context.Context, dataFileID int32) error {
 	if err := db.EnsureDataFileSummary(taskCtx, s.dbPool, summaryTable, dataFileID); err != nil {
 		return fmt.Errorf("failed to prepare shadow datafile summary: %w", err)
 	}
-	if err := db.UpdateDataFileState(taskCtx, s.dbPool, dataFileTable, dataFileID, dataFileStateParseStarted); err != nil {
+	if err := s.updateDataFileState(
+		taskCtx,
+		dataFileID,
+		dataFileStateParseStarted,
+		"Go parser parsing started",
+		reparseID,
+	); err != nil {
 		return fmt.Errorf("failed to mark shadow datafile parse started: %w", err)
 	}
 
@@ -362,7 +403,13 @@ func (s *Server) processTask(taskCtx context.Context, dataFileID int32) error {
 				slog.Any(logging.KeyError, updateErr),
 			)
 		}
-		if updateErr := s.updateDataFileState(taskCtx, dataFileID, dataFileStateParseFailed); updateErr != nil {
+		if updateErr := s.updateDataFileState(
+			taskCtx,
+			dataFileID,
+			dataFileStateParseFailed,
+			"Go parser pipeline processing failed",
+			reparseID,
+		); updateErr != nil {
 			logging.Error(taskCtx, "failed to update DataFile state",
 				slog.Int(logging.KeyFileID, int(dataFileID)),
 				slog.String(logging.KeyStage, "status_update"),
@@ -376,7 +423,13 @@ func (s *Server) processTask(taskCtx context.Context, dataFileID int32) error {
 	if err := db.UpdateDataFileSummaryResult(taskCtx, s.dbPool, summaryTable, dataFileID, totalInFile, totalCreated); err != nil {
 		return fmt.Errorf("failed to update shadow datafile summary result: %w", err)
 	}
-	if err := db.UpdateDataFileState(taskCtx, s.dbPool, dataFileTable, dataFileID, dataFileStateParseCompleted); err != nil {
+	if err := s.updateDataFileState(
+		taskCtx,
+		dataFileID,
+		dataFileStateParseCompleted,
+		"Go parser parsing completed",
+		reparseID,
+	); err != nil {
 		return fmt.Errorf("failed to update shadow datafile state: %w", err)
 	}
 

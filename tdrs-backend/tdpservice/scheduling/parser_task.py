@@ -18,7 +18,10 @@ from tdpservice.core.utils import log
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.error_reports import ErrorReportFactory
 from tdpservice.data_files.models import DataFile, ReparseFileMeta, ShadowDataFile
-from tdpservice.data_files.submission_lifecycle import transition_datafile
+from tdpservice.data_files.submission_lifecycle import (
+    force_transition_datafile,
+    transition_datafile,
+)
 from tdpservice.email.helpers.data_file import send_data_submitted_email
 from tdpservice.log_handler import change_log_filename
 from tdpservice.parsers.aggregates import (
@@ -263,6 +266,8 @@ def _transition_parse_outcome(data_file, dfs, reparse_id=None):
             SubmissionState.PARSE_COMPLETED,
             note="parsing completed successfully",
             log_fields=parse_context,
+            source="python_parser",
+            reparse_meta_id=reparse_id,
         )
     elif dfs.status in (
         DataFileSummary.Status.ACCEPTED_WITH_ERRORS,
@@ -274,6 +279,8 @@ def _transition_parse_outcome(data_file, dfs, reparse_id=None):
             SubmissionState.PARSED_WITH_ERRORS,
             note="parsing completed with errors",
             log_fields=parse_context,
+            source="python_parser",
+            reparse_meta_id=reparse_id,
         )
 
 
@@ -306,6 +313,8 @@ def _handle_parse_failure(data_file, note, reparse_id=None):
             "program_type": data_file.program_type,
             "reparse_id": reparse_id,
         },
+        source="python_parser",
+        reparse_meta_id=reparse_id,
     )
 
 
@@ -428,8 +437,27 @@ def post_parse(data_file_id, reparse_id=0, parse_error=None):
     if parse_error:
         dfs.status = DataFileSummary.Status.REJECTED
         dfs.save()
-        data_file.state = SubmissionState.PARSE_FAILED
-        data_file.save(update_fields=["state"])
+        log_fields = {
+            "section": data_file.section,
+            "program_type": data_file.program_type,
+            "parse_error": parse_error,
+            "reparse_id": reparse_id or None,
+        }
+        if parser_models.data_file_model is DataFile:
+            if data_file.state != SubmissionState.PARSE_FAILED:
+                force_transition_datafile(
+                    data_file,
+                    SubmissionState.PARSE_FAILED,
+                    note="Go parser post-parse received parse_error",
+                    log_fields=log_fields,
+                    source="go_parser",
+                    task_name=GO_PARSER_POST_PARSE_TASK_NAME,
+                    reparse_meta_id=reparse_id or None,
+                )
+        else:
+            # ShadowDataFile state is isolated from production DataFile audit history.
+            data_file.state = SubmissionState.PARSE_FAILED
+            data_file.save(update_fields=["state"])
         logger.error(
             "Go parser %s post-parse received parse_error for data_file_id=%s: %s",
             parser_models.label,
@@ -485,6 +513,8 @@ def parse(data_file_id, reparse_id=None):
                 "program_type": data_file.program_type,
                 "reparse_id": reparse_id,
             },
+            source="python_parser",
+            reparse_meta_id=reparse_id,
         )
 
         dfs = DataFileSummary.objects.create(

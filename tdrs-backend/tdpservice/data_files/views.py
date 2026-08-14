@@ -217,6 +217,8 @@ class DataFileViewSet(ModelViewSet):
             data_file,
             SubmissionState.VIRUS_SCAN_STARTED,
             note="virus scan started",
+            actor=request.user,
+            source="api",
         )
 
         scan_failure_response, scan_result = self._scan_uploaded_file(
@@ -229,6 +231,8 @@ class DataFileViewSet(ModelViewSet):
                 data_file,
                 scan_result=scan_result,
                 note=scan_failure_response.data["detail"],
+                actor=request.user,
+                source="api",
             )
             data_file.delete()
             return scan_failure_response
@@ -237,6 +241,8 @@ class DataFileViewSet(ModelViewSet):
             data_file,
             scan_result=scan_result,
             note="file passed virus scan",
+            actor=request.user,
+            source="api",
         )
 
         data_file.file = uploaded_file
