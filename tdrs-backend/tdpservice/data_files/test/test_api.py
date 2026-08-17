@@ -619,6 +619,9 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
 
         def fake_save(serializer, *args, **kwargs):
             data_file = actual_save(serializer, *args, **kwargs)
+            DataFile.objects.filter(pk=data_file.pk).update(
+                state=SubmissionState.PARSE_STARTED
+            )
             data_file.state = SubmissionState.PARSE_STARTED
             return data_file
 

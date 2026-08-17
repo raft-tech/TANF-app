@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("data_files", "0031_backfill_datafile_section_ref"),
-        ("users", "0060_add_program_section_permissions"),
+        ("users", "0001_initial"),
     ]
 
     operations = [

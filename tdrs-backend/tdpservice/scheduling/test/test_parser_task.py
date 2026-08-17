@@ -1054,7 +1054,14 @@ def test_parse_transitions_include_parse_context(monkeypatch, data_analyst):
     transitions = []
     real_transition = parser_task.transition_datafile
 
-    def recording_transition(data_file, next_state, note="", logger_hook=None, log_fields=None):
+    def recording_transition(
+        data_file,
+        next_state,
+        note="",
+        logger_hook=None,
+        log_fields=None,
+        **kwargs,
+    ):
         transitions.append(
             {
                 "next_state": next_state,
@@ -1068,6 +1075,7 @@ def test_parse_transitions_include_parse_context(monkeypatch, data_analyst):
             note=note,
             logger_hook=logger_hook,
             log_fields=log_fields,
+            **kwargs,
         )
 
     setup_parse_mocks(monkeypatch)

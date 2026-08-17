@@ -107,7 +107,7 @@ def test_transition_datafile_creates_state_transition_record():
     assert transition.previous_state == SubmissionState.UPLOADED
     assert transition.next_state == SubmissionState.VIRUS_SCAN_STARTED
     assert transition.note == "Picked up by AV scan worker"
-    assert transition.actor == data_file.user
+    assert str(transition.actor_id) == str(data_file.user_id)
     assert transition.source == "api"
     assert transition.metadata["scan_result"] == "QUEUED"
     assert transition.metadata["custom"] == {"step": 1}
@@ -370,7 +370,7 @@ def test_revert_reparse_request_creates_state_transition_record():
     assert transition.previous_state == SubmissionState.REPARSE_REQUESTED
     assert transition.next_state == SubmissionState.PARSE_COMPLETED
     assert transition.note == "broker enqueue failed"
-    assert transition.actor == data_file.user
+    assert str(transition.actor_id) == str(data_file.user_id)
     assert transition.source == "django_admin"
 
 

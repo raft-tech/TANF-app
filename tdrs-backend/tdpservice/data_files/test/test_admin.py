@@ -161,7 +161,7 @@ def test_DataFileAdmin_reparse_requests_reparse_for_safe_files(
     transition = DataFileStateTransition.objects.get(data_file=ready_file)
     assert transition.previous_state == SubmissionState.PARSE_COMPLETED
     assert transition.next_state == SubmissionState.REPARSE_REQUESTED
-    assert transition.actor == admin_user
+    assert str(transition.actor_id) == str(admin_user.id)
     assert transition.source == "django_admin"
 
 
@@ -241,7 +241,9 @@ def test_DataFileAdmin_reparse_rolls_back_state_when_queue_fails(
         SubmissionState.PARSE_COMPLETED,
         SubmissionState.REPARSE_REQUESTED,
     ]
-    assert all(transition.actor == admin_user for transition in transitions)
+    assert all(
+        str(transition.actor_id) == str(admin_user.id) for transition in transitions
+    )
     assert any("Could not queue the reparse task" in message for message, _ in messages)
     assert not any(
         "file successfully submitted for reparsing" in message
