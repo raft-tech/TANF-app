@@ -98,7 +98,11 @@ def get_permission_ids_for_model(
 
 def get_requested_stt(request, view):
     """Get stt from a valid request."""
-    request_parameters = ChainMap(view.kwargs, request.query_params, request.data)
+    if request.method == 'GET':
+        request_parameters = ChainMap(view.kwargs, request.query_params)
+    elif request.method == 'POST':
+        request_parameters = ChainMap(view.kwargs, request.data)
+
     return request_parameters.get("stt")
 
 
