@@ -21,8 +21,6 @@ from tdpservice.request_attribution import (
 from tdpservice.users.authorization import is_authorized_admin_user
 from tdpservice.users.oidc import ADMIN_SESSION_SCOPE, STANDARD_SESSION_SCOPE
 
-# testing testing
-
 ADMIN_AUTH_PREFIX = "/admin-auth/"
 ADMIN_API_PREFIX = "/admin-api/"
 
