@@ -2,8 +2,10 @@ package db
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 
 	"github.com/jackc/pgx/v5"
@@ -132,22 +134,48 @@ const selectProductionDataFileStateForUpdate = `
 `
 
 const insertProductionDataFileStateTransition = `
+	WITH base_log AS (
+	    INSERT INTO core_baselog (
+	        object_id,
+	        event_id,
+	        event_type,
+	        note,
+	        metadata,
+	        source,
+	        task_name,
+	        celery_task_id,
+	        created_at,
+	        actor_id,
+	        content_type_id
+	    )
+	    VALUES (
+	        $1::text,
+	        $2,
+	        'data_file_state_transition',
+	        $5,
+	        $6::jsonb,
+	        NULLIF($7, ''),
+	        NULLIF($8, ''),
+	        NULLIF($9, ''),
+	        NOW(),
+	        NULL,
+	        (
+	            SELECT id
+	            FROM django_content_type
+	            WHERE app_label = 'data_files'
+	              AND model = 'datafile'
+	        )
+	    )
+	    RETURNING id
+	)
 	INSERT INTO data_files_datafilestatetransition (
-	    data_file_id,
+	    baselog_ptr_id,
 	    previous_state,
 	    next_state,
-	    note,
-	    metadata,
-	    source,
-	    task_name,
-	    celery_task_id,
-	    reparse_meta_id,
-	    created_at
+	    reparse_meta_id
 	)
-	VALUES (
-	    $1, $2, $3, $4, $5::jsonb, NULLIF($6, ''), NULLIF($7, ''),
-	    NULLIF($8, ''), $9, NOW()
-	)
+	SELECT id, $3, $4, $10
+	FROM base_log
 `
 
 const upsertShadowDataFileSummary = `
@@ -326,6 +354,7 @@ func updateProductionDataFileStateWithTransition(
 		ctx,
 		insertProductionDataFileStateTransition,
 		datafileID,
+		newLogEventUUID(),
 		previousState,
 		state,
 		transitionContext.Note,
@@ -346,6 +375,16 @@ func firstTransitionContext(contexts []DataFileStateTransitionContext) DataFileS
 		return DataFileStateTransitionContext{}
 	}
 	return contexts[0]
+}
+
+func newLogEventUUID() pgtype.UUID {
+	var id [16]byte
+	if _, err := io.ReadFull(rand.Reader, id[:]); err != nil {
+		panic(err)
+	}
+	id[6] = (id[6] & 0x0f) | 0x40
+	id[8] = (id[8] & 0x3f) | 0x80
+	return pgtype.UUID{Bytes: id, Valid: true}
 }
 
 func marshalStateTransitionMetadata(

@@ -131,7 +131,13 @@ func TestMarshalStateTransitionMetadataIncludesCorrelation(t *testing.T) {
 }
 
 func TestProductionStateTransitionSQLTargetsAuditTable(t *testing.T) {
+	if !strings.Contains(insertProductionDataFileStateTransition, "core_baselog") {
+		t.Fatalf("production state transition insert does not create base log")
+	}
 	if !strings.Contains(insertProductionDataFileStateTransition, "data_files_datafilestatetransition") {
-		t.Fatalf("production state transition insert does not target audit table")
+		t.Fatalf("production state transition insert does not create child transition")
+	}
+	if !strings.Contains(insertProductionDataFileStateTransition, "baselog_ptr_id") {
+		t.Fatalf("production state transition insert does not use inherited parent link")
 	}
 }
