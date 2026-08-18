@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 KEYCLOAK_DIR = Path(__file__).resolve().parents[3] / "keycloak"
-CONFIGURE_IDPS_PATH = KEYCLOAK_DIR / "configure-idps.sh"
 REALM_CONFIGS_DIR = KEYCLOAK_DIR / "realm-configs"
 REALM_CONFIG_PATHS = {
     "local": REALM_CONFIGS_DIR / "realm-export.dev-local.json",
@@ -34,6 +33,11 @@ def get_client_scope(realm, scope_name):
 def get_identity_provider(realm, alias):
     """Return the named identity provider from the rendered realm."""
     return next(idp for idp in realm["identityProviders"] if idp["alias"] == alias)
+
+
+def get_authentication_flow(realm, alias):
+    """Return the named authentication flow from the rendered realm."""
+    return next(flow for flow in realm["authenticationFlows"] if flow["alias"] == alias)
 
 
 def load_realm_config(env_name):
@@ -147,3 +151,34 @@ def test_all_realm_configs_show_login_gov_on_login_page():
         login_gov_idp = get_identity_provider(realm, "login-gov")
 
         assert login_gov_idp.get("hideOnLogin") is not True
+
+
+def test_dev_local_browser_flow_honors_idp_hint_before_forms():
+    """Keycloak must process kc_idp_hint before showing username/password forms."""
+    realm = load_realm_config("local")
+    django_client = get_client(realm, "tdp-django")
+    admin_client = get_client(realm, "tdp-admin")
+    cli_client = get_client(realm, "tdp-cli")
+    browser_flow = get_authentication_flow(realm, "tdp-browser")
+    executions = browser_flow["authenticationExecutions"]
+    redirector_index = next(
+        index
+        for index, execution in enumerate(executions)
+        if execution.get("authenticator") == "identity-provider-redirector"
+    )
+    forms_index = next(
+        index
+        for index, execution in enumerate(executions)
+        if execution.get("flowAlias") == "tdp-browser-forms"
+    )
+
+    assert realm["browserFlow"] == "tdp-browser"
+    assert (
+        django_client["authenticationFlowBindingOverrides"]["browser"] == "tdp-browser"
+    )
+    assert (
+        admin_client["authenticationFlowBindingOverrides"]["browser"] == "tdp-browser"
+    )
+    assert cli_client["authenticationFlowBindingOverrides"]["browser"] == "tdp-browser"
+    assert executions[redirector_index]["requirement"] == "ALTERNATIVE"
+    assert redirector_index < forms_index
