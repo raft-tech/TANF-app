@@ -194,7 +194,7 @@ describe('FileUpload', () => {
 
   describe('File Validation - Extension', () => {
     it('accepts .txt files', async () => {
-      const { container } = renderComponent()
+      const { container, store } = renderComponent()
 
       const input = container.querySelector('input[type="file"]')
       const file = makeTestFile('test.txt')
@@ -207,6 +207,12 @@ describe('FileUpload', () => {
           (call) => typeof call[0] === 'function'
         )
         expect(uploadCalls.length).toBeGreaterThan(0)
+        expect(store.getState().reports.submittedFiles[0]).toEqual(
+          expect.objectContaining({
+            validatedYear: '2024',
+            validatedQuarter: 'Q1',
+          })
+        )
       })
     })
 

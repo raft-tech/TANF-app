@@ -134,14 +134,15 @@ describe('SectionFileUploadForm', () => {
 
   const renderComponent = (
     storeState = initialState,
-    stt = { id: 1, num_sections: 4 }
+    stt = { id: 1, num_sections: 4 },
+    initialEntry = '/'
   ) => {
     const store = mockStore(storeState)
     mockDispatch = jest.spyOn(store, 'dispatch')
 
     return render(
       <Provider store={store}>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={[initialEntry]}>
           <ReportsProvider>
             <SectionFileUploadForm stt={stt} />
           </ReportsProvider>
@@ -283,6 +284,34 @@ describe('SectionFileUploadForm', () => {
       }
 
       const { getByText } = renderComponent(storeState)
+
+      fireEvent.click(getByText('Submit Data Files'))
+
+      await waitFor(() => {
+        expect(mockExecuteSubmission).not.toHaveBeenCalled()
+      })
+    })
+
+    it('does not submit a file while fiscal period revalidation is pending', async () => {
+      const storeState = {
+        ...initialState,
+        reports: {
+          submittedFiles: [
+            {
+              fileName: 'test.txt',
+              section: 'Active Case Data',
+              validatedYear: '2024',
+              validatedQuarter: 'Q1',
+            },
+          ],
+        },
+      }
+
+      const { getByText } = renderComponent(
+        storeState,
+        { id: 1, num_sections: 4 },
+        '/?fy=2024&q=Q2&type=tanf'
+      )
 
       fireEvent.click(getByText('Submit Data Files'))
 

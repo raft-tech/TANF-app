@@ -40,6 +40,8 @@ export const getUpdatedFiles = ({
   fileType = null,
   error = null,
   file = null,
+  validatedYear,
+  validatedQuarter,
 }) => {
   const oldFileIndex = getFileIndex(state?.submittedFiles, section)
   const updatedFiles = [...state.submittedFiles]
@@ -51,6 +53,8 @@ export const getUpdatedFiles = ({
     error,
     uuid,
     fileType,
+    ...(validatedYear && { validatedYear }),
+    ...(validatedQuarter && { validatedQuarter }),
   }
 
   return updatedFiles
@@ -117,7 +121,15 @@ const reports = (state = initialState, action) => {
       }
     }
     case SET_FILE: {
-      const { file, fileName, section, uuid, fileType } = payload
+      const {
+        file,
+        fileName,
+        section,
+        uuid,
+        fileType,
+        validatedYear,
+        validatedQuarter,
+      } = payload
       const updatedFiles = getUpdatedFiles({
         state,
         fileName,
@@ -125,6 +137,8 @@ const reports = (state = initialState, action) => {
         uuid,
         fileType,
         file,
+        validatedYear,
+        validatedQuarter,
       })
       return { ...state, submittedFiles: updatedFiles }
     }

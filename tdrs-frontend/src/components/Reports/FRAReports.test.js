@@ -58,6 +58,7 @@ describe('FRA Reports Page', () => {
   afterEach(() => {
     jest.runOnlyPendingTimers()
     jest.useRealTimers()
+    jest.restoreAllMocks()
   })
 
   it('Renders', () => {
@@ -602,6 +603,7 @@ describe('FRA Reports Page', () => {
     it('retains a selected file when the fiscal period changes', async () => {
       const { getByText, container, getByLabelText, queryByText } =
         await setup()
+      const readFileSpy = jest.spyOn(FileReader.prototype, 'readAsArrayBuffer')
 
       const uploadForm = container.querySelector('#fra-file-upload')
       fireEvent.change(uploadForm, {
@@ -615,6 +617,7 @@ describe('FRA Reports Page', () => {
           )
         ).toBeInTheDocument()
       })
+      expect(readFileSpy).toHaveBeenCalledTimes(1)
 
       const yearsDropdown = getByLabelText('Fiscal Year (October - September)*')
       fireEvent.change(yearsDropdown, { target: { value: '2024' } })
@@ -635,6 +638,7 @@ describe('FRA Reports Page', () => {
             .selected
         ).toBe(true)
       })
+      expect(readFileSpy).toHaveBeenCalledTimes(1)
     })
 
     it('clears a selected file after a confirmed STT change', async () => {

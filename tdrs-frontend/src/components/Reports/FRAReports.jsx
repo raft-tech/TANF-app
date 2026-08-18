@@ -172,12 +172,8 @@ const UploadForm = ({
   setError,
   isSubmitting,
   fraHasUploadedFile,
-  year,
-  quarter,
 }) => {
   const inputRef = useRef(null)
-  const previousFiscalPeriodRef = useRef(null)
-  const onFileChangedRef = useRef(null)
 
   useEffect(() => {
     // `init` for the uswds fileInput must be called on the
@@ -282,26 +278,6 @@ const UploadForm = ({
       inputRef.current.value = null
     }
   }
-
-  onFileChangedRef.current = onFileChanged
-
-  useEffect(() => {
-    const previousFiscalPeriod = previousFiscalPeriodRef.current
-    const fiscalPeriodChanged =
-      previousFiscalPeriod &&
-      (previousFiscalPeriod.year !== year ||
-        previousFiscalPeriod.quarter !== quarter)
-
-    previousFiscalPeriodRef.current = { year, quarter }
-
-    if (
-      (previousFiscalPeriod === null || fiscalPeriodChanged) &&
-      file &&
-      !file.id
-    ) {
-      onFileChangedRef.current({ target: { files: [file] } })
-    }
-  }, [year, quarter, file])
 
   const onSubmit = (e) => {
     e.preventDefault()
@@ -998,8 +974,6 @@ const FRAReportsContent = () => {
                 setError={setFraUploadError}
                 isSubmitting={isSubmitting}
                 fraHasUploadedFile={fraHasUploadedFile}
-                year={yearInputValue}
-                quarter={quarterInputValue}
               />
             </>
           )}

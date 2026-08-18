@@ -316,7 +316,7 @@ function FileUpload({
       const { isValid, calendarFiscalResult, programTypeResult } =
         await validateHeader(header, year, quarter, selectedProgramType)
       if (isValid) {
-        dispatch(upload({ file: encodedFile, section }))
+        dispatch(upload({ file: encodedFile, section, year, quarter }))
       } else if (!programTypeResult.isValid) {
         dispatchProgramTypeError(
           programTypeResult,

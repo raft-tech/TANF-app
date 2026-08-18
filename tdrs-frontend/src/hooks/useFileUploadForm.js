@@ -112,9 +112,18 @@ export const useFileUploadForm = ({
   const onSubmit = async (event) => {
     event.preventDefault()
 
+    const hasFilesPendingValidation = uploadedFiles.some(
+      (file) =>
+        (file.validatedYear && file.validatedYear !== yearInputValue) ||
+        (quarterInputValue &&
+          file.validatedQuarter &&
+          file.validatedQuarter !== quarterInputValue)
+    )
+
     if (
       uploadedFiles.length === 0 ||
-      uploadedFiles.some((file) => file.error)
+      uploadedFiles.some((file) => file.error) ||
+      hasFilesPendingValidation
     ) {
       setUploadAlertState({
         active: true,
