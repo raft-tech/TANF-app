@@ -1,7 +1,10 @@
 """Tests for submission lifecycle helpers."""
 
+import uuid
+
 import pytest
 
+from tdpservice.core.models import BaseLog
 from tdpservice.data_files import submission_lifecycle
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFileStateTransition
@@ -34,6 +37,11 @@ def _active_pipeline_run_for_datafile(data_file):
         metadata={SOURCE_DATAFILE_IDS_KEY: {"test": [data_file.id]}},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
+
+
+def _state_transitions_for(data_file):
+    """Return state transition logs attached to a DataFile."""
+    return DataFileStateTransition.objects.for_object(data_file)
 
 
 def test_valid_transitions_succeed():
@@ -93,6 +101,7 @@ def test_transition_datafile_updates_state():
 def test_transition_datafile_creates_state_transition_record():
     """Test transition_datafile persists audit context for state changes."""
     data_file = DataFileFactory(state=SubmissionState.UPLOADED)
+    event_id = uuid.uuid4()
 
     transition_datafile(
         data_file,
@@ -100,12 +109,17 @@ def test_transition_datafile_creates_state_transition_record():
         note="Picked up by AV scan worker",
         actor=data_file.user,
         source="api",
+        event_id=event_id,
         log_fields={"scan_result": "QUEUED", "custom": {"step": 1}},
     )
 
-    transition = DataFileStateTransition.objects.get(data_file=data_file)
+    transition = _state_transitions_for(data_file).get()
+    base_log = BaseLog.objects.get(pk=transition.pk)
     assert transition.previous_state == SubmissionState.UPLOADED
     assert transition.next_state == SubmissionState.VIRUS_SCAN_STARTED
+    assert transition.content_object == data_file
+    assert transition.event_id == event_id
+    assert transition.event_type == DataFileStateTransition.EVENT_TYPE
     assert transition.note == "Picked up by AV scan worker"
     assert str(transition.actor_id) == str(data_file.user_id)
     assert transition.source == "api"
@@ -113,6 +127,8 @@ def test_transition_datafile_creates_state_transition_record():
     assert transition.metadata["custom"] == {"step": 1}
     assert transition.metadata["previous_state"] == SubmissionState.UPLOADED.value
     assert transition.metadata["next_state"] == SubmissionState.VIRUS_SCAN_STARTED.value
+    assert base_log.event_id == event_id
+    assert base_log.event_type == DataFileStateTransition.EVENT_TYPE
 
 
 @pytest.mark.django_db(transaction=True)
@@ -136,7 +152,7 @@ def test_transition_datafile_state_update_and_transition_record_are_atomic(
 
     data_file.refresh_from_db()
     assert data_file.state == SubmissionState.UPLOADED
-    assert DataFileStateTransition.objects.filter(data_file=data_file).count() == 0
+    assert _state_transitions_for(data_file).count() == 0
 
 
 @pytest.mark.django_db
@@ -150,7 +166,7 @@ def test_transition_datafile_uses_locked_database_state_for_previous_state():
     transition_datafile(data_file, SubmissionState.VIRUS_SCAN_COMPLETED)
 
     data_file.refresh_from_db()
-    transition = DataFileStateTransition.objects.get(data_file=data_file)
+    transition = _state_transitions_for(data_file).get()
     assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
     assert transition.previous_state == SubmissionState.VIRUS_SCAN_STARTED
     assert transition.next_state == SubmissionState.VIRUS_SCAN_COMPLETED
@@ -165,10 +181,11 @@ def test_transition_record_survives_datafile_delete():
     transition_datafile(data_file, SubmissionState.VIRUS_SCAN_STARTED)
     data_file.delete()
 
-    transition = DataFileStateTransition.objects.get(data_file_id=data_file_id)
+    transition = DataFileStateTransition.objects.get(object_id=str(data_file_id))
     assert transition.previous_state == SubmissionState.UPLOADED
     assert transition.next_state == SubmissionState.VIRUS_SCAN_STARTED
     assert transition.data_file_id == data_file_id
+    assert transition.content_object is None
 
 
 @pytest.mark.django_db
@@ -248,7 +265,7 @@ def test_transition_datafile_supports_parse_failed_state():
     data_file.refresh_from_db()
 
     assert data_file.state == SubmissionState.PARSE_FAILED
-    transition = DataFileStateTransition.objects.get(data_file=data_file)
+    transition = _state_transitions_for(data_file).get()
     assert transition.previous_state == SubmissionState.PARSE_STARTED
     assert transition.next_state == SubmissionState.PARSE_FAILED
     assert transition.note == "Parser raised an unexpected exception"
@@ -322,7 +339,7 @@ def test_prepare_datafile_for_reparse_requests_reparse_for_safe_states(state):
     assert reparse_requested is True
     data_file.refresh_from_db()
     assert data_file.state == SubmissionState.REPARSE_REQUESTED
-    transition = DataFileStateTransition.objects.get(data_file=data_file)
+    transition = _state_transitions_for(data_file).get()
     assert transition.previous_state == state
     assert transition.next_state == SubmissionState.REPARSE_REQUESTED
     assert transition.note == "admin reparse requested"
@@ -347,7 +364,7 @@ def test_prepare_datafile_for_reparse_is_idempotent_for_reparse_requested():
     assert reparse_requested is False
     data_file.refresh_from_db()
     assert data_file.state == SubmissionState.REPARSE_REQUESTED
-    assert DataFileStateTransition.objects.filter(data_file=data_file).count() == 0
+    assert _state_transitions_for(data_file).count() == 0
 
 
 @pytest.mark.django_db
@@ -364,7 +381,7 @@ def test_revert_reparse_request_creates_state_transition_record():
     )
 
     data_file.refresh_from_db()
-    transition = DataFileStateTransition.objects.get(data_file=data_file)
+    transition = _state_transitions_for(data_file).get()
     assert reverted is True
     assert data_file.state == SubmissionState.PARSE_COMPLETED
     assert transition.previous_state == SubmissionState.REPARSE_REQUESTED
@@ -390,7 +407,7 @@ def test_force_transition_datafile_creates_state_transition_record():
     )
 
     data_file.refresh_from_db()
-    transition = DataFileStateTransition.objects.get(data_file=data_file)
+    transition = _state_transitions_for(data_file).get()
     assert data_file.state == SubmissionState.PARSE_FAILED
     assert transition.previous_state == SubmissionState.VIRUS_SCAN_COMPLETED
     assert transition.next_state == SubmissionState.PARSE_FAILED
@@ -414,7 +431,7 @@ def test_force_transition_datafile_uses_locked_database_state_for_previous_state
         note="forced parser failure",
     )
 
-    transition = DataFileStateTransition.objects.get(data_file=data_file)
+    transition = _state_transitions_for(data_file).get()
     assert transition.previous_state == SubmissionState.PARSE_STARTED
     assert transition.next_state == SubmissionState.PARSE_FAILED
 
@@ -432,7 +449,7 @@ def test_revert_reparse_request_noops_using_locked_database_state():
     data_file.refresh_from_db()
     assert reverted is False
     assert data_file.state == SubmissionState.PARSE_STARTED
-    assert DataFileStateTransition.objects.filter(data_file=data_file).count() == 0
+    assert _state_transitions_for(data_file).count() == 0
 
 
 @pytest.mark.django_db
@@ -564,7 +581,7 @@ def test_complete_datafile_av_scan_out_of_order_noops_with_log_payload():
     assert transition_occurred is False
     assert result_file.id == data_file.id
     assert data_file.state == SubmissionState.PARSE_STARTED
-    assert DataFileStateTransition.objects.filter(data_file=data_file).count() == 0
+    assert _state_transitions_for(data_file).count() == 0
     assert payloads == [
         {
             "data_file_id": data_file.id,
@@ -592,7 +609,7 @@ def test_complete_datafile_av_scan_duplicate_result_noops_with_log_payload():
     assert transition_occurred is False
     assert result_file.id == data_file.id
     assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
-    assert DataFileStateTransition.objects.filter(data_file=data_file).count() == 0
+    assert _state_transitions_for(data_file).count() == 0
     assert payloads == [
         {
             "data_file_id": data_file.id,

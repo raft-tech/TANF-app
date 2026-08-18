@@ -421,7 +421,7 @@ def test_post_parse_parse_error_rejects_shadow_summary(stt):
     assert shadow_summary.status == DataFileSummary.Status.REJECTED
     assert shadow_datafile.state == SubmissionState.PARSE_FAILED
     assert datafile.state == SubmissionState.VIRUS_SCAN_COMPLETED
-    assert DataFileStateTransition.objects.filter(data_file=datafile).count() == 0
+    assert DataFileStateTransition.objects.for_object(datafile).count() == 0
 
 
 @pytest.mark.django_db
@@ -442,7 +442,7 @@ def test_post_parse_parse_error_records_production_state_transition(stt):
 
     summary.refresh_from_db()
     datafile.refresh_from_db()
-    transition = DataFileStateTransition.objects.get(data_file=datafile)
+    transition = DataFileStateTransition.objects.for_object(datafile).get()
     assert summary.status == DataFileSummary.Status.REJECTED
     assert datafile.state == SubmissionState.PARSE_FAILED
     assert transition.previous_state == SubmissionState.VIRUS_SCAN_COMPLETED

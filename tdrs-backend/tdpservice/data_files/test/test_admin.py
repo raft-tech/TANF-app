@@ -158,7 +158,7 @@ def test_DataFileAdmin_reparse_requests_reparse_for_safe_files(
     assert any(
         f"Skipped 2 file(s): {uploaded_file.id}" in message for message, _ in messages
     )
-    transition = DataFileStateTransition.objects.get(data_file=ready_file)
+    transition = DataFileStateTransition.objects.for_object(ready_file).get()
     assert transition.previous_state == SubmissionState.PARSE_COMPLETED
     assert transition.next_state == SubmissionState.REPARSE_REQUESTED
     assert str(transition.actor_id) == str(admin_user.id)
@@ -236,7 +236,7 @@ def test_DataFileAdmin_reparse_rolls_back_state_when_queue_fails(
 
     ready_file.refresh_from_db()
     assert ready_file.state == SubmissionState.PARSE_COMPLETED
-    transitions = list(DataFileStateTransition.objects.filter(data_file=ready_file))
+    transitions = list(DataFileStateTransition.objects.for_object(ready_file))
     assert [transition.next_state for transition in transitions] == [
         SubmissionState.PARSE_COMPLETED,
         SubmissionState.REPARSE_REQUESTED,

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 from django.conf import settings
 from django.contrib import admin, messages
+from django.contrib.contenttypes.admin import GenericTabularInline
 from django.db import transaction
 from django.db.models import Count
 from django.shortcuts import redirect
@@ -55,12 +56,15 @@ class DataFileInline(admin.TabularInline):
         return False
 
 
-class DataFileStateTransitionInline(admin.TabularInline):
+class DataFileStateTransitionInline(GenericTabularInline):
     """Read-only inline for DataFile state transition history."""
 
     model = DataFileStateTransition
+    ct_field = "content_type"
+    ct_fk_field = "object_id"
     fields = [
         "created_at",
+        "event_id",
         "previous_state",
         "next_state",
         "note",

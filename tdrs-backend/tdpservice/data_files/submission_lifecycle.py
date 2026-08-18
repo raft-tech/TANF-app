@@ -18,6 +18,7 @@ class TransitionRecord:
 
     previous_state: SubmissionState
     next_state: SubmissionState
+    event_id: Any | None = None
     note: str = ""
     metadata: dict | None = None
     actor: Any | None = None
@@ -141,6 +142,7 @@ def transition_datafile(
     task_name: str | None = None,
     celery_task_id: str | None = None,
     reparse_meta_id: int | None = None,
+    event_id: Any | None = None,
 ):
     """Safely transition a DataFile.state value and persist the new state."""
     with transaction.atomic():
@@ -157,6 +159,7 @@ def transition_datafile(
             task_name=task_name,
             celery_task_id=celery_task_id,
             reparse_meta_id=reparse_meta_id,
+            event_id=event_id,
         )
         _save_locked_data_file_transition(locked_data_file, transition)
         _sync_transitioned_data_file(data_file, locked_data_file)
@@ -180,6 +183,7 @@ def force_transition_datafile(
     task_name: str | None = None,
     celery_task_id: str | None = None,
     reparse_meta_id: int | None = None,
+    event_id: Any | None = None,
 ):
     """Transition a DataFile while intentionally bypassing validation."""
     with transaction.atomic():
@@ -195,6 +199,7 @@ def force_transition_datafile(
             task_name=task_name,
             celery_task_id=celery_task_id,
             reparse_meta_id=reparse_meta_id,
+            event_id=event_id,
         )
         _save_locked_data_file_transition(locked_data_file, transition)
         _sync_transitioned_data_file(data_file, locked_data_file)
@@ -259,6 +264,7 @@ def _build_transition_payload(
     task_name,
     celery_task_id,
     reparse_meta_id,
+    event_id,
 ):
     """Build the structured lifecycle payload shared by logs and persistence."""
     log_payload = {
@@ -277,6 +283,8 @@ def _build_transition_payload(
         log_payload["celery_task_id"] = celery_task_id
     if reparse_meta_id is not None:
         log_payload["reparse_meta_id"] = reparse_meta_id
+    if event_id is not None:
+        log_payload["event_id"] = str(event_id)
 
     return log_payload
 
@@ -293,6 +301,7 @@ def _transition_from_values(
     task_name=None,
     celery_task_id=None,
     reparse_meta_id=None,
+    event_id=None,
 ):
     """Create an in-memory transition from explicit state values."""
     previous_state = coerce_submission_state(previous_state)
@@ -308,10 +317,12 @@ def _transition_from_values(
         task_name=task_name,
         celery_task_id=celery_task_id,
         reparse_meta_id=reparse_meta_id,
+        event_id=event_id,
     )
     return TransitionRecord(
         previous_state=previous_state,
         next_state=next_state,
+        event_id=event_id,
         note=note,
         metadata=metadata,
         actor=actor,
@@ -330,18 +341,22 @@ def persist_datafile_state_transition(data_file, transition):
     if actor is not None and not getattr(actor, "is_authenticated", True):
         actor = None
 
-    DataFileStateTransition.objects.create(
-        data_file=data_file,
-        previous_state=transition.previous_state.value,
-        next_state=transition.next_state.value,
-        note=transition.note,
-        metadata=transition.metadata or {},
-        actor=actor,
-        source=transition.source,
-        task_name=transition.task_name,
-        celery_task_id=transition.celery_task_id,
-        reparse_meta_id=transition.reparse_meta_id,
-    )
+    transition_fields = {
+        "previous_state": transition.previous_state.value,
+        "next_state": transition.next_state.value,
+        "event_type": DataFileStateTransition.EVENT_TYPE,
+        "note": transition.note,
+        "metadata": transition.metadata or {},
+        "actor": actor,
+        "source": transition.source,
+        "task_name": transition.task_name,
+        "celery_task_id": transition.celery_task_id,
+        "reparse_meta_id": transition.reparse_meta_id,
+    }
+    if transition.event_id is not None:
+        transition_fields["event_id"] = transition.event_id
+
+    DataFileStateTransition.objects.create_for_object(data_file, **transition_fields)
 
 
 def _normalize_scan_result(scan_result) -> str:

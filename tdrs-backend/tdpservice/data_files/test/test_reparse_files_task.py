@@ -52,7 +52,7 @@ def test_reparse_files_revert_handles_celery_string_keys(monkeypatch):
 
     data_file.refresh_from_db()
     assert data_file.state == SubmissionState.PARSE_FAILED
-    transition = DataFileStateTransition.objects.get(data_file=data_file)
+    transition = DataFileStateTransition.objects.for_object(data_file).get()
     assert transition.previous_state == SubmissionState.REPARSE_REQUESTED
     assert transition.next_state == SubmissionState.PARSE_FAILED
     assert transition.source == "celery_worker"
