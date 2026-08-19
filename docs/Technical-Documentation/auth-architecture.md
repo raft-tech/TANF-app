@@ -273,7 +273,7 @@ The frontend uses `REACT_APP_AUTH_URL` for auth endpoints and `REACT_APP_BACKEND
 | Standard realm | `tdp` | `tdp` | `tdp` |
 | Admin realm | `tdp-admin` | `tdp-admin` | `tdp-admin` |
 
-The files in `tdrs-backend/keycloak/realm-configs/` use Keycloak's `${ENV_VAR}` syntax for environment-specific values (Login.gov client ID, endpoints, redirect URIs, and client secrets). `select-realm-config.sh` stages the standard realm export and the matching admin realm export for Keycloak import based on `DEPLOY_ENV`.
+The files in `tdrs-backend/keycloak/realm-configs/` use config-cli `$(env:ENV_VAR)` placeholders for environment-specific values (Login.gov client ID, endpoints, redirect URIs, and client secrets). `select-realm-config.sh` stages the standard realm export and the matching admin realm export for Keycloak import based on `DEPLOY_ENV`.
 
 ## Key Files
 
@@ -285,7 +285,7 @@ The files in `tdrs-backend/keycloak/realm-configs/` use Keycloak's `${ENV_VAR}` 
 | Login Views | `tdrs-backend/tdpservice/users/views.py` | Keycloak login/logout views with IdP hints |
 | URL Routing | `tdrs-backend/tdpservice/urls.py` | `/v2/` auth route definitions |
 | Realm Configs | `tdrs-backend/keycloak/realm-configs/` | Standard and admin Keycloak realm definitions |
-| IdP Config | `tdrs-backend/keycloak/configure-idps.sh` | Post-startup IdP configuration script |
+| Config Import | `tdrs-backend/keycloak/normalize-login-gov-key.sh` | Decodes the Login.gov key and invokes config-cli during startup |
 | Keycloak Deploy | `tdrs-backend/keycloak/deploy.sh` | Cloud Foundry deployment script |
 | Keycloak README | `tdrs-backend/keycloak/README.md` | Detailed integration reference |
 

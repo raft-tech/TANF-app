@@ -10,8 +10,8 @@ KEYCLOAK_DIR = Path(__file__).resolve().parents[3] / "keycloak"
 CLOUDGOV_SETTINGS_PATH = (
     Path(__file__).resolve().parents[2] / "settings" / "cloudgov.py"
 )
-CONFIGURE_IDPS_PATH = KEYCLOAK_DIR / "configure-idps.sh"
 SELECT_REALM_CONFIG_PATH = KEYCLOAK_DIR / "select-realm-config.sh"
+ENTRYPOINT_PATH = KEYCLOAK_DIR / "entrypoint.sh"
 REALM_CONFIGS_DIR = KEYCLOAK_DIR / "realm-configs"
 DEV_ADMIN_FRONTEND_URLS = [
     "https://tdp-admin-raft.app.cloud.gov",
@@ -73,6 +73,11 @@ def get_client_scope(realm, scope_name):
 def get_identity_provider(realm, alias):
     """Return the named identity provider from the rendered realm."""
     return next(idp for idp in realm["identityProviders"] if idp["alias"] == alias)
+
+
+def get_authentication_flow(realm, alias):
+    """Return the named authentication flow from the rendered realm."""
+    return next(flow for flow in realm["authenticationFlows"] if flow["alias"] == alias)
 
 
 def load_realm_config(env_name):
@@ -298,132 +303,55 @@ def test_select_realm_config_copies_standard_and_admin_realms(tmp_path):
     assert load_json(admin_output)["realm"] == "tdp-admin"
 
 
-def test_configure_idps_removes_legacy_admin_client_from_standard_realm(tmp_path):
-    """Runtime configuration should migrate old tdp-admin clients out of tdp."""
-    calls_path = tmp_path / "kc-api-calls.log"
-
-    subprocess.run(
-        [
-            "bash",
-            "-c",
-            f"""
-            source "{CONFIGURE_IDPS_PATH}"
-            TOKEN="test-token"
-            jq() {{
-                input=$(cat)
-                if [[ "$input" == *"admin-client-id"* ]]; then
-                    printf 'admin-client-id'
-                elif [[ "$input" == *"legacy-client-id"* ]]; then
-                    printf 'legacy-client-id'
-                fi
-            }}
-            kc_api() {{
-                printf '%s\\n' "$*" >> "$KC_API_CALLS_FILE"
-                if [[ "$*" == *"/admin/realms/tdp-admin/clients?clientId=tdp-admin"* ]]; then
-                    printf '[{{"id":"admin-client-id"}}]'
-                elif [[ "$*" == *"/admin/realms/tdp/clients?clientId=tdp-admin"* ]]; then
-                    printf '[{{"id":"legacy-client-id"}}]'
-                else
-                    printf '{{}}'
-                fi
-            }}
-            remove_legacy_admin_client_from_standard_realm
-            """,
-        ],
-        check=True,
-        env={
-            **os.environ,
-            "KEYCLOAK_URL": "http://keycloak.example",
-            "KEYCLOAK_REALM": "tdp",
-            "KEYCLOAK_TDP_ADMIN_REALM": "tdp-admin",
-            "KC_API_CALLS_FILE": str(calls_path),
-        },
-    )
-
-    calls = calls_path.read_text().splitlines()
-
-    assert any(
-        "/admin/realms/tdp/clients?clientId=tdp-admin" in call for call in calls
-    )
-    assert any(
-        "-X DELETE http://keycloak.example/admin/realms/tdp/clients/legacy-client-id"
-        in call
-        for call in calls
+def test_config_cli_imports_all_selected_realm_configs():
+    """Config-cli should import the staged standard and admin realm JSON files."""
+    assert 'IMPORT_FILES_LOCATIONS:-/opt/keycloak/data/import/*.json' in (
+        ENTRYPOINT_PATH.read_text()
     )
 
 
-def test_configure_idps_keeps_legacy_client_when_admin_client_is_missing(tmp_path):
-    """Runtime cleanup should not remove fallback admin auth before migration works."""
-    calls_path = tmp_path / "kc-api-calls.log"
+def test_realm_runtime_env_values_use_config_cli_placeholders():
+    """Runtime values should be supplied by config-cli env placeholders."""
+    legacy_runtime_prefixes = ("${KC_", "${LOGIN_GOV_", "${AMS_")
 
-    subprocess.run(
-        [
-            "bash",
-            "-c",
-            f"""
-            source "{CONFIGURE_IDPS_PATH}"
-            TOKEN="test-token"
-            jq() {{
-                input=$(cat)
-                if [[ "$input" == *"legacy-client-id"* ]]; then
-                    printf 'legacy-client-id'
-                fi
-            }}
-            kc_api() {{
-                printf '%s\\n' "$*" >> "$KC_API_CALLS_FILE"
-                if [[ "$*" == *"/admin/realms/tdp/clients?clientId=tdp-admin"* ]]; then
-                    printf '[{{"id":"legacy-client-id"}}]'
-                else
-                    printf '[]'
-                fi
-            }}
-            remove_legacy_admin_client_from_standard_realm
-            """,
-        ],
-        check=True,
-        env={
-            **os.environ,
-            "KEYCLOAK_URL": "http://keycloak.example",
-            "KEYCLOAK_REALM": "tdp",
-            "KEYCLOAK_TDP_ADMIN_REALM": "tdp-admin",
-            "KC_API_CALLS_FILE": str(calls_path),
-        },
+    for path in set(REALM_CONFIG_PATHS.values()) | set(
+        ADMIN_REALM_CONFIG_PATHS.values()
+    ):
+        text = path.read_text()
+        for placeholder in legacy_runtime_prefixes:
+            assert placeholder not in text
+
+
+def assert_browser_flow_honors_idp_hint(realm, client_ids):
+    """Assert a realm processes kc_idp_hint before username/password forms."""
+    browser_flow = get_authentication_flow(realm, "tdp-browser")
+    executions = browser_flow["authenticationExecutions"]
+    redirector_index = next(
+        index
+        for index, execution in enumerate(executions)
+        if execution.get("authenticator") == "identity-provider-redirector"
+    )
+    forms_index = next(
+        index
+        for index, execution in enumerate(executions)
+        if execution.get("flowAlias") == "tdp-browser-forms"
     )
 
-    calls = calls_path.read_text().splitlines()
+    assert realm["browserFlow"] == "tdp-browser"
+    for client_id in client_ids:
+        client = get_client(realm, client_id)
+        assert client["authenticationFlowBindingOverrides"]["browser"] == "tdp-browser"
+    assert executions[redirector_index]["requirement"] == "ALTERNATIVE"
+    assert redirector_index < forms_index
 
-    assert any(
-        "/admin/realms/tdp-admin/clients?clientId=tdp-admin" in call
-        for call in calls
+
+def test_dev_local_browser_flow_honors_idp_hint_before_forms():
+    """Keycloak must process kc_idp_hint before showing username/password forms."""
+    assert_browser_flow_honors_idp_hint(
+        load_realm_config("local"),
+        ["tdp-django", "tdp-cli"],
     )
-    assert not any("-X DELETE" in call for call in calls)
-
-
-def test_configure_idps_preserves_admin_client_when_realms_match(tmp_path):
-    """Single-realm rollback configurations should not delete tdp-admin."""
-    calls_path = tmp_path / "kc-api-calls.log"
-
-    subprocess.run(
-        [
-            "bash",
-            "-c",
-            f"""
-            source "{CONFIGURE_IDPS_PATH}"
-            TOKEN="test-token"
-            kc_api() {{
-                printf '%s\\n' "$*" >> "$KC_API_CALLS_FILE"
-                return 1
-            }}
-            remove_legacy_admin_client_from_standard_realm
-            """,
-        ],
-        check=True,
-        env={
-            **os.environ,
-            "KEYCLOAK_REALM": "tdp",
-            "KEYCLOAK_TDP_ADMIN_REALM": "tdp",
-            "KC_API_CALLS_FILE": str(calls_path),
-        },
+    assert_browser_flow_honors_idp_hint(
+        load_admin_realm_config("local"),
+        ["tdp-admin"],
     )
-
-    assert not calls_path.exists()
