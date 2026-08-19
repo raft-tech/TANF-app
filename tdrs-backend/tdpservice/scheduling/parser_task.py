@@ -14,10 +14,15 @@ from django.utils import timezone
 
 from celery import current_app, shared_task
 
-from tdpservice.core.utils import log
+from tdpservice.core.utils import get_feature_flag, log
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.error_reports import ErrorReportFactory
-from tdpservice.data_files.models import DataFile, ReparseFileMeta, ShadowDataFile
+from tdpservice.data_files.models import (
+    DataFile,
+    ReparseFileMeta,
+    ShadowDataFile,
+    create_or_update_shadow_data_file,
+)
 from tdpservice.data_files.submission_lifecycle import transition_datafile
 from tdpservice.email.helpers.data_file import send_data_submitted_email
 from tdpservice.log_handler import change_log_filename
@@ -48,6 +53,7 @@ logger = settings.PARSER_LOGGER
 GO_PARSER_TASK_NAME = "tdpservice.scheduling.parser_task.go_parse"
 GO_PARSER_POST_PARSE_TASK_NAME = "tdpservice.scheduling.parser_task.post_parse"
 GO_PARSER_QUEUE = getattr(settings, "GO_PARSER_QUEUE", "go-parser")
+GO_PARSER_FEATURE_FLAG = "go_parser_shadow_mode"
 
 
 @dataclass(frozen=True)
@@ -86,8 +92,13 @@ def queue_go_parse(data_file_id, reparse_id=None):
 
 def queue_parse(data_file_id, reparse_id=None):
     """Queue production Python parse and companion Go shadow parse tasks."""
+    go_parser_enabled, _ = get_feature_flag(GO_PARSER_FEATURE_FLAG)
+    if go_parser_enabled:
+        data_file = DataFile.objects.get(id=data_file_id)
+        create_or_update_shadow_data_file(data_file)
+
     parse.delay(data_file_id, reparse_id=reparse_id)
-    if settings.GO_PARSER_SHADOW_MODE:
+    if go_parser_enabled:
         queue_go_parse(data_file_id, reparse_id=reparse_id)
 
 
@@ -147,9 +158,7 @@ def _parser_models_for_instance(model_or_instance):
 
 def _post_parse_model_sets():
     """Return model sets in the order Go parser output is expected."""
-    if settings.GO_PARSER_SHADOW_MODE:
-        return (_shadow_parser_models(), _production_parser_models())
-    return (_production_parser_models(), _shadow_parser_models())
+    return (_shadow_parser_models(), _production_parser_models())
 
 
 def _get_post_parse_data_file(data_file_id):
@@ -445,7 +454,7 @@ def post_parse(data_file_id, reparse_id=0, parse_error=None):
         record_model_resolver=parser_models.record_model_resolver,
         roll_log=False,
     )
-    if not settings.GO_PARSER_SHADOW_MODE and reparse_id:
+    if parser_models.label == "production" and reparse_id:
         file_meta = ReparseFileMeta.objects.get(
             data_file_id=data_file_id, reparse_meta_id=reparse_id
         )

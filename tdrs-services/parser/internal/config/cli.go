@@ -71,7 +71,7 @@ type CLI struct {
 
 	// Database
 	DatabaseURL               string        `kong:"name='database.url',env='DATABASE_URL',help='Database connection URL'"`
-	DatabaseShadowMode        bool          `kong:"name='database.shadow-mode',env='GO_PARSER_SHADOW_MODE',help='Write to shadow tables instead of production tables'"`
+	DatabaseShadowMode        bool          `kong:"name='database.shadow-mode',help='Write to shadow tables instead of production tables'"`
 	DatabaseTablePrefix       string        `kong:"name='database.table-prefix',env='DATABASE_TABLE_PREFIX',help='Prefix for Go parser-owned output tables'"`
 	DatabaseMaxConns          int           `kong:"name='database.max-conns',help='Max database connections'"`
 	DatabaseMinConns          int           `kong:"name='database.min-conns',help='Min database connections'"`

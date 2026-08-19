@@ -86,7 +86,6 @@ The config file supports `${VAR}` interpolation. Common variables:
 | `GO_PARSER_METRICS_LISTEN_ADDRESS` | `metrics.listen_address` / `--metrics.listen-address` | Metrics exporter listen address (default `:9809`) |
 | `GO_PARSER_METRICS_PATH` | `metrics.path` / `--metrics.path` | Metrics endpoint path (default `/metrics`) |
 | `DATABASE_URL`       | `database.url`            | PostgreSQL connection string    |
-| `GO_PARSER_SHADOW_MODE` | `database.shadow_mode` | `true` writes to shadow tables; `false` writes to production tables |
 | `DATABASE_TABLE_PREFIX` | `database.table_prefix` | Prefix for Go parser-owned output tables (default `shadow_`) |
 | `REDIS_URL`          | `server.celery.redis_url` | Redis broker for Celery mode    |
 | `GO_PARSER_POST_PARSE_TASK_NAME` | `server.celery.post_parse_task_name` | Python Celery task to enqueue after each parse attempt |
@@ -429,7 +428,9 @@ Live Go parser integration coverage runs through the backend pytest suite:
 task backend-pytest-go-integration
 ```
 
-For integration tests in CI, CircleCI reuses the existing backend docker-compose stack, including PostgreSQL and the Django migration flow, before running the Go parser integration suite with `DATABASE_URL` pointed at that migrated test database. By default, Go parser records, parser errors, datafile metadata, and summaries are written to `shadow_*` tables in that same database. Set `GO_PARSER_SHADOW_MODE=false` to target production tables instead.
+For integration tests in CI, CircleCI reuses the existing backend docker-compose stack, including PostgreSQL and the Django migration flow, before running the Go parser integration suite with `DATABASE_URL` pointed at that migrated test database. By default, Go parser records, parser errors, datafile metadata, and summaries are written to `shadow_*` tables in that same database. Pass `--database.shadow-mode=false` to target production tables instead.
+
+Celery mode is controlled by the Django `go_parser_shadow_mode` feature flag. Python evaluates both its master enabled state and `rollout_percentage` before dispatching each file. The Go worker checks only the current `enabled` value before processing a received task. A missing or disabled flag prevents Go parsing.
 
 ---
 

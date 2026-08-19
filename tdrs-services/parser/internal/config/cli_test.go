@@ -152,22 +152,6 @@ func TestCLI_OverrideDatabaseShadowMode(t *testing.T) {
 	}
 }
 
-func TestCLI_OverrideDatabaseShadowModeFromEnv(t *testing.T) {
-	t.Setenv("GO_PARSER_SHADOW_MODE", "false")
-
-	cli, ctx, err := ParseCLI([]string{})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	cfg := DefaultConfig()
-	cli.ApplyTo(cfg, ctx)
-
-	if cfg.Database.ShadowMode {
-		t.Error("Database.ShadowMode = true, want false from GO_PARSER_SHADOW_MODE")
-	}
-}
-
 func TestCLI_OverrideServerCeleryQueueName(t *testing.T) {
 	cli, ctx, err := ParseCLI([]string{"--server.celery.queue=parser-shadow"})
 	if err != nil {

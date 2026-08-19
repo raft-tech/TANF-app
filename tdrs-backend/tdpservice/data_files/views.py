@@ -22,11 +22,7 @@ from rest_framework.viewsets import ModelViewSet
 from tdpservice.core.utils import get_feature_flag
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.error_reports import ErrorReportFactory
-from tdpservice.data_files.models import (
-    DataFile,
-    ReparseFileMeta,
-    create_or_update_shadow_data_file,
-)
+from tdpservice.data_files.models import DataFile, ReparseFileMeta
 from tdpservice.data_files.s3_client import S3Client
 from tdpservice.data_files.serializers import DataFileSerializer
 from tdpservice.data_files.submission_lifecycle import (
@@ -97,10 +93,7 @@ class DataFileViewSet(ModelViewSet):
         )
         .annotate(
             has_error=Exists(
-                ParserError.objects.filter(
-                    file=OuterRef("pk"),
-                    deprecated=False
-                )
+                ParserError.objects.filter(file=OuterRef("pk"), deprecated=False)
             )
         )
     )
@@ -191,9 +184,7 @@ class DataFileViewSet(ModelViewSet):
 
         return (
             Response(
-                {
-                    "detail": "Rejected: uploaded file did not pass security inspection"
-                },
+                {"detail": "Rejected: uploaded file did not pass security inspection"},
                 status=HTTP_400_BAD_REQUEST,
             ),
             "infected",
@@ -241,9 +232,6 @@ class DataFileViewSet(ModelViewSet):
 
         data_file.file = uploaded_file
         data_file.save()
-        if settings.GO_PARSER_SHADOW_MODE:
-            create_or_update_shadow_data_file(data_file)
-
         logger.info(
             f"Preparing parse task: User META -> user: {request.user}, stt: {data_file.stt}. "
             + f"Datafile META -> datafile: {data_file.id}, program type: {data_file.program_type}, "

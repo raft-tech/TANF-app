@@ -29,6 +29,7 @@ const taskName = "tdpservice.scheduling.parser_task.go_parse"
 const postParseTaskName = "tdpservice.scheduling.parser_task.post_parse"
 const defaultQueueName = "go-parser"
 const defaultPostParseQueueName = "celery"
+const featureFlagName = "go_parser_shadow_mode"
 
 const statusUpdateTimeout = 5 * time.Second
 
@@ -144,6 +145,22 @@ func (s *Server) Run(parentCtx context.Context) error {
 	celeryClient.Register(taskName, func(dataFileID float64, reparseID float64) (result string) {
 		id := int32(dataFileID)
 		reparse := int32(reparseID)
+		enabled, err := db.FeatureFlagEnabled(taskCtx, s.dbPool, featureFlagName)
+		if err != nil {
+			logging.Error(taskCtx, "failed to check Go parser feature flag",
+				slog.Int(logging.KeyFileID, int(id)),
+				slog.String(logging.KeyStage, "feature_flag"),
+				slog.Any(logging.KeyError, err),
+			)
+			return fmt.Sprintf("feature flag error: %v", err)
+		}
+		if !enabled {
+			logging.Info(taskCtx, "Go parser feature flag is disabled; skipping task",
+				slog.Int(logging.KeyFileID, int(id)),
+				slog.String(logging.KeyStage, "feature_flag"),
+			)
+			return "disabled"
+		}
 		parseError := ""
 
 		defer func() {
