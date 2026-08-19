@@ -310,7 +310,6 @@ services:
       - KEYCLOAK_DJANGO_CLIENT_SECRET=tdp-django-local-secret
       - KEYCLOAK_TDP_ADMIN_CLIENT_ID=tdp-admin
       - KEYCLOAK_TDP_ADMIN_CLIENT_SECRET=tdp-admin-local-secret
-      - KEYCLOAK_AUTH_PERCENTAGE
     volumes:
       - .:/tdpapp
       - ../tdrs-services/parser/config/schemas:/tdrs-services/parser/config/schemas:ro
