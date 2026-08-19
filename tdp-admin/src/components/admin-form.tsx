@@ -18,6 +18,7 @@ import {
   type UseFormRegisterReturn,
 } from "react-hook-form";
 import {
+  getAdminFormSubmitApiPath,
   getClientValidationRules,
   getDefaultAdminFormValues,
   type AdminFormField as AdminFormFieldMetadata,
@@ -310,14 +311,17 @@ export function AdminForm({
       return;
     }
 
-    const response = await fetch(`/api/admin${formMetadata.submit_url}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": csrfToken,
-      },
-      body: JSON.stringify(values),
-    });
+    const response = await fetch(
+      getAdminFormSubmitApiPath(formMetadata.submit_url),
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken,
+        },
+        body: JSON.stringify(values),
+      }
+    );
     const data = (await response
       .json()
       .catch(() => ({}))) as AdminFormMutationResponse;

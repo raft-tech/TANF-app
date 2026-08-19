@@ -47,6 +47,16 @@ export type NormalizedAdminFormErrors = {
   non_field_errors?: string[];
 };
 
+export function getAdminFormSubmitApiPath(submitUrl: string) {
+  const submitPath = submitUrl.startsWith("/") ? submitUrl : `/${submitUrl}`;
+  const normalizedSubmitPath =
+    submitPath.length > 1 && submitPath.endsWith("/")
+      ? submitPath.slice(0, -1)
+      : submitPath;
+
+  return `/api/admin${normalizedSubmitPath}`;
+}
+
 export function getDefaultAdminFormValues(
   metadata: AdminFormMetadata
 ): AdminFormValues {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getAdminFormSubmitApiPath,
   getClientValidationRules,
   getDefaultAdminFormValues,
   getFieldErrorMessage,
@@ -52,6 +53,12 @@ const metadata: AdminFormMetadata = {
 };
 
 describe("admin form metadata helpers", () => {
+  it("builds a local proxy submit path without a trailing slash", () => {
+    expect(
+      getAdminFormSubmitApiPath("/admin-forms/users.user.change/user-1/")
+    ).toBe("/api/admin/admin-forms/users.user.change/user-1");
+  });
+
   it("builds React Hook Form defaults from Django metadata", () => {
     expect(getDefaultAdminFormValues(metadata)).toEqual({
       username: "user@example.com",
