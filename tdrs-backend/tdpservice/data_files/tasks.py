@@ -1,18 +1,16 @@
 """Celery shared tasks for use in scheduled jobs."""
 
 import logging
-from datetime import timedelta
 
 from django.contrib.auth.models import Group
-from django.db.models import Count, Q
 from django.utils import timezone
 
 from celery import shared_task
 
+from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
 from tdpservice.data_files.submission_lifecycle import revert_reparse_request
 from tdpservice.email.helpers.data_file import send_stuck_file_email
-from tdpservice.parsers.models import DataFileSummary
 from tdpservice.search_indexes.reparse import (
     ReparseDestructiveCleanupStarted,
     clean_reparse,
@@ -22,37 +20,30 @@ from tdpservice.users.models import AccountApprovalStatusChoices, User
 logger = logging.getLogger(__name__)
 
 
-def get_stuck_files():
-    """Return a queryset containing files in a 'stuck' state."""
-    stuck_files = (
-        DataFile.objects.annotate(reparse_count=Count("reparses"))
-        .filter(
-            # non-reparse submissions over an hour old
-            Q(
-                reparse_count=0,
-                created_at__lte=timezone.now() - timedelta(hours=1),
-            )
-            |  # OR
-            # reparse submissions past the timeout, where the reparse did not complete
-            Q(
-                reparse_count__gt=0,
-                reparses__timeout_at__lte=timezone.now(),
-                reparse_file_metas__finished=False,
-                reparse_file_metas__success=False,
-            )
-        )
-        .filter(
-            # where there is NO summary or the summary is in PENDING status
-            Q(summary=None) | Q(summary__status=DataFileSummary.Status.PENDING)
-        )
-    )
+def get_current_fiscal_year():
+    """Return the current federal fiscal year."""
+    today = timezone.now()
+    if today.month >= 10:
+        return today.year + 1
 
-    return stuck_files
+    return today.year
+
+
+def get_stuck_files():
+    """Return a queryset containing current fiscal year files marked stuck."""
+    return (
+        DataFile.objects.select_related("stt", "user")
+        .filter(
+            state=SubmissionState.STUCK,
+            year=get_current_fiscal_year(),
+        )
+        .order_by("created_at", "pk")
+    )
 
 
 @shared_task
 def notify_stuck_files():
-    """Find files stuck in 'Pending' and notify SysAdmins."""
+    """Find files marked stuck and notify SysAdmins."""
     stuck_files = get_stuck_files()
 
     if stuck_files.count() > 0:
