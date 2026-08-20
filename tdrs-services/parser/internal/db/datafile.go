@@ -350,10 +350,11 @@ func updateProductionDataFileStateWithTransition(
 		reparseMetaID = pgtype.Int4{Int32: transitionContext.ReparseMetaID, Valid: true}
 	}
 
+	objectID := fmt.Sprint(datafileID)
 	if _, err := tx.Exec(
 		ctx,
 		insertProductionDataFileStateTransition,
-		datafileID,
+		objectID,
 		newLogEventUUID(),
 		previousState,
 		state,
