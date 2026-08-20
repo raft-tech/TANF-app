@@ -4,7 +4,6 @@ import io
 import os
 
 from django.contrib.auth.models import Permission
-from django.test import override_settings
 
 import openpyxl
 import pytest
