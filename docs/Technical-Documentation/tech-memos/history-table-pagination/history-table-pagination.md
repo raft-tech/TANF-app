@@ -384,6 +384,18 @@ submission history because the post-upload and explicit refresh behaviors reset
 to page 1. The deterministic tie-breaker prevents ambiguity among records in a
 single query snapshot but does not claim snapshot isolation across requests.
 
+Before implementation rules out a schema migration, database and API owners must
+review `EXPLAIN (ANALYZE, BUFFERS)` output at representative history volume for
+both queries DRF issues: the filtered count and the filtered, ordered page
+selection. Cover the TANF/SSP section, PIA quarter, and FRA filter shapes, then
+measure four concurrent table requests. Existing foreign-key and uniqueness
+indexes may not efficiently cover every filter plus `-created_at, -id`. If query
+plans scan or sort substantially more rows than the requested table, or the
+agreed latency and database-load budgets are not met, add measured composite
+indexes through a Django schema migration and repeat the evaluation. Select
+index fields and order from the observed plans rather than prescribing one
+unverified index for all query shapes.
+
 ### Response envelope
 
 The endpoint should use DRF's standard response without a custom wrapper.
@@ -885,8 +897,11 @@ Rollback must restore compatible backend and frontend versions together.
 Reverting only the backend would return arrays to a client expecting `results`;
 reverting only the frontend would call `.map()` on the envelope.
 
-No database migration is expected, so rollback is a code deployment rather than
-a data migration. Records and upload behavior remain unchanged.
+No data migration or backfill is expected; records and upload behavior remain
+unchanged. Whether a database schema migration is needed remains gated on the
+pre-merge query-plan and performance review. If indexes are added, the rollout
+and rollback plan must include that migration's deployment order and operational
+cost rather than treating rollback as code-only.
 
 ### Release verification
 
@@ -909,7 +924,7 @@ After deployment:
 | Backend envelope ships before clients | Submission history crashes or appears empty | Coordinate release; use a dedicated/versioned endpoint if mixed versions cannot be avoided |
 | A broad mixed queryset is paginated | Section/quarter tables show incomplete or inaccurate pages | Require one filtered request per visible table |
 | Equal timestamps cross page boundaries nondeterministically | Duplicate or missing rows while navigating | Order by `-created_at, -id` and test equal timestamps |
-| Four tables issue parallel count/result queries | Increased database and API load | Measure representative volume; select/prefetch efficiently; reject custom grouping unless evidence requires it |
+| Four tables issue parallel count/result queries | Increased database and API load | Review representative count/result query plans and concurrent latency before merge; add measured indexes in a schema migration when budgets are not met |
 | Rapid navigation returns responses out of order | Wrong rows appear under selected page/filter | Abort obsolete requests or ignore stale query keys |
 | Last page becomes invalid after data changes | HTTP 404 and unusable table state | Treat invalid page as recoverable; reset/refetch page 1 |
 | New upload occurs while user is on a later page | User cannot find the newly submitted row | Reset affected table to page 1 and refetch |
@@ -934,6 +949,9 @@ phase plan for this spike, and issue 5538 does not implement these changes.
 - Add validated canonical section-ID filtering.
 - Add deterministic ordering.
 - Preserve STT/region authorization before pagination.
+- Review representative count and ordered-page query plans for TANF/SSP, PIA,
+  and FRA, including the four-request workload; add and re-evaluate measured
+  composite indexes if the agreed latency or database-load budgets are not met.
 - Update list tests from array assertions to envelope assertions.
 - Cover page boundaries, empty and invalid pages, every program type, filters,
   and permissions.
@@ -1009,7 +1027,8 @@ known responsibilities and likely files.
 | Path or symbol | Expected responsibility |
 | --- | --- |
 | `tdrs-backend/tdpservice/data_files/views.py` | Pagination class selection, canonical section filter, deterministic ordering, existing program filtering |
-| `tdrs-backend/tdpservice/data_files/models.py` | Existing canonical `Program`, `Section`, and `DataFile.section_ref` contract |
+| `tdrs-backend/tdpservice/data_files/models.py` | Existing canonical `Program`, `Section`, and `DataFile.section_ref` contract; measured composite indexes if required |
+| `tdrs-backend/tdpservice/data_files/migrations/` | Conditional schema migration for indexes selected by query-plan and performance evidence |
 | `tdrs-backend/tdpservice/data_files/test/test_api.py` | Envelope, page boundaries, filter counts/results, ordering, invalid pages, and authorization coverage |
 | `tdrs-backend/tdpservice/settings/common.py` | Reference only; global page size should not define the data-file table size |
 | `tdrs-backend/tdpservice/users/permissions.py` | Existing STT/region behavior to preserve and regression-test |
@@ -1050,8 +1069,9 @@ known responsibilities and likely files.
 | `tdrs-backend/tdpservice/fixtures/cypress/data_files.json` | More than one page of deterministic section/quarter data |
 | `performance-tests/tests/data-files.js` | Bounded response and representative multi-table request performance |
 
-No database migration, data backfill, parser change, or seed migration is
-expected solely for pagination.
+No data migration, data backfill, parser change, or seed migration is expected
+solely for pagination. A database schema migration may be required for indexes;
+the query-plan and performance gate above determines that before backend merge.
 
 ---
 
@@ -1123,6 +1143,10 @@ expected solely for pagination.
 - Record API duration and database query count for four simultaneous first-page
   requests and compare with the current unbounded request at representative
   volume.
+- Capture `EXPLAIN (ANALYZE, BUFFERS)` for each representative filtered count
+  and ordered page-selection query. Have database and API owners approve the
+  plans against agreed latency and database-load budgets before backend merge;
+  add measured indexes and rerun the gate if the plans or workload miss them.
 - Confirm each response serializes no more than five data-file records.
 - Run frontend lint, focused Jest, backend lint, focused pytest, Cypress, and
   accessibility checks using repository tasks when implementation begins.
@@ -1140,6 +1164,7 @@ expected solely for pagination.
 | Preserve five rows per submission table? | Yes, use endpoint-specific page size 5 | UX and Product | Required |
 | One request per visible table? | Yes | API and frontend leads | Required |
 | Can `/v1/data_files/` change in place? | Yes only if no external client and deployment avoids incompatible versions | API owner and operations | Required |
+| Does pagination require new database indexes? | Decide from representative count/page query plans and four-request performance; add a schema migration when agreed budgets are not met | Database and API owners | Required before backend merge |
 | How should hidden Pending rows update? | Current-page polling initially; separate status follow-up if global updates are required | Product | Required to document, not to paginate |
 | Should table pages be deep-linkable? | No for initial implementation; retain local keyed state | Product and UX | Optional follow-up |
 | Loading presentation during page transitions? | Choose one consistent table-level pattern and validate with accessibility review | UX and accessibility | Required before frontend completion |
@@ -1190,6 +1215,9 @@ expected solely for pagination.
 - [ ] Unique labels, loading markup, and focus/announcement behavior have an
   accessibility test plan.
 - [ ] Multi-page fixtures and representative performance data are available.
+- [ ] Database and API owners approve representative count/page query plans and
+  the four-request workload against agreed budgets; any required index migration
+  is implemented, re-measured, and included in rollout and rollback planning.
 - [ ] Backend and frontend work is divided into compatible vertical slices that
   cannot expose an envelope to an array-only client.
 - [ ] Rollout and rollback smoke-test owners are assigned.
