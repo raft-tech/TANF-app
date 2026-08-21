@@ -15,7 +15,7 @@ describe("auth redirect routes", () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
-      "https://auth.example.gov/admin-auth/login/dotgov"
+      "https://auth.example.gov/admin-auth/login/dotgov?next=https%3A%2F%2Fadmin.example.gov%2Fdashboard"
     );
   });
 
@@ -31,6 +31,22 @@ describe("auth redirect routes", () => {
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
       "https://backend.example.gov/admin-auth/login/ams?next=https%3A%2F%2Fadmin.example.gov%2F"
+    );
+  });
+
+  it("falls back to the admin dashboard for cross-origin login return URLs", async () => {
+    process.env.NEXT_PUBLIC_AUTH_URL = "https://auth.example.gov";
+
+    const { GET } = await import("./ams/route");
+    const response = GET(
+      new Request(
+        "https://admin.example.gov/login/ams?next=https%3A%2F%2Fevil.example%2F"
+      )
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://auth.example.gov/admin-auth/login/ams?next=https%3A%2F%2Fadmin.example.gov%2Fdashboard"
     );
   });
 
