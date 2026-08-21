@@ -271,6 +271,9 @@ export const ReportsProvider = ({ isFra = false, children }) => {
 
   // FRA-specific derived state
   const fraHasUploadedFile = !!fraSelectedFile && !fraSelectedFile.id
+  const hasUnsubmittedFile = isFra
+    ? fraHasUploadedFile
+    : uploadedFiles.length > 0
 
   const { startPolling, isPolling, stopAllTimers } = usePollingTimer()
 
@@ -368,7 +371,7 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     setFileTypeTouched(true)
     handleFieldSelection('fileType')
 
-    if (uploadedFiles.length > 0 || fraHasUploadedFile) {
+    if (hasUnsubmittedFile) {
       setModalTriggerSource('input-change')
       setPendingChange({ type: 'fileType', value })
       setErrorModalVisible(true)
@@ -390,7 +393,7 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     setYearInputValue(value)
     setUploadAlertState({ active: false, type: null, message: null })
     setProcessingAlertState({ active: false, type: null, message: null })
-    if (uploadedFiles.length === 0 && !fraHasUploadedFile) {
+    if (!hasUnsubmittedFile) {
       dispatch(clearFileList({ fileType: fileTypeInputValue }))
       setFraSelectedFile(null)
     }
@@ -402,7 +405,7 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     setQuarterInputValue(value)
     setUploadAlertState({ active: false, type: null, message: null })
     setProcessingAlertState({ active: false, type: null, message: null })
-    if (uploadedFiles.length === 0 && !fraHasUploadedFile) {
+    if (!hasUnsubmittedFile) {
       dispatch(clearFileList({ fileType: fileTypeInputValue }))
       setFraSelectedFile(null)
     }
@@ -412,7 +415,7 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     setSttTouched(true)
     handleFieldSelection('stt')
 
-    if (uploadedFiles.length > 0 || fraHasUploadedFile) {
+    if (hasUnsubmittedFile) {
       setModalTriggerSource('input-change')
       setPendingChange({ type: 'stt', value, sttObject })
       setErrorModalVisible(true)

@@ -110,6 +110,46 @@ describe('FRA Reports Page', () => {
       expect(getByText('State, Tribe, or Territory*')).toBeInTheDocument()
     })
 
+    it('does not show the discard modal for an unsubmitted TANF file', async () => {
+      const state = {
+        ...initialState,
+        auth: {
+          authenticated: true,
+          user: {
+            email: 'hi@bye.com',
+            stt: null,
+            roles: [{ id: 1, name: 'OFA System Admin', permission: [] }],
+            account_approval_status: 'Approved',
+          },
+        },
+        reports: {
+          submittedFiles: [
+            {
+              fileName: 'tanf.txt',
+              section: 'Active Case Data',
+              id: null,
+            },
+          ],
+        },
+      }
+      const store = mockStore(state)
+      const { getByTestId, queryByText } = render(
+        <Provider store={store}>
+          <MemoryRouter>
+            <FRAReports />
+          </MemoryRouter>
+        </Provider>
+      )
+
+      const sttDropdown = getByTestId('stt-combobox')
+      fireEvent.change(sttDropdown, { target: { value: 'Alaska' } })
+
+      await waitFor(() => {
+        expect(sttDropdown).toHaveValue('Alaska')
+        expect(queryByText('Files Not Submitted')).not.toBeInTheDocument()
+      })
+    })
+
     it('Does not show STT combobox if not admin', () => {
       const state = {
         ...initialState,
