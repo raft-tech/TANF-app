@@ -109,7 +109,7 @@ class SecurityEventTokenView(APIView):
                 algorithms=["RS256"],
                 audience=settings.LOGIN_GOV_SET_AUDIENCE,
                 options={
-                    "verify_signature": False,
+                    "verify_signature": settings.DEBUG,
                     "verify_exp": True,
                 },
             )
