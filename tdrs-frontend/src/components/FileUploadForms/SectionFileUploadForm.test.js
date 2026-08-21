@@ -210,6 +210,21 @@ describe('SectionFileUploadForm', () => {
   })
 
   describe('Form Submission', () => {
+    it('shows an error when no files are selected', async () => {
+      const { getByText } = renderComponent()
+
+      fireEvent.click(getByText('Submit Data Files'))
+
+      await waitFor(() => {
+        expect(
+          getByText(
+            'No data files have been selected. Select at least one file before submitting.'
+          )
+        ).toBeInTheDocument()
+        expect(mockExecuteSubmission).not.toHaveBeenCalled()
+      })
+    })
+
     it('submits successfully with uploaded files', async () => {
       const uploadedFile = {
         fileName: 'test.txt',

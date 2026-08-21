@@ -125,7 +125,8 @@ export const useFileUploadForm = ({
       setUploadAlertState({
         active: true,
         type: 'error',
-        message: 'No changes have been made to data files',
+        message:
+          'No data files have been selected. Select at least one file before submitting.',
       })
       return
     }
