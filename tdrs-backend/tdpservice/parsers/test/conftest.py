@@ -1056,6 +1056,12 @@ def fra_csv(stt_user, stt):
 
 
 @pytest.fixture
+def fra_csv_with_sub_character(stt_user, stt):
+    """Fixture for a CSV file ending with a legacy DOS EOF marker."""
+    return util.create_test_datafile("sub-char-endings.csv", stt_user, stt)
+
+
+@pytest.fixture
 def fra_xlsx(stt_user, stt):
     """Fixture for xlsx fra file."""
     return util.create_test_datafile("fra.xlsx", stt_user, stt)
