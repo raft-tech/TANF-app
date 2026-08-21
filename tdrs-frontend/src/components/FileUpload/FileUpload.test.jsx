@@ -469,6 +469,10 @@ describe('FileUpload', () => {
         expect(getByRole('alert')).toHaveTextContent('Fiscal Year 2024')
       })
 
+      const dropTarget = input.parentNode
+      dropTarget.classList.add('has-invalid-file')
+      const removeErrorStateSpy = jest.spyOn(dropTarget.classList, 'remove')
+
       utils.validateHeader.mockResolvedValue({
         isValid: true,
         calendarFiscalResult: { isValid: true },
@@ -489,6 +493,8 @@ describe('FileUpload', () => {
           'TAN'
         )
         expect(queryByRole('alert')).not.toBeInTheDocument()
+        expect(removeErrorStateSpy).toHaveBeenCalledWith('has-invalid-file')
+        expect(dropTarget).not.toHaveClass('has-invalid-file')
       })
     })
 
