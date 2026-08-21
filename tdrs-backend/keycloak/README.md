@@ -68,6 +68,11 @@ The `keycloak-configure` container will automatically run after Keycloak is heal
 | `KEYCLOAK_ADMIN_CLIENT_SECRET` | `tdp-django-local-secret` | Client secret for admin API access |
 | `KEYCLOAK_DJANGO_CLIENT_ID` | `tdp-django` | Client ID for OIDC authentication |
 | `KEYCLOAK_DJANGO_CLIENT_SECRET` | `tdp-django-local-secret` | Client secret for OIDC authentication |
+| `KEYCLOAK_TDP_ADMIN_CLIENT_ID` | `tdp-admin` | Client ID for the standalone admin console OIDC flow |
+| `KEYCLOAK_TDP_ADMIN_CLIENT_SECRET` | `tdp-admin-local-secret` | Client secret for the standalone admin console OIDC flow |
+| `ADMIN_FRONTEND_BASE_URL` | `http://localhost:3001` | Browser-facing admin console URL used for admin login/logout redirects |
+| `ADMIN_SESSION_COOKIE_NAME` | `admin_sessionid` | Django session cookie name used only by the admin frontend flow |
+| `ADMIN_API_PROXY_TOKEN` | empty | Shared server-side token required for admin frontend proxy requests to `/admin-api/*` |
 
 #### OIDC (mozilla-django-oidc)
 
@@ -127,14 +132,15 @@ Note: `OIDC_OP_AUTHORIZATION_ENDPOINT` and `OIDC_OP_LOGOUT_ENDPOINT` use `KEYCLO
 | Client | Type | Purpose |
 |---|---|---|
 | `tdp-django` | Confidential (service account) | Backend OIDC authentication and admin API access |
+| `tdp-admin` | Confidential | Standalone admin console browser authentication |
 | `tdp-grafana` | Confidential | Grafana SSO integration |
 | `tdp-cli` | **Public** (no secret, PKCE + Device Authorization Grant) | External API clients - Postman, CLI tools, CI/CD, security auditors |
 
 Realm configurations are stored as full exports in `realm-configs/`:
 
 - `realm-export.dev-local.json` is shared by `local` and `dev` and includes both hosted dev frontend URLs and localhost/`127.0.0.1`.
-- `realm-export.staging.json` allows only the hosted staging frontends.
-- `realm-export.prod.json` allows only the production frontend.
+- `realm-export.staging.json` allows the hosted staging frontends and the admin client's Django-hosted `/admin-auth/*` callbacks.
+- `realm-export.prod.json` allows the production frontend and the admin client's Django-hosted `/admin-auth/*` callback.
 
 ### Groups
 
@@ -193,7 +199,29 @@ The `tdp-user-attributes` client scope includes these custom attributes, synced 
 | `GET /v2/login/ams` | `KeycloakLoginAMSView` | Redirects to Keycloak with `kc_idp_hint=ams` |
 | `GET /v2/oidc/callback/` | mozilla-django-oidc | Handles authorization code callback |
 | `GET /v2/auth_check` | `AuthorizationCheck` | Returns current user authentication status |
-| `GET /v2/logout/oidc` | `KeycloakLogoutView` | Clears session and redirects to Keycloak logout |
+| `GET /v2/logout/oidc` | `KeycloakLogoutView` | Clears the standard Django session and returns to the TDP frontend |
+
+### Admin Console Endpoints
+
+| Endpoint | View | Description |
+|---|---|---|
+| `GET /admin-auth/login/dotgov` | `AdminKeycloakLoginDotGovView` | Redirects admin users to Keycloak with the `tdp-admin` client and `kc_idp_hint=login-gov` |
+| `GET /admin-auth/login/ams` | `AdminKeycloakLoginAMSView` | Redirects admin users to Keycloak with the `tdp-admin` client and `kc_idp_hint=ams` |
+| `GET /admin-auth/oidc/callback/` | mozilla-django-oidc | Handles admin authorization code callback with the admin-scoped Django session |
+| `GET /admin-auth/auth_check` | `AdminAuthorizationCheck` | Validates the Django session and OFA System Admin authorization before admin rendering |
+| `GET /admin-auth/logout/oidc` | `AdminKeycloakLogoutView` | Clears the admin-scoped Django session and returns to the admin frontend |
+| `/admin-api/v1/*` | v1 API routes | Admin frontend proxy path; requires the server-side `X-Admin-Proxy-Token` header matching `ADMIN_API_PROXY_TOKEN`, an admin-scoped Django session, and OFA System Admin authorization |
+
+The standard and admin cookies contain explicit signed `standard` and `admin`
+session scopes. Django rejects a session whose signed scope does not match the
+auth or API route, even if the cookie value is copied under the other cookie
+name.
+
+App sign-out deliberately does not call Keycloak's RP-initiated logout
+endpoint. Keycloak maintains one realm SSO user session with child sessions for
+`tdp-django`, `tdp-admin`, and other clients; RP-initiated logout terminates the
+shared SSO session and can continue to Login.gov or AMS. A separate global
+sign-out flow is required if the product needs "sign out everywhere" behavior.
 
 ### User Sync
 
@@ -286,6 +314,47 @@ INFO Bearer token auth client=tdp-cli user=<email> path=/v1/users/
 
 The `client_id` is the token's `azp` claim (which Keycloak client minted the token). The `tdp-api-audience` default client scope adds the Django API audience (`tdp-django`) to `tdp-cli` access tokens so Django can reject tokens intended for other clients. In Cloud.gov these flow into Loki and are queryable in Grafana.
 
+### Request attribution metrics
+
+Django also emits the Prometheus counter `tdp_api_requests_total` through the existing `/prometheus/metrics` scrape path. The metric is intended for low-cardinality API source attribution in Grafana.
+
+Direct tools such as Postman and curl are identified by verified bearer-auth context or the presence of an `Authorization` header. Verified bearer tokens expose the real Keycloak `azp` client id such as `tdp-cli` and use `auth_method="bearer"`. Invalid bearer tokens and other Authorization schemes remain API-client attempts with `client_id="unknown"` and `auth_method="authorization_header"`. Authenticated requests without verified bearer context or an Authorization header are tracked separately as `browser_session`, because the backend can observe the authenticated Django session but cannot prove a specific OAuth client id. Unauthenticated requests without an Authorization header remain `source="unknown"` and `auth_method="none"`. Frontend-provided service headers are not used for attribution because they are request-supplied and spoofable.
+
+Labels:
+
+| Label | Meaning |
+|---|---|
+| `source` | `api_client`, `browser_session`, or `unknown` |
+| `auth_method` | `bearer` for verified bearer context, `session` for authenticated browser sessions, `authorization_header` for unverified Authorization attempts, or `none` |
+| `client_id` | A verified Keycloak `azp` value such as `tdp-cli`, `unknown` when an Authorization header was present but no client id was verified, or `none` |
+| `user_stt` | Authenticated user's assigned STT name such as `Alabama`; `none` for authenticated users without an STT; `unknown` when no authenticated user is available |
+| `user_group` | Authenticated user's group such as `OFA System Admin` or `Data Analyst`; `none` for authenticated users without a group; `unknown` when no authenticated user is available |
+| `method` | HTTP method |
+| `status_code` | HTTP response status code |
+| `view` | Django `resolver_match.view_name`; raw paths and user identifiers are not included |
+
+Examples:
+
+```promql
+100 * (
+  (sum(increase(tdp_api_requests_total{source="api_client",auth_method="bearer"}[$__range])) or vector(0))
+  / clamp_min((sum(increase(tdp_api_requests_total{auth_method=~"bearer|session"}[$__range])) or vector(0)), 1)
+)
+```
+
+```promql
+sum(increase(tdp_api_requests_total{source="api_client",auth_method="bearer"}[$__range]))
+  by (client_id, auth_method, user_group, user_stt, method, view, status_code)
+```
+
+```promql
+sum(increase(tdp_api_requests_total{source="api_client",status_code=~"4.."}[$__range]))
+  by (client_id, auth_method, user_group, user_stt, method, view, status_code)
+```
+
+Use the 4XX query for failed API-client traffic. Expired or invalid bearer tokens appear as `auth_method="authorization_header"` and `client_id="unknown"` because the backend observed an API-client attempt but did not verify the token or client id. Verified bearer clients that fail authorization, including STT-scoping issues, keep `auth_method="bearer"` and include the authenticated user's low-cardinality STT/group labels.
+
+
 ### Rate limiting
 
 `KeycloakClientRateThrottle` rate-limits per Keycloak client_id (the `azp` claim) — not per user. Default: `300/min`, configurable via the `KEYCLOAK_CLIENT_RATE` env var (DRF rate string, e.g. `60/min`, `1000/hour`). Browser sessions and other auth paths are unaffected. Counters live in the dedicated Redis-backed `throttle` cache (DB 3) so they're shared across web workers.
@@ -334,9 +403,9 @@ Set `KEYCLOAK_BROWSER_URL` in the backend's environment to match the public rout
 
 For the checked-in realm exports:
 
-- `local` and `dev` both use `realm-export.dev-local.json`, which allows `raft`, `qasp`, and `a11y` hosted frontends plus localhost/`127.0.0.1`.
-- `staging` uses `realm-export.staging.json`, which allows only `develop` and `staging` hosted frontends.
-- `prod` uses `realm-export.prod.json`, which allows only `https://tanfdata.acf.hhs.gov`.
+- `local` and `dev` both use `realm-export.dev-local.json`, which allows `raft`, `qasp`, and `a11y` hosted frontends, admin `/admin-auth/*` callbacks on those hosts, plus localhost/`127.0.0.1`.
+- `staging` uses `realm-export.staging.json`, which allows `develop` and `staging` hosted frontends plus admin `/admin-auth/*` callbacks on those hosts.
+- `prod` uses `realm-export.prod.json`, which allows `https://tanfdata.acf.hhs.gov` plus the admin `/admin-auth/*` callback on that host.
 
 ### Required cloud.gov Environment Variables
 
@@ -348,6 +417,7 @@ Set these via `cf set-env` or a user-provided service:
 - `LOGIN_GOV_JWT_KEY`
 - `LOGIN_GOV_ACR_VALUES`
 - `AMS_CLIENT_ID` / `AMS_CLIENT_SECRET`
+- `ADMIN_API_PROXY_TOKEN`
 
 ### Network Policies
 
