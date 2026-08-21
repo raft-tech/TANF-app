@@ -3,7 +3,7 @@ import { fireEvent, waitFor, render } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import configureStore from '../../configureStore'
 import SectionFileUploadForm from './SectionFileUploadForm'
-import { ReportsProvider } from '../Reports/ReportsContext'
+import { ReportsProvider, useReportsContext } from '../Reports/ReportsContext'
 import { useFormSubmission } from '../../hooks/useFormSubmission'
 import { useEventLogger } from '../../utils/eventLogger'
 import { MemoryRouter } from 'react-router-dom'
@@ -77,6 +77,11 @@ const initialState = {
 
 const mockStore = (initial = initialState) => configureStore(initial)
 
+const UploadAlert = () => {
+  const { uploadAlert } = useReportsContext()
+  return uploadAlert.active ? <div>{uploadAlert.message}</div> : null
+}
+
 describe('SectionFileUploadForm', () => {
   let mockExecuteSubmission
   let mockLogger
@@ -145,6 +150,7 @@ describe('SectionFileUploadForm', () => {
         <MemoryRouter initialEntries={[initialEntry]}>
           <ReportsProvider>
             <SectionFileUploadForm stt={stt} />
+            <UploadAlert />
           </ReportsProvider>
         </MemoryRouter>
       </Provider>
@@ -289,6 +295,9 @@ describe('SectionFileUploadForm', () => {
 
       await waitFor(() => {
         expect(mockExecuteSubmission).not.toHaveBeenCalled()
+        expect(
+          getByText('There is 1 error that must be resolved before submitting')
+        ).toBeInTheDocument()
       })
     })
 
@@ -316,6 +325,42 @@ describe('SectionFileUploadForm', () => {
       fireEvent.click(getByText('Submit Data Files'))
 
       await waitFor(() => {
+        expect(mockExecuteSubmission).not.toHaveBeenCalled()
+        expect(
+          getByText('There is 1 error that must be resolved before submitting')
+        ).toBeInTheDocument()
+      })
+    })
+
+    it('reports the number of files with validation errors', async () => {
+      const storeState = {
+        ...initialState,
+        reports: {
+          submittedFiles: [
+            {
+              fileName: 'active.txt',
+              section: 'Active Case Data',
+              error: { message: 'Fiscal period does not match' },
+            },
+            {
+              fileName: 'closed.txt',
+              section: 'Closed Case Data',
+              error: { message: 'Fiscal period does not match' },
+            },
+          ],
+        },
+      }
+
+      const { getByText } = renderComponent(storeState)
+
+      fireEvent.click(getByText('Submit Data Files'))
+
+      await waitFor(() => {
+        expect(
+          getByText(
+            'There are 2 errors that must be resolved before submitting'
+          )
+        ).toBeInTheDocument()
         expect(mockExecuteSubmission).not.toHaveBeenCalled()
       })
     })

@@ -995,7 +995,7 @@ describe('Reports', () => {
 
     await waitFor(() => {
       expect(
-        getByText('No changes have been made to data files')
+        getByText('There is 1 error that must be resolved before submitting')
       ).toBeInTheDocument()
     })
     expect(post).not.toHaveBeenCalled()
