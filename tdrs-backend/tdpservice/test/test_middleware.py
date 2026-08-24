@@ -784,7 +784,8 @@ def test_admin_api_authorization_middleware_rejects_unapproved_admin_user():
     """Admin API middleware should require approved admin users."""
     user = SimpleNamespace(
         is_authenticated=True,
-        is_ofa_sys_admin=True,
+        is_staff=True,
+        is_superuser=True,
         is_active=True,
         account_approval_status=AccountApprovalStatusChoices.PENDING,
     )
@@ -798,7 +799,8 @@ def test_admin_api_authorization_middleware_rejects_inactive_admin_user():
     """Admin API middleware should require active admin users."""
     user = SimpleNamespace(
         is_authenticated=True,
-        is_ofa_sys_admin=True,
+        is_staff=True,
+        is_superuser=True,
         is_active=False,
         account_approval_status=AccountApprovalStatusChoices.APPROVED,
     )
@@ -806,3 +808,18 @@ def test_admin_api_authorization_middleware_rejects_inactive_admin_user():
     response = _admin_api_response_for_user(user)
 
     assert response.status_code == 403
+
+
+def test_admin_api_authorization_middleware_allows_django_superuser():
+    """Admin API middleware should not depend on the user's assigned role."""
+    user = SimpleNamespace(
+        is_authenticated=True,
+        is_staff=True,
+        is_superuser=True,
+        is_active=True,
+        account_approval_status=AccountApprovalStatusChoices.APPROVED,
+    )
+
+    response = _admin_api_response_for_user(user)
+
+    assert response.status_code == 200

@@ -7,7 +7,7 @@ from tdpservice.users.oidc import ADMIN_SESSION_SCOPE
 
 
 class IsAdminConsoleFormUser(permissions.BasePermission):
-    """Allow React admin form access only for admin-scoped system admins."""
+    """Allow React admin form access only for admin-scoped Django superusers."""
 
     message = "User is not authorized for this admin form workflow."
 

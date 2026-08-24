@@ -49,10 +49,10 @@ def _admin_form_payload(user):
 
 @pytest.mark.django_db
 def test_user_admin_form_metadata_endpoint(
-    api_client, settings, ofa_system_admin, data_analyst
+    api_client, settings, admin_console_user, data_analyst
 ):
     """Return Django-derived metadata through the generic admin form engine."""
-    _login_admin_api_session(api_client, ofa_system_admin, settings)
+    _login_admin_api_session(api_client, admin_console_user, settings)
 
     response = api_client.get(
         f"/admin-api/v1/admin-forms/{USER_ADMIN_WORKFLOW}/{data_analyst.pk}/metadata/",
@@ -93,10 +93,10 @@ def test_user_admin_form_metadata_endpoint(
 
 @pytest.mark.django_db
 def test_user_admin_form_mutation_saves_valid_form(
-    api_client, settings, ofa_system_admin, data_analyst
+    api_client, settings, admin_console_user, data_analyst
 ):
     """Save a valid user admin form through authoritative Django validation."""
-    _login_admin_api_session(api_client, ofa_system_admin, settings)
+    _login_admin_api_session(api_client, admin_console_user, settings)
     payload = _admin_form_payload(data_analyst)
     payload["first_name"] = "Updated"
 
@@ -116,10 +116,10 @@ def test_user_admin_form_mutation_saves_valid_form(
 
 @pytest.mark.django_db
 def test_user_admin_form_mutation_saves_valid_role_location_transition(
-    api_client, settings, ofa_system_admin, ofa_admin, stt
+    api_client, settings, admin_console_user, ofa_admin, stt
 ):
     """Save a valid role/location transition when current DB groups differ."""
-    _login_admin_api_session(api_client, ofa_system_admin, settings)
+    _login_admin_api_session(api_client, admin_console_user, settings)
     payload = _admin_form_payload(ofa_admin)
     payload["groups"] = [str(Group.objects.get(name="Data Analyst").id)]
     payload["stt"] = str(stt.id)
@@ -141,10 +141,10 @@ def test_user_admin_form_mutation_saves_valid_role_location_transition(
 
 @pytest.mark.django_db
 def test_user_admin_form_mutation_returns_normalized_field_errors(
-    api_client, settings, ofa_system_admin, data_analyst
+    api_client, settings, admin_console_user, data_analyst
 ):
     """Return field errors from the Django form in a normalized shape."""
-    _login_admin_api_session(api_client, ofa_system_admin, settings)
+    _login_admin_api_session(api_client, admin_console_user, settings)
     payload = _admin_form_payload(data_analyst)
     payload["groups"] = [
         str(data_analyst.groups.values_list("id", flat=True).get()),
@@ -168,10 +168,10 @@ def test_user_admin_form_mutation_returns_normalized_field_errors(
 
 @pytest.mark.django_db
 def test_user_admin_form_mutation_returns_normalized_non_field_errors(
-    api_client, settings, ofa_system_admin, data_analyst
+    api_client, settings, admin_console_user, data_analyst
 ):
     """Return non-field errors from the Django form in a normalized shape."""
-    _login_admin_api_session(api_client, ofa_system_admin, settings)
+    _login_admin_api_session(api_client, admin_console_user, settings)
     payload = _admin_form_payload(data_analyst)
     payload["groups"] = [str(Group.objects.get(name="OFA Regional Staff").id)]
     payload["stt"] = ""
@@ -194,10 +194,10 @@ def test_user_admin_form_mutation_returns_normalized_non_field_errors(
 
 @pytest.mark.django_db
 def test_user_admin_form_mutation_returns_location_role_errors(
-    api_client, settings, ofa_system_admin, data_analyst
+    api_client, settings, admin_console_user, data_analyst
 ):
     """Return a validation response when role and location data conflict."""
-    _login_admin_api_session(api_client, ofa_system_admin, settings)
+    _login_admin_api_session(api_client, admin_console_user, settings)
     payload = _admin_form_payload(data_analyst)
     payload["first_name"] = "Updated"
     payload["groups"] = [str(Group.objects.get(name="OFA Admin").id)]
@@ -222,10 +222,10 @@ def test_user_admin_form_mutation_returns_location_role_errors(
 
 @pytest.mark.django_db
 def test_admin_form_rejects_unregistered_workflows(
-    api_client, settings, ofa_system_admin, data_analyst
+    api_client, settings, admin_console_user, data_analyst
 ):
     """Reject admin form requests for workflows outside the explicit registry."""
-    _login_admin_api_session(api_client, ofa_system_admin, settings)
+    _login_admin_api_session(api_client, admin_console_user, settings)
 
     response = api_client.get(
         f"/admin-api/v1/admin-forms/users.user.delete/{data_analyst.pk}/metadata/",
