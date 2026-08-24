@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { getAdminLoginUrl } from "@/lib/admin-auth";
+import { getAdminLoginNextUrl, getAdminLoginUrl } from "@/lib/admin-auth";
 
 export function GET(request: Request) {
-  const requestUrl = new URL(request.url);
-  const nextUrl =
-    requestUrl.searchParams.get("next") ?? `${requestUrl.origin}/`;
+  const nextUrl = getAdminLoginNextUrl(
+    request.url,
+    new URL(request.url).searchParams.get("next")
+  );
   const loginUrl = getAdminLoginUrl("dotgov", nextUrl);
 
   if (!loginUrl) {

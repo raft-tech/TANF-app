@@ -1,7 +1,7 @@
-import { GridContainer } from "@trussworks/react-uswds";
 import NextLink from "next/link";
+import AdminShell from "@/components/admin-shell";
 import { adminApi } from "@/lib/admin-api";
-import { requireAdminSession } from "@/lib/admin-page-auth";
+import { requireAdminSession } from "@/lib/require-admin-session";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ function usersFromResponse(data: UserListResponse) {
 }
 
 export default async function UsersPage() {
-  const { cookieHeader, requestHeaders } = await requireAdminSession();
+  const { cookieHeader, requestHeaders, session } = await requireAdminSession();
 
   const response = await adminApi.users.list({
     cookieHeader,
@@ -32,14 +32,17 @@ export default async function UsersPage() {
   const users = response.ok ? usersFromResponse(data) : [];
 
   return (
-    <section className="admin-success" aria-label="Users">
-      <GridContainer className="grid-container-widescreen admin-success__shell">
+    <AdminShell session={session}>
+      <section className="admin-success" aria-label="Users">
         <div className="admin-success__panel admin-success__panel--wide">
           <p className="admin-console__eyebrow">Users</p>
           <h1>User accounts</h1>
 
           <div className="admin-success__actions">
-            <NextLink className="usa-button usa-button--outline" href="/">
+            <NextLink
+              className="usa-button usa-button--outline"
+              href="/dashboard"
+            >
               Return to main page
             </NextLink>
           </div>
@@ -101,7 +104,7 @@ export default async function UsersPage() {
             </div>
           )}
         </div>
-      </GridContainer>
-    </section>
+      </section>
+    </AdminShell>
   );
 }

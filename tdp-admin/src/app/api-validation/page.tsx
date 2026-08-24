@@ -1,10 +1,7 @@
-import { GridContainer } from "@trussworks/react-uswds";
-import NextLink from "next/link";
+import { headers } from "next/headers";
+import AdminShell from "@/components/admin-shell";
 import { requestAdminApi, setAuthenticatedNoStore } from "@/lib/admin-api";
-import {
-  requireAdminSession,
-  type RequiredAdminSessionContext,
-} from "@/lib/admin-page-auth";
+import { requireAdminSession } from "@/lib/require-admin-session";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +19,7 @@ async function fetchValidationResponse({
 }: {
   endpoint: string;
   cookieHeader: string | null;
-  incomingHeaders: RequiredAdminSessionContext["requestHeaders"];
+  incomingHeaders: Awaited<ReturnType<typeof headers>>;
 }) {
   const response = await requestAdminApi(toPathSegments(endpoint), {
     method: "GET",
@@ -48,7 +45,7 @@ export default async function ApiValidationPage({
 }: {
   searchParams: Promise<{ endpoint?: string }>;
 }) {
-  const { cookieHeader, requestHeaders } = await requireAdminSession();
+  const { cookieHeader, requestHeaders, session } = await requireAdminSession();
 
   const params = await searchParams;
   const endpoint = params.endpoint ?? "auth_check";
@@ -65,8 +62,8 @@ export default async function ApiValidationPage({
   }));
 
   return (
-    <section className="admin-success" aria-label="API response validation">
-      <GridContainer className="grid-container-widescreen admin-success__shell">
+    <AdminShell session={session}>
+      <section className="admin-success" aria-label="API response validation">
         <div className="admin-success__panel">
           <p className="admin-console__eyebrow">API validation</p>
           <h1>Django API response validation</h1>
@@ -74,12 +71,6 @@ export default async function ApiValidationPage({
             This page calls one Django endpoint through the shared admin API helper and
             displays the response returned by Django.
           </p>
-
-          <div className="admin-success__actions">
-            <NextLink className="usa-button usa-button--outline" href="/">
-              Return to main page
-            </NextLink>
-          </div>
 
           <dl className="admin-success__details">
             <div>
@@ -104,7 +95,7 @@ export default async function ApiValidationPage({
 
           <pre className="admin-api-validation__body">{validation.body}</pre>
         </div>
-      </GridContainer>
-    </section>
+      </section>
+    </AdminShell>
   );
 }
