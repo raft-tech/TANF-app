@@ -336,6 +336,29 @@
           ]
         }
       }
+    ],
+    "org.keycloak.keys.KeyProvider": [
+      {
+        "name": "login-gov-signing-key",
+        "providerId": "rsa",
+        "config": {
+          "active": [
+            "true"
+          ],
+          "enabled": [
+            "true"
+          ],
+          "priority": [
+            "200"
+          ],
+          "algorithm": [
+            "RS256"
+          ],
+          "privateKey": [
+            "$(env:LOGIN_GOV_JWT_KEY_PEM)"
+          ]
+        }
+      }
     ]
   },
   "identityProviders": [

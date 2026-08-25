@@ -282,6 +282,27 @@ def test_all_realm_configs_show_login_gov_on_login_page():
         assert admin_login_gov_idp.get("hideOnLogin") is not True
 
 
+def test_admin_realm_configs_use_login_gov_private_key_for_client_assertions():
+    """Admin Login.gov assertions must use the registered private key."""
+    for env_name in ("local", "staging", "prod"):
+        realm = load_admin_realm_config(env_name)
+        key_providers = realm["components"]["org.keycloak.keys.KeyProvider"]
+        login_gov_key = next(
+            provider
+            for provider in key_providers
+            if provider["name"] == "login-gov-signing-key"
+        )
+
+        assert login_gov_key["providerId"] == "rsa"
+        assert login_gov_key["config"] == {
+            "active": ["true"],
+            "enabled": ["true"],
+            "priority": ["200"],
+            "algorithm": ["RS256"],
+            "privateKey": ["$(env:LOGIN_GOV_JWT_KEY_PEM)"],
+        }
+
+
 def test_select_realm_config_copies_standard_and_admin_realms(tmp_path):
     """Startup realm selection should stage both realms for Keycloak import."""
     standard_output = tmp_path / "realm-export.json"
