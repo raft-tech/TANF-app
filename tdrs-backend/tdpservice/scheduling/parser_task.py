@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import uuid
 from dataclasses import dataclass
 from typing import Callable
 
@@ -64,8 +65,12 @@ class ParserModelSet:
     label: str
 
 
-def queue_go_parse(data_file_id, reparse_id=None):
-    """Queue a shadow parse task for the Go parser."""
+def queue_go_parse(data_file_id, reparse_id=None, event_id=None):
+    """Queue a Go parse using the rolling-deployment-safe two-argument contract.
+
+    The worker recovers ``event_id`` from the transition that made the DataFile
+    parseable, so it does not need to change the established Celery payload.
+    """
     try:
         current_app.send_task(
             GO_PARSER_TASK_NAME,
@@ -87,11 +92,12 @@ def queue_go_parse(data_file_id, reparse_id=None):
         )
 
 
-def queue_parse(data_file_id, reparse_id=None):
+def queue_parse(data_file_id, reparse_id=None, event_id=None):
     """Queue production Python parse and companion Go shadow parse tasks."""
-    parse.delay(data_file_id, reparse_id=reparse_id)
+    event_id = str(event_id or uuid.uuid4())
+    parse.delay(data_file_id, reparse_id=reparse_id, event_id=event_id)
     if settings.GO_PARSER_SHADOW_MODE:
-        queue_go_parse(data_file_id, reparse_id=reparse_id)
+        queue_go_parse(data_file_id, reparse_id=reparse_id, event_id=event_id)
 
 
 def set_reparse_file_meta_model_state(reparse_id, file_meta, is_success):
@@ -251,7 +257,7 @@ def set_error_report(dfs, error_report):
     dfs.save()
 
 
-def _transition_parse_outcome(data_file, dfs, reparse_id=None):
+def _transition_parse_outcome(data_file, dfs, reparse_id=None, event_id=None):
     """Transition DataFile state based on parse outcome."""
     parse_context = {
         "section": data_file.section,
@@ -268,6 +274,7 @@ def _transition_parse_outcome(data_file, dfs, reparse_id=None):
             log_fields=parse_context,
             source="python_parser",
             reparse_meta_id=reparse_id,
+            event_id=event_id,
         )
     elif dfs.status in (
         DataFileSummary.Status.ACCEPTED_WITH_ERRORS,
@@ -281,6 +288,7 @@ def _transition_parse_outcome(data_file, dfs, reparse_id=None):
             log_fields=parse_context,
             source="python_parser",
             reparse_meta_id=reparse_id,
+            event_id=event_id,
         )
 
 
@@ -302,7 +310,7 @@ def _notify_data_analysts(data_file, dfs, file_meta=None, reparse_id=None):
         )
 
 
-def _handle_parse_failure(data_file, note, reparse_id=None):
+def _handle_parse_failure(data_file, note, reparse_id=None, event_id=None):
     """Transition to failed parser state after parser startup."""
     transition_datafile(
         data_file,
@@ -315,6 +323,7 @@ def _handle_parse_failure(data_file, note, reparse_id=None):
         },
         source="python_parser",
         reparse_meta_id=reparse_id,
+        event_id=event_id,
     )
 
 
@@ -417,7 +426,7 @@ def should_send_reparse_notification(dfs, file_meta, reparse_id):
 
 
 @shared_task(name="tdpservice.scheduling.parser_task.go_parse")
-def go_parse(data_file_id):
+def go_parse(data_file_id, reparse_id=0, event_id=None):
     """Register the Go parser task name without executing it in Python."""
     raise RuntimeError(
         f"go_parse for data_file_id={data_file_id} is routed to the Go parser worker "
@@ -426,7 +435,7 @@ def go_parse(data_file_id):
 
 
 @shared_task(name=GO_PARSER_POST_PARSE_TASK_NAME)
-def post_parse(data_file_id, reparse_id=0, parse_error=None):
+def post_parse(data_file_id, reparse_id=0, parse_error=None, event_id=None):
     """Finalize Go parser output after every parse attempt."""
     data_file, parser_models = _get_post_parse_data_file(data_file_id)
     dfs, _ = parser_models.summary_model.objects.get_or_create(
@@ -453,6 +462,7 @@ def post_parse(data_file_id, reparse_id=0, parse_error=None):
                     source="go_parser",
                     task_name=GO_PARSER_POST_PARSE_TASK_NAME,
                     reparse_meta_id=reparse_id or None,
+                    event_id=event_id,
                 )
         else:
             # ShadowDataFile state is isolated from production DataFile audit history.
@@ -481,7 +491,7 @@ def post_parse(data_file_id, reparse_id=0, parse_error=None):
 
 
 @shared_task
-def parse(data_file_id, reparse_id=None):
+def parse(data_file_id, reparse_id=None, event_id=None):
     """Send data file for processing."""
     # passing the data file FileField across redis was rendering non-serializable failures, doing the below lookup
     # to avoid those. I suppose good practice to not store/serializer large file contents in memory when stored in redis
@@ -490,6 +500,7 @@ def parse(data_file_id, reparse_id=None):
     dfs = None
     file_meta = None
     reparse_success = True
+    event_id = str(event_id or uuid.uuid4())
     try:
         data_file = DataFile.objects.get(id=data_file_id)
         change_log_filename(logger, data_file)
@@ -515,6 +526,7 @@ def parse(data_file_id, reparse_id=None):
             },
             source="python_parser",
             reparse_meta_id=reparse_id,
+            event_id=event_id,
         )
 
         dfs = DataFileSummary.objects.create(
@@ -532,7 +544,7 @@ def parse(data_file_id, reparse_id=None):
 
         logger.info(f"Parsing finished for file -> {repr(data_file)}.")
 
-        _transition_parse_outcome(data_file, dfs, reparse_id)
+        _transition_parse_outcome(data_file, dfs, reparse_id, event_id)
         _notify_data_analysts(data_file, dfs, file_meta, reparse_id)
 
     except DecoderUnknownException:
@@ -546,7 +558,9 @@ def parse(data_file_id, reparse_id=None):
                 "reparse_id": reparse_id,
             },
         )
-        _handle_parse_failure(data_file, "decoder unknown exception", reparse_id)
+        _handle_parse_failure(
+            data_file, "decoder unknown exception", reparse_id, event_id
+        )
         reparse_success = False
     except DatabaseError as e:
         log_parser_exception(
@@ -563,7 +577,9 @@ def parse(data_file_id, reparse_id=None):
                 "reparse_id": reparse_id,
             },
         )
-        _handle_parse_failure(data_file, "database error during parsing", reparse_id)
+        _handle_parse_failure(
+            data_file, "database error during parsing", reparse_id, event_id
+        )
         reparse_success = False
     except Exception:
         if dfs is None:
@@ -588,7 +604,9 @@ def parse(data_file_id, reparse_id=None):
                 "reparse_id": reparse_id,
             },
         )
-        _handle_parse_failure(data_file, "unexpected error during parsing", reparse_id)
+        _handle_parse_failure(
+            data_file, "unexpected error during parsing", reparse_id, event_id
+        )
         reparse_success = False
     finally:
         if data_file is not None:

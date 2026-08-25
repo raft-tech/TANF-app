@@ -136,8 +136,9 @@ func (s *Server) Run(parentCtx context.Context) error {
 		return fmt.Errorf("failed to create post-parse celery client: %w", err)
 	}
 
-	// Register the parse task handler. Django sends data_file_id as a
-	// positional arg which arrives as float64 after JSON deserialization.
+	// Register the parse task handler with the established two-argument contract
+	// so old and new Django/Go processes can safely overlap during deployment.
+	// Django positional numbers arrive as float64 after JSON deserialization.
 	// The closure includes panic recovery so a single bad task cannot kill
 	// the worker goroutine.
 	taskCtx := context.WithoutCancel(parentCtx)
@@ -145,6 +146,7 @@ func (s *Server) Run(parentCtx context.Context) error {
 		id := int32(dataFileID)
 		reparse := int32(reparseID)
 		parseError := ""
+		eventID := s.resolveParseEventID(taskCtx, id)
 
 		defer func() {
 			if r := recover(); r != nil {
@@ -170,6 +172,7 @@ func (s *Server) Run(parentCtx context.Context) error {
 					dataFileStateParseFailed,
 					"Go parser worker panic",
 					reparse,
+					eventID,
 				); err != nil {
 					logging.Error(taskCtx, "failed to update DataFile state during worker panic",
 						slog.Int(logging.KeyFileID, int(id)),
@@ -202,6 +205,7 @@ func (s *Server) Run(parentCtx context.Context) error {
 					dataFileStateParseFailed,
 					"Go parser post-parse enqueue failure",
 					reparse,
+					eventID,
 				); updateErr != nil {
 					logging.Error(taskCtx, "failed to update DataFile state after post-parse enqueue failure",
 						slog.Int(logging.KeyFileID, int(id)),
@@ -229,7 +233,7 @@ func (s *Server) Run(parentCtx context.Context) error {
 			slog.String(logging.KeyStage, "task_receive"),
 		)
 
-		if err := s.processTask(taskCtx, id, reparse); err != nil {
+		if err := s.processTask(taskCtx, id, reparse, eventID); err != nil {
 			parseError = fmt.Sprintf("error: %v", err)
 			logging.Error(taskCtx, "parse task failed",
 				slog.Int(logging.KeyFileID, int(id)),
@@ -289,6 +293,22 @@ func (s *Server) enqueuePostParseTask(client celeryTaskSender, dataFileID int32,
 	return err
 }
 
+func (s *Server) resolveParseEventID(parentCtx context.Context, dataFileID int32) string {
+	lookupCtx, cancel := context.WithTimeout(context.WithoutCancel(parentCtx), statusUpdateTimeout)
+	defer cancel()
+
+	dataFileTable := config.DataFileTableName(s.Config.Database.EffectiveTablePrefix())
+	eventID, err := db.ResolveParseEventID(lookupCtx, s.dbPool, dataFileTable, dataFileID)
+	if err != nil {
+		logging.Warn(parentCtx, "failed to resolve parse event ID; generating a new ID",
+			slog.Int(logging.KeyFileID, int(dataFileID)),
+			slog.Any(logging.KeyError, err),
+		)
+		return db.NewLogEventID()
+	}
+	return eventID
+}
+
 func (s *Server) updateDataFileSummaryStatus(parentCtx context.Context, dataFileID int32, status string) error {
 	statusCtx, cancel := context.WithTimeout(context.WithoutCancel(parentCtx), statusUpdateTimeout)
 	defer cancel()
@@ -303,6 +323,7 @@ func (s *Server) updateDataFileState(
 	state string,
 	note string,
 	reparseID int32,
+	eventID string,
 ) error {
 	statusCtx, cancel := context.WithTimeout(context.WithoutCancel(parentCtx), statusUpdateTimeout)
 	defer cancel()
@@ -319,6 +340,7 @@ func (s *Server) updateDataFileState(
 		dataFileID,
 		state,
 		db.DataFileStateTransitionContext{
+			EventID:       eventID,
 			Note:          note,
 			Source:        "go_parser",
 			TaskName:      taskName,
@@ -330,7 +352,7 @@ func (s *Server) updateDataFileState(
 
 // processTask handles a single parse task end-to-end:
 // DB lookup → S3 download → decode → pipeline → status update.
-func (s *Server) processTask(taskCtx context.Context, dataFileID int32, reparseID int32) error {
+func (s *Server) processTask(taskCtx context.Context, dataFileID int32, reparseID int32, eventID string) error {
 	dataFileTable := config.DataFileTableName(s.Config.Database.EffectiveTablePrefix())
 
 	// 1. Look up datafile metadata from the database.
@@ -353,6 +375,7 @@ func (s *Server) processTask(taskCtx context.Context, dataFileID int32, reparseI
 		dataFileStateParseStarted,
 		"Go parser parsing started",
 		reparseID,
+		eventID,
 	); err != nil {
 		return fmt.Errorf("failed to mark shadow datafile parse started: %w", err)
 	}
@@ -409,6 +432,7 @@ func (s *Server) processTask(taskCtx context.Context, dataFileID int32, reparseI
 			dataFileStateParseFailed,
 			"Go parser pipeline processing failed",
 			reparseID,
+			eventID,
 		); updateErr != nil {
 			logging.Error(taskCtx, "failed to update DataFile state",
 				slog.Int(logging.KeyFileID, int(dataFileID)),
@@ -429,6 +453,7 @@ func (s *Server) processTask(taskCtx context.Context, dataFileID int32, reparseI
 		dataFileStateParseCompleted,
 		"Go parser parsing completed",
 		reparseID,
+		eventID,
 	); err != nil {
 		return fmt.Errorf("failed to update shadow datafile state: %w", err)
 	}

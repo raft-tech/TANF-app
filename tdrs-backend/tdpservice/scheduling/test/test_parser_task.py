@@ -1,6 +1,7 @@
 """Tests for parser task helpers and flow control."""
 
 import io
+import uuid
 from types import SimpleNamespace
 
 from django.contrib.admin.models import LogEntry
@@ -127,14 +128,12 @@ def test_queue_go_parse_sends_shadow_task(monkeypatch):
 
     parser_task.queue_go_parse(42)
 
-    assert calls == [
-        {
-            "name": parser_task.GO_PARSER_TASK_NAME,
-            "args": [42, 0],
-            "queue": parser_task.GO_PARSER_QUEUE,
-            "ignore_result": True,
-        }
-    ]
+    assert len(calls) == 1
+    call = calls[0]
+    assert call["name"] == parser_task.GO_PARSER_TASK_NAME
+    assert call["args"] == [42, 0]
+    assert call["queue"] == parser_task.GO_PARSER_QUEUE
+    assert call["ignore_result"] is True
 
 
 def test_queue_go_parse_sends_reparse_id(monkeypatch):
@@ -151,7 +150,7 @@ def test_queue_go_parse_sends_reparse_id(monkeypatch):
         ),
     )
 
-    parser_task.queue_go_parse(42, reparse_id=7)
+    parser_task.queue_go_parse(42, reparse_id=7, event_id=uuid.uuid4())
 
     assert calls == [[42, 7]]
 
@@ -188,24 +187,25 @@ def test_queue_parse_queues_python_and_go(monkeypatch):
         parser_task,
         "parse",
         SimpleNamespace(
-            delay=lambda data_file_id, reparse_id=None: calls.append(
-                ("python", data_file_id, reparse_id)
+            delay=lambda data_file_id, reparse_id=None, event_id=None: calls.append(
+                ("python", data_file_id, reparse_id, event_id)
             )
         ),
     )
     monkeypatch.setattr(
         parser_task,
         "queue_go_parse",
-        lambda data_file_id, reparse_id=None: calls.append(
-            ("go", data_file_id, reparse_id)
+        lambda data_file_id, reparse_id=None, event_id=None: calls.append(
+            ("go", data_file_id, reparse_id, event_id)
         ),
     )
 
-    parser_task.queue_parse(42, reparse_id=7)
+    event_id = uuid.uuid4()
+    parser_task.queue_parse(42, reparse_id=7, event_id=event_id)
 
     assert calls == [
-        ("python", 42, 7),
-        ("go", 42, 7),
+        ("python", 42, 7, str(event_id)),
+        ("go", 42, 7, str(event_id)),
     ]
 
 
@@ -218,23 +218,24 @@ def test_queue_parse_skips_go_when_shadow_mode_off(monkeypatch):
         parser_task,
         "parse",
         SimpleNamespace(
-            delay=lambda data_file_id, reparse_id=None: calls.append(
-                ("python", data_file_id, reparse_id)
+            delay=lambda data_file_id, reparse_id=None, event_id=None: calls.append(
+                ("python", data_file_id, reparse_id, event_id)
             )
         ),
     )
     monkeypatch.setattr(
         parser_task,
         "queue_go_parse",
-        lambda data_file_id, reparse_id=None: calls.append(
-            ("go", data_file_id, reparse_id)
+        lambda data_file_id, reparse_id=None, event_id=None: calls.append(
+            ("go", data_file_id, reparse_id, event_id)
         ),
     )
 
-    parser_task.queue_parse(42, reparse_id=7)
+    event_id = uuid.uuid4()
+    parser_task.queue_parse(42, reparse_id=7, event_id=event_id)
 
     assert calls == [
-        ("python", 42, 7),
+        ("python", 42, 7, str(event_id)),
     ]
 
 
@@ -607,7 +608,8 @@ def test_parse_success_sends_email(monkeypatch, data_analyst):
 
     monkeypatch.setattr(parser_task, "send_data_submitted_email", fake_send)
 
-    parser_task.parse(datafile.id)
+    event_id = uuid.uuid4()
+    parser_task.parse(datafile.id, event_id=event_id)
 
     assert dummy_parser.called is True
     assert data_analyst.username in captured["recipients"]
@@ -615,6 +617,9 @@ def test_parse_success_sends_email(monkeypatch, data_analyst):
 
     datafile.refresh_from_db()
     assert datafile.state == SubmissionState.PARSE_COMPLETED
+    transitions = DataFileStateTransition.objects.for_object(datafile)
+    assert transitions.count() == 2
+    assert {transition.event_id for transition in transitions} == {event_id}
 
 
 @pytest.mark.django_db

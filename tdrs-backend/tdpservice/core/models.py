@@ -46,6 +46,7 @@ class BaseLog(models.Model):
     queryable through this base table.
     """
 
+    id = models.BigAutoField(primary_key=True)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.TextField()
     content_object = GenericForeignKey("content_type", "object_id")

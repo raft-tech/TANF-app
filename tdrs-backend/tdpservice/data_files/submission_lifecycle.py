@@ -1,11 +1,13 @@
 """Helpers for DataFile submission state transitions."""
 
 import logging
+import uuid
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable
 
-from celery import current_task
 from django.db import transaction
+
+from celery import current_task
 
 from tdpservice.data_files.enums import SubmissionState
 
@@ -396,6 +398,7 @@ def complete_datafile_av_scan(
     logger_hook: Callable | None = None,
     strict=False,
     source: str | None = None,
+    event_id: Any | None = None,
 ):
     """Apply an AV scan completion result to DataFile state.
 
@@ -408,47 +411,62 @@ def complete_datafile_av_scan(
     out-of-order states.
     """
     target_state = _next_state_for_scan_result(scan_result)
-    previous_state = coerce_submission_state(data_file.state)
     normalized_scan_result = _normalize_scan_result(scan_result)
 
-    if previous_state == target_state:
-        payload = {
-            "data_file_id": data_file.id,
-            "previous_state": previous_state.value,
-            "next_state": target_state.value,
-            "scan_result": normalized_scan_result,
-            "note": note or "Duplicate AV completion result; no-op.",
-        }
-        _emit_av_completion_log(logger_hook, payload)
-        return data_file, False
+    with transaction.atomic():
+        locked_data_file = _locked_data_file_for_transition(data_file)
+        previous_state = coerce_submission_state(locked_data_file.state)
 
-    if previous_state != SubmissionState.VIRUS_SCAN_STARTED:
-        if strict:
-            raise InvalidTransition(
-                f"Cannot apply AV scan completion while DataFile is in "
-                f"{previous_state.value}."
+        if previous_state == target_state:
+            payload = {
+                "data_file_id": locked_data_file.id,
+                "previous_state": previous_state.value,
+                "next_state": target_state.value,
+                "scan_result": normalized_scan_result,
+                "note": note or "Duplicate AV completion result; no-op.",
+            }
+            log_level = "info"
+            transition_occurred = False
+        elif previous_state != SubmissionState.VIRUS_SCAN_STARTED:
+            if strict:
+                raise InvalidTransition(
+                    f"Cannot apply AV scan completion while DataFile is in "
+                    f"{previous_state.value}."
+                )
+
+            payload = {
+                "data_file_id": locked_data_file.id,
+                "previous_state": previous_state.value,
+                "next_state": target_state.value,
+                "scan_result": normalized_scan_result,
+                "note": note
+                or "Ignoring out-of-order AV completion result for DataFile.",
+            }
+            log_level = "warning"
+            transition_occurred = False
+        else:
+            transition = _transition_from_values(
+                data_file=locked_data_file,
+                previous_state=previous_state,
+                next_state=target_state,
+                note=note or "Applied AV scan completion result.",
+                actor=actor,
+                log_fields={"scan_result": normalized_scan_result},
+                source=source,
+                event_id=event_id,
             )
+            _save_locked_data_file_transition(locked_data_file, transition)
+            payload = transition.metadata
+            log_level = "info"
+            transition_occurred = True
 
-        payload = {
-            "data_file_id": data_file.id,
-            "previous_state": previous_state.value,
-            "next_state": target_state.value,
-            "scan_result": normalized_scan_result,
-            "note": note or "Ignoring out-of-order AV completion result for DataFile.",
-        }
-        _emit_av_completion_log(logger_hook, payload, level="warning")
-        return data_file, False
+        _sync_transitioned_data_file(data_file, locked_data_file)
 
-    transitioned_file = transition_datafile(
-        data_file,
-        target_state,
-        note=note or "Applied AV scan completion result.",
-        actor=actor,
-        logger_hook=logger_hook,
-        log_fields={"scan_result": normalized_scan_result},
-        source=source,
-    )
-    return transitioned_file, True
+        if event_id is not None:
+            payload.setdefault("event_id", str(event_id))
+
+    _emit_av_completion_log(logger_hook, payload, level=log_level)
+    return data_file, transition_occurred
 
 
 def prepare_datafile_for_reparse(
@@ -457,6 +475,7 @@ def prepare_datafile_for_reparse(
     actor=None,
     logger_hook: Callable | None = None,
     source: str | None = None,
+    event_id: Any | None = None,
 ):
     """Transition a safe DataFile into the requested reparse state."""
     from tdpservice.etl.pipelines.sources import (
@@ -489,6 +508,7 @@ def prepare_datafile_for_reparse(
             note=note,
             actor=actor,
             source=source,
+            event_id=event_id or uuid.uuid4(),
         )
         _save_locked_data_file_transition(locked_data_file, transition)
         _sync_transitioned_data_file(data_file, locked_data_file)
@@ -501,7 +521,30 @@ def prepare_datafile_for_reparse(
     return data_file, True
 
 
-def revert_reparse_request(data_file, original_state, note="", actor=None, source=None):
+def get_reparse_event_id(data_file):
+    """Return the current reparse attempt ID, creating one when none is logged."""
+    from tdpservice.data_files.models import DataFileStateTransition
+
+    if coerce_submission_state(data_file.state) == SubmissionState.REPARSE_REQUESTED:
+        transition = (
+            DataFileStateTransition.objects.for_object(data_file)
+            .filter(next_state=SubmissionState.REPARSE_REQUESTED)
+            .first()
+        )
+        if transition is not None:
+            return transition.event_id
+
+    return uuid.uuid4()
+
+
+def revert_reparse_request(
+    data_file,
+    original_state,
+    note="",
+    actor=None,
+    source=None,
+    event_id=None,
+):
     """Revert a DataFile out of REPARSE_REQUESTED back to its prior state.
 
     Recovery helper for the case where a reparse was queued but the worker
@@ -533,6 +576,7 @@ def revert_reparse_request(data_file, original_state, note="", actor=None, sourc
             note=note,
             actor=actor,
             source=source,
+            event_id=event_id or get_reparse_event_id(locked_data_file),
         )
         _save_locked_data_file_transition(locked_data_file, transition)
         _sync_transitioned_data_file(data_file, locked_data_file)

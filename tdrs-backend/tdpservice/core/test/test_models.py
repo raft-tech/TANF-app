@@ -1,7 +1,13 @@
 """Module for testing the core model."""
 import pytest
+from django.db import models
 
 from tdpservice.core.models import BaseLog, FeatureFlag, GlobalPermission
+
+
+def test_base_log_primary_key_matches_initial_migration():
+    """Keep the model state aligned with the BigAutoField created by migration 0007."""
+    assert isinstance(BaseLog._meta.get_field("id"), models.BigAutoField)
 
 
 @pytest.mark.django_db

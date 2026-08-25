@@ -9,12 +9,12 @@ from tdpservice.data_files import submission_lifecycle
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFileStateTransition
 from tdpservice.data_files.submission_lifecycle import (
-    force_transition_datafile,
     InvalidScanResult,
     InvalidTransition,
     ReparsePreparationError,
     allowed_next_states,
     complete_datafile_av_scan,
+    force_transition_datafile,
     prepare_datafile_for_reparse,
     revert_reparse_request,
     transition_datafile,
@@ -343,12 +343,14 @@ def test_prepare_datafile_for_reparse_requests_reparse_for_safe_states(state):
     assert transition.previous_state == state
     assert transition.next_state == SubmissionState.REPARSE_REQUESTED
     assert transition.note == "admin reparse requested"
+    assert transition.event_id is not None
     assert payloads == [
         {
             "data_file_id": data_file.id,
             "previous_state": state.value,
             "next_state": SubmissionState.REPARSE_REQUESTED.value,
             "note": "admin reparse requested",
+            "event_id": str(transition.event_id),
         }
     ]
 
@@ -370,7 +372,9 @@ def test_prepare_datafile_for_reparse_is_idempotent_for_reparse_requested():
 @pytest.mark.django_db
 def test_revert_reparse_request_creates_state_transition_record():
     """Recovery reverts should persist transition history despite bypassing validation."""
-    data_file = DataFileFactory(state=SubmissionState.REPARSE_REQUESTED)
+    data_file = DataFileFactory(state=SubmissionState.PARSE_COMPLETED)
+    prepare_datafile_for_reparse(data_file)
+    reparse_event_id = _state_transitions_for(data_file).get().event_id
 
     reverted = revert_reparse_request(
         data_file,
@@ -381,13 +385,16 @@ def test_revert_reparse_request_creates_state_transition_record():
     )
 
     data_file.refresh_from_db()
-    transition = _state_transitions_for(data_file).get()
+    transition = _state_transitions_for(data_file).filter(
+        next_state=SubmissionState.PARSE_COMPLETED
+    ).get()
     assert reverted is True
     assert data_file.state == SubmissionState.PARSE_COMPLETED
     assert transition.previous_state == SubmissionState.REPARSE_REQUESTED
     assert transition.next_state == SubmissionState.PARSE_COMPLETED
     assert transition.note == "broker enqueue failed"
     assert str(transition.actor_id) == str(data_file.user_id)
+    assert transition.event_id == reparse_event_id
     assert transition.source == "django_admin"
 
 
@@ -619,6 +626,27 @@ def test_complete_datafile_av_scan_duplicate_result_noops_with_log_payload():
             "note": "Duplicate AV completion result; no-op.",
         }
     ]
+
+
+@pytest.mark.django_db
+def test_complete_datafile_av_scan_duplicate_uses_locked_database_state():
+    """A stale callback instance should still detect the committed duplicate result."""
+    data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_STARTED)
+    stale_data_file = DataFileFactory._meta.model.objects.get(pk=data_file.pk)
+    data_file.state = SubmissionState.VIRUS_SCAN_COMPLETED
+    data_file.save(update_fields=["state"])
+    payloads = []
+
+    result_file, transition_occurred = complete_datafile_av_scan(
+        stale_data_file,
+        scan_result="clean",
+        logger_hook=payloads.append,
+    )
+
+    assert transition_occurred is False
+    assert result_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
+    assert _state_transitions_for(data_file).count() == 0
+    assert payloads[0]["previous_state"] == SubmissionState.VIRUS_SCAN_COMPLETED
 
 
 @pytest.mark.django_db

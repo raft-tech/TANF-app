@@ -83,6 +83,7 @@ func TestMarshalStateTransitionMetadataIncludesCorrelation(t *testing.T) {
 		"parse_started",
 		"parse_failed",
 		DataFileStateTransitionContext{
+			EventID:       "123e4567-e89b-12d3-a456-426614174000",
 			Note:          "Go parser pipeline processing failed",
 			Source:        "go_parser",
 			TaskName:      "tdpservice.scheduling.parser_task.go_parse",
@@ -113,6 +114,9 @@ func TestMarshalStateTransitionMetadataIncludesCorrelation(t *testing.T) {
 	if metadata["source"] != "go_parser" {
 		t.Errorf("source = %#v", metadata["source"])
 	}
+	if metadata["event_id"] != "123e4567-e89b-12d3-a456-426614174000" {
+		t.Errorf("event_id = %#v", metadata["event_id"])
+	}
 	if metadata["task_name"] != "tdpservice.scheduling.parser_task.go_parse" {
 		t.Errorf("task_name = %#v", metadata["task_name"])
 	}
@@ -127,6 +131,41 @@ func TestMarshalStateTransitionMetadataIncludesCorrelation(t *testing.T) {
 	}
 	if metadata["transition_path"] != "go_sql" {
 		t.Errorf("transition_path = %#v", metadata["transition_path"])
+	}
+}
+
+func TestResolveLogEventUUID(t *testing.T) {
+	const eventID = "123e4567-e89b-12d3-a456-426614174000"
+
+	got, err := resolveLogEventUUID(eventID)
+	if err != nil {
+		t.Fatalf("resolveLogEventUUID() error = %v", err)
+	}
+	if got.String() != eventID {
+		t.Fatalf("resolveLogEventUUID() = %q, want %q", got.String(), eventID)
+	}
+
+	if _, err := resolveLogEventUUID("not-a-uuid"); err == nil {
+		t.Fatal("resolveLogEventUUID() accepted an invalid UUID")
+	}
+}
+
+func TestNewLogEventID(t *testing.T) {
+	eventID := NewLogEventID()
+	if _, err := resolveLogEventUUID(eventID); err != nil {
+		t.Fatalf("NewLogEventID() returned invalid UUID %q: %v", eventID, err)
+	}
+}
+
+func TestResolveParseEventSQLMatchesCurrentQueueingTransition(t *testing.T) {
+	for _, fragment := range []string{
+		"data_file.state = transition.next_state",
+		"'virus_scan_completed'",
+		"'reparse_requested'",
+	} {
+		if !strings.Contains(selectProductionParseEventID, fragment) {
+			t.Errorf("parse event query does not contain %q", fragment)
+		}
 	}
 }
 

@@ -40,6 +40,7 @@ type DataFileRecord struct {
 }
 
 type DataFileStateTransitionContext struct {
+	EventID       string
 	Note          string
 	Source        string
 	TaskName      string
@@ -131,6 +132,21 @@ const selectProductionDataFileStateForUpdate = `
 	FROM data_files_datafile
 	WHERE id = $1
 	FOR UPDATE
+`
+
+const selectProductionParseEventID = `
+	SELECT base_log.event_id::text
+	FROM core_baselog AS base_log
+	JOIN data_files_datafilestatetransition AS transition
+	  ON transition.baselog_ptr_id = base_log.id
+	JOIN data_files_datafile AS data_file
+	  ON data_file.id = $1
+	 AND data_file.state = transition.next_state
+	WHERE base_log.object_id = $1::text
+	  AND base_log.event_type = 'data_file_state_transition'
+	  AND transition.next_state IN ('virus_scan_completed', 'reparse_requested')
+	ORDER BY base_log.created_at DESC, base_log.id DESC
+	LIMIT 1
 `
 
 const insertProductionDataFileStateTransition = `
@@ -351,11 +367,15 @@ func updateProductionDataFileStateWithTransition(
 	}
 
 	objectID := fmt.Sprint(datafileID)
+	eventID, err := resolveLogEventUUID(transitionContext.EventID)
+	if err != nil {
+		return err
+	}
 	if _, err := tx.Exec(
 		ctx,
 		insertProductionDataFileStateTransition,
 		objectID,
-		newLogEventUUID(),
+		eventID,
 		previousState,
 		state,
 		transitionContext.Note,
@@ -378,6 +398,37 @@ func firstTransitionContext(contexts []DataFileStateTransitionContext) DataFileS
 	return contexts[0]
 }
 
+// ResolveParseEventID reuses the event that queued the current production parse.
+// Shadow parses and legacy rows without transition history receive a new event ID.
+func ResolveParseEventID(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	tableName string,
+	datafileID int32,
+) (string, error) {
+	switch tableName {
+	case shadowDataFileTable:
+		return newLogEventUUID().String(), nil
+	case productionDataFileTable:
+		var eventID string
+		err := pool.QueryRow(ctx, selectProductionParseEventID, datafileID).Scan(&eventID)
+		if err == nil {
+			return eventID, nil
+		}
+		if err != pgx.ErrNoRows {
+			return "", fmt.Errorf(
+				"query parse event for %s id=%d: %w",
+				tableName,
+				datafileID,
+				err,
+			)
+		}
+		return newLogEventUUID().String(), nil
+	default:
+		return "", fmt.Errorf("unsupported datafile table %q", tableName)
+	}
+}
+
 func newLogEventUUID() pgtype.UUID {
 	var id [16]byte
 	if _, err := io.ReadFull(rand.Reader, id[:]); err != nil {
@@ -386,6 +437,23 @@ func newLogEventUUID() pgtype.UUID {
 	id[6] = (id[6] & 0x0f) | 0x40
 	id[8] = (id[8] & 0x3f) | 0x80
 	return pgtype.UUID{Bytes: id, Valid: true}
+}
+
+// NewLogEventID returns a new RFC 4122 version 4 event ID as a string.
+func NewLogEventID() string {
+	return newLogEventUUID().String()
+}
+
+func resolveLogEventUUID(eventID string) (pgtype.UUID, error) {
+	if eventID == "" {
+		return newLogEventUUID(), nil
+	}
+
+	var id pgtype.UUID
+	if err := id.Scan(eventID); err != nil {
+		return pgtype.UUID{}, fmt.Errorf("invalid event_id %q: %w", eventID, err)
+	}
+	return id, nil
 }
 
 func marshalStateTransitionMetadata(
@@ -416,6 +484,9 @@ func marshalStateTransitionMetadata(
 	if transitionContext.ReparseMetaID > 0 {
 		metadata["reparse_meta_id"] = transitionContext.ReparseMetaID
 		metadata["reparse_id"] = transitionContext.ReparseMetaID
+	}
+	if transitionContext.EventID != "" {
+		metadata["event_id"] = transitionContext.EventID
 	}
 
 	return json.Marshal(metadata)
