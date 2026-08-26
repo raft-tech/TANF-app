@@ -2,17 +2,21 @@
 
 ## Overview
 
-- Completed backend work to define STT participation in programs and improved data access for reporting. ([#5370](https://github.com/raft-tech/TANF-app/issues/5370), [#5383](https://github.com/raft-tech/TANF-app/issues/5383))
-- Finished performance and monitoring improvements: added metrics for the Go parser, started tracking API requests in Grafana, and deployed the Go parser via CI/CD. ([#5739](https://github.com/raft-tech/TANF-app/issues/5739), [#5900](https://github.com/raft-tech/TANF-app/issues/5900), [#5909](https://github.com/raft-tech/TANF-app/issues/5909))
-- Advanced production readiness for Keycloak and security: promoted Keycloak to production, fixed the configure script, and moved to declarative configuration management. ([#5761](https://github.com/raft-tech/TANF-app/issues/5761), [#5911](https://github.com/raft-tech/TANF-app/issues/5911), [#5958](https://github.com/raft-tech/TANF-app/issues/5958))
-- Bug fixes and cleanup improved reliability: fixed duplicated counts in the reparse model and cleaned up error reports. ([#5985](https://github.com/raft-tech/TANF-app/issues/5985), [#5927](https://github.com/raft-tech/TANF-app/issues/5927))
-- Planning and design work progressed, including the How We Work workshop and ongoing admin dashboard/history pagination design. ([#5593](https://github.com/raft-tech/TANF-app/issues/5593), [#5538](https://github.com/raft-tech/TANF-app/issues/5538))
+- Finished core backend work to improve data handling and performance, including a new model for STT participation, faster data queries, and added Go parser metrics. ([#5370](https://github.com/raft-tech/TANF-app/issues/5370), [#5383](https://github.com/raft-tech/TANF-app/issues/5383), [#5739](https://github.com/raft-tech/TANF-app/issues/5739))
+
+- Improved security and deployment reliability by promoting Keycloak to production, fixing a configuration script, and completing Go parser deployment through CI/CD. ([#5761](https://github.com/raft-tech/TANF-app/issues/5761), [#5911](https://github.com/raft-tech/TANF-app/issues/5911), [#5909](https://github.com/raft-tech/TANF-app/issues/5909))
+
+- Advancements to admin tools and interfaces, including starting a metadata-driven admin form contract and completing the admin navigation feature. ([#5842](https://github.com/raft-tech/TANF-app/issues/5842), [#5966](https://github.com/raft-tech/TANF-app/issues/5966), [#5983](https://github.com/raft-tech/TANF-app/issues/5983))
+
+- Enhanced monitoring and visibility for critical services by adding API usage metrics in Grafana. ([#5900](https://github.com/raft-tech/TANF-app/issues/5900))
+
+- Progress on knowledge center and user guidance with updated release notes and guidance for timely data submission. ([#5940](https://github.com/raft-tech/TANF-app/issues/5940), [#5989](https://github.com/raft-tech/TANF-app/issues/5989))
 
 ---
 
 ⚪️ **Total Issues:** 44  
-✅ **Closed:** 15  
-➡️ **Moved:** 21  
+✅ **Closed:** 19  
+➡️ **Moved:** 17  
 ⬛️ **Unchanged:** 7  
 🛑 **Blocked:** 1  
 
@@ -23,8 +27,8 @@
 - ⬛️ [BUG KeyError Events: Error 'state_nonce_tracker' in Sentry (#5859)](https://github.com/raft-tech/TANF-app/issues/5859)  
 _Remained in **Raft (Dev) Review**_  
 
-- ➡️ [[Bug] Resolve new frontend ZAP failure (#6004)](https://github.com/raft-tech/TANF-app/issues/6004)  
-_Moved from **Product Backlog** to **Next Up: DEV**_  
+- ✅ [[Bug] Resolve new frontend ZAP failure (#6004)](https://github.com/raft-tech/TANF-app/issues/6004)  
+_**Closed**_ - _Moved from **Product Backlog**_  
 
 
 ## [fTANF Replacement - Foundational Research & Concept Validation](https://github.com/raft-tech/TANF-app/issues/4628)
@@ -170,13 +174,13 @@ _Moved from **Next Up: DEV** to **Current Sprint Backlog**_
 - ✅ [Remediate parent-domain scope on sessionid cookie (#5999)](https://github.com/raft-tech/TANF-app/issues/5999)  
 _**Closed**_ - _Moved from **Current Sprint Backlog**_  
 
-- ➡️ [[Bug] Remove `SUB` characters from files before parsing (#6026)](https://github.com/raft-tech/TANF-app/issues/6026)  
-_Moved from **Product Backlog** to **Next Up: DEV**_  
+- ✅ [[Bug] Remove `SUB` characters from files before parsing (#6026)](https://github.com/raft-tech/TANF-app/issues/6026)  
+_**Closed**_ - _Moved from **Product Backlog**_  
 
-- ➡️ [[Bug] SVD1 (#6031)](https://github.com/raft-tech/TANF-app/issues/6031)  
-_Moved from **Product Backlog** to **Next Up: DEV**_  
+- ✅ [[Bug] SVD1 (#6031)](https://github.com/raft-tech/TANF-app/issues/6031)  
+_**Closed**_ - _Moved from **Product Backlog**_  
 
-- ➡️ [[Bug] SVD2 (#6032)](https://github.com/raft-tech/TANF-app/issues/6032)  
-_Moved from **Product Backlog** to **Next Up: DEV**_  
+- ✅ [[Bug] SVD2 (#6032)](https://github.com/raft-tech/TANF-app/issues/6032)  
+_**Closed**_ - _Moved from **Product Backlog**_  
 
 
