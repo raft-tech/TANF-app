@@ -236,11 +236,16 @@ Issue [#5885](https://github.com/raft-tech/TANF-app/issues/5885) and merged PR
 submission history on the same TANF and FRA screens. After upload, users expect
 to see the new, usually Pending, row and its eventual status.
 
-`useSubmissionHistory` restarts polling for Pending files found in the loaded
-history array. FRA has equivalent behavior. Under server pagination, only rows
-on loaded pages are known to the browser. The implementation must preserve
-polling for visible Pending rows and define what happens to rows on pages the
-browser has never loaded.
+`useFileUploadForm` currently refreshes the entire matching history once after a
+successful multi-file submission and starts polling the created file IDs only
+from that list request's success callback. A single form submission can contain
+files for multiple TANF/SSP sections or PIA quarters, so neither the broad
+refresh nor coupling polling to its success fits table-level pagination.
+`useSubmissionHistory` also restarts polling for Pending files found in the
+loaded history array, and FRA has equivalent behavior. Under server pagination,
+only rows on loaded pages are known to the browser. The implementation must
+preserve polling for visible Pending rows and define what happens to rows on
+pages the browser has never loaded.
 
 ---
 
@@ -262,7 +267,7 @@ The target design must:
   hidden pages.
 - Follow the bounded USWDS pagination pattern, including accessible overflow
   indicators and table-specific navigation labels.
-- Reset the affected table to page 1 after filter changes and successful uploads.
+- Reset affected tables to page 1 after filter changes and successful uploads.
 - Isolate each table's loading, error, and page state from sibling tables.
 - Prevent stale responses from replacing results for newer filters or page
   selections.
@@ -537,7 +542,7 @@ DRF filtered page
 Keyed table state
      |
      +--> rows
-     +--> selected page and page count
+     +--> requested page, loaded page, and page count
      +--> loading/error
      +--> pending-row polling
      v
@@ -552,7 +557,7 @@ Keep responsibilities separated:
 | --- | --- |
 | Page/screen | Supplies global STT, year, file type, and quarter selections |
 | Section/quarter history container | Creates one table controller per visible table identity |
-| Table controller | Builds the request, owns current page and metadata, rejects stale responses, handles retries |
+| Table controller | Builds the request, owns requested and loaded pages plus metadata, rejects stale responses, handles retries |
 | Table component | Renders the provided server page; does not slice records |
 | `Paginator` | Renders controls from `selected`, `pages`, label, and `onChange`; performs no fetching itself |
 
@@ -574,8 +579,9 @@ Each table needs, at minimum:
 
 ```text
 table identity
-selected page
-rows for selected page
+requested page
+loaded page
+rows for loaded page
 total count
 total pages
 next URL or availability
@@ -602,10 +608,17 @@ When a page-number, Previous, or Next control is activated:
 2. Set the table's requested page.
 3. Immediately request that page with all table filters.
 4. Keep sibling table state unchanged.
-5. On success, replace that table's rows and pagination metadata.
-6. On failure, preserve or clearly replace the prior rows according to the
-   agreed loading design, show a retryable table-level error, and do not mark the
-   failed destination as successfully loaded.
+5. On success, atomically replace that table's rows and pagination metadata and
+   set its loaded page to the requested page.
+6. On failure, preserve the prior loaded page and its rows according to the
+   agreed loading design, record the failed destination for retry, and show a
+   table-level error.
+
+Drive `Paginator.selected` from the loaded page, not the requested page. This
+keeps `aria-current` and the visual current marker aligned with the displayed
+rows. For example, if page 3 fails while page 2 rows remain loaded, page 2 stays
+selected and retry still targets page 3. The requested page may be exposed as a
+loading status, but it does not become current until its response succeeds.
 
 Do not fetch only when the last displayed number is selected. Displayed page
 numbers are navigation destinations, not a cache window. Do not make the
@@ -614,8 +627,9 @@ ellipsis interactive.
 ### Filter changes
 
 An STT, year, file type, quarter, or table-identity change creates a new query
-key. Reset the affected table to page 1 and request page 1. Clear or visually
-separate stale rows so users do not mistake old-filter data for new results.
+key. Clear the prior loaded page and rows, set the requested page to 1, and
+request page 1. Mark page 1 as loaded only after success so users do not mistake
+old-filter data for new results.
 
 Multiple section or quarter requests may complete in any order. A response may
 update only the table and query key that initiated it.
@@ -652,28 +666,38 @@ In both cases:
 - Render loading, empty, and error content inside valid table rows and cells or
   outside the `<table>`, never as a direct `<span>` child of `<table>`.
 - Provide a retry action that repeats the failed table request.
+- Keep the paginator's current marker on the loaded page when a destination
+  request fails.
 - Do not show old rows as if they belong to newly selected filters.
 
 ### Upload refresh
 
 After a successful upload:
 
-1. Identify the affected section or quarter table.
-2. Reset that table to page 1.
-3. Refetch page 1 using its active filters.
-4. Keep unrelated sibling table pages unchanged unless one upload action can
-   create records for those tables too.
-5. Preserve the combined upload/history success message and focus behavior from
+1. Derive the distinct affected table identities from the successful upload
+   inputs and responses: resolve TANF/SSP/Tribal TANF sections to the canonical
+   IDs supplied by program participation, and use the submitted quarters for PIA.
+2. Set every affected table's requested page to 1 and request it independently;
+   commit its loaded page to 1 only when that refresh succeeds.
+3. Start detail polling independently for every created file ID as soon as the
+   upload succeeds. Do not wait for one or all history refreshes to succeed.
+4. Allow each table refresh and each file poll to succeed or fail independently;
+   one failure must not block sibling refreshes or polling for other files.
+5. Keep unrelated sibling table pages unchanged.
+6. Preserve the combined upload/history success message and focus behavior from
    issue 5885.
 
 Resetting to page 1 is deliberate. New records are ordered first, and preserving
-a later page would hide the upload the user is trying to verify.
+a later page would hide the upload the user is trying to verify. The
+`useFileUploadForm` completion path must therefore replace its single broad
+`getAvailableFileList` request and refresh-gated polling with this per-table,
+independent orchestration.
 
 ### Pending status polling
 
 Continue using the detail endpoint to poll Pending rows on loaded pages. When a
 detail response changes status, replace the matching row without discarding the
-table's `count`, selected page, or navigation metadata.
+table's `count`, loaded page, or navigation metadata.
 
 Refetch a page when the user returns to it rather than assuming a cached Pending
 status is current. Caching completed pages is optional and should not precede a
@@ -926,8 +950,10 @@ After deployment:
 | Equal timestamps cross page boundaries nondeterministically | Duplicate or missing rows while navigating | Order by `-created_at, -id` and test equal timestamps |
 | Four tables issue parallel count/result queries | Increased database and API load | Review representative count/result query plans and concurrent latency before merge; add measured indexes in a schema migration when budgets are not met |
 | Rapid navigation returns responses out of order | Wrong rows appear under selected page/filter | Abort obsolete requests or ignore stale query keys |
+| A failed destination is marked current | Paginator announces a page that does not match displayed rows | Track requested and loaded pages separately; commit the current page only after success |
 | Last page becomes invalid after data changes | HTTP 404 and unusable table state | Treat invalid page as recoverable; reset/refetch page 1 |
 | New upload occurs while user is on a later page | User cannot find the newly submitted row | Reset affected table to page 1 and refetch |
+| Multi-table upload refresh or polling is coupled | One failed list request hides created rows or prevents status updates | Refresh each affected table and poll each created file independently |
 | Pending row exists on an unloaded page | Browser does not poll it | Poll loaded rows; refetch visited pages; create separate status follow-up if Product requires global updates |
 | Feedback Report consumers are forgotten | First-server-page truncation remains or wrapper removal breaks screens | Keep a consumer matrix; migrate in the initiative or link an owned follow-up before cleanup |
 | Every page number is rendered | Controls wrap or become unusable | Implement USWDS bounded seven-slot algorithm |
@@ -976,9 +1002,12 @@ This slice must not be deployed to an incompatible frontend.
 - Remove browser filtering and slicing of mixed arrays.
 - Isolate table loading and errors.
 - Reset page 1 on filter changes and uploads.
+- Update `useFileUploadForm` to refresh every distinct affected section or PIA
+  quarter and start each created file's polling independently of those refreshes.
 - Guard against stale responses.
 - Preserve Pending-row polling and metadata updates.
-- Update unit tests for independent server requests and page state.
+- Update unit tests for independent server requests, requested-versus-loaded
+  page state, multi-table upload refresh, and refresh-independent polling.
 
 ### 4. FRA migration
 
@@ -1039,7 +1068,9 @@ known responsibilities and likely files.
 | Path or symbol | Expected responsibility |
 | --- | --- |
 | `tdrs-frontend/src/actions/reports.js::getAvailableFileList` | Send section, quarter, and page; dispatch envelope metadata; identify stale requests |
+| `tdrs-frontend/src/actions/reports.js::submit` | Supply created file IDs and affected table identities to upload completion orchestration |
 | `tdrs-frontend/src/reducers/reports.js` | Store keyed table results and metadata instead of one mixed file array |
+| `tdrs-frontend/src/hooks/useFileUploadForm.js` | Fan out page-1 refreshes for all tables affected by an upload and start per-file polling independently of refresh results |
 | `tdrs-frontend/src/hooks/useSubmissionHistory.js` | Coordinate table requests and loaded-page Pending polling |
 | `tdrs-frontend/src/actions/fraReports.js::getFraSubmissionHistory` | Send page and retain the envelope |
 | `tdrs-frontend/src/reducers/fraReports.js` | Store FRA page metadata and merge detail polling updates |
@@ -1062,6 +1093,7 @@ known responsibilities and likely files.
 | --- | --- |
 | `tdrs-frontend/src/components/Paginator/Paginator.test.js` | Bounded slot algorithm and accessibility contract |
 | `tdrs-frontend/src/components/SubmissionHistory/*.test.js` | Independent server-page behavior and filter resets |
+| `tdrs-frontend/src/hooks/useFileUploadForm.test.js` and file-upload form tests | Multi-section/quarter refresh fan-out and polling that does not depend on refresh success |
 | `tdrs-frontend/src/components/Reports/FRAReports.test.js` | FRA server page requests, upload refresh, and polling |
 | `tdrs-frontend/src/actions/*.test.js` and reducer tests | Envelope parsing, query parameters, keyed state, stale responses |
 | `tdrs-frontend/src/components/FeedbackReports/*.test.js` | Server-page interactions if Feedback history is included |
@@ -1111,9 +1143,11 @@ the query-plan and performance gate above determines that before backend merge.
 | PIA Quarter 3 moves to page 2 | Other quarter pages remain unchanged |
 | Filter changes on later page | Affected tables reset and fetch page 1 |
 | Page 2 then page 3 requested rapidly | Late page 2 response cannot replace page 3 |
+| Page 3 fails while page 2 rows remain | Page 2 remains current; error and retry retain page 3 as the destination |
 | One of four table requests fails | Successful sibling tables remain usable; failed table can retry |
 | Invalid page after collection changes | Table recovers to page 1 rather than showing false empty success |
-| Upload while viewing later page | Affected table returns to page 1 and shows newest upload |
+| Multi-section or multi-quarter upload | Every affected table independently returns to page 1 and refreshes; unrelated tables retain their pages |
+| One post-upload table refresh fails | Created-file polling and other affected table refreshes still start |
 | Pending row completes | Row updates without losing count/page metadata |
 | Revisit a previously loaded page | Page refetches or validates current status |
 | Empty result | Valid accessible empty-table presentation; no paginator |
@@ -1139,7 +1173,9 @@ the query-plan and performance gate above determines that before backend merge.
 - Verify separate backend requests and counts for every visible table.
 - Exercise TANF, SSP, Tribal TANF, PIA, and FRA paths.
 - Exercise Data Analyst, Regional Staff, and authorized administrator views.
-- Upload while a populated history is displayed and observe refresh plus polling.
+- Upload files for multiple sections or PIA quarters while populated histories
+  are displayed; verify each affected table refreshes page 1 and every created
+  file starts polling even when one table refresh fails.
 - Record API duration and database query count for four simultaneous first-page
   requests and compare with the current unbounded request at representative
   volume.
@@ -1209,7 +1245,11 @@ the query-plan and performance gate above determines that before backend merge.
 - [ ] Backend contract examples and invalid-page behavior are accepted.
 - [ ] Existing STT and region authorization semantics are captured in tests.
 - [ ] Frontend keyed state and stale-response strategy are selected.
+- [ ] Requested-versus-loaded page behavior keeps the paginator current marker
+  aligned with displayed rows during loading and errors.
 - [ ] Post-upload reset to page 1 is accepted.
+- [ ] Multi-table upload refresh and per-file polling are independent, including
+  when one affected table refresh fails.
 - [ ] Current-page Pending polling behavior is accepted or a follow-up is owned.
 - [ ] USWDS seven-slot behavior and non-interactive ellipses are accepted.
 - [ ] Unique labels, loading markup, and focus/announcement behavior have an
