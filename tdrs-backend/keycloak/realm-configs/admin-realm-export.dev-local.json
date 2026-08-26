@@ -249,6 +249,7 @@
       "secret": "$(env:KC_TDP_ADMIN_CLIENT_SECRET)",
       "redirectUris": [
         "https://admin-test.tanfdata.acf.hhs.gov/*",
+        "https://tdp-admin-raft.app.cloud.gov/*",
         "https://tdp-admin-qasp.app.cloud.gov/*",
         "https://tdp-admin-a11y.app.cloud.gov/*",
         "https://test.tanfdata.acf.hhs.gov/admin-auth/*",
@@ -263,6 +264,7 @@
       ],
       "webOrigins": [
         "https://admin-test.tanfdata.acf.hhs.gov",
+        "https://tdp-admin-raft.app.cloud.gov",
         "https://tdp-admin-qasp.app.cloud.gov",
         "https://tdp-admin-a11y.app.cloud.gov",
         "http://localhost:3001",
@@ -273,7 +275,7 @@
         "http://127.0.0.1:8989"
       ],
       "attributes": {
-        "post.logout.redirect.uris": "https://admin-test.tanfdata.acf.hhs.gov/*##https://tdp-admin-qasp.app.cloud.gov/*##https://tdp-admin-a11y.app.cloud.gov/*##http://localhost:3001/*##http://127.0.0.1:3001/*"
+        "post.logout.redirect.uris": "https://admin-test.tanfdata.acf.hhs.gov/*##https://tdp-admin-raft.app.cloud.gov/*##https://tdp-admin-qasp.app.cloud.gov/*##https://tdp-admin-a11y.app.cloud.gov/*##http://localhost:3001/*##http://127.0.0.1:3001/*"
       },
       "protocol": "openid-connect",
       "publicClient": false,

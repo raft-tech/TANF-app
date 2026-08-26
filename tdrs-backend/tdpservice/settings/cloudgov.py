@@ -293,7 +293,11 @@ class Development(CloudGov):
     """Settings for applications deployed in the Cloud.gov dev space."""
 
     # https://docs.djangoproject.com/en/2.0/ref/settings/#allowed-hosts
-    ALLOWED_HOSTS = [".tanfdata.acf.hhs.gov", ".apps.internal"]
+    ALLOWED_HOSTS = [
+        ".tanfdata.acf.hhs.gov",
+        "tdp-admin-raft.app.cloud.gov",
+        ".apps.internal",
+    ]
     ADMIN_FRONTEND_BASE_URL = os.getenv(
         "ADMIN_FRONTEND_BASE_URL", "https://admin-test.tanfdata.acf.hhs.gov"
     )
