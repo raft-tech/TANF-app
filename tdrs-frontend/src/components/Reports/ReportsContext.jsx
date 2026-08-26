@@ -261,7 +261,7 @@ export const ReportsProvider = ({ isFra = false, children }) => {
   // Redux selectors
   const files = useSelector((state) => state.reports.submittedFiles)
   const uploadedFiles = useMemo(
-    () => files?.filter((file) => file.fileName && !file.id),
+    () => files?.filter((file) => file.fileName && !file.id) || [],
     [files]
   )
   const submittedFiles = useMemo(
