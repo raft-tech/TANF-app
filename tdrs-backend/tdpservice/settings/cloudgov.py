@@ -295,7 +295,7 @@ class Development(CloudGov):
     # https://docs.djangoproject.com/en/2.0/ref/settings/#allowed-hosts
     ALLOWED_HOSTS = [".tanfdata.acf.hhs.gov", ".apps.internal"]
     ADMIN_FRONTEND_BASE_URL = os.getenv(
-        "ADMIN_FRONTEND_BASE_URL", "https://tdp-admin-raft.app.cloud.gov"
+        "ADMIN_FRONTEND_BASE_URL", "https://admin-test.tanfdata.acf.hhs.gov"
     )
     CORS_ORIGIN_ALLOW_ALL = False
     CORS_ALLOWED_ORIGINS = [

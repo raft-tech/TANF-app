@@ -1,6 +1,7 @@
 import {
   buildAdminRequestHeaders,
   getAdminBackendBaseUrl,
+  setInternalBackendForwardedProto,
 } from "./admin-auth";
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -110,6 +111,7 @@ export async function requestAdminApi(
     headers,
   });
   forwardProvenanceHeaders(requestHeaders, incomingHeaders);
+  setInternalBackendForwardedProto(url, requestHeaders);
   requestHeaders.set("X-Admin-Proxy-Token", adminProxyToken);
   requestHeaders.set(
     "X-Request-ID",

@@ -14,7 +14,7 @@ SELECT_REALM_CONFIG_PATH = KEYCLOAK_DIR / "select-realm-config.sh"
 ENTRYPOINT_PATH = KEYCLOAK_DIR / "entrypoint.sh"
 REALM_CONFIGS_DIR = KEYCLOAK_DIR / "realm-configs"
 DEV_ADMIN_FRONTEND_URLS = [
-    "https://tdp-admin-raft.app.cloud.gov",
+    "https://admin-test.tanfdata.acf.hhs.gov",
     "https://tdp-admin-qasp.app.cloud.gov",
     "https://tdp-admin-a11y.app.cloud.gov",
 ]
@@ -166,7 +166,7 @@ def test_dev_local_config_includes_hosted_and_local_urls():
             f"{admin_frontend_url}/*"
             in admin_client["attributes"]["post.logout.redirect.uris"].split("##")
         )
-    assert "https://admin-test.tanfdata.acf.hhs.gov/*" not in admin_client[
+    assert "https://tdp-admin-raft.app.cloud.gov/*" not in admin_client[
         "redirectUris"
     ]
     assert "http://localhost:8989/*" in admin_client["redirectUris"]

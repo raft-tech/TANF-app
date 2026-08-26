@@ -229,6 +229,23 @@ export function buildAdminRequestHeaders({
   return requestHeaders;
 }
 
+export function setInternalBackendForwardedProto(
+  url: string,
+  headers: Headers
+) {
+  const backendUrl = new URL(url);
+
+  if (
+    backendUrl.protocol === "http:" &&
+    backendUrl.hostname.endsWith(".apps.internal") &&
+    !headers.has("X-Forwarded-Proto")
+  ) {
+    headers.set("X-Forwarded-Proto", "https");
+  }
+
+  return headers;
+}
+
 export async function checkAdminSession(cookieHeader?: string | null): Promise<AdminSession> {
   const adminAuthCheckUrl = getAdminAuthCheckUrl();
 
@@ -237,11 +254,15 @@ export async function checkAdminSession(cookieHeader?: string | null): Promise<A
   }
 
   try {
+    const requestHeaders = setInternalBackendForwardedProto(
+      adminAuthCheckUrl,
+      buildAdminRequestHeaders({ cookieHeader })
+    );
     const response = await fetch(adminAuthCheckUrl, {
       method: "GET",
       credentials: "include",
       cache: "no-store",
-      headers: buildAdminRequestHeaders({ cookieHeader }),
+      headers: requestHeaders,
     });
     const data = (await response.json().catch(() => ({}))) as AdminSession;
 
@@ -277,10 +298,15 @@ export async function checkBackendHealth(): Promise<BackendHealth> {
   const authCheckUrl = `${normalizedBackendUrl}/auth_check`;
 
   try {
+    const requestHeaders = setInternalBackendForwardedProto(
+      authCheckUrl,
+      new Headers()
+    );
     const response = await fetch(authCheckUrl, {
       method: "GET",
       credentials: "include",
       cache: "no-store",
+      headers: requestHeaders,
       signal: AbortSignal.timeout(5000),
     });
 

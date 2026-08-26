@@ -75,6 +75,19 @@ describe("admin API service", () => {
     );
   });
 
+  it("marks private Cloud Foundry API requests as HTTPS", async () => {
+    process.env.ADMIN_BACKEND_URL =
+      "http://tdp-backend-test.apps.internal:8080/admin-api/v1";
+    process.env.ADMIN_API_PROXY_TOKEN = "server-only-token";
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ ok: true })));
+
+    await requestAdminApi(["users"]);
+
+    const [, options] = vi.mocked(fetch).mock.calls[0];
+    const headers = options?.headers as Headers;
+    expect(headers.get("X-Forwarded-Proto")).toBe("https");
+  });
+
   it("identifies mutating methods and disables authenticated caching", () => {
     expect(isMutatingAdminApiMethod("GET")).toBe(false);
     expect(isMutatingAdminApiMethod("patch")).toBe(true);
