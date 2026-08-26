@@ -218,9 +218,9 @@ The `tdp-user-attributes` client scope includes these custom attributes, synced 
 | `GET /admin-auth/login/dotgov` | `AdminKeycloakLoginDotGovView` | Redirects admin users to Keycloak with the `tdp-admin` client and `kc_idp_hint=login-gov` |
 | `GET /admin-auth/login/ams` | `AdminKeycloakLoginAMSView` | Redirects admin users to Keycloak with the `tdp-admin` client and `kc_idp_hint=ams` |
 | `GET /admin-auth/oidc/callback/` | mozilla-django-oidc | Handles admin authorization code callback with the admin-scoped Django session |
-| `GET /admin-auth/auth_check` | `AdminAuthorizationCheck` | Validates the Django session and OFA System Admin authorization before admin rendering |
+| `GET /admin-auth/auth_check` | `AdminAuthorizationCheck` | Validates the Django session and active staff-superuser authorization before admin rendering |
 | `GET /admin-auth/logout/oidc` | `AdminKeycloakLogoutView` | Logs out of the admin Keycloak realm, clears the admin-scoped Django session, and returns to the admin frontend |
-| `/admin-api/v1/*` | v1 API routes | Admin frontend proxy path; requires the server-side `X-Admin-Proxy-Token` header matching `ADMIN_API_PROXY_TOKEN`, an admin-scoped Django session, and OFA System Admin authorization |
+| `/admin-api/v1/*` | v1 API routes | Admin frontend proxy path; requires the server-side `X-Admin-Proxy-Token` header matching `ADMIN_API_PROXY_TOKEN`, an admin-scoped Django session, and active staff-superuser authorization |
 
 The standard and admin cookies contain explicit signed `standard` and `admin`
 session scopes. Django rejects a session whose signed scope does not match the

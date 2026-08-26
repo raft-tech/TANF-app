@@ -171,26 +171,26 @@ def test_auth_check_deactivated_user(api_client, deactivated_user):
 
 @pytest.mark.django_db
 def test_standard_session_authenticates_frontend_but_not_admin(
-    api_client, ofa_system_admin
+    api_client, admin_user
 ):
     """A regular TDP session should not authenticate the admin frontend."""
-    api_client.login(username=ofa_system_admin.username, password="test_password")
+    api_client.login(username=admin_user.username, password="test_password")
     frontend_response = api_client.get(reverse("authorization-check"))
     admin_response = api_client.get(reverse("admin-authorization-check"))
 
     assert frontend_response.status_code == status.HTTP_200_OK
     assert frontend_response.data["authenticated"] is True
-    assert frontend_response.data["user"]["email"] == ofa_system_admin.username
+    assert frontend_response.data["user"]["email"] == admin_user.username
     assert admin_response.status_code == status.HTTP_200_OK
     assert admin_response.data["authenticated"] is False
 
 
 @pytest.mark.django_db
 def test_admin_session_authenticates_admin_but_not_frontend(
-    api_client, ofa_system_admin, settings
+    api_client, admin_user, settings
 ):
     """An admin session should not authenticate the regular TDP frontend."""
-    api_client.login(username=ofa_system_admin.username, password="test_password")
+    api_client.login(username=admin_user.username, password="test_password")
     _create_admin_session_from_standard(api_client, settings)
     del api_client.cookies[settings.SESSION_COOKIE_NAME]
 
@@ -206,7 +206,7 @@ def test_admin_session_authenticates_admin_but_not_frontend(
 
 @pytest.mark.django_db
 def test_standard_and_admin_login_logout_end_to_end_state_sequence(
-    api_client, ofa_system_admin, settings
+    api_client, admin_user, settings
 ):
     """Standard and admin app sessions should remain independently scoped."""
     settings.KEYCLOAK_DJANGO_CLIENT_ID = "tdp-django"
@@ -220,7 +220,7 @@ def test_standard_and_admin_login_logout_end_to_end_state_sequence(
 
     _assert_auth_state(api_client, False, False)
 
-    _login_standard_session(api_client, ofa_system_admin, settings)
+    _login_standard_session(api_client, admin_user, settings)
     _assert_auth_state(api_client, True, False)
 
     _create_admin_session_from_standard(api_client, settings)
@@ -237,7 +237,7 @@ def test_standard_and_admin_login_logout_end_to_end_state_sequence(
     assert query_params["id_token_hint"] == ["standard-id-token"]
     _assert_auth_state(api_client, False, True)
 
-    _login_standard_session(api_client, ofa_system_admin, settings)
+    _login_standard_session(api_client, admin_user, settings)
     _assert_auth_state(api_client, True, True)
 
     response = api_client.get(reverse("admin-oidc-logout"))
@@ -266,7 +266,7 @@ def test_standard_and_admin_login_logout_end_to_end_state_sequence(
 )
 def test_logout_state_matrix(
     api_client,
-    ofa_system_admin,
+    admin_user,
     settings,
     initial_state,
     logout_route,
@@ -290,12 +290,12 @@ def test_logout_state_matrix(
     }
 
     if initial_state == "standard":
-        _login_standard_session(api_client, ofa_system_admin, settings)
+        _login_standard_session(api_client, admin_user, settings)
     elif initial_state == "admin":
-        _login_admin_session(api_client, ofa_system_admin, settings)
+        _login_admin_session(api_client, admin_user, settings)
         del api_client.cookies[settings.SESSION_COOKIE_NAME]
     elif initial_state == "both":
-        _login_admin_session(api_client, ofa_system_admin, settings)
+        _login_admin_session(api_client, admin_user, settings)
 
     _assert_auth_state(api_client, *initial_auth_states[initial_state])
 
@@ -324,10 +324,10 @@ def test_logout_state_matrix(
 
 @pytest.mark.django_db
 def test_forged_service_header_does_not_use_admin_session(
-    api_client, ofa_system_admin, settings
+    api_client, admin_user, settings
 ):
     """A regular API request cannot opt into the admin session by header."""
-    api_client.login(username=ofa_system_admin.username, password="test_password")
+    api_client.login(username=admin_user.username, password="test_password")
     _create_admin_session_from_standard(api_client, settings)
     del api_client.cookies[settings.SESSION_COOKIE_NAME]
 
@@ -341,10 +341,10 @@ def test_forged_service_header_does_not_use_admin_session(
 
 @pytest.mark.django_db
 def test_standard_cookie_cannot_authenticate_admin(
-    api_client, ofa_system_admin, settings
+    api_client, admin_user, settings
 ):
     """A standard signed session cannot be replayed as an admin session."""
-    _login_standard_session(api_client, ofa_system_admin, settings)
+    _login_standard_session(api_client, admin_user, settings)
     api_client.cookies[settings.ADMIN_SESSION_COOKIE_NAME] = api_client.cookies[
         settings.SESSION_COOKIE_NAME
     ].value
@@ -357,10 +357,10 @@ def test_standard_cookie_cannot_authenticate_admin(
 
 @pytest.mark.django_db
 def test_admin_cookie_cannot_authenticate_frontend(
-    api_client, ofa_system_admin, settings
+    api_client, admin_user, settings
 ):
     """An admin signed session cannot be replayed as a standard session."""
-    _login_admin_session(api_client, ofa_system_admin, settings)
+    _login_admin_session(api_client, admin_user, settings)
     api_client.cookies[settings.SESSION_COOKIE_NAME] = api_client.cookies[
         settings.ADMIN_SESSION_COOKIE_NAME
     ].value
@@ -372,10 +372,10 @@ def test_admin_cookie_cannot_authenticate_frontend(
 
 
 @pytest.mark.django_db
-def test_admin_api_path_uses_admin_session(api_client, ofa_system_admin, settings):
+def test_admin_api_path_uses_admin_session(api_client, admin_user, settings):
     """Admin API traffic should use the admin session on the backend path."""
     settings.ADMIN_API_PROXY_TOKEN = "server-only-token"
-    api_client.login(username=ofa_system_admin.username, password="test_password")
+    api_client.login(username=admin_user.username, password="test_password")
     _create_admin_session_from_standard(api_client, settings)
     del api_client.cookies[settings.SESSION_COOKIE_NAME]
 
@@ -385,16 +385,16 @@ def test_admin_api_path_uses_admin_session(api_client, ofa_system_admin, setting
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data["authenticated"] is True
-    assert response.data["user"]["email"] == ofa_system_admin.username
+    assert response.data["user"]["email"] == admin_user.username
 
 
 @pytest.mark.django_db
 def test_admin_api_path_rejects_missing_proxy_token(
-    api_client, ofa_system_admin, settings
+    api_client, admin_user, settings
 ):
     """Admin API traffic should not be directly browser-callable."""
     settings.ADMIN_API_PROXY_TOKEN = "server-only-token"
-    api_client.login(username=ofa_system_admin.username, password="test_password")
+    api_client.login(username=admin_user.username, password="test_password")
     _create_admin_session_from_standard(api_client, settings)
     del api_client.cookies[settings.SESSION_COOKIE_NAME]
 
@@ -421,7 +421,7 @@ def test_admin_api_path_rejects_unauthenticated_session(api_client, settings):
 
 @pytest.mark.django_db
 def test_admin_api_path_rejects_non_admin_session(api_client, user, settings):
-    """Admin API traffic should require OFA System Admin authorization in Django."""
+    """Admin API traffic should require staff-superuser authorization in Django."""
     settings.ADMIN_API_PROXY_TOKEN = "server-only-token"
     api_client.login(username=user.username, password="test_password")
     _create_admin_session_from_standard(api_client, settings)
@@ -440,11 +440,11 @@ def test_admin_api_path_rejects_non_admin_session(api_client, user, settings):
 
 
 @pytest.mark.django_db
-def test_admin_auth_check_allows_ofa_system_admin(
-    api_client, ofa_system_admin, settings
+def test_admin_auth_check_allows_active_staff_superuser(
+    api_client, admin_user, settings
 ):
-    """Admin auth_check should authorize OFA System Admin users."""
-    api_client.login(username=ofa_system_admin.username, password="test_password")
+    """Admin auth_check should authorize an active Django staff superuser."""
+    api_client.login(username=admin_user.username, password="test_password")
     _create_admin_session_from_standard(api_client, settings)
     response = api_client.get(reverse("admin-authorization-check"))
 
@@ -467,13 +467,43 @@ def test_admin_auth_check_rejects_non_admin(api_client, user, settings):
 
 
 @pytest.mark.django_db
-def test_admin_auth_check_rejects_unapproved_ofa_system_admin(
-    api_client, ofa_system_admin, settings
+def test_admin_auth_check_allows_admin_with_initial_approval_status(
+    api_client, admin_user, settings
 ):
-    """Admin auth_check should require OFA System Admin users to be approved."""
-    _login_admin_session(api_client, ofa_system_admin, settings)
-    ofa_system_admin.account_approval_status = AccountApprovalStatusChoices.PENDING
-    ofa_system_admin.save()
+    """TDP account approval should not control Django admin authorization."""
+    assert admin_user.account_approval_status == AccountApprovalStatusChoices.INITIAL
+    _login_admin_session(api_client, admin_user, settings)
+
+    response = api_client.get(reverse("admin-authorization-check"))
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["authenticated"] is True
+    assert response.data["authorized"] is True
+
+
+@pytest.mark.django_db
+def test_admin_auth_check_allows_admin_with_data_analyst_role(
+    api_client, data_analyst, settings
+):
+    """Changing a staff superuser's TDP role should not revoke admin access."""
+    data_analyst.is_staff = True
+    data_analyst.is_superuser = True
+    data_analyst.save()
+    _login_admin_session(api_client, data_analyst, settings)
+
+    response = api_client.get(reverse("admin-authorization-check"))
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["authenticated"] is True
+    assert response.data["authorized"] is True
+
+
+@pytest.mark.django_db
+def test_admin_auth_check_rejects_staff_without_superuser(
+    api_client, staff_user, settings
+):
+    """Staff status without superuser status should not grant admin access."""
+    _login_admin_session(api_client, staff_user, settings)
 
     response = api_client.get(reverse("admin-authorization-check"))
 
@@ -483,13 +513,13 @@ def test_admin_auth_check_rejects_unapproved_ofa_system_admin(
 
 
 @pytest.mark.django_db
-def test_admin_auth_check_rejects_inactive_ofa_system_admin(
-    api_client, ofa_system_admin, settings
+def test_admin_auth_check_rejects_inactive_admin(
+    api_client, admin_user, settings
 ):
-    """Admin auth_check should require OFA System Admin users to be active."""
-    _login_admin_session(api_client, ofa_system_admin, settings)
-    ofa_system_admin.is_active = False
-    ofa_system_admin.save()
+    """Admin auth_check should require Django admin users to be active."""
+    _login_admin_session(api_client, admin_user, settings)
+    admin_user.is_active = False
+    admin_user.save()
 
     response = api_client.get(reverse("admin-authorization-check"))
 
