@@ -15,7 +15,7 @@ ENTRYPOINT_PATH = KEYCLOAK_DIR / "entrypoint.sh"
 REALM_CONFIGS_DIR = KEYCLOAK_DIR / "realm-configs"
 DEV_ADMIN_FRONTEND_URLS = [
     "https://admin-test.tanfdata.acf.hhs.gov",
-    "https://tdp-admin-raft.app.cloud.gov",
+    "https://tdp-admin-test.app.cloud.gov",
     "https://tdp-admin-qasp.app.cloud.gov",
     "https://tdp-admin-a11y.app.cloud.gov",
 ]
