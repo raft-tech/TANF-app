@@ -116,7 +116,8 @@ export const useFileUploadForm = ({
       (file) =>
         file.error ||
         (file.validatedYear && file.validatedYear !== yearInputValue) ||
-        (quarterInputValue &&
+        (fileTypeInputValue !== 'program-integrity-audit' &&
+          quarterInputValue &&
           file.validatedQuarter &&
           file.validatedQuarter !== quarterInputValue)
     ).length
