@@ -146,16 +146,7 @@ class KeycloakSyncClient:
             ),
         ]
 
-        unique_configs = []
-        seen = set()
-        for realm_name, client_id, client_secret in configs:
-            key = (realm_name, client_id)
-            if key in seen:
-                continue
-            seen.add(key)
-            unique_configs.append((realm_name, client_id, client_secret))
-
-        return unique_configs
+        return configs
 
     @classmethod
     def get_instance(
