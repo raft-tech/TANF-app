@@ -829,7 +829,7 @@ class Common(Configuration):
     # Cloud.gov SET integration settings
     LOGIN_GOV_SET_AUDIENCE = os.getenv(
         "LOGIN_GOV_SET_AUDIENCE",
-        "https://test.tanfdata.acf.hhs.gov/v1/security/event-token/",
+        "https://test.tanfdata.acf.hhs.gov/v1/security/event-token",
     )
     LOGIN_GOV_WELL_KNOWN_CONFIG = os.getenv(
         "LOGIN_GOV_WELL_KNOWN_CONFIG",
