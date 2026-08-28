@@ -1,18 +1,28 @@
 """Test stuck file notification queries and rendering."""
 
+from datetime import timedelta
+
+from django.conf import settings
 from django.contrib.admin.models import LogEntry
 from django.core import mail
+from django.utils import timezone
 
 import pytest
 
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
-from tdpservice.data_files.tasks import get_current_fiscal_year, get_stuck_files
+from tdpservice.data_files.tasks import (
+    get_current_fiscal_year,
+    get_stale_files,
+    get_stuck_files,
+    mark_stale_files_stuck,
+)
 from tdpservice.email.helpers.data_file import send_stuck_file_email
 from tdpservice.parsers.models import DataFileSummary
 from tdpservice.parsers.test.factories import (
     DataFileSummaryFactory,
     ParsingFileFactory,
+    ReparseMetaFactory,
 )
 
 
@@ -37,6 +47,46 @@ def make_summary(datafile, status):
     )
 
 
+def set_created_at(datafile, created_at):
+    """Set legacy creation and lifecycle timestamps for stale-query tests."""
+    DataFile.objects.filter(pk=datafile.pk).update(
+        created_at=created_at,
+        state_changed_at=created_at,
+    )
+
+
+@pytest.fixture(autouse=True)
+def production_stale_timeout(settings):
+    """Keep day-based tests independent from any E2E process environment."""
+    settings.STALE_PARSE_TIMEOUT_SECONDS = 24 * 60 * 60
+
+
+def test_stale_file_checker_is_scheduled():
+    """Register the stale checker with Celery beat."""
+    schedule = settings.CELERY_BEAT_SCHEDULE["Mark Stale Data Files Stuck"]
+    route = settings.CELERY_TASK_ROUTES[
+        "tdpservice.data_files.tasks.mark_stale_files_stuck"
+    ]
+
+    assert schedule["task"] == "tdpservice.data_files.tasks.mark_stale_files_stuck"
+    assert route["queue"] == settings.CELERY_LIFECYCLE_QUEUE
+
+
+@pytest.mark.django_db
+def test_stale_timeout_can_be_shortened_for_browser_testing(stt_user, stt, settings):
+    """Honor the environment-specific timeout without changing production's day."""
+    settings.STALE_PARSE_TIMEOUT_SECONDS = 60
+    datafile = make_datafile(
+        stt_user,
+        stt,
+        1,
+        state=SubmissionState.PARSE_STARTED,
+    )
+    set_created_at(datafile, timezone.now() - timedelta(seconds=61))
+
+    assert list(get_stale_files().values_list("pk", flat=True)) == [datafile.pk]
+
+
 @pytest.mark.django_db
 def test_stuck_current_fiscal_year_file_is_included(stt_user, stt):
     """Finds current fiscal year files explicitly marked stuck."""
@@ -53,28 +103,153 @@ def test_stuck_current_fiscal_year_file_is_included(stt_user, stt):
 
 
 @pytest.mark.django_db
-def test_non_stuck_current_fiscal_year_files_with_missing_or_pending_summary_are_excluded(
+@pytest.mark.parametrize("summary_status", [None, DataFileSummary.Status.PENDING])
+def test_stale_parse_is_ready_to_be_marked_stuck(
     stt_user,
     stt,
+    summary_status,
 ):
-    """Ignores missing or PENDING summaries unless the file state is stuck."""
-    make_datafile(
+    """Finds parses with missing or PENDING summaries after one day."""
+    datafile = make_datafile(
         stt_user,
         stt,
         1,
         state=SubmissionState.PARSE_STARTED,
     )
-    pending_summary_file = make_datafile(
+    set_created_at(datafile, timezone.now() - timedelta(days=1, minutes=1))
+    if summary_status is not None:
+        make_summary(datafile, summary_status)
+
+    stale_files = get_stale_files()
+
+    assert list(stale_files.values_list("pk", flat=True)) == [datafile.pk]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("summary_status", [None, DataFileSummary.Status.PENDING])
+def test_parse_less_than_a_day_old_is_not_stale(
+    stt_user,
+    stt,
+    summary_status,
+):
+    """Ignores parses that have not reached the one-day threshold."""
+    datafile = make_datafile(
+        stt_user,
+        stt,
+        1,
+        state=SubmissionState.PARSE_STARTED,
+    )
+    set_created_at(datafile, timezone.now() - timedelta(hours=23))
+    if summary_status is not None:
+        make_summary(datafile, summary_status)
+
+    stale_files = get_stale_files()
+
+    assert stale_files.count() == 0
+
+
+@pytest.mark.django_db
+def test_reparse_older_than_a_day_is_stale(stt_user, stt):
+    """Uses the latest reparse start time to identify a stale reparse."""
+    datafile = make_datafile(
+        stt_user,
+        stt,
+        1,
+        state=SubmissionState.PARSE_STARTED,
+    )
+    set_created_at(datafile, timezone.now() - timedelta(days=30))
+    make_summary(datafile, DataFileSummary.Status.PENDING)
+    reparse = ReparseMetaFactory.create()
+    datafile.reparses.add(
+        reparse,
+        through_defaults={
+            "finished": False,
+            "success": False,
+            "started_at": timezone.now() - timedelta(days=1, minutes=1),
+        },
+    )
+    DataFile.objects.filter(pk=datafile.pk).update(
+        state_changed_at=timezone.now() - timedelta(days=1, minutes=1)
+    )
+
+    stale_files = get_stale_files()
+
+    assert list(stale_files.values_list("pk", flat=True)) == [datafile.pk]
+
+
+@pytest.mark.django_db
+def test_recent_reparse_of_old_file_is_not_stale(stt_user, stt):
+    """Gives a new reparse its own full one-day processing window."""
+    datafile = make_datafile(
+        stt_user,
+        stt,
+        1,
+        state=SubmissionState.PARSE_STARTED,
+    )
+    set_created_at(datafile, timezone.now() - timedelta(days=30))
+    make_summary(datafile, DataFileSummary.Status.PENDING)
+    reparse = ReparseMetaFactory.create()
+    datafile.reparses.add(
+        reparse,
+        through_defaults={
+            "finished": False,
+            "success": False,
+            "started_at": timezone.now() - timedelta(hours=23),
+        },
+    )
+    DataFile.objects.filter(pk=datafile.pk).update(
+        state_changed_at=timezone.now() - timedelta(hours=23)
+    )
+
+    stale_files = get_stale_files()
+
+    assert stale_files.count() == 0
+
+
+@pytest.mark.django_db
+def test_old_file_with_completed_summary_is_not_stale(stt_user, stt):
+    """Ignores files whose parsing completed before the stale check."""
+    datafile = make_datafile(
+        stt_user,
+        stt,
+        1,
+        state=SubmissionState.PARSE_COMPLETED,
+    )
+    set_created_at(datafile, timezone.now() - timedelta(days=2))
+    make_summary(datafile, DataFileSummary.Status.ACCEPTED)
+
+    stale_files = get_stale_files()
+
+    assert stale_files.count() == 0
+
+
+@pytest.mark.django_db
+def test_mark_stale_files_stuck_transitions_eligible_files(stt_user, stt):
+    """Persist STUCK for stale parses and leave recent parses unchanged."""
+    stale_file = make_datafile(
+        stt_user,
+        stt,
+        1,
+        state=SubmissionState.PARSE_STARTED,
+    )
+    set_created_at(stale_file, timezone.now() - timedelta(days=2))
+    make_summary(stale_file, DataFileSummary.Status.PENDING)
+    recent_file = make_datafile(
         stt_user,
         stt,
         2,
-        state=SubmissionState.UPLOADED,
+        state=SubmissionState.PARSE_STARTED,
     )
-    make_summary(pending_summary_file, DataFileSummary.Status.PENDING)
+    set_created_at(recent_file, timezone.now() - timedelta(hours=23))
+    make_summary(recent_file, DataFileSummary.Status.PENDING)
 
-    stuck_files = get_stuck_files()
+    marked_count = mark_stale_files_stuck()
 
-    assert stuck_files.count() == 0
+    stale_file.refresh_from_db()
+    recent_file.refresh_from_db()
+    assert marked_count == 1
+    assert stale_file.state == SubmissionState.STUCK
+    assert recent_file.state == SubmissionState.PARSE_STARTED
 
 
 @pytest.mark.django_db

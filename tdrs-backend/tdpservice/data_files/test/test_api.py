@@ -2,6 +2,7 @@
 
 import io
 import os
+from unittest.mock import ANY
 
 from django.contrib.auth.models import Permission
 from django.test import override_settings
@@ -336,7 +337,11 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
         assert data_file.file
 
-        mock_parse_task.assert_called_once_with(data_file.id, reparse_id=None)
+        mock_parse_task.assert_called_once_with(
+            data_file.id,
+            reparse_id=None,
+            parse_token=ANY,
+        )
 
         shadow_data_file = ShadowDataFile.objects.get(id=data_file.id)
         assert shadow_data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
@@ -619,6 +624,9 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
 
         def fake_save(serializer, *args, **kwargs):
             data_file = actual_save(serializer, *args, **kwargs)
+            DataFile.objects.filter(pk=data_file.pk).update(
+                state=SubmissionState.PARSE_STARTED
+            )
             data_file.state = SubmissionState.PARSE_STARTED
             return data_file
 
@@ -722,16 +730,32 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         assert response.data == {
             "detail": "Rejected: uploaded file did not pass security inspection"
         }
-        assert not DataFile.objects.filter(
+        failed_data_file = DataFile.objects.get(
             slug=data_file_data["slug"],
             user=user,
-        ).exists()
+        )
+        assert failed_data_file.state == SubmissionState.VIRUS_SCAN_FAILED
+        assert not failed_data_file.file
 
         av_scan = ClamAVFileScan.objects.get(id=recorded_scan["row"].id)
         assert av_scan.result == ClamAVFileScan.Result.INFECTED
-        assert av_scan.data_file is None
+        assert av_scan.data_file == failed_data_file
 
         mock_parse_task.assert_not_called()
+
+        list_response = api_client.get(
+            self.root_url,
+            {
+                "stt": user.stt_id,
+                "year": data_file_data["year"],
+                "quarter": data_file_data["quarter"],
+                "file_type": "tanf",
+            },
+        )
+        assert list_response.status_code == status.HTTP_200_OK
+        assert failed_data_file.id not in {
+            item["id"] for item in list_response.data
+        }
 
     @pytest.mark.django_db
     def test_av_unavailable_returns_400_with_failed_scan_state(
@@ -763,10 +787,12 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         assert response.data == {
             "detail": "Unable to complete security inspection, please try again or contact support for assistance"
         }
-        assert not DataFile.objects.filter(
+        failed_data_file = DataFile.objects.get(
             slug=data_file_data["slug"],
             user=user,
-        ).exists()
+        )
+        assert failed_data_file.state == SubmissionState.VIRUS_SCAN_FAILED
+        assert not failed_data_file.file
 
         mock_parse_task.assert_not_called()
 

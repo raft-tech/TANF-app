@@ -59,6 +59,14 @@
       - docker-set-registry-owner
       - docker-compose-check
       - docker-compose-up-backend
+      - run:
+          name: Configure accelerated stale-submission E2E timeout
+          command: |
+            cd tdrs-backend
+            STALE_PARSE_TIMEOUT_SECONDS=60 \
+              STALE_PARSE_CHECK_INTERVAL_SECONDS=5 \
+              GO_PARSER_SHADOW_MODE=false \
+              docker-compose up -d --force-recreate web celery
       - docker-compose-up-frontend
       - install-nodejs-machine
       - install-yarn-packages:
@@ -90,7 +98,7 @@
             docker-compose exec web python manage.py loaddata cypress/users cypress/data_files cypress/regions cypress/profile_editing_regions cypress/profile_editing_users cypress/feature_flags
       - run:
           name: Run Cypress e2e tests
-          command: cd tdrs-frontend; yarn test:e2e-ci
+          command: cd tdrs-frontend; CYPRESS_STUCK_TIMEOUT_TEST=true yarn test:e2e-ci
       - store_artifacts:
           path: tdrs-frontend/cypress/screenshots/
       - store_artifacts:

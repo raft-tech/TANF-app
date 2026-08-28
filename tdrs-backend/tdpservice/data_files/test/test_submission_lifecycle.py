@@ -7,15 +7,22 @@ from tdpservice.data_files.submission_lifecycle import (
     InvalidScanResult,
     InvalidTransition,
     ReparsePreparationError,
+    StaleParseOwnership,
     allowed_next_states,
+    begin_parse,
     complete_datafile_av_scan,
+    claim_parse,
+    mark_stuck,
     prepare_datafile_for_reparse,
-    transition_datafile,
+    record_parse_failure,
+    record_parse_outcome,
+    start_datafile_av_scan,
     validate_transition,
 )
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.etl.models import ETLPipelineRun
 from tdpservice.etl.pipelines.sources import SOURCE_DATAFILE_IDS_KEY
+from tdpservice.parsers.models import DataFileSummary
 
 
 def _active_pipeline_run_for_datafile(data_file):
@@ -47,6 +54,7 @@ def test_valid_transitions_succeed():
     assert second.next_state == SubmissionState.VIRUS_SCAN_COMPLETED
     assert allowed_next_states(SubmissionState.UPLOADED) == {
         SubmissionState.VIRUS_SCAN_STARTED,
+        SubmissionState.STUCK,
         SubmissionState.CANCELED,
     }
 
@@ -72,14 +80,10 @@ def test_terminal_states_cannot_transition(state):
 
 @pytest.mark.django_db
 def test_transition_datafile_updates_state():
-    """Test transition_datafile persists the expected state."""
+    """Test the upload controller persists its expected state."""
     data_file = DataFileFactory(state=SubmissionState.UPLOADED)
 
-    transition_datafile(
-        data_file,
-        SubmissionState.VIRUS_SCAN_STARTED,
-        note="Picked up by AV scan worker",
-    )
+    start_datafile_av_scan(data_file, note="Picked up by AV scan worker")
     data_file.refresh_from_db()
 
     assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
@@ -87,23 +91,22 @@ def test_transition_datafile_updates_state():
 
 @pytest.mark.django_db
 def test_transition_datafile_calls_logger_hook():
-    """Test transition_datafile emits structured payloads to a logger hook."""
-    data_file = DataFileFactory(state=SubmissionState.PARSE_STARTED)
+    """Test an intent method emits structured payloads to a logger hook."""
+    data_file = DataFileFactory(state=SubmissionState.UPLOADED)
     payloads = []
 
-    transition_datafile(
+    start_datafile_av_scan(
         data_file,
-        SubmissionState.PARSE_COMPLETED,
-        note="Parser completed successfully",
+        note="AV scan started",
         logger_hook=payloads.append,
     )
 
     assert payloads == [
         {
             "data_file_id": data_file.id,
-            "previous_state": SubmissionState.PARSE_STARTED.value,
-            "next_state": SubmissionState.PARSE_COMPLETED.value,
-            "note": "Parser completed successfully",
+            "previous_state": SubmissionState.UPLOADED.value,
+            "next_state": SubmissionState.VIRUS_SCAN_STARTED.value,
+            "note": "AV scan started",
         }
     ]
 
@@ -114,9 +117,8 @@ def test_transition_datafile_integration_persists_sequential_state_changes():
     data_file = DataFileFactory(state=SubmissionState.UPLOADED)
     payloads = []
 
-    transition_datafile(
+    start_datafile_av_scan(
         data_file,
-        SubmissionState.VIRUS_SCAN_STARTED,
         note="Virus scan worker picked up the file",
         logger_hook=payloads.append,
     )
@@ -124,9 +126,9 @@ def test_transition_datafile_integration_persists_sequential_state_changes():
 
     assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
 
-    transition_datafile(
+    complete_datafile_av_scan(
         data_file,
-        SubmissionState.VIRUS_SCAN_COMPLETED,
+        "clean",
         note="Virus scan passed",
         logger_hook=payloads.append,
     )
@@ -144,6 +146,7 @@ def test_transition_datafile_integration_persists_sequential_state_changes():
             "data_file_id": data_file.id,
             "previous_state": SubmissionState.VIRUS_SCAN_STARTED.value,
             "next_state": SubmissionState.VIRUS_SCAN_COMPLETED.value,
+            "scan_result": "CLEAN",
             "note": "Virus scan passed",
         },
     ]
@@ -151,17 +154,99 @@ def test_transition_datafile_integration_persists_sequential_state_changes():
 
 @pytest.mark.django_db
 def test_transition_datafile_supports_parse_failed_state():
-    """Test transition_datafile persists parse failures caused by exceptions."""
-    data_file = DataFileFactory(state=SubmissionState.PARSE_STARTED)
+    """Test the parser controller persists technical parse failures."""
+    data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_COMPLETED)
+    parse_token = claim_parse(data_file)
+    begin_parse(data_file, parse_token)
 
-    transition_datafile(
+    record_parse_failure(
         data_file,
-        SubmissionState.PARSE_FAILED,
+        parse_token,
         note="Parser raised an unexpected exception",
     )
     data_file.refresh_from_db()
 
     assert data_file.state == SubmissionState.PARSE_FAILED
+
+
+@pytest.mark.django_db
+def test_mark_stuck_transitions_parse_started_atomically():
+    """Mark a file stuck only while its persisted state remains parse_started."""
+    data_file = DataFileFactory(state=SubmissionState.PARSE_STARTED)
+    payloads = []
+
+    marked_file, transition_occurred = mark_stuck(
+        data_file,
+        note="parse remained pending for more than one day",
+        logger_hook=payloads.append,
+    )
+
+    data_file.refresh_from_db()
+    assert marked_file.id == data_file.id
+    assert transition_occurred is True
+    assert data_file.state == SubmissionState.STUCK
+    assert payloads == [
+        {
+            "data_file_id": data_file.id,
+            "previous_state": SubmissionState.PARSE_STARTED.value,
+            "next_state": SubmissionState.STUCK.value,
+            "note": "parse remained pending for more than one day",
+        }
+    ]
+
+
+@pytest.mark.django_db
+def test_mark_stuck_does_not_overwrite_concurrent_parse_completion():
+    """Keep a completion persisted after the stale checker selected the file."""
+    stale_instance = DataFileFactory(state=SubmissionState.PARSE_STARTED)
+    type(stale_instance).objects.filter(pk=stale_instance.pk).update(
+        state=SubmissionState.PARSE_COMPLETED
+    )
+
+    _, transition_occurred = mark_stuck(stale_instance)
+
+    stale_instance.refresh_from_db()
+    assert transition_occurred is False
+    assert stale_instance.state == SubmissionState.PARSE_COMPLETED
+
+
+@pytest.mark.django_db
+def test_late_parse_completion_cannot_replace_stuck_state():
+    """Fence a parser result after its ownership has been revoked."""
+    parser_instance = DataFileFactory(state=SubmissionState.VIRUS_SCAN_COMPLETED)
+    parse_token = claim_parse(parser_instance)
+    begin_parse(parser_instance, parse_token)
+    mark_stuck(parser_instance)
+
+    with pytest.raises(StaleParseOwnership):
+        record_parse_outcome(
+            parser_instance,
+            parse_token,
+            DataFileSummary.Status.ACCEPTED,
+        )
+
+    parser_instance.refresh_from_db()
+    assert parser_instance.state == SubmissionState.STUCK
+
+
+@pytest.mark.django_db
+def test_late_parse_completion_does_not_overwrite_reparse_request():
+    """Reject an old parser result after a stuck file enters reparse."""
+    parser_instance = DataFileFactory(state=SubmissionState.VIRUS_SCAN_COMPLETED)
+    parse_token = claim_parse(parser_instance)
+    begin_parse(parser_instance, parse_token)
+    mark_stuck(parser_instance)
+    prepare_datafile_for_reparse(parser_instance)
+
+    with pytest.raises(StaleParseOwnership):
+        record_parse_outcome(
+            parser_instance,
+            parse_token,
+            DataFileSummary.Status.ACCEPTED,
+        )
+
+    parser_instance.refresh_from_db()
+    assert parser_instance.state == SubmissionState.REPARSE_REQUESTED
 
 
 @pytest.mark.parametrize(
@@ -198,6 +283,7 @@ def test_reparse_requested_can_transition_to_parse_started():
         SubmissionState.PARSE_FAILED,
         SubmissionState.PARSED_WITH_ERRORS,
         SubmissionState.PARSE_COMPLETED,
+        SubmissionState.STUCK,
     ],
 )
 def test_safe_states_can_request_reparse(state):
@@ -215,6 +301,7 @@ def test_safe_states_can_request_reparse(state):
         SubmissionState.PARSE_FAILED,
         SubmissionState.PARSED_WITH_ERRORS,
         SubmissionState.PARSE_COMPLETED,
+        SubmissionState.STUCK,
     ],
 )
 @pytest.mark.django_db
@@ -285,7 +372,6 @@ def test_prepare_datafile_for_reparse_rejects_active_pipeline_source():
         SubmissionState.PARSE_STARTED,
         SubmissionState.COMPLETED,
         SubmissionState.CANCELED,
-        SubmissionState.STUCK,
     ],
 )
 @pytest.mark.django_db

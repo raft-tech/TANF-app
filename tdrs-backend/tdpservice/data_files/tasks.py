@@ -1,15 +1,22 @@
 """Celery shared tasks for use in scheduled jobs."""
 
 import logging
+from datetime import timedelta
 
+from django.conf import settings
 from django.contrib.auth.models import Group
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from celery import shared_task
 
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
-from tdpservice.data_files.submission_lifecycle import revert_reparse_request
+from tdpservice.data_files.submission_lifecycle import (
+    STALE_ELIGIBLE_STATES,
+    mark_stuck,
+    revert_reparse_request,
+)
 from tdpservice.email.helpers.data_file import send_stuck_file_email
 from tdpservice.search_indexes.reparse import (
     ReparseDestructiveCleanupStarted,
@@ -18,6 +25,11 @@ from tdpservice.search_indexes.reparse import (
 from tdpservice.users.models import AccountApprovalStatusChoices, User
 
 logger = logging.getLogger(__name__)
+
+
+def get_stale_parse_age():
+    """Return the configured age after which active processing is stale."""
+    return timedelta(seconds=settings.STALE_PARSE_TIMEOUT_SECONDS)
 
 
 def get_current_fiscal_year():
@@ -30,7 +42,7 @@ def get_current_fiscal_year():
 
 
 def get_stuck_files():
-    """Return a queryset containing current fiscal year files marked stuck."""
+    """Return current fiscal year files marked stuck."""
     return (
         DataFile.objects.select_related("stt", "user")
         .filter(
@@ -39,6 +51,37 @@ def get_stuck_files():
         )
         .order_by("created_at", "pk")
     )
+
+
+def get_stale_files(now=None):
+    """Return active submissions whose current lifecycle activity is stale."""
+    cutoff = (now or timezone.now()) - get_stale_parse_age()
+
+    return (
+        DataFile.objects.annotate(
+            lifecycle_activity_at=Coalesce("state_changed_at", "created_at")
+        )
+        .filter(
+            state__in=STALE_ELIGIBLE_STATES,
+            lifecycle_activity_at__lt=cutoff,
+        )
+        .order_by("lifecycle_activity_at", "pk")
+    )
+
+
+@shared_task
+def mark_stale_files_stuck():
+    """Move active submissions older than the stale threshold to STUCK."""
+    marked_count = 0
+    for data_file in get_stale_files().iterator(chunk_size=500):
+        _, transition_occurred = mark_stuck(
+            data_file,
+            note="submission exceeded the configured stale-processing timeout",
+        )
+        marked_count += int(transition_occurred)
+
+    logger.info("Marked %s stale DataFile(s) as STUCK.", marked_count)
+    return marked_count
 
 
 @shared_task

@@ -11,7 +11,15 @@ import pytest
 from celery import current_app as celery_app
 from celery.exceptions import TimeoutError as CeleryTimeoutError
 
+from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.submission_lifecycle import (
+    begin_parse,
+    complete_datafile_av_scan,
+    claim_parse,
+    prepare_datafile_for_reparse,
+    start_datafile_av_scan,
+)
 from tdpservice.parsers import aggregates
 from tdpservice.parsers.models import (
     DataFileSummary,
@@ -79,9 +87,23 @@ def parse_datafile(dfs, datafile, timeout_seconds=GO_PARSE_TIMEOUT_SECONDS):
     dfs.status = DataFileSummary.Status.PENDING
     dfs.save()
 
+    datafile.refresh_from_db()
+    if datafile.state == SubmissionState.UPLOADED:
+        start_datafile_av_scan(datafile)
+        complete_datafile_av_scan(datafile, "clean")
+    elif datafile.state in {
+        SubmissionState.PARSE_COMPLETED,
+        SubmissionState.PARSED_WITH_ERRORS,
+        SubmissionState.PARSE_FAILED,
+        SubmissionState.STUCK,
+    }:
+        prepare_datafile_for_reparse(datafile, note="Go parser integration reparse")
+    parse_token = claim_parse(datafile)
+    begin_parse(datafile, parse_token, actor="go_parser")
+
     async_result = celery_app.send_task(
         GO_PARSE_TASK_NAME,
-        args=[datafile.pk, 0],
+        args=[datafile.pk, 0, str(parse_token)],
         queue=settings.CELERY_GO_PARSER_QUEUE,
     )
 
