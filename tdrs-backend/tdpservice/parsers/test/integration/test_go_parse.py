@@ -61,6 +61,7 @@ logger = logging.getLogger(__name__)
 GO_PARSE_TASK_NAME = "tdpservice.scheduling.parser_task.go_parse"
 GO_PARSE_TIMEOUT_SECONDS = 300
 GO_PARSE_LARGE_FILE_TIMEOUT_SECONDS = 300
+GO_POST_PARSE_TIMEOUT_SECONDS = 60
 _GO_PARSER_DATAFILE_IDS = None
 
 os.environ["GO_PARSER_SHADOW_MODE"] = "False"
@@ -77,6 +78,37 @@ def register_go_parser_datafile_for_cleanup(datafile):
     """Register a DataFile for committed cleanup after a Go parser test."""
     if _GO_PARSER_DATAFILE_IDS is not None and datafile is not None and datafile.pk:
         _GO_PARSER_DATAFILE_IDS.add(datafile.pk)
+
+
+def wait_for_post_parse(datafile, timeout_seconds=GO_POST_PARSE_TIMEOUT_SECONDS):
+    """Wait for Python to finalize output produced by the live Go worker."""
+    deadline = time.monotonic() + timeout_seconds
+    final_states = {
+        SubmissionState.PARSE_FAILED,
+        SubmissionState.PARSED_WITH_ERRORS,
+        SubmissionState.PARSE_COMPLETED,
+    }
+
+    while time.monotonic() < deadline:
+        datafile.refresh_from_db()
+        if datafile.state in final_states:
+            if datafile.current_parse_token is not None:
+                raise RuntimeError(
+                    f"Post-parse left an owner on datafile {datafile.pk} "
+                    f"in state {datafile.state}."
+                )
+            return
+        if datafile.state != SubmissionState.PARSE_STARTED:
+            raise RuntimeError(
+                f"Post-parse moved datafile {datafile.pk} to unexpected state "
+                f"{datafile.state}."
+            )
+        time.sleep(0.1)
+
+    raise RuntimeError(
+        f"Timed out waiting for Python post-parse to finalize datafile "
+        f"{datafile.pk}; state={datafile.state}."
+    )
 
 
 def parse_datafile(dfs, datafile, timeout_seconds=GO_PARSE_TIMEOUT_SECONDS):
@@ -120,8 +152,7 @@ def parse_datafile(dfs, datafile, timeout_seconds=GO_PARSE_TIMEOUT_SECONDS):
             f"Go parser task failed for datafile {datafile.pk}: {task_result}"
         )
 
-    # Give the database a brief moment to surface writes after the worker acks success.
-    time.sleep(0.1)
+    wait_for_post_parse(datafile)
 
     dfs.refresh_from_db()
     return dfs

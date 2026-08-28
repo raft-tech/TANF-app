@@ -5,6 +5,7 @@ import * as df from '../common-steps/data_files.js'
 const TEST_DATA_DIR = '../tdrs-backend/tdpservice/parsers/test/data'
 const STATUS_TIMEOUT = 90000
 let longRunningSubmissionId = null
+let infectedSubmissionName = null
 
 Before({ tags: '@local-stuck-timeout' }, function () {
   if (!Cypress.env('stuckTimeoutTest')) this.skip()
@@ -181,6 +182,7 @@ When('FRA Data Analyst Fred submits an infected file through the UI', () => {
     'X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-',
     'ANTIVIRUS-TEST-FILE!$H+H*',
   ].join('')
+  infectedSubmissionName = `infected_fra_${Date.now()}.csv`
 
   cy.visit('/fra-data-files')
   cy.get('h1').contains('FRA Data Files').should('be.visible')
@@ -188,7 +190,7 @@ When('FRA Data Analyst Fred submits an infected file through the UI', () => {
   cy.get('#fra-file-upload').selectFile(
     {
       contents: Cypress.Buffer.from(eicarTestContent),
-      fileName: 'infected_fra.csv',
+      fileName: infectedSubmissionName,
       mimeType: 'text/csv',
     },
     { action: 'drag-drop', force: true }
@@ -214,7 +216,7 @@ Then(
     cy.contains('Successfully uploaded').should('not.exist')
     cy.contains('caption', 'Work Outcomes of TANF Exiters Submission History')
       .parents('table')
-      .should('not.contain.text', 'infected_fra.csv')
+      .should('not.contain.text', infectedSubmissionName)
   }
 )
 
