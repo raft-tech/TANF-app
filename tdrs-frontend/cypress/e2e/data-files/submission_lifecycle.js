@@ -238,17 +238,28 @@ Then(
   'Admin Alex eventually sees the submission in Stuck state in the admin UI',
   () => {
     expect(longRunningSubmissionId).not.to.equal(null)
-    const adminOrigin = new URL(Cypress.env('adminUrl')).origin
+    const adminUrl = new URL(Cypress.env('adminUrl'))
+    const adminPath = `${adminUrl.pathname.replace(/\/$/, '')}/data_files/datafile/${longRunningSubmissionId}/change/`
 
     // CI marks the parse stale after 60 seconds and checks every 5 seconds.
-    // Wait before changing origins so Cypress only establishes the admin bridge once.
+    // Wait before opening the admin page so no reload is needed to observe STUCK.
     cy.wait(STUCK_TIMEOUT_WAIT)
 
+    if (adminUrl.origin === new URL(Cypress.config('baseUrl')).origin) {
+      cy.visit(adminPath)
+      cy.get('.field-state .readonly', { timeout: 20000 }).should(
+        'have.text',
+        'Stuck'
+      )
+      cy.get('.field-parsing_state .readonly').should('have.text', 'Stuck')
+      return
+    }
+
     cy.origin(
-      adminOrigin,
-      { args: { dataFileId: longRunningSubmissionId } },
-      ({ dataFileId }) => {
-        cy.visit(`/admin/data_files/datafile/${dataFileId}/change/`)
+      adminUrl.origin,
+      { args: { adminPath } },
+      ({ adminPath: path }) => {
+        cy.visit(path)
         cy.get('.field-state .readonly', { timeout: 20000 }).should(
           'have.text',
           'Stuck'

@@ -98,7 +98,7 @@
             docker-compose exec web python manage.py loaddata cypress/users cypress/data_files cypress/regions cypress/profile_editing_regions cypress/profile_editing_users cypress/feature_flags
       - run:
           name: Run Cypress e2e tests
-          command: cd tdrs-frontend; CYPRESS_STUCK_TIMEOUT_TEST=true yarn test:e2e-ci
+          command: cd tdrs-frontend; CYPRESS_ADMIN_URL=http://localhost:3000/admin CYPRESS_STUCK_TIMEOUT_TEST=true yarn test:e2e-ci
       - store_artifacts:
           path: tdrs-frontend/cypress/screenshots/
       - store_artifacts:
