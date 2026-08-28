@@ -4,6 +4,7 @@ import * as df from '../common-steps/data_files.js'
 
 const TEST_DATA_DIR = '../tdrs-backend/tdpservice/parsers/test/data'
 const STATUS_TIMEOUT = 90000
+const STUCK_TIMEOUT_WAIT = 70000
 let longRunningSubmissionId = null
 let infectedSubmissionName = null
 
@@ -239,37 +240,20 @@ Then(
     expect(longRunningSubmissionId).not.to.equal(null)
     const adminOrigin = new URL(Cypress.env('adminUrl')).origin
 
+    // CI marks the parse stale after 60 seconds and checks every 5 seconds.
+    // Wait before changing origins so Cypress only establishes the admin bridge once.
+    cy.wait(STUCK_TIMEOUT_WAIT)
+
     cy.origin(
       adminOrigin,
       { args: { dataFileId: longRunningSubmissionId } },
       ({ dataFileId }) => {
         cy.visit(`/admin/data_files/datafile/${dataFileId}/change/`)
-
-        const visitUntilStuck = (remainingAttempts = 20) => {
-          return cy.get('.field-state .readonly').then(($state) => {
-            const state = $state.text().trim()
-            if (state === 'Stuck') {
-              cy.wrap($state).should('have.text', 'Stuck')
-              cy.get('.field-parsing_state .readonly').should(
-                'have.text',
-                'Stuck'
-              )
-              return
-            }
-
-            if (remainingAttempts === 0) {
-              throw new Error(
-                `Submission ${dataFileId} remained ${state}; expected Stuck`
-              )
-            }
-
-            cy.wait(5000)
-            cy.reload()
-            return visitUntilStuck(remainingAttempts - 1)
-          })
-        }
-
-        visitUntilStuck()
+        cy.get('.field-state .readonly', { timeout: 20000 }).should(
+          'have.text',
+          'Stuck'
+        )
+        cy.get('.field-parsing_state .readonly').should('have.text', 'Stuck')
       }
     )
   }

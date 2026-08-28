@@ -4,16 +4,17 @@ import * as df from '../common-steps/data_files.js'
 
 const submissionRowContains = (fileName, value) => {
   cy.get('tbody > tr').should(($rows) => {
-    const matchingRow = [...$rows].find((row) =>
-      [...row.querySelectorAll('th, td')].some(
+    const matchingRow = [...$rows].find((row) => {
+      const hasExactFileName = [...row.querySelectorAll('th, td')].some(
         (cell) => cell.textContent.trim() === fileName
       )
-    )
+      return hasExactFileName && row.textContent.includes(value)
+    })
 
-    expect(matchingRow, `submission row for ${fileName}`).not.to.equal(
-      undefined
-    )
-    expect(matchingRow.textContent).to.include(value)
+    expect(
+      matchingRow,
+      `submission row for ${fileName} with status ${value}`
+    ).not.to.equal(undefined)
   })
 }
 
