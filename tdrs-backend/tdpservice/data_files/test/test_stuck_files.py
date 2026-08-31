@@ -90,6 +90,24 @@ def test_stale_timeout_can_be_shortened_for_browser_testing(stt_user, stt, setti
 
 
 @pytest.mark.django_db
+def test_stale_timeout_can_be_supplied_by_task_caller(stt_user, stt):
+    """Allow an accelerated task run without changing production settings."""
+    datafile = make_datafile(
+        stt_user,
+        stt,
+        1,
+        state=SubmissionState.PARSE_STARTED,
+    )
+    set_created_at(datafile, timezone.now() - timedelta(seconds=61))
+
+    marked_count = mark_stale_files_stuck(timeout_seconds=60)
+
+    datafile.refresh_from_db()
+    assert marked_count == 1
+    assert datafile.state == SubmissionState.STUCK
+
+
+@pytest.mark.django_db
 def test_stuck_current_fiscal_year_file_is_included(stt_user, stt):
     """Finds current fiscal year files explicitly marked stuck."""
     datafile = make_datafile(

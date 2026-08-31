@@ -28,9 +28,14 @@ from tdpservice.users.models import AccountApprovalStatusChoices, User
 logger = logging.getLogger(__name__)
 
 
-def get_stale_parse_age():
-    """Return the configured age after which active processing is stale."""
-    return timedelta(seconds=settings.STALE_PARSE_TIMEOUT_SECONDS)
+def get_stale_parse_age(timeout_seconds: int | None = None):
+    """Return the age after which active processing is stale."""
+    configured_timeout = (
+        settings.STALE_PARSE_TIMEOUT_SECONDS
+        if timeout_seconds is None
+        else timeout_seconds
+    )
+    return timedelta(seconds=configured_timeout)
 
 
 def get_current_fiscal_year():
@@ -54,10 +59,10 @@ def get_stuck_files():
     )
 
 
-def get_stale_lifecycle_files(now=None):
+def get_stale_lifecycle_files(now=None, timeout_seconds: int | None = None):
     """Return active submissions that exceeded a lifecycle or reparse timeout."""
     current_time = now or timezone.now()
-    cutoff = current_time - get_stale_parse_age()
+    cutoff = current_time - get_stale_parse_age(timeout_seconds)
     timed_out_reparse = ReparseFileMeta.objects.filter(
         data_file_id=OuterRef("pk"),
         reparse_meta__timeout_at__lte=current_time,
@@ -79,10 +84,12 @@ def get_stale_lifecycle_files(now=None):
 
 
 @shared_task
-def mark_stale_files_stuck():
+def mark_stale_files_stuck(timeout_seconds: int | None = None):
     """Move active submissions that exceeded a detection deadline to STUCK."""
     marked_count = 0
-    for data_file in get_stale_lifecycle_files().iterator(chunk_size=500):
+    for data_file in get_stale_lifecycle_files(
+        timeout_seconds=timeout_seconds
+    ).iterator(chunk_size=500):
         _, transition_occurred = mark_stuck(
             data_file,
             note="submission exceeded a lifecycle or reparse timeout",
