@@ -352,6 +352,18 @@ def test_prepare_datafile_for_reparse_rejects_uploaded_file():
 
 
 @pytest.mark.django_db
+def test_prepare_datafile_for_reparse_rejects_stuck_file_without_upload_bytes():
+    """A scan-stage timeout cannot be recovered through the parser."""
+    data_file = DataFileFactory(state=SubmissionState.STUCK, file=None)
+
+    with pytest.raises(ReparsePreparationError, match="no stored file"):
+        prepare_datafile_for_reparse(data_file)
+
+    data_file.refresh_from_db()
+    assert data_file.state == SubmissionState.STUCK
+
+
+@pytest.mark.django_db
 def test_prepare_datafile_for_reparse_rejects_active_pipeline_source():
     """Reparse cannot take a DataFile already snapshotted by active ETL."""
     data_file = DataFileFactory(state=SubmissionState.PARSE_COMPLETED)

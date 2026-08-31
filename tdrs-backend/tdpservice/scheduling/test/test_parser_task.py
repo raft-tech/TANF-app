@@ -669,6 +669,61 @@ def test_parse_success_reparse_updates_file_meta(monkeypatch, data_analyst):
 
 
 @pytest.mark.django_db
+def test_parse_success_reparse_finishes_when_notification_fails(monkeypatch, stt):
+    """Notification outages do not undo or strand a successful reparse."""
+    datafile = DataFileFactory(
+        stt=stt,
+        version=6,
+        state=SubmissionState.PARSE_COMPLETED,
+    )
+    ensure_stt_filenames(datafile.stt)
+    dfs = DataFileSummary.objects.create(
+        datafile=datafile,
+        status=DataFileSummary.Status.PENDING,
+    )
+    meta_model = ReparseMeta.objects.create(db_backup_location="s3://backup")
+    file_meta = ReparseFileMeta.objects.create(
+        data_file=datafile,
+        reparse_meta=meta_model,
+    )
+    setup_parse_mocks(monkeypatch, dfs=dfs)
+    monkeypatch.setattr(
+        parser_task.ParserFactory,
+        "get_instance",
+        lambda **kwargs: DummyParser(),
+    )
+    monkeypatch.setattr(
+        parser_task.ParserError.objects,
+        "filter",
+        lambda *args, **kwargs: SimpleNamespace(count=lambda: 0),
+    )
+    monkeypatch.setattr(
+        parser_task.ReparseMeta,
+        "set_total_num_records_post",
+        lambda *args, **kwargs: None,
+    )
+
+    def fail_notification(*args, **kwargs):
+        raise RuntimeError("email provider unavailable")
+
+    monkeypatch.setattr(
+        parser_task,
+        "send_data_submitted_email",
+        fail_notification,
+    )
+
+    prepare_datafile_for_reparse(datafile)
+    parser_task.parse(datafile.id, reparse_id=meta_model.pk)
+
+    datafile.refresh_from_db()
+    file_meta.refresh_from_db()
+    assert datafile.state == SubmissionState.PARSE_COMPLETED
+    assert datafile.current_parse_token is None
+    assert file_meta.finished is True
+    assert file_meta.success is True
+
+
+@pytest.mark.django_db
 def test_parse_success_reparse_suppresses_email_for_accepted_to_accepted(
     monkeypatch, data_analyst
 ):

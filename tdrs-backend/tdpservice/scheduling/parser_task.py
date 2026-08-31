@@ -637,7 +637,19 @@ def parse(data_file_id, reparse_id=None, parse_token=None):
 
         _finalize_parse(data_file, dfs, parse_token=parse_token)
         _transition_parse_outcome(data_file, dfs, parse_token, reparse_id)
-        _notify_data_analysts(data_file, dfs, file_meta, reparse_id)
+        try:
+            _notify_data_analysts(data_file, dfs, file_meta, reparse_id)
+        except Exception:
+            # Notification delivery is ancillary to parsing. The lifecycle
+            # outcome and reparse metadata must remain successful even when
+            # the email provider is temporarily unavailable.
+            logger.exception(
+                "Failed to notify data analysts after successful parse.",
+                extra={
+                    "data_file_id": data_file_id,
+                    "reparse_id": reparse_id,
+                },
+            )
 
     except StaleParseOwnership:
         stale_owner = True

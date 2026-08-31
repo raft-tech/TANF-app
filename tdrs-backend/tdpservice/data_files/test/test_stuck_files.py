@@ -104,6 +104,34 @@ def test_stuck_current_fiscal_year_file_is_included(stt_user, stt):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("summary_status", [None, DataFileSummary.Status.PENDING])
+def test_non_stuck_current_fy_missing_or_pending_summary_is_excluded(
+    stt_user,
+    stt,
+    summary_status,
+):
+    """Ignore legacy summary conditions unless the lifecycle state is STUCK."""
+    stuck_file = make_datafile(
+        stt_user,
+        stt,
+        1,
+        state=SubmissionState.STUCK,
+    )
+    non_stuck_file = make_datafile(
+        stt_user,
+        stt,
+        2,
+        state=SubmissionState.PARSE_STARTED,
+    )
+    if summary_status is not None:
+        make_summary(non_stuck_file, summary_status)
+
+    stuck_files = get_stuck_files()
+
+    assert list(stuck_files.values_list("pk", flat=True)) == [stuck_file.pk]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("summary_status", [None, DataFileSummary.Status.PENDING])
 def test_stale_parse_is_ready_to_be_marked_stuck(
     stt_user,
     stt,

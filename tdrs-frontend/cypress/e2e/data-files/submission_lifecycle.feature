@@ -22,6 +22,17 @@ Feature: Submission lifecycle through the user interface
         When Data Analyst Tim submits an invalid TANF active case file through the UI
         Then Data Analyst Tim sees the TANF active case submission finish as Rejected
 
+    @local-admin-reparse
+    Scenario: An administrator reparses a completed submission
+        Given 'Data Analyst Tim' logs in
+        When Data Analyst Tim submits a TANF aggregate file for administrator reprocessing
+        Then Data Analyst Tim sees the reprocessing candidate finish as Accepted
+        And 'Admin Alex' logs in
+        When Admin Alex reparses the completed submission in the admin UI
+        Then Admin Alex eventually sees the reparse finish in the admin UI
+        And 'Data Analyst Tim' logs in
+        Then Data Analyst Tim sees the submission marked as Reprocessed and Accepted
+
     Scenario: A data analyst submits a file that fails security inspection
         Given 'FRA Data Analyst Fred' logs in
         When FRA Data Analyst Fred submits an infected file through the UI

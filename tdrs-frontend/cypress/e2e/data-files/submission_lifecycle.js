@@ -4,11 +4,21 @@ import * as df from '../common-steps/data_files.js'
 
 const TEST_DATA_DIR = '../tdrs-backend/tdpservice/parsers/test/data'
 const STATUS_TIMEOUT = 90000
-const STUCK_TIMEOUT_WAIT = 70000
+const STUCK_STATE_TIMEOUT = 120000
+const STUCK_STATE_POLL_INTERVAL = 2000
+const REPARSE_STATE_TIMEOUT = 180000
 let longRunningSubmissionId = null
 let infectedSubmissionName = null
+let reparseSubmissionId = null
+let reparseSubmissionName = null
 
 Before({ tags: '@local-stuck-timeout' }, function () {
+  if (!Cypress.env('stuckTimeoutTest')) this.skip()
+})
+
+Before({ tags: '@local-admin-reparse' }, function () {
+  // Reparse performs destructive cleanup and a database backup, so it should
+  // only run against the disposable local/CI stack used by lifecycle tests.
   if (!Cypress.env('stuckTimeoutTest')) this.skip()
 })
 
@@ -178,6 +188,152 @@ Then(
   }
 )
 
+When(
+  'Data Analyst Tim submits a TANF aggregate file for administrator reprocessing',
+  () => {
+    reparseSubmissionName = `accepted_tanf_reparse_${Date.now()}.txt`
+    uploadSectionThroughUI(
+      'TANF',
+      '2022',
+      'Q1',
+      '#aggregate_data',
+      'ADS.E2J.FTP3.TS06',
+      reparseSubmissionName
+    ).then((dataFile) => {
+      reparseSubmissionId = dataFile.id
+    })
+  }
+)
+
+Then(
+  'Data Analyst Tim sees the reprocessing candidate finish as Accepted',
+  () => {
+    latestSectionRowShows(3, 'TANF', reparseSubmissionName, 'Accepted')
+  }
+)
+
+When('Admin Alex reparses the completed submission in the admin UI', () => {
+  expect(reparseSubmissionId).not.to.equal(null)
+  const adminUrl = new URL(Cypress.env('adminUrl'))
+  const adminPath = adminUrl.pathname.replace(/\/$/, '')
+  const dataFilesPath = `${adminPath}/data_files/datafile/`
+  const checkboxSelector = `input.action-select[value="${reparseSubmissionId}"]`
+
+  const submitReparse = (path, selector) => {
+    cy.visit(path)
+    cy.get(selector, { timeout: 20000 }).check()
+    cy.get('select[name="action"]').select('reparse')
+    cy.get('button[name="index"]').first().click()
+    return cy
+      .contains('.messagelist', 'file successfully submitted for reparsing', {
+        timeout: 20000,
+      })
+      .should('be.visible')
+  }
+
+  if (adminUrl.origin === new URL(Cypress.config('baseUrl')).origin) {
+    return submitReparse(dataFilesPath, checkboxSelector)
+  }
+
+  return cy.origin(
+    adminUrl.origin,
+    { args: { dataFilesPath, checkboxSelector } },
+    ({ dataFilesPath: path, checkboxSelector: selector }) => {
+      cy.visit(path)
+      cy.get(selector, { timeout: 20000 }).check()
+      cy.get('select[name="action"]').select('reparse')
+      cy.get('button[name="index"]').first().click()
+      return cy
+        .contains('.messagelist', 'file successfully submitted for reparsing', {
+          timeout: 20000,
+        })
+        .should('be.visible')
+    }
+  )
+})
+
+Then('Admin Alex eventually sees the reparse finish in the admin UI', () => {
+  expect(reparseSubmissionId).not.to.equal(null)
+  const adminUrl = new URL(Cypress.env('adminUrl'))
+  const adminPath = adminUrl.pathname.replace(/\/$/, '')
+  const dataFilePath = `${adminPath}/data_files/datafile/${reparseSubmissionId}/change/`
+
+  const visitUntilReparseFinishes = (path, deadline) => {
+    cy.visit(path)
+    return cy
+      .get('.field-state .readonly', { timeout: 20000 })
+      .invoke('text')
+      .then((state) => {
+        if (state.trim() === 'Parse completed') return
+        if (Date.now() >= deadline) {
+          throw new Error(
+            `Reparse remained in ${state.trim()} instead of Parse completed`
+          )
+        }
+        cy.wait(STUCK_STATE_POLL_INTERVAL)
+        return visitUntilReparseFinishes(path, deadline)
+      })
+  }
+
+  if (adminUrl.origin === new URL(Cypress.config('baseUrl')).origin) {
+    return visitUntilReparseFinishes(
+      dataFilePath,
+      Date.now() + REPARSE_STATE_TIMEOUT
+    ).then(() =>
+      cy
+        .get('.field-parsing_state .readonly')
+        .should('have.text', 'Parse completed')
+    )
+  }
+
+  return cy.origin(
+    adminUrl.origin,
+    {
+      args: {
+        dataFilePath,
+        pollInterval: STUCK_STATE_POLL_INTERVAL,
+        timeout: REPARSE_STATE_TIMEOUT,
+      },
+    },
+    ({ dataFilePath: path, pollInterval, timeout }) => {
+      const visitUntilReparseFinishesAcrossOrigin = (deadline) => {
+        cy.visit(path)
+        return cy
+          .get('.field-state .readonly', { timeout: 20000 })
+          .invoke('text')
+          .then((state) => {
+            if (state.trim() === 'Parse completed') return
+            if (Date.now() >= deadline) {
+              throw new Error(
+                `Reparse remained in ${state.trim()} instead of Parse completed`
+              )
+            }
+            cy.wait(pollInterval)
+            return visitUntilReparseFinishesAcrossOrigin(deadline)
+          })
+      }
+
+      return visitUntilReparseFinishesAcrossOrigin(Date.now() + timeout).then(
+        () =>
+          cy
+            .get('.field-parsing_state .readonly')
+            .should('have.text', 'Parse completed')
+      )
+    }
+  )
+})
+
+Then(
+  'Data Analyst Tim sees the submission marked as Reprocessed and Accepted',
+  () => {
+    df.openDataFilesAndSearch('TANF', '2022', 'Q1')
+    df.getLatestSubmissionHistoryRow(3, 'TANF', STATUS_TIMEOUT)
+      .should('contain.text', reparseSubmissionName)
+      .and('contain.text', 'Accepted')
+      .and('contain.text', 'Reprocessed')
+  }
+)
+
 When('FRA Data Analyst Fred submits an infected file through the UI', () => {
   const eicarTestContent = [
     'X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-',
@@ -241,30 +397,60 @@ Then(
     const adminUrl = new URL(Cypress.env('adminUrl'))
     const adminPath = `${adminUrl.pathname.replace(/\/$/, '')}/data_files/datafile/${longRunningSubmissionId}/change/`
 
-    // CI marks the parse stale after 60 seconds and checks every 5 seconds.
-    // Wait before opening the admin page so no reload is needed to observe STUCK.
-    cy.wait(STUCK_TIMEOUT_WAIT)
+    const visitUntilStuck = (path, deadline) => {
+      cy.visit(path)
+      return cy
+        .get('.field-state .readonly', { timeout: 20000 })
+        .invoke('text')
+        .then((state) => {
+          if (state.trim() === 'Stuck') return
+          if (Date.now() >= deadline) {
+            throw new Error(
+              `Submission remained in ${state.trim()} instead of Stuck`
+            )
+          }
+          cy.wait(STUCK_STATE_POLL_INTERVAL)
+          return visitUntilStuck(path, deadline)
+        })
+    }
 
     if (adminUrl.origin === new URL(Cypress.config('baseUrl')).origin) {
-      cy.visit(adminPath)
-      cy.get('.field-state .readonly', { timeout: 20000 }).should(
-        'have.text',
-        'Stuck'
+      return visitUntilStuck(adminPath, Date.now() + STUCK_STATE_TIMEOUT).then(
+        () =>
+          cy.get('.field-parsing_state .readonly').should('have.text', 'Stuck')
       )
-      cy.get('.field-parsing_state .readonly').should('have.text', 'Stuck')
-      return
     }
 
     cy.origin(
       adminUrl.origin,
-      { args: { adminPath } },
-      ({ adminPath: path }) => {
-        cy.visit(path)
-        cy.get('.field-state .readonly', { timeout: 20000 }).should(
-          'have.text',
-          'Stuck'
+      {
+        args: {
+          adminPath,
+          pollInterval: STUCK_STATE_POLL_INTERVAL,
+          timeout: STUCK_STATE_TIMEOUT,
+        },
+      },
+      ({ adminPath: path, pollInterval, timeout }) => {
+        const visitUntilStuckAcrossOrigin = (deadline) => {
+          cy.visit(path)
+          return cy
+            .get('.field-state .readonly', { timeout: 20000 })
+            .invoke('text')
+            .then((state) => {
+              if (state.trim() === 'Stuck') return
+              if (Date.now() >= deadline) {
+                throw new Error(
+                  `Submission remained in ${state.trim()} instead of Stuck`
+                )
+              }
+              cy.wait(pollInterval)
+              return visitUntilStuckAcrossOrigin(deadline)
+            })
+        }
+
+        return visitUntilStuckAcrossOrigin(Date.now() + timeout).then(() =>
+          cy.get('.field-parsing_state .readonly').should('have.text', 'Stuck')
         )
-        cy.get('.field-parsing_state .readonly').should('have.text', 'Stuck')
       }
     )
   }

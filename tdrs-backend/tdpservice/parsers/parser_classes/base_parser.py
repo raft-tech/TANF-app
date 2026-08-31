@@ -271,12 +271,13 @@ class BaseParser(ABC):
             cases = Q()
             for case in self.serialized_cases:
                 cases |= Q(**case)
-            for schemas in self.schema_manager.schema_map.values():
-                schema = schemas[0]
-                num_deleted, _ = schema.model.objects.filter(
-                    cases, datafile=self.datafile
-                ).delete()
-                self.dfs.total_number_of_records_created -= num_deleted
+            with self.database_write_scope():
+                for schemas in self.schema_manager.schema_map.values():
+                    schema = schemas[0]
+                    num_deleted, _ = schema.model.objects.filter(
+                        cases, datafile=self.datafile
+                    ).delete()
+                    self.dfs.total_number_of_records_created -= num_deleted
             logger.info(
                 f"Deleted {start_num - self.dfs.total_number_of_records_created} records with cat4 errors."
             )
@@ -354,7 +355,8 @@ class BaseParser(ABC):
 
         # We add the case ID here because a case with a duplicate record must be purged in it's entirety.
         self.serialized_cases.add(case_id_to_delete)
-        num_deleted = duplicate_records._raw_delete(duplicate_records.db)
+        with self.database_write_scope():
+            num_deleted = duplicate_records._raw_delete(duplicate_records.db)
         self.dfs.total_number_of_records_created -= num_deleted
 
     def _generate_errors_and_delete_dups(

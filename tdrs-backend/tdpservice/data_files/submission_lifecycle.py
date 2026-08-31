@@ -339,6 +339,10 @@ def prepare_datafile_for_reparse(
             raise ReparsePreparationError(
                 f"Cannot reparse DataFile {data_file.id} in state {current_state.value}."
             )
+        if not locked.file:
+            raise ReparsePreparationError(
+                f"Cannot reparse DataFile {data_file.id} because it has no stored file."
+            )
         transition = _apply_transition_locked(
             locked,
             SubmissionState.REPARSE_REQUESTED,
