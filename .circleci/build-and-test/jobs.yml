@@ -67,6 +67,11 @@
               STALE_PARSE_CHECK_INTERVAL_SECONDS=5 \
               GO_PARSER_SHADOW_MODE=false \
               docker-compose up -d --force-recreate web celery
+            docker-compose exec -T celery sh -c '
+              test "$STALE_PARSE_TIMEOUT_SECONDS" = 60 &&
+              test "$STALE_PARSE_CHECK_INTERVAL_SECONDS" = 5 &&
+              test "$GO_PARSER_SHADOW_MODE" = false
+            '
       - docker-compose-up-frontend
       - install-nodejs-machine
       - install-yarn-packages:
@@ -110,26 +115,42 @@
 
             PeriodicTask.objects.filter(name='Mark Stale Data Files Stuck').delete()
             "
+            celery_start_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             docker-compose start celery
-            for lifecycle_probe_attempt in $(seq 1 40); do
-              if docker-compose exec -T celery python manage.py shell -c "
-            from django_celery_beat.models import PeriodicTask
+            for lifecycle_probe_attempt in $(seq 1 60); do
+              celery_logs="$(docker-compose logs --since "$celery_start_time" --no-color celery 2>/dev/null)"
+              if grep -q 'DatabaseScheduler: Schedule changed' <<< "$celery_logs"; then
+                break
+              fi
+              if [ "$lifecycle_probe_attempt" -eq 60 ]; then
+                docker-compose logs --no-color --tail=300 celery
+                exit 1
+              fi
+              sleep 2
+            done
+            docker-compose exec -T celery python manage.py shell -c "
+            from django.conf import settings
+            from django_celery_beat.models import IntervalSchedule, PeriodicTask
             from tdpservice.data_files.tasks import mark_stale_files_stuck
 
+            assert settings.STALE_PARSE_TIMEOUT_SECONDS == 60
+            assert settings.STALE_PARSE_CHECK_SCHEDULE == 5
+            interval, _ = IntervalSchedule.objects.get_or_create(
+                every=5,
+                period=IntervalSchedule.SECONDS,
+            )
             schedule = PeriodicTask.objects.get(name='Mark Stale Data Files Stuck')
-            assert schedule.enabled
-            assert schedule.interval.every == 5
+            schedule.interval = interval
+            schedule.crontab = None
+            schedule.solar = None
+            schedule.clocked = None
+            schedule.enabled = True
+            schedule.save()
             result = mark_stale_files_stuck.delay()
             marked_count = result.get(timeout=15)
             assert isinstance(marked_count, int)
             print(f'Lifecycle smoke task completed; marked {marked_count} file(s).')
-            "; then
-                exit 0
-              fi
-              sleep 2
-            done
-            docker-compose logs --no-color --tail=300 celery
-            exit 1
+            "
       - run:
           name: Run Cypress e2e tests
           command: |
