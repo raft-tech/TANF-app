@@ -101,9 +101,16 @@
           command: |
             cd tdrs-backend
             # Celery can initially start before a fresh database has the
-            # django-celery-beat tables. Restart it after migrations and prove
-            # that the scheduled task is routed to a live lifecycle worker.
-            docker-compose restart celery
+            # django-celery-beat tables. Remove the schedule created by that
+            # initial default-configured beat, then restart it after migrations
+            # so the accelerated interval is persisted before Cypress runs.
+            docker-compose stop celery
+            docker-compose exec -T web python manage.py shell -c "
+            from django_celery_beat.models import PeriodicTask
+
+            PeriodicTask.objects.filter(name='Mark Stale Data Files Stuck').delete()
+            "
+            docker-compose start celery
             for lifecycle_probe_attempt in $(seq 1 12); do
               if docker-compose exec -T celery python manage.py shell -c "
             from django_celery_beat.models import PeriodicTask
