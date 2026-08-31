@@ -111,7 +111,7 @@
             PeriodicTask.objects.filter(name='Mark Stale Data Files Stuck').delete()
             "
             docker-compose start celery
-            for lifecycle_probe_attempt in $(seq 1 12); do
+            for lifecycle_probe_attempt in $(seq 1 40); do
               if docker-compose exec -T celery python manage.py shell -c "
             from django_celery_beat.models import PeriodicTask
             from tdpservice.data_files.tasks import mark_stale_files_stuck
