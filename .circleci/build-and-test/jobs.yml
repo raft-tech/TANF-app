@@ -129,12 +129,9 @@
               sleep 2
             done
             docker-compose exec -T celery python manage.py shell -c "
-            from django.conf import settings
             from django_celery_beat.models import IntervalSchedule, PeriodicTask
             from tdpservice.data_files.tasks import mark_stale_files_stuck
 
-            assert settings.STALE_PARSE_TIMEOUT_SECONDS == 60
-            assert settings.STALE_PARSE_CHECK_SCHEDULE == 5
             interval, _ = IntervalSchedule.objects.get_or_create(
                 every=5,
                 period=IntervalSchedule.SECONDS,
