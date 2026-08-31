@@ -22,7 +22,10 @@ from tdpservice.data_files.submission_lifecycle import (
     record_parse_outcome,
     start_datafile_av_scan,
 )
-from tdpservice.data_files.tasks import get_stale_files, mark_stale_files_stuck
+from tdpservice.data_files.tasks import (
+    get_stale_lifecycle_files,
+    mark_stale_files_stuck,
+)
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.etl.pipelines.sources import active_reparse_datafile_ids
 from tdpservice.parsers.models import DataFileSummary
@@ -43,7 +46,7 @@ def test_timeout_stuck_reparse_flow_has_one_current_writer():
         state_changed_at=stale_started_at
     )
 
-    assert list(get_stale_files()) == [data_file]
+    assert list(get_stale_lifecycle_files()) == [data_file]
     assert mark_stale_files_stuck() == 1
 
     data_file.refresh_from_db()
@@ -100,7 +103,7 @@ def test_parse_completion_wins_timeout_selection_race():
         state_changed_at=timezone.now() - timedelta(days=1, minutes=1)
     )
 
-    selected_as_stale = get_stale_files().get(pk=data_file.pk)
+    selected_as_stale = get_stale_lifecycle_files().get(pk=data_file.pk)
     record_parse_outcome(
         data_file,
         parse_token,

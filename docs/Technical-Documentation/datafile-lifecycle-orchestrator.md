@@ -23,11 +23,14 @@ the original design direction. The implemented ownership rules are:
   production transition emits a structured log. No secondary lifecycle or
   transition-history models are required.
 - Celery beat checks active submissions hourly by default. Activity older than
-  one day is moved to `STUCK`, its parser token is revoked, and any unfinished
-  reparse metadata is failed. The timeout and checker interval are configurable
-  for non-production E2E environments. The checker runs on a dedicated
-  `lifecycle` Celery queue so a hung parser cannot prevent its own timeout.
-  `STUCK` may re-enter through `REPARSE_REQUESTED`.
+  one day is moved to `STUCK`. An unfinished reparse is moved to `STUCK` sooner
+  when its `ReparseMeta.timeout_at` deadline expires. Detection is centralized
+  in `get_stale_lifecycle_files()`, and the earlier applicable deadline wins.
+  The transition revokes the parser token and fails any unfinished reparse
+  metadata. The lifecycle timeout and checker interval are configurable for
+  non-production E2E environments. The checker runs on a dedicated `lifecycle`
+  Celery queue so a hung parser cannot prevent its own timeout. `STUCK` may
+  re-enter through `REPARSE_REQUESTED`.
 - Python owns production state. The Go parser passes the parse token back to
   Python and fences its production data writes against that token; it does
   not update `DataFile.state`.
@@ -539,7 +542,7 @@ Before each phase ships to production:
 | OQ-2 | Should `COMPLETED` be reachable from `PARSED_WITH_ERRORS` directly (current), or only via an explicit analyst review action? | PM + OFA | Before Phase 3 |
 | OQ-3 | What is the correct `finalize()` trigger? Currently there is no explicit `→ COMPLETED` call in the codebase. `PARSE_COMPLETED` and `PARSED_WITH_ERRORS` are both treated as terminal in the UI. The orchestrator's `finalize()` method needs a caller. | Engineering + PM | Phase 3 design |
 | OQ-4 | **Resolved for state ownership:** Go passes `data_file_id`, `reparse_id`, parse error, and `parse_token` to Python `post_parse`; Python derives and records the state outcome. | Backend + Go team | Implemented |
-| OQ-5 | **Resolved:** the hourly Celery beat task `mark_stale_files_stuck` marks active lifecycle work older than one day `STUCK`. It is routed to a dedicated `lifecycle` worker so parser saturation cannot block the monitor. `STALE_PARSE_TIMEOUT_SECONDS` and `STALE_PARSE_CHECK_INTERVAL_SECONDS` accelerate non-production E2E coverage without changing production defaults. | Engineering | Implemented |
+| OQ-5 | **Resolved:** the hourly Celery beat task `mark_stale_files_stuck` marks active lifecycle work `STUCK` after the earlier applicable deadline: the generic one-day lifecycle threshold or an unfinished reparse's `ReparseMeta.timeout_at`. It is routed to a dedicated `lifecycle` worker so parser saturation cannot block the monitor. `STALE_PARSE_TIMEOUT_SECONDS` and `STALE_PARSE_CHECK_INTERVAL_SECONDS` accelerate non-production E2E coverage without changing production defaults. | Engineering | Implemented |
 | OQ-6 | Status string mismatch between Go worker (`"Partially Accepted"`) and Django (`"Partially Accepted with Errors"`) (#5735). Which is canonical? Fix must be coordinated before Python `post_parse` derives `DataFile.state` from Go parser output. | Backend + Go team | Before Phase 4 |
 | OQ-7 | Should `VIRUS_SCAN_FAILED` be re-entrant? Currently there is no path from `VIRUS_SCAN_FAILED → VIRUS_SCAN_STARTED`. If OFA wants to allow a re-upload without creating a new DataFile, the transition map needs to change. | PM + OFA | Phase 1 planning |
 | OQ-8 | What is the Go parser's integration mode? Options: (a) **canary** — both parsers run concurrently, Python result is authoritative; (b) **replacement** — Go replaces Python for supported file types, Python does not run; (c) **comparison** — both run, results are diffed, neither is authoritative. This decision determines whether `go_parse.delay()` is dispatched from `enqueue_parse()`, which queue owns `DataFileSummary` writes, and how the race condition between the two workers is resolved. Currently no production code dispatches `go_parse.delay()`. | Backend + Go team + PM | Before Phase 2 |

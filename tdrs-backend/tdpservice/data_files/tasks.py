@@ -5,13 +5,14 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import Group
+from django.db.models import Exists, OuterRef, Q
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from celery import shared_task
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.models import DataFile, ReparseFileMeta
 from tdpservice.data_files.submission_lifecycle import (
     STALE_ELIGIBLE_STATES,
     mark_stuck,
@@ -53,17 +54,25 @@ def get_stuck_files():
     )
 
 
-def get_stale_files(now=None):
-    """Return active submissions whose current lifecycle activity is stale."""
-    cutoff = (now or timezone.now()) - get_stale_parse_age()
+def get_stale_lifecycle_files(now=None):
+    """Return active submissions that exceeded a lifecycle or reparse timeout."""
+    current_time = now or timezone.now()
+    cutoff = current_time - get_stale_parse_age()
+    timed_out_reparse = ReparseFileMeta.objects.filter(
+        data_file_id=OuterRef("pk"),
+        reparse_meta__timeout_at__lte=current_time,
+        finished=False,
+        success=False,
+    )
 
     return (
         DataFile.objects.annotate(
-            lifecycle_activity_at=Coalesce("state_changed_at", "created_at")
+            lifecycle_activity_at=Coalesce("state_changed_at", "created_at"),
+            has_timed_out_reparse=Exists(timed_out_reparse),
         )
+        .filter(state__in=STALE_ELIGIBLE_STATES)
         .filter(
-            state__in=STALE_ELIGIBLE_STATES,
-            lifecycle_activity_at__lt=cutoff,
+            Q(lifecycle_activity_at__lt=cutoff) | Q(has_timed_out_reparse=True)
         )
         .order_by("lifecycle_activity_at", "pk")
     )
@@ -71,12 +80,12 @@ def get_stale_files(now=None):
 
 @shared_task
 def mark_stale_files_stuck():
-    """Move active submissions older than the stale threshold to STUCK."""
+    """Move active submissions that exceeded a detection deadline to STUCK."""
     marked_count = 0
-    for data_file in get_stale_files().iterator(chunk_size=500):
+    for data_file in get_stale_lifecycle_files().iterator(chunk_size=500):
         _, transition_occurred = mark_stuck(
             data_file,
-            note="submission exceeded the configured stale-processing timeout",
+            note="submission exceeded a lifecycle or reparse timeout",
         )
         marked_count += int(transition_occurred)
 

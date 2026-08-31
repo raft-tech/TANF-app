@@ -13,7 +13,7 @@ from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
 from tdpservice.data_files.tasks import (
     get_current_fiscal_year,
-    get_stale_files,
+    get_stale_lifecycle_files,
     get_stuck_files,
     mark_stale_files_stuck,
 )
@@ -84,7 +84,9 @@ def test_stale_timeout_can_be_shortened_for_browser_testing(stt_user, stt, setti
     )
     set_created_at(datafile, timezone.now() - timedelta(seconds=61))
 
-    assert list(get_stale_files().values_list("pk", flat=True)) == [datafile.pk]
+    assert list(get_stale_lifecycle_files().values_list("pk", flat=True)) == [
+        datafile.pk
+    ]
 
 
 @pytest.mark.django_db
@@ -131,6 +133,41 @@ def test_non_stuck_current_fy_missing_or_pending_summary_is_excluded(
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("state", "is_stale_eligible"),
+    [
+        (SubmissionState.UPLOADED, True),
+        (SubmissionState.VIRUS_SCAN_STARTED, True),
+        (SubmissionState.VIRUS_SCAN_COMPLETED, True),
+        (SubmissionState.REPARSE_REQUESTED, True),
+        (SubmissionState.PARSE_STARTED, True),
+        (SubmissionState.VIRUS_SCAN_FAILED, False),
+        (SubmissionState.PARSE_FAILED, False),
+        (SubmissionState.PARSED_WITH_ERRORS, False),
+        (SubmissionState.PARSE_COMPLETED, False),
+        (SubmissionState.STUCK, False),
+        (SubmissionState.COMPLETED, False),
+        (SubmissionState.CANCELED, False),
+    ],
+)
+def test_stale_lifecycle_state_matrix(stt_user, stt, state, is_stale_eligible):
+    """Evaluate every lifecycle state above and below the stale threshold."""
+    now = timezone.now()
+    old_file = make_datafile(stt_user, stt, 1, state=state)
+    set_created_at(old_file, now - timedelta(days=1, minutes=1))
+    recent_file = make_datafile(stt_user, stt, 2, state=state)
+    set_created_at(recent_file, now - timedelta(hours=23))
+
+    stale_file_ids = set(
+        get_stale_lifecycle_files(now=now).values_list("pk", flat=True)
+    )
+
+    expected_ids = {old_file.pk} if is_stale_eligible else set()
+    assert stale_file_ids == expected_ids
+    assert recent_file.pk not in stale_file_ids
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize("summary_status", [None, DataFileSummary.Status.PENDING])
 def test_stale_parse_is_ready_to_be_marked_stuck(
     stt_user,
@@ -148,7 +185,7 @@ def test_stale_parse_is_ready_to_be_marked_stuck(
     if summary_status is not None:
         make_summary(datafile, summary_status)
 
-    stale_files = get_stale_files()
+    stale_files = get_stale_lifecycle_files()
 
     assert list(stale_files.values_list("pk", flat=True)) == [datafile.pk]
 
@@ -171,65 +208,120 @@ def test_parse_less_than_a_day_old_is_not_stale(
     if summary_status is not None:
         make_summary(datafile, summary_status)
 
-    stale_files = get_stale_files()
+    stale_files = get_stale_lifecycle_files()
 
     assert stale_files.count() == 0
 
 
 @pytest.mark.django_db
 def test_reparse_older_than_a_day_is_stale(stt_user, stt):
-    """Uses the latest reparse start time to identify a stale reparse."""
+    """Apply the lifecycle timeout even before a reparse-specific deadline."""
+    now = timezone.now()
     datafile = make_datafile(
         stt_user,
         stt,
         1,
         state=SubmissionState.PARSE_STARTED,
     )
-    set_created_at(datafile, timezone.now() - timedelta(days=30))
+    set_created_at(datafile, now - timedelta(days=30))
     make_summary(datafile, DataFileSummary.Status.PENDING)
-    reparse = ReparseMetaFactory.create()
+    reparse = ReparseMetaFactory.create(timeout_at=now + timedelta(days=1))
     datafile.reparses.add(
         reparse,
         through_defaults={
             "finished": False,
             "success": False,
-            "started_at": timezone.now() - timedelta(days=1, minutes=1),
+            "started_at": now - timedelta(days=1, minutes=1),
         },
     )
     DataFile.objects.filter(pk=datafile.pk).update(
-        state_changed_at=timezone.now() - timedelta(days=1, minutes=1)
+        state_changed_at=now - timedelta(days=1, minutes=1)
     )
 
-    stale_files = get_stale_files()
+    stale_files = get_stale_lifecycle_files(now=now)
 
     assert list(stale_files.values_list("pk", flat=True)) == [datafile.pk]
 
 
 @pytest.mark.django_db
 def test_recent_reparse_of_old_file_is_not_stale(stt_user, stt):
-    """Gives a new reparse its own full one-day processing window."""
+    """Ignore an unfinished reparse before either detection deadline."""
+    now = timezone.now()
     datafile = make_datafile(
         stt_user,
         stt,
         1,
         state=SubmissionState.PARSE_STARTED,
     )
-    set_created_at(datafile, timezone.now() - timedelta(days=30))
+    set_created_at(datafile, now - timedelta(days=30))
     make_summary(datafile, DataFileSummary.Status.PENDING)
-    reparse = ReparseMetaFactory.create()
+    reparse = ReparseMetaFactory.create(timeout_at=now + timedelta(hours=1))
     datafile.reparses.add(
         reparse,
         through_defaults={
             "finished": False,
             "success": False,
-            "started_at": timezone.now() - timedelta(hours=23),
+            "started_at": now - timedelta(hours=23),
         },
     )
     DataFile.objects.filter(pk=datafile.pk).update(
-        state_changed_at=timezone.now() - timedelta(hours=23)
+        state_changed_at=now - timedelta(hours=23)
     )
 
-    stale_files = get_stale_files()
+    stale_files = get_stale_lifecycle_files(now=now)
+
+    assert stale_files.count() == 0
+
+
+@pytest.mark.django_db
+def test_timed_out_unfinished_reparse_is_stale(stt_user, stt):
+    """Honor ReparseMeta.timeout_at before the generic lifecycle timeout."""
+    now = timezone.now()
+    datafile = make_datafile(
+        stt_user,
+        stt,
+        1,
+        state=SubmissionState.PARSE_STARTED,
+    )
+    set_created_at(datafile, now - timedelta(hours=1))
+    reparse = ReparseMetaFactory.create(timeout_at=now - timedelta(minutes=1))
+    datafile.reparses.add(
+        reparse,
+        through_defaults={
+            "finished": False,
+            "success": False,
+            "started_at": now - timedelta(hours=1),
+        },
+    )
+
+    stale_files = get_stale_lifecycle_files(now=now)
+
+    assert list(stale_files.values_list("pk", flat=True)) == [datafile.pk]
+
+
+@pytest.mark.django_db
+def test_timed_out_finished_reparse_is_not_stale(stt_user, stt):
+    """Do not use a completed historical reparse to mark current work stale."""
+    now = timezone.now()
+    datafile = make_datafile(
+        stt_user,
+        stt,
+        1,
+        state=SubmissionState.PARSE_STARTED,
+    )
+    set_created_at(datafile, now - timedelta(hours=1))
+    reparse = ReparseMetaFactory.create(timeout_at=now - timedelta(minutes=1))
+    datafile.reparses.add(
+        reparse,
+        through_defaults={
+            "finished": True,
+            "success": False,
+            "started_at": now - timedelta(hours=1),
+            "finished_at": now - timedelta(minutes=30),
+        },
+    )
+
+    stale_files = get_stale_lifecycle_files(now=now)
 
     assert stale_files.count() == 0
 
@@ -246,7 +338,7 @@ def test_old_file_with_completed_summary_is_not_stale(stt_user, stt):
     set_created_at(datafile, timezone.now() - timedelta(days=2))
     make_summary(datafile, DataFileSummary.Status.ACCEPTED)
 
-    stale_files = get_stale_files()
+    stale_files = get_stale_lifecycle_files()
 
     assert stale_files.count() == 0
 
