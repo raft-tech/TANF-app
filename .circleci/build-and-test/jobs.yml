@@ -119,7 +119,7 @@
             docker-compose start celery
             for lifecycle_probe_attempt in $(seq 1 60); do
               celery_logs="$(docker-compose logs --since "$celery_start_time" --no-color celery 2>/dev/null)"
-              if grep -q 'DatabaseScheduler: Schedule changed' <<< "$celery_logs"; then
+              if [[ "$celery_logs" == *"DatabaseScheduler: Schedule changed"* ]]; then
                 break
               fi
               if [ "$lifecycle_probe_attempt" -eq 60 ]; then
