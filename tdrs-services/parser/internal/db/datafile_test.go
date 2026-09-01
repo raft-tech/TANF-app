@@ -150,25 +150,6 @@ func TestResolveLogEventUUID(t *testing.T) {
 	}
 }
 
-func TestNewLogEventID(t *testing.T) {
-	eventID := NewLogEventID()
-	if _, err := resolveLogEventUUID(eventID); err != nil {
-		t.Fatalf("NewLogEventID() returned invalid UUID %q: %v", eventID, err)
-	}
-}
-
-func TestResolveParseEventSQLMatchesCurrentQueueingTransition(t *testing.T) {
-	for _, fragment := range []string{
-		"data_file.state = transition.next_state",
-		"'virus_scan_completed'",
-		"'reparse_requested'",
-	} {
-		if !strings.Contains(selectProductionParseEventID, fragment) {
-			t.Errorf("parse event query does not contain %q", fragment)
-		}
-	}
-}
-
 func TestProductionStateTransitionSQLTargetsAuditTable(t *testing.T) {
 	if !strings.Contains(insertProductionDataFileStateTransition, "core_baselog") {
 		t.Fatalf("production state transition insert does not create base log")

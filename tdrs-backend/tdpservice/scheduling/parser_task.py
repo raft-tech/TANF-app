@@ -66,15 +66,12 @@ class ParserModelSet:
 
 
 def queue_go_parse(data_file_id, reparse_id=None, event_id=None):
-    """Queue a Go parse using the rolling-deployment-safe two-argument contract.
-
-    The worker recovers ``event_id`` from the transition that made the DataFile
-    parseable, so it does not need to change the established Celery payload.
-    """
+    """Queue a Go parse with the event ID shared by the parsing workflow."""
+    event_id = str(event_id or uuid.uuid4())
     try:
         current_app.send_task(
             GO_PARSER_TASK_NAME,
-            args=[data_file_id, reparse_id or 0],
+            args=[data_file_id, reparse_id or 0, event_id],
             queue=GO_PARSER_QUEUE,
             ignore_result=True,
         )

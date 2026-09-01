@@ -136,17 +136,16 @@ func (s *Server) Run(parentCtx context.Context) error {
 		return fmt.Errorf("failed to create post-parse celery client: %w", err)
 	}
 
-	// Register the parse task handler with the established two-argument contract
-	// so old and new Django/Go processes can safely overlap during deployment.
+	// Register the parse task handler using the event ID created when Django
+	// queued the parsing workflow.
 	// Django positional numbers arrive as float64 after JSON deserialization.
 	// The closure includes panic recovery so a single bad task cannot kill
 	// the worker goroutine.
 	taskCtx := context.WithoutCancel(parentCtx)
-	celeryClient.Register(taskName, func(dataFileID float64, reparseID float64) (result string) {
+	celeryClient.Register(taskName, func(dataFileID float64, reparseID float64, eventID string) (result string) {
 		id := int32(dataFileID)
 		reparse := int32(reparseID)
 		parseError := ""
-		eventID := s.resolveParseEventID(taskCtx, id)
 
 		defer func() {
 			if r := recover(); r != nil {
@@ -183,7 +182,7 @@ func (s *Server) Run(parentCtx context.Context) error {
 				}
 			}
 			postParseStart := time.Now()
-			if err := s.enqueuePostParseTask(postParseClient, id, reparse, parseError); err != nil {
+			if err := s.enqueuePostParseTask(postParseClient, id, reparse, parseError, eventID); err != nil {
 				logging.Error(taskCtx, "failed to enqueue post-parse task",
 					slog.Int(logging.KeyFileID, int(id)),
 					slog.Int("reparse_id", int(reparse)),
@@ -278,7 +277,13 @@ func (s *Server) Run(parentCtx context.Context) error {
 	return nil
 }
 
-func (s *Server) enqueuePostParseTask(client celeryTaskSender, dataFileID int32, reparseID int32, parseError string) error {
+func (s *Server) enqueuePostParseTask(
+	client celeryTaskSender,
+	dataFileID int32,
+	reparseID int32,
+	parseError string,
+	eventID string,
+) error {
 	task := s.Config.Server.Celery.PostParseTaskName
 	if task == "" {
 		task = postParseTaskName
@@ -289,24 +294,8 @@ func (s *Server) enqueuePostParseTask(client celeryTaskSender, dataFileID int32,
 		parseErrorArg = parseError
 	}
 
-	_, err := client.Delay(task, dataFileID, reparseID, parseErrorArg)
+	_, err := client.Delay(task, dataFileID, reparseID, parseErrorArg, eventID)
 	return err
-}
-
-func (s *Server) resolveParseEventID(parentCtx context.Context, dataFileID int32) string {
-	lookupCtx, cancel := context.WithTimeout(context.WithoutCancel(parentCtx), statusUpdateTimeout)
-	defer cancel()
-
-	dataFileTable := config.DataFileTableName(s.Config.Database.EffectiveTablePrefix())
-	eventID, err := db.ResolveParseEventID(lookupCtx, s.dbPool, dataFileTable, dataFileID)
-	if err != nil {
-		logging.Warn(parentCtx, "failed to resolve parse event ID; generating a new ID",
-			slog.Int(logging.KeyFileID, int(dataFileID)),
-			slog.Any(logging.KeyError, err),
-		)
-		return db.NewLogEventID()
-	}
-	return eventID
 }
 
 func (s *Server) updateDataFileSummaryStatus(parentCtx context.Context, dataFileID int32, status string) error {

@@ -126,12 +126,13 @@ def test_queue_go_parse_sends_shadow_task(monkeypatch):
         SimpleNamespace(send_task=fake_send_task),
     )
 
-    parser_task.queue_go_parse(42)
+    event_id = uuid.uuid4()
+    parser_task.queue_go_parse(42, event_id=event_id)
 
     assert len(calls) == 1
     call = calls[0]
     assert call["name"] == parser_task.GO_PARSER_TASK_NAME
-    assert call["args"] == [42, 0]
+    assert call["args"] == [42, 0, str(event_id)]
     assert call["queue"] == parser_task.GO_PARSER_QUEUE
     assert call["ignore_result"] is True
 
@@ -150,9 +151,10 @@ def test_queue_go_parse_sends_reparse_id(monkeypatch):
         ),
     )
 
-    parser_task.queue_go_parse(42, reparse_id=7, event_id=uuid.uuid4())
+    event_id = uuid.uuid4()
+    parser_task.queue_go_parse(42, reparse_id=7, event_id=event_id)
 
-    assert calls == [[42, 7]]
+    assert calls == [[42, 7, str(event_id)]]
 
 
 @pytest.mark.django_db
