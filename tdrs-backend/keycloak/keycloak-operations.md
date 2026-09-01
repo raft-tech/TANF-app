@@ -231,6 +231,12 @@ This secret is used by both the Django OIDC flow and the Admin REST API sync lay
 
 The `tdp-admin` client is used by the standalone admin frontend OIDC flow.
 
+For initial production provisioning, or to configure all related admin,
+backend, and Keycloak variables together, use
+[`scripts/configure-admin-production-env.sh`](../../scripts/configure-admin-production-env.sh).
+Its `--help` output contains the required production targeting, secret storage,
+activation, and verification steps.
+
 1. Generate a new secret.
 
 2. Update the Keycloak app:
