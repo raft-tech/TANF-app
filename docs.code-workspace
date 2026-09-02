@@ -54,13 +54,16 @@
   },
   "extensions": {
     "recommendations": [
-      "DavidAnson.vscode-markdownlint",
-      "yzhang.markdown-all-in-one",
       "bierner.markdown-mermaid",
-      "streetsidesoftware.code-spell-checker",
-      "shd101wyy.markdown-preview-enhanced",
+      "DavidAnson.vscode-markdownlint",
+      "eamodio.gitlens",
+      "editorconfig.editorconfig",
+      "google.google-antigravity",
+      "mathematic.vscode-pdf",
       "redhat.vscode-yaml",
-      "task.vscode-task"
+      "streetsidesoftware.code-spell-checker",
+      "task.vscode-task",
+      "yzhang.markdown-all-in-one"
     ]
   },
   "tasks": {
