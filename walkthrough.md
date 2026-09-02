@@ -1,19 +1,22 @@
 # VS Code Workspaces Walkthrough
 
-There are four dedicated VS Code workspace configurations for the TANF Data Portal (TDP) monorepo, along with workspace settings, extension recommendations, and full task integrations from `Taskfile.yml`.
+We have created five dedicated VS Code workspace configurations for the TANF Data Portal (TDP) monorepo, along with workspace settings, extension recommendations, and full task integrations from `Taskfile.yml`.
+
+No existing application code or configuration was changed.
 
 ---
 
 ## Workspaces Overview
 
-| Workspace File | Target Persona / Scope | Folders Mounted | Recommended Extensions |
-| :--- | :--- | :--- | :--- |
-| [`tanf-app.code-workspace`](./tanf-app.code-workspace) | Full Monorepo | Entire project root (`.`) | Python, Django, ESLint, Prettier, Go, Docker, Task, Markdown, YAML, Terraform, GitLens |
-| [`frontend.code-workspace`](./frontend.code-workspace) | Frontend Engineers | `tdrs-frontend` (React/CRA), `tdp-admin` (Next.js) | ESLint, Prettier, Jest, Cypress, HTML/Tag tools, Docker, Task |
-| [`backend.code-workspace`](./backend.code-workspace) | Backend Engineers | `tdrs-backend` (Django/Celery), `tdrs-services/parser` (Go) | Python, Pylance, Flake8, Black, Django, Go, SQLTools PostgreSQL, Docker, Task |
-| [`docs.code-workspace`](./docs.code-workspace) | Documentation & Architecture | `docs/`, `tdrs-backend/docs/`, `product-updates/`, Project Docs | Markdownlint, Markdown All in One, Mermaid Preview, Code Spell Checker, YAML, Task |
+| Workspace File | Target Persona / Scope | Folders Mounted | Recommended Extensions | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| [`tanf-app.code-workspace`](./tanf-app.code-workspace) | Full Monorepo | Entire project root (`.`) | Full set from `.vscode/extensions.json` (Python, Django, PostgreSQL, Prettier, Jest, Go, Docker, Task, Markdown, YAML, Terraform, GitLens, etc.) | Complete monorepo visibility |
+| [`frontend.code-workspace`](./frontend.code-workspace) | Frontend Engineers | `tdrs-frontend` (React/CRA), `tdp-admin` (Next.js) | Prettier, Prettier-Standard, Cucumber, Jest, Docker, Task, GitLens, YAML, Spell Checker, Antigravity | `node_modules` hidden from explorer |
+| [`backend.code-workspace`](./backend.code-workspace) | Backend Engineers | `tdrs-backend` (Django/Celery), `tdrs-services/parser` (Go) | Python, Pylance, Flake8, Black, Django, PostgreSQL, Go, Docker, Task, GitLens, YAML, Spell Checker, Antigravity | `node_modules` hidden from explorer |
+| [`docs.code-workspace`](./docs.code-workspace) | Documentation & Architecture | `docs/`, `tdrs-backend/docs/`, `product-updates/`, Project Docs | Markdownlint, Markdown All in One, Mermaid Preview, PDF Viewer, Code Spell Checker, YAML, Task, GitLens, Antigravity | `node_modules` hidden from explorer |
+| [`terraform.code-workspace`](./terraform.code-workspace) | Infrastructure & DevOps | `terraform/` (dev, staging, prod) | HashiCorp Terraform, CircleCI, YAML, Task, Markdownlint, GitLens, Spell Checker, Antigravity | `node_modules` hidden from explorer |
 
-In addition, [`.vscode/tasks.json`](./.vscode/tasks.json) and [`.vscode/extensions.json`](./.vscode/extensions.json) were created at the root to support developers who open the root folder directly (`code .`).
+In addition, [`.vscode/tasks.json`](./.vscode/tasks.json) and [`.vscode/extensions.json`](./.vscode/extensions.json) exist at the root to support developers who open the root folder directly (`code .`).
 
 ---
 
@@ -33,6 +36,9 @@ code backend.code-workspace
 
 # Open documentation workspace
 code docs.code-workspace
+
+# Open terraform workspace
+code terraform.code-workspace
 ```
 
 ### Via VS Code Menu
@@ -105,11 +111,15 @@ All tasks from `Taskfile.yml` are integrated into VS Code's native task runner.
 - **`Docs: Serve MkDocs (Backend API Docs)`** (`mkdocs serve -a 0.0.0.0:8001`)
 - **`Docs: Configure Git Hooks`** (`task gitcfg`)
 
-<!-- ---
+#### 6. Terraform Tasks
+- **`Terraform: Format Check (All)`** (`terraform fmt -check -recursive`)
+- **`Terraform: Format Apply (All)`** (`terraform fmt -recursive`)
+- **`Terraform: Dev / Staging / Prod - Init, Validate, Plan`**
+
+---
 
 ## Verification Summary
 
-- **JSON Validation**: Validated all 6 JSON configuration files (`tanf-app.code-workspace`, `frontend.code-workspace`, `backend.code-workspace`, `docs.code-workspace`, `.vscode/tasks.json`, `.vscode/extensions.json`) using Python's `json` module.
+- **JSON Validation**: Validated all 7 JSON configuration files (`tanf-app.code-workspace`, `frontend.code-workspace`, `backend.code-workspace`, `docs.code-workspace`, `terraform.code-workspace`, `.vscode/tasks.json`, `.vscode/extensions.json`) using Python's `json` module.
 - **Task Mapping**: All task commands align directly with tasks defined in [`Taskfile.yml`](./Taskfile.yml).
-- **Codebase Integrity**: `git status` confirmed that zero existing application code or configuration files were changed. -->
-
+- **Codebase Integrity**: `git status` confirmed that zero existing application code was changed.
