@@ -17,7 +17,9 @@ from tdpservice.core.models import FeatureFlag
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import (
     DataFile,
+    Program,
     ReparseFileMeta,
+    Section,
     ShadowDataFile,
     create_or_update_shadow_data_file,
 )
@@ -492,7 +494,15 @@ def test_concurrent_first_dispatch_persists_one_parser_mode(monkeypatch, stt):
     if not connection.features.has_select_for_update:
         pytest.skip("database does not support row-level locks")
 
-    datafile = DataFileFactory(stt=stt)
+    program, _ = Program.objects.get_or_create(
+        code=DataFile.ProgramType.TANF,
+        defaults={"slug": "tanf", "name": "TANF"},
+    )
+    section_ref, _ = Section.objects.get_or_create(
+        program=program,
+        name=DataFile.Section.ACTIVE_CASE_DATA,
+    )
+    datafile = DataFileFactory(stt=stt, section_ref=section_ref)
     feature_flag_calls = 0
     feature_flag_calls_lock = threading.Lock()
 
