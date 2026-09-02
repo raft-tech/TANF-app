@@ -315,6 +315,7 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
             type=FeatureFlag.Type.RANDOM_ROLLOUT,
             enabled=True,
             rollout_percentage=100,
+            config={"mode": "shadow"},
         )
 
         def clean_scan(_file, _file_name, _uploaded_by, data_file=None):
