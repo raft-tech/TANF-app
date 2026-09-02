@@ -1,5 +1,36 @@
 # AGENTS.md
 
+## Core Commands
+
+- task up
+- task down
+- task frontend-logs
+- task frontend-test
+- task frontend-test-cov
+- task frontend-e2e-cmd
+
+
+## Tech Stack
+
+- Framework: React 18
+- Language: TypeScript (Strict mode)
+- Styling: USWDS
+- REST endpoints
+- Backend Language: Django
+- Backend Database: PostgreSQL
+
+## Architecture & Preferences
+
+
+## Behavioral Rules
+
+- **Always do**: Use industry standards and best practices when possible
+- **Always do**: Before starting work on a feature, ask 3-5 clarifying questions so that you are 99% sure of what the execution plan will be
+- **Always do**: Before starting work on a feature, unless you suggested it and I say "yes please", display the execution plan and wait for confirmation to proceed
+- **Always do**: Run Prettier, Tests and verify TypeScript types before marking a feature as finished
+- **Ask first**: Installing new third-party npm packages
+- **Never do**: Do not delete or rename files without confirmation
+
 ## Code Quality
 
 - Write clear, self-documenting code with meaningful names

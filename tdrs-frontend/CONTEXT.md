@@ -2,6 +2,15 @@
 
 This context covers the CRA React frontend under `tdrs-frontend/`.
 
+## Architecture & Preferences
+
+- Always use industry standards and best practices when possible
+- Use React Server Components (RSC) by default.
+- Only use `"use client"` when state or event listeners are required.
+- Prefer Server Actions over standard API routes for mutations.
+<!-- - Always optimize images with the `next/image` component. -->
+- Create re-usable React components when possible for components that might reasonably be re-used
+
 ## Boundaries
 
 - User-facing workflows, React components, frontend routing, client-side state, frontend tests, and frontend build configuration live here.
