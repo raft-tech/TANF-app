@@ -160,8 +160,7 @@ tasks:
         docker compose -f docker-compose.yml exec web sh -c "DB_NAME=${db_name} DJANGO_SETTINGS_MODULE=tdpservice.settings.go_parser_integration DJANGO_CONFIGURATION=GoParserIntegration python manage.py migrate --noinput"
 
         docker compose -f docker-compose.yml build go-parser
-        GO_PARSER_DATABASE_MODE_ARG=--database.shadow-mode=false \
-          docker compose -f docker-compose.yml run --rm --detach \
+        docker compose -f docker-compose.yml run --rm --detach \
           --name "${container}" \
           -e DATABASE_URL="postgres://tdpuser:something_secure@postgres:5432/${db_name}?sslmode=disable" \
           -e GO_PARSER_QUEUE="${queue}" \
@@ -182,7 +181,7 @@ tasks:
         set -e
         queue="{{.GO_PARSER_QUEUE}}"
 
-        GO_PARSER_QUEUE="${queue}" GO_PARSER_DATABASE_MODE_ARG=--database.shadow-mode=false \
+        GO_PARSER_QUEUE="${queue}" \
           docker compose -f docker-compose.yml up -d postgres redis-server localstack celery web go-parser
         docker compose -f docker-compose.yml exec -T postgres sh -c 'until pg_isready -U tdpuser -d tdrs_test; do sleep 1; done'
         docker compose -f docker-compose.yml exec -T redis-server \

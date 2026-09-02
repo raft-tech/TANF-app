@@ -190,8 +190,8 @@ func GetDataFile(ctx context.Context, pool *pgxpool.Pool, tableName string, id i
 	return &df, nil
 }
 
-// EnsureShadowDataFile copies production DataFile metadata into the Go parser shadow table.
-func EnsureShadowDataFile(ctx context.Context, pool *pgxpool.Pool, tableName string, df *DataFileRecord) error {
+// EnsureDataFile upserts metadata in the selected DataFile table family.
+func EnsureDataFile(ctx context.Context, pool *pgxpool.Pool, tableName string, df *DataFileRecord) error {
 	var err error
 	switch tableName {
 	case shadowDataFileTable:
@@ -226,7 +226,7 @@ func UpdateDataFileState(ctx context.Context, pool *pgxpool.Pool, tableName stri
 	return nil
 }
 
-// EnsureDataFileSummary creates or resets the shadow DataFileSummary for the given datafile.
+// EnsureDataFileSummary creates or resets the selected summary for the datafile.
 func EnsureDataFileSummary(ctx context.Context, pool *pgxpool.Pool, tableName string, datafileID int32) error {
 	var err error
 	switch tableName {

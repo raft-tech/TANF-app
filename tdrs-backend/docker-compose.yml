@@ -355,7 +355,6 @@ services:
     command:
       - "--server.mode=celery"
       - "--storage.source=s3"
-      - "${GO_PARSER_DATABASE_MODE_ARG:---database.shadow-mode=true}"
     ports:
       - "9809:9809"
     environment:
