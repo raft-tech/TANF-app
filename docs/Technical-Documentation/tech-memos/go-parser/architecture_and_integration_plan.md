@@ -462,28 +462,32 @@ ENTRYPOINT ["/go-parser"]
 
 ### Phase 1: Shadow Mode (Parallel Validation)
 
-Deploy the Go parser alongside the Python parser and use the `go_parser_shadow_mode` random rollout feature flag to select submitted files for parallel parsing. The Python parser remains the source of truth, writing to production tables as it does today. For selected files, the Go parser processes the same input concurrently but writes all output — parsed records and parser errors — to **shadow tables** that mirror the production schema. No production data is affected.
+Deploy the Go parser alongside the Python parser and use the `go_parser_mode` random rollout feature flag with `config.mode` set to `shadow`. The Python parser remains the source of truth, writing to production tables as it does today. For selected files, the Go parser processes the same input concurrently but writes all output — parsed records and parser errors — to **shadow tables** that mirror the production schema. No production data is affected.
 
-Shadow tables are structurally identical to their production counterparts (e.g., `shadow_search_indexes_tanf_t1`, `shadow_parser_error`) but exist solely for comparison and analysis. They can be created via a Django migration that duplicates the existing table definitions under a `shadow_` prefix.
+Parser output shadow tables mirror their production counterparts (e.g., `shadow_search_indexes_tanf_t1`, `shadow_parser_error`) but exist solely for comparison and analysis. They can be created via a Django migration that duplicates the existing table definitions under a `shadow_` prefix.
 
 ```python
-# Django always dispatches Python and conditionally dispatches Go.
+# Django resolves and persists one mode for the lifetime of the DataFile.
 def dispatch_parse(data_file_id):
-    # Python parser writes to production tables (unchanged)
-    parse.apply_async(args=[data_file_id], queue="python_parser")
-    # Python evaluates enabled + rollout_percentage once per file.
-    if get_feature_flag("go_parser_shadow_mode")[0]:
-        parse.apply_async(args=[data_file_id], queue="go_parser")
+    with transaction.atomic():
+        data_file = DataFile.objects.select_for_update().get(id=data_file_id)
+        if data_file.parser_mode is None:
+            data_file.parser_mode = resolve_go_parser_mode()
+            data_file.save(update_fields=["parser_mode"])
+        mode = data_file.parser_mode
+    if mode != "production":
+        parse.apply_async(args=[data_file_id], queue="python_parser")
+    if mode in {"shadow", "production"}:
+        parse.apply_async(args=[data_file_id, 0, mode], queue="go_parser")
 ```
 
 ```yaml
-# Go parser parser.yaml — shadow table configuration
+# Go parser parser.yaml — shadow table prefix configuration
 database:
-  shadow_mode: true
   table_prefix: "shadow_"
 ```
 
-The Go worker queries only the feature flag's `enabled` column before processing a received task. It does not evaluate `rollout_percentage`; that decision belongs exclusively to Python dispatch. Missing or disabled flags fail closed.
+Django evaluates the flag and rollout only when the production `DataFile.parser_mode` is null. The nullable field is introduced by a schema-only migration, so existing files receive a route lazily on their next dispatch. The first dispatcher locks the row while resolving and persisting `disabled`, `shadow`, or `production`; concurrent and later dispatches reuse that decision. Missing, disabled, excluded, or invalid flags fail closed by persisting `disabled` and using Python. The Go worker honors the immutable task mode and returns it to `post_parse`; it does not re-read the mutable feature flag. Shadow data-file rows exclude `parser_mode` because routing belongs to the production file identity.
 
 For files processed by both parsers, the team can asynchronously compare results at any cadence:
 
@@ -499,6 +503,8 @@ Shadow tables can be truncated and rebuilt at will since they carry no productio
 ### Phase 2: Canary Routing (Controlled Cutover)
 
 Route a small, controlled subset of real submissions to the Go parser writing to production tables. Gradually widen the canary until all traffic is handled by Go.
+
+Set `go_parser_mode.config.mode` to `production` for this phase. Submissions selected by the flag's rollout are sent only to Go with `production` in the task payload; submissions outside the rollout continue through Python.
 
 Because the Cloud.gov environment does not support network-level traffic splitting, the routing decision is made **programmatically in Django** at task dispatch time. A configuration table or environment-backed setting defines which submissions are routed to the Go parser based on attributes such as program type, STT, or section:
 
@@ -524,7 +530,7 @@ Canary progression:
 
 1. Start with a single STT or program type on the allowlist (smallest blast radius)
 2. Monitor record counts, error counts, and DataFileSummary outcomes against historical baselines
-3. If the Go parser fails (crashes, times out, returns error), the file can easily be reparsed via the Python parser
+3. If the Go parser fails (crashes, times out, returns error), recovery tooling must explicitly change the file's persisted route before reparsing it with Python; changing the global flag alone does not reroute an existing file
 4. Widen the allowlist to additional STTs and program types as confidence grows
 5. Switch mode to `percentage` and ramp from 10% → 25% → 50% → 100%
 

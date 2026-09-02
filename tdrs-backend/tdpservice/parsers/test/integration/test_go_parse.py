@@ -19,6 +19,7 @@ from tdpservice.parsers.models import (
     ParserErrorCategoryChoices,
 )
 from tdpservice.parsers.test.factories import ParsingFileFactory
+from tdpservice.scheduling import parser_task
 from tdpservice.search_indexes.models.fra import TANF_Exiter1
 from tdpservice.search_indexes.models.ssp import (
     SSP_M1,
@@ -66,11 +67,12 @@ def parse_datafile(dfs, datafile, timeout_seconds=GO_PARSE_TIMEOUT_SECONDS):
     """Submit a datafile to the Go parser worker and wait for completion."""
     register_go_parser_datafile_for_cleanup(datafile)
     FeatureFlag.objects.update_or_create(
-        feature_name="go_parser_shadow_mode",
+        feature_name=parser_task.GO_PARSER_FEATURE_FLAG,
         defaults={
             "type": FeatureFlag.Type.RANDOM_ROLLOUT,
             "enabled": True,
             "rollout_percentage": 100,
+            "config": {"mode": "shadow"},
         },
     )
 
@@ -80,7 +82,7 @@ def parse_datafile(dfs, datafile, timeout_seconds=GO_PARSE_TIMEOUT_SECONDS):
 
     async_result = celery_app.send_task(
         GO_PARSE_TASK_NAME,
-        args=[datafile.pk, 0],
+        args=[datafile.pk, 0, "production"],
         queue=settings.CELERY_GO_PARSER_QUEUE,
     )
 
