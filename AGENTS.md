@@ -13,7 +13,7 @@
 ## Tech Stack
 
 - Framework: React 18
-- Language: TypeScript (Strict mode)
+<!-- - Language: TypeScript (Strict mode) -->
 - Styling: USWDS
 - REST endpoints
 - Backend Language: Django
