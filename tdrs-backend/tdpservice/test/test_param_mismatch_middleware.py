@@ -1,7 +1,7 @@
 """Tests for RequestParamMismatchMiddleware."""
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -141,4 +141,3 @@ def test_middleware_failsafe_on_exception(request_factory, dummy_response):
         response = middleware(request)
 
     assert response.status_code == 200
-

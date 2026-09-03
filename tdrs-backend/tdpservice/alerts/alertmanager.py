@@ -1,7 +1,7 @@
 """AlertManager integration helpers for TDP."""
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 import requests
 from django.conf import settings
 
@@ -68,4 +68,3 @@ def send_alert(
             extra={"alertname": alertname, "severity": severity, "api_url": api_url},
         )
         return False
-
