@@ -514,7 +514,6 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         assert alert_kwargs["severity"] == "ERROR"
 
 
-
 class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
     """Test DataFileViewSet as a Data Analyst user."""
 

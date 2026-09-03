@@ -160,4 +160,3 @@ class RequestParamMismatchMiddleware:
                 )
             except Exception as exc:
                 logger.warning("Failed to dispatch alert for request param mismatch: %s", exc)
-
