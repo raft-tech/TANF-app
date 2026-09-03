@@ -48,7 +48,7 @@ code terraform.code-workspace
 
 ## Running Development Environment & Tasks
 
-All tasks from `Taskfile.yml` are integrated into VS Code's native task runner.
+All tasks from `Taskfile.yml` are integrated into VS Code's native task runner. If you installed the Task extension, they are also available in the left panel.
 
 ### How to Run Tasks in VS Code
 1. Press `Cmd + Shift + P` (macOS) or `Ctrl + Shift + P` (Windows/Linux).
