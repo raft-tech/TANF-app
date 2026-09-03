@@ -1,8 +1,6 @@
 # VS Code Workspaces Walkthrough
 
-We have created five dedicated VS Code workspace configurations for the TANF Data Portal (TDP) monorepo, along with workspace settings, extension recommendations, and full task integrations from `Taskfile.yml`.
-
-No existing application code or configuration was changed.
+There are five dedicated VS Code workspace configurations for the TANF Data Portal (TDP) monorepo, along with workspace settings, extension recommendations, and full task integrations from `Taskfile.yml`.
 
 ---
 
@@ -116,10 +114,10 @@ All tasks from `Taskfile.yml` are integrated into VS Code's native task runner.
 - **`Terraform: Format Apply (All)`** (`terraform fmt -recursive`)
 - **`Terraform: Dev / Staging / Prod - Init, Validate, Plan`**
 
----
+<!-- ---
 
 ## Verification Summary
 
 - **JSON Validation**: Validated all 7 JSON configuration files (`tanf-app.code-workspace`, `frontend.code-workspace`, `backend.code-workspace`, `docs.code-workspace`, `terraform.code-workspace`, `.vscode/tasks.json`, `.vscode/extensions.json`) using Python's `json` module.
 - **Task Mapping**: All task commands align directly with tasks defined in [`Taskfile.yml`](./Taskfile.yml).
-- **Codebase Integrity**: `git status` confirmed that zero existing application code was changed.
+- **Codebase Integrity**: `git status` confirmed that zero existing application code was changed. -->
