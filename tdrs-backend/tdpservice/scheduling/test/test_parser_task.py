@@ -1,18 +1,26 @@
 """Tests for parser task helpers and flow control."""
 
 import io
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 
 from django.contrib.admin.models import LogEntry
+from django.core.exceptions import FieldDoesNotExist
+from django.db import close_old_connections, connection
 from django.db.utils import DatabaseError
-from django.test import override_settings
 
 import pytest
 
+from tdpservice.core.models import FeatureFlag
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import (
     DataFile,
+    Program,
     ReparseFileMeta,
+    Section,
+    ShadowDataFile,
     create_or_update_shadow_data_file,
 )
 from tdpservice.data_files.test.factories import DataFileFactory
@@ -124,12 +132,12 @@ def test_queue_go_parse_sends_shadow_task(monkeypatch):
         SimpleNamespace(send_task=fake_send_task),
     )
 
-    parser_task.queue_go_parse(42)
+    parser_task.queue_go_parse(42, parser_task.GoParserMode.SHADOW)
 
     assert calls == [
         {
             "name": parser_task.GO_PARSER_TASK_NAME,
-            "args": [42, 0],
+            "args": [42, 0, "shadow"],
             "queue": parser_task.GO_PARSER_QUEUE,
             "ignore_result": True,
         }
@@ -144,15 +152,23 @@ def test_queue_go_parse_sends_reparse_id(monkeypatch):
         parser_task,
         "current_app",
         SimpleNamespace(
-            send_task=lambda name, args=None, queue=None, ignore_result=False: calls.append(
-                args
+            send_task=(
+                lambda name, args=None, queue=None, ignore_result=False: calls.append(
+                    args
+                )
             )
         ),
     )
 
-    parser_task.queue_go_parse(42, reparse_id=7)
+    parser_task.queue_go_parse(42, parser_task.GoParserMode.PRODUCTION, reparse_id=7)
 
-    assert calls == [[42, 7]]
+    assert calls == [[42, 7, "production"]]
+
+
+def test_queue_go_parse_rejects_disabled_mode():
+    """Never enqueue a Go task without a writable table family."""
+    with pytest.raises(ValueError, match="disabled"):
+        parser_task.queue_go_parse(42, parser_task.GoParserMode.DISABLED)
 
 
 @pytest.mark.django_db
@@ -169,7 +185,7 @@ def test_queue_go_parse_logs_submit_failure_to_admin(monkeypatch, stt):
         SimpleNamespace(send_task=fake_send_task),
     )
 
-    parser_task.queue_go_parse(datafile.id)
+    parser_task.queue_go_parse(datafile.id, parser_task.GoParserMode.SHADOW)
 
     entry = LogEntry.objects.latest("pk")
     assert str(entry.user_id) == datafile.user_id
@@ -179,9 +195,18 @@ def test_queue_go_parse_logs_submit_failure_to_admin(monkeypatch, stt):
     )
 
 
-def test_queue_parse_queues_python_and_go(monkeypatch):
+@pytest.mark.django_db
+def test_queue_parse_queues_python_and_go(monkeypatch, stt):
     """Queue production Python parse and companion Go shadow parse."""
     calls = []
+    datafile = DataFileFactory(stt=stt)
+    FeatureFlag.objects.create(
+        feature_name=parser_task.GO_PARSER_FEATURE_FLAG,
+        type=FeatureFlag.Type.RANDOM_ROLLOUT,
+        enabled=True,
+        rollout_percentage=100,
+        config={"mode": "shadow"},
+    )
 
     monkeypatch.setattr(
         parser_task,
@@ -195,23 +220,32 @@ def test_queue_parse_queues_python_and_go(monkeypatch):
     monkeypatch.setattr(
         parser_task,
         "queue_go_parse",
-        lambda data_file_id, reparse_id=None: calls.append(
-            ("go", data_file_id, reparse_id)
+        lambda data_file_id, table_mode, reparse_id=None: calls.append(
+            ("go", data_file_id, reparse_id, table_mode)
         ),
     )
 
-    parser_task.queue_parse(42, reparse_id=7)
+    parser_task.queue_parse(datafile.id, reparse_id=7)
 
     assert calls == [
-        ("python", 42, 7),
-        ("go", 42, 7),
+        ("python", datafile.id, 7),
+        ("go", datafile.id, 7, parser_task.GoParserMode.SHADOW),
     ]
+    datafile.refresh_from_db()
+    assert datafile.parser_mode == parser_task.GoParserMode.SHADOW
+    assert ShadowDataFile.objects.filter(id=datafile.id).exists()
 
 
-@override_settings(GO_PARSER_SHADOW_MODE=False)
-def test_queue_parse_skips_go_when_shadow_mode_off(monkeypatch):
-    """Queue only the production Python parser when Go shadow mode is disabled."""
+@pytest.mark.django_db
+def test_queue_parse_skips_go_when_feature_flag_is_disabled(monkeypatch, stt):
+    """Queue only the Python parser when the Go parser flag is disabled."""
     calls = []
+    FeatureFlag.objects.create(
+        feature_name=parser_task.GO_PARSER_FEATURE_FLAG,
+        type=FeatureFlag.Type.RANDOM_ROLLOUT,
+        enabled=False,
+        rollout_percentage=100,
+    )
 
     monkeypatch.setattr(
         parser_task,
@@ -225,16 +259,291 @@ def test_queue_parse_skips_go_when_shadow_mode_off(monkeypatch):
     monkeypatch.setattr(
         parser_task,
         "queue_go_parse",
-        lambda data_file_id, reparse_id=None: calls.append(
-            ("go", data_file_id, reparse_id)
+        lambda data_file_id, table_mode, reparse_id=None: calls.append(
+            ("go", data_file_id, reparse_id, table_mode)
         ),
     )
 
-    parser_task.queue_parse(42, reparse_id=7)
+    datafile = DataFileFactory(stt=stt)
+
+    parser_task.queue_parse(datafile.id, reparse_id=7)
 
     assert calls == [
-        ("python", 42, 7),
+        ("python", datafile.id, 7),
     ]
+    datafile.refresh_from_db()
+    assert datafile.parser_mode == parser_task.GoParserMode.DISABLED
+
+
+@pytest.mark.django_db
+def test_queue_parse_skips_go_when_feature_flag_is_missing(monkeypatch, stt):
+    """Treat a missing Go parser feature flag as disabled."""
+    calls = []
+    monkeypatch.setattr(
+        parser_task,
+        "parse",
+        SimpleNamespace(
+            delay=lambda data_file_id, reparse_id=None: calls.append(
+                ("python", data_file_id, reparse_id)
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        parser_task,
+        "queue_go_parse",
+        lambda data_file_id, table_mode, reparse_id=None: calls.append(
+            ("go", data_file_id, reparse_id, table_mode)
+        ),
+    )
+
+    datafile = DataFileFactory(stt=stt)
+
+    parser_task.queue_parse(datafile.id, reparse_id=7)
+
+    assert calls == [("python", datafile.id, 7)]
+    datafile.refresh_from_db()
+    assert datafile.parser_mode == parser_task.GoParserMode.DISABLED
+
+
+@pytest.mark.django_db
+def test_queue_parse_skips_go_when_rollout_excludes_file(monkeypatch, stt):
+    """Queue only the Python parser when a file falls outside the rollout."""
+    calls = []
+    FeatureFlag.objects.create(
+        feature_name=parser_task.GO_PARSER_FEATURE_FLAG,
+        type=FeatureFlag.Type.RANDOM_ROLLOUT,
+        enabled=True,
+        rollout_percentage=0,
+        config={"mode": "shadow"},
+    )
+    monkeypatch.setattr(
+        parser_task,
+        "parse",
+        SimpleNamespace(
+            delay=lambda data_file_id, reparse_id=None: calls.append(
+                ("python", data_file_id, reparse_id)
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        parser_task,
+        "queue_go_parse",
+        lambda data_file_id, table_mode, reparse_id=None: calls.append(
+            ("go", data_file_id, reparse_id, table_mode)
+        ),
+    )
+
+    datafile = DataFileFactory(stt=stt)
+
+    parser_task.queue_parse(datafile.id, reparse_id=7)
+
+    assert calls == [("python", datafile.id, 7)]
+    datafile.refresh_from_db()
+    assert datafile.parser_mode == parser_task.GoParserMode.DISABLED
+
+
+@pytest.mark.django_db
+def test_queue_parse_routes_selected_production_file_only_to_go(monkeypatch, stt):
+    """Use Go as the sole production parser for a selected file."""
+    calls = []
+    FeatureFlag.objects.create(
+        feature_name=parser_task.GO_PARSER_FEATURE_FLAG,
+        type=FeatureFlag.Type.RANDOM_ROLLOUT,
+        enabled=True,
+        rollout_percentage=100,
+        config={"mode": "production"},
+    )
+    monkeypatch.setattr(
+        parser_task,
+        "parse",
+        SimpleNamespace(delay=lambda *args, **kwargs: calls.append(("python", args))),
+    )
+    monkeypatch.setattr(
+        parser_task,
+        "queue_go_parse",
+        lambda data_file_id, table_mode, reparse_id=None: calls.append(
+            ("go", data_file_id, reparse_id, table_mode)
+        ),
+    )
+
+    datafile = DataFileFactory(stt=stt)
+
+    parser_task.queue_parse(datafile.id, reparse_id=7)
+
+    assert calls == [("go", datafile.id, 7, parser_task.GoParserMode.PRODUCTION)]
+    datafile.refresh_from_db()
+    assert datafile.parser_mode == parser_task.GoParserMode.PRODUCTION
+
+
+@pytest.mark.django_db
+def test_queue_parse_fails_closed_for_invalid_mode(monkeypatch, stt):
+    """Invalid parser mode configuration routes work to Python."""
+    calls = []
+    FeatureFlag.objects.create(
+        feature_name=parser_task.GO_PARSER_FEATURE_FLAG,
+        enabled=True,
+        config={"mode": "invalid"},
+    )
+    monkeypatch.setattr(
+        parser_task,
+        "parse",
+        SimpleNamespace(
+            delay=lambda data_file_id, reparse_id=None: calls.append(
+                ("python", data_file_id, reparse_id)
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        parser_task,
+        "queue_go_parse",
+        lambda *args, **kwargs: pytest.fail("Go parser should not be queued"),
+    )
+
+    datafile = DataFileFactory(stt=stt)
+
+    parser_task.queue_parse(datafile.id, reparse_id=7)
+
+    assert calls == [("python", datafile.id, 7)]
+    datafile.refresh_from_db()
+    assert datafile.parser_mode == parser_task.GoParserMode.DISABLED
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("persisted_mode", "expected_calls"),
+    [
+        (parser_task.GoParserMode.DISABLED, ["python"]),
+        (parser_task.GoParserMode.SHADOW, ["python", "go-shadow"]),
+        (parser_task.GoParserMode.PRODUCTION, ["go-production"]),
+    ],
+)
+def test_queue_parse_reuses_persisted_mode(
+    monkeypatch, stt, persisted_mode, expected_calls
+):
+    """Reparse with the original parser route without re-evaluating rollout."""
+    calls = []
+    datafile = DataFileFactory(stt=stt, parser_mode=persisted_mode)
+
+    monkeypatch.setattr(
+        parser_task,
+        "get_feature_flag",
+        lambda *args, **kwargs: pytest.fail(
+            "persisted routes must not be re-evaluated"
+        ),
+    )
+    monkeypatch.setattr(
+        parser_task,
+        "parse",
+        SimpleNamespace(delay=lambda *args, **kwargs: calls.append("python")),
+    )
+    monkeypatch.setattr(
+        parser_task,
+        "queue_go_parse",
+        lambda data_file_id, table_mode, reparse_id=None: calls.append(
+            f"go-{table_mode.value}"
+        ),
+    )
+
+    parser_task.queue_parse(datafile.id, reparse_id=7)
+
+    assert calls == expected_calls
+    if persisted_mode == parser_task.GoParserMode.SHADOW:
+        assert ShadowDataFile.objects.filter(id=datafile.id).exists()
+
+
+@pytest.mark.django_db
+def test_reparse_keeps_first_route_after_feature_flag_changes(monkeypatch, stt):
+    """Keep a shadow-routed file in shadow after the flag moves to production."""
+    calls = []
+    datafile = DataFileFactory(stt=stt)
+    feature_flag = FeatureFlag.objects.create(
+        feature_name=parser_task.GO_PARSER_FEATURE_FLAG,
+        type=FeatureFlag.Type.RANDOM_ROLLOUT,
+        enabled=True,
+        rollout_percentage=100,
+        config={"mode": "shadow"},
+    )
+    monkeypatch.setattr(
+        parser_task,
+        "parse",
+        SimpleNamespace(delay=lambda *args, **kwargs: calls.append("python")),
+    )
+    monkeypatch.setattr(
+        parser_task,
+        "queue_go_parse",
+        lambda data_file_id, table_mode, reparse_id=None: calls.append(
+            f"go-{table_mode.value}"
+        ),
+    )
+
+    parser_task.queue_parse(datafile.id)
+    feature_flag.config = {"mode": "production"}
+    feature_flag.save(update_fields=["config"])
+    calls.clear()
+
+    parser_task.queue_parse(datafile.id, reparse_id=7)
+
+    datafile.refresh_from_db()
+    assert datafile.parser_mode == parser_task.GoParserMode.SHADOW
+    assert calls == ["python", "go-shadow"]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_concurrent_first_dispatch_persists_one_parser_mode(monkeypatch, stt):
+    """Concurrent dispatches resolve and persist one parser routing decision."""
+    if not connection.features.has_select_for_update:
+        pytest.skip("database does not support row-level locks")
+
+    program, _ = Program.objects.get_or_create(
+        code=DataFile.ProgramType.TANF,
+        defaults={"slug": "tanf", "name": "TANF"},
+    )
+    section_ref, _ = Section.objects.get_or_create(
+        program=program,
+        name=DataFile.Section.ACTIVE_CASE_DATA,
+    )
+    datafile = DataFileFactory(stt=stt, section_ref=section_ref)
+    feature_flag_calls = 0
+    feature_flag_calls_lock = threading.Lock()
+
+    def get_production_mode(*args, **kwargs) -> tuple[bool, dict[str, str]]:
+        nonlocal feature_flag_calls
+        with feature_flag_calls_lock:
+            feature_flag_calls += 1
+        time.sleep(0.1)
+        return True, {"mode": "production"}
+
+    monkeypatch.setattr(parser_task, "get_feature_flag", get_production_mode)
+    monkeypatch.setattr(
+        parser_task,
+        "queue_go_parse",
+        lambda *args, **kwargs: None,
+    )
+
+    dispatch_barrier = threading.Barrier(2)
+
+    def dispatch() -> None:
+        close_old_connections()
+        try:
+            dispatch_barrier.wait()
+            parser_task.queue_parse(datafile.id)
+        finally:
+            close_old_connections()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(dispatch) for _ in range(2)]
+        for future in futures:
+            future.result()
+
+    datafile.refresh_from_db()
+    assert datafile.parser_mode == parser_task.GoParserMode.PRODUCTION
+    assert feature_flag_calls == 1
+
+
+def test_shadow_data_file_excludes_parser_mode():
+    """Keep the routing decision only on the production DataFile row."""
+    with pytest.raises(FieldDoesNotExist):
+        ShadowDataFile._meta.get_field("parser_mode")
 
 
 @pytest.mark.django_db
@@ -377,7 +686,7 @@ def test_post_parse_finalizes_shadow_summary_only(monkeypatch, stt):
         lambda *args, **kwargs: sent.update(called=True),
     )
 
-    parser_task.post_parse(datafile.id)
+    parser_task.post_parse(datafile.id, table_mode="shadow")
 
     shadow_summary.refresh_from_db()
     production_summary.refresh_from_db()
@@ -411,7 +720,9 @@ def test_post_parse_parse_error_rejects_shadow_summary(stt):
         status=DataFileSummary.Status.PENDING,
     )
 
-    parser_task.post_parse(datafile.id, parse_error="pipeline failed")
+    parser_task.post_parse(
+        datafile.id, parse_error="pipeline failed", table_mode="shadow"
+    )
 
     shadow_summary.refresh_from_db()
     shadow_datafile.refresh_from_db()
@@ -423,9 +734,8 @@ def test_post_parse_parse_error_rejects_shadow_summary(stt):
 
 
 @pytest.mark.django_db
-@override_settings(GO_PARSER_SHADOW_MODE=False)
 def test_post_parse_can_finalize_production_summary(monkeypatch, stt):
-    """Finalize Go parser production output when shadow mode is disabled."""
+    """Production mode ignores a stale shadow row and finalizes production."""
     datafile = DataFileFactory(
         stt=stt,
         version=4,
@@ -434,6 +744,11 @@ def test_post_parse_can_finalize_production_summary(monkeypatch, stt):
     )
     summary = DataFileSummary.objects.create(
         datafile=datafile,
+        status=DataFileSummary.Status.PENDING,
+    )
+    shadow_datafile = create_or_update_shadow_data_file(datafile)
+    shadow_summary = ShadowDataFileSummary.objects.create(
+        datafile=shadow_datafile,
         status=DataFileSummary.Status.PENDING,
     )
     ParserError.objects.create(
@@ -456,9 +771,10 @@ def test_post_parse_can_finalize_production_summary(monkeypatch, stt):
         lambda *args, **kwargs: sent.update(called=True),
     )
 
-    parser_task.post_parse(datafile.id)
+    parser_task.post_parse(datafile.id, table_mode="production")
 
     summary.refresh_from_db()
+    shadow_summary.refresh_from_db()
     datafile.refresh_from_db()
 
     assert summary.status == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
@@ -470,12 +786,12 @@ def test_post_parse_can_finalize_production_summary(monkeypatch, stt):
         ]
     }
     assert "data_file.txt_error_report" in summary.error_report.name
+    assert shadow_summary.status == DataFileSummary.Status.PENDING
     assert datafile.state == SubmissionState.VIRUS_SCAN_COMPLETED
     assert sent["called"] is False
 
 
 @pytest.mark.django_db
-@override_settings(GO_PARSER_SHADOW_MODE=False)
 def test_post_parse_can_finalize_production_reparse(monkeypatch, stt):
     """Update reparse metadata after Go parser production output finalizes."""
     datafile = DataFileFactory(
@@ -488,6 +804,11 @@ def test_post_parse_can_finalize_production_reparse(monkeypatch, stt):
         datafile=datafile,
         status=DataFileSummary.Status.PENDING,
     )
+    shadow_datafile = create_or_update_shadow_data_file(datafile)
+    shadow_summary = ShadowDataFileSummary.objects.create(
+        datafile=shadow_datafile,
+        status=DataFileSummary.Status.PENDING,
+    )
     meta_model = ReparseMeta.objects.create(db_backup_location="s3://backup")
     file_meta = ReparseFileMeta.objects.create(
         data_file=datafile,
@@ -497,16 +818,31 @@ def test_post_parse_can_finalize_production_reparse(monkeypatch, stt):
         parser_task.ReparseMeta, "set_total_num_records_post", lambda *a, **k: None
     )
 
-    parser_task.post_parse(datafile.id, reparse_id=meta_model.pk)
+    parser_task.post_parse(
+        datafile.id, reparse_id=meta_model.pk, table_mode="production"
+    )
 
     summary.refresh_from_db()
+    shadow_summary.refresh_from_db()
     file_meta.refresh_from_db()
 
     assert summary.status == DataFileSummary.Status.ACCEPTED
+    assert shadow_summary.status == DataFileSummary.Status.PENDING
     assert file_meta.finished is True
     assert file_meta.success is True
     assert file_meta.num_records_created == summary.total_number_of_records_created
     assert file_meta.finished_at is not None
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("table_mode", [None, "invalid"])
+def test_post_parse_rejects_missing_or_unknown_table_mode(stt, table_mode):
+    """Do not infer a table family when the task mode is missing or invalid."""
+    datafile = DataFileFactory(stt=stt, version=5)
+    create_or_update_shadow_data_file(datafile)
+
+    with pytest.raises(ValueError, match="Unsupported Go parser table mode"):
+        parser_task.post_parse(datafile.id, table_mode=table_mode)
 
 
 @pytest.mark.django_db
@@ -1022,7 +1358,9 @@ def test_parse_transitions_include_parse_context(monkeypatch, data_analyst):
     transitions = []
     real_transition = parser_task.transition_datafile
 
-    def recording_transition(data_file, next_state, note="", logger_hook=None, log_fields=None):
+    def recording_transition(
+        data_file, next_state, note="", logger_hook=None, log_fields=None
+    ):
         transitions.append(
             {
                 "next_state": next_state,

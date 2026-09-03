@@ -570,9 +570,6 @@ class Common(Configuration):
     # Keycloak Settings        #
     ############################
 
-    # Canary cutover: percentage of new login requests routed through Keycloak (0-100).
-    # 0 = 100% legacy (default), 100 = 100% Keycloak. Changeable via cf set-env.
-    KEYCLOAK_AUTH_PERCENTAGE = int(os.getenv("KEYCLOAK_AUTH_PERCENTAGE", "0"))
     KEYCLOAK_SYNC_ENABLED = bool(strtobool(os.getenv("KEYCLOAK_SYNC_ENABLED", "yes")))
     KEYCLOAK_SERVER_URL = os.getenv("KEYCLOAK_SERVER_URL", "http://keycloak:8080")
     KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "tdp")
@@ -680,7 +677,6 @@ class Common(Configuration):
         "tdpservice.scheduling.parser_task.go_parse": {"queue": CELERY_GO_PARSER_QUEUE}
     }
     GO_PARSER_QUEUE = os.getenv("GO_PARSER_QUEUE", "go-parser")
-    GO_PARSER_SHADOW_MODE = bool(strtobool(os.getenv("GO_PARSER_SHADOW_MODE", "true")))
 
     CELERY_BEAT_SCHEDULE = {
         "Database Backup": {

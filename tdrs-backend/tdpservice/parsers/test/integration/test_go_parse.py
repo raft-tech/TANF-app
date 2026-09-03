@@ -1,7 +1,6 @@
 """Integration tests for the live Go parser worker."""
 
 import logging
-import os
 import time
 
 from django.conf import settings
@@ -11,6 +10,7 @@ import pytest
 from celery import current_app as celery_app
 from celery.exceptions import TimeoutError as CeleryTimeoutError
 
+from tdpservice.core.models import FeatureFlag
 from tdpservice.data_files.models import DataFile
 from tdpservice.parsers import aggregates
 from tdpservice.parsers.models import (
@@ -19,6 +19,7 @@ from tdpservice.parsers.models import (
     ParserErrorCategoryChoices,
 )
 from tdpservice.parsers.test.factories import ParsingFileFactory
+from tdpservice.scheduling import parser_task
 from tdpservice.search_indexes.models.fra import TANF_Exiter1
 from tdpservice.search_indexes.models.ssp import (
     SSP_M1,
@@ -55,15 +56,6 @@ GO_PARSE_TIMEOUT_SECONDS = 300
 GO_PARSE_LARGE_FILE_TIMEOUT_SECONDS = 300
 _GO_PARSER_DATAFILE_IDS = None
 
-os.environ["GO_PARSER_SHADOW_MODE"] = "False"
-
-
-@pytest.fixture(autouse=True)
-def disable_go_parser_shadow_mode(settings, monkeypatch):
-    """Keep Go parser integration tests pointed at production tables."""
-    monkeypatch.setenv("GO_PARSER_SHADOW_MODE", "False")
-    settings.GO_PARSER_SHADOW_MODE = False
-
 
 def register_go_parser_datafile_for_cleanup(datafile):
     """Register a DataFile for committed cleanup after a Go parser test."""
@@ -74,6 +66,15 @@ def register_go_parser_datafile_for_cleanup(datafile):
 def parse_datafile(dfs, datafile, timeout_seconds=GO_PARSE_TIMEOUT_SECONDS):
     """Submit a datafile to the Go parser worker and wait for completion."""
     register_go_parser_datafile_for_cleanup(datafile)
+    FeatureFlag.objects.update_or_create(
+        feature_name=parser_task.GO_PARSER_FEATURE_FLAG,
+        defaults={
+            "type": FeatureFlag.Type.RANDOM_ROLLOUT,
+            "enabled": True,
+            "rollout_percentage": 100,
+            "config": {"mode": "shadow"},
+        },
+    )
 
     dfs.datafile = datafile
     dfs.status = DataFileSummary.Status.PENDING
@@ -81,7 +82,7 @@ def parse_datafile(dfs, datafile, timeout_seconds=GO_PARSE_TIMEOUT_SECONDS):
 
     async_result = celery_app.send_task(
         GO_PARSE_TASK_NAME,
-        args=[datafile.pk, 0],
+        args=[datafile.pk, 0, "production"],
         queue=settings.CELERY_GO_PARSER_QUEUE,
     )
 

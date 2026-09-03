@@ -88,6 +88,44 @@ func TestRecordTotalsForResult(t *testing.T) {
 	}
 }
 
+func TestParseModeSelectsTablePrefix(t *testing.T) {
+	tests := []struct {
+		value      string
+		wantPrefix string
+	}{
+		{value: "shadow", wantPrefix: "shadow_"},
+		{value: "production", wantPrefix: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.value, func(t *testing.T) {
+			mode, err := parseMode(tt.value)
+			if err != nil {
+				t.Fatalf("parseMode() error = %v", err)
+			}
+			got, err := mode.tablePrefix("shadow_")
+			if err != nil {
+				t.Fatalf("tablePrefix() error = %v", err)
+			}
+			if got != tt.wantPrefix {
+				t.Errorf("tablePrefix() = %q, want %q", got, tt.wantPrefix)
+			}
+		})
+	}
+}
+
+func TestParseModeRejectsUnknownMode(t *testing.T) {
+	if _, err := parseMode("disabled"); err == nil {
+		t.Fatal("parseMode() error = nil, want unsupported mode error")
+	}
+}
+
+func TestShadowModeRejectsEmptyTablePrefix(t *testing.T) {
+	if _, err := parserModeShadow.tablePrefix(""); err == nil {
+		t.Fatal("tablePrefix() error = nil, want missing shadow prefix error")
+	}
+}
+
 func TestEnqueuePostParseTask(t *testing.T) {
 	cfg := config.DefaultConfig()
 	s := &Server{
@@ -95,7 +133,7 @@ func TestEnqueuePostParseTask(t *testing.T) {
 	}
 	sender := &fakeTaskSender{}
 
-	if err := s.enqueuePostParseTask(sender, 42, 7, "pipeline failed"); err != nil {
+	if err := s.enqueuePostParseTask(sender, 42, 7, "pipeline failed", parserModeProduction); err != nil {
 		t.Fatalf("enqueuePostParseTask() error = %v", err)
 	}
 
@@ -106,7 +144,7 @@ func TestEnqueuePostParseTask(t *testing.T) {
 	if call.task != "tdpservice.scheduling.parser_task.post_parse" {
 		t.Errorf("task = %q", call.task)
 	}
-	wantArgs := []interface{}{int32(42), int32(7), "pipeline failed"}
+	wantArgs := []interface{}{int32(42), int32(7), "pipeline failed", "production"}
 	for i, want := range wantArgs {
 		if call.args[i] != want {
 			t.Errorf("arg %d = %#v, want %#v", i, call.args[i], want)
@@ -121,12 +159,15 @@ func TestEnqueuePostParseTaskUsesNilParseError(t *testing.T) {
 	}
 	sender := &fakeTaskSender{}
 
-	if err := s.enqueuePostParseTask(sender, 42, 0, ""); err != nil {
+	if err := s.enqueuePostParseTask(sender, 42, 0, "", parserModeShadow); err != nil {
 		t.Fatalf("enqueuePostParseTask() error = %v", err)
 	}
 
 	if got := sender.calls[0].args[2]; got != nil {
 		t.Errorf("parse error arg = %#v, want nil", got)
+	}
+	if got := sender.calls[0].args[3]; got != "shadow" {
+		t.Errorf("table mode arg = %#v, want shadow", got)
 	}
 }
 
@@ -137,7 +178,7 @@ func TestEnqueuePostParseTaskSurfacesDelayError(t *testing.T) {
 	}
 	sender := &fakeTaskSender{err: fmt.Errorf("redis down")}
 
-	err := s.enqueuePostParseTask(sender, 42, 0, "")
+	err := s.enqueuePostParseTask(sender, 42, 0, "", parserModeShadow)
 
 	if err == nil || !strings.Contains(err.Error(), "redis down") {
 		t.Fatalf("error = %v, want redis down", err)

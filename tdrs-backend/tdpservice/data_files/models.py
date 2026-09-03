@@ -18,7 +18,7 @@ from tdpservice.backends import DataFilesS3Storage
 from tdpservice.common.fields import S3VersionedFileField
 from tdpservice.common.models import FileRecord
 from tdpservice.common.shadow_models import create_shadow_model
-from tdpservice.data_files.enums import SubmissionState
+from tdpservice.data_files.enums import GoParserMode, SubmissionState
 from tdpservice.data_files.util import (
     create_legacy_s3_log_file_path,
     create_s3_log_file_path,
@@ -227,6 +227,11 @@ class DataFile(FileRecord):
         choices=SubmissionState.choices,
         default=SubmissionState.UPLOADED,
     )
+    parser_mode = models.CharField(
+        max_length=16,
+        choices=GoParserMode.choices,
+        null=True,
+    )
 
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="user", blank=False, null=False
@@ -433,7 +438,7 @@ ShadowDataFile = create_shadow_model(
             null=False,
         ),
     },
-    exclude_fields={"section_ref"},
+    exclude_fields={"parser_mode", "section_ref"},
 )
 
 

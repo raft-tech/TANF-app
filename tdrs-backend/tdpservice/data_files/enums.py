@@ -3,6 +3,14 @@
 from django.db import models
 
 
+class GoParserMode(models.TextChoices):
+    """Persisted parser routing decisions for a data file."""
+
+    DISABLED = "disabled", "Python only"
+    SHADOW = "shadow", "Python and Go shadow"
+    PRODUCTION = "production", "Go production"
+
+
 class SubmissionState(models.TextChoices):
     """Lifecycle states for a submitted data file."""
 
