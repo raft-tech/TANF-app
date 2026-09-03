@@ -25,6 +25,49 @@ A common issue in production is that users sometimes delete their Login.gov acco
 
 ![Unique Key Violation](./unique_key_violation.png)
 
+### Email identifier event association limitation
+
+Most Login.gov SET subjects use the `iss-sub` subject type and include the
+service-provider-specific Login.gov UUID that TDP stores as
+`User.login_gov_uuid`. The
+[RISC `identifier-changed` and `identifier-recycled` events](https://openid.net/specs/openid-risc-event-types-1_0.html#rfc.section.2.5)
+are exceptions: their subject identifies the affected email address and does
+not include the Login.gov UUID.
+
+Login.gov emits `identifier-changed` when a
+[confirmed email is added](https://github.com/18F/identity-idp/blob/fc607497bfbad57befec7e966b14694a24895b23/app/controllers/users/email_confirmations_controller.rb#L64-L71)
+to an account and emits both `identifier-changed` and `identifier-recycled`
+when an [email is removed](https://github.com/18F/identity-idp/blob/fc607497bfbad57befec7e966b14694a24895b23/app/forms/delete_user_email_form.rb#L28-L39).
+The email can be any confirmed address on the Login.gov account; it is not
+necessarily the address that the user most recently presented to TDP through
+OIDC. Consequently, TDP can associate one of these events only when its email
+subject exactly matches a current TDP username. Otherwise, the event is stored
+as processed with its email preserved and its `user` foreign key set to
+`NULL`.
+
+There is no deterministic receiver-side way to recover the user association
+from such a SET. In particular:
+
+- The [`identifier-changed` SET payload](https://github.com/18F/identity-idp/blob/fc607497bfbad57befec7e966b14694a24895b23/app/services/push_notification/email_changed_event.rb#L17-L25)
+  does not contain a `sub` value that can be matched to
+  `User.login_gov_uuid`.
+- TDP does not have a complete mapping of every confirmed email on a
+  Login.gov account. A newly added secondary address might never have appeared
+  in TDP, while an old address might only appear in logs or incomplete user
+  history.
+- Login.gov also sends a separate UUID-bearing
+  `recovery-information-changed` event, but the two SETs have
+  [independently generated JWT IDs](https://github.com/18F/identity-idp/blob/fc607497bfbad57befec7e966b14694a24895b23/app/services/push_notification/http_push.rb#L61-L74)
+  and no correlation identifier. Associating them by arrival time could link
+  events from different users.
+
+Unmatched email identifier events must therefore remain unassociated unless
+Login.gov adds a stable subject identifier to the event or TDP gains an
+authoritative mapping from all Login.gov account emails to Login.gov UUIDs.
+Historical email records may support manual production investigation, but
+must not be used as an automatic security-event identity join when the match
+is missing or ambiguous.
+
 ## Out of Scope
 
 - Frontend UI components for displaying security events
