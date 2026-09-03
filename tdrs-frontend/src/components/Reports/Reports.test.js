@@ -431,18 +431,18 @@ describe('Reports', () => {
     await waitFor(() => expect(getByText('section2.txt')).toBeInTheDocument())
     await waitFor(() => expect(getByText('section3.txt')).toBeInTheDocument())
     await waitFor(() => expect(getByText('section4.txt')).toBeInTheDocument())
-    await waitFor(() => expect(store.dispatch).toHaveBeenCalledTimes(14))
+    await waitFor(() => expect(store.dispatch).toHaveBeenCalledTimes(15))
 
     fireEvent.click(getByText('Submit Data Files'))
     await waitFor(() => {
-      const statusElements = getAllByRole('status')
+      const statusElements = getAllByRole('alert')
       expect(
         statusElements.some((el) =>
-          el.textContent.includes('Successfully submitted')
+          el.textContent.includes('Successfully uploaded')
         )
       ).toBe(true)
     })
-    expect(store.dispatch).toHaveBeenCalledTimes(18)
+    expect(store.dispatch).toHaveBeenCalledTimes(19)
   })
 
   it('should add files to the redux state when dispatching uploads', async () => {
@@ -621,7 +621,7 @@ describe('Reports', () => {
 
       await waitFor(() => {
         expect(getByText('section1.txt')).toBeInTheDocument()
-        expect(store.dispatch).toHaveBeenCalledTimes(5)
+        expect(store.dispatch).toHaveBeenCalledTimes(6)
       })
 
       fireEvent.click(getByText(/Cancel/, { selector: 'button' }))
@@ -664,7 +664,7 @@ describe('Reports', () => {
 
       await waitFor(() => {
         expect(getByText('section1.txt')).toBeInTheDocument()
-        expect(store.dispatch).toHaveBeenCalledTimes(5)
+        expect(store.dispatch).toHaveBeenCalledTimes(6)
       })
 
       fireEvent.click(getByText(/Cancel/, { selector: 'button' }))
@@ -717,7 +717,7 @@ describe('Reports', () => {
 
       await waitFor(() => {
         expect(getByText('section1.txt')).toBeInTheDocument()
-        expect(store.dispatch).toHaveBeenCalledTimes(5)
+        expect(store.dispatch).toHaveBeenCalledTimes(6)
       })
 
       fireEvent.click(getByText(/Cancel/, { selector: 'button' }))
@@ -733,33 +733,6 @@ describe('Reports', () => {
       // assert file is cleared, search params are updated
       await waitFor(() => {
         expect(queryByText('section1.txt')).not.toBeInTheDocument()
-      })
-    })
-
-    it('Shows submission history when the Submission History tab is clicked', async () => {
-      const { getByText, queryAllByText, queryByText } =
-        await setUpSearchFormBehaviors()
-
-      await waitFor(() => {
-        expect(
-          getByText('Section 1 - TANF - Active Case Data')
-        ).toBeInTheDocument()
-        expect(
-          getByText(
-            'Alaska - TANF - Fiscal Year 2021 - Quarter 3 (April - June)'
-          )
-        ).toBeInTheDocument()
-
-        expect(getByText('Current Submission')).toBeInTheDocument()
-        expect(getByText('Submission History')).toBeInTheDocument()
-        expect(queryByText('No data available.')).not.toBeInTheDocument()
-      })
-
-      fireEvent.click(getByText('Submission History'))
-
-      await waitFor(() => {
-        expect(getByText('Section 1 - Active Case Data')).toBeInTheDocument()
-        expect(queryAllByText('No data available.')).toHaveLength(4)
       })
     })
   })
@@ -959,14 +932,14 @@ describe('Reports', () => {
     setReportInputs('2021', 'Q3', getByLabelText)
 
     await waitFor(() => {
-      expect(queryByText('Submission History')).toBeInTheDocument()
+      expect(queryByText('Submission & Error Reports')).toBeInTheDocument()
     })
 
     expect(queryByText('Current Submission')).not.toBeInTheDocument()
     expect(queryByText('Submit Data Files')).not.toBeInTheDocument()
   })
 
-  it("should skip the file upload step when submitted files header doesn't match submitted year and quarter", async () => {
+  it('should retain and revalidate a file when its fiscal quarter is corrected', async () => {
     const currentYear = new Date().getFullYear()
     const store = appConfigureStore({
       ...initialState,
@@ -980,7 +953,7 @@ describe('Reports', () => {
     const origDispatch = store.dispatch
     store.dispatch = jest.fn(origDispatch)
 
-    const { getByText, getByLabelText } = render(
+    const { getByText, getByLabelText, queryByText } = render(
       <Provider store={store}>
         <MemoryRouter>
           <Reports />
@@ -1015,6 +988,35 @@ describe('Reports', () => {
           `, Quarter 1. Adjust your search parameters or upload a different file.`
       )
       expect(divElement).toBeInTheDocument()
+      expect(getByText('test2.txt')).toBeInTheDocument()
+    })
+
+    fireEvent.click(getByText('Submit Data Files'))
+
+    await waitFor(() => {
+      expect(
+        getByText('There is 1 error that must be resolved before submitting')
+      ).toBeInTheDocument()
+    })
+    expect(post).not.toHaveBeenCalled()
+
+    const quarterSelect = getByLabelText('Fiscal Quarter*')
+    fireEvent.change(quarterSelect, { target: { value: 'Q1' } })
+
+    await waitFor(() => {
+      expect(
+        queryByText(
+          `File contains data from Oct 1 - Dec 31, which belongs to Fiscal Year ` +
+            (currentYear - 1).toString() +
+            `, Quarter 1. Adjust your search parameters or upload a different file.`
+        )
+      ).not.toBeInTheDocument()
+      expect(queryByText('Files Not Submitted')).not.toBeInTheDocument()
+      expect(getByText('test2.txt')).toBeInTheDocument()
+      expect(getByText('Submit Data Files')).toHaveAttribute(
+        'data-has-uploaded-files',
+        'true'
+      )
     })
   })
 
@@ -1201,6 +1203,9 @@ describe('Reports', () => {
       ).toBeInTheDocument()
       expect(getByText('Section 3 - TANF - Aggregate Data')).toBeInTheDocument()
       expect(getByText('Section 4 - TANF - Stratum Data')).toBeInTheDocument()
+      expect(
+        queryByText('Loading submission history...')
+      ).not.toBeInTheDocument()
     })
 
     // add a file to be uploaded, but don't submit
@@ -1214,48 +1219,43 @@ describe('Reports', () => {
 
     await waitFor(() => {
       expect(getByText('section1.txt')).toBeInTheDocument()
-      expect(store.dispatch).toHaveBeenCalledTimes(5)
+      expect(store.dispatch).toHaveBeenCalledTimes(6)
     })
 
     const submitButton = getByText('Submit Data Files')
     fireEvent.click(submitButton)
 
-    await waitFor(() =>
-      expect(
-        getAllByText(
-          `Successfully submitted section(s): 1 on ${new Date().toDateString()}`
-        ).length
-      ).toBeGreaterThanOrEqual(1)
-    )
-    await waitFor(() => expect(store.dispatch).toHaveBeenCalledTimes(9))
-
-    // act(() => jest.advanceTimersByTime(2000))
-
-    expect(get).toHaveBeenCalledTimes(2)
-    expect(times).toBe(1)
-
-    fireEvent.click(getByText('Submission History'))
+    expect(post).toHaveBeenCalledTimes(1)
 
     await waitFor(() => {
       expect(
-        queryByText('Loading submission history...')
-      ).not.toBeInTheDocument()
+        queryByText(
+          `Successfully uploaded section(s): 1 on ${new Date().toDateString()}`,
+          { selector: 'p' }
+        )
+      ).toBeInTheDocument()
     })
 
     expect(queryAllByTestId('spinner')).toHaveLength(12)
     expect(getByText('testFile.txt')).toBeInTheDocument()
     expect(queryAllByText('Pending')).toHaveLength(3)
 
-    jest.runOnlyPendingTimers()
+    await waitFor(() => expect(store.dispatch).toHaveBeenCalledTimes(11))
+    expect(get).toHaveBeenCalledTimes(4)
+    expect(times).toBe(2)
 
     await waitFor(() => {
       expect(getByText('Approved')).toBeInTheDocument()
     })
 
-    expect(queryAllByTestId('spinner')).toHaveLength(0)
-    expect(getByText('testFile.txt')).toBeInTheDocument()
-    expect(queryAllByText('Pending')).toHaveLength(0)
-    expect(getByText('Approved')).toBeInTheDocument()
+    jest.runOnlyPendingTimers()
+
+    await waitFor(() => {
+      expect(queryAllByTestId('spinner')).toHaveLength(0)
+      expect(getByText('testFile.txt')).toBeInTheDocument()
+      expect(queryAllByText('Pending')).toHaveLength(0)
+      expect(getByText('Approved')).toBeInTheDocument()
+    })
   })
 
   it('should show spinners while multiple uploads are parsing', async () => {
@@ -1483,7 +1483,7 @@ describe('Reports', () => {
     await waitFor(() => {
       expect(getByText('section1.txt')).toBeInTheDocument()
       expect(getByText('section3.txt')).toBeInTheDocument()
-      expect(store.dispatch).toHaveBeenCalledTimes(8)
+      expect(store.dispatch).toHaveBeenCalledTimes(9)
     })
 
     const submitButton = getByText('Submit Data Files')
@@ -1492,19 +1492,17 @@ describe('Reports', () => {
     await waitFor(() =>
       expect(
         getAllByText(
-          `Successfully submitted section(s): 1, and 3 on ${new Date().toDateString()}`
+          `Successfully uploaded section(s): 1, and 3 on ${new Date().toDateString()}`
         ).length
       ).toBeGreaterThanOrEqual(1)
     )
-    await waitFor(() => expect(store.dispatch).toHaveBeenCalledTimes(12))
+    await waitFor(() => expect(store.dispatch).toHaveBeenCalledTimes(15))
 
     // act(() => jest.advanceTimersByTime(2000))
 
-    expect(get).toHaveBeenCalledTimes(3)
-    expect(times1).toBe(1)
-    expect(times2).toBe(1)
-
-    fireEvent.click(getByText('Submission History'))
+    expect(get).toHaveBeenCalledTimes(6)
+    expect(times1).toBe(2)
+    expect(times2).toBe(2)
 
     await waitFor(() => {
       expect(
@@ -1512,10 +1510,10 @@ describe('Reports', () => {
       ).not.toBeInTheDocument()
     })
 
-    expect(queryAllByTestId('spinner')).toHaveLength(20)
+    expect(queryAllByTestId('spinner')).toHaveLength(17)
     expect(getByText('testFile1.txt')).toBeInTheDocument()
     expect(getByText('testFile2.txt')).toBeInTheDocument()
-    expect(queryAllByText('Pending')).toHaveLength(5)
+    expect(queryAllByText('Pending')).toHaveLength(0)
 
     jest.runOnlyPendingTimers()
 
@@ -1523,11 +1521,13 @@ describe('Reports', () => {
       expect(queryAllByText('Approved')).toHaveLength(2)
     })
 
-    expect(queryAllByTestId('spinner')).toHaveLength(0)
-    expect(getByText('testFile1.txt')).toBeInTheDocument()
-    expect(getByText('testFile2.txt')).toBeInTheDocument()
-    expect(queryAllByText('Pending')).toHaveLength(0)
-    expect(queryAllByText('Approved')).toHaveLength(2)
+    await waitFor(() => {
+      expect(queryAllByTestId('spinner')).toHaveLength(0)
+      expect(getByText('testFile1.txt')).toBeInTheDocument()
+      expect(getByText('testFile2.txt')).toBeInTheDocument()
+      expect(queryAllByText('Pending')).toHaveLength(0)
+      expect(queryAllByText('Approved')).toHaveLength(2)
+    })
   })
 
   it('should show Fiscal Year only when selecting program audit', async () => {
@@ -1841,10 +1841,18 @@ describe('Reports', () => {
     fireEvent.change(fiscal_year, { target: { value: '2024' } })
 
     await waitFor(() => {
-      expect(queryByText('Quarter 1 (October - December)')).toBeInTheDocument()
-      expect(queryByText('Quarter 2 (January - March)')).toBeInTheDocument()
-      expect(queryByText('Quarter 3 (April - June)')).toBeInTheDocument()
-      expect(queryByText('Quarter 4 (July - September)')).toBeInTheDocument()
+      expect(
+        queryByText('Quarter 1 (October - December)', { selector: 'label' })
+      ).toBeInTheDocument()
+      expect(
+        queryByText('Quarter 2 (January - March)', { selector: 'label' })
+      ).toBeInTheDocument()
+      expect(
+        queryByText('Quarter 3 (April - June)', { selector: 'label' })
+      ).toBeInTheDocument()
+      expect(
+        queryByText('Quarter 4 (July - September)', { selector: 'label' })
+      ).toBeInTheDocument()
     })
   })
 
@@ -1957,17 +1965,15 @@ describe('Reports', () => {
     })
 
     // Upload a file
-    // await waitFor(() => {
     fireEvent.change(getByLabelText('Section 1 - SSP-MOE - Active Case Data'), {
       target: {
         files: [makeTestFile('section1.txt', ['HEADER20212A53000SSP1ED\n'])],
       },
     })
-    // })
 
     await waitFor(() => {
       expect(getByText('section1.txt')).toBeInTheDocument()
-      expect(store.dispatch).toHaveBeenCalledTimes(9)
+      expect(store.dispatch).toHaveBeenCalledTimes(10)
     })
 
     // Try to change to Alaska (no SSP)
@@ -2117,6 +2123,60 @@ describe('Reports', () => {
       expect(yearSelect.value).toBe('2024')
 
       // Header should be visible with the correct format for PIA
+      expect(
+        queryByText('California - Program Integrity Audit - Fiscal Year 2024')
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('should cap fiscal year at the configured Program Integrity Audit maximum', async () => {
+    const store = appConfigureStore({
+      ...initialState,
+      reports: {
+        ...initialState.reports,
+        stt: 'California',
+      },
+      featureFlags: {
+        loading: false,
+        error: null,
+        lastFetched: '2025-03-01 10:00am',
+        flags: [
+          {
+            feature_name: 'program-integrity-audit',
+            enabled: true,
+            config: { minYear: 2023, maxYear: 2024 },
+            description: 'pia',
+          },
+        ],
+      },
+    })
+
+    const { getByLabelText, getByTestId, queryByText } = render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Reports />
+        </MemoryRouter>
+      </Provider>
+    )
+
+    const stt = getByTestId('stt-combobox')
+    fireEvent.change(stt, { target: { value: 'California' } })
+    setReportInputs('2025', 'Q3', getByLabelText)
+
+    await waitFor(() => {
+      expect(
+        queryByText(
+          'California - TANF - Fiscal Year 2025 - Quarter 3 (April - June)'
+        )
+      ).toBeInTheDocument()
+    })
+
+    fireEvent.click(getByLabelText('Program Integrity Audit'))
+
+    await waitFor(() => {
+      expect(getByLabelText('Fiscal Year (October - September)*').value).toBe(
+        '2024'
+      )
       expect(
         queryByText('California - Program Integrity Audit - Fiscal Year 2024')
       ).toBeInTheDocument()

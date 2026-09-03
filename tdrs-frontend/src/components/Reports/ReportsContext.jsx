@@ -171,9 +171,6 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     validatedParams.type
   )
   const [sttInputValue, setSttInputValue] = useState(validatedParams.stt)
-  const [selectedSubmissionTab, setSelectedSubmissionTab] = useState(
-    validatedParams.tab
-  )
 
   // Re-validate when STT list becomes available (only validates STT param) since it might not be available yet
   useEffect(() => {
@@ -213,16 +210,12 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     if (sttInputValue) {
       newParams.set('stt', sttInputValue)
     }
-    if (selectedSubmissionTab) {
-      newParams.set('tab', selectedSubmissionTab)
-    }
     setSearchParams(newParams)
   }, [
     yearInputValue,
     quarterInputValue,
     fileTypeInputValue,
     sttInputValue,
-    selectedSubmissionTab,
     setSearchParams,
   ])
 
@@ -245,15 +238,15 @@ export const ReportsProvider = ({ isFra = false, children }) => {
   // Alert state — the `timestamp` field ensures React always sees a new object
   // even when the same message is set consecutively, so the useEffect that
   // focuses the alert re-fires and the screen reader announces it again.
-  const [localAlert, setLocalAlert] = useState({
+  const [uploadAlert, setUploadAlert] = useState({
     active: false,
     type: null,
     message: null,
   })
-  const setLocalAlertState = (alert) =>
-    setLocalAlert({ ...alert, timestamp: Date.now() })
+  const setUploadAlertState = (alert) =>
+    setUploadAlert({ ...alert, timestamp: Date.now() })
 
-  // Processing alert state (separate from localAlert for accessibility)
+  // Processing alert state (separate from uploadAlert for accessibility)
   const [processingAlert, setProcessingAlertState] = useState({
     active: false,
     type: null,
@@ -262,13 +255,13 @@ export const ReportsProvider = ({ isFra = false, children }) => {
 
   // Refs
   const headerRef = useRef(null)
-  const alertRef = useRef(null)
+  const uploadAlertRef = useRef(null)
   const processingAlertRef = useRef(null)
 
   // Redux selectors
   const files = useSelector((state) => state.reports.submittedFiles)
   const uploadedFiles = useMemo(
-    () => files?.filter((file) => file.fileName && !file.id),
+    () => files?.filter((file) => file.fileName && !file.id) || [],
     [files]
   )
   const submittedFiles = useMemo(
@@ -278,6 +271,9 @@ export const ReportsProvider = ({ isFra = false, children }) => {
 
   // FRA-specific derived state
   const fraHasUploadedFile = !!fraSelectedFile && !fraSelectedFile.id
+  const hasUnsubmittedFile = isFra
+    ? fraHasUploadedFile
+    : uploadedFiles.length > 0
 
   const { startPolling, isPolling, stopAllTimers } = usePollingTimer()
 
@@ -310,12 +306,6 @@ export const ReportsProvider = ({ isFra = false, children }) => {
         setFileTypeInputValue(pendingChange.value)
         // Reset year if it's invalid for the new file type
         resetPiaYear(pendingChange.value)
-        break
-      case 'year':
-        setYearInputValue(pendingChange.value)
-        break
-      case 'quarter':
-        setQuarterInputValue(pendingChange.value)
         break
       case 'stt':
         setSttInputValue(pendingChange.value)
@@ -370,7 +360,7 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     if (yearInputValue && parseInt(yearInputValue) < minYear) {
       setYearInputValue('')
     } else if (
-      value === 'program-integrity-audit' &&
+      type === 'program-integrity-audit' &&
       parseInt(yearInputValue) > maxYear
     ) {
       setYearInputValue(`${maxYear}`)
@@ -381,13 +371,13 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     setFileTypeTouched(true)
     handleFieldSelection('fileType')
 
-    if (uploadedFiles.length > 0 || fraHasUploadedFile) {
+    if (hasUnsubmittedFile) {
       setModalTriggerSource('input-change')
       setPendingChange({ type: 'fileType', value })
       setErrorModalVisible(true)
     } else {
       setFileTypeInputValue(value)
-      setLocalAlertState({ active: false, type: null, message: null })
+      setUploadAlertState({ active: false, type: null, message: null })
       setProcessingAlertState({ active: false, type: null, message: null })
       dispatch(clearFileList({ fileType: value }))
       dispatch(reinitializeSubmittedFiles(value))
@@ -400,15 +390,10 @@ export const ReportsProvider = ({ isFra = false, children }) => {
   const selectYear = ({ target: { value } }) => {
     setYearTouched(true)
     handleFieldSelection('year')
-
-    if (uploadedFiles.length > 0 || fraHasUploadedFile) {
-      setModalTriggerSource('input-change')
-      setPendingChange({ type: 'year', value })
-      setErrorModalVisible(true)
-    } else {
-      setYearInputValue(value)
-      setLocalAlertState({ active: false, type: null, message: null })
-      setProcessingAlertState({ active: false, type: null, message: null })
+    setYearInputValue(value)
+    setUploadAlertState({ active: false, type: null, message: null })
+    setProcessingAlertState({ active: false, type: null, message: null })
+    if (!hasUnsubmittedFile) {
       dispatch(clearFileList({ fileType: fileTypeInputValue }))
       setFraSelectedFile(null)
     }
@@ -417,15 +402,10 @@ export const ReportsProvider = ({ isFra = false, children }) => {
   const selectQuarter = ({ target: { value } }) => {
     setQuarterTouched(true)
     handleFieldSelection('quarter')
-
-    if (uploadedFiles.length > 0 || fraHasUploadedFile) {
-      setModalTriggerSource('input-change')
-      setPendingChange({ type: 'quarter', value })
-      setErrorModalVisible(true)
-    } else {
-      setQuarterInputValue(value)
-      setLocalAlertState({ active: false, type: null, message: null })
-      setProcessingAlertState({ active: false, type: null, message: null })
+    setQuarterInputValue(value)
+    setUploadAlertState({ active: false, type: null, message: null })
+    setProcessingAlertState({ active: false, type: null, message: null })
+    if (!hasUnsubmittedFile) {
       dispatch(clearFileList({ fileType: fileTypeInputValue }))
       setFraSelectedFile(null)
     }
@@ -435,14 +415,14 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     setSttTouched(true)
     handleFieldSelection('stt')
 
-    if (uploadedFiles.length > 0 || fraHasUploadedFile) {
+    if (hasUnsubmittedFile) {
       setModalTriggerSource('input-change')
       setPendingChange({ type: 'stt', value, sttObject })
       setErrorModalVisible(true)
     } else {
       setSttInputValue(value)
       dispatch(setStt(value))
-      setLocalAlertState({
+      setUploadAlertState({
         active: false,
         type: null,
         message: null,
@@ -581,15 +561,13 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     setReprocessedModalVisible,
     reprocessedDate,
     setReprocessedDate,
-    localAlert,
-    setLocalAlertState,
+    uploadAlert,
+    setUploadAlertState,
     processingAlert,
     setProcessingAlertState,
-    processingAlertRef,
-    selectedSubmissionTab,
-    setSelectedSubmissionTab,
     headerRef,
-    alertRef,
+    processingAlertRef,
+    uploadAlertRef,
 
     // FRA-specific state
     fraSelectedFile,
@@ -631,6 +609,28 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     // Program audit
     piaFeatureFlag,
   }
+
+  // Scroll to and focus alert when it becomes active
+  useEffect(() => {
+    if (uploadAlert.active && uploadAlertRef && uploadAlertRef.current) {
+      uploadAlertRef.current.scrollIntoView({ behavior: 'smooth' })
+      uploadAlertRef.current.focus({ preventScroll: true })
+    }
+  }, [uploadAlert, uploadAlertRef])
+
+  // Scroll to processing alert when it becomes active (uses aria-live="polite" for sequential reading)
+  useEffect(() => {
+    if (
+      processingAlert.active &&
+      processingAlertRef &&
+      processingAlertRef.current
+    ) {
+      processingAlertRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }
+  }, [processingAlert, processingAlertRef])
 
   return (
     <ReportsContext.Provider value={value}>{children}</ReportsContext.Provider>

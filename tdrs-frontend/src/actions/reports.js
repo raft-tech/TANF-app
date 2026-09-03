@@ -140,7 +140,7 @@ export const download =
 
 // Main Redux action to add files to the state
 export const upload =
-  ({ file, section }) =>
+  ({ file, section, year, quarter }) =>
   async (dispatch) => {
     try {
       dispatch({
@@ -151,6 +151,8 @@ export const upload =
           fileType: file.type,
           section,
           uuid: uuidv4(),
+          ...(year && { validatedYear: year }),
+          ...(quarter && { validatedQuarter: quarter }),
         },
       })
     } catch (error) {
@@ -181,7 +183,8 @@ export const submit =
       formattedSections,
       logger,
       quarter,
-      setLocalAlertState,
+      setUploadAlertState,
+      setProcessingAlertState,
       stt,
       uploadedFiles,
       user,
@@ -222,11 +225,12 @@ export const submit =
           throw err
         }
 
-        setLocalAlertState({
+        setProcessingAlertState({
           active: true,
           type: 'success',
-          message: `Successfully submitted section(s): ${formattedSections} on ${new Date().toDateString()}`,
+          message: `Successfully uploaded section(s): ${formattedSections} on ${new Date().toDateString()}`,
         })
+
         removeFileInputErrorState()
 
         const submittedFileObjects = []
@@ -271,7 +275,7 @@ export const submit =
             : error_response?.file
               ? error_response.file
               : null
-        setLocalAlertState({
+        setUploadAlertState({
           active: true,
           type: 'error',
           message: ''.concat(error.message, ': ', msg),

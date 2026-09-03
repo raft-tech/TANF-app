@@ -19,6 +19,12 @@ jest.mock('./utils', () => ({
   removeOldPreviews: jest.fn(),
 }))
 
+jest.mock('@uswds/uswds/src/js/components', () => ({
+  fileInput: {
+    init: jest.fn(),
+  },
+}))
+
 const initialState = {
   reports: {
     submittedFiles: [
@@ -39,11 +45,11 @@ const makeTestFile = (name, contents = 'test content', type = 'text/plain') =>
   new File([contents], name, { type })
 
 describe('FileUpload', () => {
-  let mockSetLocalAlertState
+  let mockSetUploadAlertState
   let mockDispatch
 
   beforeEach(() => {
-    mockSetLocalAlertState = jest.fn()
+    mockSetUploadAlertState = jest.fn()
     jest.clearAllMocks()
 
     // Mock FileReader
@@ -87,17 +93,20 @@ describe('FileUpload', () => {
       quarter: 'Q1',
       fileType: 'tanf',
       label: 'Active Case Data',
-      setLocalAlertState: mockSetLocalAlertState,
+      setUploadAlertState: mockSetUploadAlertState,
     }
   ) => {
     const store = mockStore(storeState)
     mockDispatch = jest.spyOn(store, 'dispatch')
 
-    return render(
-      <Provider store={store}>
-        <FileUpload {...props} />
-      </Provider>
-    )
+    return {
+      ...render(
+        <Provider store={store}>
+          <FileUpload {...props} />
+        </Provider>
+      ),
+      store,
+    }
   }
 
   describe('Rendering', () => {
@@ -155,6 +164,13 @@ describe('FileUpload', () => {
       expect(getByRole('alert')).toBeInTheDocument()
       expect(getByText('Need help?')).toBeInTheDocument()
     })
+
+    it('initializes USWDS file input on mount', () => {
+      const { fileInput } = require('@uswds/uswds/src/js/components')
+      renderComponent()
+
+      expect(fileInput.init).toHaveBeenCalled()
+    })
   })
 
   describe('File Selection', () => {
@@ -167,7 +183,7 @@ describe('FileUpload', () => {
       fireEvent.change(input, { target: { files: [file] } })
 
       await waitFor(() => {
-        expect(mockSetLocalAlertState).toHaveBeenCalledWith({
+        expect(mockSetUploadAlertState).toHaveBeenCalledWith({
           active: false,
           type: null,
           message: null,
@@ -178,7 +194,7 @@ describe('FileUpload', () => {
 
   describe('File Validation - Extension', () => {
     it('accepts .txt files', async () => {
-      const { container } = renderComponent()
+      const { container, store } = renderComponent()
 
       const input = container.querySelector('input[type="file"]')
       const file = makeTestFile('test.txt')
@@ -191,6 +207,12 @@ describe('FileUpload', () => {
           (call) => typeof call[0] === 'function'
         )
         expect(uploadCalls.length).toBeGreaterThan(0)
+        expect(store.getState().reports.submittedFiles[0]).toEqual(
+          expect.objectContaining({
+            validatedYear: '2024',
+            validatedQuarter: 'Q1',
+          })
+        )
       })
     })
 
@@ -332,7 +354,9 @@ describe('FileUpload', () => {
             type: reportsActions.SET_FILE_ERROR,
             payload: expect.objectContaining({
               error: expect.objectContaining({
-                message: expect.stringContaining('File may correspond to SSP instead of TAN'),
+                message: expect.stringContaining(
+                  'File may correspond to SSP instead of TAN'
+                ),
               }),
             }),
           })
@@ -356,12 +380,19 @@ describe('FileUpload', () => {
 
       await waitFor(() => {
         // Check that the error message text is displayed
-        expect(getByText(/Could not determine the file type/i)).toBeInTheDocument()
+        expect(
+          getByText(/Could not determine the file type/i)
+        ).toBeInTheDocument()
 
         // Check that the help link is present
-        const helpLink = container.querySelector('a[aria-label="Need help? Read header record guidance"]')
+        const helpLink = container.querySelector(
+          'a[aria-label="Need help? Read header record guidance"]'
+        )
         expect(helpLink).toBeInTheDocument()
-        expect(helpLink).toHaveAttribute('href', 'https://acf.gov/sites/default/files/documents/ofa/transmission_file_header_trailer_record.pdf')
+        expect(helpLink).toHaveAttribute(
+          'href',
+          'https://acf.gov/sites/default/files/documents/ofa/transmission_file_header_trailer_record.pdf'
+        )
 
         // Verify the action was dispatched with the correct type
         expect(mockDispatch).toHaveBeenCalledWith(
@@ -404,6 +435,66 @@ describe('FileUpload', () => {
             }),
           })
         )
+      })
+    })
+
+    it('revalidates and clears a fiscal period error when the quarter changes', async () => {
+      utils.validateHeader.mockResolvedValue({
+        isValid: false,
+        calendarFiscalResult: {
+          isValid: false,
+          fileFiscalYear: '2024',
+          fileFiscalQuarter: '2',
+        },
+        programTypeResult: { isValid: true },
+      })
+
+      const props = {
+        section: 'Active Case Data',
+        year: '2024',
+        quarter: 'Q1',
+        fileType: 'tanf',
+        label: 'Active Case Data',
+        setUploadAlertState: mockSetUploadAlertState,
+      }
+      const { container, getByRole, queryByRole, rerender, store } =
+        renderComponent(initialState, props)
+      const input = container.querySelector('input[type="file"]')
+
+      fireEvent.change(input, {
+        target: { files: [makeTestFile('test.txt')] },
+      })
+
+      await waitFor(() => {
+        expect(getByRole('alert')).toHaveTextContent('Fiscal Year 2024')
+      })
+
+      const dropTarget = input.parentNode
+      dropTarget.classList.add('has-invalid-file')
+      const removeErrorStateSpy = jest.spyOn(dropTarget.classList, 'remove')
+
+      utils.validateHeader.mockResolvedValue({
+        isValid: true,
+        calendarFiscalResult: { isValid: true },
+        programTypeResult: { isValid: true },
+      })
+
+      rerender(
+        <Provider store={store}>
+          <FileUpload {...props} quarter="Q2" />
+        </Provider>
+      )
+
+      await waitFor(() => {
+        expect(utils.validateHeader).toHaveBeenLastCalledWith(
+          'HEADER20241A06   TAN1ED',
+          '2024',
+          'Q2',
+          'TAN'
+        )
+        expect(queryByRole('alert')).not.toBeInTheDocument()
+        expect(removeErrorStateSpy).toHaveBeenCalledWith('has-invalid-file')
+        expect(dropTarget).not.toHaveClass('has-invalid-file')
       })
     })
 

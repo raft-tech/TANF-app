@@ -412,7 +412,121 @@
           We keep a running log of new features, bug fixes, and other ongoing work aimed at improving your experience.
         </p>
 
+         <hr class="releaseHr">
+<h2 style="margin-top: 32px;" id="aug212026">August 21, 2026 (v 4.23.0)</h2>
+
+          <h3 style="margin-top: 16px; color: #595959;">Added:</h3>
+        <ul class="usa-icon-list">
+          <li class="usa-icon-list__item" style="margin-top: 16px;">
+            <div class="usa-icon-list__icon text-ink">
+              <img src="../img/added.svg" aria-hidden="true" alt="" style="background-color: #d3ffcc; border-radius: 5px; width: 18px; height: 18px; position: relative; top: 2px; margin-right: 22px; margin-left: 5px;"/>
+            </div>
+            <div class="usa-icon-list__content">
+              <h5 class="usa-icon-list__title">
+                Reporting due dates available in the Knowledge Center
+              </h5>
+              <p>The Knowledge Center now provides an easy reference for keeping track of due dates for reports submitted through TDP. View <a href="reporting-due-dates.html">Reporting Due Dates</a>.</p>
+            </div>
+          </li>
+              <li class="usa-icon-list__item" style="margin-top: 16px;">
+            <div class="usa-icon-list__icon text-ink">
+              <img src="../img/added.svg" aria-hidden="true" alt="" style="background-color: #d3ffcc; border-radius: 5px; width: 18px; height: 18px; position: relative; top: 2px; margin-right: 22px; margin-left: 5px;"/>
+            </div>
+            <div class="usa-icon-list__content">
+              <h5 class="usa-icon-list__title">
+                Guidance for periods with no caseload or records to report
+              </h5>
+              <p>New guidance explains how to report when your program has no caseload for one or more months within a quarter. The page includes example files and instructions for updating and submitting them through TDP. This guidance does not apply when your program has records to report but plans to submit them at a later date. <br><br> We are also exploring more convenient solutions for partners to report periods with no caseload directly in TDP in the future. Read more about <a href="when-you-have-no-data.html">When You Have No Caseload or Records to Report</a>.</p>
+            </div>
+          </li>
+          </ul>
+       <h3 style="margin-top: 16px; color: #595959;">Changed/Fixed:</h3>
+
+           <ul class="usa-icon-list">
+          <li class="usa-icon-list__item" style="margin-top: 16px;">
+            <div class="usa-icon-list__icon text-ink">
+                <img src="../img/changed.svg" aria-hidden="true" alt="" style="background-color: #b3e2ff; border-radius: 5px; width: 18px; height: 18px; position: relative; top: 2px; margin-right: 36px; margin-left: 5px;"/>
+  
+              </div>
+                <div class="usa-icon-list__content">
+              <h5 class="usa-icon-list__title">
+                TANF & SSP Data Files pages have been updated with a simpler view of Current Submission & Submission History 
+              </h5>
+              <p>This update increases consistency within TDP by adopting the newer data file submission interface first piloted with FRA Data Submission. This updated view combines the previous Current Submission and Submission History tabs into a single view to provide easier access to submission feedback, including any system-generated error reports.</p>
+            </div>
+          </li>
+  <li class="usa-icon-list__item" style="margin-top: 16px;">
+            <div class="usa-icon-list__icon text-ink">
+                <img src="../img/changed.svg" aria-hidden="true" alt="" style="background-color: #b3e2ff; border-radius: 5px; width: 18px; height: 18px; position: relative; top: 2px; margin-right: 20px; margin-left: 5px;"/>
+  
+              </div>
+                <div class="usa-icon-list__content">
+              <h5 class="usa-icon-list__title">
+                Trailer record length check removed
+              </h5>
+              <p>The trailer record of a data file contains metadata, including the total number of records in the file. Because the trailer record's length does not affect TDP's ability to process the records in a file, this check has been removed to focus error reports on more impactful data issues.<br><br>
+              If you previously received an error report containing a trailer record length error (e.g., "TRAILER: record length is [X] characters but must be 23"), we will reprocess the affected file(s) and you will receive an automated notification once reprocessing is complete. If a new error report is generated, it will not include this error.</p>
+            </div>
+          </li>
+          <!-- <li class="usa-icon-list__item" style="margin-top: 16px;">
+            <div class="usa-icon-list__icon text-ink">
+                <img src="../img/changed.svg" aria-hidden="true" alt="" style="background-color: #b3e2ff; border-radius: 5px; width: 18px; height: 18px; position: relative; top: 2px; margin-right: 20px; margin-left: 5px;"/>
+  
+              </div>
+                <div class="usa-icon-list__content">
+              <h5 class="usa-icon-list__title">
+                The Knowledge Center URL has been updated 
+              </h5>
+              <p> The TDP Knowledge Center has a new web address under the tanfdata.acf.hhs.gov domain. Existing links and bookmarks will automatically redirect to the new URL, so no action is required. This change only affects the web address. All Knowledge Center content and functionality remain the same.</p>
+            </div>
+          </li> -->
+          </ul>
+
+
+
+
     <hr class="releaseHr">
+
+     <h2 style="margin-top: 32px;" id="july242026">July 24, 2026 (v 4.21.0)</h2>
+
+
+        <h3 style="margin-top: 16px; color: #595959;">Added:</h3>
+        <ul class="usa-icon-list">
+          <li class="usa-icon-list__item" style="margin-top: 16px;">
+            <div class="usa-icon-list__icon text-ink">
+              <img src="../img/added.svg" aria-hidden="true" alt="" style="background-color: #d3ffcc; border-radius: 5px; width: 18px; height: 18px; position: relative; top: 2px; margin-right: 22px; margin-left: 5px;"/>
+            </div>
+            <div class="usa-icon-list__content">
+              <h5 class="usa-icon-list__title">
+                Error reports are now generated with a Readme tab   
+              </h5>
+              <p>Error reports generated in TDP for newly submitted/resubmitted data will open to a Readme tab, adding to the previous Critical and Summary tabs. The Readme acts as a table of contents for the error report and contains links to frequently useful content including coding instructions and specific Knowledge Center guidance. Critical and Summary tabs now only contain error data; making it easier to apply filtering, sorting, or other programatic techniques for organizing your error data.</p>
+            </div>
+          </li>
+          </ul>
+                      <h3 style="margin-top: 16px; color: #595959;">Changed/Fixed:</h3>
+
+           <ul class="usa-icon-list">
+          <li class="usa-icon-list__item" style="margin-top: 16px;">
+            <div class="usa-icon-list__icon text-ink">
+                <img src="../img/changed.svg" aria-hidden="true" alt="" style="background-color: #b3e2ff; border-radius: 5px; width: 18px; height: 18px; position: relative; top: 2px; margin-right: 5px; margin-left: 5px;"/>
+  
+              </div>
+            
+
+
+            <div class="usa-icon-list__content">
+              <h5 class="usa-icon-list__title">
+                Tribal TANF notifications of available Feedback Reports no longer reference SSP data
+              </h5>
+              <p>To avoid confusion, we've corrected the subject line and content of these email notifications to solely reflect the types of data relevant to Tribal TANF programs.</p>
+            </div>
+          </li>
+        </ul>
+
+
+
+        <hr class="releaseHr">
 
      <h2 style="margin-top: 32px;" id="july102026">July 10, 2026 (v 4.20.0)</h2>
 
@@ -605,7 +719,7 @@
               <h5 class="usa-icon-list__title">
                 Data Submission Functionality for the Work Outcomes of TANF Exiters Report
               </h5>
-              <p>Users with permission to submit FRA data will now see an FRA Data Files tab after signing into TDP. Currently, users can upload the Work Outcomes of TANF Exiters Report (Fiscal Quarter and Year) for submission. Additional reports are greyed out and will be enabled as their deadlines approach. Files can be submitted in CSV (recommended) or Excel formats. Once a file is processed, it will return a file status along with <a href="https://tdp-project-updates.app.cloud.gov/knowledge-center/submitting-fra-data.html">file submission history</a> and <a href="https://tdp-project-updates.app.cloud.gov/knowledge-center/fra-error-reports.html">error reports</a> in the <a href="https://tdp-project-updates.app.cloud.gov/knowledge-center/submitting-fra-data.html">Knowledge Center</a>.</p>
+              <p>Users with permission to submit FRA data will now see an FRA Data Files tab after signing into TDP. Currently, users can upload the Work Outcomes of TANF Exiters Report (Fiscal Quarter and Year) for submission. Additional reports are greyed out and will be enabled as their deadlines approach. Files can be submitted in CSV (recommended) or Excel formats. Once a file is processed, it will return a file status along with <a href="submitting-fra-data.html">file submission history</a> and <a href="fra-error-reports.html">error reports</a> in the <a href="submitting-fra-data.html">Knowledge Center</a>.</p>
             </div>
           </li>
         </ul>     
@@ -620,7 +734,7 @@
               <h5 class="usa-icon-list__title">
                 New FRA Pages Added to the Knowledge Center
               </h5>
-              <p><a href="https://tdp-project-updates.app.cloud.gov/knowledge-center/submitting-fra-data.html">New pages</a> have been added to the Knowledge Center to provide guidance on requesting access to the FRA submission functionality and submitting data for FRA reports.</p>
+              <p><a href="submitting-fra-data.html">New pages</a> have been added to the Knowledge Center to provide guidance on requesting access to the FRA submission functionality and submitting data for FRA reports.</p>
             </div>
           </li>
         </ul>
@@ -711,7 +825,7 @@
               <h5 class="usa-icon-list__title">
                 TDP Now Blocks Submissions when Calendar Year/Quarter in File does not match the Fiscal Year/Quarter Selected for Submission
               </h5>
-              <p>To improve data accuracy and reduce confusion, TDP now validates the <b>Calendar Year and Quarter</b> in your file’s header against the <b>Fiscal Year and Quarter</b> selected for submission. If the date in your file’s header do not match the selected submission period, TDP will block the submission and display a clear error message with the correct Fiscal Year/Quarter to select. A “Need Help?” link to the <a href="https://tdp-project-updates.app.cloud.gov/knowledge-center/uploading-data.html#reporting-period">Knowledge Center</a> for additional guidance is also provided. We are continuing to explore opportunities to make the data submission process easier and more intuitive.</p>
+              <p>To improve data accuracy and reduce confusion, TDP now validates the <b>Calendar Year and Quarter</b> in your file’s header against the <b>Fiscal Year and Quarter</b> selected for submission. If the date in your file’s header do not match the selected submission period, TDP will block the submission and display a clear error message with the correct Fiscal Year/Quarter to select. A “Need Help?” link to the <a href="uploading-data.html#reporting-period">Knowledge Center</a> for additional guidance is also provided. We are continuing to explore opportunities to make the data submission process easier and more intuitive.</p>
             </div>
           </li>
         </ul>     

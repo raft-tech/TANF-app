@@ -186,18 +186,26 @@ Promise.all([
 
 The rule of thumb: if a single Django endpoint can serve the view, pass-through. If the view needs to join data that Django doesn't serve in a single response, use BFF shaping — but do not add business logic or authorization checks in the BFF layer.
 
+Implementation guidance for `tdp-admin`:
+
+- Use the shared server-side admin API helper for Django calls so session cookies, CSRF context, request IDs, and provenance headers are forwarded consistently.
+- Keep `/api/admin/*` as the default pass-through route for single-endpoint views.
+- BFF shaping must only compose multiple Django responses for one view. It must not introduce authorization enforcement, workflow transitions, domain validation, persistence, or durable audit records in Next.js.
+- Reviewers should ask whether Django remains authoritative for every permission decision, mutation, validation result, and audit record before approving a new admin route or server action.
+
 ---
 
 ## Form Metadata and Validation
 
-Django remains the source of truth for editable admin forms. The React admin should not manually duplicate Django model or form validators in TypeScript. Instead, each migrated admin workflow should expose an explicit form-metadata endpoint from Django and a matching mutation endpoint for submission.
+Django remains the source of truth for editable admin forms. The React admin should not manually duplicate Django model or form validators in TypeScript. Instead, migrated admin workflows should be added to an explicit Django allowlist and served through the generic admin form endpoints.
 
-The target pattern is metadata-driven, not fully generic form generation. Shared React components should render common field types from backend metadata, while workflow-specific screens can still provide layout, conditional behavior, and specialized controls where needed. This gives the frontend reusable building blocks without requiring every Django admin form to fit a single universal form-builder abstraction.
+The target pattern is metadata-driven and registry-based. A shared metadata builder derives common field metadata from Django `Form` and `ModelForm` fields, and a shared React renderer maps that metadata to USWDS controls. Workflow-specific screens can still provide page layout, conditional behavior, and specialized controls where needed, but they should not create one-off metadata builders or mutation endpoints for common Django form saves.
 
 ### Guiding design principles
 
-- **Explicit workflow contracts:** each migrated admin form should have a clear backend metadata endpoint and mutation endpoint rather than relying on frontend inference from unrelated APIs.
+- **Explicit workflow contracts:** each migrated admin form should be registered in the backend admin form workflow registry rather than relying on frontend inference from unrelated APIs.
 - **Shared component mapping:** the frontend should map common metadata field types to reusable USWDS React form controls.
+- **Generic endpoint shape:** the backend should use one generic metadata endpoint and one generic save endpoint for registered workflows.
 - **Server-authoritative validation:** Django remains the final authority for validation, permission checks, workflow rules, persistence, and audit behavior.
 - **Generic where safe:** required fields, choices, labels, help text, simple type checks, lengths, and numeric/date bounds can drive reusable form behavior.
 - **Workflow-specific escape hatches:** custom layouts, conditional fields, specialized controls, and server-only validation are expected for complex admin workflows.
@@ -216,7 +224,7 @@ The implementation should assume we own the Django metadata contract and the com
 
 ### Backend metadata pattern
 
-For model-backed forms, the backend should derive generic metadata from the same Django form, serializer, and model field definitions used for server-side validation where practical:
+For registered Django forms, the backend should derive generic metadata from the same Django form, serializer, and model field definitions used for server-side validation where practical:
 
 - field type and widget intent,
 - required/optional state,
@@ -225,18 +233,17 @@ For model-backed forms, the backend should derive generic metadata from the same
 - max length and numeric/date bounds where Django exposes them,
 - simple field validators that can be represented as client rules,
 - initial values for edit forms,
-- read-only or disabled state derived from permissions or workflow state,
 - field and form-level errors returned from Django validation.
 
-The backend contract should be explicit per workflow rather than inferred by the frontend. For example, a migrated user-access review form could expose one metadata endpoint for the editable fields on that screen and one mutation endpoint for approve/reject/update actions.
+The backend contract should be explicit in the admin form registry rather than inferred by the frontend. For example, a migrated user-access review form should register a workflow key, form class, queryset, object serializer, and optional save callback.
 
 Conceptual shape:
 
 ```
-GET /api/admin/users/{id}/access-review/form/
-  -> fields, initial values, generic constraints, permissions
+GET /admin-api/v1/admin-forms/{workflow}/{object_id}/metadata/
+  -> fields, initial values, generic constraints, submit_url
 
-POST /api/admin/users/{id}/access-review/
+PATCH /admin-api/v1/admin-forms/{workflow}/{object_id}/
   -> runs Django validation and workflow logic, persists changes, returns success or validation errors
 ```
 
@@ -244,32 +251,27 @@ High-level metadata example:
 
 ```json
 {
-  "workflow": "user_access_review",
+  "workflow": "users.user.change",
+  "title": "Edit user",
+  "object": {
+    "id": "user-1",
+    "label": "admin@example.gov"
+  },
+  "submit_url": "/admin-forms/users.user.change/user-1/",
   "fields": [
     {
-      "name": "role",
-      "label": "Role",
-      "type": "choice",
-      "widget": "select",
+      "name": "groups",
+      "label": "Groups",
+      "type": "multiselect",
       "required": true,
       "choices": [
-        { "value": "data_analyst", "label": "Data Analyst" },
-        { "value": "ofa_admin", "label": "OFA Admin" }
-      ]
-    },
-    {
-      "name": "decision_reason",
-      "label": "Decision reason",
-      "type": "string",
-      "widget": "textarea",
-      "required": false,
-      "maxLength": 500
+        { "value": "1", "label": "Data Analyst" },
+        { "value": "2", "label": "OFA Admin" }
+      ],
+      "initial": ["1"],
+      "constraints": {}
     }
-  ],
-  "initialValues": {
-    "role": "data_analyst",
-    "decision_reason": ""
-  }
+  ]
 }
 ```
 
@@ -277,12 +279,15 @@ High-level validation error example:
 
 ```json
 {
-  "fieldErrors": {
-    "role": ["Select a valid role."]
-  },
-  "nonFieldErrors": [
-    "This user cannot be approved until all required profile fields are complete."
-  ]
+  "ok": false,
+  "errors": {
+    "field_errors": {
+      "groups": ["Select a valid role."]
+    },
+    "non_field_errors": [
+      "This user cannot be approved until all required profile fields are complete."
+    ]
+  }
 }
 ```
 
@@ -297,7 +302,7 @@ Form submission should follow this sequence:
 1. The Next.js admin page requests metadata and initial values from Django.
 2. The React form maps backend field metadata to shared USWDS input components.
 3. React Hook Form applies generic client-side checks for immediate feedback.
-4. On submit, the form sends the payload to the Django mutation endpoint.
+4. On submit, the form sends the payload to the metadata-provided generic Django mutation endpoint.
 5. Django runs authoritative `ModelForm`, serializer, model, permission, workflow, and domain validation.
 6. Django returns either a successful result or a normalized error response containing field errors and non-field errors.
 7. The React form maps server-returned errors back onto the corresponding fields or form-level alert region.
@@ -325,6 +330,7 @@ Target model:
 - Keycloak preserves seamless SSO for users who already have an active SSO session, but the admin browser session is scoped to the admin hostname.
 - Django remains the application session authority for backend API enforcement after the Keycloak login callback completes.
 - Admin and non-admin Django sessions should be separate browser cookies. Prefer host-only `SESSION_COOKIE_DOMAIN` and `CSRF_COOKIE_DOMAIN` behavior by leaving broad domain settings unset for the admin deployment path.
+- Signed Django session payloads must also carry an explicit `admin` or `standard` scope. Cookie names route requests to the appropriate session, while the signed scope prevents either cookie value from being replayed against the other application's endpoints.
 
 This model intentionally avoids sharing broad `.app.cloud.gov` or `.acf.hhs.gov` cookies between the user-facing CRA origin and the admin origin. It reduces the blast radius of a user-frontend XSS bug and gives admin routes their own redirect, cookie, CSRF, and session lifecycle boundaries.
 
@@ -356,7 +362,14 @@ Required guardrails:
 - Trusted origins should be explicit to the admin hostname and backend hostname; avoid wildcard subdomain trust.
 - SameSite behavior should be chosen for the deployed cross-host flow and documented before implementation. If the admin app and Django API require cross-site cookie submission, use the narrowest `SameSite=None; Secure` scope possible and compensate with strict origin/referrer checks.
 - Next.js BFF endpoints that accept browser mutations must perform CSRF validation or forward the request to Django without weakening Django's CSRF checks.
-- Logout must clear the admin-scoped Django session and trigger Keycloak logout or session revocation behavior consistent with the broader Keycloak architecture.
+- Logout must clear only the admin-scoped app session. A global Keycloak logout or session-revocation flow should be modeled separately so a TDP frontend logout does not implicitly end the admin console session.
+
+Keycloak keeps one realm SSO user session with a child client session for each
+application. RP-initiated logout terminates that shared SSO session and may
+continue to the upstream identity provider, so it is not an app-scoped logout
+mechanism. A future "sign out everywhere" action may use that flow explicitly;
+ordinary frontend and admin sign-out must only clear the matching signed Django
+session.
 
 ### Cache behavior and audit forwarding
 
@@ -371,6 +384,12 @@ When Next.js calls Django on behalf of an admin user, requests must preserve pro
 - Keycloak client/auth flow identifier when available.
 
 Django remains responsible for durable audit records. Next.js may add request context, but it must not be the only place where privileged admin activity is recorded.
+
+Current `tdp-admin` server-side helpers forward the Django session cookie, CSRF
+token for mutating calls, request/correlation headers, source route, proxy
+identity, and source IP chain headers. Authenticated admin proxy responses set
+`Cache-Control: no-store` by default so refreshes and back/forward navigation do
+not expose stale privileged data from browser or shared caches.
 
 ### Session validation flow
 

@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 KEYCLOAK_DIR = Path(__file__).resolve().parents[3] / "keycloak"
-CONFIGURE_IDPS_PATH = KEYCLOAK_DIR / "configure-idps.sh"
 REALM_CONFIGS_DIR = KEYCLOAK_DIR / "realm-configs"
 REALM_CONFIG_PATHS = {
     "local": REALM_CONFIGS_DIR / "realm-export.dev-local.json",
@@ -36,6 +35,11 @@ def get_identity_provider(realm, alias):
     return next(idp for idp in realm["identityProviders"] if idp["alias"] == alias)
 
 
+def get_authentication_flow(realm, alias):
+    """Return the named authentication flow from the rendered realm."""
+    return next(flow for flow in realm["authenticationFlows"] if flow["alias"] == alias)
+
+
 def load_realm_config(env_name):
     """Load the selected full realm config for an environment."""
     return load_json(REALM_CONFIG_PATHS[env_name])
@@ -50,6 +54,7 @@ def test_dev_local_config_includes_hosted_and_local_urls():
     """The shared dev/local config should allow both Cloud.gov dev and local workflows."""
     realm = load_realm_config("local")
     django_client = get_client(realm, "tdp-django")
+    admin_client = get_client(realm, "tdp-admin")
     grafana_client = get_client(realm, "tdp-grafana")
 
     assert "https://test.tanfdata.acf.hhs.gov/*" in django_client["redirectUris"]
@@ -57,6 +62,16 @@ def test_dev_local_config_includes_hosted_and_local_urls():
     assert "https://a11y.tanfdata.acf.hhs.gov/*" in django_client["redirectUris"]
     assert "http://localhost:3000/*" in django_client["redirectUris"]
     assert "http://127.0.0.1:8989/*" in django_client["redirectUris"]
+    assert (
+        "https://test.tanfdata.acf.hhs.gov/admin-auth/*" in admin_client["redirectUris"]
+    )
+    assert (
+        "https://qasp.tanfdata.acf.hhs.gov/admin-auth/*" in admin_client["redirectUris"]
+    )
+    assert (
+        "https://a11y.tanfdata.acf.hhs.gov/admin-auth/*" in admin_client["redirectUris"]
+    )
+    assert "http://localhost:8989/*" in admin_client["redirectUris"]
     assert grafana_client["attributes"]["post.logout.redirect.uris"] == (
         "https://grafana.tanfdata.acf.hhs.gov/*##http://localhost:9400/*"
     )
@@ -66,23 +81,38 @@ def test_staging_config_excludes_local_urls():
     """Staging config should allow only hosted staging frontends."""
     realm = load_realm_config("staging")
     django_client = get_client(realm, "tdp-django")
+    admin_client = get_client(realm, "tdp-admin")
 
     assert django_client["redirectUris"] == [
         "https://staging.tanfdata.acf.hhs.gov/*",
         "https://develop.tanfdata.acf.hhs.gov/*",
     ]
+    assert admin_client["redirectUris"] == [
+        "https://staging.admin.tanfdata.acf.hhs.gov/*",
+        "https://develop.admin.tanfdata.acf.hhs.gov/*",
+        "https://staging.tanfdata.acf.hhs.gov/admin-auth/*",
+        "https://develop.tanfdata.acf.hhs.gov/admin-auth/*",
+    ]
     assert all("localhost" not in uri for uri in django_client["redirectUris"])
     assert all("127.0.0.1" not in uri for uri in django_client["redirectUris"])
+    assert all("localhost" not in uri for uri in admin_client["redirectUris"])
+    assert all("127.0.0.1" not in uri for uri in admin_client["redirectUris"])
 
 
 def test_prod_config_excludes_local_urls():
     """Prod config should allow only the production frontend."""
     realm = load_realm_config("prod")
     django_client = get_client(realm, "tdp-django")
+    admin_client = get_client(realm, "tdp-admin")
     grafana_client = get_client(realm, "tdp-grafana")
 
     assert django_client["redirectUris"] == ["https://tanfdata.acf.hhs.gov/*"]
     assert django_client["webOrigins"] == ["https://tanfdata.acf.hhs.gov"]
+    assert admin_client["redirectUris"] == [
+        "https://admin.tanfdata.acf.hhs.gov/*",
+        "https://tanfdata.acf.hhs.gov/admin-auth/*",
+    ]
+    assert admin_client["webOrigins"] == ["https://admin.tanfdata.acf.hhs.gov"]
     assert grafana_client["redirectUris"] == [
         "https://grafana.tanfdata.acf.hhs.gov/login/generic_oauth"
     ]
@@ -123,22 +153,32 @@ def test_all_realm_configs_show_login_gov_on_login_page():
         assert login_gov_idp.get("hideOnLogin") is not True
 
 
-def test_configure_idps_applies_cli_audience_to_existing_realms():
-    """Deploy-time config must update existing realms that skip JSON re-import."""
-    script = CONFIGURE_IDPS_PATH.read_text()
+def test_dev_local_browser_flow_honors_idp_hint_before_forms():
+    """Keycloak must process kc_idp_hint before showing username/password forms."""
+    realm = load_realm_config("local")
+    django_client = get_client(realm, "tdp-django")
+    admin_client = get_client(realm, "tdp-admin")
+    cli_client = get_client(realm, "tdp-cli")
+    browser_flow = get_authentication_flow(realm, "tdp-browser")
+    executions = browser_flow["authenticationExecutions"]
+    redirector_index = next(
+        index
+        for index, execution in enumerate(executions)
+        if execution.get("authenticator") == "identity-provider-redirector"
+    )
+    forms_index = next(
+        index
+        for index, execution in enumerate(executions)
+        if execution.get("flowAlias") == "tdp-browser-forms"
+    )
 
-    assert "configure_tdp_cli_api_audience()" in script
-    assert "configure_tdp_cli_api_audience" in script.split("main()", maxsplit=1)[1]
-    assert 'scope_name="tdp-api-audience"' in script
-    assert "/client-scopes?name=${scope_name}" in script
-    assert 'get_client_uuid "tdp-cli"' in script
-    assert "default-client-scopes" in script
-
-
-def test_configure_idps_shows_login_gov_for_existing_realms():
-    """Deploy-time config must unhide Login.gov when realms skip re-import."""
-    script = CONFIGURE_IDPS_PATH.read_text()
-
-    assert "show_login_gov_on_login_page()" in script
-    assert "show_login_gov_on_login_page" in script.split("main()", maxsplit=1)[1]
-    assert ".hideOnLogin = false | del(.config.clientSecret)" in script
+    assert realm["browserFlow"] == "tdp-browser"
+    assert (
+        django_client["authenticationFlowBindingOverrides"]["browser"] == "tdp-browser"
+    )
+    assert (
+        admin_client["authenticationFlowBindingOverrides"]["browser"] == "tdp-browser"
+    )
+    assert cli_client["authenticationFlowBindingOverrides"]["browser"] == "tdp-browser"
+    assert executions[redirector_index]["requirement"] == "ALTERNATIVE"
+    assert redirector_index < forms_index
