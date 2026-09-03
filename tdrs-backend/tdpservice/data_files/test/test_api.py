@@ -374,6 +374,42 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
 
         assert file_1.s3_versioning_id != file_2.s3_versioning_id
 
+    def test_upload_file_with_param_mismatch_succeeds_and_logs(
+        self, api_client, data_file_data, user, mocker
+    ):
+        """Test that even when there is a param mismatch, the file still gets uploaded, logged, and alerted."""
+        from tdpservice.core.models import BaseLog
+
+        mock_alert = mocker.patch("tdpservice.param_mismatch_middleware.send_alert")
+        mocker.patch("tdpservice.data_files.views.parser_task.parse.delay")
+
+        url_with_mismatched_stt = f"{self.root_url}?stt=9999"
+        response = api_client.post(
+            url_with_mismatched_stt, data_file_data, format="multipart"
+        )
+
+        # 1. File still gets uploaded successfully
+        self.assert_data_file_created(response)
+        data_file = DataFile.objects.get(id=response.data["id"])
+        assert data_file.file
+
+        # 2. Details of mismatch are logged to BaseLog
+        logs = BaseLog.objects.filter(event_type="request_param_mismatch")
+        assert logs.count() >= 1
+        latest_log = logs.first()
+        assert "stt" in latest_log.metadata["mismatches"]
+        assert latest_log.metadata["mismatches"]["stt"]["query"] == "9999"
+        assert latest_log.metadata["mismatches"]["stt"]["body"] == str(
+            data_file_data["stt"]
+        )
+        assert latest_log.metadata["is_file_upload"] is True
+
+        # 3. AlertManager was alerted
+        mock_alert.assert_called_once()
+        _, alert_kwargs = mock_alert.call_args
+        assert alert_kwargs["alertname"] == "RequestParamMismatch"
+        assert alert_kwargs["severity"] == "ERROR"
+
 
 class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
     """Test DataFileViewSet as a Data Analyst user."""
