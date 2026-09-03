@@ -11,7 +11,15 @@ import pytest
 from celery import current_app as celery_app
 from celery.exceptions import TimeoutError as CeleryTimeoutError
 
+from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.submission_lifecycle import (
+    begin_parse,
+    complete_datafile_av_scan,
+    claim_parse,
+    prepare_datafile_for_reparse,
+    start_datafile_av_scan,
+)
 from tdpservice.parsers import aggregates
 from tdpservice.parsers.models import (
     DataFileSummary,
@@ -53,6 +61,7 @@ logger = logging.getLogger(__name__)
 GO_PARSE_TASK_NAME = "tdpservice.scheduling.parser_task.go_parse"
 GO_PARSE_TIMEOUT_SECONDS = 300
 GO_PARSE_LARGE_FILE_TIMEOUT_SECONDS = 300
+GO_POST_PARSE_TIMEOUT_SECONDS = 60
 _GO_PARSER_DATAFILE_IDS = None
 
 os.environ["GO_PARSER_SHADOW_MODE"] = "False"
@@ -71,6 +80,37 @@ def register_go_parser_datafile_for_cleanup(datafile):
         _GO_PARSER_DATAFILE_IDS.add(datafile.pk)
 
 
+def wait_for_post_parse(datafile, timeout_seconds=GO_POST_PARSE_TIMEOUT_SECONDS):
+    """Wait for Python to finalize output produced by the live Go worker."""
+    deadline = time.monotonic() + timeout_seconds
+    final_states = {
+        SubmissionState.PARSE_FAILED,
+        SubmissionState.PARSED_WITH_ERRORS,
+        SubmissionState.PARSE_COMPLETED,
+    }
+
+    while time.monotonic() < deadline:
+        datafile.refresh_from_db()
+        if datafile.state in final_states:
+            if datafile.current_parse_token is not None:
+                raise RuntimeError(
+                    f"Post-parse left an owner on datafile {datafile.pk} "
+                    f"in state {datafile.state}."
+                )
+            return
+        if datafile.state != SubmissionState.PARSE_STARTED:
+            raise RuntimeError(
+                f"Post-parse moved datafile {datafile.pk} to unexpected state "
+                f"{datafile.state}."
+            )
+        time.sleep(0.1)
+
+    raise RuntimeError(
+        f"Timed out waiting for Python post-parse to finalize datafile "
+        f"{datafile.pk}; state={datafile.state}."
+    )
+
+
 def parse_datafile(dfs, datafile, timeout_seconds=GO_PARSE_TIMEOUT_SECONDS):
     """Submit a datafile to the Go parser worker and wait for completion."""
     register_go_parser_datafile_for_cleanup(datafile)
@@ -79,9 +119,23 @@ def parse_datafile(dfs, datafile, timeout_seconds=GO_PARSE_TIMEOUT_SECONDS):
     dfs.status = DataFileSummary.Status.PENDING
     dfs.save()
 
+    datafile.refresh_from_db()
+    if datafile.state == SubmissionState.UPLOADED:
+        start_datafile_av_scan(datafile)
+        complete_datafile_av_scan(datafile, "clean")
+    elif datafile.state in {
+        SubmissionState.PARSE_COMPLETED,
+        SubmissionState.PARSED_WITH_ERRORS,
+        SubmissionState.PARSE_FAILED,
+        SubmissionState.STUCK,
+    }:
+        prepare_datafile_for_reparse(datafile, note="Go parser integration reparse")
+    parse_token = claim_parse(datafile)
+    begin_parse(datafile, parse_token, actor="go_parser")
+
     async_result = celery_app.send_task(
         GO_PARSE_TASK_NAME,
-        args=[datafile.pk, 0],
+        args=[datafile.pk, 0, str(parse_token)],
         queue=settings.CELERY_GO_PARSER_QUEUE,
     )
 
@@ -98,8 +152,7 @@ def parse_datafile(dfs, datafile, timeout_seconds=GO_PARSE_TIMEOUT_SECONDS):
             f"Go parser task failed for datafile {datafile.pk}: {task_result}"
         )
 
-    # Give the database a brief moment to surface writes after the worker acks success.
-    time.sleep(0.1)
+    wait_for_post_parse(datafile)
 
     dfs.refresh_from_db()
     return dfs

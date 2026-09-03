@@ -16,6 +16,9 @@ from django.utils.text import slugify
 
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.submission_lifecycle import (
+    record_synthetic_import_completed,
+)
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T6, TANF_T7
 from tdpservice.stts.models import STT
 from tdpservice.users.models import User
@@ -365,8 +368,7 @@ class Command(BaseCommand):
                 f"version {self.version}. Choose a different --datafile-version."
             )
         if not created and datafile.state != SubmissionState.PARSE_COMPLETED:
-            datafile.state = SubmissionState.PARSE_COMPLETED
-            datafile.save(update_fields=["state"])
+            record_synthetic_import_completed(datafile)
 
         self.datafile_ids[key] = datafile.id
         return datafile.id

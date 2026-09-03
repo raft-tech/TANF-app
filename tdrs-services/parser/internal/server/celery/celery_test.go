@@ -95,7 +95,7 @@ func TestEnqueuePostParseTask(t *testing.T) {
 	}
 	sender := &fakeTaskSender{}
 
-	if err := s.enqueuePostParseTask(sender, 42, 7, "pipeline failed"); err != nil {
+	if err := s.enqueuePostParseTask(sender, 42, 7, "pipeline failed", "token-123"); err != nil {
 		t.Fatalf("enqueuePostParseTask() error = %v", err)
 	}
 
@@ -106,7 +106,7 @@ func TestEnqueuePostParseTask(t *testing.T) {
 	if call.task != "tdpservice.scheduling.parser_task.post_parse" {
 		t.Errorf("task = %q", call.task)
 	}
-	wantArgs := []interface{}{int32(42), int32(7), "pipeline failed"}
+	wantArgs := []interface{}{int32(42), int32(7), "pipeline failed", "token-123"}
 	for i, want := range wantArgs {
 		if call.args[i] != want {
 			t.Errorf("arg %d = %#v, want %#v", i, call.args[i], want)
@@ -121,7 +121,7 @@ func TestEnqueuePostParseTaskUsesNilParseError(t *testing.T) {
 	}
 	sender := &fakeTaskSender{}
 
-	if err := s.enqueuePostParseTask(sender, 42, 0, ""); err != nil {
+	if err := s.enqueuePostParseTask(sender, 42, 0, "", "token-123"); err != nil {
 		t.Fatalf("enqueuePostParseTask() error = %v", err)
 	}
 
@@ -137,7 +137,7 @@ func TestEnqueuePostParseTaskSurfacesDelayError(t *testing.T) {
 	}
 	sender := &fakeTaskSender{err: fmt.Errorf("redis down")}
 
-	err := s.enqueuePostParseTask(sender, 42, 0, "")
+	err := s.enqueuePostParseTask(sender, 42, 0, "", "token-123")
 
 	if err == nil || !strings.Contains(err.Error(), "redis down") {
 		t.Fatalf("error = %v, want redis down", err)
