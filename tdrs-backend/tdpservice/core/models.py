@@ -102,7 +102,6 @@ class BaseLog(models.Model):
         return f"{self.event_type}: {self.content_type} {self.object_id}"
 
 
-
 class FeatureFlag(models.Model):
     """Model for storing feature flags that can be toggled on/off via Django admin."""
 

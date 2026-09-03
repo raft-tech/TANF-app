@@ -82,7 +82,6 @@ class BaseLogAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     list_select_related = ("content_type", "actor")
 
 
-
 # Update GroupAdmin to use SimpleHistory
 admin.site.unregister(Group)
 
