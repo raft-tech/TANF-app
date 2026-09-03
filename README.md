@@ -54,10 +54,10 @@ code docs.code-workspace      # Documentation only
 ```
 In any workspace, press Cmd+Shift+P (or Ctrl+Shift+P), select Tasks: Run Task, and pick any task (e.g., Dev: Start All (Backend + Frontend) to spin up the local environment).
 
-For details on all task mappings and settings, refer to 
-[walkthrough.md](./walkthrough.md)
+For details on all task mappings and settings, refer to
+[WORKSPACES.md](./WORKSPACES.md)
 
-Note: if the tasks don't run, make sure you have go-task installed 
+Note: if the tasks don't run, make sure you have go-task installed
 ```bash
 brew install go-task
 ```
