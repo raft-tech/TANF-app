@@ -23,6 +23,26 @@ from tdpservice.parsers.test.factories import DataFileSummaryFactory
 from tdpservice.security.models import ClamAVFileScan
 
 
+@pytest.mark.django_db
+def test_lifecycle_fields_are_read_only_in_openapi_schema(api_client):
+    """Assert generated API documentation describes the lifecycle contract."""
+    response = api_client.get("/swagger.json")
+
+    assert response.status_code == status.HTTP_200_OK
+    data_file_schema = response.data["definitions"]["DataFile"]
+    properties = data_file_schema["properties"]
+
+    assert properties["state"]["readOnly"] is True
+    assert properties["state"]["enum"] == list(SubmissionState.values)
+    assert properties["state_display"]["readOnly"] is True
+    allowed_states_schema = properties["allowed_next_states"]
+    assert allowed_states_schema["type"] == "array"
+    assert allowed_states_schema["items"]["type"] == "string"
+    assert allowed_states_schema["items"]["enum"] == list(SubmissionState.values)
+    assert allowed_states_schema["readOnly"] is True
+    assert "state" not in data_file_schema.get("required", [])
+
+
 @pytest.mark.usefixtures("db")
 class DataFileAPITestBase:
     """A base test class for tests that interact with the DataFileViewSet.
@@ -296,6 +316,56 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         assert response.data["quarter"] == data_file_data["quarter"]
         assert response.data["stt"] == data_file_data["stt"]
         assert response.data["year"] == data_file_data["year"]
+        assert response.data["state"] == SubmissionState.VIRUS_SCAN_COMPLETED
+        assert response.data["state_display"] == "Virus scan completed"
+        assert response.data["allowed_next_states"] == [
+            SubmissionState.REPARSE_REQUESTED,
+            SubmissionState.PARSE_STARTED,
+            SubmissionState.CANCELED,
+        ]
+
+    def test_list_data_files_includes_lifecycle_state(
+        self, api_client, data_file_data, user
+    ):
+        """Assert list responses expose submission lifecycle state."""
+        create_response = self.post_data_file(api_client, data_file_data)
+        data_file_id = create_response.data["id"]
+
+        response = api_client.get(
+            f"{self.root_url}?stt={data_file_data['stt']}&file_type=tanf"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        serialized_file = next(
+            data_file for data_file in response.data if data_file["id"] == data_file_id
+        )
+        assert serialized_file["state"] == SubmissionState.VIRUS_SCAN_COMPLETED
+        assert serialized_file["state_display"] == "Virus scan completed"
+        assert serialized_file["allowed_next_states"] == [
+            SubmissionState.REPARSE_REQUESTED,
+            SubmissionState.PARSE_STARTED,
+            SubmissionState.CANCELED,
+        ]
+
+    def test_list_data_files_handles_unknown_lifecycle_state(
+        self, api_client, data_file_data, user
+    ):
+        """Assert one unexpected state does not break the list response."""
+        create_response = self.post_data_file(api_client, data_file_data)
+        data_file_id = create_response.data["id"]
+        DataFile.objects.filter(pk=data_file_id).update(state="future_state")
+
+        response = api_client.get(
+            f"{self.root_url}?stt={data_file_data['stt']}&file_type=tanf"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        serialized_file = next(
+            data_file for data_file in response.data if data_file["id"] == data_file_id
+        )
+        assert serialized_file["state"] == "future_state"
+        assert serialized_file["state_display"] == "future_state"
+        assert serialized_file["allowed_next_states"] == []
 
     def test_download_data_file_file(self, api_client, data_file_data, user):
         """Test that the file is transmitted with out errors."""
@@ -310,6 +380,8 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         self, api_client, data_file_data, user, mocker
     ):
         """Test ability to create data file metadata registry."""
+
+        data_file_data["state"] = SubmissionState.PARSE_FAILED
 
         def clean_scan(_file, _file_name, _uploaded_by, data_file=None):
             assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
@@ -334,6 +406,7 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
 
         data_file = DataFile.objects.get(id=response.data["id"])
         assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
+        assert response.data["state"] == SubmissionState.VIRUS_SCAN_COMPLETED
         assert data_file.file
 
         mock_parse_task.assert_called_once_with(data_file.id, reparse_id=None)
