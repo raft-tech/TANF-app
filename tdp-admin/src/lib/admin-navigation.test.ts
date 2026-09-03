@@ -51,7 +51,7 @@ describe("admin navigation helpers", () => {
     ]);
     expect(
       items.find((item) => item.id === "users")?.children?.map((item) => item.id)
-    ).toEqual(["requests-authorization", "feedback"]);
+    ).toEqual(["user-accounts", "requests-authorization", "feedback"]);
     expect(dashboardItems.map((item) => item.id)).toEqual([
       "acf-ocio-dashboard",
       "digit-team-dashboard",
@@ -139,6 +139,14 @@ describe("admin navigation helpers", () => {
     expect(
       isAdminNavItemActive("/data-files", dataFilesItem as AdminNavItem)
     ).toBe(false);
+    expect(
+      isAdminNavItemActive(
+        "/users/123/edit",
+        ADMIN_PRIMARY_NAV_ITEMS.find(
+          (item) => item.id === "users"
+        ) as AdminNavItem
+      )
+    ).toBe(true);
   });
 
   it("expands the Users group by default", () => {

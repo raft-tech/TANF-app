@@ -7,6 +7,7 @@ from django.contrib.sessions.middleware import SessionMiddleware
 from django.urls import reverse
 
 import pytest
+from mozilla_django_oidc.middleware import SessionRefresh
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
 
@@ -14,6 +15,12 @@ from ..api.login import CypressLoginDotGovAuthenticationOverride
 from ..models import AccountApprovalStatusChoices
 from ..oidc import STANDARD_SESSION_SCOPE
 from ..serializers import UserProfileSerializer
+
+
+class AuthenticatedUser:
+    """Minimal authenticated user for middleware tests."""
+
+    is_authenticated = True
 
 
 def _create_admin_session_from_standard(api_client, settings):
@@ -71,6 +78,24 @@ def _url_without_query(url):
     """Return scheme, host, and path without query parameters."""
     parsed_url = urlparse(url)
     return f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/admin-auth/login/dotgov",
+        "/admin-auth/oidc/callback/",
+        "/admin-auth/auth_check",
+        "/admin-api/v1/users/",
+    ],
+)
+def test_session_refresh_exempts_admin_paths(path):
+    """Expired OIDC sessions should not hijack admin routes."""
+    request = APIRequestFactory().get(path)
+    request.user = AuthenticatedUser()
+    request.session = {"oidc_id_token_expiration": 0}
+
+    assert SessionRefresh(lambda request: None).is_refreshable_url(request) is False
 
 
 @pytest.mark.django_db
@@ -187,10 +212,10 @@ def test_standard_session_authenticates_frontend_but_not_admin(
 
 @pytest.mark.django_db
 def test_admin_session_authenticates_admin_but_not_frontend(
-    api_client, admin_user, settings
+    api_client, admin_console_user, settings
 ):
     """An admin session should not authenticate the regular TDP frontend."""
-    api_client.login(username=admin_user.username, password="test_password")
+    api_client.login(username=admin_console_user.username, password="test_password")
     _create_admin_session_from_standard(api_client, settings)
     del api_client.cookies[settings.SESSION_COOKIE_NAME]
 
@@ -206,7 +231,7 @@ def test_admin_session_authenticates_admin_but_not_frontend(
 
 @pytest.mark.django_db
 def test_standard_and_admin_login_logout_end_to_end_state_sequence(
-    api_client, admin_user, settings
+    api_client, admin_console_user, settings
 ):
     """Standard and admin app sessions should remain independently scoped."""
     settings.KEYCLOAK_DJANGO_CLIENT_ID = "tdp-django"
@@ -220,7 +245,7 @@ def test_standard_and_admin_login_logout_end_to_end_state_sequence(
 
     _assert_auth_state(api_client, False, False)
 
-    _login_standard_session(api_client, admin_user, settings)
+    _login_standard_session(api_client, admin_console_user, settings)
     _assert_auth_state(api_client, True, False)
 
     _create_admin_session_from_standard(api_client, settings)
@@ -237,7 +262,7 @@ def test_standard_and_admin_login_logout_end_to_end_state_sequence(
     assert query_params["id_token_hint"] == ["standard-id-token"]
     _assert_auth_state(api_client, False, True)
 
-    _login_standard_session(api_client, admin_user, settings)
+    _login_standard_session(api_client, admin_console_user, settings)
     _assert_auth_state(api_client, True, True)
 
     response = api_client.get(reverse("admin-oidc-logout"))
@@ -266,7 +291,7 @@ def test_standard_and_admin_login_logout_end_to_end_state_sequence(
 )
 def test_logout_state_matrix(
     api_client,
-    admin_user,
+    admin_console_user,
     settings,
     initial_state,
     logout_route,
@@ -290,12 +315,12 @@ def test_logout_state_matrix(
     }
 
     if initial_state == "standard":
-        _login_standard_session(api_client, admin_user, settings)
+        _login_standard_session(api_client, admin_console_user, settings)
     elif initial_state == "admin":
-        _login_admin_session(api_client, admin_user, settings)
+        _login_admin_session(api_client, admin_console_user, settings)
         del api_client.cookies[settings.SESSION_COOKIE_NAME]
     elif initial_state == "both":
-        _login_admin_session(api_client, admin_user, settings)
+        _login_admin_session(api_client, admin_console_user, settings)
 
     _assert_auth_state(api_client, *initial_auth_states[initial_state])
 
@@ -372,10 +397,10 @@ def test_admin_cookie_cannot_authenticate_frontend(
 
 
 @pytest.mark.django_db
-def test_admin_api_path_uses_admin_session(api_client, admin_user, settings):
+def test_admin_api_path_uses_admin_session(api_client, admin_console_user, settings):
     """Admin API traffic should use the admin session on the backend path."""
     settings.ADMIN_API_PROXY_TOKEN = "server-only-token"
-    api_client.login(username=admin_user.username, password="test_password")
+    api_client.login(username=admin_console_user.username, password="test_password")
     _create_admin_session_from_standard(api_client, settings)
     del api_client.cookies[settings.SESSION_COOKIE_NAME]
 
@@ -385,7 +410,7 @@ def test_admin_api_path_uses_admin_session(api_client, admin_user, settings):
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data["authenticated"] is True
-    assert response.data["user"]["email"] == admin_user.username
+    assert response.data["user"]["email"] == admin_console_user.username
 
 
 @pytest.mark.django_db
@@ -421,7 +446,7 @@ def test_admin_api_path_rejects_unauthenticated_session(api_client, settings):
 
 @pytest.mark.django_db
 def test_admin_api_path_rejects_non_admin_session(api_client, user, settings):
-    """Admin API traffic should require staff-superuser authorization in Django."""
+    """Admin API traffic should require Django staff-superuser authorization."""
     settings.ADMIN_API_PROXY_TOKEN = "server-only-token"
     api_client.login(username=user.username, password="test_password")
     _create_admin_session_from_standard(api_client, settings)
@@ -440,11 +465,11 @@ def test_admin_api_path_rejects_non_admin_session(api_client, user, settings):
 
 
 @pytest.mark.django_db
-def test_admin_auth_check_allows_active_staff_superuser(
-    api_client, admin_user, settings
+def test_admin_auth_check_allows_django_superuser_without_admin_group(
+    api_client, admin_console_user, settings
 ):
-    """Admin auth_check should authorize an active Django staff superuser."""
-    api_client.login(username=admin_user.username, password="test_password")
+    """Admin auth_check should authorize independently of the assigned role."""
+    api_client.login(username=admin_console_user.username, password="test_password")
     _create_admin_session_from_standard(api_client, settings)
     response = api_client.get(reverse("admin-authorization-check"))
 
@@ -467,35 +492,19 @@ def test_admin_auth_check_rejects_non_admin(api_client, user, settings):
 
 
 @pytest.mark.django_db
-def test_admin_auth_check_allows_admin_with_initial_approval_status(
-    api_client, admin_user, settings
+def test_admin_auth_check_rejects_unapproved_django_superuser(
+    api_client, admin_console_user, settings
 ):
-    """TDP account approval should not control Django admin authorization."""
-    assert admin_user.account_approval_status == AccountApprovalStatusChoices.INITIAL
-    _login_admin_session(api_client, admin_user, settings)
+    """Admin auth_check should require Django superusers to be approved."""
+    _login_admin_session(api_client, admin_console_user, settings)
+    admin_console_user.account_approval_status = AccountApprovalStatusChoices.PENDING
+    admin_console_user.save()
 
     response = api_client.get(reverse("admin-authorization-check"))
 
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.data["authenticated"] is True
-    assert response.data["authorized"] is True
-
-
-@pytest.mark.django_db
-def test_admin_auth_check_allows_admin_with_data_analyst_role(
-    api_client, data_analyst, settings
-):
-    """Changing a staff superuser's TDP role should not revoke admin access."""
-    data_analyst.is_staff = True
-    data_analyst.is_superuser = True
-    data_analyst.save()
-    _login_admin_session(api_client, data_analyst, settings)
-
-    response = api_client.get(reverse("admin-authorization-check"))
-
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data["authenticated"] is True
-    assert response.data["authorized"] is True
+    assert response.data["authorized"] is False
 
 
 @pytest.mark.django_db
@@ -503,6 +512,8 @@ def test_admin_auth_check_rejects_staff_without_superuser(
     api_client, staff_user, settings
 ):
     """Staff status without superuser status should not grant admin access."""
+    staff_user.account_approval_status = AccountApprovalStatusChoices.APPROVED
+    staff_user.save()
     _login_admin_session(api_client, staff_user, settings)
 
     response = api_client.get(reverse("admin-authorization-check"))
@@ -513,13 +524,13 @@ def test_admin_auth_check_rejects_staff_without_superuser(
 
 
 @pytest.mark.django_db
-def test_admin_auth_check_rejects_inactive_admin(
-    api_client, admin_user, settings
+def test_admin_auth_check_rejects_inactive_django_superuser(
+    api_client, admin_console_user, settings
 ):
-    """Admin auth_check should require Django admin users to be active."""
-    _login_admin_session(api_client, admin_user, settings)
-    admin_user.is_active = False
-    admin_user.save()
+    """Admin auth_check should require Django superusers to be active."""
+    _login_admin_session(api_client, admin_console_user, settings)
+    admin_console_user.is_active = False
+    admin_console_user.save()
 
     response = api_client.get(reverse("admin-authorization-check"))
 
@@ -535,6 +546,7 @@ def test_admin_login_uses_admin_keycloak_client(api_client, settings):
     settings.KEYCLOAK_TDP_ADMIN_AUTHORIZATION_ENDPOINT = (
         "https://keycloak.example.gov/realms/tdp-admin/protocol/openid-connect/auth"
     )
+    settings.ADMIN_FRONTEND_BASE_URL = "http://localhost:3001"
     response = api_client.get(reverse("admin-login-ams"))
 
     assert response.status_code == status.HTTP_302_FOUND
@@ -552,6 +564,26 @@ def test_admin_login_uses_admin_keycloak_client(api_client, settings):
     assert session["session_scope"] == "admin"
     assert "oidc_client" not in session
     assert session["oidc_clients"][state] == "tdp-admin"
+    assert session["oidc_login_next"] == settings.ADMIN_FRONTEND_BASE_URL
+
+
+@pytest.mark.django_db
+def test_admin_login_preserves_allowed_admin_next_url(api_client, settings):
+    """Admin login should return to the admin frontend when next is supplied."""
+    settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID = "tdp-admin"
+    settings.ADMIN_FRONTEND_BASE_URL = "http://localhost:3001"
+    settings.OIDC_REDIRECT_ALLOWED_HOSTS = {"localhost:3001"}
+
+    response = api_client.get(
+        reverse("admin-login-dotgov"),
+        {"next": "http://localhost:3001/users"},
+    )
+
+    assert response.status_code == status.HTTP_302_FOUND
+    session = _client_session_from_cookie(
+        api_client, settings.ADMIN_SESSION_COOKIE_NAME, settings
+    )
+    assert session["oidc_login_next"] == "http://localhost:3001/users"
 
 
 @pytest.mark.django_db

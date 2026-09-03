@@ -7,6 +7,15 @@ export type BackendHealth = {
   error?: string;
 };
 
+export type AdminRole =
+  | string
+  | {
+      id?: number | string;
+      name?: string;
+      permissions?: unknown[];
+      [key: string]: unknown;
+    };
+
 export type AdminSession = {
   authenticated: boolean;
   authorized?: boolean;
@@ -17,14 +26,7 @@ export type AdminSession = {
     last_name?: string;
     is_staff?: boolean;
     is_superuser?: boolean;
-    roles?: (
-      | string
-      | {
-          id?: number;
-          name?: string;
-          permissions?: unknown[];
-        }
-    )[];
+    roles?: AdminRole[];
   };
   detail?: string;
 };
