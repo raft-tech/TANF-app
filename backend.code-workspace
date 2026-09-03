@@ -10,6 +10,8 @@
     }
   ],
   "settings": {
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000,
     "editor.formatOnSave": true,
     "editor.tabSize": 4,
     "files.trimTrailingWhitespace": true,
