@@ -90,6 +90,11 @@ export const ADMIN_PRIMARY_NAV_ITEMS = [
     allowedRoles: OFA_ADMIN_NAV_ROLES,
     children: [
       {
+        id: "user-accounts",
+        label: "User accounts",
+        href: "/users",
+      },
+      {
         id: "requests-authorization",
         label: "Requests & Authorization",
         disabled: true,

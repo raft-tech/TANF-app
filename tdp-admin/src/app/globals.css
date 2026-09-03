@@ -508,6 +508,10 @@ a {
   vertical-align: middle;
 }
 
+.admin-login-page__alert {
+  margin-bottom: 1rem;
+}
+
 .usa-hero__heading--alt {
   color: var(--primary-acf-blue);
 }
@@ -641,6 +645,14 @@ a {
   background: #fff;
 }
 
+.admin-success__panel--wide {
+  width: min(100%, 72rem);
+}
+
+.admin-success__panel--form {
+  width: min(100%, 56rem);
+}
+
 .admin-success__panel h1 {
   margin-top: 0.5rem;
   margin-bottom: 1rem;
@@ -694,6 +706,67 @@ a {
   padding: 1rem;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.admin-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.admin-table {
+  min-width: 44rem;
+  width: 100%;
+}
+
+.admin-table__primary,
+.admin-table__secondary {
+  display: block;
+}
+
+.admin-table__secondary {
+  color: #565c65;
+  font-weight: 400;
+  margin-top: 0.2rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-table__action {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.admin-form {
+  margin-top: 1.5rem;
+}
+
+.admin-form__alert {
+  margin-bottom: 1.5rem;
+}
+
+.admin-form__fields {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-form .usa-form-group {
+  margin-top: 0;
+}
+
+.admin-form .usa-select[multiple] {
+  height: auto;
+  max-width: 100%;
+}
+
+.admin-form__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.admin-form__actions .usa-button {
+  margin: 0;
 }
 
 .margin-left-neg-205 {
@@ -817,6 +890,10 @@ a {
 
   .admin-success__panel {
     padding: 1.25rem;
+  }
+
+  .admin-form__actions .usa-button {
+    width: 100%;
   }
 
   .admin-success__details div {
