@@ -5,9 +5,11 @@ import { MemoryRouter } from 'react-router-dom'
 import configureStore from 'redux-mock-store'
 import { thunk } from 'redux-thunk'
 import STTFeedbackReports from './STTFeedbackReports'
-import { get } from '../../fetch-instance'
+import { get, post } from '../../fetch-instance'
+import { downloadBlob } from '../../utils/fileDownload'
 
 jest.mock('../../fetch-instance')
+jest.mock('../../utils/fileDownload')
 
 // Mock STTComboBox to avoid fetchSttList side effects
 jest.mock('../STTComboBox', () => {
@@ -557,6 +559,55 @@ describe('STTFeedbackReports', () => {
         expect(screen.getByText('02/28/2025')).toBeInTheDocument()
       })
     })
+
+    it('tracks successful Data Analyst downloads', async () => {
+      const mockBlob = new Blob(['test content'], { type: 'application/zip' })
+      const mockReports = [
+        {
+          id: 1,
+          year: 2025,
+          date_extracted_on: '2025-02-28',
+          created_at: '2025-03-05T10:41:00Z',
+          original_filename: 'F33.zip',
+        },
+      ]
+      get
+        .mockResolvedValueOnce({
+          data: { results: mockReports },
+          ok: true,
+          status: 200,
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: mockBlob,
+          ok: true,
+          status: 200,
+          error: null,
+        })
+      post.mockResolvedValue({
+        data: null,
+        ok: true,
+        status: 200,
+        error: null,
+      })
+
+      renderComponent()
+      fireEvent.change(screen.getByLabelText(/Fiscal Year/i), {
+        target: { value: '2025' },
+      })
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: /Download F33.zip/i })
+      )
+
+      await waitFor(() => {
+        expect(post).toHaveBeenCalledWith(
+          expect.stringContaining('/reports/1/downloaded/'),
+          {}
+        )
+      })
+      expect(downloadBlob).toHaveBeenCalledWith(mockBlob, 'F33.zip')
+    })
   })
 
   describe('Year Filtering', () => {
@@ -912,6 +963,49 @@ describe('STTFeedbackReports', () => {
           })
         )
       })
+    })
+
+    it('does not track Regional Staff downloads', async () => {
+      const mockBlob = new Blob(['test content'], { type: 'application/zip' })
+      const mockReports = [
+        {
+          id: 1,
+          year: 2025,
+          date_extracted_on: '2025-02-28',
+          created_at: '2025-03-05T10:41:00Z',
+          original_filename: 'F33.zip',
+        },
+      ]
+      get
+        .mockResolvedValueOnce({
+          data: { results: mockReports },
+          ok: true,
+          status: 200,
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: mockBlob,
+          ok: true,
+          status: 200,
+          error: null,
+        })
+
+      renderComponent(regionalStore)
+      fireEvent.change(screen.getByLabelText(/State, Tribe, or Territory/i), {
+        target: { value: 'Wisconsin' },
+      })
+      fireEvent.change(screen.getByLabelText(/Fiscal Year/i), {
+        target: { value: '2025' },
+      })
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: /Download F33.zip/i })
+      )
+
+      await waitFor(() => {
+        expect(downloadBlob).toHaveBeenCalledWith(mockBlob, 'F33.zip')
+      })
+      expect(post).not.toHaveBeenCalled()
     })
 
     it('auto-fetches TANF reports when a tribal STT and year are selected', async () => {
