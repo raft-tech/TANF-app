@@ -40,6 +40,13 @@ function DownloadStatisticsModal({
     [onClose, trapKeyDown]
   )
 
+  useEffect(() => {
+    const dialog = dialogRef.current
+    dialog?.addEventListener('keydown', onKeyDown)
+
+    return () => dialog?.removeEventListener('keydown', onKeyDown)
+  }, [onKeyDown])
+
   return (
     <div className="download-statistics-overlay">
       <section
@@ -49,7 +56,6 @@ function DownloadStatisticsModal({
         aria-modal="true"
         aria-labelledby="download-statistics-title"
         tabIndex="-1"
-        onKeyDown={onKeyDown}
       >
         <header className="download-statistics-header">
           <h1
@@ -69,7 +75,10 @@ function DownloadStatisticsModal({
           )}
 
           {!loading && error && (
-            <div className="usa-alert usa-alert--error usa-alert--slim" role="alert">
+            <div
+              className="usa-alert usa-alert--error usa-alert--slim"
+              role="alert"
+            >
               <div className="usa-alert__body">
                 <p className="usa-alert__text">{error}</p>
               </div>
