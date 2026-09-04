@@ -144,6 +144,14 @@ def parse_datafile(dfs, datafile, timeout_seconds=GO_PARSE_TIMEOUT_SECONDS):
         .values_list("event_id", flat=True)
     )
     assert transition_event_ids == {event_id}
+    go_transitions = DataFileStateTransition.objects.for_object(datafile).filter(
+        source="go_parser",
+        event_id=event_id,
+    )
+    assert go_transitions.exists()
+    assert set(go_transitions.values_list("celery_task_id", flat=True)) == {
+        async_result.id
+    }
     return dfs
 
 

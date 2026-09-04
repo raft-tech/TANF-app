@@ -22,9 +22,44 @@ type fakeTaskCall struct {
 	args []interface{}
 }
 
+type fakeCeleryBroker struct {
+	message *gocelery.TaskMessage
+	err     error
+}
+
+func (f *fakeCeleryBroker) SendCeleryMessage(*gocelery.CeleryMessage) error {
+	return nil
+}
+
+func (f *fakeCeleryBroker) GetTaskMessage() (*gocelery.TaskMessage, error) {
+	return f.message, f.err
+}
+
 func (f *fakeTaskSender) Delay(task string, args ...interface{}) (*gocelery.AsyncResult, error) {
 	f.calls = append(f.calls, fakeTaskCall{task: task, args: args})
 	return nil, f.err
+}
+
+func TestCeleryTaskIDBrokerAddsEnvelopeIDToTaskArgs(t *testing.T) {
+	const taskID = "987e6543-e21b-12d3-a456-426614174000"
+	message := &gocelery.TaskMessage{
+		ID:   taskID,
+		Args: []interface{}{float64(42), float64(7), "event-id"},
+	}
+	broker := &celeryTaskIDBroker{
+		CeleryBroker: &fakeCeleryBroker{message: message},
+	}
+
+	got, err := broker.GetTaskMessage()
+	if err != nil {
+		t.Fatalf("GetTaskMessage() error = %v", err)
+	}
+	if len(got.Args) != 4 {
+		t.Fatalf("len(Args) = %d, want 4", len(got.Args))
+	}
+	if got.Args[3] != taskID {
+		t.Errorf("Celery task ID arg = %#v, want %q", got.Args[3], taskID)
+	}
 }
 
 func TestSectionNumber(t *testing.T) {

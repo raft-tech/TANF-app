@@ -87,6 +87,7 @@ func TestMarshalStateTransitionMetadataIncludesCorrelation(t *testing.T) {
 			Note:          "Go parser pipeline processing failed",
 			Source:        "go_parser",
 			TaskName:      "tdpservice.scheduling.parser_task.go_parse",
+			CeleryTaskID:  "987e6543-e21b-12d3-a456-426614174000",
 			ReparseMetaID: 7,
 			Metadata: map[string]any{
 				"stage": "pipeline",
@@ -119,6 +120,9 @@ func TestMarshalStateTransitionMetadataIncludesCorrelation(t *testing.T) {
 	}
 	if metadata["task_name"] != "tdpservice.scheduling.parser_task.go_parse" {
 		t.Errorf("task_name = %#v", metadata["task_name"])
+	}
+	if metadata["celery_task_id"] != "987e6543-e21b-12d3-a456-426614174000" {
+		t.Errorf("celery_task_id = %#v", metadata["celery_task_id"])
 	}
 	if metadata["reparse_meta_id"] != float64(7) {
 		t.Errorf("reparse_meta_id = %#v", metadata["reparse_meta_id"])
