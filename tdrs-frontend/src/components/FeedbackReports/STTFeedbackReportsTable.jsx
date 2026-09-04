@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { get } from '../../fetch-instance'
+import { get, post } from '../../fetch-instance'
 import { downloadBlob } from '../../utils/fileDownload'
 
 /**
@@ -31,7 +31,7 @@ const formatDate = (dateString) => {
  * STTFeedbackReportsTable component displays the feedback reports table
  * for STT Data Analysts with download functionality
  */
-function STTFeedbackReportsTable({ data, setAlert }) {
+function STTFeedbackReportsTable({ data, setAlert, trackDownload }) {
   const [downloadingId, setDownloadingId] = useState(null)
 
   /**
@@ -48,6 +48,17 @@ function STTFeedbackReportsTable({ data, setAlert }) {
 
     if (ok) {
       downloadBlob(data, report.original_filename || 'report.zip')
+
+      if (trackDownload) {
+        const { ok: trackingOk, error: trackingError } = await post(
+          `${process.env.REACT_APP_BACKEND_URL}/reports/${report.id}/downloaded/`,
+          {}
+        )
+
+        if (!trackingOk) {
+          console.error('Failed to record report download:', trackingError)
+        }
+      }
     } else {
       console.error('Failed to download report:', error)
       setAlert({
