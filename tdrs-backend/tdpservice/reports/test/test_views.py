@@ -1,6 +1,9 @@
 """Tests for ReportFileViewSet."""
 
 from django.contrib.auth.models import Group
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
+from django.utils.dateparse import parse_datetime
 
 import pytest
 from rest_framework import status
@@ -753,3 +756,167 @@ class TestReportSourceReportTypeFiltering:
         assert tribal_tanf_source.id in returned_ids
         assert tanf_source.id not in returned_ids
         assert fra_source.id not in returned_ids
+
+
+@pytest.mark.django_db
+class TestReportSourceDownloadStatistics:
+    """Tests for administrative report source download statistics."""
+
+    root_url = "/v1/reports/report-sources/"
+
+    @pytest.fixture
+    def api_client_logged_in(self, api_client, ofa_system_admin):
+        """Return an API client authenticated as an OFA System Admin."""
+        api_client.login(username=ofa_system_admin.username, password="test_password")
+        return api_client
+
+    def test_source_list_includes_distinct_download_counts(
+        self, api_client_logged_in, report_source_statistics
+    ):
+        """Upload History counts distinct source-linked STTs."""
+        source = report_source_statistics["source"]
+
+        response = api_client_logged_in.get(self.root_url)
+
+        assert response.status_code == status.HTTP_200_OK
+        source_data = next(
+            item for item in response.data["results"] if item["id"] == source.id
+        )
+        assert source_data["downloaded_count"] == 2
+        assert source_data["total_count"] == 4
+
+    def test_detail_groups_only_source_stts_by_region(
+        self, api_client_logged_in, report_source_statistics
+    ):
+        """Detail rows are source-scoped, ordered, and grouped by region."""
+        source = report_source_statistics["source"]
+        response = api_client_logged_in.get(
+            f"{self.root_url}{source.id}/download-statistics/"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["report_source_id"] == source.id
+        assert response.data["downloaded_count"] == 2
+        assert response.data["total_count"] == 4
+        assert [region["id"] for region in response.data["regions"]] == [2, 4, None]
+        assert [
+            stt["name"] for stt in response.data["regions"][0]["stts"]
+        ] == ["New Jersey Statistics"]
+        assert [
+            stt["name"] for stt in response.data["regions"][1]["stts"]
+        ] == ["Alabama Statistics", "Florida Statistics"]
+        assert [
+            stt["name"] for stt in response.data["regions"][2]["stts"]
+        ] == ["Unassigned Statistics"]
+        all_names = {
+            stt["name"]
+            for region in response.data["regions"]
+            for stt in region["stts"]
+        }
+        assert "Other Source Statistics" not in all_names
+        assert "file" not in response.data
+
+    def test_detail_uses_earliest_download_for_duplicate_stt(
+        self, api_client_logged_in, report_source_statistics
+    ):
+        """Duplicate source/STT files count once and use their first download."""
+        source = report_source_statistics["source"]
+        response = api_client_logged_in.get(
+            f"{self.root_url}{source.id}/download-statistics/"
+        )
+        alabama = next(
+            stt
+            for region in response.data["regions"]
+            for stt in region["stts"]
+            if stt["name"] == "Alabama Statistics"
+        )
+
+        assert parse_datetime(alabama["downloaded_at"]) == report_source_statistics[
+            "first_download"
+        ]
+
+    def test_detail_marks_undownloaded_stts_with_null(
+        self, api_client_logged_in, report_source_statistics
+    ):
+        """Generated reports without a download retain a null timestamp."""
+        source = report_source_statistics["source"]
+        response = api_client_logged_in.get(
+            f"{self.root_url}{source.id}/download-statistics/"
+        )
+        florida = next(
+            stt
+            for region in response.data["regions"]
+            for stt in region["stts"]
+            if stt["name"] == "Florida Statistics"
+        )
+
+        assert florida["downloaded_at"] is None
+
+    def test_empty_source_returns_zero_counts_and_no_regions(
+        self, api_client_logged_in, ofa_system_admin
+    ):
+        """Sources without generated report files have empty statistics."""
+        from tdpservice.reports.test.factories import ReportSourceFactory
+
+        source = ReportSourceFactory.create(uploaded_by=ofa_system_admin)
+
+        response = api_client_logged_in.get(
+            f"{self.root_url}{source.id}/download-statistics/"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {
+            "report_source_id": source.id,
+            "downloaded_count": 0,
+            "total_count": 0,
+            "regions": [],
+        }
+
+    def test_digit_team_can_access_statistics(
+        self, api_client, digit_team, report_source_statistics
+    ):
+        """DIGIT Team has the same statistics access as OFA System Admin."""
+        source = report_source_statistics["source"]
+        api_client.login(username=digit_team.username, password="test_password")
+
+        response = api_client.get(
+            f"{self.root_url}{source.id}/download-statistics/"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_data_analyst_and_regional_staff_cannot_access_statistics(
+        self,
+        api_client,
+        data_analyst,
+        regional_user,
+        report_source_statistics,
+    ):
+        """STT-facing roles cannot access the administrative source endpoint."""
+        source = report_source_statistics["source"]
+        url = f"{self.root_url}{source.id}/download-statistics/"
+
+        for user in [data_analyst, regional_user]:
+            api_client.login(username=user.username, password="test_password")
+            response = api_client.get(url)
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+            api_client.logout()
+
+    def test_statistics_queries_are_bounded(
+        self, api_client, ofa_system_admin, report_source_statistics
+    ):
+        """Source list and multi-region detail avoid per-source and per-STT queries."""
+        source = report_source_statistics["source"]
+        api_client.force_authenticate(user=ofa_system_admin)
+
+        with CaptureQueriesContext(connection) as list_queries:
+            list_response = api_client.get(self.root_url)
+        with CaptureQueriesContext(connection) as detail_queries:
+            detail_response = api_client.get(
+                f"{self.root_url}{source.id}/download-statistics/"
+            )
+
+        assert list_response.status_code == status.HTTP_200_OK
+        assert detail_response.status_code == status.HTTP_200_OK
+        assert len(list_queries) <= 10
+        assert len(detail_queries) <= 10
