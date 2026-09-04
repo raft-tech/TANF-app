@@ -209,6 +209,24 @@ class ReportFilePermissions(DjangoModelCRUDPermissions):
         return super().has_object_permission(request, view, obj)
 
 
+class ReportFileDownloadTrackingPermission(permissions.BasePermission):
+    """Allow Data Analysts to record downloads for their assigned STT."""
+
+    def has_permission(self, request, view):
+        """Require an authenticated Data Analyst with report viewing access."""
+        user = request.user
+        return bool(
+            user.is_authenticated
+            and user.is_data_analyst
+            and user.has_perm("reports.view_reportfile")
+        )
+
+    def has_object_permission(self, request, view, obj):
+        """Restrict tracking to report files assigned to the user's STT."""
+        user_stt_id = request.user.stt_id if hasattr(request.user, "stt_id") else None
+        return user_stt_id is not None and user_stt_id == obj.stt_id
+
+
 class ReportSourcePermissions(DjangoModelCRUDPermissions):
     """Permission for report source downloads & uploads."""
 
