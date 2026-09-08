@@ -60,6 +60,18 @@ from tdpservice.users.serializers import (
 logger = logging.getLogger(__name__)
 
 
+def _keycloak_logout_url(
+    logout_endpoint, client_id, post_logout_redirect_uri, id_token
+):
+    """Build a realm-specific RP-initiated logout URL."""
+    logout_params = {
+        "client_id": client_id,
+        "id_token_hint": id_token,
+        "post_logout_redirect_uri": post_logout_redirect_uri,
+    }
+    return f"{logout_endpoint}?{urlencode(logout_params)}"
+
+
 def _validation_error_message(exc):
     """Return a user-facing string from a Django ValidationError."""
     if hasattr(exc, "message_dict"):
@@ -374,18 +386,19 @@ class AdminKeycloakLoginMixin:
         """Use the admin callback route for admin OIDC logins."""
         if attr == "OIDC_AUTHENTICATION_CALLBACK_URL":
             return ADMIN_OIDC_CALLBACK_URL_NAME
+        if attr == "OIDC_OP_AUTHORIZATION_ENDPOINT":
+            return settings.KEYCLOAK_TDP_ADMIN_AUTHORIZATION_ENDPOINT
+        if attr == "OIDC_RP_CLIENT_ID":
+            return settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID
 
         return OIDCAuthenticationRequestView.get_settings(attr, *args)
 
     def get(self, request, *args, **kwargs):
         """Mark this OIDC request as admin-scoped before redirecting."""
         request.session.pop("oidc_client", None)
-        self.OIDC_RP_CLIENT_ID = settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID
         response = super().get(request, *args, **kwargs)
         request.session["session_scope"] = ADMIN_SESSION_SCOPE
-        state = parse_qs(urlparse(response["Location"]).query).get("state", [None])[
-            0
-        ]
+        state = parse_qs(urlparse(response["Location"]).query).get("state", [None])[0]
         if state:
             oidc_clients = request.session.get("oidc_clients", {}).copy()
             oidc_clients[state] = ADMIN_OIDC_CLIENT
@@ -440,21 +453,47 @@ class AdminOIDCAuthenticationCallbackView(OIDCAuthenticationCallbackView):
 
 
 class KeycloakLogoutView(View):
-    """Logout from the standard Django session and return to the frontend."""
+    """Logout from the standard Django session and standard Keycloak realm."""
+
+    logout_endpoint_setting = "OIDC_OP_LOGOUT_ENDPOINT"
+    client_id_setting = "KEYCLOAK_DJANGO_CLIENT_ID"
+    redirect_url_setting = "FRONTEND_BASE_URL"
+
+    def get_logout_endpoint(self):
+        """Return the realm-specific OIDC logout endpoint."""
+        return getattr(settings, self.logout_endpoint_setting)
+
+    def get_client_id(self):
+        """Return the realm-specific OIDC client ID."""
+        return getattr(settings, self.client_id_setting)
+
+    def get_redirect_url(self):
+        """Return the application URL Keycloak should redirect to after logout."""
+        return getattr(settings, self.redirect_url_setting)
 
     def get(self, request):
-        """Clear only the standard app session."""
-        # RP-initiated logout would terminate the shared Keycloak SSO session.
+        """Clear only the current app session and invoke its Keycloak logout."""
+        id_token = request.session.get("oidc_id_token")
+        redirect_url = self.get_redirect_url()
+        logout_url = (
+            _keycloak_logout_url(
+                self.get_logout_endpoint(),
+                self.get_client_id(),
+                redirect_url,
+                id_token,
+            )
+            if id_token
+            else redirect_url
+        )
+
         logout(request)
 
-        return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
+        return HttpResponseRedirect(logout_url)
 
 
 class AdminKeycloakLogoutView(KeycloakLogoutView):
-    """Logout from the admin-scoped session and return to the admin console."""
+    """Logout from the admin-scoped session and admin Keycloak realm."""
 
-    def get(self, request):
-        """Clear only the admin app session."""
-        logout(request)
-
-        return HttpResponseRedirect(settings.ADMIN_FRONTEND_BASE_URL)
+    logout_endpoint_setting = "KEYCLOAK_TDP_ADMIN_LOGOUT_ENDPOINT"
+    client_id_setting = "KEYCLOAK_TDP_ADMIN_CLIENT_ID"
+    redirect_url_setting = "ADMIN_FRONTEND_BASE_URL"
