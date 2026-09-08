@@ -1,7 +1,6 @@
 """Tests for ReportFileViewSet."""
 
-from django.contrib.auth.models import Group
-from django.db import connection
+from django.db import DatabaseError, connection
 from django.test.utils import CaptureQueriesContext
 from django.utils.dateparse import parse_datetime
 
@@ -9,8 +8,6 @@ import pytest
 from rest_framework import status
 
 from tdpservice.reports.models import ReportFile, ReportSource, ReportType
-from tdpservice.users.models import AccountApprovalStatusChoices
-from tdpservice.users.test.factories import UserFactory
 
 
 @pytest.mark.django_db
@@ -64,13 +61,15 @@ class TestReportFileViewAsOFASystemAdmin:
         assert source_obj.status == ReportSource.Status.PENDING
 
     def test_download_report_file(self, api_client_logged_in, report_file_instance):
-        """Stream report file to caller."""
+        """Stream report without recording an administrative download."""
         resp = api_client_logged_in.get(
             f"{self.root_url}{report_file_instance.id}/download/"
         )
 
         assert resp.status_code == status.HTTP_200_OK
         assert b"".join(resp.streaming_content) == report_file_instance.file.read()
+        report_file_instance.refresh_from_db()
+        assert report_file_instance.downloaded_at is None
 
 
 @pytest.mark.django_db
@@ -124,13 +123,15 @@ class TestReportFileViewAsDigitTeam:
         assert source_obj.status == ReportSource.Status.PENDING
 
     def test_download_report_file(self, api_client_logged_in, report_file_instance):
-        """Stream report file to caller."""
+        """Stream report without recording an administrative download."""
         resp = api_client_logged_in.get(
             f"{self.root_url}{report_file_instance.id}/download/"
         )
 
         assert resp.status_code == status.HTTP_200_OK
         assert b"".join(resp.streaming_content) == report_file_instance.file.read()
+        report_file_instance.refresh_from_db()
+        assert report_file_instance.downloaded_at is None
 
 
 @pytest.mark.django_db
@@ -255,13 +256,67 @@ class TestReportFileViewAsDataAnalyst:
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
     def test_download_report_file(self, api_client_logged_in, report_file_instance):
-        """Stream report file to caller."""
+        """Stream the report and record its first Data Analyst download."""
         resp = api_client_logged_in.get(
             f"{self.root_url}{report_file_instance.id}/download/"
         )
 
         assert resp.status_code == status.HTTP_200_OK
         assert b"".join(resp.streaming_content) == report_file_instance.file.read()
+        report_file_instance.refresh_from_db()
+        assert report_file_instance.downloaded_at is not None
+
+    def test_repeated_download_preserves_first_timestamp(
+        self, api_client_logged_in, report_file_instance
+    ):
+        """Repeated downloads do not replace the first timestamp."""
+        url = f"{self.root_url}{report_file_instance.id}/download/"
+
+        first_response = api_client_logged_in.get(url)
+        b"".join(first_response.streaming_content)
+        report_file_instance.refresh_from_db()
+        first_downloaded_at = report_file_instance.downloaded_at
+
+        second_response = api_client_logged_in.get(url)
+        b"".join(second_response.streaming_content)
+        report_file_instance.refresh_from_db()
+
+        assert first_response.status_code == status.HTTP_200_OK
+        assert second_response.status_code == status.HTTP_200_OK
+        assert report_file_instance.downloaded_at == first_downloaded_at
+
+    def test_failed_file_response_does_not_record_download(
+        self, api_client_logged_in, report_file_instance, mocker
+    ):
+        """A file retrieval failure leaves the report undownloaded."""
+        mocker.patch(
+            "tdpservice.reports.views.FileWrapper",
+            side_effect=OSError("File retrieval failed"),
+        )
+
+        with pytest.raises(OSError, match="File retrieval failed"):
+            api_client_logged_in.get(
+                f"{self.root_url}{report_file_instance.id}/download/"
+            )
+
+        report_file_instance.refresh_from_db()
+        assert report_file_instance.downloaded_at is None
+
+    def test_tracking_failure_does_not_prevent_download(
+        self, api_client_logged_in, report_file_instance, mocker
+    ):
+        """A database tracking failure does not prevent file delivery."""
+        mocker.patch(
+            "tdpservice.reports.views.ReportFile.objects.filter",
+            side_effect=DatabaseError("Tracking failed"),
+        )
+
+        response = api_client_logged_in.get(
+            f"{self.root_url}{report_file_instance.id}/download/"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert b"".join(response.streaming_content) == report_file_instance.file.read()
 
     def test_data_analyst_report_source_upload_disallowed(
         self, api_client_logged_in, fiscal_year_report_source_zip
@@ -403,11 +458,14 @@ class TestReportFileViewAsRegionalStaff:
     def test_can_download_report_in_own_region(
         self, api_client_logged_in, regional_report_file_instance
     ):
-        """Regional staff can download report files for STTs in their region."""
+        """Regional staff downloads are delivered without being recorded."""
         resp = api_client_logged_in.get(
             f"{self.root_url}{regional_report_file_instance.id}/download/"
         )
         assert resp.status_code == status.HTTP_200_OK
+        b"".join(resp.streaming_content)
+        regional_report_file_instance.refresh_from_db()
+        assert regional_report_file_instance.downloaded_at is None
 
     def test_cannot_download_report_outside_region(
         self, api_client_logged_in, other_region_report_file_instance
@@ -432,160 +490,6 @@ class TestReportFileViewAsRegionalStaff:
         assert resp.status_code == status.HTTP_200_OK
         returned_ids = [row["id"] for row in resp.data["results"]]
         assert regional_report_file_instance.id in returned_ids
-
-
-@pytest.mark.django_db
-class TestReportFileDownloadTracking:
-    """Tests for recording the first STT download of a report file."""
-
-    root_url = "/v1/reports/"
-
-    @pytest.fixture
-    def tracking_url(self, report_file_instance):
-        """Return the download tracking action URL."""
-        return f"{self.root_url}{report_file_instance.id}/downloaded/"
-
-    @pytest.fixture
-    def api_client_logged_in(self, api_client, data_analyst):
-        """Return an API client authenticated as a Data Analyst."""
-        api_client.login(username=data_analyst.username, password="test_password")
-        return api_client
-
-    def test_data_analyst_records_first_download(
-        self, api_client_logged_in, report_file_instance, tracking_url
-    ):
-        """A Data Analyst can record a download for their STT's report."""
-        response = api_client_logged_in.post(tracking_url, data={}, format="json")
-
-        assert response.status_code == status.HTTP_200_OK
-        report_file_instance.refresh_from_db()
-        assert report_file_instance.downloaded_at is not None
-        assert response.data["downloaded_at"] == report_file_instance.downloaded_at
-
-    def test_repeated_download_preserves_first_timestamp(
-        self, api_client_logged_in, report_file_instance, tracking_url
-    ):
-        """Repeated tracking requests do not replace the first timestamp."""
-        first_response = api_client_logged_in.post(tracking_url, data={}, format="json")
-        report_file_instance.refresh_from_db()
-        first_downloaded_at = report_file_instance.downloaded_at
-
-        second_response = api_client_logged_in.post(tracking_url, data={}, format="json")
-        report_file_instance.refresh_from_db()
-
-        assert first_response.status_code == status.HTTP_200_OK
-        assert second_response.status_code == status.HTTP_200_OK
-        assert report_file_instance.downloaded_at == first_downloaded_at
-        assert second_response.data["downloaded_at"] == first_downloaded_at
-
-    def test_second_data_analyst_for_same_stt_preserves_timestamp(
-        self,
-        api_client_logged_in,
-        data_analyst,
-        report_file_instance,
-        tracking_url,
-    ):
-        """Multiple users from one STT still produce one first-download time."""
-        api_client_logged_in.post(tracking_url, data={}, format="json")
-        report_file_instance.refresh_from_db()
-        first_downloaded_at = report_file_instance.downloaded_at
-
-        second_analyst = UserFactory.create(
-            groups=(Group.objects.get(name="Data Analyst"),),
-            stt=data_analyst.stt,
-            account_approval_status=AccountApprovalStatusChoices.APPROVED,
-        )
-        api_client_logged_in.logout()
-        api_client_logged_in.login(
-            username=second_analyst.username, password="test_password"
-        )
-
-        response = api_client_logged_in.post(tracking_url, data={}, format="json")
-        report_file_instance.refresh_from_db()
-
-        assert response.status_code == status.HTTP_200_OK
-        assert report_file_instance.downloaded_at == first_downloaded_at
-
-    def test_tracking_rejects_client_supplied_data(
-        self, api_client_logged_in, report_file_instance, tracking_url
-    ):
-        """The server does not accept client-supplied STT or timestamp data."""
-        response = api_client_logged_in.post(
-            tracking_url,
-            data={"stt": 999, "downloaded_at": "2020-01-01T00:00:00Z"},
-            format="json",
-        )
-
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data == {"detail": "Request body must be empty."}
-        report_file_instance.refresh_from_db()
-        assert report_file_instance.downloaded_at is None
-
-    def test_data_analyst_cannot_track_another_stt_report(
-        self, api_client_logged_in, report_file_instance
-    ):
-        """A report outside the Data Analyst's filtered queryset is not visible."""
-        from tdpservice.reports.test.factories import ReportFileFactory
-        from tdpservice.stts.test.factories import STTFactory
-
-        other_report = ReportFileFactory.create(stt=STTFactory.create())
-
-        response = api_client_logged_in.post(
-            f"{self.root_url}{other_report.id}/downloaded/", data={}, format="json"
-        )
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        other_report.refresh_from_db()
-        assert other_report.downloaded_at is None
-        report_file_instance.refresh_from_db()
-        assert report_file_instance.downloaded_at is None
-
-    def test_unapproved_data_analyst_cannot_track_download(
-        self,
-        api_client_logged_in,
-        data_analyst,
-        report_file_instance,
-        tracking_url,
-    ):
-        """Account approval remains required for the tracking action."""
-        data_analyst.account_approval_status = AccountApprovalStatusChoices.INITIAL
-        data_analyst.save(update_fields=["account_approval_status"])
-
-        response = api_client_logged_in.post(tracking_url, data={}, format="json")
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        report_file_instance.refresh_from_db()
-        assert report_file_instance.downloaded_at is None
-
-    def test_non_stt_roles_cannot_track_download(
-        self,
-        api_client,
-        report_file_instance,
-        tracking_url,
-        ofa_system_admin,
-        digit_team,
-        ofa_admin,
-        regional_user,
-    ):
-        """Administrative and Regional Staff downloads do not count for an STT."""
-        for user in [ofa_system_admin, digit_team, ofa_admin, regional_user]:
-            api_client.login(username=user.username, password="test_password")
-            response = api_client.post(tracking_url, data={}, format="json")
-            assert response.status_code == status.HTTP_403_FORBIDDEN
-            api_client.logout()
-
-        report_file_instance.refresh_from_db()
-        assert report_file_instance.downloaded_at is None
-
-    def test_anonymous_user_cannot_track_download(
-        self, api_client, report_file_instance, tracking_url
-    ):
-        """Authentication is required for download tracking."""
-        response = api_client.post(tracking_url, data={}, format="json")
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        report_file_instance.refresh_from_db()
-        assert report_file_instance.downloaded_at is None
 
 
 @pytest.mark.django_db

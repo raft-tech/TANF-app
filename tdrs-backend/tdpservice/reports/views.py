@@ -1,12 +1,13 @@
 """Define API views for reports app."""
 
+import logging
 from wsgiref.util import FileWrapper
 
+from django.db import DatabaseError
 from django.db.models import Count, F, Min, Q
 from django.http import FileResponse
 from django.utils import timezone
 
-from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -20,10 +21,11 @@ from tdpservice.reports.serializers import (
 from tdpservice.reports.tasks import process_report_source
 from tdpservice.users.permissions import (
     IsApprovedPermission,
-    ReportFileDownloadTrackingPermission,
     ReportFilePermissions,
     ReportSourcePermissions,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ReportFileViewSet(ModelViewSet):
@@ -78,34 +80,24 @@ class ReportFileViewSet(ModelViewSet):
 
     @action(methods=["get"], detail=True)
     def download(self, request, pk=None):
-        """Retrieve a file from s3 then stream it to the client."""
-        obj = self.get_object()
-        return FileResponse(FileWrapper(obj.file), filename=obj.original_filename)
-
-    @action(
-        methods=["post"],
-        detail=True,
-        permission_classes=[
-            ReportFileDownloadTrackingPermission,
-            IsApprovedPermission,
-        ],
-    )
-    def downloaded(self, request, pk=None):
-        """Record the first successful download for a report file's STT."""
-        if request.data:
-            return Response(
-                {"detail": "Request body must be empty."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
+        """Stream a report and record its first Data Analyst download."""
         report_file = self.get_object()
-        ReportFile.objects.filter(
-            pk=report_file.pk,
-            downloaded_at__isnull=True,
-        ).update(downloaded_at=timezone.now())
-        report_file.refresh_from_db(fields=["downloaded_at"])
+        response = FileResponse(
+            FileWrapper(report_file.file), filename=report_file.original_filename
+        )
 
-        return Response({"downloaded_at": report_file.downloaded_at})
+        if request.user.is_data_analyst:
+            try:
+                ReportFile.objects.filter(
+                    pk=report_file.pk,
+                    downloaded_at__isnull=True,
+                ).update(downloaded_at=timezone.now())
+            except DatabaseError:
+                logger.exception(
+                    "Failed to record download for report file %s", report_file.pk
+                )
+
+        return response
 
 
 class ReportSourceViewSet(ModelViewSet):

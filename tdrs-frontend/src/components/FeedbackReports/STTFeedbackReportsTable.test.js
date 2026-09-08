@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import STTFeedbackReportsTable from './STTFeedbackReportsTable'
-import { get, post } from '../../fetch-instance'
+import { get } from '../../fetch-instance'
 import { downloadBlob } from '../../utils/fileDownload'
 
 jest.mock('../../fetch-instance')
@@ -18,13 +18,9 @@ describe('STTFeedbackReportsTable', () => {
     jest.restoreAllMocks()
   })
 
-  const renderComponent = (data = [], trackDownload = false) => {
+  const renderComponent = (data = []) => {
     return render(
-      <STTFeedbackReportsTable
-        data={data}
-        setAlert={mockSetAlert}
-        trackDownload={trackDownload}
-      />
+      <STTFeedbackReportsTable data={data} setAlert={mockSetAlert} />
     )
   }
 
@@ -217,13 +213,6 @@ describe('STTFeedbackReportsTable', () => {
         status: 200,
         error: null,
       })
-      post.mockResolvedValue({
-        data: null,
-        ok: true,
-        status: 200,
-        error: null,
-      })
-
       const mockData = [
         {
           id: 1,
@@ -233,7 +222,7 @@ describe('STTFeedbackReportsTable', () => {
         },
       ]
 
-      renderComponent(mockData, true)
+      renderComponent(mockData)
 
       const downloadButton = screen.getByRole('button', {
         name: /Download F33.zip/i,
@@ -252,85 +241,6 @@ describe('STTFeedbackReportsTable', () => {
       await waitFor(() => {
         expect(downloadBlob).toHaveBeenCalledWith(mockBlob, 'F33.zip')
       })
-
-      expect(post).toHaveBeenCalledWith(
-        expect.stringContaining('/reports/1/downloaded/'),
-        {}
-      )
-    })
-
-    it('does not track downloads when tracking is disabled', async () => {
-      const mockBlob = new Blob(['test content'], { type: 'application/zip' })
-      get.mockResolvedValue({
-        data: mockBlob,
-        ok: true,
-        status: 200,
-        error: null,
-      })
-
-      renderComponent(
-        [
-          {
-            id: 1,
-            date_extracted_on: '2025-02-28',
-            created_at: '2025-03-05T10:41:00Z',
-            original_filename: 'F33.zip',
-          },
-        ],
-        false
-      )
-
-      fireEvent.click(screen.getByRole('button', { name: /Download F33.zip/i }))
-
-      await waitFor(() => {
-        expect(downloadBlob).toHaveBeenCalledWith(mockBlob, 'F33.zip')
-      })
-      expect(post).not.toHaveBeenCalled()
-    })
-
-    it('delivers the file and logs a tracking failure separately', async () => {
-      const consoleError = jest
-        .spyOn(console, 'error')
-        .mockImplementation(() => {})
-      const mockBlob = new Blob(['test content'], { type: 'application/zip' })
-      const trackingError = new Error('Tracking failed')
-      get.mockResolvedValue({
-        data: mockBlob,
-        ok: true,
-        status: 200,
-        error: null,
-      })
-      post.mockResolvedValue({
-        data: null,
-        ok: false,
-        status: 500,
-        error: trackingError,
-      })
-
-      renderComponent(
-        [
-          {
-            id: 1,
-            date_extracted_on: '2025-02-28',
-            created_at: '2025-03-05T10:41:00Z',
-            original_filename: 'F33.zip',
-          },
-        ],
-        true
-      )
-
-      fireEvent.click(screen.getByRole('button', { name: /Download F33.zip/i }))
-
-      await waitFor(() => {
-        expect(consoleError).toHaveBeenCalledWith(
-          'Failed to record report download:',
-          trackingError
-        )
-      })
-      expect(downloadBlob).toHaveBeenCalledWith(mockBlob, 'F33.zip')
-      expect(mockSetAlert).not.toHaveBeenCalledWith(
-        expect.objectContaining({ active: true })
-      )
     })
 
     it('shows downloading state during download', async () => {
@@ -382,7 +292,7 @@ describe('STTFeedbackReportsTable', () => {
         },
       ]
 
-      renderComponent(mockData, true)
+      renderComponent(mockData)
 
       const downloadButton = screen.getByRole('button', {
         name: /Download F33.zip/i,
@@ -396,7 +306,6 @@ describe('STTFeedbackReportsTable', () => {
           message: 'Failed to download the report. Please try again.',
         })
       })
-      expect(post).not.toHaveBeenCalled()
     })
 
     it('clears alert before starting download', async () => {

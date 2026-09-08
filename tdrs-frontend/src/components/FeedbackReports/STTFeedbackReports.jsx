@@ -403,10 +403,7 @@ function STTFeedbackReports() {
                   </div>
                 ) : (
                   <PaginatedComponent pageSize={5} data={reports}>
-                    <STTFeedbackReportsTable
-                      setAlert={setAlert}
-                      trackDownload={!isRegionalStaff}
-                    />
+                    <STTFeedbackReportsTable setAlert={setAlert} />
                   </PaginatedComponent>
                 )}
               </div>
