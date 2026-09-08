@@ -1,4 +1,4 @@
-# DBDiagram extension
+# DBML / DB Diagram extension
 
 [dbdiagram](https://dbdiagram.io) is a free, web-based tool used to design and draw entity-relationship diagrams (ERDs) for databases by writing simple code.
 

@@ -1,7 +1,7 @@
 
 Project easybutton {
   database_type: 'postgresql'
-  Note: 'Spreadsheet shenanigans'
+  Note: 'Real world example'
 }
 
 Table users.user [note: 'Users Table'] {
