@@ -1,6 +1,7 @@
 {
-  "realm": "tdp",
+  "realm": "tdp-admin",
   "enabled": true,
+  "browserFlow": "tdp-browser",
   "sslRequired": "external",
   "registrationAllowed": false,
   "registrationEmailAsUsername": true,
@@ -30,8 +31,8 @@
   "roles": {
     "realm": [
       {
-        "name": "default-roles-tdp",
-        "description": "Default roles for TDRS realm",
+        "name": "default-roles-tdp-admin",
+        "description": "Default roles for TDP admin realm",
         "composite": true,
         "composites": {
           "realm": [],
@@ -237,43 +238,45 @@
           }
         }
       ]
-    },
-    {
-      "name": "tdp-api-audience",
-      "description": "Adds the Django API audience to access tokens for external API clients.",
-      "protocol": "openid-connect",
-      "attributes": {
-        "include.in.token.scope": "false",
-        "display.on.consent.screen": "false"
-      },
-      "protocolMappers": [
-        {
-          "name": "tdp-django audience",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "consentRequired": false,
-          "config": {
-            "included.client.audience": "tdp-django",
-            "id.token.claim": "false",
-            "access.token.claim": "true"
-          }
-        }
-      ]
     }
   ],
   "clients": [
     {
-      "clientId": "tdp-django",
-      "name": "TDP Django Backend",
+      "clientId": "tdp-admin",
+      "name": "TDP Admin Console",
       "enabled": true,
       "clientAuthenticatorType": "client-secret",
-      "secret": "$(env:KC_TDP_DJANGO_CLIENT_SECRET)",
+      "secret": "$(env:KC_TDP_ADMIN_CLIENT_SECRET)",
       "redirectUris": [
-        "https://tanfdata.acf.hhs.gov/*"
+        "https://admin-test.tanfdata.acf.hhs.gov/*",
+        "https://tdp-admin-test.app.cloud.gov/*",
+        "https://tdp-admin-qasp.app.cloud.gov/*",
+        "https://tdp-admin-a11y.app.cloud.gov/*",
+        "https://test.tanfdata.acf.hhs.gov/admin-auth/*",
+        "https://qasp.tanfdata.acf.hhs.gov/admin-auth/*",
+        "https://a11y.tanfdata.acf.hhs.gov/admin-auth/*",
+        "http://localhost:3001/*",
+        "http://localhost:8080/*",
+        "http://localhost:8989/*",
+        "http://127.0.0.1:3001/*",
+        "http://127.0.0.1:8080/*",
+        "http://127.0.0.1:8989/*"
       ],
       "webOrigins": [
-        "https://tanfdata.acf.hhs.gov"
+        "https://admin-test.tanfdata.acf.hhs.gov",
+        "https://tdp-admin-test.app.cloud.gov",
+        "https://tdp-admin-qasp.app.cloud.gov",
+        "https://tdp-admin-a11y.app.cloud.gov",
+        "http://localhost:3001",
+        "http://localhost:8080",
+        "http://localhost:8989",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:8080",
+        "http://127.0.0.1:8989"
       ],
+      "attributes": {
+        "post.logout.redirect.uris": "https://admin-test.tanfdata.acf.hhs.gov/*##https://tdp-admin-test.app.cloud.gov/*##https://tdp-admin-qasp.app.cloud.gov/*##https://tdp-admin-a11y.app.cloud.gov/*##http://localhost:3001/*##http://127.0.0.1:3001/*"
+      },
       "protocol": "openid-connect",
       "publicClient": false,
       "standardFlowEnabled": true,
@@ -282,92 +285,25 @@
       "serviceAccountsEnabled": true,
       "authorizationServicesEnabled": false,
       "fullScopeAllowed": true,
-      "defaultClientScopes": [
-        "openid",
-        "email",
-        "profile",
-        "tdp-user-attributes"
-      ],
-      "optionalClientScopes": []
-    },
-    {
-      "clientId": "tdp-grafana",
-      "name": "TDP Grafana",
-      "enabled": true,
-      "clientAuthenticatorType": "client-secret",
-      "secret": "$(env:KC_TDP_GRAFANA_CLIENT_SECRET)",
-      "redirectUris": [
-        "https://grafana.tanfdata.acf.hhs.gov/login/generic_oauth"
-      ],
-      "webOrigins": [
-        "https://grafana.tanfdata.acf.hhs.gov"
-      ],
-      "protocol": "openid-connect",
-      "publicClient": false,
-      "standardFlowEnabled": true,
-      "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": false,
-      "authorizationServicesEnabled": false,
-      "fullScopeAllowed": true,
-      "defaultClientScopes": [
-        "openid",
-        "email",
-        "profile",
-        "tdp-user-attributes"
-      ],
-      "optionalClientScopes": [],
-      "attributes": {
-        "post.logout.redirect.uris": "https://grafana.tanfdata.acf.hhs.gov/*"
-      }
-    },
-    {
-      "clientId": "tdp-cli",
-      "name": "TDP CLI / Postman",
-      "description": "Public client for external API tools (Postman, CLI, CI). Authorization Code + PKCE and Device Authorization Grant; no client secret.",
-      "enabled": true,
-      "clientAuthenticatorType": "none",
-      "redirectUris": [
-        "http://localhost/*",
-        "http://127.0.0.1/*",
-        "https://oauth.pstmn.io/v1/callback",
-        "$(env:KC_CLI_REDIRECT_URI)"
-      ],
-      "webOrigins": [
-        "http://localhost",
-        "http://127.0.0.1",
-        "$(env:KC_CLI_WEB_ORIGIN)"
-      ],
-      "protocol": "openid-connect",
-      "publicClient": true,
-      "standardFlowEnabled": true,
-      "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": false,
-      "authorizationServicesEnabled": false,
-      "fullScopeAllowed": true,
-      "attributes": {
-        "pkce.code.challenge.method": "S256",
-        "oauth2.device.authorization.grant.enabled": "true",
-        "post.logout.redirect.uris": "+"
+      "authenticationFlowBindingOverrides": {
+        "browser": "tdp-browser"
       },
       "defaultClientScopes": [
         "openid",
         "email",
         "profile",
-        "tdp-user-attributes",
-        "tdp-api-audience"
+        "tdp-user-attributes"
       ],
       "optionalClientScopes": []
     }
   ],
   "users": [
     {
-      "username": "service-account-tdp-django",
+      "username": "service-account-tdp-admin",
       "enabled": true,
-      "serviceAccountClientId": "tdp-django",
+      "serviceAccountClientId": "tdp-admin",
       "realmRoles": [
-        "default-roles-tdp"
+        "default-roles-tdp-admin"
       ],
       "clientRoles": {
         "realm-management": [
@@ -420,6 +356,29 @@
           ]
         }
       }
+    ],
+    "org.keycloak.keys.KeyProvider": [
+      {
+        "name": "login-gov-signing-key",
+        "providerId": "rsa",
+        "config": {
+          "active": [
+            "true"
+          ],
+          "enabled": [
+            "true"
+          ],
+          "priority": [
+            "200"
+          ],
+          "algorithm": [
+            "RS256"
+          ],
+          "privateKey": [
+            "$(env:LOGIN_GOV_JWT_KEY_PEM)"
+          ]
+        }
+      }
     ]
   },
   "identityProviders": [
@@ -428,7 +387,6 @@
       "displayName": "Login.gov",
       "providerId": "oidc",
       "enabled": true,
-      "hideOnLogin": false,
       "trustEmail": true,
       "storeToken": false,
       "addReadTokenRoleOnCreate": false,
@@ -526,6 +484,58 @@
     }
   ],
   "authenticationFlows": [
+    {
+      "alias": "tdp-browser",
+      "description": "Browser login flow that honors kc_idp_hint before showing forms",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-spnego",
+          "authenticatorFlow": false,
+          "requirement": "DISABLED",
+          "priority": 20,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "identity-provider-redirector",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 25,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "tdp-browser-forms",
+          "authenticatorFlow": true,
+          "requirement": "ALTERNATIVE",
+          "priority": 30
+        }
+      ]
+    },
+    {
+      "alias": "tdp-browser-forms",
+      "description": "Username/password fallback for browser login",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        }
+      ]
+    },
     {
       "alias": "tdp-first-broker-login",
       "description": "Auto-create or auto-link users by email on first broker login",
