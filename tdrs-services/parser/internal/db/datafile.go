@@ -134,7 +134,14 @@ const selectProductionDataFileStateForUpdate = `
 	FOR UPDATE
 `
 
-const insertProductionDataFileStateTransition = `
+const selectShadowDataFileStateForUpdate = `
+	SELECT state
+	FROM shadow_data_files_datafile
+	WHERE id = $1
+	FOR UPDATE
+`
+
+const insertDataFileStateTransition = `
 	WITH base_log AS (
 	    INSERT INTO core_baselog (
 	        object_id,
@@ -164,7 +171,7 @@ const insertProductionDataFileStateTransition = `
 	            SELECT id
 	            FROM django_content_type
 	            WHERE app_label = 'data_files'
-	              AND model = 'datafile'
+	              AND model = $11
 	        )
 	    )
 	    RETURNING id
@@ -282,21 +289,23 @@ func UpdateDataFileState(
 	state string,
 	transitionContexts ...DataFileStateTransitionContext,
 ) error {
-	var err error
+	var selectStateQuery, updateStateQuery, contentTypeModel string
 	switch tableName {
 	case shadowDataFileTable:
-		_, err = pool.Exec(ctx, updateShadowDataFileState, state, datafileID)
+		selectStateQuery = selectShadowDataFileStateForUpdate
+		updateStateQuery = updateShadowDataFileState
+		contentTypeModel = "shadowdatafile"
 	case productionDataFileTable:
-		err = updateProductionDataFileStateWithTransition(
-			ctx,
-			pool,
-			datafileID,
-			state,
-			firstTransitionContext(transitionContexts),
-		)
+		selectStateQuery = selectProductionDataFileStateForUpdate
+		updateStateQuery = updateProductionDataFileState
+		contentTypeModel = "datafile"
 	default:
-		err = fmt.Errorf("unsupported datafile table %q", tableName)
+		return fmt.Errorf("unsupported datafile table %q", tableName)
 	}
+	err := updateDataFileStateWithTransition(
+		ctx, pool, datafileID, state, firstTransitionContext(transitionContexts),
+		selectStateQuery, updateStateQuery, contentTypeModel,
+	)
 	if err != nil {
 		return fmt.Errorf("update %s state for id=%d: %w", tableName, datafileID, err)
 	}
@@ -304,12 +313,13 @@ func UpdateDataFileState(
 	return nil
 }
 
-func updateProductionDataFileStateWithTransition(
+func updateDataFileStateWithTransition(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	datafileID int32,
 	state string,
 	transitionContext DataFileStateTransitionContext,
+	selectStateQuery, updateStateQuery, contentTypeModel string,
 ) error {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
@@ -322,7 +332,7 @@ func updateProductionDataFileStateWithTransition(
 	var previousState string
 	if err := tx.QueryRow(
 		ctx,
-		selectProductionDataFileStateForUpdate,
+		selectStateQuery,
 		datafileID,
 	).Scan(&previousState); err != nil {
 		return err
@@ -332,7 +342,7 @@ func updateProductionDataFileStateWithTransition(
 		return tx.Commit(ctx)
 	}
 
-	if _, err := tx.Exec(ctx, updateProductionDataFileState, state, datafileID); err != nil {
+	if _, err := tx.Exec(ctx, updateStateQuery, state, datafileID); err != nil {
 		return err
 	}
 
@@ -358,7 +368,7 @@ func updateProductionDataFileStateWithTransition(
 	}
 	if _, err := tx.Exec(
 		ctx,
-		insertProductionDataFileStateTransition,
+		insertDataFileStateTransition,
 		objectID,
 		eventID,
 		previousState,
@@ -369,6 +379,7 @@ func updateProductionDataFileStateWithTransition(
 		transitionContext.TaskName,
 		transitionContext.CeleryTaskID,
 		reparseMetaID,
+		contentTypeModel,
 	); err != nil {
 		return err
 	}

@@ -449,22 +449,17 @@ def post_parse(data_file_id, reparse_id=0, parse_error=None, event_id=None):
             "parse_error": parse_error,
             "reparse_id": reparse_id or None,
         }
-        if parser_models.data_file_model is DataFile:
-            if data_file.state != SubmissionState.PARSE_FAILED:
-                force_transition_datafile(
-                    data_file,
-                    SubmissionState.PARSE_FAILED,
-                    note="Go parser post-parse received parse_error",
-                    log_fields=log_fields,
-                    source="go_parser",
-                    task_name=GO_PARSER_POST_PARSE_TASK_NAME,
-                    reparse_meta_id=reparse_id or None,
-                    event_id=event_id,
-                )
-        else:
-            # ShadowDataFile state is isolated from production DataFile audit history.
-            data_file.state = SubmissionState.PARSE_FAILED
-            data_file.save(update_fields=["state"])
+        if data_file.state != SubmissionState.PARSE_FAILED:
+            force_transition_datafile(
+                data_file,
+                SubmissionState.PARSE_FAILED,
+                note="Go parser post-parse received parse_error",
+                log_fields=log_fields,
+                source="go_parser",
+                task_name=GO_PARSER_POST_PARSE_TASK_NAME,
+                reparse_meta_id=reparse_id or None,
+                event_id=event_id,
+            )
         logger.error(
             "Go parser %s post-parse received parse_error for data_file_id=%s: %s",
             parser_models.label,

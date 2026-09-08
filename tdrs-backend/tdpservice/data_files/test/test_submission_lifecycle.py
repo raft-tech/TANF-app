@@ -7,7 +7,10 @@ import pytest
 from tdpservice.core.models import BaseLog
 from tdpservice.data_files import submission_lifecycle
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFileStateTransition
+from tdpservice.data_files.models import (
+    DataFileStateTransition,
+    create_or_update_shadow_data_file,
+)
 from tdpservice.data_files.submission_lifecycle import (
     InvalidScanResult,
     InvalidTransition,
@@ -132,11 +135,14 @@ def test_transition_datafile_creates_state_transition_record():
 
 
 @pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("shadow", [False, True])
 def test_transition_datafile_state_update_and_transition_record_are_atomic(
-    monkeypatch,
+    monkeypatch, shadow
 ):
     """State updates roll back if transition persistence fails."""
     data_file = DataFileFactory(state=SubmissionState.UPLOADED)
+    if shadow:
+        data_file = create_or_update_shadow_data_file(data_file)
 
     def broken_persist(*_args, **_kwargs):
         raise RuntimeError("audit insert failed")
@@ -153,6 +159,26 @@ def test_transition_datafile_state_update_and_transition_record_are_atomic(
     data_file.refresh_from_db()
     assert data_file.state == SubmissionState.UPLOADED
     assert _state_transitions_for(data_file).count() == 0
+
+
+@pytest.mark.django_db
+def test_shadow_and_production_transitions_share_event_but_keep_separate_histories():
+    """One parser run can correlate both file histories without mixing them."""
+    data_file = DataFileFactory(state=SubmissionState.VIRUS_SCAN_COMPLETED)
+    shadow_file = create_or_update_shadow_data_file(data_file)
+    event_id = uuid.uuid4()
+    for obj, source in ((data_file, "python_parser"), (shadow_file, "go_parser")):
+        transition_datafile(
+            obj, SubmissionState.PARSE_STARTED, source=source, event_id=event_id
+        )
+
+    production_transition = _state_transitions_for(data_file).get()
+    shadow_transition = _state_transitions_for(shadow_file).get()
+    assert production_transition.content_object == data_file
+    assert shadow_transition.content_object == shadow_file
+    assert production_transition.content_type_id != shadow_transition.content_type_id
+    assert production_transition.event_id == shadow_transition.event_id == event_id
+    assert BaseLog.objects.filter(event_id=event_id).count() == 2
 
 
 @pytest.mark.django_db

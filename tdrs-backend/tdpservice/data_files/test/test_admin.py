@@ -13,9 +13,15 @@ from tdpservice.data_files.admin import admin as data_file_admin_module
 from tdpservice.data_files.admin.admin import (
     DataFileAdmin,
     DataFileStateTransitionInline,
+    ShadowDataFileAdmin,
 )
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile, DataFileStateTransition
+from tdpservice.data_files.models import (
+    DataFile,
+    DataFileStateTransition,
+    ShadowDataFile,
+    create_or_update_shadow_data_file,
+)
 from tdpservice.data_files.parser_error_choices import ParserErrorCategoryChoices
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.parsers.models import DataFileSummary, ParserError
@@ -53,15 +59,46 @@ def test_DataFileAdmin_exposes_transitional_fields_in_admin():
     assert data_file_admin.inlines[0] is DataFileStateTransitionInline
 
 
-def test_DataFileStateTransitionInline_is_read_only():
+@pytest.mark.parametrize("model", [DataFile, ShadowDataFile])
+def test_DataFileStateTransitionInline_is_read_only(model):
     """State transition history should be visible but not editable in admin."""
-    inline = DataFileStateTransitionInline(DataFile, AdminSite())
+    inline = DataFileStateTransitionInline(model, AdminSite())
 
     assert inline.ordering == ["-created_at", "-id"]
     assert inline.has_view_permission(None) is True
     assert inline.has_add_permission(None) is False
     assert inline.has_change_permission(None) is False
     assert inline.has_delete_permission(None) is False
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("shadow", [False, True])
+def test_state_transition_inline_separates_production_and_shadow(admin_user, shadow):
+    """Identical file IDs must show only the history for the selected model."""
+    data_file = DataFileFactory()
+    shadow_file = create_or_update_shadow_data_file(data_file)
+    transitions = [
+        DataFileStateTransition.objects.create_for_object(
+            obj,
+            previous_state=SubmissionState.PARSE_STARTED,
+            next_state=SubmissionState.PARSE_COMPLETED,
+        )
+        for obj in (data_file, shadow_file)
+    ]
+    obj = shadow_file if shadow else data_file
+    admin_class = ShadowDataFileAdmin if shadow else DataFileAdmin
+    model_admin = admin_class(type(obj), AdminSite())
+    request = RequestFactory().get("/admin/")
+    request.user = admin_user
+
+    inline = next(
+        item
+        for item in model_admin.get_inline_instances(request, obj)
+        if isinstance(item, DataFileStateTransitionInline)
+    )
+    formset = inline.get_formset(request, obj)(instance=obj)
+
+    assert list(formset.get_queryset()) == [transitions[int(shadow)]]
 
 
 @pytest.mark.django_db

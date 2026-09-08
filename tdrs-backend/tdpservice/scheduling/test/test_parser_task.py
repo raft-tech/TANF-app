@@ -403,7 +403,7 @@ def test_post_parse_finalizes_shadow_summary_only(monkeypatch, stt):
 
 @pytest.mark.django_db
 def test_post_parse_parse_error_rejects_shadow_summary(stt):
-    """Technical parse failures reject only the shadow summary."""
+    """Technical failures persist shadow history without changing production."""
     datafile = DataFileFactory(
         stt=stt,
         version=4,
@@ -415,7 +415,10 @@ def test_post_parse_parse_error_rejects_shadow_summary(stt):
         status=DataFileSummary.Status.PENDING,
     )
 
-    parser_task.post_parse(datafile.id, parse_error="pipeline failed")
+    event_id = uuid.uuid4()
+    parser_task.post_parse(
+        datafile.id, reparse_id=7, parse_error="pipeline failed", event_id=event_id
+    )
 
     shadow_summary.refresh_from_db()
     shadow_datafile.refresh_from_db()
@@ -425,6 +428,42 @@ def test_post_parse_parse_error_rejects_shadow_summary(stt):
     assert shadow_datafile.state == SubmissionState.PARSE_FAILED
     assert datafile.state == SubmissionState.VIRUS_SCAN_COMPLETED
     assert DataFileStateTransition.objects.for_object(datafile).count() == 0
+    transition = DataFileStateTransition.objects.for_object(shadow_datafile).get()
+    assert transition.content_object == shadow_datafile
+    assert transition.event_id == event_id
+    assert transition.previous_state == SubmissionState.VIRUS_SCAN_COMPLETED
+    assert transition.next_state == SubmissionState.PARSE_FAILED
+    assert transition.source == "go_parser"
+    assert transition.task_name == parser_task.GO_PARSER_POST_PARSE_TASK_NAME
+    assert transition.reparse_meta_id == 7
+    assert transition.metadata["parse_error"] == "pipeline failed"
+
+    parser_task.post_parse(
+        datafile.id, reparse_id=7, parse_error="pipeline failed", event_id=event_id
+    )
+    assert DataFileStateTransition.objects.for_object(shadow_datafile).count() == 1
+
+
+@pytest.mark.django_db
+def test_post_parse_shadow_state_rolls_back_when_audit_insert_fails(stt, monkeypatch):
+    """A failed shadow audit insert must leave the shadow state unchanged."""
+    datafile = DataFileFactory(stt=stt, state=SubmissionState.VIRUS_SCAN_COMPLETED)
+    shadow_datafile = create_or_update_shadow_data_file(datafile)
+
+    def fail_audit_insert(*args, **kwargs) -> None:
+        raise DatabaseError("audit insert failed")
+
+    monkeypatch.setattr(
+        DataFileStateTransition.objects, "create_for_object", fail_audit_insert
+    )
+    with pytest.raises(DatabaseError, match="audit insert failed"):
+        parser_task.post_parse(datafile.id, parse_error="pipeline failed")
+
+    shadow_datafile.refresh_from_db()
+    datafile.refresh_from_db()
+    assert shadow_datafile.state == SubmissionState.VIRUS_SCAN_COMPLETED
+    assert datafile.state == SubmissionState.VIRUS_SCAN_COMPLETED
+    assert not DataFileStateTransition.objects.for_object(shadow_datafile).exists()
 
 
 @pytest.mark.django_db

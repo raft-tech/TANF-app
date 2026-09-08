@@ -629,7 +629,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 class ShadowDataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Shadow admin model for convenience."""
 
-    inlines = []
+    inlines = [DataFileStateTransitionInline]
     list_display = [
         "id",
         "stt",
