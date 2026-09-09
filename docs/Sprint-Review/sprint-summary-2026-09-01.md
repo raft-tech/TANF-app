@@ -2,18 +2,18 @@
 
 ## Overview
 
-- Front-end work to decouple SSP data from the STT model moved from blocked to in progress, signaling renewed momentum. ([#5376](https://github.com/raft-tech/TANF-app/issues/5376))
-- Several high-priority fixes were completed and closed, including removing SUB characters before parsing and fixes for SVD1, SVD2, plus a frontend ZAP issue. ([#6026](https://github.com/raft-tech/TANF-app/issues/6026), [#6031](https://github.com/raft-tech/TANF-app/issues/6031), [#6032](https://github.com/raft-tech/TANF-app/issues/6032), [#6004](https://github.com/raft-tech/TANF-app/issues/6004))
-- History table pagination design was finalized and closed, along with the admin form contract implementation. ([#5538](https://github.com/raft-tech/TANF-app/issues/5538), [#5842](https://github.com/raft-tech/TANF-app/issues/5842))
-- Knowledge Center guidance on timely data submission was published, and release materials and tracker updates were released. ([#5940](https://github.com/raft-tech/TANF-app/issues/5940), [#5989](https://github.com/raft-tech/TANF-app/issues/5989), [#5988](https://github.com/raft-tech/TANF-app/issues/5988))
-- Go Parser work progressed toward active development with the canary routing in Django moving from planning toward next steps. ([#5737](https://github.com/raft-tech/TANF-app/issues/5737))
+- Started work to separate how data is stored from how it's shown in the admin tools; the effort is in progress. ([#5376](https://github.com/raft-tech/TANF-app/issues/5376))
+- Completed the design study for history table pagination, finalizing the approach. ([#5538](https://github.com/raft-tech/TANF-app/issues/5538))
+- Fixed file submission error message and reset the form after submission, preventing user confusion. ([#5603](https://github.com/raft-tech/TANF-app/issues/5603))
+- Admin interface improvements in UX and IA are finished, making the admin area easier to use. ([#5651](https://github.com/raft-tech/TANF-app/issues/5651))
+- Knowledge Center update with guidance on timely data submission added, and the admin form contract implemented. ([#5940](https://github.com/raft-tech/TANF-app/issues/5940), [#5842](https://github.com/raft-tech/TANF-app/issues/5842))
 
 ---
 
 ⚪️ **Total Issues:** 33  
-✅ **Closed:** 11  
-➡️ **Moved:** 12  
-⬛️ **Unchanged:** 10  
+✅ **Closed:** 13  
+➡️ **Moved:** 11  
+⬛️ **Unchanged:** 9  
 🛑 **Blocked:** 0  
 
 ---
@@ -39,6 +39,12 @@ _Remained in **Raft (Dev) Review**_
 _**Closed**_ - _Moved from **Raft (Dev) Review**_  
 
 
+## [Design & Implement: Admin Dashboard View](https://github.com/raft-tech/TANF-app/issues/5951)
+
+- ➡️ [Design Admin Dashboard (#5966)](https://github.com/raft-tech/TANF-app/issues/5966)  
+_Moved from **QASP Review** to **UX Review**_  
+
+
 ## [fTANF Replacement - Foundational Research & Concept Validation](https://github.com/raft-tech/TANF-app/issues/4628)
 
 - ⬛️ [Conduct FTANF Replacement Research (#5683)](https://github.com/raft-tech/TANF-app/issues/5683)  
@@ -59,20 +65,17 @@ _Moved from **In Progress** to **Raft (Dev) Review**_
 - ➡️ [Create GHCR robot accounts and CI/CD deployments for Keycloak (#5980)](https://github.com/raft-tech/TANF-app/issues/5980)  
 _Moved from **Current Sprint Backlog** to **In Progress**_  
 
-- ➡️ [Isolate TDP Admin Authentication in a Separate Keycloak Realm (#5986)](https://github.com/raft-tech/TANF-app/issues/5986)  
-_Moved from **In Progress** to **Raft (Dev) Review**_  
+- ✅ [Isolate TDP Admin Authentication in a Separate Keycloak Realm (#5986)](https://github.com/raft-tech/TANF-app/issues/5986)  
+_**Closed**_ - _Moved from **In Progress**_  
 
 
 ## [New React Admin](https://github.com/raft-tech/TANF-app/issues/5700)
 
-- ⬛️ [React Admin: UX Design Exploration & IA Improvements (#5651)](https://github.com/raft-tech/TANF-app/issues/5651)  
-_Remained in **In Progress**_  
+- ✅ [React Admin: UX Design Exploration & IA Improvements (#5651)](https://github.com/raft-tech/TANF-app/issues/5651)  
+_**Closed**_ - _Moved from **In Progress**_  
 
 - ✅ [4. Implement Metadata-Driven Admin Form Contract (#5842)](https://github.com/raft-tech/TANF-app/issues/5842)  
 _**Closed**_ - _Moved from **Raft (Dev) Review**_  
-
-- ➡️ [Design Admin Dashboard (#5966)](https://github.com/raft-tech/TANF-app/issues/5966)  
-_Moved from **QASP Review** to **UX Review**_  
 
 - ⬛️ [Design: User Requests and Authorization Page and Interaction (#5968)](https://github.com/raft-tech/TANF-app/issues/5968)  
 _Remained in **In Progress**_  
