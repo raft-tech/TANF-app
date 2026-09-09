@@ -3,7 +3,7 @@ name: Story template
 about: Template for story with dev / design tickets as sub issues
 title: ''
 labels: 
-Task: Story
+task: Story
 assignees: ''
 
 ---
