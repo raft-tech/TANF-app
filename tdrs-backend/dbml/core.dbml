@@ -59,7 +59,7 @@ Table "core_historicalgroup_permissions" {
   "id" int4 [not null]
   "m2m_history_id" int4 [pk, not null, increment]
   "group_id" int4
-  "history_id" int4 [not null]
+  "history_id" int4 [not null, ref: > core_historicalgroup.history_id]
   "permission_id" int4
 
   Indexes {

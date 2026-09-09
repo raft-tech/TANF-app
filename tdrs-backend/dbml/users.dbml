@@ -30,7 +30,7 @@ Table "users_user" {
 
 Table "users_user_groups" {
   "id" int4 [pk, not null, increment]
-  "user_id" uuid [not null]
+  "user_id" uuid [not null, ref: > users_user.id]
   "group_id" int4 [not null]
 
   Indexes {
@@ -42,7 +42,7 @@ Table "users_user_groups" {
 
 Table "users_user_user_permissions" {
   "id" int4 [pk, not null, increment]
-  "user_id" uuid [not null]
+  "user_id" uuid [not null, ref: > users_user.id]
   "permission_id" int4 [not null]
 
   Indexes {
@@ -55,7 +55,7 @@ Table "users_user_user_permissions" {
 Table "users_regionmeta" {
   "id" int4 [pk, not null, increment]
   "region_id" int4 [not null]
-  "user_id" uuid [not null]
+  "user_id" uuid [not null, ref: > users_user.id]
 
   Indexes {
     region_id [type: btree, name: "users_regionmeta_region_id_9e0b3b96"]
@@ -71,8 +71,8 @@ Table "users_feedback" {
   "feedback" text
   "anonymous" bool [not null]
   "read" bool [not null]
-  "reviewed_by_id" uuid
-  "user_id" uuid
+  "reviewed_by_id" uuid [ref: > users_user.id]
+  "user_id" uuid [ref: > users_user.id]
   "component" varchar(100) [not null]
   "feedback_type" varchar(30)
   "page_url" varchar(200)
@@ -93,9 +93,9 @@ Table "users_userchangerequest" {
   "status" varchar(20) [not null]
   "requested_at" timestamptz [not null]
   "notes" text [not null]
-  "requested_by_id" uuid [not null]
-  "reviewed_by_id" uuid
-  "user_id" uuid [not null]
+  "requested_by_id" uuid [not null, ref: > users_user.id]
+  "reviewed_by_id" uuid [ref: > users_user.id]
+  "user_id" uuid [not null, ref: > users_user.id]
 
   Indexes {
     requested_by_id [type: btree, name: "users_userchangerequest_requested_by_id_d8501c41"]
@@ -109,8 +109,8 @@ Table "users_changerequestauditlog" {
   "action" varchar(50) [not null]
   "timestamp" timestamptz [not null]
   "details" jsonb [not null]
-  "change_request_id" uuid [not null]
-  "performed_by_id" uuid
+  "change_request_id" uuid [not null, ref: > users_userchangerequest.id]
+  "performed_by_id" uuid [ref: > users_user.id]
 
   Indexes {
     change_request_id [type: btree, name: "users_changerequestauditlog_change_request_id_35484583"]
@@ -123,7 +123,7 @@ Table "users_feedbackattachment" {
   "object_id" int4 [not null]
   "attached_at" timestamptz [not null]
   "content_type_id" int4 [not null]
-  "feedback_id" uuid [not null]
+  "feedback_id" uuid [not null, ref: > users_feedback.id]
 
   Indexes {
     (content_type_id, object_id, feedback_id) [type: btree, unique, name: "users_feedbackattachment_content_type_id_object_i_dd653e6e_uniq"]
@@ -153,7 +153,7 @@ Table "users_historicaluser" {
   "history_date" timestamptz [not null]
   "history_change_reason" varchar(100)
   "history_type" varchar(1) [not null]
-  "history_user_id" uuid
+  "history_user_id" uuid [ref: > users_user.id]
   "stt_id" int4
 
   Indexes {
@@ -173,8 +173,8 @@ Table "users_historicalregionmeta" {
   "id" int4 [not null]
   "m2m_history_id" int4 [pk, not null, increment]
   "region_id" int4
-  "user_id" uuid
-  "history_id" int4 [not null]
+  "user_id" uuid [ref: > users_user.id]
+  "history_id" int4 [not null, ref: > users_historicaluser.history_id]
 
   Indexes {
     history_id [type: btree, name: "users_historicalregionmeta_history_id_cf60cf2c"]
@@ -188,8 +188,8 @@ Table "users_historicaluser_groups" {
   "id" int4 [not null]
   "m2m_history_id" int4 [pk, not null, increment]
   "group_id" int4
-  "history_id" int4 [not null]
-  "user_id" uuid
+  "history_id" int4 [not null, ref: > users_historicaluser.history_id]
+  "user_id" uuid [ref: > users_user.id]
 
   Indexes {
     group_id [type: btree, name: "users_historicaluser_groups_group_id_a08b4bce"]
@@ -202,9 +202,9 @@ Table "users_historicaluser_groups" {
 Table "users_historicaluser_user_permissions" {
   "id" int4 [not null]
   "m2m_history_id" int4 [pk, not null, increment]
-  "history_id" int4 [not null]
+  "history_id" int4 [not null, ref: > users_historicaluser.history_id]
   "permission_id" int4
-  "user_id" uuid
+  "user_id" uuid [ref: > users_user.id]
 
   Indexes {
     history_id [type: btree, name: "users_historicaluser_user_permissions_history_id_13aa6b1f"]

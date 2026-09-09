@@ -10,8 +10,8 @@ Table "stts_stt" {
   "type" varchar(200)
   "postal_code" varchar(2)
   "name" varchar(1000) [unique, not null]
-  "region_id" int4
-  "state_id" int4
+  "region_id" int4 [ref: > stts_region.id]
+  "state_id" int4 [ref: > stts_stt.id]
   "filenames" jsonb
   "stt_code" varchar(3)
   "ssp" bool
@@ -28,7 +28,7 @@ Table "stts_sttprogramparticipation" {
   "id" int4 [pk, not null, increment]
   "status" varchar(10) [not null]
   "program_id" int4 [not null]
-  "stt_id" int4 [not null]
+  "stt_id" int4 [not null, ref: > stts_stt.id]
 
   Indexes {
     (stt_id, program_id) [type: btree, unique, name: "participation_uniq_stt_program"]
@@ -39,7 +39,7 @@ Table "stts_sttprogramparticipation" {
 
 Table "stts_sttprogramparticipation_sections" {
   "id" int4 [pk, not null, increment]
-  "sttprogramparticipation_id" int4 [not null]
+  "sttprogramparticipation_id" int4 [not null, ref: > stts_sttprogramparticipation.id]
   "section_id" int4 [not null]
 
   Indexes {

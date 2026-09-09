@@ -30,7 +30,7 @@ Table "reports_reportfile" {
   "year" int4 [not null]
   "version" int4 [not null]
   "file" varchar(100)
-  "source_id" int4
+  "source_id" int4 [ref: > reports_reportsource.id]
   "stt_id" int4
   "user_id" uuid
   "date_extracted_on" date

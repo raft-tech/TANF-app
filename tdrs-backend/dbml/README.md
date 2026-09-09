@@ -30,4 +30,6 @@ Rather than install an NPM package for the util, it downloaded the runtime into 
 
 To view the diagram, click on a file and click the Preview button at the top right (first icon)
 
+The [schema.dbml](./schema.dbml) file contains all 108 tables with all relationships. It's difficult to read though, so individual schema domains have their own file. But note that some foreign keys are not shown if they're cross-domain.
+
 Google: can dbdiagram sync from a postgresql db?

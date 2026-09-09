@@ -20,7 +20,7 @@ Table "django_content_type" {
 Table "auth_permission" {
   "id" int4 [pk, not null, increment]
   "name" varchar(255) [not null]
-  "content_type_id" int4 [not null]
+  "content_type_id" int4 [not null, ref: > django_content_type.id]
   "codename" varchar(100) [not null]
 
   Indexes {
@@ -40,8 +40,8 @@ Table "auth_group" {
 
 Table "auth_group_permissions" {
   "id" int4 [pk, not null, increment]
-  "group_id" int4 [not null]
-  "permission_id" int4 [not null]
+  "group_id" int4 [not null, ref: > auth_group.id]
+  "permission_id" int4 [not null, ref: > auth_permission.id]
 
   Indexes {
     (group_id, permission_id) [type: btree, unique, name: "auth_group_permissions_group_id_permission_id_0cd325b0_uniq"]
@@ -57,7 +57,7 @@ Table "django_admin_log" {
   "object_repr" varchar(200) [not null]
   "action_flag" int2 [not null, check: `action_flag >= 0`]
   "change_message" text [not null]
-  "content_type_id" int4
+  "content_type_id" int4 [ref: > django_content_type.id]
   "user_id" uuid [not null]
 
   Indexes {
@@ -173,14 +173,14 @@ Table "django_celery_beat_periodictask" {
   "total_run_count" int4 [not null, check: `total_run_count >= 0`]
   "date_changed" timestamptz [not null]
   "description" text [not null]
-  "crontab_id" int4
-  "interval_id" int4
-  "solar_id" int4
+  "crontab_id" int4 [ref: > django_celery_beat_crontabschedule.id]
+  "interval_id" int4 [ref: > django_celery_beat_intervalschedule.id]
+  "solar_id" int4 [ref: > django_celery_beat_solarschedule.id]
   "one_off" bool [not null]
   "start_time" timestamptz
   "priority" int4 [check: `priority >= 0`]
   "headers" text [not null]
-  "clocked_id" int4
+  "clocked_id" int4 [ref: > django_celery_beat_clockedschedule.id]
   "expire_seconds" int4 [check: `expire_seconds >= 0`]
 
   Indexes {

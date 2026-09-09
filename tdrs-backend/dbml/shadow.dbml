@@ -31,7 +31,7 @@ Table "shadow_parsers_datafilesummary" {
   "case_aggregates" jsonb
   "total_number_of_records_in_file" int4
   "total_number_of_records_created" int4
-  "datafile_id" int4 [unique, not null]
+  "datafile_id" int4 [unique, not null, ref: > shadow_data_files_datafile.id]
 }
 
 Table "shadow_parser_error" {
@@ -50,7 +50,7 @@ Table "shadow_parser_error" {
   "values_json" jsonb
   "deprecated" bool [not null]
   "content_type_id" int4
-  "file_id" int4
+  "file_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     content_type_id [type: btree, name: "shadow_parser_error_content_type_id_ee93f7fe"]
@@ -66,7 +66,7 @@ Table "shadow_search_indexes_programaudit_t1" {
   "CASE_NUMBER" varchar(11)
   "FUNDING_STREAM" int4
   "CASH_AMOUNT" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_programaudit_t1_datafile_id_1ccb0ba5"]
@@ -83,7 +83,7 @@ Table "shadow_search_indexes_programaudit_t2" {
   "DATE_OF_BIRTH" varchar(8)
   "SSN" varchar(9)
   "CITIZENSHIP_STATUS" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_programaudit_t2_datafile_id_3de46635"]
@@ -100,7 +100,7 @@ Table "shadow_search_indexes_programaudit_t3" {
   "DATE_OF_BIRTH" varchar(8)
   "SSN" varchar(9)
   "CITIZENSHIP_STATUS" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_programaudit_t3_datafile_id_324498f4"]
@@ -152,7 +152,7 @@ Table "shadow_search_indexes_ssp_m1" {
   "REDUCTIONS_ON_RECEIPTS" int4
   "OTHER_NON_SANCTION" int4
   "WAIVER_EVAL_CONTROL_GRPS" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_ssp_m1_datafile_id_ed063b0f"]
@@ -229,7 +229,7 @@ Table "shadow_search_indexes_ssp_m2" {
   "UNEARNED_SSI" int4
   "UNEARNED_WORKERS_COMP" int4
   "OTHER_UNEARNED_INCOME" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_ssp_m2_datafile_id_54bd19a5"]
@@ -260,7 +260,7 @@ Table "shadow_search_indexes_ssp_m3" {
   "CITIZENSHIP_STATUS" int4
   "UNEARNED_SSI" int4
   "OTHER_UNEARNED_INCOME" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_ssp_m3_datafile_id_3907c438"]
@@ -282,7 +282,7 @@ Table "shadow_search_indexes_ssp_m4" {
   "REC_MED_ASSIST" int4
   "REC_FOOD_STAMPS" int4
   "REC_SUB_CC" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_ssp_m4_datafile_id_95858579"]
@@ -319,7 +319,7 @@ Table "shadow_search_indexes_ssp_m5" {
   "EMPLOYMENT_STATUS" int4
   "AMOUNT_EARNED_INCOME" varchar(4)
   "AMOUNT_UNEARNED_INCOME" varchar(4)
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_ssp_m5_datafile_id_b074facf"]
@@ -342,7 +342,7 @@ Table "shadow_search_indexes_ssp_m6" {
   "NONCUSTODIALS" int4
   "AMT_ASSISTANCE" int4
   "CLOSED_CASES" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_ssp_m6_datafile_id_95827bab"]
@@ -358,7 +358,7 @@ Table "shadow_search_indexes_ssp_m7" {
   "TDRS_SECTION_IND" varchar(1)
   "STRATUM" varchar(2)
   "FAMILIES_MONTH" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_ssp_m7_datafile_id_3f98c6c6"]
@@ -371,7 +371,7 @@ Table "shadow_search_indexes_tanf_exiter1" {
   "RecordType" varchar(25)
   "EXIT_DATE" int4
   "SSN" varchar(9)
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tanf_exiter1_datafile_id_a5b719d7"]
@@ -426,7 +426,7 @@ Table "shadow_search_indexes_tanf_t1" {
   "WAIVER_EVAL_CONTROL_GRPS" int4
   "FAMILY_EXEMPT_TIME_LIMITS" int4
   "FAMILY_NEW_CHILD" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tanf_t1_datafile_id_5f1c61ad"]
@@ -505,7 +505,7 @@ Table "shadow_search_indexes_tanf_t2" {
   "UNEARNED_SSI" varchar(4)
   "UNEARNED_WORKERS_COMP" varchar(4)
   "OTHER_UNEARNED_INCOME" varchar(4)
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tanf_t2_datafile_id_16303f72"]
@@ -536,7 +536,7 @@ Table "shadow_search_indexes_tanf_t3" {
   "CITIZENSHIP_STATUS" int4
   "UNEARNED_SSI" varchar(4)
   "OTHER_UNEARNED_INCOME" varchar(4)
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tanf_t3_datafile_id_afc409d2"]
@@ -558,7 +558,7 @@ Table "shadow_search_indexes_tanf_t4" {
   "REC_MED_ASSIST" int4
   "REC_FOOD_STAMPS" int4
   "REC_SUB_CC" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tanf_t4_datafile_id_607d06fc"]
@@ -597,7 +597,7 @@ Table "shadow_search_indexes_tanf_t5" {
   "EMPLOYMENT_STATUS" int4
   "AMOUNT_EARNED_INCOME" varchar(4)
   "AMOUNT_UNEARNED_INCOME" varchar(4)
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tanf_t5_datafile_id_9bf7fe04"]
@@ -625,7 +625,7 @@ Table "shadow_search_indexes_tanf_t6" {
   "NUM_BIRTHS" int4
   "NUM_OUTWEDLOCK_BIRTHS" int4
   "NUM_CLOSED_CASES" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tanf_t6_datafile_id_6948ef97"]
@@ -641,7 +641,7 @@ Table "shadow_search_indexes_tanf_t7" {
   "TDRS_SECTION_IND" varchar(1)
   "STRATUM" varchar(2)
   "FAMILIES_MONTH" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tanf_t7_datafile_id_c7c05c42"]
@@ -696,7 +696,7 @@ Table "shadow_search_indexes_tribal_tanf_t1" {
   "WAIVER_EVAL_CONTROL_GRPS" int4
   "FAMILY_EXEMPT_TIME_LIMITS" int4
   "FAMILY_NEW_CHILD" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t1_datafile_id_a4a638c3"]
@@ -758,7 +758,7 @@ Table "shadow_search_indexes_tribal_tanf_t2" {
   "UNEARNED_SSI" varchar(4)
   "UNEARNED_WORKERS_COMP" varchar(4)
   "OTHER_UNEARNED_INCOME" varchar(4)
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t2_datafile_id_3576a00a"]
@@ -789,7 +789,7 @@ Table "shadow_search_indexes_tribal_tanf_t3" {
   "CITIZENSHIP_STATUS" int4
   "UNEARNED_SSI" varchar(4)
   "OTHER_UNEARNED_INCOME" varchar(4)
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t3_datafile_id_aeb8c53d"]
@@ -811,7 +811,7 @@ Table "shadow_search_indexes_tribal_tanf_t4" {
   "REC_MED_ASSIST" int4
   "REC_FOOD_STAMPS" int4
   "REC_SUB_CC" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t4_datafile_id_8100aae3"]
@@ -850,7 +850,7 @@ Table "shadow_search_indexes_tribal_tanf_t5" {
   "EMPLOYMENT_STATUS" int4
   "AMOUNT_EARNED_INCOME" varchar(4)
   "AMOUNT_UNEARNED_INCOME" varchar(4)
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t5_datafile_id_05c11aa4"]
@@ -878,7 +878,7 @@ Table "shadow_search_indexes_tribal_tanf_t6" {
   "NUM_BIRTHS" int4
   "NUM_OUTWEDLOCK_BIRTHS" int4
   "NUM_CLOSED_CASES" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t6_datafile_id_a88363d3"]
@@ -894,7 +894,7 @@ Table "shadow_search_indexes_tribal_tanf_t7" {
   "TDRS_SECTION_IND" varchar(1)
   "STRATUM" varchar(2)
   "FAMILIES_MONTH" int4
-  "datafile_id" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
 
   Indexes {
     datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t7_datafile_id_58ac9b36"]

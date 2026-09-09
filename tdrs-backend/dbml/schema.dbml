@@ -1,0 +1,2727 @@
+// Combined schema (all domains + FK refs) for a complete, self-contained ER diagram.
+// See the per-app *.dbml files in this folder for organized browsing of individual domains.
+
+
+// Django/DRF framework and admin tables (auth, sessions, celery beat, admin UI)
+
+Table "django_migrations" {
+  "id" int4 [pk, not null, increment]
+  "app" varchar(255) [not null]
+  "name" varchar(255) [not null]
+  "applied" timestamptz [not null]
+}
+
+Table "django_content_type" {
+  "id" int4 [pk, not null, increment]
+  "app_label" varchar(100) [not null]
+  "model" varchar(100) [not null]
+
+  Indexes {
+    (app_label, model) [type: btree, unique, name: "django_content_type_app_label_model_76bd3d3b_uniq"]
+  }
+}
+
+Table "auth_permission" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar(255) [not null]
+  "content_type_id" int4 [not null, ref: > django_content_type.id]
+  "codename" varchar(100) [not null]
+
+  Indexes {
+    (content_type_id, codename) [type: btree, unique, name: "auth_permission_content_type_id_codename_01ab375a_uniq"]
+    content_type_id [type: btree, name: "auth_permission_content_type_id_2f476e4b"]
+  }
+}
+
+Table "auth_group" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar(150) [unique, not null]
+
+  Indexes {
+    name [type: btree, name: "auth_group_name_a6ea08ec_like"]
+  }
+}
+
+Table "auth_group_permissions" {
+  "id" int4 [pk, not null, increment]
+  "group_id" int4 [not null, ref: > auth_group.id]
+  "permission_id" int4 [not null, ref: > auth_permission.id]
+
+  Indexes {
+    (group_id, permission_id) [type: btree, unique, name: "auth_group_permissions_group_id_permission_id_0cd325b0_uniq"]
+    group_id [type: btree, name: "auth_group_permissions_group_id_b120cbf9"]
+    permission_id [type: btree, name: "auth_group_permissions_permission_id_84c5c92e"]
+  }
+}
+
+Table "django_admin_log" {
+  "id" int4 [pk, not null, increment]
+  "action_time" timestamptz [not null]
+  "object_id" text
+  "object_repr" varchar(200) [not null]
+  "action_flag" int2 [not null, check: `action_flag >= 0`]
+  "change_message" text [not null]
+  "content_type_id" int4 [ref: > django_content_type.id]
+  "user_id" uuid [not null, ref: > users_user.id]
+
+  Indexes {
+    content_type_id [type: btree, name: "django_admin_log_content_type_id_c4bce8eb"]
+    user_id [type: btree, name: "django_admin_log_user_id_c564eba6"]
+  }
+}
+
+Table "admin_interface_theme" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar(50) [unique, not null]
+  "active" bool [not null]
+  "title" varchar(50) [not null]
+  "title_visible" bool [not null]
+  "logo" varchar(100) [not null]
+  "logo_visible" bool [not null]
+  "css_header_background_color" varchar(10) [not null]
+  "title_color" varchar(10) [not null]
+  "css_header_text_color" varchar(10) [not null]
+  "css_header_link_color" varchar(10) [not null]
+  "css_header_link_hover_color" varchar(10) [not null]
+  "css_module_background_color" varchar(10) [not null]
+  "css_module_text_color" varchar(10) [not null]
+  "css_module_link_color" varchar(10) [not null]
+  "css_module_link_hover_color" varchar(10) [not null]
+  "css_module_rounded_corners" bool [not null]
+  "css_generic_link_color" varchar(10) [not null]
+  "css_generic_link_hover_color" varchar(10) [not null]
+  "css_save_button_background_color" varchar(10) [not null]
+  "css_save_button_background_hover_color" varchar(10) [not null]
+  "css_save_button_text_color" varchar(10) [not null]
+  "css_delete_button_background_color" varchar(10) [not null]
+  "css_delete_button_background_hover_color" varchar(10) [not null]
+  "css_delete_button_text_color" varchar(10) [not null]
+  "list_filter_dropdown" bool [not null]
+  "related_modal_active" bool [not null]
+  "related_modal_background_color" varchar(10) [not null]
+  "related_modal_rounded_corners" bool [not null]
+  "logo_color" varchar(10) [not null]
+  "recent_actions_visible" bool [not null]
+  "favicon" varchar(100) [not null]
+  "related_modal_background_opacity" varchar(5) [not null]
+  "env_name" varchar(50) [not null]
+  "env_visible_in_header" bool [not null]
+  "env_color" varchar(10) [not null]
+  "env_visible_in_favicon" bool [not null]
+  "related_modal_close_button_visible" bool [not null]
+  "language_chooser_active" bool [not null]
+  "language_chooser_display" varchar(10) [not null]
+  "list_filter_sticky" bool [not null]
+  "form_pagination_sticky" bool [not null]
+  "form_submit_sticky" bool [not null]
+  "css_module_background_selected_color" varchar(10) [not null]
+  "css_module_link_selected_color" varchar(10) [not null]
+  "logo_max_height" int2 [not null, check: `logo_max_height >= 0`]
+  "logo_max_width" int2 [not null, check: `logo_max_width >= 0`]
+  "foldable_apps" bool [not null]
+  "language_chooser_control" varchar(20) [not null]
+  "list_filter_highlight" bool [not null]
+  "list_filter_removal_links" bool [not null]
+  "show_fieldsets_as_tabs" bool [not null]
+  "show_inlines_as_tabs" bool [not null]
+  "css_generic_link_active_color" varchar(10) [not null]
+  "collapsible_stacked_inlines" bool [not null]
+  "collapsible_stacked_inlines_collapsed" bool [not null]
+  "collapsible_tabular_inlines" bool [not null]
+  "collapsible_tabular_inlines_collapsed" bool [not null]
+  "form_actions_sticky" bool [not null]
+
+  Indexes {
+    name [type: btree, name: "admin_interface_theme_name_30bda70f_like"]
+  }
+}
+
+Table "authtoken_token" {
+  "key" varchar(40) [pk, not null]
+  "created" timestamptz [not null]
+  "user_id" uuid [unique, not null, ref: > users_user.id]
+
+  Indexes {
+    key [type: btree, name: "authtoken_token_key_10f0b77e_like"]
+  }
+}
+
+Table "django_celery_beat_crontabschedule" {
+  "id" int4 [pk, not null, increment]
+  "minute" varchar(240) [not null]
+  "hour" varchar(96) [not null]
+  "day_of_week" varchar(64) [not null]
+  "day_of_month" varchar(124) [not null]
+  "month_of_year" varchar(64) [not null]
+  "timezone" varchar(63) [not null]
+}
+
+Table "django_celery_beat_intervalschedule" {
+  "id" int4 [pk, not null, increment]
+  "every" int4 [not null]
+  "period" varchar(24) [not null]
+}
+
+Table "django_celery_beat_periodictask" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar(200) [unique, not null]
+  "task" varchar(200) [not null]
+  "args" text [not null]
+  "kwargs" text [not null]
+  "queue" varchar(200)
+  "exchange" varchar(200)
+  "routing_key" varchar(200)
+  "expires" timestamptz
+  "enabled" bool [not null]
+  "last_run_at" timestamptz
+  "total_run_count" int4 [not null, check: `total_run_count >= 0`]
+  "date_changed" timestamptz [not null]
+  "description" text [not null]
+  "crontab_id" int4 [ref: > django_celery_beat_crontabschedule.id]
+  "interval_id" int4 [ref: > django_celery_beat_intervalschedule.id]
+  "solar_id" int4 [ref: > django_celery_beat_solarschedule.id]
+  "one_off" bool [not null]
+  "start_time" timestamptz
+  "priority" int4 [check: `priority >= 0`]
+  "headers" text [not null]
+  "clocked_id" int4 [ref: > django_celery_beat_clockedschedule.id]
+  "expire_seconds" int4 [check: `expire_seconds >= 0`]
+
+  Indexes {
+    clocked_id [type: btree, name: "django_celery_beat_periodictask_clocked_id_47a69f82"]
+    crontab_id [type: btree, name: "django_celery_beat_periodictask_crontab_id_d3cba168"]
+    interval_id [type: btree, name: "django_celery_beat_periodictask_interval_id_a8ca27da"]
+    name [type: btree, name: "django_celery_beat_periodictask_name_265a36b7_like"]
+    solar_id [type: btree, name: "django_celery_beat_periodictask_solar_id_a87ce72c"]
+  }
+}
+
+Table "django_celery_beat_periodictasks" {
+  "ident" int2 [pk, not null]
+  "last_update" timestamptz [not null]
+}
+
+Table "django_celery_beat_solarschedule" {
+  "id" int4 [pk, not null, increment]
+  "event" varchar(24) [not null]
+  "latitude" numeric(9,6) [not null]
+  "longitude" numeric(9,6) [not null]
+
+  Indexes {
+    (event, latitude, longitude) [type: btree, unique, name: "django_celery_beat_solar_event_latitude_longitude_ba64999a_uniq"]
+  }
+}
+
+Table "django_celery_beat_clockedschedule" {
+  "id" int4 [pk, not null, increment]
+  "clocked_time" timestamptz [not null]
+}
+
+Table "django_session" {
+  "session_key" varchar(40) [pk, not null]
+  "session_data" text [not null]
+  "expire_date" timestamptz [not null]
+
+  Indexes {
+    expire_date [type: btree, name: "django_session_expire_date_a5c62663"]
+    session_key [type: btree, name: "django_session_session_key_c0390e0f_like"]
+  }
+}
+
+
+// tdpservice.core app: feature flags and historical/audit tables
+
+Table "core_featureflag" {
+  "id" int4 [pk, not null, increment]
+  "feature_name" varchar(100) [unique, not null]
+  "enabled" bool [not null]
+  "config" jsonb [not null]
+  "description" text [not null]
+  "created_at" timestamptz [not null]
+  "updated_at" timestamptz [not null]
+
+  Indexes {
+    feature_name [type: btree, name: "core_featureflag_feature_name_7742bbba_like"]
+  }
+}
+
+Table "core_historicalfeatureflag" {
+  "id" int4 [not null]
+  "feature_name" varchar(100) [not null]
+  "enabled" bool [not null]
+  "config" jsonb [not null]
+  "description" text [not null]
+  "created_at" timestamptz [not null]
+  "updated_at" timestamptz [not null]
+  "history_id" int4 [pk, not null, increment]
+  "history_date" timestamptz [not null]
+  "history_change_reason" varchar(100)
+  "history_type" varchar(1) [not null]
+  "history_user_id" uuid [ref: > users_user.id]
+
+  Indexes {
+    feature_name [type: btree, name: "core_historicalfeatureflag_feature_name_990f86be"]
+    feature_name [type: btree, name: "core_historicalfeatureflag_feature_name_990f86be_like"]
+    history_date [type: btree, name: "core_historicalfeatureflag_history_date_14d9dcda"]
+    history_user_id [type: btree, name: "core_historicalfeatureflag_history_user_id_f61ef388"]
+    id [type: btree, name: "core_historicalfeatureflag_id_3c547ff7"]
+  }
+}
+
+Table "core_historicalgroup" {
+  "id" int4 [not null]
+  "name" varchar(150) [not null]
+  "history_id" int4 [pk, not null, increment]
+  "history_date" timestamptz [not null]
+  "history_change_reason" varchar(100)
+  "history_type" varchar(1) [not null]
+  "history_user_id" uuid [ref: > users_user.id]
+
+  Indexes {
+    history_date [type: btree, name: "core_historicalgroup_history_date_da3d0694"]
+    history_user_id [type: btree, name: "core_historicalgroup_history_user_id_a7306d69"]
+    id [type: btree, name: "core_historicalgroup_id_5f3096ca"]
+    name [type: btree, name: "core_historicalgroup_name_7f0e33fd"]
+    name [type: btree, name: "core_historicalgroup_name_7f0e33fd_like"]
+  }
+}
+
+Table "core_historicalgroup_permissions" {
+  "id" int4 [not null]
+  "m2m_history_id" int4 [pk, not null, increment]
+  "group_id" int4 [ref: > auth_group.id]
+  "history_id" int4 [not null, ref: > core_historicalgroup.history_id]
+  "permission_id" int4 [ref: > auth_permission.id]
+
+  Indexes {
+    group_id [type: btree, name: "core_historicalgroup_permissions_group_id_14748bd2"]
+    history_id [type: btree, name: "core_historicalgroup_permissions_history_id_d81326c9"]
+    id [type: btree, name: "core_historicalgroup_permissions_id_f7aee970"]
+    permission_id [type: btree, name: "core_historicalgroup_permissions_permission_id_6a1f41a2"]
+  }
+}
+
+Table "core_baselog" {
+  "id" int4 [pk, not null, increment]
+  "object_id" text
+  "event_id" uuid [not null]
+  "event_type" varchar(100) [not null]
+  "note" text [not null]
+  "metadata" jsonb [not null]
+  "source" varchar(64)
+  "task_name" varchar(255)
+  "celery_task_id" varchar(255)
+  "created_at" timestamptz [not null]
+  "actor_id" uuid [ref: > users_user.id]
+  "content_type_id" int4 [ref: > django_content_type.id]
+
+  Indexes {
+    (event_id, created_at) [type: btree, name: "baselog_event_created_idx"]
+    (content_type_id, object_id, created_at) [type: btree, name: "baselog_object_created_idx"]
+    source [type: btree, name: "baselog_source_idx"]
+    task_name [type: btree, name: "baselog_task_name_idx"]
+    (event_type, created_at) [type: btree, name: "baselog_type_created_idx"]
+    actor_id [type: btree, name: "core_baselog_actor_id_03c62dd8"]
+    content_type_id [type: btree, name: "core_baselog_content_type_id_ca416ce4"]
+    event_id [type: btree, name: "core_baselog_event_id_7ac8023e"]
+    event_type [type: btree, name: "core_baselog_event_type_5f1fc083"]
+    event_type [type: btree, name: "core_baselog_event_type_5f1fc083_like"]
+  }
+}
+
+
+// tdpservice.users app: user accounts, feedback, change requests
+
+Table "users_user" {
+  "password" varchar(128) [not null]
+  "last_login" timestamptz
+  "is_superuser" bool [not null]
+  "username" varchar(150) [unique, not null]
+  "first_name" varchar(150) [not null]
+  "last_name" varchar(150) [not null]
+  "email" varchar(254) [not null]
+  "is_staff" bool [not null]
+  "is_active" bool [not null]
+  "date_joined" timestamptz [not null]
+  "id" uuid [pk, not null]
+  "login_gov_uuid" uuid [unique]
+  "hhs_id" varchar(12) [unique]
+  "location_id" int4 [check: `location_id >= 0`]
+  "location_type_id" int4 [ref: > django_content_type.id]
+  "account_approval_status" varchar(40) [not null]
+  "stt_id" int4 [ref: > stts_stt.id]
+  "access_requested_date" timestamptz [not null]
+  "feature_flags" jsonb [not null]
+
+  Indexes {
+    location_type_id [type: btree, name: "users_user_location_type_id_d2a88b8a"]
+    stt_id [type: btree, name: "users_user_stt_id_a771654a"]
+    username [type: btree, name: "users_user_username_06e46fe6_like"]
+  }
+}
+
+Table "users_user_groups" {
+  "id" int4 [pk, not null, increment]
+  "user_id" uuid [not null, ref: > users_user.id]
+  "group_id" int4 [not null, ref: > auth_group.id]
+
+  Indexes {
+    (user_id, group_id) [type: btree, unique, name: "users_user_groups_user_id_group_id_b88eab82_uniq"]
+    group_id [type: btree, name: "users_user_groups_group_id_9afc8d0e"]
+    user_id [type: btree, name: "users_user_groups_user_id_5f6f5a90"]
+  }
+}
+
+Table "users_user_user_permissions" {
+  "id" int4 [pk, not null, increment]
+  "user_id" uuid [not null, ref: > users_user.id]
+  "permission_id" int4 [not null, ref: > auth_permission.id]
+
+  Indexes {
+    (user_id, permission_id) [type: btree, unique, name: "users_user_user_permissions_user_id_permission_id_43338c45_uniq"]
+    permission_id [type: btree, name: "users_user_user_permissions_permission_id_0b93982e"]
+    user_id [type: btree, name: "users_user_user_permissions_user_id_20aca447"]
+  }
+}
+
+Table "users_regionmeta" {
+  "id" int4 [pk, not null, increment]
+  "region_id" int4 [not null, ref: > stts_region.id]
+  "user_id" uuid [not null, ref: > users_user.id]
+
+  Indexes {
+    region_id [type: btree, name: "users_regionmeta_region_id_9e0b3b96"]
+    user_id [type: btree, name: "users_regionmeta_user_id_491f9a3c"]
+  }
+}
+
+Table "users_feedback" {
+  "reviewed_at" timestamptz
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null]
+  "rating" int4 [not null]
+  "feedback" text
+  "anonymous" bool [not null]
+  "read" bool [not null]
+  "reviewed_by_id" uuid [ref: > users_user.id]
+  "user_id" uuid [ref: > users_user.id]
+  "component" varchar(100) [not null]
+  "feedback_type" varchar(30)
+  "page_url" varchar(200)
+  "widget_id" varchar(100) [not null]
+
+  Indexes {
+    reviewed_by_id [type: btree, name: "users_feedback_reviewed_by_id_0af151af"]
+    user_id [type: btree, name: "users_feedback_user_id_7688f082"]
+  }
+}
+
+Table "users_userchangerequest" {
+  "reviewed_at" timestamptz
+  "id" uuid [pk, not null]
+  "field_name" varchar(100) [not null]
+  "current_value" text [not null]
+  "requested_value" text [not null]
+  "status" varchar(20) [not null]
+  "requested_at" timestamptz [not null]
+  "notes" text [not null]
+  "requested_by_id" uuid [not null, ref: > users_user.id]
+  "reviewed_by_id" uuid [ref: > users_user.id]
+  "user_id" uuid [not null, ref: > users_user.id]
+
+  Indexes {
+    requested_by_id [type: btree, name: "users_userchangerequest_requested_by_id_d8501c41"]
+    reviewed_by_id [type: btree, name: "users_userchangerequest_reviewed_by_id_f344198a"]
+    user_id [type: btree, name: "users_userchangerequest_user_id_8b3a9df0"]
+  }
+}
+
+Table "users_changerequestauditlog" {
+  "id" uuid [pk, not null]
+  "action" varchar(50) [not null]
+  "timestamp" timestamptz [not null]
+  "details" jsonb [not null]
+  "change_request_id" uuid [not null, ref: > users_userchangerequest.id]
+  "performed_by_id" uuid [ref: > users_user.id]
+
+  Indexes {
+    change_request_id [type: btree, name: "users_changerequestauditlog_change_request_id_35484583"]
+    performed_by_id [type: btree, name: "users_changerequestauditlog_performed_by_id_ce7e0f06"]
+  }
+}
+
+Table "users_feedbackattachment" {
+  "id" int4 [pk, not null, increment]
+  "object_id" int4 [not null]
+  "attached_at" timestamptz [not null]
+  "content_type_id" int4 [not null, ref: > django_content_type.id]
+  "feedback_id" uuid [not null, ref: > users_feedback.id]
+
+  Indexes {
+    (content_type_id, object_id, feedback_id) [type: btree, unique, name: "users_feedbackattachment_content_type_id_object_i_dd653e6e_uniq"]
+    content_type_id [type: btree, name: "users_feedbackattachment_content_type_id_79cbaa71"]
+    feedback_id [type: btree, name: "users_feedbackattachment_feedback_id_ca585025"]
+  }
+}
+
+Table "users_historicaluser" {
+  "password" varchar(128) [not null]
+  "last_login" timestamptz
+  "is_superuser" bool [not null]
+  "username" varchar(150) [not null]
+  "first_name" varchar(150) [not null]
+  "last_name" varchar(150) [not null]
+  "email" varchar(254) [not null]
+  "is_staff" bool [not null]
+  "is_active" bool [not null]
+  "date_joined" timestamptz [not null]
+  "id" uuid [not null]
+  "login_gov_uuid" uuid
+  "hhs_id" varchar(12)
+  "account_approval_status" varchar(40) [not null]
+  "access_requested_date" timestamptz [not null]
+  "feature_flags" jsonb [not null]
+  "history_id" int4 [pk, not null, increment]
+  "history_date" timestamptz [not null]
+  "history_change_reason" varchar(100)
+  "history_type" varchar(1) [not null]
+  "history_user_id" uuid [ref: > users_user.id]
+  "stt_id" int4 [ref: > stts_stt.id]
+
+  Indexes {
+    hhs_id [type: btree, name: "users_historicaluser_hhs_id_6ce887e4"]
+    hhs_id [type: btree, name: "users_historicaluser_hhs_id_6ce887e4_like"]
+    history_date [type: btree, name: "users_historicaluser_history_date_c280194d"]
+    history_user_id [type: btree, name: "users_historicaluser_history_user_id_7f91d047"]
+    id [type: btree, name: "users_historicaluser_id_5e70dd03"]
+    login_gov_uuid [type: btree, name: "users_historicaluser_login_gov_uuid_3997ba5c"]
+    stt_id [type: btree, name: "users_historicaluser_stt_id_154da5c6"]
+    username [type: btree, name: "users_historicaluser_username_8f7ba123"]
+    username [type: btree, name: "users_historicaluser_username_8f7ba123_like"]
+  }
+}
+
+Table "users_historicalregionmeta" {
+  "id" int4 [not null]
+  "m2m_history_id" int4 [pk, not null, increment]
+  "region_id" int4 [ref: > stts_region.id]
+  "user_id" uuid [ref: > users_user.id]
+  "history_id" int4 [not null, ref: > users_historicaluser.history_id]
+
+  Indexes {
+    history_id [type: btree, name: "users_historicalregionmeta_history_id_cf60cf2c"]
+    id [type: btree, name: "users_historicalregionmeta_id_96d8b384"]
+    region_id [type: btree, name: "users_historicalregionmeta_region_id_6bef358e"]
+    user_id [type: btree, name: "users_historicalregionmeta_user_id_9a6a3431"]
+  }
+}
+
+Table "users_historicaluser_groups" {
+  "id" int4 [not null]
+  "m2m_history_id" int4 [pk, not null, increment]
+  "group_id" int4 [ref: > auth_group.id]
+  "history_id" int4 [not null, ref: > users_historicaluser.history_id]
+  "user_id" uuid [ref: > users_user.id]
+
+  Indexes {
+    group_id [type: btree, name: "users_historicaluser_groups_group_id_a08b4bce"]
+    history_id [type: btree, name: "users_historicaluser_groups_history_id_837dbb4f"]
+    id [type: btree, name: "users_historicaluser_groups_id_929cf0c1"]
+    user_id [type: btree, name: "users_historicaluser_groups_user_id_5b44fc33"]
+  }
+}
+
+Table "users_historicaluser_user_permissions" {
+  "id" int4 [not null]
+  "m2m_history_id" int4 [pk, not null, increment]
+  "history_id" int4 [not null, ref: > users_historicaluser.history_id]
+  "permission_id" int4 [ref: > auth_permission.id]
+  "user_id" uuid [ref: > users_user.id]
+
+  Indexes {
+    history_id [type: btree, name: "users_historicaluser_user_permissions_history_id_13aa6b1f"]
+    id [type: btree, name: "users_historicaluser_user_permissions_id_68fa7bbb"]
+    permission_id [type: btree, name: "users_historicaluser_user_permissions_permission_id_25ece5a3"]
+    user_id [type: btree, name: "users_historicaluser_user_permissions_user_id_e52a7e51"]
+  }
+}
+
+
+// tdpservice.stts app: states/tribes/territories reference data
+
+Table "stts_region" {
+  "id" int4 [pk, not null, check: `id >= 0`]
+  "name" varchar(25)
+}
+
+Table "stts_stt" {
+  "id" int4 [pk, not null, increment]
+  "type" varchar(200)
+  "postal_code" varchar(2)
+  "name" varchar(1000) [unique, not null]
+  "region_id" int4 [ref: > stts_region.id]
+  "state_id" int4 [ref: > stts_stt.id]
+  "filenames" jsonb
+  "stt_code" varchar(3)
+  "ssp" bool
+  "sample" bool
+  "timezone" varchar(63) [not null]
+
+  Indexes {
+    region_id [type: btree, name: "stts_stt_region_id_307b6190"]
+    state_id [type: btree, name: "stts_stt_state_id_412b5567"]
+  }
+}
+
+Table "stts_sttprogramparticipation" {
+  "id" int4 [pk, not null, increment]
+  "status" varchar(10) [not null]
+  "program_id" int4 [not null, ref: > data_files_program.id]
+  "stt_id" int4 [not null, ref: > stts_stt.id]
+
+  Indexes {
+    (stt_id, program_id) [type: btree, unique, name: "participation_uniq_stt_program"]
+    program_id [type: btree, name: "stts_sttprogramparticipation_program_id_fef9be59"]
+    stt_id [type: btree, name: "stts_sttprogramparticipation_stt_id_f5704e7c"]
+  }
+}
+
+Table "stts_sttprogramparticipation_sections" {
+  "id" int4 [pk, not null, increment]
+  "sttprogramparticipation_id" int4 [not null, ref: > stts_sttprogramparticipation.id]
+  "section_id" int4 [not null, ref: > data_files_section.id]
+
+  Indexes {
+    (sttprogramparticipation_id, section_id) [type: btree, unique, name: "stts_sttprogramparticipa_sttprogramparticipation__6dea7a38_uniq"]
+    sttprogramparticipation_id [type: btree, name: "stts_sttprogramparticipati_sttprogramparticipation_id_193c760e"]
+    section_id [type: btree, name: "stts_sttprogramparticipation_sections_section_id_785dcd89"]
+  }
+}
+
+
+// tdpservice.data_files app: uploaded data file metadata
+
+Table "data_files_datafile" {
+  "id" int4 [pk, not null, increment]
+  "original_filename" varchar(256) [not null]
+  "slug" varchar(256) [not null]
+  "extension" varchar(8) [not null]
+  "quarter" varchar(16) [not null]
+  "year" int4 [not null]
+  "section" varchar(32) [not null]
+  "version" int4 [not null]
+  "stt_id" int4 [not null, ref: > stts_stt.id]
+  "user_id" uuid [not null, ref: > users_user.id]
+  "created_at" timestamptz [not null]
+  "file" varchar(100)
+  "s3_versioning_id" varchar(1024)
+  "program_type" varchar(32) [not null]
+  "is_program_audit" bool [not null]
+  "state" varchar(32) [not null]
+  "section_ref_id" int4 [ref: > data_files_section.id]
+
+  Indexes {
+    (program_type, section, version, quarter, year, stt_id, is_program_audit) [type: btree, unique, name: "constraint_name"]
+    section_ref_id [type: btree, name: "data_files_datafile_section_ref_id_01ffbc79"]
+    stt_id [type: btree, name: "data_files_datafile_stt_id_e4c8b50f"]
+    user_id [type: btree, name: "data_files_datafile_user_id_b66b6fea"]
+  }
+}
+
+Table "data_files_legacyfiletransfer" {
+  "id" int4 [pk, not null, increment]
+  "sent_at" timestamptz [not null]
+  "file_name" text [not null]
+  "file_size" int8 [not null, check: `file_size >= 0`]
+  "file_shasum" text [not null]
+  "result" varchar(12) [not null]
+  "data_file_id" int4 [ref: > data_files_datafile.id]
+  "uploaded_by_id" uuid [ref: > users_user.id]
+
+  Indexes {
+    data_file_id [type: btree, name: "data_files_legacyfiletransfer_data_file_id_258fa3c3"]
+    uploaded_by_id [type: btree, name: "data_files_legacyfiletransfer_uploaded_by_id_215ca222"]
+  }
+}
+
+Table "data_files_reparsefilemeta" {
+  "id" int4 [pk, not null, increment]
+  "finished" bool [not null]
+  "success" bool [not null]
+  "started_at" timestamptz
+  "finished_at" timestamptz
+  "num_records_created" int4 [not null, check: `num_records_created >= 0`]
+  "cat_4_errors_generated" int4 [not null, check: `cat_4_errors_generated >= 0`]
+  "data_file_id" int4 [not null, ref: > data_files_datafile.id]
+  "reparse_meta_id" int8 [not null, ref: > search_indexes_reparsemeta.id]
+  "previous_summary_status" varchar(50)
+
+  Indexes {
+    data_file_id [type: btree, name: "data_files_reparsefilemeta_data_file_id_c10fd55a"]
+    reparse_meta_id [type: btree, name: "data_files_reparsefilemeta_reparse_meta_id_f64842b1"]
+  }
+}
+
+Table "data_files_program" {
+  "id" int4 [pk, not null, increment]
+  "code" varchar(32) [unique, not null]
+  "slug" varchar(50) [unique, not null]
+  "name" varchar(100) [unique, not null]
+
+  Indexes {
+    code [type: btree, name: "data_files_program_code_b35f6e70_like"]
+    name [type: btree, name: "data_files_program_name_ec311a0a_like"]
+    slug [type: btree, name: "data_files_program_slug_1be0e3a6_like"]
+  }
+}
+
+Table "data_files_section" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar(100) [not null]
+  "program_id" int4 [not null, ref: > data_files_program.id]
+
+  Indexes {
+    (program_id, name) [type: btree, unique, name: "section_uniq_program_name"]
+    program_id [type: btree, name: "data_files_section_program_id_ecebb447"]
+  }
+}
+
+
+// tdpservice.parsers app: parser errors and datafile summaries
+
+Table "parser_error" {
+  "id" int4 [pk, not null, increment]
+  "row_number" int4
+  "column_number" varchar(8)
+  "item_number" varchar(8)
+  "field_name" text
+  "case_number" text
+  "rpt_month_year" int4
+  "error_message" text
+  "error_type" text [not null]
+  "created_at" timestamptz [not null]
+  "fields_json" jsonb
+  "content_type_id" int4 [ref: > django_content_type.id]
+  "file_id" int4 [ref: > data_files_datafile.id]
+  "object_id" uuid
+  "deprecated" bool [not null]
+  "values_json" jsonb
+
+  Indexes {
+    content_type_id [type: btree, name: "parser_error_content_type_id_ac0b8fa8"]
+    file_id [type: btree, name: "parser_error_file_id_06a7f326"]
+    (file_id, deprecated) [type: btree, name: "pe_file_deprecated_idx"]
+    (file_id, deprecated, rpt_month_year) [type: btree, name: "pe_file_deprecated_rpt_idx"]
+    (file_id, error_type, deprecated) [type: btree, name: "pe_file_etype_deprecated_idx"]
+  }
+}
+
+Table "parsers_datafilesummary" {
+  "id" int8 [pk, not null, increment]
+  "status" varchar(50) [not null]
+  "case_aggregates" jsonb
+  "datafile_id" int4 [unique, not null, ref: > data_files_datafile.id]
+  "total_number_of_records_created" int4
+  "total_number_of_records_in_file" int4
+  "error_report" varchar(500)
+}
+
+
+// tdpservice.reports app: generated report sources/files
+
+Table "reports_reportsource" {
+  "id" int4 [pk, not null, increment]
+  "original_filename" varchar(256) [not null]
+  "slug" varchar(256) [not null]
+  "extension" varchar(8) [not null]
+  "created_at" timestamptz [not null]
+  "processed_at" timestamptz
+  "status" varchar(16) [not null]
+  "year" int4
+  "num_reports_created" int4 [not null, check: `num_reports_created >= 0`]
+  "error_message" text
+  "file" varchar(100) [not null]
+  "uploaded_by_id" uuid [ref: > users_user.id]
+  "date_extracted_on" date
+  "report_type" varchar(16) [not null]
+
+  Indexes {
+    uploaded_by_id [type: btree, name: "reports_reportsource_uploaded_by_id_a435c76d"]
+  }
+}
+
+Table "reports_reportfile" {
+  "id" int4 [pk, not null, increment]
+  "original_filename" varchar(256) [not null]
+  "slug" varchar(256) [not null]
+  "extension" varchar(8) [not null]
+  "created_at" timestamptz [not null]
+  "year" int4 [not null]
+  "version" int4 [not null]
+  "file" varchar(100)
+  "source_id" int4 [ref: > reports_reportsource.id]
+  "stt_id" int4 [ref: > stts_stt.id]
+  "user_id" uuid [ref: > users_user.id]
+  "date_extracted_on" date
+  "report_type" varchar(16) [not null]
+
+  Indexes {
+    (version, date_extracted_on, year, stt_id, report_type) [type: btree, unique, name: "unique_reports_reportfile_fields_v2"]
+    source_id [type: btree, name: "reports_reportfile_source_id_733f34fa"]
+    stt_id [type: btree, name: "reports_reportfile_stt_id_9234f4ef"]
+    user_id [type: btree, name: "reports_reportfile_user_id_aded9de6"]
+  }
+}
+
+
+// tdpservice.etl app: ETL pipeline runs, QA results, statistical weights
+
+Table "etl_etlpipelinerun" {
+  "id" int8 [pk, not null, increment]
+  "pipeline_key" varchar(128) [not null]
+  "pipeline_version" varchar(32) [not null]
+  "status" varchar(16) [not null]
+  "parameters" jsonb [not null]
+  "output_scope" jsonb [not null]
+  "output_scope_key" varchar(64) [not null]
+  "metadata" jsonb [not null]
+  "trigger_source" varchar(16) [not null]
+  "started_at" timestamptz
+  "finished_at" timestamptz
+  "error_message" text
+  "created_at" timestamptz [not null]
+  "updated_at" timestamptz [not null]
+  "retry_of_id" int8 [ref: > etl_etlpipelinerun.id]
+  "triggered_by_id" uuid [ref: > users_user.id]
+  "final_output_id" int8 [unique, ref: > etl_etlartifact.id]
+
+  Indexes {
+    (pipeline_key, output_scope_key) [type: btree, unique, name: "unique_active_etl_run_scope"]
+    retry_of_id [type: btree, name: "etl_etlpipelinerun_retry_of_id_0cd40509"]
+    triggered_by_id [type: btree, name: "etl_etlpipelinerun_triggered_by_id_83414a31"]
+    created_at [type: btree, name: "etl_run_created_idx"]
+    (pipeline_key, status) [type: btree, name: "etl_run_key_status_idx"]
+    (pipeline_key, output_scope_key) [type: btree, name: "etl_run_scope_key_idx"]
+  }
+}
+
+Table "etl_etlqaresult" {
+  "id" int8 [pk, not null, increment]
+  "check_key" varchar(128) [not null]
+  "status" varchar(16) [not null]
+  "summary" text [not null]
+  "result_payload" jsonb [not null]
+  "blocking" bool [not null]
+  "created_at" timestamptz [not null]
+  "pipeline_run_id" int8 [not null, ref: > etl_etlpipelinerun.id]
+
+  Indexes {
+    pipeline_run_id [type: btree, name: "etl_etlqaresult_pipeline_run_id_bd57c989"]
+    (check_key, status) [type: btree, name: "etl_qa_key_status_idx"]
+  }
+}
+
+Table "etl_etlnoderun" {
+  "id" int8 [pk, not null, increment]
+  "node_key" varchar(128) [not null]
+  "status" varchar(16) [not null]
+  "started_at" timestamptz
+  "finished_at" timestamptz
+  "input_row_count" int4 [check: `input_row_count >= 0`]
+  "output_row_count" int4 [check: `output_row_count >= 0`]
+  "error_message" text
+  "metadata" jsonb [not null]
+  "pipeline_run_id" int8 [not null, ref: > etl_etlpipelinerun.id]
+
+  Indexes {
+    (pipeline_run_id, node_key) [type: btree, unique, name: "unique_etl_node_run_per_pipeline_run"]
+    pipeline_run_id [type: btree, name: "etl_etlnoderun_pipeline_run_id_352daaa0"]
+    (node_key, status) [type: btree, name: "etl_node_key_status_idx"]
+  }
+}
+
+Table "etl_etlartifact" {
+  "id" int8 [pk, not null, increment]
+  "key" varchar(128) [not null]
+  "artifact_role" varchar(16) [not null]
+  "artifact_kind" varchar(16) [not null]
+  "storage_kind" varchar(32) [not null]
+  "reference" varchar(255) [not null]
+  "schema_key" varchar(128) [not null]
+  "schema_version" int4 [not null, check: `schema_version >= 0`]
+  "version" int4 [check: `version >= 0`]
+  "row_count" int4 [not null, check: `row_count >= 0`]
+  "published" bool [not null]
+  "metadata" jsonb [not null]
+  "created_at" timestamptz [not null]
+  "updated_at" timestamptz [not null]
+  "pipeline_run_id" int8 [not null, ref: > etl_etlpipelinerun.id]
+
+  Indexes {
+    (pipeline_run_id, key) [type: btree, unique, name: "unique_etl_artifact_per_run"]
+    key [type: btree, name: "etl_artifact_key_idx"]
+    (key, artifact_role) [type: btree, name: "etl_artifact_key_role_idx"]
+    (artifact_kind, storage_kind) [type: btree, name: "etl_artifact_kind_store_idx"]
+    (artifact_role, published) [type: btree, name: "etl_artifact_role_pub_idx"]
+    pipeline_run_id [type: btree, name: "etl_etlartifact_pipeline_run_id_78e8e766"]
+  }
+}
+
+Table "etl_statisticalweightscasecount" {
+  "id" int8 [pk, not null, increment]
+  "count_kind" varchar(2) [not null]
+  "stt_code" varchar(3) [not null]
+  "reporting_month" int4 [not null, check: `reporting_month >= 0`]
+  "stratum" varchar(2) [not null]
+  "count" int4 [not null, check: `count >= 0`]
+  "pipeline_run_id" int8 [not null, ref: > etl_etlpipelinerun.id]
+
+  Indexes {
+    (pipeline_run_id, count_kind, stt_code, reporting_month, stratum) [type: btree, unique, name: "unique_sw_case_count"]
+    pipeline_run_id [type: btree, name: "etl_statisticalweightscasecount_pipeline_run_id_a9ce3b4a"]
+    (pipeline_run_id, count_kind, reporting_month) [type: btree, name: "sw_case_kind_month_idx"]
+    (pipeline_run_id, count_kind, stt_code, reporting_month) [type: btree, name: "sw_case_kind_pair_idx"]
+  }
+}
+
+Table "etl_statisticalweight" {
+  "id" int8 [pk, not null, increment]
+  "fiscal_year" int4 [not null, check: `fiscal_year >= 0`]
+  "reporting_month" int4 [not null, check: `reporting_month >= 0`]
+  "program" varchar(16) [not null]
+  "section" varchar(16) [not null]
+  "stt_code" varchar(3) [not null]
+  "stratum" varchar(2) [not null]
+  "version" int4 [not null, check: `version >= 0`]
+  "case_count" int4 [not null, check: `case_count >= 0`]
+  "cases" int4 [not null, check: `cases >= 0`]
+  "weight" numeric(12,4) [not null]
+  "published_at" timestamptz [not null]
+  "retention_expires_at" timestamptz
+  "pipeline_run_id" int8 [not null, ref: > etl_etlpipelinerun.id]
+
+  Indexes {
+    (fiscal_year, reporting_month, program, section, stt_code, stratum, version) [type: btree, unique, name: "unique_statistical_weight_version"]
+    pipeline_run_id [type: btree, name: "etl_statisticalweight_pipeline_run_id_fceb730f"]
+    retention_expires_at [type: btree, name: "etl_weight_retention_idx"]
+    (fiscal_year, program, section, version) [type: btree, name: "etl_weight_scope_ver_idx"]
+  }
+}
+
+
+// tdpservice.security app: ClamAV/ZAP scans and security event tokens
+
+Table "security_clamavfilescan" {
+  "id" int8 [pk, not null, increment]
+  "scanned_at" timestamptz [not null]
+  "file_name" text [not null]
+  "file_size" int8 [not null, check: `file_size >= 0`]
+  "file_shasum" text [not null]
+  "result" varchar(12) [not null]
+  "data_file_id" int4 [ref: > data_files_datafile.id]
+  "uploaded_by_id" uuid [ref: > users_user.id]
+
+  Indexes {
+    data_file_id [type: btree, name: "security_clamavfilescan_data_file_id_537e4a13"]
+    uploaded_by_id [type: btree, name: "security_clamavfilescan_uploaded_by_id_96d3eaca"]
+  }
+}
+
+Table "security_owaspzapscan" {
+  "id" int8 [pk, not null, increment]
+  "app_target" varchar(32) [not null]
+  "html_report" varchar(100) [not null]
+  "scanned_at" timestamptz [not null]
+  "fail_count" int2 [not null, check: `fail_count >= 0`]
+  "pass_count" int4 [not null, check: `pass_count >= 0`]
+  "warn_count" int4 [not null, check: `warn_count >= 0`]
+}
+
+Table "security_securityeventtoken" {
+  "id" uuid [pk, not null]
+  "email" varchar(254)
+  "event_type" varchar(255) [not null]
+  "event_data" jsonb [not null]
+  "jwt_id" varchar(255) [unique, not null]
+  "issuer" varchar(255) [not null]
+  "issued_at" timestamptz [not null]
+  "received_at" timestamptz [not null]
+  "processed" bool [not null]
+  "processed_at" timestamptz
+  "user_id" uuid [ref: > users_user.id]
+
+  Indexes {
+    email [type: btree, name: "security_se_email_73d459_idx"]
+    event_type [type: btree, name: "security_se_event_t_078976_idx"]
+    processed [type: btree, name: "security_se_process_63267b_idx"]
+    user_id [type: btree, name: "security_se_user_id_3fc9c6_idx"]
+    jwt_id [type: btree, name: "security_securityeventtoken_jwt_id_f19dbaf2_like"]
+    user_id [type: btree, name: "security_securityeventtoken_user_id_e5fd310c"]
+  }
+}
+
+
+// tdpservice.search_indexes app: parsed TANF/SSP/Tribal record tables
+
+Table "search_indexes_tanf_t1" {
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "DISPOSITION" int4
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "FUNDING_STREAM" int4
+  "NEW_APPLICANT" int4
+  "NBR_FAMILY_MEMBERS" int4
+  "FAMILY_TYPE" int4
+  "RECEIVES_SUB_HOUSING" int4
+  "RECEIVES_MED_ASSISTANCE" int4
+  "RECEIVES_FOOD_STAMPS" int4
+  "AMT_FOOD_STAMP_ASSISTANCE" int4
+  "RECEIVES_SUB_CC" int4
+  "AMT_SUB_CC" int4
+  "CHILD_SUPPORT_AMT" int4
+  "FAMILY_CASH_RESOURCES" int4
+  "CASH_AMOUNT" int4
+  "NBR_MONTHS" int4
+  "CC_AMOUNT" int4
+  "CHILDREN_COVERED" int4
+  "CC_NBR_MONTHS" int4
+  "TRANSP_AMOUNT" int4
+  "TRANSP_NBR_MONTHS" int4
+  "TRANSITION_SERVICES_AMOUNT" int4
+  "TRANSITION_NBR_MONTHS" int4
+  "OTHER_AMOUNT" int4
+  "OTHER_NBR_MONTHS" int4
+  "SANC_REDUCTION_AMT" int4
+  "WORK_REQ_SANCTION" int4
+  "FAMILY_SANC_ADULT" int4
+  "SANC_TEEN_PARENT" int4
+  "NON_COOPERATION_CSE" int4
+  "FAILURE_TO_COMPLY" int4
+  "OTHER_SANCTION" int4
+  "RECOUPMENT_PRIOR_OVRPMT" int4
+  "OTHER_TOTAL_REDUCTIONS" int4
+  "FAMILY_CAP" int4
+  "REDUCTIONS_ON_RECEIPTS" int4
+  "OTHER_NON_SANCTION" int4
+  "WAIVER_EVAL_CONTROL_GRPS" int4
+  "FAMILY_EXEMPT_TIME_LIMITS" int4
+  "FAMILY_NEW_CHILD" int4
+  "id" uuid [pk, not null]
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tanf_t1_datafile_id_885d5ccb"]
+  }
+}
+
+Table "search_indexes_tanf_t2" {
+  "AID_AGED_BLIND" int4
+  "CASE_NUMBER" varchar(11)
+  "CITIZENSHIP_STATUS" int4
+  "COMM_SERVICES_EA" varchar(2)
+  "COMM_SERVICES_HOL" varchar(2)
+  "COMM_SERVICES_HOP" varchar(2)
+  "COOPERATION_CHILD_SUPPORT" int4
+  "CURRENT_MONTH_STATE_EXEMPT" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "DEEMED_HOURS_FOR_OVERALL" varchar(2)
+  "DEEMED_HOURS_FOR_TWO_PARENT" varchar(2)
+  "DISABLED_TITLE_XIVAPDT" int4
+  "EARNED_INCOME" varchar(4)
+  "EDUCATION_LEVEL" varchar(2)
+  "ED_NO_HIGH_SCHOOL_DIPL_EA" varchar(2)
+  "ED_NO_HIGH_SCHOOL_DIPL_HOL" varchar(2)
+  "ED_NO_HIGH_SCHOOL_DIPL_HOP" varchar(2)
+  "EMPLOYMENT_STATUS" int4
+  "FAMILY_AFFILIATION" int4
+  "FED_DISABILITY_STATUS" int4
+  "FED_OASDI_PROGRAM" int4
+  "SEX" int4
+  "JOB_SEARCH_EA" varchar(2)
+  "JOB_SEARCH_HOL" varchar(2)
+  "JOB_SEARCH_HOP" varchar(2)
+  "JOB_SKILLS_TRAINING_EA" varchar(2)
+  "JOB_SKILLS_TRAINING_HOL" varchar(2)
+  "JOB_SKILLS_TRAINING_HOP" varchar(2)
+  "MARITAL_STATUS" int4
+  "MONTHS_FED_TIME_LIMIT" varchar(3)
+  "MONTHS_STATE_TIME_LIMIT" varchar(2)
+  "NEEDS_PREGNANT_WOMAN" int4
+  "NONCUSTODIAL_PARENT" int4
+  "OJT" varchar(2)
+  "OTHER_UNEARNED_INCOME" varchar(4)
+  "OTHER_WORK_ACTIVITIES" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "PROVIDE_CC_EA" varchar(2)
+  "PROVIDE_CC_HOL" varchar(2)
+  "PROVIDE_CC_HOP" varchar(2)
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_HISPANIC" int4
+  "RACE_WHITE" int4
+  "RECEIVE_SSI" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "RPT_MONTH_YEAR" int4
+  "RecordType" varchar(156)
+  "SCHOOL_ATTENDENCE_EA" varchar(2)
+  "SCHOOL_ATTENDENCE_HOL" varchar(2)
+  "SCHOOL_ATTENDENCE_HOP" varchar(2)
+  "SSN" varchar(9)
+  "SUB_PRIVATE_EMPLOYMENT" varchar(2)
+  "SUB_PUBLIC_EMPLOYMENT" varchar(2)
+  "UNEARNED_INCOME_TAX_CREDIT" varchar(4)
+  "UNEARNED_SOCIAL_SECURITY" varchar(4)
+  "UNEARNED_SSI" varchar(4)
+  "UNEARNED_WORKERS_COMP" varchar(4)
+  "UNSUB_EMPLOYMENT" varchar(2)
+  "VOCATIONAL_ED_TRAINING_EA" varchar(2)
+  "VOCATIONAL_ED_TRAINING_HOL" varchar(2)
+  "VOCATIONAL_ED_TRAINING_HOP" varchar(2)
+  "WORK_ELIGIBLE_INDICATOR" varchar(2)
+  "WORK_EXPERIENCE_EA" varchar(2)
+  "WORK_EXPERIENCE_HOL" varchar(2)
+  "WORK_EXPERIENCE_HOP" varchar(2)
+  "WORK_PART_STATUS" varchar(2)
+  "id" uuid [pk, not null]
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tanf_t2_datafile_id_bd8bbf83"]
+  }
+}
+
+Table "search_indexes_tanf_t3" {
+  "CASE_NUMBER" varchar(11)
+  "CITIZENSHIP_STATUS" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "EDUCATION_LEVEL" varchar(2)
+  "FAMILY_AFFILIATION" int4
+  "SEX" int4
+  "OTHER_UNEARNED_INCOME" varchar(4)
+  "PARENT_MINOR_CHILD" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_HISPANIC" int4
+  "RACE_WHITE" int4
+  "RECEIVE_NONSSA_BENEFITS" int4
+  "RECEIVE_SSI" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "RPT_MONTH_YEAR" int4
+  "RecordType" varchar(156)
+  "SSN" varchar(9)
+  "UNEARNED_SSI" varchar(4)
+  "id" uuid [pk, not null]
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tanf_t3_datafile_id_29df7a1a"]
+  }
+}
+
+Table "search_indexes_tanf_t4" {
+  "id" uuid [pk, not null]
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "CASE_NUMBER" varchar(11)
+  "CLOSURE_REASON" varchar(2)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "DISPOSITION" int4
+  "REC_FOOD_STAMPS" int4
+  "REC_MED_ASSIST" int4
+  "REC_SUB_CC" int4
+  "REC_SUB_HOUSING" int4
+  "RPT_MONTH_YEAR" int4
+  "RecordType" varchar(156)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tanf_t4_datafile_id_3d95f7c5"]
+  }
+}
+
+Table "search_indexes_tanf_t5" {
+  "id" uuid [pk, not null]
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "AMOUNT_EARNED_INCOME" varchar(4)
+  "AMOUNT_UNEARNED_INCOME" varchar(4)
+  "CASE_NUMBER" varchar(11)
+  "CITIZENSHIP_STATUS" int4
+  "COUNTABLE_MONTHS_STATE_TRIBE" varchar(2)
+  "COUNTABLE_MONTH_FED_TIME" varchar(3)
+  "DATE_OF_BIRTH" varchar(8)
+  "EDUCATION_LEVEL" varchar(2)
+  "EMPLOYMENT_STATUS" int4
+  "FAMILY_AFFILIATION" int4
+  "SEX" int4
+  "MARITAL_STATUS" int4
+  "NEEDS_OF_PREGNANT_WOMAN" int4
+  "PARENT_MINOR_CHILD" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_HISPANIC" int4
+  "RACE_WHITE" int4
+  "REC_AID_AGED_BLIND" int4
+  "REC_AID_TOTALLY_DISABLED" int4
+  "REC_FEDERAL_DISABILITY" int4
+  "REC_OASDI_INSURANCE" int4
+  "REC_SSI" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "RPT_MONTH_YEAR" int4
+  "RecordType" varchar(156)
+  "SSN" varchar(9)
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tanf_t5_datafile_id_ef64d3e1"]
+  }
+}
+
+Table "search_indexes_tanf_t6" {
+  "id" uuid [pk, not null]
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "ASSISTANCE" int4
+  "CALENDAR_QUARTER" int4
+  "NUM_1_PARENTS" int4
+  "NUM_2_PARENTS" int4
+  "NUM_ADULT_RECIPIENTS" int4
+  "NUM_APPLICATIONS" int4
+  "NUM_APPROVED" int4
+  "NUM_BIRTHS" int4
+  "NUM_CHILD_RECIPIENTS" int4
+  "NUM_CLOSED_CASES" int4
+  "NUM_DENIED" int4
+  "NUM_FAMILIES" int4
+  "NUM_NONCUSTODIALS" int4
+  "NUM_NO_PARENTS" int4
+  "NUM_OUTWEDLOCK_BIRTHS" int4
+  "NUM_RECIPIENTS" int4
+  "RPT_MONTH_YEAR" int4
+  "RecordType" varchar(156)
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tanf_t6_datafile_id_a43c26e7"]
+  }
+}
+
+Table "search_indexes_tanf_t7" {
+  "id" uuid [pk, not null]
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "CALENDAR_QUARTER" int4
+  "FAMILIES_MONTH" int4
+  "RPT_MONTH_YEAR" int4
+  "RecordType" varchar(156)
+  "STRATUM" varchar(2)
+  "TDRS_SECTION_IND" varchar(1)
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tanf_t7_datafile_id_0fd9e0e7"]
+  }
+}
+
+Table "search_indexes_ssp_m1" {
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "DISPOSITION" int4
+  "NBR_FAMILY_MEMBERS" int4
+  "FAMILY_TYPE" int4
+  "TANF_ASST_IN_6MONTHS" int4
+  "RECEIVES_SUB_HOUSING" int4
+  "RECEIVES_MED_ASSISTANCE" int4
+  "RECEIVES_FOOD_STAMPS" int4
+  "AMT_FOOD_STAMP_ASSISTANCE" int4
+  "RECEIVES_SUB_CC" int4
+  "AMT_SUB_CC" int4
+  "CHILD_SUPPORT_AMT" int4
+  "FAMILY_CASH_RESOURCES" int4
+  "CASH_AMOUNT" int4
+  "NBR_MONTHS" int4
+  "CC_AMOUNT" int4
+  "CHILDREN_COVERED" int4
+  "CC_NBR_MONTHS" int4
+  "TRANSP_AMOUNT" int4
+  "TRANSP_NBR_MONTHS" int4
+  "TRANSITION_SERVICES_AMOUNT" int4
+  "TRANSITION_NBR_MONTHS" int4
+  "OTHER_AMOUNT" int4
+  "OTHER_NBR_MONTHS" int4
+  "SANC_REDUCTION_AMT" int4
+  "WORK_REQ_SANCTION" int4
+  "FAMILY_SANC_ADULT" int4
+  "SANC_TEEN_PARENT" int4
+  "NON_COOPERATION_CSE" int4
+  "FAILURE_TO_COMPLY" int4
+  "OTHER_SANCTION" int4
+  "RECOUPMENT_PRIOR_OVRPMT" int4
+  "OTHER_TOTAL_REDUCTIONS" int4
+  "FAMILY_CAP" int4
+  "REDUCTIONS_ON_RECEIPTS" int4
+  "OTHER_NON_SANCTION" int4
+  "WAIVER_EVAL_CONTROL_GRPS" int4
+  "id" uuid [pk, not null]
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_ssp_m1_datafile_id_2a495b39"]
+  }
+}
+
+Table "search_indexes_ssp_m2" {
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(2)
+  "FAMILY_AFFILIATION" int4
+  "NONCUSTODIAL_PARENT" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "FED_OASDI_PROGRAM" int4
+  "FED_DISABILITY_STATUS" int4
+  "DISABLED_TITLE_XIVAPDT" int4
+  "AID_AGED_BLIND" int4
+  "RECEIVE_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" int4
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "COOPERATION_CHILD_SUPPORT" int4
+  "EMPLOYMENT_STATUS" int4
+  "WORK_ELIGIBLE_INDICATOR" int4
+  "WORK_PART_STATUS" int4
+  "UNSUB_EMPLOYMENT" int4
+  "SUB_PRIVATE_EMPLOYMENT" int4
+  "SUB_PUBLIC_EMPLOYMENT" int4
+  "WORK_EXPERIENCE_HOP" int4
+  "WORK_EXPERIENCE_EA" int4
+  "WORK_EXPERIENCE_HOL" int4
+  "OJT" int4
+  "JOB_SEARCH_HOP" int4
+  "JOB_SEARCH_EA" int4
+  "JOB_SEARCH_HOL" int4
+  "COMM_SERVICES_HOP" int4
+  "COMM_SERVICES_EA" int4
+  "COMM_SERVICES_HOL" int4
+  "VOCATIONAL_ED_TRAINING_HOP" int4
+  "VOCATIONAL_ED_TRAINING_EA" int4
+  "VOCATIONAL_ED_TRAINING_HOL" int4
+  "JOB_SKILLS_TRAINING_HOP" int4
+  "JOB_SKILLS_TRAINING_EA" int4
+  "JOB_SKILLS_TRAINING_HOL" int4
+  "ED_NO_HIGH_SCHOOL_DIPL_HOP" int4
+  "ED_NO_HIGH_SCHOOL_DIPL_EA" int4
+  "ED_NO_HIGH_SCHOOL_DIPL_HOL" int4
+  "SCHOOL_ATTENDENCE_HOP" int4
+  "SCHOOL_ATTENDENCE_EA" int4
+  "SCHOOL_ATTENDENCE_HOL" int4
+  "PROVIDE_CC_HOP" int4
+  "PROVIDE_CC_EA" int4
+  "PROVIDE_CC_HOL" int4
+  "OTHER_WORK_ACTIVITIES" int4
+  "DEEMED_HOURS_FOR_OVERALL" int4
+  "DEEMED_HOURS_FOR_TWO_PARENT" int4
+  "EARNED_INCOME" int4
+  "UNEARNED_INCOME_TAX_CREDIT" int4
+  "UNEARNED_SOCIAL_SECURITY" int4
+  "UNEARNED_SSI" int4
+  "UNEARNED_WORKERS_COMP" int4
+  "OTHER_UNEARNED_INCOME" int4
+  "id" uuid [pk, not null]
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_ssp_m2_datafile_id_aa5304dc"]
+  }
+}
+
+Table "search_indexes_ssp_m3" {
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(100)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "RECEIVE_NONSSI_BENEFITS" int4
+  "RECEIVE_SSI" int4
+  "RELATIONSHIP_HOH" int4
+  "PARENT_MINOR_CHILD" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "UNEARNED_SSI" int4
+  "OTHER_UNEARNED_INCOME" int4
+  "id" uuid [pk, not null]
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_ssp_m3_datafile_id_ee18b238"]
+  }
+}
+
+Table "search_indexes_ssp_m6" {
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "SSPMOE_FAMILIES" int4
+  "NUM_2_PARENTS" int4
+  "NUM_1_PARENTS" int4
+  "NUM_NO_PARENTS" int4
+  "NUM_RECIPIENTS" int4
+  "ADULT_RECIPIENTS" int4
+  "CHILD_RECIPIENTS" int4
+  "NONCUSTODIALS" int4
+  "AMT_ASSISTANCE" int4
+  "CLOSED_CASES" int4
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_ssp_m6_datafile_id_e5230e78"]
+  }
+}
+
+Table "search_indexes_ssp_m5" {
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "REC_OASDI_INSURANCE" int4
+  "REC_FEDERAL_DISABILITY" int4
+  "REC_AID_TOTALLY_DISABLED" int4
+  "REC_AID_AGED_BLIND" int4
+  "REC_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_OF_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "EMPLOYMENT_STATUS" int4
+  "AMOUNT_EARNED_INCOME" varchar(4)
+  "AMOUNT_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_ssp_m5_datafile_id_57bc6462"]
+  }
+}
+
+Table "search_indexes_ssp_m4" {
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "DISPOSITION" int4
+  "CLOSURE_REASON" varchar(2)
+  "REC_SUB_HOUSING" int4
+  "REC_MED_ASSIST" int4
+  "REC_FOOD_STAMPS" int4
+  "REC_SUB_CC" int4
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_ssp_m4_datafile_id_e1308a23"]
+  }
+}
+
+Table "search_indexes_ssp_m7" {
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "TDRS_SECTION_IND" varchar(1)
+  "STRATUM" varchar(2)
+  "FAMILIES_MONTH" int4
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_ssp_m7_datafile_id_4f2a7ff7"]
+  }
+}
+
+Table "search_indexes_tribal_tanf_t3" {
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "RECEIVE_NONSSA_BENEFITS" int4
+  "RECEIVE_SSI" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "UNEARNED_SSI" varchar(4)
+  "OTHER_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tribal_tanf_t3_datafile_id_4530dc4f"]
+  }
+}
+
+Table "search_indexes_tribal_tanf_t2" {
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "NONCUSTODIAL_PARENT" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "FED_OASDI_PROGRAM" int4
+  "FED_DISABILITY_STATUS" int4
+  "DISABLED_TITLE_XIVAPDT" int4
+  "AID_AGED_BLIND" int4
+  "RECEIVE_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "COOPERATION_CHILD_SUPPORT" int4
+  "MONTHS_FED_TIME_LIMIT" varchar(3)
+  "MONTHS_STATE_TIME_LIMIT" varchar(2)
+  "CURRENT_MONTH_STATE_EXEMPT" int4
+  "EMPLOYMENT_STATUS" int4
+  "WORK_PART_STATUS" varchar(2)
+  "UNSUB_EMPLOYMENT" varchar(2)
+  "SUB_PRIVATE_EMPLOYMENT" varchar(2)
+  "SUB_PUBLIC_EMPLOYMENT" varchar(2)
+  "WORK_EXPERIENCE" varchar(2)
+  "OJT" varchar(2)
+  "JOB_SEARCH" varchar(2)
+  "COMM_SERVICES" varchar(2)
+  "VOCATIONAL_ED_TRAINING" varchar(2)
+  "JOB_SKILLS_TRAINING" varchar(2)
+  "ED_NO_HIGH_SCHOOL_DIPLOMA" varchar(2)
+  "SCHOOL_ATTENDENCE" varchar(2)
+  "PROVIDE_CC" varchar(2)
+  "ADD_WORK_ACTIVITIES" varchar(2)
+  "OTHER_WORK_ACTIVITIES" varchar(2)
+  "REQ_HRS_WAIVER_DEMO" varchar(2)
+  "EARNED_INCOME" varchar(4)
+  "UNEARNED_INCOME_TAX_CREDIT" varchar(4)
+  "UNEARNED_SOCIAL_SECURITY" varchar(4)
+  "UNEARNED_SSI" varchar(4)
+  "UNEARNED_WORKERS_COMP" varchar(4)
+  "OTHER_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tribal_tanf_t2_datafile_id_abdcf65b"]
+  }
+}
+
+Table "search_indexes_tribal_tanf_t1" {
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "FUNDING_STREAM" int4
+  "DISPOSITION" int4
+  "NEW_APPLICANT" int4
+  "NBR_FAMILY_MEMBERS" int4
+  "FAMILY_TYPE" int4
+  "RECEIVES_SUB_HOUSING" int4
+  "RECEIVES_MED_ASSISTANCE" int4
+  "RECEIVES_FOOD_STAMPS" int4
+  "AMT_FOOD_STAMP_ASSISTANCE" int4
+  "RECEIVES_SUB_CC" int4
+  "AMT_SUB_CC" int4
+  "CHILD_SUPPORT_AMT" int4
+  "FAMILY_CASH_RESOURCES" int4
+  "CASH_AMOUNT" int4
+  "NBR_MONTHS" int4
+  "CC_AMOUNT" int4
+  "CHILDREN_COVERED" int4
+  "CC_NBR_MONTHS" int4
+  "TRANSP_AMOUNT" int4
+  "TRANSP_NBR_MONTHS" int4
+  "TRANSITION_SERVICES_AMOUNT" int4
+  "TRANSITION_NBR_MONTHS" int4
+  "OTHER_AMOUNT" int4
+  "OTHER_NBR_MONTHS" int4
+  "SANC_REDUCTION_AMT" int4
+  "WORK_REQ_SANCTION" int4
+  "FAMILY_SANC_ADULT" int4
+  "SANC_TEEN_PARENT" int4
+  "NON_COOPERATION_CSE" int4
+  "FAILURE_TO_COMPLY" int4
+  "OTHER_SANCTION" int4
+  "RECOUPMENT_PRIOR_OVRPMT" int4
+  "OTHER_TOTAL_REDUCTIONS" int4
+  "FAMILY_CAP" int4
+  "REDUCTIONS_ON_RECEIPTS" int4
+  "OTHER_NON_SANCTION" int4
+  "WAIVER_EVAL_CONTROL_GRPS" int4
+  "FAMILY_EXEMPT_TIME_LIMITS" int4
+  "FAMILY_NEW_CHILD" int4
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tribal_tanf_t1_datafile_id_4b9b8de4"]
+  }
+}
+
+Table "search_indexes_tribal_tanf_t5" {
+  "id" uuid [pk, not null]
+  "RecordType" varchar(71)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "REC_OASDI_INSURANCE" int4
+  "REC_FEDERAL_DISABILITY" int4
+  "REC_AID_TOTALLY_DISABLED" int4
+  "REC_AID_AGED_BLIND" int4
+  "REC_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_OF_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "COUNTABLE_MONTH_FED_TIME" varchar(3)
+  "COUNTABLE_MONTHS_STATE_TRIBE" varchar(2)
+  "EMPLOYMENT_STATUS" int4
+  "AMOUNT_EARNED_INCOME" varchar(4)
+  "AMOUNT_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tribal_tanf_t5_datafile_id_7a104e58"]
+  }
+}
+
+Table "search_indexes_tribal_tanf_t4" {
+  "id" uuid [pk, not null]
+  "RecordType" varchar(71)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "DISPOSITION" int4
+  "CLOSURE_REASON" varchar(2)
+  "REC_SUB_HOUSING" int4
+  "REC_MED_ASSIST" int4
+  "REC_FOOD_STAMPS" int4
+  "REC_SUB_CC" int4
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tribal_tanf_t4_datafile_id_8f00375f"]
+  }
+}
+
+Table "search_indexes_tribal_tanf_t6" {
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "NUM_APPLICATIONS" int4
+  "NUM_APPROVED" int4
+  "NUM_DENIED" int4
+  "ASSISTANCE" int4
+  "NUM_FAMILIES" int4
+  "NUM_2_PARENTS" int4
+  "NUM_1_PARENTS" int4
+  "NUM_NO_PARENTS" int4
+  "NUM_RECIPIENTS" int4
+  "NUM_ADULT_RECIPIENTS" int4
+  "NUM_CHILD_RECIPIENTS" int4
+  "NUM_NONCUSTODIALS" int4
+  "NUM_BIRTHS" int4
+  "NUM_OUTWEDLOCK_BIRTHS" int4
+  "NUM_CLOSED_CASES" int4
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tribal_tanf_t6_datafile_id_6e79afe1"]
+  }
+}
+
+Table "search_indexes_tribal_tanf_t7" {
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "TDRS_SECTION_IND" varchar(1)
+  "STRATUM" varchar(2)
+  "FAMILIES_MONTH" int4
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tribal_tanf_t7_datafile_id_c191b64a"]
+  }
+}
+
+Table "search_indexes_reparsemeta" {
+  "id" int8 [pk, not null, increment]
+  "created_at" timestamptz [not null]
+  "timeout_at" timestamptz
+  "num_records_deleted" int4 [not null, check: `num_records_deleted >= 0`]
+  "total_num_records_initial" int8 [not null, check: `total_num_records_initial >= 0`]
+  "total_num_records_post" int8 [not null, check: `total_num_records_post >= 0`]
+  "db_backup_location" varchar(512) [not null]
+  "fiscal_quarter" varchar(2)
+  "fiscal_year" int4 [check: `fiscal_year >= 0`]
+  "all" bool [not null]
+  "new_indices" bool [not null]
+  "delete_old_indices" bool [not null]
+}
+
+Table "search_indexes_tanf_exiter1" {
+  "id" uuid [pk, not null]
+  "RecordType" varchar(25)
+  "EXIT_DATE" int4
+  "SSN" varchar(9)
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+  "line_number" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_tanf_exiter1_datafile_id_f13a7af5"]
+  }
+}
+
+Table "search_indexes_programaudit_t3" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "CITIZENSHIP_STATUS" int4
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_programaudit_t3_datafile_id_59278999"]
+  }
+}
+
+Table "search_indexes_programaudit_t2" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "CITIZENSHIP_STATUS" int4
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_programaudit_t2_datafile_id_dff2ba46"]
+  }
+}
+
+Table "search_indexes_programaudit_t1" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FUNDING_STREAM" int4
+  "CASH_AMOUNT" int4
+  "datafile_id" int4 [ref: > data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "search_indexes_programaudit_t1_datafile_id_8bba03f5"]
+  }
+}
+
+
+// Shadow tables used for reparse verification (mirrors of live parsed data)
+
+Table "shadow_data_files_datafile" {
+  "id" int4 [pk, not null, increment]
+  "original_filename" varchar(256) [not null]
+  "slug" varchar(256) [not null]
+  "extension" varchar(8) [not null]
+  "created_at" timestamptz [not null]
+  "quarter" varchar(16) [not null]
+  "year" int4 [not null]
+  "program_type" varchar(32) [not null]
+  "section" varchar(32) [not null]
+  "is_program_audit" bool [not null]
+  "version" int4 [not null]
+  "state" varchar(32) [not null]
+  "file" varchar(100)
+  "s3_versioning_id" varchar(1024)
+  "stt_id" int4 [not null, ref: > stts_stt.id]
+  "user_id" uuid [not null, ref: > users_user.id]
+
+  Indexes {
+    stt_id [type: btree, name: "shadow_data_files_datafile_stt_id_f1017e85"]
+    user_id [type: btree, name: "shadow_data_files_datafile_user_id_779fad1b"]
+  }
+}
+
+Table "shadow_parsers_datafilesummary" {
+  "id" int8 [pk, not null, increment]
+  "status" varchar(50) [not null]
+  "error_report" varchar(500)
+  "case_aggregates" jsonb
+  "total_number_of_records_in_file" int4
+  "total_number_of_records_created" int4
+  "datafile_id" int4 [unique, not null, ref: > shadow_data_files_datafile.id]
+}
+
+Table "shadow_parser_error" {
+  "id" int4 [pk, not null, increment]
+  "row_number" int4
+  "column_number" varchar(8)
+  "item_number" varchar(8)
+  "field_name" text
+  "rpt_month_year" int4
+  "case_number" text
+  "error_message" text
+  "error_type" text [not null]
+  "object_id" uuid
+  "created_at" timestamptz [not null]
+  "fields_json" jsonb
+  "values_json" jsonb
+  "deprecated" bool [not null]
+  "content_type_id" int4 [ref: > django_content_type.id]
+  "file_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    content_type_id [type: btree, name: "shadow_parser_error_content_type_id_ee93f7fe"]
+    file_id [type: btree, name: "shadow_parser_error_file_id_104a0040"]
+  }
+}
+
+Table "shadow_search_indexes_programaudit_t1" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FUNDING_STREAM" int4
+  "CASH_AMOUNT" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_programaudit_t1_datafile_id_1ccb0ba5"]
+  }
+}
+
+Table "shadow_search_indexes_programaudit_t2" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "CITIZENSHIP_STATUS" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_programaudit_t2_datafile_id_3de46635"]
+  }
+}
+
+Table "shadow_search_indexes_programaudit_t3" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "CITIZENSHIP_STATUS" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_programaudit_t3_datafile_id_324498f4"]
+  }
+}
+
+Table "shadow_search_indexes_ssp_m1" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "DISPOSITION" int4
+  "NBR_FAMILY_MEMBERS" int4
+  "FAMILY_TYPE" int4
+  "TANF_ASST_IN_6MONTHS" int4
+  "RECEIVES_SUB_HOUSING" int4
+  "RECEIVES_MED_ASSISTANCE" int4
+  "RECEIVES_FOOD_STAMPS" int4
+  "AMT_FOOD_STAMP_ASSISTANCE" int4
+  "RECEIVES_SUB_CC" int4
+  "AMT_SUB_CC" int4
+  "CHILD_SUPPORT_AMT" int4
+  "FAMILY_CASH_RESOURCES" int4
+  "CASH_AMOUNT" int4
+  "NBR_MONTHS" int4
+  "CC_AMOUNT" int4
+  "CHILDREN_COVERED" int4
+  "CC_NBR_MONTHS" int4
+  "TRANSP_AMOUNT" int4
+  "TRANSP_NBR_MONTHS" int4
+  "TRANSITION_SERVICES_AMOUNT" int4
+  "TRANSITION_NBR_MONTHS" int4
+  "OTHER_AMOUNT" int4
+  "OTHER_NBR_MONTHS" int4
+  "SANC_REDUCTION_AMT" int4
+  "WORK_REQ_SANCTION" int4
+  "FAMILY_SANC_ADULT" int4
+  "SANC_TEEN_PARENT" int4
+  "NON_COOPERATION_CSE" int4
+  "FAILURE_TO_COMPLY" int4
+  "OTHER_SANCTION" int4
+  "RECOUPMENT_PRIOR_OVRPMT" int4
+  "OTHER_TOTAL_REDUCTIONS" int4
+  "FAMILY_CAP" int4
+  "REDUCTIONS_ON_RECEIPTS" int4
+  "OTHER_NON_SANCTION" int4
+  "WAIVER_EVAL_CONTROL_GRPS" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_ssp_m1_datafile_id_ed063b0f"]
+  }
+}
+
+Table "shadow_search_indexes_ssp_m2" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(2)
+  "FAMILY_AFFILIATION" int4
+  "NONCUSTODIAL_PARENT" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "FED_OASDI_PROGRAM" int4
+  "FED_DISABILITY_STATUS" int4
+  "DISABLED_TITLE_XIVAPDT" int4
+  "AID_AGED_BLIND" int4
+  "RECEIVE_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" int4
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "COOPERATION_CHILD_SUPPORT" int4
+  "EMPLOYMENT_STATUS" int4
+  "WORK_ELIGIBLE_INDICATOR" int4
+  "WORK_PART_STATUS" int4
+  "UNSUB_EMPLOYMENT" int4
+  "SUB_PRIVATE_EMPLOYMENT" int4
+  "SUB_PUBLIC_EMPLOYMENT" int4
+  "WORK_EXPERIENCE_HOP" int4
+  "WORK_EXPERIENCE_EA" int4
+  "WORK_EXPERIENCE_HOL" int4
+  "OJT" int4
+  "JOB_SEARCH_HOP" int4
+  "JOB_SEARCH_EA" int4
+  "JOB_SEARCH_HOL" int4
+  "COMM_SERVICES_HOP" int4
+  "COMM_SERVICES_EA" int4
+  "COMM_SERVICES_HOL" int4
+  "VOCATIONAL_ED_TRAINING_HOP" int4
+  "VOCATIONAL_ED_TRAINING_EA" int4
+  "VOCATIONAL_ED_TRAINING_HOL" int4
+  "JOB_SKILLS_TRAINING_HOP" int4
+  "JOB_SKILLS_TRAINING_EA" int4
+  "JOB_SKILLS_TRAINING_HOL" int4
+  "ED_NO_HIGH_SCHOOL_DIPL_HOP" int4
+  "ED_NO_HIGH_SCHOOL_DIPL_EA" int4
+  "ED_NO_HIGH_SCHOOL_DIPL_HOL" int4
+  "SCHOOL_ATTENDENCE_HOP" int4
+  "SCHOOL_ATTENDENCE_EA" int4
+  "SCHOOL_ATTENDENCE_HOL" int4
+  "PROVIDE_CC_HOP" int4
+  "PROVIDE_CC_EA" int4
+  "PROVIDE_CC_HOL" int4
+  "OTHER_WORK_ACTIVITIES" int4
+  "DEEMED_HOURS_FOR_OVERALL" int4
+  "DEEMED_HOURS_FOR_TWO_PARENT" int4
+  "EARNED_INCOME" int4
+  "UNEARNED_INCOME_TAX_CREDIT" int4
+  "UNEARNED_SOCIAL_SECURITY" int4
+  "UNEARNED_SSI" int4
+  "UNEARNED_WORKERS_COMP" int4
+  "OTHER_UNEARNED_INCOME" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_ssp_m2_datafile_id_54bd19a5"]
+  }
+}
+
+Table "shadow_search_indexes_ssp_m3" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(100)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "RECEIVE_NONSSI_BENEFITS" int4
+  "RECEIVE_SSI" int4
+  "RELATIONSHIP_HOH" int4
+  "PARENT_MINOR_CHILD" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "UNEARNED_SSI" int4
+  "OTHER_UNEARNED_INCOME" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_ssp_m3_datafile_id_3907c438"]
+  }
+}
+
+Table "shadow_search_indexes_ssp_m4" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "DISPOSITION" int4
+  "CLOSURE_REASON" varchar(2)
+  "REC_SUB_HOUSING" int4
+  "REC_MED_ASSIST" int4
+  "REC_FOOD_STAMPS" int4
+  "REC_SUB_CC" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_ssp_m4_datafile_id_95858579"]
+  }
+}
+
+Table "shadow_search_indexes_ssp_m5" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "REC_OASDI_INSURANCE" int4
+  "REC_FEDERAL_DISABILITY" int4
+  "REC_AID_TOTALLY_DISABLED" int4
+  "REC_AID_AGED_BLIND" int4
+  "REC_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_OF_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "EMPLOYMENT_STATUS" int4
+  "AMOUNT_EARNED_INCOME" varchar(4)
+  "AMOUNT_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_ssp_m5_datafile_id_b074facf"]
+  }
+}
+
+Table "shadow_search_indexes_ssp_m6" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "SSPMOE_FAMILIES" int4
+  "NUM_2_PARENTS" int4
+  "NUM_1_PARENTS" int4
+  "NUM_NO_PARENTS" int4
+  "NUM_RECIPIENTS" int4
+  "ADULT_RECIPIENTS" int4
+  "CHILD_RECIPIENTS" int4
+  "NONCUSTODIALS" int4
+  "AMT_ASSISTANCE" int4
+  "CLOSED_CASES" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_ssp_m6_datafile_id_95827bab"]
+  }
+}
+
+Table "shadow_search_indexes_ssp_m7" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "TDRS_SECTION_IND" varchar(1)
+  "STRATUM" varchar(2)
+  "FAMILIES_MONTH" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_ssp_m7_datafile_id_3f98c6c6"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_exiter1" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(25)
+  "EXIT_DATE" int4
+  "SSN" varchar(9)
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_exiter1_datafile_id_a5b719d7"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_t1" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "FUNDING_STREAM" int4
+  "DISPOSITION" int4
+  "NEW_APPLICANT" int4
+  "NBR_FAMILY_MEMBERS" int4
+  "FAMILY_TYPE" int4
+  "RECEIVES_SUB_HOUSING" int4
+  "RECEIVES_MED_ASSISTANCE" int4
+  "RECEIVES_FOOD_STAMPS" int4
+  "AMT_FOOD_STAMP_ASSISTANCE" int4
+  "RECEIVES_SUB_CC" int4
+  "AMT_SUB_CC" int4
+  "CHILD_SUPPORT_AMT" int4
+  "FAMILY_CASH_RESOURCES" int4
+  "CASH_AMOUNT" int4
+  "NBR_MONTHS" int4
+  "CC_AMOUNT" int4
+  "CHILDREN_COVERED" int4
+  "CC_NBR_MONTHS" int4
+  "TRANSP_AMOUNT" int4
+  "TRANSP_NBR_MONTHS" int4
+  "TRANSITION_SERVICES_AMOUNT" int4
+  "TRANSITION_NBR_MONTHS" int4
+  "OTHER_AMOUNT" int4
+  "OTHER_NBR_MONTHS" int4
+  "SANC_REDUCTION_AMT" int4
+  "WORK_REQ_SANCTION" int4
+  "FAMILY_SANC_ADULT" int4
+  "SANC_TEEN_PARENT" int4
+  "NON_COOPERATION_CSE" int4
+  "FAILURE_TO_COMPLY" int4
+  "OTHER_SANCTION" int4
+  "RECOUPMENT_PRIOR_OVRPMT" int4
+  "OTHER_TOTAL_REDUCTIONS" int4
+  "FAMILY_CAP" int4
+  "REDUCTIONS_ON_RECEIPTS" int4
+  "OTHER_NON_SANCTION" int4
+  "WAIVER_EVAL_CONTROL_GRPS" int4
+  "FAMILY_EXEMPT_TIME_LIMITS" int4
+  "FAMILY_NEW_CHILD" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_t1_datafile_id_5f1c61ad"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_t2" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "NONCUSTODIAL_PARENT" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "FED_OASDI_PROGRAM" int4
+  "FED_DISABILITY_STATUS" int4
+  "DISABLED_TITLE_XIVAPDT" int4
+  "AID_AGED_BLIND" int4
+  "RECEIVE_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "COOPERATION_CHILD_SUPPORT" int4
+  "MONTHS_FED_TIME_LIMIT" varchar(3)
+  "MONTHS_STATE_TIME_LIMIT" varchar(2)
+  "CURRENT_MONTH_STATE_EXEMPT" int4
+  "EMPLOYMENT_STATUS" int4
+  "WORK_ELIGIBLE_INDICATOR" varchar(2)
+  "WORK_PART_STATUS" varchar(2)
+  "UNSUB_EMPLOYMENT" varchar(2)
+  "SUB_PRIVATE_EMPLOYMENT" varchar(2)
+  "SUB_PUBLIC_EMPLOYMENT" varchar(2)
+  "WORK_EXPERIENCE_HOP" varchar(2)
+  "WORK_EXPERIENCE_EA" varchar(2)
+  "WORK_EXPERIENCE_HOL" varchar(2)
+  "OJT" varchar(2)
+  "JOB_SEARCH_HOP" varchar(2)
+  "JOB_SEARCH_EA" varchar(2)
+  "JOB_SEARCH_HOL" varchar(2)
+  "COMM_SERVICES_HOP" varchar(2)
+  "COMM_SERVICES_EA" varchar(2)
+  "COMM_SERVICES_HOL" varchar(2)
+  "VOCATIONAL_ED_TRAINING_HOP" varchar(2)
+  "VOCATIONAL_ED_TRAINING_EA" varchar(2)
+  "VOCATIONAL_ED_TRAINING_HOL" varchar(2)
+  "JOB_SKILLS_TRAINING_HOP" varchar(2)
+  "JOB_SKILLS_TRAINING_EA" varchar(2)
+  "JOB_SKILLS_TRAINING_HOL" varchar(2)
+  "ED_NO_HIGH_SCHOOL_DIPL_HOP" varchar(2)
+  "ED_NO_HIGH_SCHOOL_DIPL_EA" varchar(2)
+  "ED_NO_HIGH_SCHOOL_DIPL_HOL" varchar(2)
+  "SCHOOL_ATTENDENCE_HOP" varchar(2)
+  "SCHOOL_ATTENDENCE_EA" varchar(2)
+  "SCHOOL_ATTENDENCE_HOL" varchar(2)
+  "PROVIDE_CC_HOP" varchar(2)
+  "PROVIDE_CC_EA" varchar(2)
+  "PROVIDE_CC_HOL" varchar(2)
+  "OTHER_WORK_ACTIVITIES" varchar(2)
+  "DEEMED_HOURS_FOR_OVERALL" varchar(2)
+  "DEEMED_HOURS_FOR_TWO_PARENT" varchar(2)
+  "EARNED_INCOME" varchar(4)
+  "UNEARNED_INCOME_TAX_CREDIT" varchar(4)
+  "UNEARNED_SOCIAL_SECURITY" varchar(4)
+  "UNEARNED_SSI" varchar(4)
+  "UNEARNED_WORKERS_COMP" varchar(4)
+  "OTHER_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_t2_datafile_id_16303f72"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_t3" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "RECEIVE_NONSSA_BENEFITS" int4
+  "RECEIVE_SSI" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "UNEARNED_SSI" varchar(4)
+  "OTHER_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_t3_datafile_id_afc409d2"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_t4" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "DISPOSITION" int4
+  "CLOSURE_REASON" varchar(2)
+  "REC_SUB_HOUSING" int4
+  "REC_MED_ASSIST" int4
+  "REC_FOOD_STAMPS" int4
+  "REC_SUB_CC" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_t4_datafile_id_607d06fc"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_t5" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "REC_OASDI_INSURANCE" int4
+  "REC_FEDERAL_DISABILITY" int4
+  "REC_AID_TOTALLY_DISABLED" int4
+  "REC_AID_AGED_BLIND" int4
+  "REC_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_OF_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "COUNTABLE_MONTH_FED_TIME" varchar(3)
+  "COUNTABLE_MONTHS_STATE_TRIBE" varchar(2)
+  "EMPLOYMENT_STATUS" int4
+  "AMOUNT_EARNED_INCOME" varchar(4)
+  "AMOUNT_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_t5_datafile_id_9bf7fe04"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_t6" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "NUM_APPLICATIONS" int4
+  "NUM_APPROVED" int4
+  "NUM_DENIED" int4
+  "ASSISTANCE" int4
+  "NUM_FAMILIES" int4
+  "NUM_2_PARENTS" int4
+  "NUM_1_PARENTS" int4
+  "NUM_NO_PARENTS" int4
+  "NUM_RECIPIENTS" int4
+  "NUM_ADULT_RECIPIENTS" int4
+  "NUM_CHILD_RECIPIENTS" int4
+  "NUM_NONCUSTODIALS" int4
+  "NUM_BIRTHS" int4
+  "NUM_OUTWEDLOCK_BIRTHS" int4
+  "NUM_CLOSED_CASES" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_t6_datafile_id_6948ef97"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_t7" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "TDRS_SECTION_IND" varchar(1)
+  "STRATUM" varchar(2)
+  "FAMILIES_MONTH" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_t7_datafile_id_c7c05c42"]
+  }
+}
+
+Table "shadow_search_indexes_tribal_tanf_t1" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "FUNDING_STREAM" int4
+  "DISPOSITION" int4
+  "NEW_APPLICANT" int4
+  "NBR_FAMILY_MEMBERS" int4
+  "FAMILY_TYPE" int4
+  "RECEIVES_SUB_HOUSING" int4
+  "RECEIVES_MED_ASSISTANCE" int4
+  "RECEIVES_FOOD_STAMPS" int4
+  "AMT_FOOD_STAMP_ASSISTANCE" int4
+  "RECEIVES_SUB_CC" int4
+  "AMT_SUB_CC" int4
+  "CHILD_SUPPORT_AMT" int4
+  "FAMILY_CASH_RESOURCES" int4
+  "CASH_AMOUNT" int4
+  "NBR_MONTHS" int4
+  "CC_AMOUNT" int4
+  "CHILDREN_COVERED" int4
+  "CC_NBR_MONTHS" int4
+  "TRANSP_AMOUNT" int4
+  "TRANSP_NBR_MONTHS" int4
+  "TRANSITION_SERVICES_AMOUNT" int4
+  "TRANSITION_NBR_MONTHS" int4
+  "OTHER_AMOUNT" int4
+  "OTHER_NBR_MONTHS" int4
+  "SANC_REDUCTION_AMT" int4
+  "WORK_REQ_SANCTION" int4
+  "FAMILY_SANC_ADULT" int4
+  "SANC_TEEN_PARENT" int4
+  "NON_COOPERATION_CSE" int4
+  "FAILURE_TO_COMPLY" int4
+  "OTHER_SANCTION" int4
+  "RECOUPMENT_PRIOR_OVRPMT" int4
+  "OTHER_TOTAL_REDUCTIONS" int4
+  "FAMILY_CAP" int4
+  "REDUCTIONS_ON_RECEIPTS" int4
+  "OTHER_NON_SANCTION" int4
+  "WAIVER_EVAL_CONTROL_GRPS" int4
+  "FAMILY_EXEMPT_TIME_LIMITS" int4
+  "FAMILY_NEW_CHILD" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t1_datafile_id_a4a638c3"]
+  }
+}
+
+Table "shadow_search_indexes_tribal_tanf_t2" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "NONCUSTODIAL_PARENT" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "FED_OASDI_PROGRAM" int4
+  "FED_DISABILITY_STATUS" int4
+  "DISABLED_TITLE_XIVAPDT" int4
+  "AID_AGED_BLIND" int4
+  "RECEIVE_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "COOPERATION_CHILD_SUPPORT" int4
+  "MONTHS_FED_TIME_LIMIT" varchar(3)
+  "MONTHS_STATE_TIME_LIMIT" varchar(2)
+  "CURRENT_MONTH_STATE_EXEMPT" int4
+  "EMPLOYMENT_STATUS" int4
+  "WORK_PART_STATUS" varchar(2)
+  "UNSUB_EMPLOYMENT" varchar(2)
+  "SUB_PRIVATE_EMPLOYMENT" varchar(2)
+  "SUB_PUBLIC_EMPLOYMENT" varchar(2)
+  "WORK_EXPERIENCE" varchar(2)
+  "OJT" varchar(2)
+  "JOB_SEARCH" varchar(2)
+  "COMM_SERVICES" varchar(2)
+  "VOCATIONAL_ED_TRAINING" varchar(2)
+  "JOB_SKILLS_TRAINING" varchar(2)
+  "ED_NO_HIGH_SCHOOL_DIPLOMA" varchar(2)
+  "SCHOOL_ATTENDENCE" varchar(2)
+  "PROVIDE_CC" varchar(2)
+  "ADD_WORK_ACTIVITIES" varchar(2)
+  "OTHER_WORK_ACTIVITIES" varchar(2)
+  "REQ_HRS_WAIVER_DEMO" varchar(2)
+  "EARNED_INCOME" varchar(4)
+  "UNEARNED_INCOME_TAX_CREDIT" varchar(4)
+  "UNEARNED_SOCIAL_SECURITY" varchar(4)
+  "UNEARNED_SSI" varchar(4)
+  "UNEARNED_WORKERS_COMP" varchar(4)
+  "OTHER_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t2_datafile_id_3576a00a"]
+  }
+}
+
+Table "shadow_search_indexes_tribal_tanf_t3" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "RECEIVE_NONSSA_BENEFITS" int4
+  "RECEIVE_SSI" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "UNEARNED_SSI" varchar(4)
+  "OTHER_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t3_datafile_id_aeb8c53d"]
+  }
+}
+
+Table "shadow_search_indexes_tribal_tanf_t4" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(71)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "DISPOSITION" int4
+  "CLOSURE_REASON" varchar(2)
+  "REC_SUB_HOUSING" int4
+  "REC_MED_ASSIST" int4
+  "REC_FOOD_STAMPS" int4
+  "REC_SUB_CC" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t4_datafile_id_8100aae3"]
+  }
+}
+
+Table "shadow_search_indexes_tribal_tanf_t5" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(71)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "REC_OASDI_INSURANCE" int4
+  "REC_FEDERAL_DISABILITY" int4
+  "REC_AID_TOTALLY_DISABLED" int4
+  "REC_AID_AGED_BLIND" int4
+  "REC_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_OF_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "COUNTABLE_MONTH_FED_TIME" varchar(3)
+  "COUNTABLE_MONTHS_STATE_TRIBE" varchar(2)
+  "EMPLOYMENT_STATUS" int4
+  "AMOUNT_EARNED_INCOME" varchar(4)
+  "AMOUNT_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t5_datafile_id_05c11aa4"]
+  }
+}
+
+Table "shadow_search_indexes_tribal_tanf_t6" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "NUM_APPLICATIONS" int4
+  "NUM_APPROVED" int4
+  "NUM_DENIED" int4
+  "ASSISTANCE" int4
+  "NUM_FAMILIES" int4
+  "NUM_2_PARENTS" int4
+  "NUM_1_PARENTS" int4
+  "NUM_NO_PARENTS" int4
+  "NUM_RECIPIENTS" int4
+  "NUM_ADULT_RECIPIENTS" int4
+  "NUM_CHILD_RECIPIENTS" int4
+  "NUM_NONCUSTODIALS" int4
+  "NUM_BIRTHS" int4
+  "NUM_OUTWEDLOCK_BIRTHS" int4
+  "NUM_CLOSED_CASES" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t6_datafile_id_a88363d3"]
+  }
+}
+
+Table "shadow_search_indexes_tribal_tanf_t7" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "TDRS_SECTION_IND" varchar(1)
+  "STRATUM" varchar(2)
+  "FAMILIES_MONTH" int4
+  "datafile_id" int4 [ref: > shadow_data_files_datafile.id]
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t7_datafile_id_58ac9b36"]
+  }
+}
+

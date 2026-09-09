@@ -17,7 +17,7 @@ Table "data_files_datafile" {
   "program_type" varchar(32) [not null]
   "is_program_audit" bool [not null]
   "state" varchar(32) [not null]
-  "section_ref_id" int4
+  "section_ref_id" int4 [ref: > data_files_section.id]
 
   Indexes {
     (program_type, section, version, quarter, year, stt_id, is_program_audit) [type: btree, unique, name: "constraint_name"]
@@ -34,7 +34,7 @@ Table "data_files_legacyfiletransfer" {
   "file_size" int8 [not null, check: `file_size >= 0`]
   "file_shasum" text [not null]
   "result" varchar(12) [not null]
-  "data_file_id" int4
+  "data_file_id" int4 [ref: > data_files_datafile.id]
   "uploaded_by_id" uuid
 
   Indexes {
@@ -51,7 +51,7 @@ Table "data_files_reparsefilemeta" {
   "finished_at" timestamptz
   "num_records_created" int4 [not null, check: `num_records_created >= 0`]
   "cat_4_errors_generated" int4 [not null, check: `cat_4_errors_generated >= 0`]
-  "data_file_id" int4 [not null]
+  "data_file_id" int4 [not null, ref: > data_files_datafile.id]
   "reparse_meta_id" int8 [not null]
   "previous_summary_status" varchar(50)
 
@@ -77,7 +77,7 @@ Table "data_files_program" {
 Table "data_files_section" {
   "id" int4 [pk, not null, increment]
   "name" varchar(100) [not null]
-  "program_id" int4 [not null]
+  "program_id" int4 [not null, ref: > data_files_program.id]
 
   Indexes {
     (program_id, name) [type: btree, unique, name: "section_uniq_program_name"]
