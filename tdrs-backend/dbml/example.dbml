@@ -1,0 +1,184 @@
+
+Project easybutton {
+  database_type: 'postgresql'
+  Note: 'Spreadsheet shenanigans'
+}
+
+Table users.user [note: 'Users Table'] {
+  id uuid [pk, note: 'User ID']
+  name varchar [note: 'User Name']
+  email varchar [unique, not null, note: 'User Email']
+  enabled boolean [not null, default: true, note: 'User Enabled']
+  account_non_expired boolean [not null, default: true, note: 'User Account Non Expired']
+  account_non_locked boolean [not null, default: true, note: 'User Account Non Locked']
+  credentials_non_expired boolean [not null, default: true, note: 'User Credentials Non Expired']
+  last_login timestamp [note: 'User Last Login']
+  created timestamp [not null, default: `now()`, note: 'User Created At']
+  created_by uuid [not null, ref: > users.user.id, note: 'User Created By']
+  modified timestamp [not null, default: `now()`, note: 'User Modified At']
+  modified_by uuid [not null, ref: > users.user.id, note: 'User Modified By']
+
+  indexes {
+    id [name: "idx_user_user_id", type: "btree"]
+    name [name: "idx_user_user_name", type: "btree"]
+    email [name: "idx_user_user_email", type: "btree"]
+    enabled [name: "idx_user_user_enabled", type: "btree"]
+    account_non_expired [name: "idx_user_user_accountNonExpired", type: "btree"]
+    account_non_locked [name: "idx_user_user_accountNonLocked", type: "btree"]
+    credentials_non_expired [name: "idx_user_user_credentialsNonExpired", type: "btree"]
+    last_login [name: "idx_user_user_last_login", type: "btree"]
+    created [name: "idx_user_user_created", type: "btree"]
+    created_by [name: "idx_user_user_created_by", type: "btree"]
+    modified [name: "idx_user_user_modified", type: "btree"]
+    modified_by [name: "idx_user_user_modified_by", type: "btree"]
+  }
+
+  records (id, name, email, enabled, account_non_expired, account_non_locked, credentials_non_expired, last_login, created, created_by, modified, modified_by) {
+    '42924369-77c0-4c34-918a-a534aaad8932', 'Super Admin', 'super_admin@easybutton.org', true, true, true, true, '2022-01-01', '2022-01-01', '42924369-77c0-4c34-918a-a534aaad8932', '2022-01-01', '42924369-77c0-4c34-918a-a534aaad8932'
+    '019fb9e5-8c6e-702a-8eda-3019a1f089e5', 'Admin', 'admin@easybutton.org', true, true, true, true, '2022-01-01', '2022-01-01', '42924369-77c0-4c34-918a-a534aaad8932', '2022-01-01', '42924369-77c0-4c34-918a-a534aaad8932'
+    'e1107024-d6f2-4e03-a328-d9a7c45d1d7b', 'User', 'user@easybutton.org', true, true, true, true, '2022-01-01', '2022-01-01', '42924369-77c0-4c34-918a-a534aaad8932', '2022-01-01', '42924369-77c0-4c34-918a-a534aaad8932'
+  }
+}
+
+Table users.role [note: 'Roles Table'] {
+  id uuid [pk, note: 'Role ID']
+  name varchar [unique, not null, note: 'Role Name']
+  display_name varchar [unique, not null, note: 'Role Display Name']
+  description text [note: 'Role Description']
+  created timestamp [not null, default: `now()`, note: 'Role Created At']
+  created_by uuid [not null, ref: > users.user.id, note: 'Role Created By']
+  modified timestamp [not null, default: `now()`, note: 'Role Modified At']
+  modified_by uuid [not null, ref: > users.user.id, note: 'Role Modified By']
+
+  indexes {
+    id [name: "idx_user_role_id", type: "btree"]
+    name [name: "idx_user_role_name", type: "btree"]
+    display_name [name: "idx_user_role_display_name", type: "btree"]
+    description [name: "idx_user_role_description", type: "btree"]
+    created [name: "idx_user_role_created", type: "btree"]
+    created_by [name: "idx_user_role_created_by", type: "btree"]
+    modified [name: "idx_user_role_modified", type: "btree"]
+    modified_by [name: "idx_user_role_modified_by", type: "btree"]
+  }
+
+  records (id, name, display_name, description, created, created_by, modified, modified_by) {
+    'd9b3e25a-7bfa-41b7-ae39-416a008f9d27', 'super_admin', 'Super Admin', 'Super Admin Role that can do everything', '2022-01-01', '42924369-77c0-4c34-918a-a534aaad8932', '2022-01-01', '42924369-77c0-4c34-918a-a534aaad8932'
+    'daa16730-5e80-418b-bdc3-74bd23cb8eee', 'admin', 'Admin', 'Admin Role that can do everything except what is special to Super Admin', '2022-01-01', '42924369-77c0-4c34-918a-a534aaad8932', '2022-01-01', '42924369-77c0-4c34-918a-a534aaad8932'
+    '967cbbe4-cc1c-4a19-95eb-cbb7a55273ff', 'user', 'User', 'Basic User Role that can do basic stuff', '2022-01-01', '42924369-77c0-4c34-918a-a534aaad8932', '2022-01-01', '42924369-77c0-4c34-918a-a534aaad8932'
+  }
+}
+
+Table users.permission [note: 'Permissions Table'] {
+  id uuid [pk, note: 'Permission ID']
+  name varchar [unique, not null, note: 'Permission Name']
+  display_name varchar [unique, not null, note: 'Permission Display Name']
+  description text [note: 'Permission Description']
+
+  indexes {
+    id [name: "idx_user_permission_id", type: "btree"]
+    name [name: "idx_user_permission_name", type: "btree"]
+    display_name [name: "idx_user_permission_display_name", type: "btree"]
+    description [name: "idx_user_permission_description", type: "btree"]
+  }
+
+  records (id, name, display_name, description) {
+    '254b6ce9-c798-4964-8a9b-c99d46feaf3d', 'user_read', 'User Read', 'Permission to read a user'
+    '4e7f9da3-5e49-4885-9cff-5f5d8d2d315b', 'user_create', 'User Create', 'Permission to create a user'
+    '1ff5cfaf-38ad-46bd-966b-680e413e09cf', 'user_update', 'User Update', 'Permission to update a user'
+    '50bfc1be-096a-4bf7-b9df-9fa67426e412', 'user_delete', 'User Delete', 'Permission to delete a user'
+    'e48e4211-e793-4483-ad9a-546f268802fe', 'role_read', 'Role Read', 'Permission to read a role'
+    '3962f41c-0f9a-4042-aa73-13d9da0fdb8b', 'role_create', 'Role Create', 'Permission to create a role'
+    '17789261-91ee-4177-963d-fa18d4c0106b', 'role_update', 'Role Update', 'Permission to update a role'
+    'eaaf14b1-e6e7-4f51-afc9-05aeef0f85c3', 'role_delete', 'Role Delete', 'Permission to delete a role'
+    '667a280c-0ca1-452a-b135-8e69565417ef', 'permission_read', 'Permission Read', 'Permission to read a permission'
+    '480b7872-b57a-4315-afb8-12e0ffa64e98', 'permission_create', 'Permission Create', 'Permission to create a permission'
+    'a72f4bb4-6609-4326-a4d7-621e43648f45', 'permission_update', 'Permission Update', 'Permission to update a permission'
+    '659a4335-7464-43ba-a8ba-fc85c82d38aa', 'permission_delete', 'Permission Delete', 'Permission to delete a permission'
+  }
+}
+
+Table users.user_role [note: 'User Role Association Table'] {
+  user_id uuid [not null, ref: > users.user.id, note: 'User ID']
+  role_id uuid [not null, ref: > users.role.id, note: 'Role ID']
+
+  indexes {
+    (user_id, role_id) [pk, name: "pk_users_user_role", type: "btree"]
+    user_id [name: "idx_users_user_role_user_id", type: "btree"]
+    role_id [name: "idx_users_user_role_role_id", type: "btree"]
+  }
+
+  records (user_id, role_id) {
+    '42924369-77c0-4c34-918a-a534aaad8932', 'd9b3e25a-7bfa-41b7-ae39-416a008f9d27'
+    '019fb9e5-8c6e-702a-8eda-3019a1f089e5', 'daa16730-5e80-418b-bdc3-74bd23cb8eee'
+    'e1107024-d6f2-4e03-a328-d9a7c45d1d7b', '967cbbe4-cc1c-4a19-95eb-cbb7a55273ff'
+  }
+}
+
+Table users.role_permission [note: 'Role Permission Association Table'] {
+  role_id uuid [not null, ref: > users.role.id, note: 'Role ID']
+  permission_id uuid [not null, ref: > users.permission.id, note: 'Permission ID']
+
+  indexes {
+    (role_id, permission_id) [pk, name: "pk_users_role_permission", type: "btree"]
+    role_id [name: "idx_user_role_permission_role_id", type: "btree"]
+    permission_id [name: "idx_user_role_permission_permission_id", type: "btree"]
+  }
+
+  records (role_id, permission_id) {
+    'd9b3e25a-7bfa-41b7-ae39-416a008f9d27', '254b6ce9-c798-4964-8a9b-c99d46feaf3d'
+    'd9b3e25a-7bfa-41b7-ae39-416a008f9d27', '4e7f9da3-5e49-4885-9cff-5f5d8d2d315b'
+    'd9b3e25a-7bfa-41b7-ae39-416a008f9d27', '1ff5cfaf-38ad-46bd-966b-680e413e09cf'
+    'd9b3e25a-7bfa-41b7-ae39-416a008f9d27', '50bfc1be-096a-4bf7-b9df-9fa67426e412'
+    'd9b3e25a-7bfa-41b7-ae39-416a008f9d27', 'e48e4211-e793-4483-ad9a-546f268802fe'
+    'd9b3e25a-7bfa-41b7-ae39-416a008f9d27', '3962f41c-0f9a-4042-aa73-13d9da0fdb8b'
+    'd9b3e25a-7bfa-41b7-ae39-416a008f9d27', '17789261-91ee-4177-963d-fa18d4c0106b'
+    'd9b3e25a-7bfa-41b7-ae39-416a008f9d27', 'eaaf14b1-e6e7-4f51-afc9-05aeef0f85c3'
+    'd9b3e25a-7bfa-41b7-ae39-416a008f9d27', '667a280c-0ca1-452a-b135-8e69565417ef'
+    'd9b3e25a-7bfa-41b7-ae39-416a008f9d27', '480b7872-b57a-4315-afb8-12e0ffa64e98'
+    'd9b3e25a-7bfa-41b7-ae39-416a008f9d27', 'a72f4bb4-6609-4326-a4d7-621e43648f45'
+    'd9b3e25a-7bfa-41b7-ae39-416a008f9d27', '659a4335-7464-43ba-a8ba-fc85c82d38aa'
+
+    'daa16730-5e80-418b-bdc3-74bd23cb8eee', '254b6ce9-c798-4964-8a9b-c99d46feaf3d'
+    'daa16730-5e80-418b-bdc3-74bd23cb8eee', '4e7f9da3-5e49-4885-9cff-5f5d8d2d315b'
+    'daa16730-5e80-418b-bdc3-74bd23cb8eee', '1ff5cfaf-38ad-46bd-966b-680e413e09cf'
+    'daa16730-5e80-418b-bdc3-74bd23cb8eee', 'e48e4211-e793-4483-ad9a-546f268802fe'
+    'daa16730-5e80-418b-bdc3-74bd23cb8eee', '3962f41c-0f9a-4042-aa73-13d9da0fdb8b'
+    'daa16730-5e80-418b-bdc3-74bd23cb8eee', '17789261-91ee-4177-963d-fa18d4c0106b'
+    'daa16730-5e80-418b-bdc3-74bd23cb8eee', '667a280c-0ca1-452a-b135-8e69565417ef'
+
+    '967cbbe4-cc1c-4a19-95eb-cbb7a55273ff', '254b6ce9-c798-4964-8a9b-c99d46feaf3d'
+    '967cbbe4-cc1c-4a19-95eb-cbb7a55273ff', 'e48e4211-e793-4483-ad9a-546f268802fe'
+    '967cbbe4-cc1c-4a19-95eb-cbb7a55273ff', '667a280c-0ca1-452a-b135-8e69565417ef'
+  }
+}
+
+Table users.user_permission [note: 'User Permission Association Table'] {
+  user_id uuid [not null, ref: > users.user.id, note: 'User ID']
+  permission_id uuid [not null, ref: > users.permission.id, note: 'Permission ID']
+
+  indexes {
+    (user_id, permission_id) [pk, name: "pk_users_user_permission", type: "btree"]
+    user_id [name: "idx_users_user_permission_user_id", type: "btree"]
+    permission_id [name: "idx_users_user_permission_permission_id", type: "btree"]
+  }
+}
+
+Table users.preference [note: 'User Preference Table'] {
+  user_id uuid [pk, ref: - users.user.id, note: 'User ID']
+  theme varchar [not null, default: 'mui', note: 'Theme Preference']
+  theme_mode enum('light', 'dark', 'system') [not null, default: 'system', note: 'Theme Mode Preference']
+  date_format enum('MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'DD-MMM-YYYY') [not null, default: 'MM/DD/YYYY', note: 'Date Format Preference']
+
+  indexes {
+    user_id [name: "idx_users_preference_user_id", type: "btree"]
+    theme [name: "idx_users_preference_theme", type: "btree"]
+    theme_mode [name: "idx_users_preference_theme_mode", type: "btree"]
+    date_format [name: "idx_users_preference_date_format", type: "btree"]
+  }
+
+  records (user_id, theme, theme_mode, date_format) {
+    '42924369-77c0-4c34-918a-a534aaad8932', 'dark', 'dark', 'MM/DD/YYYY'
+    '019fb9e5-8c6e-702a-8eda-3019a1f089e5', 'light', 'light', 'MM/DD/YYYY'
+    'e1107024-d6f2-4e03-a328-d9a7c45d1d7b', 'system', 'system', 'MM/DD/YYYY'
+  }
+}
