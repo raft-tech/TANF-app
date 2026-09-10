@@ -6,7 +6,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 from django.conf import settings
 from django.contrib.auth import logout
-from django.contrib.auth.models import AnonymousUser, Group, Permission
+from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
@@ -307,10 +307,6 @@ class FeedbackViewSet(viewsets.ModelViewSet):
 
         feedback_id = response.data["id"]
         feedback = Feedback.objects.get(id=feedback_id)
-
-        # Force anonymity if user is None to prevent us from know if authenticated users chose to remain anonymous
-        if request.user is None or isinstance(request.user, AnonymousUser):
-            feedback.anonymous = True
 
         if not feedback.anonymous:
             feedback.user = request.user
