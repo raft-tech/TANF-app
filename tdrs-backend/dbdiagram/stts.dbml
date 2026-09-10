@@ -1,0 +1,51 @@
+// tdpservice.stts app: states/tribes/territories reference data
+
+Table "stts_region" {
+  "id" int4 [pk, not null, check: `id >= 0`]
+  "name" varchar(25)
+}
+
+Table "stts_stt" {
+  "id" int4 [pk, not null, increment]
+  "type" varchar(200)
+  "postal_code" varchar(2)
+  "name" varchar(1000) [unique, not null]
+  "region_id" int4
+  "state_id" int4
+  "filenames" jsonb
+  "stt_code" varchar(3)
+  "ssp" bool
+  "sample" bool
+  "timezone" varchar(63) [not null]
+
+  Indexes {
+    region_id [type: btree, name: "stts_stt_region_id_307b6190"]
+    state_id [type: btree, name: "stts_stt_state_id_412b5567"]
+  }
+}
+
+Table "stts_sttprogramparticipation" {
+  "id" int4 [pk, not null, increment]
+  "status" varchar(10) [not null]
+  "program_id" int4 [not null]
+  "stt_id" int4 [not null]
+
+  Indexes {
+    (stt_id, program_id) [type: btree, unique, name: "participation_uniq_stt_program"]
+    program_id [type: btree, name: "stts_sttprogramparticipation_program_id_fef9be59"]
+    stt_id [type: btree, name: "stts_sttprogramparticipation_stt_id_f5704e7c"]
+  }
+}
+
+Table "stts_sttprogramparticipation_sections" {
+  "id" int4 [pk, not null, increment]
+  "sttprogramparticipation_id" int4 [not null]
+  "section_id" int4 [not null]
+
+  Indexes {
+    (sttprogramparticipation_id, section_id) [type: btree, unique, name: "stts_sttprogramparticipa_sttprogramparticipation__6dea7a38_uniq"]
+    sttprogramparticipation_id [type: btree, name: "stts_sttprogramparticipati_sttprogramparticipation_id_193c760e"]
+    section_id [type: btree, name: "stts_sttprogramparticipation_sections_section_id_785dcd89"]
+  }
+}
+

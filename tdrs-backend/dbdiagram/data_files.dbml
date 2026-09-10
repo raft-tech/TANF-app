@@ -1,0 +1,87 @@
+// tdpservice.data_files app: uploaded data file metadata
+
+Table "data_files_datafile" {
+  "id" int4 [pk, not null, increment]
+  "original_filename" varchar(256) [not null]
+  "slug" varchar(256) [not null]
+  "extension" varchar(8) [not null]
+  "quarter" varchar(16) [not null]
+  "year" int4 [not null]
+  "section" varchar(32) [not null]
+  "version" int4 [not null]
+  "stt_id" int4 [not null]
+  "user_id" uuid [not null]
+  "created_at" timestamptz [not null]
+  "file" varchar(100)
+  "s3_versioning_id" varchar(1024)
+  "program_type" varchar(32) [not null]
+  "is_program_audit" bool [not null]
+  "state" varchar(32) [not null]
+  "section_ref_id" int4
+
+  Indexes {
+    (program_type, section, version, quarter, year, stt_id, is_program_audit) [type: btree, unique, name: "constraint_name"]
+    section_ref_id [type: btree, name: "data_files_datafile_section_ref_id_01ffbc79"]
+    stt_id [type: btree, name: "data_files_datafile_stt_id_e4c8b50f"]
+    user_id [type: btree, name: "data_files_datafile_user_id_b66b6fea"]
+  }
+}
+
+Table "data_files_legacyfiletransfer" {
+  "id" int4 [pk, not null, increment]
+  "sent_at" timestamptz [not null]
+  "file_name" text [not null]
+  "file_size" int8 [not null, check: `file_size >= 0`]
+  "file_shasum" text [not null]
+  "result" varchar(12) [not null]
+  "data_file_id" int4
+  "uploaded_by_id" uuid
+
+  Indexes {
+    data_file_id [type: btree, name: "data_files_legacyfiletransfer_data_file_id_258fa3c3"]
+    uploaded_by_id [type: btree, name: "data_files_legacyfiletransfer_uploaded_by_id_215ca222"]
+  }
+}
+
+Table "data_files_reparsefilemeta" {
+  "id" int4 [pk, not null, increment]
+  "finished" bool [not null]
+  "success" bool [not null]
+  "started_at" timestamptz
+  "finished_at" timestamptz
+  "num_records_created" int4 [not null, check: `num_records_created >= 0`]
+  "cat_4_errors_generated" int4 [not null, check: `cat_4_errors_generated >= 0`]
+  "data_file_id" int4 [not null]
+  "reparse_meta_id" int8 [not null]
+  "previous_summary_status" varchar(50)
+
+  Indexes {
+    data_file_id [type: btree, name: "data_files_reparsefilemeta_data_file_id_c10fd55a"]
+    reparse_meta_id [type: btree, name: "data_files_reparsefilemeta_reparse_meta_id_f64842b1"]
+  }
+}
+
+Table "data_files_program" {
+  "id" int4 [pk, not null, increment]
+  "code" varchar(32) [unique, not null]
+  "slug" varchar(50) [unique, not null]
+  "name" varchar(100) [unique, not null]
+
+  Indexes {
+    code [type: btree, name: "data_files_program_code_b35f6e70_like"]
+    name [type: btree, name: "data_files_program_name_ec311a0a_like"]
+    slug [type: btree, name: "data_files_program_slug_1be0e3a6_like"]
+  }
+}
+
+Table "data_files_section" {
+  "id" int4 [pk, not null, increment]
+  "name" varchar(100) [not null]
+  "program_id" int4 [not null]
+
+  Indexes {
+    (program_id, name) [type: btree, unique, name: "section_uniq_program_name"]
+    program_id [type: btree, name: "data_files_section_program_id_ecebb447"]
+  }
+}
+

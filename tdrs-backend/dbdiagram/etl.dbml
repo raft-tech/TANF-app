@@ -1,0 +1,134 @@
+// tdpservice.etl app: ETL pipeline runs, QA results, statistical weights
+
+Table "etl_etlpipelinerun" {
+  "id" int8 [pk, not null, increment]
+  "pipeline_key" varchar(128) [not null]
+  "pipeline_version" varchar(32) [not null]
+  "status" varchar(16) [not null]
+  "parameters" jsonb [not null]
+  "output_scope" jsonb [not null]
+  "output_scope_key" varchar(64) [not null]
+  "metadata" jsonb [not null]
+  "trigger_source" varchar(16) [not null]
+  "started_at" timestamptz
+  "finished_at" timestamptz
+  "error_message" text
+  "created_at" timestamptz [not null]
+  "updated_at" timestamptz [not null]
+  "retry_of_id" int8
+  "triggered_by_id" uuid
+  "final_output_id" int8 [unique]
+
+  Indexes {
+    (pipeline_key, output_scope_key) [type: btree, unique, name: "unique_active_etl_run_scope"]
+    retry_of_id [type: btree, name: "etl_etlpipelinerun_retry_of_id_0cd40509"]
+    triggered_by_id [type: btree, name: "etl_etlpipelinerun_triggered_by_id_83414a31"]
+    created_at [type: btree, name: "etl_run_created_idx"]
+    (pipeline_key, status) [type: btree, name: "etl_run_key_status_idx"]
+    (pipeline_key, output_scope_key) [type: btree, name: "etl_run_scope_key_idx"]
+  }
+}
+
+Table "etl_etlqaresult" {
+  "id" int8 [pk, not null, increment]
+  "check_key" varchar(128) [not null]
+  "status" varchar(16) [not null]
+  "summary" text [not null]
+  "result_payload" jsonb [not null]
+  "blocking" bool [not null]
+  "created_at" timestamptz [not null]
+  "pipeline_run_id" int8 [not null]
+
+  Indexes {
+    pipeline_run_id [type: btree, name: "etl_etlqaresult_pipeline_run_id_bd57c989"]
+    (check_key, status) [type: btree, name: "etl_qa_key_status_idx"]
+  }
+}
+
+Table "etl_etlnoderun" {
+  "id" int8 [pk, not null, increment]
+  "node_key" varchar(128) [not null]
+  "status" varchar(16) [not null]
+  "started_at" timestamptz
+  "finished_at" timestamptz
+  "input_row_count" int4 [check: `input_row_count >= 0`]
+  "output_row_count" int4 [check: `output_row_count >= 0`]
+  "error_message" text
+  "metadata" jsonb [not null]
+  "pipeline_run_id" int8 [not null]
+
+  Indexes {
+    (pipeline_run_id, node_key) [type: btree, unique, name: "unique_etl_node_run_per_pipeline_run"]
+    pipeline_run_id [type: btree, name: "etl_etlnoderun_pipeline_run_id_352daaa0"]
+    (node_key, status) [type: btree, name: "etl_node_key_status_idx"]
+  }
+}
+
+Table "etl_etlartifact" {
+  "id" int8 [pk, not null, increment]
+  "key" varchar(128) [not null]
+  "artifact_role" varchar(16) [not null]
+  "artifact_kind" varchar(16) [not null]
+  "storage_kind" varchar(32) [not null]
+  "reference" varchar(255) [not null]
+  "schema_key" varchar(128) [not null]
+  "schema_version" int4 [not null, check: `schema_version >= 0`]
+  "version" int4 [check: `version >= 0`]
+  "row_count" int4 [not null, check: `row_count >= 0`]
+  "published" bool [not null]
+  "metadata" jsonb [not null]
+  "created_at" timestamptz [not null]
+  "updated_at" timestamptz [not null]
+  "pipeline_run_id" int8 [not null]
+
+  Indexes {
+    (pipeline_run_id, key) [type: btree, unique, name: "unique_etl_artifact_per_run"]
+    key [type: btree, name: "etl_artifact_key_idx"]
+    (key, artifact_role) [type: btree, name: "etl_artifact_key_role_idx"]
+    (artifact_kind, storage_kind) [type: btree, name: "etl_artifact_kind_store_idx"]
+    (artifact_role, published) [type: btree, name: "etl_artifact_role_pub_idx"]
+    pipeline_run_id [type: btree, name: "etl_etlartifact_pipeline_run_id_78e8e766"]
+  }
+}
+
+Table "etl_statisticalweightscasecount" {
+  "id" int8 [pk, not null, increment]
+  "count_kind" varchar(2) [not null]
+  "stt_code" varchar(3) [not null]
+  "reporting_month" int4 [not null, check: `reporting_month >= 0`]
+  "stratum" varchar(2) [not null]
+  "count" int4 [not null, check: `count >= 0`]
+  "pipeline_run_id" int8 [not null]
+
+  Indexes {
+    (pipeline_run_id, count_kind, stt_code, reporting_month, stratum) [type: btree, unique, name: "unique_sw_case_count"]
+    pipeline_run_id [type: btree, name: "etl_statisticalweightscasecount_pipeline_run_id_a9ce3b4a"]
+    (pipeline_run_id, count_kind, reporting_month) [type: btree, name: "sw_case_kind_month_idx"]
+    (pipeline_run_id, count_kind, stt_code, reporting_month) [type: btree, name: "sw_case_kind_pair_idx"]
+  }
+}
+
+Table "etl_statisticalweight" {
+  "id" int8 [pk, not null, increment]
+  "fiscal_year" int4 [not null, check: `fiscal_year >= 0`]
+  "reporting_month" int4 [not null, check: `reporting_month >= 0`]
+  "program" varchar(16) [not null]
+  "section" varchar(16) [not null]
+  "stt_code" varchar(3) [not null]
+  "stratum" varchar(2) [not null]
+  "version" int4 [not null, check: `version >= 0`]
+  "case_count" int4 [not null, check: `case_count >= 0`]
+  "cases" int4 [not null, check: `cases >= 0`]
+  "weight" numeric(12,4) [not null]
+  "published_at" timestamptz [not null]
+  "retention_expires_at" timestamptz
+  "pipeline_run_id" int8 [not null]
+
+  Indexes {
+    (fiscal_year, reporting_month, program, section, stt_code, stratum, version) [type: btree, unique, name: "unique_statistical_weight_version"]
+    pipeline_run_id [type: btree, name: "etl_statisticalweight_pipeline_run_id_fceb730f"]
+    retention_expires_at [type: btree, name: "etl_weight_retention_idx"]
+    (fiscal_year, program, section, version) [type: btree, name: "etl_weight_scope_ver_idx"]
+  }
+}
+

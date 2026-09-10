@@ -1,0 +1,216 @@
+// tdpservice.users app: user accounts, feedback, change requests
+
+Table "users_user" {
+  "password" varchar(128) [not null]
+  "last_login" timestamptz
+  "is_superuser" bool [not null]
+  "username" varchar(150) [unique, not null]
+  "first_name" varchar(150) [not null]
+  "last_name" varchar(150) [not null]
+  "email" varchar(254) [not null]
+  "is_staff" bool [not null]
+  "is_active" bool [not null]
+  "date_joined" timestamptz [not null]
+  "id" uuid [pk, not null]
+  "login_gov_uuid" uuid [unique]
+  "hhs_id" varchar(12) [unique]
+  "location_id" int4 [check: `location_id >= 0`]
+  "location_type_id" int4
+  "account_approval_status" varchar(40) [not null]
+  "stt_id" int4
+  "access_requested_date" timestamptz [not null]
+  "feature_flags" jsonb [not null]
+
+  Indexes {
+    location_type_id [type: btree, name: "users_user_location_type_id_d2a88b8a"]
+    stt_id [type: btree, name: "users_user_stt_id_a771654a"]
+    username [type: btree, name: "users_user_username_06e46fe6_like"]
+  }
+}
+
+Table "users_user_groups" {
+  "id" int4 [pk, not null, increment]
+  "user_id" uuid [not null]
+  "group_id" int4 [not null]
+
+  Indexes {
+    (user_id, group_id) [type: btree, unique, name: "users_user_groups_user_id_group_id_b88eab82_uniq"]
+    group_id [type: btree, name: "users_user_groups_group_id_9afc8d0e"]
+    user_id [type: btree, name: "users_user_groups_user_id_5f6f5a90"]
+  }
+}
+
+Table "users_user_user_permissions" {
+  "id" int4 [pk, not null, increment]
+  "user_id" uuid [not null]
+  "permission_id" int4 [not null]
+
+  Indexes {
+    (user_id, permission_id) [type: btree, unique, name: "users_user_user_permissions_user_id_permission_id_43338c45_uniq"]
+    permission_id [type: btree, name: "users_user_user_permissions_permission_id_0b93982e"]
+    user_id [type: btree, name: "users_user_user_permissions_user_id_20aca447"]
+  }
+}
+
+Table "users_regionmeta" {
+  "id" int4 [pk, not null, increment]
+  "region_id" int4 [not null]
+  "user_id" uuid [not null]
+
+  Indexes {
+    region_id [type: btree, name: "users_regionmeta_region_id_9e0b3b96"]
+    user_id [type: btree, name: "users_regionmeta_user_id_491f9a3c"]
+  }
+}
+
+Table "users_feedback" {
+  "reviewed_at" timestamptz
+  "id" uuid [pk, not null]
+  "created_at" timestamptz [not null]
+  "rating" int4 [not null]
+  "feedback" text
+  "anonymous" bool [not null]
+  "read" bool [not null]
+  "reviewed_by_id" uuid
+  "user_id" uuid
+  "component" varchar(100) [not null]
+  "feedback_type" varchar(30)
+  "page_url" varchar(200)
+  "widget_id" varchar(100) [not null]
+
+  Indexes {
+    reviewed_by_id [type: btree, name: "users_feedback_reviewed_by_id_0af151af"]
+    user_id [type: btree, name: "users_feedback_user_id_7688f082"]
+  }
+}
+
+Table "users_userchangerequest" {
+  "reviewed_at" timestamptz
+  "id" uuid [pk, not null]
+  "field_name" varchar(100) [not null]
+  "current_value" text [not null]
+  "requested_value" text [not null]
+  "status" varchar(20) [not null]
+  "requested_at" timestamptz [not null]
+  "notes" text [not null]
+  "requested_by_id" uuid [not null]
+  "reviewed_by_id" uuid
+  "user_id" uuid [not null]
+
+  Indexes {
+    requested_by_id [type: btree, name: "users_userchangerequest_requested_by_id_d8501c41"]
+    reviewed_by_id [type: btree, name: "users_userchangerequest_reviewed_by_id_f344198a"]
+    user_id [type: btree, name: "users_userchangerequest_user_id_8b3a9df0"]
+  }
+}
+
+Table "users_changerequestauditlog" {
+  "id" uuid [pk, not null]
+  "action" varchar(50) [not null]
+  "timestamp" timestamptz [not null]
+  "details" jsonb [not null]
+  "change_request_id" uuid [not null]
+  "performed_by_id" uuid
+
+  Indexes {
+    change_request_id [type: btree, name: "users_changerequestauditlog_change_request_id_35484583"]
+    performed_by_id [type: btree, name: "users_changerequestauditlog_performed_by_id_ce7e0f06"]
+  }
+}
+
+Table "users_feedbackattachment" {
+  "id" int4 [pk, not null, increment]
+  "object_id" int4 [not null]
+  "attached_at" timestamptz [not null]
+  "content_type_id" int4 [not null]
+  "feedback_id" uuid [not null]
+
+  Indexes {
+    (content_type_id, object_id, feedback_id) [type: btree, unique, name: "users_feedbackattachment_content_type_id_object_i_dd653e6e_uniq"]
+    content_type_id [type: btree, name: "users_feedbackattachment_content_type_id_79cbaa71"]
+    feedback_id [type: btree, name: "users_feedbackattachment_feedback_id_ca585025"]
+  }
+}
+
+Table "users_historicaluser" {
+  "password" varchar(128) [not null]
+  "last_login" timestamptz
+  "is_superuser" bool [not null]
+  "username" varchar(150) [not null]
+  "first_name" varchar(150) [not null]
+  "last_name" varchar(150) [not null]
+  "email" varchar(254) [not null]
+  "is_staff" bool [not null]
+  "is_active" bool [not null]
+  "date_joined" timestamptz [not null]
+  "id" uuid [not null]
+  "login_gov_uuid" uuid
+  "hhs_id" varchar(12)
+  "account_approval_status" varchar(40) [not null]
+  "access_requested_date" timestamptz [not null]
+  "feature_flags" jsonb [not null]
+  "history_id" int4 [pk, not null, increment]
+  "history_date" timestamptz [not null]
+  "history_change_reason" varchar(100)
+  "history_type" varchar(1) [not null]
+  "history_user_id" uuid
+  "stt_id" int4
+
+  Indexes {
+    hhs_id [type: btree, name: "users_historicaluser_hhs_id_6ce887e4"]
+    hhs_id [type: btree, name: "users_historicaluser_hhs_id_6ce887e4_like"]
+    history_date [type: btree, name: "users_historicaluser_history_date_c280194d"]
+    history_user_id [type: btree, name: "users_historicaluser_history_user_id_7f91d047"]
+    id [type: btree, name: "users_historicaluser_id_5e70dd03"]
+    login_gov_uuid [type: btree, name: "users_historicaluser_login_gov_uuid_3997ba5c"]
+    stt_id [type: btree, name: "users_historicaluser_stt_id_154da5c6"]
+    username [type: btree, name: "users_historicaluser_username_8f7ba123"]
+    username [type: btree, name: "users_historicaluser_username_8f7ba123_like"]
+  }
+}
+
+Table "users_historicalregionmeta" {
+  "id" int4 [not null]
+  "m2m_history_id" int4 [pk, not null, increment]
+  "region_id" int4
+  "user_id" uuid
+  "history_id" int4 [not null]
+
+  Indexes {
+    history_id [type: btree, name: "users_historicalregionmeta_history_id_cf60cf2c"]
+    id [type: btree, name: "users_historicalregionmeta_id_96d8b384"]
+    region_id [type: btree, name: "users_historicalregionmeta_region_id_6bef358e"]
+    user_id [type: btree, name: "users_historicalregionmeta_user_id_9a6a3431"]
+  }
+}
+
+Table "users_historicaluser_groups" {
+  "id" int4 [not null]
+  "m2m_history_id" int4 [pk, not null, increment]
+  "group_id" int4
+  "history_id" int4 [not null]
+  "user_id" uuid
+
+  Indexes {
+    group_id [type: btree, name: "users_historicaluser_groups_group_id_a08b4bce"]
+    history_id [type: btree, name: "users_historicaluser_groups_history_id_837dbb4f"]
+    id [type: btree, name: "users_historicaluser_groups_id_929cf0c1"]
+    user_id [type: btree, name: "users_historicaluser_groups_user_id_5b44fc33"]
+  }
+}
+
+Table "users_historicaluser_user_permissions" {
+  "id" int4 [not null]
+  "m2m_history_id" int4 [pk, not null, increment]
+  "history_id" int4 [not null]
+  "permission_id" int4
+  "user_id" uuid
+
+  Indexes {
+    history_id [type: btree, name: "users_historicaluser_user_permissions_history_id_13aa6b1f"]
+    id [type: btree, name: "users_historicaluser_user_permissions_id_68fa7bbb"]
+    permission_id [type: btree, name: "users_historicaluser_user_permissions_permission_id_25ece5a3"]
+    user_id [type: btree, name: "users_historicaluser_user_permissions_user_id_e52a7e51"]
+  }
+}
+

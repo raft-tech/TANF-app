@@ -1,0 +1,100 @@
+// tdpservice.core app: feature flags and historical/audit tables
+
+Table "core_featureflag" {
+  "id" int4 [pk, not null, increment]
+  "feature_name" varchar(100) [unique, not null]
+  "enabled" bool [not null]
+  "config" jsonb [not null]
+  "description" text [not null]
+  "created_at" timestamptz [not null]
+  "updated_at" timestamptz [not null]
+
+  Indexes {
+    feature_name [type: btree, name: "core_featureflag_feature_name_7742bbba_like"]
+  }
+}
+
+Table "core_historicalfeatureflag" {
+  "id" int4 [not null]
+  "feature_name" varchar(100) [not null]
+  "enabled" bool [not null]
+  "config" jsonb [not null]
+  "description" text [not null]
+  "created_at" timestamptz [not null]
+  "updated_at" timestamptz [not null]
+  "history_id" int4 [pk, not null, increment]
+  "history_date" timestamptz [not null]
+  "history_change_reason" varchar(100)
+  "history_type" varchar(1) [not null]
+  "history_user_id" uuid
+
+  Indexes {
+    feature_name [type: btree, name: "core_historicalfeatureflag_feature_name_990f86be"]
+    feature_name [type: btree, name: "core_historicalfeatureflag_feature_name_990f86be_like"]
+    history_date [type: btree, name: "core_historicalfeatureflag_history_date_14d9dcda"]
+    history_user_id [type: btree, name: "core_historicalfeatureflag_history_user_id_f61ef388"]
+    id [type: btree, name: "core_historicalfeatureflag_id_3c547ff7"]
+  }
+}
+
+Table "core_historicalgroup" {
+  "id" int4 [not null]
+  "name" varchar(150) [not null]
+  "history_id" int4 [pk, not null, increment]
+  "history_date" timestamptz [not null]
+  "history_change_reason" varchar(100)
+  "history_type" varchar(1) [not null]
+  "history_user_id" uuid
+
+  Indexes {
+    history_date [type: btree, name: "core_historicalgroup_history_date_da3d0694"]
+    history_user_id [type: btree, name: "core_historicalgroup_history_user_id_a7306d69"]
+    id [type: btree, name: "core_historicalgroup_id_5f3096ca"]
+    name [type: btree, name: "core_historicalgroup_name_7f0e33fd"]
+    name [type: btree, name: "core_historicalgroup_name_7f0e33fd_like"]
+  }
+}
+
+Table "core_historicalgroup_permissions" {
+  "id" int4 [not null]
+  "m2m_history_id" int4 [pk, not null, increment]
+  "group_id" int4
+  "history_id" int4 [not null]
+  "permission_id" int4
+
+  Indexes {
+    group_id [type: btree, name: "core_historicalgroup_permissions_group_id_14748bd2"]
+    history_id [type: btree, name: "core_historicalgroup_permissions_history_id_d81326c9"]
+    id [type: btree, name: "core_historicalgroup_permissions_id_f7aee970"]
+    permission_id [type: btree, name: "core_historicalgroup_permissions_permission_id_6a1f41a2"]
+  }
+}
+
+Table "core_baselog" {
+  "id" int4 [pk, not null, increment]
+  "object_id" text
+  "event_id" uuid [not null]
+  "event_type" varchar(100) [not null]
+  "note" text [not null]
+  "metadata" jsonb [not null]
+  "source" varchar(64)
+  "task_name" varchar(255)
+  "celery_task_id" varchar(255)
+  "created_at" timestamptz [not null]
+  "actor_id" uuid
+  "content_type_id" int4
+
+  Indexes {
+    (event_id, created_at) [type: btree, name: "baselog_event_created_idx"]
+    (content_type_id, object_id, created_at) [type: btree, name: "baselog_object_created_idx"]
+    source [type: btree, name: "baselog_source_idx"]
+    task_name [type: btree, name: "baselog_task_name_idx"]
+    (event_type, created_at) [type: btree, name: "baselog_type_created_idx"]
+    actor_id [type: btree, name: "core_baselog_actor_id_03c62dd8"]
+    content_type_id [type: btree, name: "core_baselog_content_type_id_ca416ce4"]
+    event_id [type: btree, name: "core_baselog_event_id_7ac8023e"]
+    event_type [type: btree, name: "core_baselog_event_type_5f1fc083"]
+    event_type [type: btree, name: "core_baselog_event_type_5f1fc083_like"]
+  }
+}
+

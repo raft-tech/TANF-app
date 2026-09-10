@@ -1,0 +1,46 @@
+// tdpservice.reports app: generated report sources/files
+
+Table "reports_reportsource" {
+  "id" int4 [pk, not null, increment]
+  "original_filename" varchar(256) [not null]
+  "slug" varchar(256) [not null]
+  "extension" varchar(8) [not null]
+  "created_at" timestamptz [not null]
+  "processed_at" timestamptz
+  "status" varchar(16) [not null]
+  "year" int4
+  "num_reports_created" int4 [not null, check: `num_reports_created >= 0`]
+  "error_message" text
+  "file" varchar(100) [not null]
+  "uploaded_by_id" uuid
+  "date_extracted_on" date
+  "report_type" varchar(16) [not null]
+
+  Indexes {
+    uploaded_by_id [type: btree, name: "reports_reportsource_uploaded_by_id_a435c76d"]
+  }
+}
+
+Table "reports_reportfile" {
+  "id" int4 [pk, not null, increment]
+  "original_filename" varchar(256) [not null]
+  "slug" varchar(256) [not null]
+  "extension" varchar(8) [not null]
+  "created_at" timestamptz [not null]
+  "year" int4 [not null]
+  "version" int4 [not null]
+  "file" varchar(100)
+  "source_id" int4
+  "stt_id" int4
+  "user_id" uuid
+  "date_extracted_on" date
+  "report_type" varchar(16) [not null]
+
+  Indexes {
+    (version, date_extracted_on, year, stt_id, report_type) [type: btree, unique, name: "unique_reports_reportfile_fields_v2"]
+    source_id [type: btree, name: "reports_reportfile_source_id_733f34fa"]
+    stt_id [type: btree, name: "reports_reportfile_stt_id_9234f4ef"]
+    user_id [type: btree, name: "reports_reportfile_user_id_aded9de6"]
+  }
+}
+

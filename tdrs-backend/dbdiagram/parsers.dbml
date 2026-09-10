@@ -1,0 +1,39 @@
+// tdpservice.parsers app: parser errors and datafile summaries
+
+Table "parser_error" {
+  "id" int4 [pk, not null, increment]
+  "row_number" int4
+  "column_number" varchar(8)
+  "item_number" varchar(8)
+  "field_name" text
+  "case_number" text
+  "rpt_month_year" int4
+  "error_message" text
+  "error_type" text [not null]
+  "created_at" timestamptz [not null]
+  "fields_json" jsonb
+  "content_type_id" int4
+  "file_id" int4
+  "object_id" uuid
+  "deprecated" bool [not null]
+  "values_json" jsonb
+
+  Indexes {
+    content_type_id [type: btree, name: "parser_error_content_type_id_ac0b8fa8"]
+    file_id [type: btree, name: "parser_error_file_id_06a7f326"]
+    (file_id, deprecated) [type: btree, name: "pe_file_deprecated_idx"]
+    (file_id, deprecated, rpt_month_year) [type: btree, name: "pe_file_deprecated_rpt_idx"]
+    (file_id, error_type, deprecated) [type: btree, name: "pe_file_etype_deprecated_idx"]
+  }
+}
+
+Table "parsers_datafilesummary" {
+  "id" int8 [pk, not null, increment]
+  "status" varchar(50) [not null]
+  "case_aggregates" jsonb
+  "datafile_id" int4 [unique, not null]
+  "total_number_of_records_created" int4
+  "total_number_of_records_in_file" int4
+  "error_report" varchar(500)
+}
+

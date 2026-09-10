@@ -1,0 +1,903 @@
+// Shadow tables used for reparse verification (mirrors of live parsed data)
+
+Table "shadow_data_files_datafile" {
+  "id" int4 [pk, not null, increment]
+  "original_filename" varchar(256) [not null]
+  "slug" varchar(256) [not null]
+  "extension" varchar(8) [not null]
+  "created_at" timestamptz [not null]
+  "quarter" varchar(16) [not null]
+  "year" int4 [not null]
+  "program_type" varchar(32) [not null]
+  "section" varchar(32) [not null]
+  "is_program_audit" bool [not null]
+  "version" int4 [not null]
+  "state" varchar(32) [not null]
+  "file" varchar(100)
+  "s3_versioning_id" varchar(1024)
+  "stt_id" int4 [not null]
+  "user_id" uuid [not null]
+
+  Indexes {
+    stt_id [type: btree, name: "shadow_data_files_datafile_stt_id_f1017e85"]
+    user_id [type: btree, name: "shadow_data_files_datafile_user_id_779fad1b"]
+  }
+}
+
+Table "shadow_parsers_datafilesummary" {
+  "id" int8 [pk, not null, increment]
+  "status" varchar(50) [not null]
+  "error_report" varchar(500)
+  "case_aggregates" jsonb
+  "total_number_of_records_in_file" int4
+  "total_number_of_records_created" int4
+  "datafile_id" int4 [unique, not null]
+}
+
+Table "shadow_parser_error" {
+  "id" int4 [pk, not null, increment]
+  "row_number" int4
+  "column_number" varchar(8)
+  "item_number" varchar(8)
+  "field_name" text
+  "rpt_month_year" int4
+  "case_number" text
+  "error_message" text
+  "error_type" text [not null]
+  "object_id" uuid
+  "created_at" timestamptz [not null]
+  "fields_json" jsonb
+  "values_json" jsonb
+  "deprecated" bool [not null]
+  "content_type_id" int4
+  "file_id" int4
+
+  Indexes {
+    content_type_id [type: btree, name: "shadow_parser_error_content_type_id_ee93f7fe"]
+    file_id [type: btree, name: "shadow_parser_error_file_id_104a0040"]
+  }
+}
+
+Table "shadow_search_indexes_programaudit_t1" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FUNDING_STREAM" int4
+  "CASH_AMOUNT" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_programaudit_t1_datafile_id_1ccb0ba5"]
+  }
+}
+
+Table "shadow_search_indexes_programaudit_t2" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "CITIZENSHIP_STATUS" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_programaudit_t2_datafile_id_3de46635"]
+  }
+}
+
+Table "shadow_search_indexes_programaudit_t3" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "CITIZENSHIP_STATUS" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_programaudit_t3_datafile_id_324498f4"]
+  }
+}
+
+Table "shadow_search_indexes_ssp_m1" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "DISPOSITION" int4
+  "NBR_FAMILY_MEMBERS" int4
+  "FAMILY_TYPE" int4
+  "TANF_ASST_IN_6MONTHS" int4
+  "RECEIVES_SUB_HOUSING" int4
+  "RECEIVES_MED_ASSISTANCE" int4
+  "RECEIVES_FOOD_STAMPS" int4
+  "AMT_FOOD_STAMP_ASSISTANCE" int4
+  "RECEIVES_SUB_CC" int4
+  "AMT_SUB_CC" int4
+  "CHILD_SUPPORT_AMT" int4
+  "FAMILY_CASH_RESOURCES" int4
+  "CASH_AMOUNT" int4
+  "NBR_MONTHS" int4
+  "CC_AMOUNT" int4
+  "CHILDREN_COVERED" int4
+  "CC_NBR_MONTHS" int4
+  "TRANSP_AMOUNT" int4
+  "TRANSP_NBR_MONTHS" int4
+  "TRANSITION_SERVICES_AMOUNT" int4
+  "TRANSITION_NBR_MONTHS" int4
+  "OTHER_AMOUNT" int4
+  "OTHER_NBR_MONTHS" int4
+  "SANC_REDUCTION_AMT" int4
+  "WORK_REQ_SANCTION" int4
+  "FAMILY_SANC_ADULT" int4
+  "SANC_TEEN_PARENT" int4
+  "NON_COOPERATION_CSE" int4
+  "FAILURE_TO_COMPLY" int4
+  "OTHER_SANCTION" int4
+  "RECOUPMENT_PRIOR_OVRPMT" int4
+  "OTHER_TOTAL_REDUCTIONS" int4
+  "FAMILY_CAP" int4
+  "REDUCTIONS_ON_RECEIPTS" int4
+  "OTHER_NON_SANCTION" int4
+  "WAIVER_EVAL_CONTROL_GRPS" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_ssp_m1_datafile_id_ed063b0f"]
+  }
+}
+
+Table "shadow_search_indexes_ssp_m2" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(2)
+  "FAMILY_AFFILIATION" int4
+  "NONCUSTODIAL_PARENT" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "FED_OASDI_PROGRAM" int4
+  "FED_DISABILITY_STATUS" int4
+  "DISABLED_TITLE_XIVAPDT" int4
+  "AID_AGED_BLIND" int4
+  "RECEIVE_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" int4
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "COOPERATION_CHILD_SUPPORT" int4
+  "EMPLOYMENT_STATUS" int4
+  "WORK_ELIGIBLE_INDICATOR" int4
+  "WORK_PART_STATUS" int4
+  "UNSUB_EMPLOYMENT" int4
+  "SUB_PRIVATE_EMPLOYMENT" int4
+  "SUB_PUBLIC_EMPLOYMENT" int4
+  "WORK_EXPERIENCE_HOP" int4
+  "WORK_EXPERIENCE_EA" int4
+  "WORK_EXPERIENCE_HOL" int4
+  "OJT" int4
+  "JOB_SEARCH_HOP" int4
+  "JOB_SEARCH_EA" int4
+  "JOB_SEARCH_HOL" int4
+  "COMM_SERVICES_HOP" int4
+  "COMM_SERVICES_EA" int4
+  "COMM_SERVICES_HOL" int4
+  "VOCATIONAL_ED_TRAINING_HOP" int4
+  "VOCATIONAL_ED_TRAINING_EA" int4
+  "VOCATIONAL_ED_TRAINING_HOL" int4
+  "JOB_SKILLS_TRAINING_HOP" int4
+  "JOB_SKILLS_TRAINING_EA" int4
+  "JOB_SKILLS_TRAINING_HOL" int4
+  "ED_NO_HIGH_SCHOOL_DIPL_HOP" int4
+  "ED_NO_HIGH_SCHOOL_DIPL_EA" int4
+  "ED_NO_HIGH_SCHOOL_DIPL_HOL" int4
+  "SCHOOL_ATTENDENCE_HOP" int4
+  "SCHOOL_ATTENDENCE_EA" int4
+  "SCHOOL_ATTENDENCE_HOL" int4
+  "PROVIDE_CC_HOP" int4
+  "PROVIDE_CC_EA" int4
+  "PROVIDE_CC_HOL" int4
+  "OTHER_WORK_ACTIVITIES" int4
+  "DEEMED_HOURS_FOR_OVERALL" int4
+  "DEEMED_HOURS_FOR_TWO_PARENT" int4
+  "EARNED_INCOME" int4
+  "UNEARNED_INCOME_TAX_CREDIT" int4
+  "UNEARNED_SOCIAL_SECURITY" int4
+  "UNEARNED_SSI" int4
+  "UNEARNED_WORKERS_COMP" int4
+  "OTHER_UNEARNED_INCOME" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_ssp_m2_datafile_id_54bd19a5"]
+  }
+}
+
+Table "shadow_search_indexes_ssp_m3" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(100)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "RECEIVE_NONSSI_BENEFITS" int4
+  "RECEIVE_SSI" int4
+  "RELATIONSHIP_HOH" int4
+  "PARENT_MINOR_CHILD" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "UNEARNED_SSI" int4
+  "OTHER_UNEARNED_INCOME" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_ssp_m3_datafile_id_3907c438"]
+  }
+}
+
+Table "shadow_search_indexes_ssp_m4" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "DISPOSITION" int4
+  "CLOSURE_REASON" varchar(2)
+  "REC_SUB_HOUSING" int4
+  "REC_MED_ASSIST" int4
+  "REC_FOOD_STAMPS" int4
+  "REC_SUB_CC" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_ssp_m4_datafile_id_95858579"]
+  }
+}
+
+Table "shadow_search_indexes_ssp_m5" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "REC_OASDI_INSURANCE" int4
+  "REC_FEDERAL_DISABILITY" int4
+  "REC_AID_TOTALLY_DISABLED" int4
+  "REC_AID_AGED_BLIND" int4
+  "REC_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_OF_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "EMPLOYMENT_STATUS" int4
+  "AMOUNT_EARNED_INCOME" varchar(4)
+  "AMOUNT_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_ssp_m5_datafile_id_b074facf"]
+  }
+}
+
+Table "shadow_search_indexes_ssp_m6" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "SSPMOE_FAMILIES" int4
+  "NUM_2_PARENTS" int4
+  "NUM_1_PARENTS" int4
+  "NUM_NO_PARENTS" int4
+  "NUM_RECIPIENTS" int4
+  "ADULT_RECIPIENTS" int4
+  "CHILD_RECIPIENTS" int4
+  "NONCUSTODIALS" int4
+  "AMT_ASSISTANCE" int4
+  "CLOSED_CASES" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_ssp_m6_datafile_id_95827bab"]
+  }
+}
+
+Table "shadow_search_indexes_ssp_m7" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "TDRS_SECTION_IND" varchar(1)
+  "STRATUM" varchar(2)
+  "FAMILIES_MONTH" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_ssp_m7_datafile_id_3f98c6c6"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_exiter1" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(25)
+  "EXIT_DATE" int4
+  "SSN" varchar(9)
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_exiter1_datafile_id_a5b719d7"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_t1" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "FUNDING_STREAM" int4
+  "DISPOSITION" int4
+  "NEW_APPLICANT" int4
+  "NBR_FAMILY_MEMBERS" int4
+  "FAMILY_TYPE" int4
+  "RECEIVES_SUB_HOUSING" int4
+  "RECEIVES_MED_ASSISTANCE" int4
+  "RECEIVES_FOOD_STAMPS" int4
+  "AMT_FOOD_STAMP_ASSISTANCE" int4
+  "RECEIVES_SUB_CC" int4
+  "AMT_SUB_CC" int4
+  "CHILD_SUPPORT_AMT" int4
+  "FAMILY_CASH_RESOURCES" int4
+  "CASH_AMOUNT" int4
+  "NBR_MONTHS" int4
+  "CC_AMOUNT" int4
+  "CHILDREN_COVERED" int4
+  "CC_NBR_MONTHS" int4
+  "TRANSP_AMOUNT" int4
+  "TRANSP_NBR_MONTHS" int4
+  "TRANSITION_SERVICES_AMOUNT" int4
+  "TRANSITION_NBR_MONTHS" int4
+  "OTHER_AMOUNT" int4
+  "OTHER_NBR_MONTHS" int4
+  "SANC_REDUCTION_AMT" int4
+  "WORK_REQ_SANCTION" int4
+  "FAMILY_SANC_ADULT" int4
+  "SANC_TEEN_PARENT" int4
+  "NON_COOPERATION_CSE" int4
+  "FAILURE_TO_COMPLY" int4
+  "OTHER_SANCTION" int4
+  "RECOUPMENT_PRIOR_OVRPMT" int4
+  "OTHER_TOTAL_REDUCTIONS" int4
+  "FAMILY_CAP" int4
+  "REDUCTIONS_ON_RECEIPTS" int4
+  "OTHER_NON_SANCTION" int4
+  "WAIVER_EVAL_CONTROL_GRPS" int4
+  "FAMILY_EXEMPT_TIME_LIMITS" int4
+  "FAMILY_NEW_CHILD" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_t1_datafile_id_5f1c61ad"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_t2" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "NONCUSTODIAL_PARENT" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "FED_OASDI_PROGRAM" int4
+  "FED_DISABILITY_STATUS" int4
+  "DISABLED_TITLE_XIVAPDT" int4
+  "AID_AGED_BLIND" int4
+  "RECEIVE_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "COOPERATION_CHILD_SUPPORT" int4
+  "MONTHS_FED_TIME_LIMIT" varchar(3)
+  "MONTHS_STATE_TIME_LIMIT" varchar(2)
+  "CURRENT_MONTH_STATE_EXEMPT" int4
+  "EMPLOYMENT_STATUS" int4
+  "WORK_ELIGIBLE_INDICATOR" varchar(2)
+  "WORK_PART_STATUS" varchar(2)
+  "UNSUB_EMPLOYMENT" varchar(2)
+  "SUB_PRIVATE_EMPLOYMENT" varchar(2)
+  "SUB_PUBLIC_EMPLOYMENT" varchar(2)
+  "WORK_EXPERIENCE_HOP" varchar(2)
+  "WORK_EXPERIENCE_EA" varchar(2)
+  "WORK_EXPERIENCE_HOL" varchar(2)
+  "OJT" varchar(2)
+  "JOB_SEARCH_HOP" varchar(2)
+  "JOB_SEARCH_EA" varchar(2)
+  "JOB_SEARCH_HOL" varchar(2)
+  "COMM_SERVICES_HOP" varchar(2)
+  "COMM_SERVICES_EA" varchar(2)
+  "COMM_SERVICES_HOL" varchar(2)
+  "VOCATIONAL_ED_TRAINING_HOP" varchar(2)
+  "VOCATIONAL_ED_TRAINING_EA" varchar(2)
+  "VOCATIONAL_ED_TRAINING_HOL" varchar(2)
+  "JOB_SKILLS_TRAINING_HOP" varchar(2)
+  "JOB_SKILLS_TRAINING_EA" varchar(2)
+  "JOB_SKILLS_TRAINING_HOL" varchar(2)
+  "ED_NO_HIGH_SCHOOL_DIPL_HOP" varchar(2)
+  "ED_NO_HIGH_SCHOOL_DIPL_EA" varchar(2)
+  "ED_NO_HIGH_SCHOOL_DIPL_HOL" varchar(2)
+  "SCHOOL_ATTENDENCE_HOP" varchar(2)
+  "SCHOOL_ATTENDENCE_EA" varchar(2)
+  "SCHOOL_ATTENDENCE_HOL" varchar(2)
+  "PROVIDE_CC_HOP" varchar(2)
+  "PROVIDE_CC_EA" varchar(2)
+  "PROVIDE_CC_HOL" varchar(2)
+  "OTHER_WORK_ACTIVITIES" varchar(2)
+  "DEEMED_HOURS_FOR_OVERALL" varchar(2)
+  "DEEMED_HOURS_FOR_TWO_PARENT" varchar(2)
+  "EARNED_INCOME" varchar(4)
+  "UNEARNED_INCOME_TAX_CREDIT" varchar(4)
+  "UNEARNED_SOCIAL_SECURITY" varchar(4)
+  "UNEARNED_SSI" varchar(4)
+  "UNEARNED_WORKERS_COMP" varchar(4)
+  "OTHER_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_t2_datafile_id_16303f72"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_t3" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "RECEIVE_NONSSA_BENEFITS" int4
+  "RECEIVE_SSI" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "UNEARNED_SSI" varchar(4)
+  "OTHER_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_t3_datafile_id_afc409d2"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_t4" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "DISPOSITION" int4
+  "CLOSURE_REASON" varchar(2)
+  "REC_SUB_HOUSING" int4
+  "REC_MED_ASSIST" int4
+  "REC_FOOD_STAMPS" int4
+  "REC_SUB_CC" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_t4_datafile_id_607d06fc"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_t5" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "REC_OASDI_INSURANCE" int4
+  "REC_FEDERAL_DISABILITY" int4
+  "REC_AID_TOTALLY_DISABLED" int4
+  "REC_AID_AGED_BLIND" int4
+  "REC_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_OF_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "COUNTABLE_MONTH_FED_TIME" varchar(3)
+  "COUNTABLE_MONTHS_STATE_TRIBE" varchar(2)
+  "EMPLOYMENT_STATUS" int4
+  "AMOUNT_EARNED_INCOME" varchar(4)
+  "AMOUNT_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_t5_datafile_id_9bf7fe04"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_t6" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "NUM_APPLICATIONS" int4
+  "NUM_APPROVED" int4
+  "NUM_DENIED" int4
+  "ASSISTANCE" int4
+  "NUM_FAMILIES" int4
+  "NUM_2_PARENTS" int4
+  "NUM_1_PARENTS" int4
+  "NUM_NO_PARENTS" int4
+  "NUM_RECIPIENTS" int4
+  "NUM_ADULT_RECIPIENTS" int4
+  "NUM_CHILD_RECIPIENTS" int4
+  "NUM_NONCUSTODIALS" int4
+  "NUM_BIRTHS" int4
+  "NUM_OUTWEDLOCK_BIRTHS" int4
+  "NUM_CLOSED_CASES" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_t6_datafile_id_6948ef97"]
+  }
+}
+
+Table "shadow_search_indexes_tanf_t7" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "TDRS_SECTION_IND" varchar(1)
+  "STRATUM" varchar(2)
+  "FAMILIES_MONTH" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tanf_t7_datafile_id_c7c05c42"]
+  }
+}
+
+Table "shadow_search_indexes_tribal_tanf_t1" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "FUNDING_STREAM" int4
+  "DISPOSITION" int4
+  "NEW_APPLICANT" int4
+  "NBR_FAMILY_MEMBERS" int4
+  "FAMILY_TYPE" int4
+  "RECEIVES_SUB_HOUSING" int4
+  "RECEIVES_MED_ASSISTANCE" int4
+  "RECEIVES_FOOD_STAMPS" int4
+  "AMT_FOOD_STAMP_ASSISTANCE" int4
+  "RECEIVES_SUB_CC" int4
+  "AMT_SUB_CC" int4
+  "CHILD_SUPPORT_AMT" int4
+  "FAMILY_CASH_RESOURCES" int4
+  "CASH_AMOUNT" int4
+  "NBR_MONTHS" int4
+  "CC_AMOUNT" int4
+  "CHILDREN_COVERED" int4
+  "CC_NBR_MONTHS" int4
+  "TRANSP_AMOUNT" int4
+  "TRANSP_NBR_MONTHS" int4
+  "TRANSITION_SERVICES_AMOUNT" int4
+  "TRANSITION_NBR_MONTHS" int4
+  "OTHER_AMOUNT" int4
+  "OTHER_NBR_MONTHS" int4
+  "SANC_REDUCTION_AMT" int4
+  "WORK_REQ_SANCTION" int4
+  "FAMILY_SANC_ADULT" int4
+  "SANC_TEEN_PARENT" int4
+  "NON_COOPERATION_CSE" int4
+  "FAILURE_TO_COMPLY" int4
+  "OTHER_SANCTION" int4
+  "RECOUPMENT_PRIOR_OVRPMT" int4
+  "OTHER_TOTAL_REDUCTIONS" int4
+  "FAMILY_CAP" int4
+  "REDUCTIONS_ON_RECEIPTS" int4
+  "OTHER_NON_SANCTION" int4
+  "WAIVER_EVAL_CONTROL_GRPS" int4
+  "FAMILY_EXEMPT_TIME_LIMITS" int4
+  "FAMILY_NEW_CHILD" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t1_datafile_id_a4a638c3"]
+  }
+}
+
+Table "shadow_search_indexes_tribal_tanf_t2" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "NONCUSTODIAL_PARENT" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "FED_OASDI_PROGRAM" int4
+  "FED_DISABILITY_STATUS" int4
+  "DISABLED_TITLE_XIVAPDT" int4
+  "AID_AGED_BLIND" int4
+  "RECEIVE_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "COOPERATION_CHILD_SUPPORT" int4
+  "MONTHS_FED_TIME_LIMIT" varchar(3)
+  "MONTHS_STATE_TIME_LIMIT" varchar(2)
+  "CURRENT_MONTH_STATE_EXEMPT" int4
+  "EMPLOYMENT_STATUS" int4
+  "WORK_PART_STATUS" varchar(2)
+  "UNSUB_EMPLOYMENT" varchar(2)
+  "SUB_PRIVATE_EMPLOYMENT" varchar(2)
+  "SUB_PUBLIC_EMPLOYMENT" varchar(2)
+  "WORK_EXPERIENCE" varchar(2)
+  "OJT" varchar(2)
+  "JOB_SEARCH" varchar(2)
+  "COMM_SERVICES" varchar(2)
+  "VOCATIONAL_ED_TRAINING" varchar(2)
+  "JOB_SKILLS_TRAINING" varchar(2)
+  "ED_NO_HIGH_SCHOOL_DIPLOMA" varchar(2)
+  "SCHOOL_ATTENDENCE" varchar(2)
+  "PROVIDE_CC" varchar(2)
+  "ADD_WORK_ACTIVITIES" varchar(2)
+  "OTHER_WORK_ACTIVITIES" varchar(2)
+  "REQ_HRS_WAIVER_DEMO" varchar(2)
+  "EARNED_INCOME" varchar(4)
+  "UNEARNED_INCOME_TAX_CREDIT" varchar(4)
+  "UNEARNED_SOCIAL_SECURITY" varchar(4)
+  "UNEARNED_SSI" varchar(4)
+  "UNEARNED_WORKERS_COMP" varchar(4)
+  "OTHER_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t2_datafile_id_3576a00a"]
+  }
+}
+
+Table "shadow_search_indexes_tribal_tanf_t3" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "RECEIVE_NONSSA_BENEFITS" int4
+  "RECEIVE_SSI" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "UNEARNED_SSI" varchar(4)
+  "OTHER_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t3_datafile_id_aeb8c53d"]
+  }
+}
+
+Table "shadow_search_indexes_tribal_tanf_t4" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(71)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "COUNTY_FIPS_CODE" varchar(3)
+  "STRATUM" varchar(2)
+  "ZIP_CODE" varchar(5)
+  "DISPOSITION" int4
+  "CLOSURE_REASON" varchar(2)
+  "REC_SUB_HOUSING" int4
+  "REC_MED_ASSIST" int4
+  "REC_FOOD_STAMPS" int4
+  "REC_SUB_CC" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t4_datafile_id_8100aae3"]
+  }
+}
+
+Table "shadow_search_indexes_tribal_tanf_t5" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(71)
+  "RPT_MONTH_YEAR" int4
+  "CASE_NUMBER" varchar(11)
+  "FAMILY_AFFILIATION" int4
+  "DATE_OF_BIRTH" varchar(8)
+  "SSN" varchar(9)
+  "RACE_HISPANIC" int4
+  "RACE_AMER_INDIAN" int4
+  "RACE_ASIAN" int4
+  "RACE_BLACK" int4
+  "RACE_HAWAIIAN" int4
+  "RACE_WHITE" int4
+  "SEX" int4
+  "REC_OASDI_INSURANCE" int4
+  "REC_FEDERAL_DISABILITY" int4
+  "REC_AID_TOTALLY_DISABLED" int4
+  "REC_AID_AGED_BLIND" int4
+  "REC_SSI" int4
+  "MARITAL_STATUS" int4
+  "RELATIONSHIP_HOH" varchar(2)
+  "PARENT_MINOR_CHILD" int4
+  "NEEDS_OF_PREGNANT_WOMAN" int4
+  "EDUCATION_LEVEL" varchar(2)
+  "CITIZENSHIP_STATUS" int4
+  "COUNTABLE_MONTH_FED_TIME" varchar(3)
+  "COUNTABLE_MONTHS_STATE_TRIBE" varchar(2)
+  "EMPLOYMENT_STATUS" int4
+  "AMOUNT_EARNED_INCOME" varchar(4)
+  "AMOUNT_UNEARNED_INCOME" varchar(4)
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t5_datafile_id_05c11aa4"]
+  }
+}
+
+Table "shadow_search_indexes_tribal_tanf_t6" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "NUM_APPLICATIONS" int4
+  "NUM_APPROVED" int4
+  "NUM_DENIED" int4
+  "ASSISTANCE" int4
+  "NUM_FAMILIES" int4
+  "NUM_2_PARENTS" int4
+  "NUM_1_PARENTS" int4
+  "NUM_NO_PARENTS" int4
+  "NUM_RECIPIENTS" int4
+  "NUM_ADULT_RECIPIENTS" int4
+  "NUM_CHILD_RECIPIENTS" int4
+  "NUM_NONCUSTODIALS" int4
+  "NUM_BIRTHS" int4
+  "NUM_OUTWEDLOCK_BIRTHS" int4
+  "NUM_CLOSED_CASES" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t6_datafile_id_a88363d3"]
+  }
+}
+
+Table "shadow_search_indexes_tribal_tanf_t7" {
+  "line_number" int4
+  "id" uuid [pk, not null]
+  "RecordType" varchar(156)
+  "CALENDAR_QUARTER" int4
+  "RPT_MONTH_YEAR" int4
+  "TDRS_SECTION_IND" varchar(1)
+  "STRATUM" varchar(2)
+  "FAMILIES_MONTH" int4
+  "datafile_id" int4
+
+  Indexes {
+    datafile_id [type: btree, name: "shadow_search_indexes_tribal_tanf_t7_datafile_id_58ac9b36"]
+  }
+}
+

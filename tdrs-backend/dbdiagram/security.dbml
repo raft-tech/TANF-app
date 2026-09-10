@@ -1,0 +1,51 @@
+// tdpservice.security app: ClamAV/ZAP scans and security event tokens
+
+Table "security_clamavfilescan" {
+  "id" int8 [pk, not null, increment]
+  "scanned_at" timestamptz [not null]
+  "file_name" text [not null]
+  "file_size" int8 [not null, check: `file_size >= 0`]
+  "file_shasum" text [not null]
+  "result" varchar(12) [not null]
+  "data_file_id" int4
+  "uploaded_by_id" uuid
+
+  Indexes {
+    data_file_id [type: btree, name: "security_clamavfilescan_data_file_id_537e4a13"]
+    uploaded_by_id [type: btree, name: "security_clamavfilescan_uploaded_by_id_96d3eaca"]
+  }
+}
+
+Table "security_owaspzapscan" {
+  "id" int8 [pk, not null, increment]
+  "app_target" varchar(32) [not null]
+  "html_report" varchar(100) [not null]
+  "scanned_at" timestamptz [not null]
+  "fail_count" int2 [not null, check: `fail_count >= 0`]
+  "pass_count" int4 [not null, check: `pass_count >= 0`]
+  "warn_count" int4 [not null, check: `warn_count >= 0`]
+}
+
+Table "security_securityeventtoken" {
+  "id" uuid [pk, not null]
+  "email" varchar(254)
+  "event_type" varchar(255) [not null]
+  "event_data" jsonb [not null]
+  "jwt_id" varchar(255) [unique, not null]
+  "issuer" varchar(255) [not null]
+  "issued_at" timestamptz [not null]
+  "received_at" timestamptz [not null]
+  "processed" bool [not null]
+  "processed_at" timestamptz
+  "user_id" uuid
+
+  Indexes {
+    email [type: btree, name: "security_se_email_73d459_idx"]
+    event_type [type: btree, name: "security_se_event_t_078976_idx"]
+    processed [type: btree, name: "security_se_process_63267b_idx"]
+    user_id [type: btree, name: "security_se_user_id_3fc9c6_idx"]
+    jwt_id [type: btree, name: "security_securityeventtoken_jwt_id_f19dbaf2_like"]
+    user_id [type: btree, name: "security_securityeventtoken_user_id_e5fd310c"]
+  }
+}
+
