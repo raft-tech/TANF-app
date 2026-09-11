@@ -128,6 +128,8 @@ def queue_go_parse(
             },
             level="exception",
         )
+        if table_mode == GoParserMode.GO_ONLY:
+            raise
 
 
 def queue_parse(data_file_id: int, reparse_id: int | None = None) -> None:

@@ -362,6 +362,32 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
         assert not ShadowDataFile.objects.filter(id=data_file.id).exists()
 
+    def test_go_only_queue_failure_returns_server_error(
+        self, api_client, data_file_data, user, mocker
+    ):
+        """Do not report a successful upload when its only parser was not queued."""
+        FeatureFlag.objects.create(
+            feature_name=parser_task.GO_PARSER_FEATURE_FLAG,
+            type=FeatureFlag.Type.RANDOM_ROLLOUT,
+            enabled=True,
+            rollout_percentage=100,
+            config={"mode": "go-only"},
+        )
+        mock_python_parse = mocker.patch(
+            "tdpservice.data_files.views.parser_task.parse.delay"
+        )
+        mock_go_parser_app = mocker.patch.object(parser_task, "current_app")
+        mock_go_parser_app.send_task.side_effect = RuntimeError("broker unavailable")
+        api_client.raise_request_exception = False
+
+        response = self.post_data_file(api_client, data_file_data)
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        mock_python_parse.assert_not_called()
+        data_file = DataFile.objects.get(slug=data_file_data["slug"])
+        assert data_file.parser_mode == parser_task.GoParserMode.GO_ONLY
+        assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
+
     def test_data_file_file_version_increment(
         self, api_client, data_file_data, other_data_file_data, user
     ):
