@@ -43,6 +43,21 @@ type celeryTaskSender interface {
 	Delay(task string, args ...interface{}) (*gocelery.AsyncResult, error)
 }
 
+// celeryTaskIDBroker adds the Celery envelope ID to the task arguments because
+// GoCelery's registered task handlers otherwise receive only the message args.
+type celeryTaskIDBroker struct {
+	gocelery.CeleryBroker
+}
+
+func (b *celeryTaskIDBroker) GetTaskMessage() (*gocelery.TaskMessage, error) {
+	message, err := b.CeleryBroker.GetTaskMessage()
+	if err != nil || message == nil {
+		return message, err
+	}
+	message.Args = append(message.Args, message.ID)
+	return message, nil
+}
+
 // New creates a celery mode runner. It connects to the database,
 // loads content types, and initializes the S3 client.
 func New(cfg *config.Config, reg *config.Registry, validators *validation.ValidatorRegistry) (*Server, error) {
@@ -110,7 +125,7 @@ func (s *Server) Run(parentCtx context.Context) error {
 	postParseBroker.QueueName = postParseQueueName
 
 	celeryClient, err := gocelery.NewCeleryClient(
-		broker,
+		&celeryTaskIDBroker{CeleryBroker: broker},
 		newRedisCeleryBackend(redisPool),
 		numWorkers,
 	)
@@ -131,7 +146,7 @@ func (s *Server) Run(parentCtx context.Context) error {
 	// The closure includes panic recovery so a single bad task cannot kill
 	// the worker goroutine.
 	taskCtx := context.WithoutCancel(parentCtx)
-	celeryClient.Register(taskName, func(dataFileID float64, reparseID float64, parseToken string) (result string) {
+	celeryClient.Register(taskName, func(dataFileID float64, reparseID float64, parseToken string, eventID string, celeryTaskID string) (result string) {
 		id := int32(dataFileID)
 		reparse := int32(reparseID)
 		parseError := ""
@@ -148,7 +163,7 @@ func (s *Server) Run(parentCtx context.Context) error {
 				result = parseError
 			}
 			postParseStart := time.Now()
-			if err := s.enqueuePostParseTask(postParseClient, id, reparse, parseError, parseToken); err != nil {
+			if err := s.enqueuePostParseTask(postParseClient, id, reparse, parseError, parseToken, eventID); err != nil {
 				logging.Error(taskCtx, "failed to enqueue post-parse task",
 					slog.Int(logging.KeyFileID, int(id)),
 					slog.Int("reparse_id", int(reparse)),
@@ -175,7 +190,13 @@ func (s *Server) Run(parentCtx context.Context) error {
 			slog.String(logging.KeyStage, "task_receive"),
 		)
 
-		if err := s.processTask(taskCtx, id, parseToken); err != nil {
+		if err := s.processTask(taskCtx, id, parseToken, db.DataFileStateTransitionContext{
+			EventID:       eventID,
+			Source:        "go_parser",
+			TaskName:      taskName,
+			CeleryTaskID:  celeryTaskID,
+			ReparseMetaID: reparse,
+		}); err != nil {
 			parseError = fmt.Sprintf("error: %v", err)
 			logging.Error(taskCtx, "parse task failed",
 				slog.Int(logging.KeyFileID, int(id)),
@@ -220,7 +241,7 @@ func (s *Server) Run(parentCtx context.Context) error {
 	return nil
 }
 
-func (s *Server) enqueuePostParseTask(client celeryTaskSender, dataFileID int32, reparseID int32, parseError string, parseToken string) error {
+func (s *Server) enqueuePostParseTask(client celeryTaskSender, dataFileID int32, reparseID int32, parseError string, parseToken string, eventID string) error {
 	task := s.Config.Server.Celery.PostParseTaskName
 	if task == "" {
 		task = postParseTaskName
@@ -231,13 +252,13 @@ func (s *Server) enqueuePostParseTask(client celeryTaskSender, dataFileID int32,
 		parseErrorArg = parseError
 	}
 
-	_, err := client.Delay(task, dataFileID, reparseID, parseErrorArg, parseToken)
+	_, err := client.Delay(task, dataFileID, reparseID, parseErrorArg, parseToken, eventID)
 	return err
 }
 
 // processTask handles a single parse task end-to-end:
 // DB lookup → S3 download → decode → pipeline → status update.
-func (s *Server) processTask(taskCtx context.Context, dataFileID int32, parseToken string) error {
+func (s *Server) processTask(taskCtx context.Context, dataFileID int32, parseToken string, transitionContext db.DataFileStateTransitionContext) error {
 	dataFileTable := config.DataFileTableName(s.Config.Database.EffectiveTablePrefix())
 
 	// 1. Look up datafile metadata from the database.
@@ -259,6 +280,12 @@ func (s *Server) processTask(taskCtx context.Context, dataFileID int32, parseTok
 		parseToken,
 	); err != nil {
 		return fmt.Errorf("failed to prepare shadow datafile summary: %w", err)
+	}
+	if dataFileTable == "shadow_data_files_datafile" {
+		transitionContext.Note = "Go shadow parsing started"
+		if err := db.UpdateShadowDataFileState(taskCtx, s.dbPool, dataFileTable, dataFileID, "parse_started", transitionContext); err != nil {
+			return fmt.Errorf("failed to record shadow parse start: %w", err)
+		}
 	}
 	// 2. Build the pipeline's DataFileContext from the DB record.
 	section := sectionNumber(df.Section)

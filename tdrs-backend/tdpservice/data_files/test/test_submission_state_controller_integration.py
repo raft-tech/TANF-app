@@ -9,7 +9,7 @@ from django.utils import timezone
 import pytest
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import ReparseFileMeta
+from tdpservice.data_files.models import DataFileStateTransition, ReparseFileMeta
 from tdpservice.data_files.submission_lifecycle import (
     StaleParseOwnership,
     begin_parse,
@@ -91,6 +91,18 @@ def test_timeout_stuck_reparse_flow_has_one_current_writer():
     assert reparse_file.finished is True
     assert reparse_file.success is True
     assert active_reparse_datafile_ids() == []
+    transitions = list(DataFileStateTransition.objects.for_object(data_file).order_by("id"))
+    assert [transition.next_state for transition in transitions] == [
+        SubmissionState.VIRUS_SCAN_STARTED,
+        SubmissionState.VIRUS_SCAN_COMPLETED,
+        SubmissionState.PARSE_STARTED,
+        SubmissionState.STUCK,
+        SubmissionState.REPARSE_REQUESTED,
+        SubmissionState.PARSE_STARTED,
+        SubmissionState.PARSE_COMPLETED,
+    ]
+    assert transitions[3].metadata["revoked_parse_token"] == str(stale_token)
+    assert transitions[-1].metadata["parse_token"] == str(current_token)
 
 
 @pytest.mark.django_db

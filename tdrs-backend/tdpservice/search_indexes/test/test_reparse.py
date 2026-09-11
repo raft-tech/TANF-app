@@ -728,7 +728,7 @@ def test_handle_datafiles_persists_previous_summary_status(
 
     monkeypatch.setattr(
         "tdpservice.search_indexes.reparse.parser_task.parse.delay",
-        lambda file_id, reparse_id=None, parse_token=None: delay_calls.append(
+        lambda file_id, reparse_id=None, parse_token=None, event_id=None: delay_calls.append(
             (file_id, reparse_id)
         ),
     )
@@ -747,7 +747,9 @@ def test_handle_datafiles_persists_previous_summary_status(
     )
 
     assert file_meta.previous_summary_status == DataFileSummary.Status.ACCEPTED
-    assert delay_calls == [(big_file.pk, meta_model.pk)]
+    assert [(file_id, reparse_id) for file_id, reparse_id, _ in delay_calls] == [
+        (big_file.pk, meta_model.pk)
+    ]
 
 
 @pytest.mark.django_db

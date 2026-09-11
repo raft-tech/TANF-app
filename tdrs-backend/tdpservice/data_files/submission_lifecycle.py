@@ -4,11 +4,13 @@ import logging
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Callable, Dict, Iterable, Iterator
+from typing import Any, Callable, Dict, Iterable, Iterator
 from uuid import UUID
 
 from django.db import transaction
 from django.utils import timezone
+
+from celery import current_task
 
 from tdpservice.data_files.enums import SubmissionState
 
@@ -17,11 +19,18 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class TransitionRecord:
-    """Describe a validated submission state transition."""
+    """In-memory record of a single submission state transition."""
 
     previous_state: SubmissionState
     next_state: SubmissionState
+    event_id: Any | None = None
     note: str = ""
+    metadata: dict | None = None
+    actor: Any | None = None
+    source: str | None = None
+    task_name: str | None = None
+    celery_task_id: str | None = None
+    reparse_meta_id: int | None = None
 
 
 class InvalidTransition(ValueError):
@@ -175,6 +184,7 @@ def _emit_transition_log(
         "next_state": transition.next_state.value,
         "note": transition.note,
     }
+    payload.update(transition.metadata or {})
     if log_fields:
         payload.update(log_fields)
     if logger_hook is not None:
@@ -185,17 +195,19 @@ def _emit_transition_log(
         logger.info("DataFile submission state transition", extra=payload)
 
 
-def _apply_transition_locked(data_file, next_state, *, note: str = "") -> TransitionRecord:
-    """Persist a validated transition while the caller holds the DataFile lock."""
-    transition = validate_transition(data_file.state, next_state)
-    transition = TransitionRecord(
-        transition.previous_state,
-        transition.next_state,
-        note,
+def _apply_transition_locked(
+    data_file, next_state, *, note: str = "", **audit_context
+) -> TransitionRecord:
+    """Persist a validated state and audit row under the caller's DataFile lock."""
+    validate_transition(data_file.state, next_state)
+    transition = _transition_from_values(
+        data_file=data_file,
+        previous_state=data_file.state,
+        next_state=next_state,
+        note=note,
+        **audit_context,
     )
-    data_file.state = transition.next_state
-    data_file.state_changed_at = timezone.now()
-    data_file.save(update_fields=["state", "state_changed_at"])
+    _save_transition_locked(data_file, transition)
     return transition
 
 
@@ -203,19 +215,29 @@ def _force_reparse_revert_locked(
     data_file,
     target_state: SubmissionState,
     note: str,
+    **audit_context,
 ) -> TransitionRecord:
     """Apply the controller's explicit pre-destructive reparse rollback."""
-    previous_state = coerce_submission_state(data_file.state)
-    data_file.state = target_state
-    data_file.state_changed_at = timezone.now()
-    data_file.save(update_fields=["state", "state_changed_at"])
-    return TransitionRecord(previous_state, target_state, note)
+    transition = _transition_from_values(
+        data_file=data_file,
+        previous_state=data_file.state,
+        next_state=target_state,
+        note=note,
+        **audit_context,
+    )
+    _save_transition_locked(data_file, transition)
+    return transition
 
 
 def start_datafile_av_scan(
     data_file,
     note: str = "virus scan started",
     logger_hook: Callable | None = None,
+    *,
+    actor=None,
+    source: str | None = None,
+    event_id: UUID | str | None = None,
+    log_fields: dict | None = None,
 ):
     """Record that the upload controller started AV scanning."""
     with transaction.atomic():
@@ -224,6 +246,10 @@ def start_datafile_av_scan(
             locked,
             SubmissionState.VIRUS_SCAN_STARTED,
             note=note,
+            actor=actor,
+            source=source,
+            event_id=event_id,
+            log_fields=log_fields,
         )
     data_file.state = transition.next_state
     data_file.state_changed_at = locked.state_changed_at
@@ -262,6 +288,11 @@ def complete_datafile_av_scan(
     note: str = "",
     logger_hook: Callable | None = None,
     strict: bool = False,
+    *,
+    actor=None,
+    source: str | None = None,
+    event_id: UUID | str | None = None,
+    log_fields: dict | None = None,
 ):
     """Apply an idempotent AV result through the lifecycle controller."""
     target_state = _next_state_for_scan_result(scan_result)
@@ -283,6 +314,10 @@ def complete_datafile_av_scan(
                 locked,
                 target_state,
                 note=note or "Applied AV scan completion result.",
+                actor=actor,
+                source=source,
+                event_id=event_id,
+                log_fields={**(log_fields or {}), "scan_result": normalized_scan_result},
             )
 
     data_file.state = locked.state
@@ -317,6 +352,11 @@ def prepare_datafile_for_reparse(
     data_file,
     note: str = "admin reparse requested",
     logger_hook: Callable | None = None,
+    *,
+    actor=None,
+    source: str | None = None,
+    event_id: UUID | str | None = None,
+    log_fields: dict | None = None,
 ):
     """Request a safe reparse without allowing the caller to select state."""
     from tdpservice.etl.pipelines.sources import (
@@ -347,6 +387,10 @@ def prepare_datafile_for_reparse(
             locked,
             SubmissionState.REPARSE_REQUESTED,
             note=note,
+            actor=actor,
+            source=source,
+            event_id=event_id or uuid.uuid4(),
+            log_fields=log_fields,
         )
 
     data_file.state = transition.next_state
@@ -355,7 +399,15 @@ def prepare_datafile_for_reparse(
     return data_file, True
 
 
-def revert_reparse_request(data_file, original_state, note: str = "") -> bool:
+def revert_reparse_request(
+    data_file,
+    original_state,
+    note: str = "",
+    *,
+    actor=None,
+    source: str | None = None,
+    event_id: UUID | str | None = None,
+) -> bool:
     """Conditionally revert a failed pre-destructive reparse request."""
     target_state = coerce_submission_state(original_state)
     if target_state not in REPARSE_REQUESTABLE_STATES:
@@ -376,7 +428,14 @@ def revert_reparse_request(data_file, original_state, note: str = "") -> bool:
                 },
             )
             return False
-        transition = _force_reparse_revert_locked(locked, target_state, note)
+        transition = _force_reparse_revert_locked(
+            locked,
+            target_state,
+            note,
+            actor=actor,
+            source=source,
+            event_id=event_id or get_reparse_event_id(locked),
+        )
 
     data_file.state = transition.next_state
     data_file.state_changed_at = locked.state_changed_at
@@ -428,6 +487,7 @@ def begin_parse(
     parse_token,
     reparse_file_meta=None,
     actor: str = "python_parser",
+    event_id: UUID | str | None = None,
 ):
     """Start the current claimed parse and transition to PARSE_STARTED."""
     normalized_token = _coerce_parse_token(parse_token)
@@ -441,6 +501,10 @@ def begin_parse(
             locked,
             SubmissionState.PARSE_STARTED,
             note="parsing started",
+            source=actor,
+            event_id=event_id,
+            reparse_meta_id=(reparse_file_meta.reparse_meta_id if reparse_file_meta else None),
+            log_fields={"parse_token": str(normalized_token)},
         )
         if reparse_file_meta is not None:
             if reparse_file_meta.data_file_id != locked.id:
@@ -494,6 +558,7 @@ def record_parse_dispatch_failure(
     parse_token,
     reparse_file_meta=None,
     note: str = "parser task dispatch failed",
+    event_id: UUID | str | None = None,
 ) -> bool:
     """Release a claimed parse when the broker rejects dispatch."""
     normalized_token = _coerce_parse_token(parse_token)
@@ -507,6 +572,10 @@ def record_parse_dispatch_failure(
                 locked,
                 SubmissionState.PARSE_FAILED,
                 note=note,
+                source="parser_queue",
+                event_id=event_id,
+                reparse_meta_id=(reparse_file_meta.reparse_meta_id if reparse_file_meta else None),
+                log_fields={"parse_token": str(normalized_token)},
             )
         _clear_parse_token_locked(locked)
         _finish_reparse_locked(reparse_file_meta, success=False)
@@ -540,10 +609,14 @@ def record_parse_outcome(
     *,
     actor: str = "python_parser",
     log_fields: dict | None = None,
+    event_id: UUID | str | None = None,
+    reparse_meta_id: int | None = None,
+    task_name: str | None = None,
 ):
     """Record a successful technical parse and release parser ownership."""
     target_state = _target_state_for_summary_status(summary_status)
     normalized_token = _coerce_parse_token(parse_token)
+    fields = {"parse_token": str(normalized_token), **(log_fields or {})}
     with transaction.atomic():
         locked = _locked_data_file(data_file)
         if not _owns_parse(locked, normalized_token):
@@ -553,6 +626,11 @@ def record_parse_outcome(
         transition = _apply_transition_locked(
             locked,
             target_state,
+            source=actor,
+            event_id=event_id,
+            reparse_meta_id=reparse_meta_id,
+            task_name=task_name,
+            log_fields=fields,
             note=(
                 "parsing completed successfully"
                 if target_state == SubmissionState.PARSE_COMPLETED
@@ -578,9 +656,13 @@ def record_parse_failure(
     reparse_file_meta=None,
     actor: str = "python_parser",
     log_fields: dict | None = None,
+    event_id: UUID | str | None = None,
+    reparse_meta_id: int | None = None,
+    task_name: str | None = None,
 ) -> bool:
     """Record a technical failure only for the current parser owner."""
     normalized_token = _coerce_parse_token(parse_token)
+    fields = {"parse_token": str(normalized_token), **(log_fields or {})}
     with transaction.atomic():
         locked = _locked_data_file(data_file)
         if not _owns_parse(locked, normalized_token):
@@ -588,6 +670,11 @@ def record_parse_failure(
         transition = _apply_transition_locked(
             locked,
             SubmissionState.PARSE_FAILED,
+            source=actor,
+            event_id=event_id,
+            reparse_meta_id=reparse_meta_id,
+            task_name=task_name,
+            log_fields=fields,
             note=note,
         )
         _clear_parse_token_locked(locked)
@@ -639,10 +726,14 @@ def mark_stuck(
             return data_file, False
 
         revoked_token = locked.current_parse_token
+        log_fields = (
+            {"revoked_parse_token": str(revoked_token)} if revoked_token else None
+        )
         transition = _apply_transition_locked(
             locked,
             SubmissionState.STUCK,
             note=note,
+            log_fields=log_fields,
         )
         _clear_parse_token_locked(locked)
         ReparseFileMeta.objects.filter(
@@ -700,21 +791,41 @@ def assert_parse_owner(data_file_id: int, parse_token) -> None:
         )
 
 
-def record_shadow_parse_state(data_file, next_state, note: str = ""):
-    """Keep non-authoritative shadow state writes inside the controller module."""
-    transition = validate_transition(data_file.state, next_state)
-    data_file.state = transition.next_state
-    data_file.state_changed_at = timezone.now()
-    data_file.save(update_fields=["state", "state_changed_at"])
-    logger.info(
-        "Shadow DataFile state transition",
-        extra={
-            "data_file_id": data_file.id,
-            "previous_state": transition.previous_state.value,
-            "next_state": transition.next_state.value,
-            "note": note,
-        },
-    )
+def record_shadow_parse_state(
+    data_file,
+    next_state,
+    note: str = "",
+    *,
+    source: str | None = None,
+    event_id: UUID | str | None = None,
+    reparse_meta_id: int | None = None,
+    task_name: str | None = None,
+    log_fields: dict | None = None,
+):
+    """Persist non-authoritative shadow state and its separate audit history."""
+    from tdpservice.data_files.models import ShadowDataFile
+
+    if not isinstance(data_file, ShadowDataFile):
+        raise ValueError("Shadow state transitions require a ShadowDataFile.")
+    with transaction.atomic():
+        locked = ShadowDataFile.objects.select_for_update().get(pk=data_file.pk)
+        if locked.state == next_state:
+            data_file.state = locked.state
+            data_file.state_changed_at = locked.state_changed_at
+            return data_file
+        transition = _apply_transition_locked(
+            locked,
+            next_state,
+            note=note,
+            source=source,
+            event_id=event_id,
+            reparse_meta_id=reparse_meta_id,
+            task_name=task_name,
+            log_fields=log_fields,
+        )
+    data_file.state = locked.state
+    data_file.state_changed_at = locked.state_changed_at
+    _emit_transition_log(transition, data_file.id, None, None)
     return data_file
 
 
@@ -725,9 +836,14 @@ def record_synthetic_import_completed(data_file) -> bool:
         previous_state = coerce_submission_state(locked.state)
         if previous_state == SubmissionState.PARSE_COMPLETED:
             return False
-        locked.state = SubmissionState.PARSE_COMPLETED
-        locked.state_changed_at = timezone.now()
-        locked.save(update_fields=["state", "state_changed_at"])
+        transition = _transition_from_values(
+            data_file=locked,
+            previous_state=previous_state,
+            next_state=SubmissionState.PARSE_COMPLETED,
+            note="Synthetic statistical test-data import completed",
+            source="management_command",
+        )
+        _save_transition_locked(locked, transition)
     data_file.state = SubmissionState.PARSE_COMPLETED
     data_file.state_changed_at = locked.state_changed_at
     logger.info(
@@ -739,3 +855,150 @@ def record_synthetic_import_completed(data_file) -> bool:
         },
     )
     return True
+
+
+def _active_celery_task_context():
+    """Return task-correlation values for the current Celery task, if present."""
+    try:
+        request = getattr(current_task, "request", None)
+        task_name = getattr(current_task, "name", None)
+    except Exception:
+        return None, None
+    celery_task_id = getattr(request, "id", None) if request is not None else None
+    return task_name, celery_task_id
+
+
+def _resolve_task_context(task_name, celery_task_id):
+    """Use explicit task context or fall back to the active Celery task."""
+    inferred_task_name, inferred_celery_task_id = _active_celery_task_context()
+    return task_name or inferred_task_name, celery_task_id or inferred_celery_task_id
+
+
+def _build_transition_payload(
+    *,
+    data_file,
+    previous_state,
+    next_state,
+    note,
+    log_fields,
+    source,
+    task_name,
+    celery_task_id,
+    reparse_meta_id,
+    event_id,
+):
+    """Build the structured lifecycle payload shared by logs and persistence."""
+    log_payload = {
+        "data_file_id": data_file.id,
+        "previous_state": previous_state.value,
+        "next_state": next_state.value,
+        "note": note,
+    }
+    if log_fields:
+        log_payload.update(log_fields)
+    if source:
+        log_payload["source"] = source
+    if task_name:
+        log_payload["task_name"] = task_name
+    if celery_task_id:
+        log_payload["celery_task_id"] = celery_task_id
+    if reparse_meta_id is not None:
+        log_payload["reparse_meta_id"] = reparse_meta_id
+    if event_id is not None:
+        log_payload["event_id"] = str(event_id)
+
+    return log_payload
+
+
+def _transition_from_values(
+    *,
+    data_file,
+    previous_state,
+    next_state,
+    note="",
+    actor=None,
+    log_fields=None,
+    source=None,
+    task_name=None,
+    celery_task_id=None,
+    reparse_meta_id=None,
+    event_id=None,
+):
+    """Create an in-memory transition from explicit state values."""
+    previous_state = coerce_submission_state(previous_state)
+    next_state = coerce_submission_state(next_state)
+    task_name, celery_task_id = _resolve_task_context(task_name, celery_task_id)
+    metadata = _build_transition_payload(
+        data_file=data_file,
+        previous_state=previous_state,
+        next_state=next_state,
+        note=note,
+        log_fields=log_fields,
+        source=source,
+        task_name=task_name,
+        celery_task_id=celery_task_id,
+        reparse_meta_id=reparse_meta_id,
+        event_id=event_id,
+    )
+    return TransitionRecord(
+        previous_state=previous_state,
+        next_state=next_state,
+        event_id=event_id,
+        note=note,
+        metadata=metadata,
+        actor=actor,
+        source=source,
+        task_name=task_name,
+        celery_task_id=celery_task_id,
+        reparse_meta_id=reparse_meta_id,
+    )
+
+
+def persist_datafile_state_transition(data_file, transition):
+    """Persist a DataFile state transition audit record."""
+    from tdpservice.data_files.models import DataFileStateTransition
+
+    actor = transition.actor
+    if actor is not None and not getattr(actor, "is_authenticated", True):
+        actor = None
+
+    transition_fields = {
+        "previous_state": transition.previous_state.value,
+        "next_state": transition.next_state.value,
+        "event_type": DataFileStateTransition.EVENT_TYPE,
+        "note": transition.note,
+        "metadata": transition.metadata or {},
+        "actor": actor,
+        "source": transition.source,
+        "task_name": transition.task_name,
+        "celery_task_id": transition.celery_task_id,
+        "reparse_meta_id": transition.reparse_meta_id,
+    }
+    if transition.event_id is not None:
+        transition_fields["event_id"] = transition.event_id
+
+    DataFileStateTransition.objects.create_for_object(data_file, **transition_fields)
+
+
+def get_reparse_event_id(data_file):
+    """Return the current reparse attempt ID, creating one when none is logged."""
+    from tdpservice.data_files.models import DataFileStateTransition
+
+    if coerce_submission_state(data_file.state) == SubmissionState.REPARSE_REQUESTED:
+        transition = (
+            DataFileStateTransition.objects.for_object(data_file)
+            .filter(next_state=SubmissionState.REPARSE_REQUESTED)
+            .first()
+        )
+        if transition is not None:
+            return transition.event_id
+
+    return uuid.uuid4()
+
+
+def _save_transition_locked(data_file, transition: TransitionRecord) -> None:
+    """Save the state timestamp and history in the caller's transaction."""
+    data_file.state = transition.next_state
+    data_file.state_changed_at = timezone.now()
+    data_file.save(update_fields=["state", "state_changed_at"])
+    persist_datafile_state_transition(data_file, transition)

@@ -343,7 +343,7 @@ class Command(BaseCommand):
                 f"No STT with stt_code={stt_code} exists for {spec.record_type}."
             )
 
-        datafile, created = DataFile.objects.get_or_create(
+        datafile, _created = DataFile.objects.get_or_create(
             program_type=DataFile.ProgramType.TANF,
             section=spec.section,
             version=self.version,
@@ -355,7 +355,7 @@ class Command(BaseCommand):
                 "original_filename": self._synthetic_filename(spec, stt_code, quarter),
                 "slug": self._synthetic_slug(spec, stt_code, quarter),
                 "extension": "csv",
-                "state": SubmissionState.PARSE_COMPLETED,
+                "state": SubmissionState.UPLOADED,
                 "user": importer,
                 "file": None,
                 "s3_versioning_id": None,
@@ -367,7 +367,7 @@ class Command(BaseCommand):
                 f"{spec.record_type} FY{self.fiscal_year} {stt_code} {quarter} "
                 f"version {self.version}. Choose a different --datafile-version."
             )
-        if not created and datafile.state != SubmissionState.PARSE_COMPLETED:
+        if datafile.state != SubmissionState.PARSE_COMPLETED:
             record_synthetic_import_completed(datafile)
 
         self.datafile_ids[key] = datafile.id

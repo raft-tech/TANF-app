@@ -8,7 +8,10 @@ from django.db.utils import DatabaseError
 
 from tdpservice.core.utils import log
 from tdpservice.data_files.models import DataFile, ReparseFileMeta
-from tdpservice.data_files.submission_lifecycle import prepare_datafile_for_reparse
+from tdpservice.data_files.submission_lifecycle import (
+    get_reparse_event_id,
+    prepare_datafile_for_reparse,
+)
 from tdpservice.parsers.models import DataFileSummary
 from tdpservice.scheduling import parser_task
 from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
@@ -59,7 +62,11 @@ def handle_datafiles(files, meta_model, log_context, previous_summary_statuses=N
                 reparse_meta=meta_model,
                 previous_summary_status=previous_summary_statuses.get(file.pk),
             )
-            parser_task.queue_parse(file.pk, reparse_id=meta_model.pk)
+            parser_task.queue_parse(
+                file.pk,
+                reparse_id=meta_model.pk,
+                event_id=get_reparse_event_id(file),
+            )
         except DatabaseError as e:
             log(
                 "Encountered a DatabaseError while re-creating datafiles. The database "
