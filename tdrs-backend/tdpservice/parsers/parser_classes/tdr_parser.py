@@ -44,6 +44,14 @@ class TanfDataReportParser(BaseParser):
 
     def parse_and_validate(self):
         """Parse and validate the datafile."""
+        try:
+            with self.datafile.file.open():
+                return self._parse_and_validate_file()
+        finally:
+            self.close()
+
+    def _parse_and_validate_file(self):
+        """Parse and validate the opened datafile."""
         header_result = self._validate_header()
         if not header_result.is_valid:
             return
