@@ -4,6 +4,9 @@ import json
 import logging
 from typing import Any, Dict
 
+from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
+
 from tdpservice.alerts.alertmanager import send_alert
 from tdpservice.core.models import BaseLog
 
@@ -116,7 +119,7 @@ class RequestParamMismatchMiddleware:
             "is_file_upload": is_file_upload,
         }
         if actor:
-            metadata["user_id"] = actor.id
+            metadata["user_id"] = str(actor.id)
             metadata["username"] = username
 
         logger.warning(
@@ -128,14 +131,27 @@ class RequestParamMismatchMiddleware:
         )
 
         try:
-            BaseLog.objects.create_for_object(
-                obj=actor,
-                event_type="request_param_mismatch",
-                note=f"Request parameter mismatch on {request.method} {path}",
-                metadata=metadata,
-                actor=actor,
-                source="middleware",
-            )
+            if actor:
+                BaseLog.objects.create_for_object(
+                    obj=actor,
+                    event_type="request_param_mismatch",
+                    note=f"Request parameter mismatch on {request.method} {path}",
+                    metadata=metadata,
+                    actor=actor,
+                    source="middleware",
+                )
+            else:
+                user_model = get_user_model()
+                content_type = ContentType.objects.get_for_model(user_model)
+                BaseLog.objects.create(
+                    content_type=content_type,
+                    object_id="anonymous",
+                    event_type="request_param_mismatch",
+                    note=f"Request parameter mismatch on {request.method} {path}",
+                    metadata=metadata,
+                    actor=None,
+                    source="middleware",
+                )
         except Exception as exc:
             logger.warning("Failed to save BaseLog for request param mismatch: %s", exc)
 
