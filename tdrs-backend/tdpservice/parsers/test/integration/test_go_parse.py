@@ -24,7 +24,6 @@ from tdpservice.parsers.models import (
     ParserErrorCategoryChoices,
 )
 from tdpservice.parsers.test.factories import ParsingFileFactory
-from tdpservice.scheduling import parser_task
 from tdpservice.search_indexes.models.fra import TANF_Exiter1
 from tdpservice.search_indexes.models.ssp import (
     SSP_M1,
