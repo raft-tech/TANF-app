@@ -59,6 +59,19 @@ class BaseDecoder(ABC):
         """To be implemented in child class."""
         pass
 
+    def close(self):
+        """Close the decoder and release underlying file handles."""
+        if hasattr(self, "raw_file") and self.raw_file and not getattr(self.raw_file, "closed", True):
+            self.raw_file.close()
+
+    def __enter__(self):
+        """Enter context manager."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit context manager and close decoder."""
+        self.close()
+
 
 class Utf8Decoder(BaseDecoder):
     """Decoder for UTF-8 files."""
@@ -162,17 +175,23 @@ class CsvDecoder(BaseDecoder):
                 record_type=record_type,
             )
 
-    def __del__(self):
-        """Close and delete the file when destructed."""
+    def close(self):
+        """Close and delete local file instance, and close raw_file."""
         try:
-            self.local_file.close()
-            if os.path.exists(self.local_file.name):
+            if self.local_file and not getattr(self.local_file, "closed", True):
+                self.local_file.close()
+            if self.local_file and hasattr(self.local_file, "name") and os.path.exists(self.local_file.name):
                 os.remove(self.local_file.name)
-                assert os.path.exists(self.local_file.name) is False
         except Exception:
             logger.exception(
                 "Encountered exception while closing and deleting file instance."
             )
+        finally:
+            super().close()
+
+    def __del__(self):
+        """Close and delete the file when destructed."""
+        self.close()
 
 
 class XlsxDecoder(BaseDecoder):
@@ -218,6 +237,16 @@ class XlsxDecoder(BaseDecoder):
                 row_num=self.current_row_num,
                 record_type=record_type,
             )
+
+    def close(self):
+        """Close workbook and close raw_file."""
+        try:
+            if hasattr(self, "work_book") and self.work_book:
+                self.work_book.close()
+        except Exception:
+            logger.exception("Encountered exception while closing XLSX workbook.")
+        finally:
+            super().close()
 
 
 class DecoderFactory:
