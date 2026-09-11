@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { Navigate } from 'react-router-dom'
 
 import { setMockLoginState } from '../../actions/auth'
 
@@ -8,11 +7,12 @@ import loginLogo from '../../assets/login-gov-logo.svg'
 import Button from '../Button'
 import ResourceCards from '../ResourceCards'
 import LinkComponent from '../Link'
+import PostLoginRedirect from '../LoginCallback/PostLoginRedirect'
 
 /**
  * SplashPage renders the Welcome page for the TANF Data Portal
  * for an unauthenticated user. If a user logs in, they are automatically
- * redirected to `/profile`.
+ * redirected to their requested page, or `/home` for a normal sign-in.
  */
 function SplashPage() {
   const authenticated = useSelector((state) => state.auth.authenticated)
@@ -52,15 +52,15 @@ function SplashPage() {
     return Math.floor(Math.random() * 3 + 1)
   }
 
+  if (authLoading) {
+    return null
+  }
+
   // Pa11y is not testing out authentication logic, by passing all auth checks
   // during Pa11y tests allows us to just point to a page in the config like
   // we have been doing.
   if (authenticated && !process.env.REACT_APP_PA11Y_TEST) {
-    return <Navigate to="/home" />
-  }
-
-  if (authLoading) {
-    return null
+    return <PostLoginRedirect />
   }
 
   return (

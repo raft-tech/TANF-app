@@ -47,6 +47,12 @@ Same as above, except:
 
 Users with `@acf.hhs.gov` email addresses **must** authenticate via AMS, not Login.gov. This is enforced in `KeycloakOIDCBackend.verify_claims()` — if the email ends with `@acf.hhs.gov` and the `identity_provider` claim is `login-gov`, the authentication is rejected.
 
+### Returning to a Requested Page
+
+When a signed-out user opens a protected frontend page, `PrivateRoute` saves its path, query string, and fragment in the tab's `sessionStorage` before routing to the sign-in page. This survives refreshes and the Login.gov or AMS round trip while keeping separate tabs' destinations independent.
+
+After authentication finishes, `PostLoginRedirect` restores the saved destination from either the legacy `/login` callback or the Keycloak `/` landing page, then removes it from storage. The destination must be a local path and cannot point back to the sign-in or callback page. Without a valid saved destination, the user goes to `/home`. The destination's normal permission and account approval checks still apply; the legacy ACF OCIO redirect to the admin site takes precedence. Failed sign-ins retain the destination for a retry. If browser storage is unavailable, sign-in continues with the usual `/home` destination.
+
 ## System Architecture
 
 ### Environment Topology
