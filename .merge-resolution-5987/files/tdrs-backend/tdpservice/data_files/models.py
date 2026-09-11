@@ -1,0 +1,624 @@
+"""Define data file models."""
+
+import logging
+import os
+from hashlib import sha256
+from io import StringIO
+from typing import Union
+
+from django.conf import settings
+from django.contrib.admin.models import ADDITION, LogEntry
+from django.contrib.contenttypes.models import ContentType
+from django.core.files.base import File
+from django.db import models
+from django.db.models import Max
+from django.utils import timezone
+from django.utils.html import format_html
+
+from tdpservice.backends import DataFilesS3Storage
+from tdpservice.common.fields import S3VersionedFileField
+from tdpservice.common.models import FileRecord
+from tdpservice.common.shadow_models import create_shadow_model
+from tdpservice.core.models import BaseLog
+from tdpservice.data_files.enums import SubmissionState
+from tdpservice.data_files.util import (
+    create_legacy_s3_log_file_path,
+    create_s3_log_file_path,
+)
+from tdpservice.stts.models import STT
+from tdpservice.users.models import User
+
+logger = logging.getLogger(__name__)
+
+
+class Program(models.Model):
+    """A model representing a reporting program."""
+
+    code = models.CharField(max_length=32, unique=True)
+    slug = models.SlugField(max_length=50, unique=True)
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        """Return the program name."""
+        return self.name
+
+
+class Section(models.Model):
+    """A model representing a reporting section for a program."""
+
+    program = models.ForeignKey(
+        Program, on_delete=models.CASCADE, related_name="sections"
+    )
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        """Metadata."""
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=["program", "name"], name="section_uniq_program_name"
+            ),
+        ]
+
+    def __str__(self):
+        """Return the section name."""
+        return f"{self.program.name} - {self.name}"
+
+    @classmethod
+    def from_legacy_values(cls, program_code: str, section_name: str) -> "Section":
+        """Resolve a canonical section from legacy DataFile values."""
+        return cls.objects.get(program__code=program_code, name=section_name)
+
+
+def get_file_shasum(file: Union[File, StringIO]) -> str:
+    """Derive the SHA256 checksum of a file."""
+    _hash = sha256()
+
+    # If the file has the `open` method it needs to be called, otherwise this
+    # input is a file-like object (ie. StringIO) and doesn't need to be opened.
+    if hasattr(file, "open"):
+        f = file.open("rb")
+    else:
+        f = file
+
+    # For large files we need to read it in by chunks to prevent invalid hashes
+    if hasattr(f, "multiple_chunks") and f.multiple_chunks():
+        for chunk in f.chunks():
+            _hash.update(chunk)
+    else:
+        content = f.read()
+
+        # If the content is returned as a string we must encode it to bytes
+        # or an error will be raised.
+        if isinstance(content, str):
+            content = content.encode("utf-8")
+
+        _hash.update(content)
+
+    # Ensure to reset the file so it can be read in further operations.
+    f.seek(0)
+
+    return _hash.hexdigest()
+
+
+def get_s3_upload_path(instance, filename):
+    """Produce a unique upload path for S3 files for a given STT and Quarter."""
+    return os.path.join(
+        f"data_files/{instance.year}/{instance.quarter}/{instance.stt.id}/{instance.program_type}/{instance.section}/",
+        filename,
+    )
+
+
+class ReparseFileMeta(models.Model):
+    """Meta data model representing a single file parse within a reparse execution."""
+
+    data_file = models.ForeignKey(
+        "data_files.DataFile",
+        on_delete=models.CASCADE,
+        related_name="reparse_file_metas",
+    )
+    reparse_meta = models.ForeignKey(
+        "search_indexes.ReparseMeta",
+        on_delete=models.CASCADE,
+        related_name="reparse_file_metas",
+    )
+
+    finished = models.BooleanField(default=False)
+    success = models.BooleanField(default=False)
+    started_at = models.DateTimeField(auto_now_add=False, null=True)
+    finished_at = models.DateTimeField(auto_now_add=False, null=True)
+    previous_summary_status = models.CharField(max_length=50, null=True, blank=True)
+
+    num_records_created = models.PositiveIntegerField(default=0)
+    cat_4_errors_generated = models.PositiveIntegerField(default=0)
+
+
+class DataFile(FileRecord):
+    """Represents a version of a data file."""
+
+    class ProgramType(models.TextChoices):
+        """Enum for data file program type."""
+
+        TANF = "TAN"
+        SSP = "SSP"
+        TRIBAL = "TRIBAL"
+        FRA = "FRA"
+
+    class Section(models.TextChoices):
+        """Enum for data file section."""
+
+        ACTIVE_CASE_DATA = "Active Case Data"
+        CLOSED_CASE_DATA = "Closed Case Data"
+        AGGREGATE_DATA = "Aggregate Data"
+        STRATUM_DATA = "Stratum Data"
+
+        FRA_WORK_OUTCOME_TANF_EXITERS = "Work Outcomes of TANF Exiters"
+        FRA_SECONDRY_SCHOOL_ATTAINMENT = "Secondary School Attainment"
+        FRA_SUPPLEMENT_WORK_OUTCOMES = "Supplemental Work Outcomes"
+
+        @classmethod
+        def is_fra(cls, section: str) -> bool:
+            """Determine if the section is a FRA section."""
+            return section in [
+                cls.FRA_WORK_OUTCOME_TANF_EXITERS,
+                cls.FRA_SECONDRY_SCHOOL_ATTAINMENT,
+                cls.FRA_SUPPLEMENT_WORK_OUTCOMES,
+            ]
+
+    @staticmethod
+    def get_fra_section_list():
+        """Return FRA section list."""
+        return [
+            DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+            DataFile.Section.FRA_SECONDRY_SCHOOL_ATTAINMENT,
+            DataFile.Section.FRA_SUPPLEMENT_WORK_OUTCOMES,
+        ]
+
+    class Quarter(models.TextChoices):
+        """Enum for data file Quarter."""
+
+        Q1 = "Q1"
+        Q2 = "Q2"
+        Q3 = "Q3"
+        Q4 = "Q4"
+
+    class Meta:
+        """Metadata."""
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=(
+                    "program_type",
+                    "section",
+                    "version",
+                    "quarter",
+                    "year",
+                    "stt",
+                    "is_program_audit",
+                ),
+                name="constraint_name",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(state__in=SubmissionState.values),
+                name="datafile_valid_submission_state",
+            ),
+        ]
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    quarter = models.CharField(
+        max_length=16, blank=False, null=False, choices=Quarter.choices
+    )
+    year = models.IntegerField()
+
+    program_type = models.CharField(
+        max_length=32, blank=False, null=False, choices=ProgramType.choices
+    )
+    section = models.CharField(
+        max_length=32, blank=False, null=False, choices=Section.choices
+    )
+    section_ref = models.ForeignKey(
+        "data_files.Section",
+        on_delete=models.PROTECT,
+        related_name="data_files",
+        blank=True,
+        null=True,
+    )
+    is_program_audit = models.BooleanField(default=False)
+
+    version = models.IntegerField()
+    state = models.CharField(
+        max_length=32,
+        blank=False,
+        null=False,
+        choices=SubmissionState.choices,
+        default=SubmissionState.UPLOADED,
+    )
+    state_changed_at = models.DateTimeField(default=timezone.now)
+    current_parse_token = models.UUIDField(null=True, blank=True, editable=False)
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user", blank=False, null=False
+    )
+    stt = models.ForeignKey(
+        STT, on_delete=models.CASCADE, related_name="sttRef", blank=False, null=False
+    )
+
+    # NOTE: `file` is only temporarily nullable until we complete the issue:
+    # https://github.com/raft-tech/TANF-app/issues/755
+    file = S3VersionedFileField(
+        storage=DataFilesS3Storage,
+        upload_to=get_s3_upload_path,
+        version_id_field="s3_versioning_id",
+        null=True,
+        blank=True,
+    )
+
+    s3_versioning_id = models.CharField(max_length=1024, blank=False, null=True)
+
+    reparses = models.ManyToManyField(
+        "search_indexes.ReparseMeta",
+        through="data_files.ReparseFileMeta",
+        help_text="Reparse events this file has been associated with.",
+        related_name="files",
+    )
+
+    @property
+    def program(self):
+        """Return the program associated with the canonical section."""
+        if self.section_ref_id is None:
+            return None
+        return self.section_ref.program
+
+    @property
+    def filename(self):
+        """Return the correct filename for this data file."""
+        filename = self.stt.filenames.get(self.section, None)
+        if filename is not None:
+            return filename
+
+        program_type = (
+            self.program_type.title()
+            if self.program_type == DataFile.ProgramType.TRIBAL
+            else self.program_type
+        )
+        key = f"{program_type} {self.section}"
+        return self.stt.filenames.get(key, None)
+
+    @property
+    def s3_location(self):
+        """Return the S3 file location."""
+        location = None
+        if self.file:
+            location = self.file.name
+        return location
+
+    @property
+    def fiscal_year(self):
+        """Return a string representation of the data file's fiscal year."""
+        quarter_month_str = ""
+
+        match self.quarter:
+            case DataFile.Quarter.Q1:
+                quarter_month_str = "(Oct - Dec)"
+            case DataFile.Quarter.Q2:
+                quarter_month_str = "(Jan - Mar)"
+            case DataFile.Quarter.Q3:
+                quarter_month_str = "(Apr - Jun)"
+            case DataFile.Quarter.Q4:
+                quarter_month_str = "(Jul - Sep)"
+
+        return f"{self.year} - {self.quarter} {quarter_month_str}"
+
+    @property
+    def submitted_by(self):
+        """Return the author as a string for this data file."""
+        return self.user.get_full_name()
+
+    @property
+    def log_file(self):
+        """Generate S3 path for the log file."""
+        from tdpservice.log_handler import S3FileHandler
+
+        datafile = self
+        if not datafile:
+            return None
+        LOG_PRE_FIX = "v1/data_files/logs"
+        DOMAIN = settings.FRONTEND_BASE_URL
+
+        # Try the new per-parse path first, fall back to the legacy shared path
+        s3_path = create_s3_log_file_path(datafile)
+        if S3FileHandler.download_file(key=s3_path) is None:
+            s3_path = create_legacy_s3_log_file_path(datafile)
+
+        link = f"{LOG_PRE_FIX}/{s3_path}"
+        url = f"{DOMAIN}/{link}"
+        return format_html("<a href='{url}'>{field}</a>", field="Parser logs", url=url)
+
+    def admin_link(self):
+        """Return a link to the admin console for this file."""
+        return f"{settings.FRONTEND_BASE_URL}/admin/data_files/datafile/?id={self.pk}"
+
+    @classmethod
+    def create_new_version(self, data):
+        """Create a new version of a data file with an incremented version."""
+        # EDGE CASE
+        # We may need to try to get this all in one sql query
+        # if we ever encounter race conditions.
+        version = (
+            self.find_latest_version_number(
+                year=data["year"],
+                quarter=data["quarter"],
+                section=data["section"],
+                program_type=data["program_type"],
+                stt=data["stt"],
+                is_program_audit=data["is_program_audit"],
+            )
+            or 0
+        ) + 1
+
+        return DataFile.objects.create(
+            version=version,
+            **data,
+        )
+
+    @classmethod
+    def find_latest_version_number(
+        self, year, quarter, section, program_type, stt, is_program_audit
+    ):
+        """Locate the latest version number in a series of data files."""
+        return self.objects.filter(
+            stt=stt,
+            year=year,
+            quarter=quarter,
+            section=section,
+            program_type=program_type,
+            is_program_audit=is_program_audit,
+        ).aggregate(Max("version"))["version__max"]
+
+    @classmethod
+    def find_latest_version(
+        self, year, quarter, section, program_type, stt, is_program_audit
+    ):
+        """Locate the latest version of a data file."""
+        version = self.find_latest_version_number(
+            year, quarter, section, program_type, stt, is_program_audit
+        )
+
+        return self.objects.filter(
+            version=version,
+            year=year,
+            quarter=quarter,
+            section=section,
+            program_type=program_type,
+            stt=stt,
+            is_program_audit=is_program_audit,
+        ).first()
+
+    def save(self, *args, **kwargs):
+        """Populate the canonical section when legacy values are available."""
+        if self.section_ref_id is None:
+            self.section_ref = Section.from_legacy_values(
+                self.program_type,
+                self.section,
+            )
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"section_ref"}
+
+        return super().save(*args, **kwargs)
+
+    def __repr__(self):
+        """Return a string representation of the model."""
+        return (
+            f"{{id: {self.id}, filename: {self.original_filename}, STT: {self.stt}, S3 location: "
+            + f"{self.s3_location}}}"
+        )
+
+    def __str__(self):
+        """Return a string representation of the model."""
+        return f"filename: {self.original_filename}"
+
+
+class DataFileStateTransition(BaseLog):
+    """Persistent audit record for a DataFile submission state transition."""
+
+    EVENT_TYPE = "data_file_state_transition"
+
+    previous_state = models.CharField(
+        max_length=32,
+        choices=SubmissionState.choices,
+    )
+    next_state = models.CharField(
+        max_length=32,
+        choices=SubmissionState.choices,
+    )
+    reparse_meta_id = models.PositiveIntegerField(blank=True, null=True)
+
+    class Meta:
+        """Metadata."""
+
+        default_permissions = ()
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(
+                fields=["reparse_meta_id"],
+                name="data_files_reparse_4ba50f_idx",
+            ),
+        ]
+
+    @property
+    def data_file_id(self):
+        """Return the associated DataFile id stored by the generic log relation."""
+        try:
+            return int(self.object_id)
+        except (TypeError, ValueError):
+            return self.object_id
+
+    def save(self, *args, **kwargs):
+        """Save the transition with its subclass event type."""
+        if not self.event_type:
+            self.event_type = self.EVENT_TYPE
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        """Return a string representation of the transition."""
+        return (
+            f"DataFile {self.object_id}: "
+            f"{self.previous_state} -> {self.next_state}"
+        )
+
+
+ShadowDataFile = create_shadow_model(
+    "ShadowDataFile",
+    DataFile,
+    "shadow_data_files_datafile",
+    app_label="data_files",
+    module=__name__,
+    foreign_key_overrides={
+        "user": models.ForeignKey(
+            "users.User",
+            on_delete=models.CASCADE,
+            related_name="+",
+            blank=False,
+            null=False,
+        ),
+        "stt": models.ForeignKey(
+            "stts.STT",
+            on_delete=models.CASCADE,
+            related_name="+",
+            blank=False,
+            null=False,
+        ),
+    },
+    exclude_fields={"current_parse_token", "section_ref"},
+)
+
+
+def create_or_update_shadow_data_file(data_file):
+    """Create or update the Go parser shadow row for a production DataFile."""
+    fields = [
+        "original_filename",
+        "slug",
+        "extension",
+        "created_at",
+        "quarter",
+        "year",
+        "program_type",
+        "section",
+        "is_program_audit",
+        "version",
+        "state",
+        "state_changed_at",
+        "user",
+        "stt",
+        "file",
+        "s3_versioning_id",
+    ]
+    defaults = {field: getattr(data_file, field) for field in fields}
+
+    shadow_data_file, _ = ShadowDataFile.objects.update_or_create(
+        id=data_file.id,
+        defaults=defaults,
+    )
+    return shadow_data_file
+
+
+class LegacyFileTransferManager(models.Manager):
+    """Extends object manager functionality for LegacyFileTransfer model."""
+
+    def record_scan(
+        self,
+        file: Union[File, StringIO],
+        file_name: str,
+        msg: str,
+        result: "LegacyFileTransfer.Result",
+        uploaded_by: User,
+    ) -> "LegacyFileTransfer":
+        """Create a new LegacyFileTransfer instance with associated LogEntry."""
+        try:
+            # Was their an expectation here? THis wasn't ever defined.
+            # Probbly pseudo code.
+            file_shasum = get_file_shasum(file)
+        except (AttributeError, TypeError, ValueError) as err:
+            logger.error(f"Encountered error deriving file hash: {err}")
+            file_shasum = "INVALID"
+
+        # Create the LegacyFileTransfer instance.
+        fileTransfer = self.model.objects.create(
+            file_name=file_name,
+            file_size=(file.size if isinstance(file, File) else len(file.getvalue())),
+            file_shasum=file_shasum,
+            result=result,
+            uploaded_by=uploaded_by,
+        )
+
+        # Create a new LogEntry that is tied to this model instance.
+        content_type = ContentType.objects.get_for_model(LegacyFileTransfer)
+        LogEntry.objects.log_action(
+            user_id=uploaded_by.pk,
+            content_type_id=content_type.pk,
+            object_id=fileTransfer.pk,
+            object_repr=str(fileTransfer),
+            action_flag=ADDITION,
+            change_message=msg,
+        )
+
+        return fileTransfer
+
+
+class LegacyFileTransfer(models.Model):
+    """Represents a file transferred to ACF Titan for an uploaded file."""
+
+    class Meta:
+        """Model Meta options."""
+
+        verbose_name = "Legacy File Transfer"
+
+    class Result(models.TextChoices):
+        """Represents the possible results from a completed transfer."""
+
+        COMPLETED = "COMPLETED"
+        ERROR = "ERROR"
+
+    sent_at = models.DateTimeField(auto_now_add=True)
+    file_name = models.TextField()
+    file_size = models.PositiveBigIntegerField(help_text="The file size in bytes")
+    file_shasum = models.TextField(help_text="The SHA256 checksum of the uploaded file")
+    result = models.CharField(
+        choices=Result.choices,
+        help_text="Transfer result for uploaded file",
+        max_length=12,
+    )
+    uploaded_by = models.ForeignKey(
+        User,
+        help_text="The user that uploaded the data file",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="fileTransfer",
+    )
+
+    data_file = models.ForeignKey(
+        DataFile,
+        blank=True,
+        help_text="The resulting DataFile object, if this transfer was completed",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="fileTransfer",
+    )
+
+    objects = LegacyFileTransferManager()
+
+    def __str__(self) -> str:
+        """Return string representation of model instance."""
+        return f"{self.file_name} ({self.file_size_humanized}) - {self.result}"
+
+    @property
+    def file_size_humanized(self) -> str:
+        """Convert the file size into the largest human-readable unit."""
+        size = self.file_size
+        for unit in ["B", "KB", "MB", "GB", "TB"]:
+            if size < 1024.0:
+                break
+            size /= 1024.0
+
+        return f"{size:.{2}f}{unit}"
