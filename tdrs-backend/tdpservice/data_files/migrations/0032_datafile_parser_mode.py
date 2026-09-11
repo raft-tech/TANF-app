@@ -14,9 +14,9 @@ class Migration(migrations.Migration):
             name="parser_mode",
             field=models.CharField(
                 choices=[
-                    ("disabled", "Python only"),
-                    ("shadow", "Python and Go shadow"),
-                    ("production", "Go production"),
+                    ("python-only", "Python only"),
+                    ("go-shadow", "Python and Go shadow"),
+                    ("go-only", "Go only"),
                 ],
                 max_length=16,
                 null=True,

@@ -43,14 +43,14 @@ const (
 type parserMode string
 
 const (
-	parserModeShadow     parserMode = "shadow"
-	parserModeProduction parserMode = "production"
+	parserModeGoShadow parserMode = "go-shadow"
+	parserModeGoOnly   parserMode = "go-only"
 )
 
 func parseMode(value string) (parserMode, error) {
 	mode := parserMode(value)
 	switch mode {
-	case parserModeShadow, parserModeProduction:
+	case parserModeGoShadow, parserModeGoOnly:
 		return mode, nil
 	default:
 		return "", fmt.Errorf("unsupported parser mode %q", value)
@@ -58,7 +58,7 @@ func parseMode(value string) (parserMode, error) {
 }
 
 func (m parserMode) tablePrefix(shadowTablePrefix string) (string, error) {
-	if m == parserModeShadow {
+	if m == parserModeGoShadow {
 		if shadowTablePrefix == "" {
 			return "", fmt.Errorf("shadow parser mode requires database.table_prefix")
 		}

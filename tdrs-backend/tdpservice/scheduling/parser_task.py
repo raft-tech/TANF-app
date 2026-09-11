@@ -70,11 +70,9 @@ class ParserModelSet:
 
 def _evaluate_go_parser_mode() -> GoParserMode:
     """Evaluate the current feature flag for an unassigned data file."""
-    print("********* evaluate go parser mode ********")
-    print(GO_PARSER_FEATURE_FLAG)
     enabled, config = get_feature_flag(GO_PARSER_FEATURE_FLAG)
     if not enabled:
-        return GoParserMode.DISABLED
+        return GoParserMode.PYTHON_ONLY
 
     try:
         return GoParserMode(config.get("mode"))
@@ -83,7 +81,7 @@ def _evaluate_go_parser_mode() -> GoParserMode:
             "Invalid %s feature flag configuration; disabling Go parser dispatch.",
             GO_PARSER_FEATURE_FLAG,
         )
-        return GoParserMode.DISABLED
+        return GoParserMode.PYTHON_ONLY
 
 
 @transaction.atomic
@@ -105,7 +103,7 @@ def queue_go_parse(
     reparse_id: int | None = None,
 ) -> None:
     """Queue a Go parser task with its immutable table mode."""
-    if table_mode not in (GoParserMode.SHADOW, GoParserMode.PRODUCTION):
+    if table_mode not in (GoParserMode.GO_SHADOW, GoParserMode.GO_ONLY):
         raise ValueError(f"Cannot queue Go parser in {table_mode.value!r} mode")
 
     try:
@@ -135,13 +133,13 @@ def queue_go_parse(
 def queue_parse(data_file_id: int, reparse_id: int | None = None) -> None:
     """Route every parse of a data file using its persisted parser mode."""
     table_mode = resolve_or_reuse_parser_mode(data_file_id)
-    if table_mode == GoParserMode.SHADOW:
+    if table_mode == GoParserMode.GO_SHADOW:
         data_file = DataFile.objects.get(id=data_file_id)
         create_or_update_shadow_data_file(data_file)
 
-    if table_mode != GoParserMode.PRODUCTION:
+    if table_mode != GoParserMode.GO_ONLY:
         parse.delay(data_file_id, reparse_id=reparse_id)
-    if table_mode != GoParserMode.DISABLED:
+    if table_mode != GoParserMode.PYTHON_ONLY:
         queue_go_parse(data_file_id, table_mode, reparse_id=reparse_id)
 
 
@@ -201,9 +199,9 @@ def _parser_models_for_instance(model_or_instance):
 
 def _parser_models_for_mode(table_mode: str | None) -> ParserModelSet:
     """Return the exact table family selected when the task was dispatched."""
-    if table_mode == GoParserMode.SHADOW.value:
+    if table_mode == GoParserMode.GO_SHADOW.value:
         return _shadow_parser_models()
-    if table_mode == GoParserMode.PRODUCTION.value:
+    if table_mode == GoParserMode.GO_ONLY.value:
         return _production_parser_models()
     raise ValueError(f"Unsupported Go parser table mode: {table_mode!r}")
 

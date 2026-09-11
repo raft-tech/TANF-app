@@ -72,7 +72,7 @@ def parse_datafile(dfs, datafile, timeout_seconds=GO_PARSE_TIMEOUT_SECONDS):
             "type": FeatureFlag.Type.RANDOM_ROLLOUT,
             "enabled": True,
             "rollout_percentage": 100,
-            "config": {"mode": "shadow"},
+            "config": {"mode": "go-shadow"},
         },
     )
 
@@ -82,7 +82,7 @@ def parse_datafile(dfs, datafile, timeout_seconds=GO_PARSE_TIMEOUT_SECONDS):
 
     async_result = celery_app.send_task(
         GO_PARSE_TASK_NAME,
-        args=[datafile.pk, 0, "production"],
+        args=[datafile.pk, 0, "go-only"],
         queue=settings.CELERY_GO_PARSER_QUEUE,
     )
 

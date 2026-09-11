@@ -6,9 +6,9 @@ from django.db import models
 class GoParserMode(models.TextChoices):
     """Persisted parser routing decisions for a data file."""
 
-    DISABLED = "disabled", "Python only"
-    SHADOW = "shadow", "Python and Go shadow"
-    PRODUCTION = "production", "Go production"
+    PYTHON_ONLY = "python-only", "Python only"
+    GO_SHADOW = "go-shadow", "Python and Go shadow"
+    GO_ONLY = "go-only", "Go only"
 
 
 class SubmissionState(models.TextChoices):

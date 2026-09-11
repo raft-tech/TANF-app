@@ -462,7 +462,7 @@ ENTRYPOINT ["/go-parser"]
 
 ### Phase 1: Shadow Mode (Parallel Validation)
 
-Deploy the Go parser alongside the Python parser and use the `go_parser_mode` random rollout feature flag with `config.mode` set to `shadow`. The Python parser remains the source of truth, writing to production tables as it does today. For selected files, the Go parser processes the same input concurrently but writes all output — parsed records and parser errors — to **shadow tables** that mirror the production schema. No production data is affected.
+Deploy the Go parser alongside the Python parser and use the `go_parser_mode` random rollout feature flag with `config.mode` set to `go-shadow`. The Python parser remains the source of truth, writing to production tables as it does today. For selected files, the Go parser processes the same input concurrently but writes all output — parsed records and parser errors — to **shadow tables** that mirror the production schema. No production data is affected.
 
 Parser output shadow tables mirror their production counterparts (e.g., `shadow_search_indexes_tanf_t1`, `shadow_parser_error`) but exist solely for comparison and analysis. They can be created via a Django migration that duplicates the existing table definitions under a `shadow_` prefix.
 
@@ -475,9 +475,9 @@ def dispatch_parse(data_file_id):
             data_file.parser_mode = resolve_go_parser_mode()
             data_file.save(update_fields=["parser_mode"])
         mode = data_file.parser_mode
-    if mode != "production":
+    if mode != "go-only":
         parse.apply_async(args=[data_file_id], queue="python_parser")
-    if mode in {"shadow", "production"}:
+    if mode in {"go-shadow", "go-only"}:
         parse.apply_async(args=[data_file_id, 0, mode], queue="go_parser")
 ```
 
@@ -487,7 +487,7 @@ database:
   table_prefix: "shadow_"
 ```
 
-Django evaluates the flag and rollout only when the production `DataFile.parser_mode` is null. The nullable field is introduced by a schema-only migration, so existing files receive a route lazily on their next dispatch. The first dispatcher locks the row while resolving and persisting `disabled`, `shadow`, or `production`; concurrent and later dispatches reuse that decision. Missing, disabled, excluded, or invalid flags fail closed by persisting `disabled` and using Python. The Go worker honors the immutable task mode and returns it to `post_parse`; it does not re-read the mutable feature flag. Shadow data-file rows exclude `parser_mode` because routing belongs to the production file identity.
+Django evaluates the flag and rollout only when the production `DataFile.parser_mode` is null. The nullable field is introduced by a schema-only migration, so existing files receive a route lazily on their next dispatch. The first dispatcher locks the row while resolving and persisting `python-only`, `go-shadow`, or `go-only`; concurrent and later dispatches reuse that decision. Missing, disabled, excluded, or invalid flags fail closed by persisting `python-only` and using Python. The Go worker honors the immutable task mode and returns it to `post_parse`; it does not re-read the mutable feature flag. Shadow data-file rows exclude `parser_mode` because routing belongs to the production file identity.
 
 For files processed by both parsers, the team can asynchronously compare results at any cadence:
 
@@ -504,7 +504,7 @@ Shadow tables can be truncated and rebuilt at will since they carry no productio
 
 Route a small, controlled subset of real submissions to the Go parser writing to production tables. Gradually widen the canary until all traffic is handled by Go.
 
-Set `go_parser_mode.config.mode` to `production` for this phase. Submissions selected by the flag's rollout are sent only to Go with `production` in the task payload; submissions outside the rollout continue through Python.
+Set `go_parser_mode.config.mode` to `go-only` for this phase. Submissions selected by the flag's rollout are sent only to Go with `go-only` in the task payload; submissions outside the rollout continue through Python.
 
 Because the Cloud.gov environment does not support network-level traffic splitting, the routing decision is made **programmatically in Django** at task dispatch time. A configuration table or environment-backed setting defines which submissions are routed to the Go parser based on attributes such as program type, STT, or section:
 

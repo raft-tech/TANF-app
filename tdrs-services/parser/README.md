@@ -243,7 +243,7 @@ For one-shot local performance runs, the endpoint only exists while the parser p
 
 ### Celery Mode
 
-Celery mode connects to Redis and consumes parse tasks dispatched by Django. Each task carries the `shadow` or `production` table mode persisted on its production `DataFile`. After each parse attempt, the worker passes that same mode to Django's `post_parse` task on the Python Celery queue.
+Celery mode connects to Redis and consumes parse tasks dispatched by Django. Each task carries the `go-shadow` or `go-only` parser mode persisted on its production `DataFile`. After each parse attempt, the worker passes that same mode to Django's `post_parse` task on the Python Celery queue.
 
 ```sh
 DATABASE_URL=postgres://user:pass@localhost:5432/tdrs \
@@ -428,9 +428,9 @@ Live Go parser integration coverage runs through the backend pytest suite:
 task backend-pytest-go-integration
 ```
 
-For integration tests in CI, CircleCI reuses the existing backend docker-compose stack, including PostgreSQL and the Django migration flow, before running the Go parser integration suite with `DATABASE_URL` pointed at that migrated test database. Integration tasks carry `production` mode and therefore write records, parser errors, datafile metadata, and summaries to production tables.
+For integration tests in CI, CircleCI reuses the existing backend docker-compose stack, including PostgreSQL and the Django migration flow, before running the Go parser integration suite with `DATABASE_URL` pointed at that migrated test database. Integration tasks carry `go-only` mode and therefore write records, parser errors, datafile metadata, and summaries to production tables.
 
-Celery routing is initially controlled by the Django `go_parser_mode` feature flag. On a data file's first dispatch, Django evaluates the master enabled state and `rollout_percentage`, reads `config.mode` (`shadow` or `production`), and persists the resolved `disabled`, `shadow`, or `production` route on the production `DataFile`. Existing rows with a null route are assigned lazily. Later reparses reuse the persisted route, so flag or rollout changes affect only unassigned files. A missing, disabled, excluded, or invalid flag persists `disabled` and routes the file to Python.
+Celery routing is initially controlled by the Django `go_parser_mode` feature flag. On a data file's first dispatch, Django evaluates the master enabled state and `rollout_percentage`, reads `config.mode` (`go-shadow` or `go-only`), and persists the resolved `python-only`, `go-shadow`, or `go-only` route on the production `DataFile`. Existing rows with a null route are assigned lazily. Later reparses reuse the persisted route, so flag or rollout changes affect only unassigned files. A missing, disabled, excluded, or invalid flag persists `python-only` and routes the file to Python.
 
 The persisted route is included in every Go task payload. The Go worker does not re-read the mutable flag, and shadow data-file rows do not duplicate the routing field.
 
