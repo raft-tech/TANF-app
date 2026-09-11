@@ -4,7 +4,6 @@ import io
 import os
 
 from django.contrib.auth.models import Permission
-from django.test import override_settings
 
 import openpyxl
 import pytest
@@ -24,6 +23,7 @@ from tdpservice.parsers import util
 from tdpservice.parsers.factory import ParserFactory
 from tdpservice.parsers.models import ParserError
 from tdpservice.parsers.test.factories import DataFileSummaryFactory
+from tdpservice.scheduling import parser_task
 from tdpservice.security.models import ClamAVFileScan
 
 
@@ -314,6 +314,13 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         self, api_client, data_file_data, user, mocker
     ):
         """Test ability to create data file metadata registry."""
+        FeatureFlag.objects.create(
+            feature_name=parser_task.GO_PARSER_FEATURE_FLAG,
+            type=FeatureFlag.Type.RANDOM_ROLLOUT,
+            enabled=True,
+            rollout_percentage=100,
+            config={"mode": "go-shadow"},
+        )
 
         def clean_scan(_file, _file_name, _uploaded_by, data_file=None):
             assert data_file.state == SubmissionState.VIRUS_SCAN_STARTED
@@ -360,17 +367,42 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         assert shadow_data_file.stt_id == data_file.stt_id
         assert shadow_data_file.user_id == data_file.user_id
 
-    @override_settings(GO_PARSER_SHADOW_MODE=False)
-    def test_create_data_file_file_entry_does_not_create_shadow_when_shadow_mode_off(
+    def test_create_data_file_file_entry_does_not_create_shadow_when_flag_missing(
         self, api_client, data_file_data, user
     ):
-        """Test production-mode Go parser uploads do not create shadow data files."""
+        """Test uploads do not create shadow data when the Go parser flag is absent."""
         response = self.post_data_file(api_client, data_file_data)
         self.assert_data_file_created(response)
 
         data_file = DataFile.objects.get(id=response.data["id"])
         assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
         assert not ShadowDataFile.objects.filter(id=data_file.id).exists()
+
+    def test_go_only_queue_failure_returns_server_error(
+        self, api_client, data_file_data, user, mocker
+    ):
+        """Do not report a successful upload when its only parser was not queued."""
+        FeatureFlag.objects.create(
+            feature_name=parser_task.GO_PARSER_FEATURE_FLAG,
+            type=FeatureFlag.Type.RANDOM_ROLLOUT,
+            enabled=True,
+            rollout_percentage=100,
+            config={"mode": "go-only"},
+        )
+        mock_python_parse = mocker.patch(
+            "tdpservice.data_files.views.parser_task.parse.delay"
+        )
+        mock_go_parser_app = mocker.patch.object(parser_task, "current_app")
+        mock_go_parser_app.send_task.side_effect = RuntimeError("broker unavailable")
+        api_client.raise_request_exception = False
+
+        response = self.post_data_file(api_client, data_file_data)
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        mock_python_parse.assert_not_called()
+        data_file = DataFile.objects.get(slug=data_file_data["slug"])
+        assert data_file.parser_mode == parser_task.GoParserMode.GO_ONLY
+        assert data_file.state == SubmissionState.VIRUS_SCAN_COMPLETED
 
     def test_data_file_file_version_increment(
         self, api_client, data_file_data, other_data_file_data, user
