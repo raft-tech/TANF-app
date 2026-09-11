@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                         serialize=False,
                     ),
                 ),
-                ("object_id", models.TextField(blank=True, null=True)),
+                ("object_id", models.TextField()),
                 ("event_id", models.UUIDField(db_index=True, default=uuid.uuid4)),
                 ("event_type", models.CharField(db_index=True, max_length=100)),
                 ("note", models.TextField(blank=True, default="")),
@@ -41,8 +41,6 @@ class Migration(migrations.Migration):
                 (
                     "actor",
                     models.ForeignKey(
-                        blank=True,
-                        null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="logs",
                         to=settings.AUTH_USER_MODEL,
@@ -93,4 +91,3 @@ class Migration(migrations.Migration):
             index=models.Index(fields=["task_name"], name="baselog_task_name_idx"),
         ),
     ]
-
