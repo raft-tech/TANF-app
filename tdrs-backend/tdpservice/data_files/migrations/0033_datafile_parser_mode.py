@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("data_files", "0031_backfill_datafile_section_ref"),
+        ("data_files", "0032_datafilestatetransition"),
     ]
 
     operations = [

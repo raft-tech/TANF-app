@@ -22,9 +22,44 @@ type fakeTaskCall struct {
 	args []interface{}
 }
 
+type fakeCeleryBroker struct {
+	message *gocelery.TaskMessage
+	err     error
+}
+
+func (f *fakeCeleryBroker) SendCeleryMessage(*gocelery.CeleryMessage) error {
+	return nil
+}
+
+func (f *fakeCeleryBroker) GetTaskMessage() (*gocelery.TaskMessage, error) {
+	return f.message, f.err
+}
+
 func (f *fakeTaskSender) Delay(task string, args ...interface{}) (*gocelery.AsyncResult, error) {
 	f.calls = append(f.calls, fakeTaskCall{task: task, args: args})
 	return nil, f.err
+}
+
+func TestCeleryTaskIDBrokerAddsEnvelopeIDToTaskArgs(t *testing.T) {
+	const taskID = "987e6543-e21b-12d3-a456-426614174000"
+	message := &gocelery.TaskMessage{
+		ID:   taskID,
+		Args: []interface{}{float64(42), float64(7), "go-only", "event-id"},
+	}
+	broker := &celeryTaskIDBroker{
+		CeleryBroker: &fakeCeleryBroker{message: message},
+	}
+
+	got, err := broker.GetTaskMessage()
+	if err != nil {
+		t.Fatalf("GetTaskMessage() error = %v", err)
+	}
+	if len(got.Args) != 5 {
+		t.Fatalf("len(Args) = %d, want 5", len(got.Args))
+	}
+	if got.Args[4] != taskID {
+		t.Errorf("Celery task ID arg = %#v, want %q", got.Args[4], taskID)
+	}
 }
 
 func TestSectionNumber(t *testing.T) {
@@ -133,7 +168,8 @@ func TestEnqueuePostParseTask(t *testing.T) {
 	}
 	sender := &fakeTaskSender{}
 
-	if err := s.enqueuePostParseTask(sender, 42, 7, "pipeline failed", parserModeGoOnly); err != nil {
+	const eventID = "123e4567-e89b-12d3-a456-426614174000"
+	if err := s.enqueuePostParseTask(sender, 42, 7, "pipeline failed", parserModeGoOnly, eventID); err != nil {
 		t.Fatalf("enqueuePostParseTask() error = %v", err)
 	}
 
@@ -144,7 +180,7 @@ func TestEnqueuePostParseTask(t *testing.T) {
 	if call.task != "tdpservice.scheduling.parser_task.post_parse" {
 		t.Errorf("task = %q", call.task)
 	}
-	wantArgs := []interface{}{int32(42), int32(7), "pipeline failed", "go-only"}
+	wantArgs := []interface{}{int32(42), int32(7), "pipeline failed", "go-only", eventID}
 	for i, want := range wantArgs {
 		if call.args[i] != want {
 			t.Errorf("arg %d = %#v, want %#v", i, call.args[i], want)
@@ -159,7 +195,7 @@ func TestEnqueuePostParseTaskUsesNilParseError(t *testing.T) {
 	}
 	sender := &fakeTaskSender{}
 
-	if err := s.enqueuePostParseTask(sender, 42, 0, "", parserModeGoShadow); err != nil {
+	if err := s.enqueuePostParseTask(sender, 42, 0, "", parserModeGoShadow, "event-id"); err != nil {
 		t.Fatalf("enqueuePostParseTask() error = %v", err)
 	}
 
@@ -168,6 +204,9 @@ func TestEnqueuePostParseTaskUsesNilParseError(t *testing.T) {
 	}
 	if got := sender.calls[0].args[3]; got != "go-shadow" {
 		t.Errorf("table mode arg = %#v, want go-shadow", got)
+	}
+	if got := sender.calls[0].args[4]; got != "event-id" {
+		t.Errorf("event ID arg = %#v, want event-id", got)
 	}
 }
 
@@ -178,7 +217,7 @@ func TestEnqueuePostParseTaskSurfacesDelayError(t *testing.T) {
 	}
 	sender := &fakeTaskSender{err: fmt.Errorf("redis down")}
 
-	err := s.enqueuePostParseTask(sender, 42, 0, "", parserModeGoShadow)
+	err := s.enqueuePostParseTask(sender, 42, 0, "", parserModeGoShadow, "event-id")
 
 	if err == nil || !strings.Contains(err.Error(), "redis down") {
 		t.Fatalf("error = %v, want redis down", err)
