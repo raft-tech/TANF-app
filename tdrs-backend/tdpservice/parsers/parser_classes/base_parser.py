@@ -61,6 +61,27 @@ class BaseParser(ABC):
         """To be overriden in child class."""
         pass
 
+    def close(self):
+        """Close decoder and release underlying datafile file handle."""
+        if hasattr(self, "decoder") and self.decoder is not None:
+            self.decoder.close()
+        if (
+            hasattr(self, "datafile")
+            and self.datafile
+            and hasattr(self.datafile, "file")
+            and self.datafile.file
+            and not getattr(self.datafile.file, "closed", True)
+        ):
+            self.datafile.file.close()
+
+    def __enter__(self):
+        """Enter context manager."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit context manager and close parser."""
+        self.close()
+
     def _init_decoder(self):
         """Initialize the decoder."""
         try:
@@ -90,6 +111,7 @@ class BaseParser(ABC):
             self.unsaved_parser_errors.update({0: [err_obj]})
             self.num_errors += 1
             self.bulk_create_errors(flush=True)
+            self.close()
             raise DecoderUnknownException(msg)
 
     def _init_schema_manager(self, program_type):
