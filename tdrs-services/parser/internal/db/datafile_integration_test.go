@@ -67,7 +67,7 @@ func stateTransitionTestPool(t *testing.T) (*pgxpool.Pool, context.Context) {
 		);
 		CREATE TABLE data_files_datafilestatetransition (
 			baselog_ptr_id bigint PRIMARY KEY REFERENCES core_baselog,
-			previous_state text NOT NULL, state_changed_at timestamptz NOT NULL DEFAULT NOW(), next_state text NOT NULL, state_changed_at timestamptz NOT NULL DEFAULT NOW(), reparse_meta_id integer
+			previous_state text NOT NULL, next_state text NOT NULL, reparse_meta_id integer
 		);
 	`)
 	if err != nil {

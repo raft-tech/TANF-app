@@ -729,7 +729,7 @@ def test_handle_datafiles_persists_previous_summary_status(
     monkeypatch.setattr(
         "tdpservice.search_indexes.reparse.parser_task.parse.delay",
         lambda file_id, reparse_id=None, parse_token=None, event_id=None: delay_calls.append(
-            (file_id, reparse_id)
+            (file_id, reparse_id, event_id)
         ),
     )
 
