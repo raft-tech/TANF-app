@@ -44,7 +44,7 @@ func TestCeleryTaskIDBrokerAddsEnvelopeIDToTaskArgs(t *testing.T) {
 	const taskID = "987e6543-e21b-12d3-a456-426614174000"
 	message := &gocelery.TaskMessage{
 		ID:   taskID,
-		Args: []interface{}{float64(42), float64(7), "go-only", "event-id"},
+		Args: []interface{}{float64(42), float64(7), "go-only", "parse-token", "event-id"},
 	}
 	broker := &celeryTaskIDBroker{
 		CeleryBroker: &fakeCeleryBroker{message: message},
@@ -54,11 +54,11 @@ func TestCeleryTaskIDBrokerAddsEnvelopeIDToTaskArgs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetTaskMessage() error = %v", err)
 	}
-	if len(got.Args) != 5 {
-		t.Fatalf("len(Args) = %d, want 5", len(got.Args))
+	if len(got.Args) != 6 {
+		t.Fatalf("len(Args) = %d, want 6", len(got.Args))
 	}
-	if got.Args[4] != taskID {
-		t.Errorf("Celery task ID arg = %#v, want %q", got.Args[4], taskID)
+	if got.Args[5] != taskID {
+		t.Errorf("Celery task ID arg = %#v, want %q", got.Args[5], taskID)
 	}
 }
 
@@ -169,7 +169,7 @@ func TestEnqueuePostParseTask(t *testing.T) {
 	sender := &fakeTaskSender{}
 
 	const eventID = "123e4567-e89b-12d3-a456-426614174000"
-	if err := s.enqueuePostParseTask(sender, 42, 7, "pipeline failed", parserModeGoOnly, eventID); err != nil {
+	if err := s.enqueuePostParseTask(sender, 42, 7, "pipeline failed", parserModeGoOnly, "token-123", eventID); err != nil {
 		t.Fatalf("enqueuePostParseTask() error = %v", err)
 	}
 
@@ -180,7 +180,10 @@ func TestEnqueuePostParseTask(t *testing.T) {
 	if call.task != "tdpservice.scheduling.parser_task.post_parse" {
 		t.Errorf("task = %q", call.task)
 	}
-	wantArgs := []interface{}{int32(42), int32(7), "pipeline failed", "go-only", eventID}
+	wantArgs := []interface{}{int32(42), int32(7), "pipeline failed", "go-only", "token-123", eventID}
+	if len(call.args) != len(wantArgs) {
+		t.Fatalf("got %d task args, want %d", len(call.args), len(wantArgs))
+	}
 	for i, want := range wantArgs {
 		if call.args[i] != want {
 			t.Errorf("arg %d = %#v, want %#v", i, call.args[i], want)
@@ -195,7 +198,7 @@ func TestEnqueuePostParseTaskUsesNilParseError(t *testing.T) {
 	}
 	sender := &fakeTaskSender{}
 
-	if err := s.enqueuePostParseTask(sender, 42, 0, "", parserModeGoShadow, "event-id"); err != nil {
+	if err := s.enqueuePostParseTask(sender, 42, 0, "", parserModeGoShadow, "token-123", "event-id"); err != nil {
 		t.Fatalf("enqueuePostParseTask() error = %v", err)
 	}
 
@@ -205,7 +208,10 @@ func TestEnqueuePostParseTaskUsesNilParseError(t *testing.T) {
 	if got := sender.calls[0].args[3]; got != "go-shadow" {
 		t.Errorf("table mode arg = %#v, want go-shadow", got)
 	}
-	if got := sender.calls[0].args[4]; got != "event-id" {
+	if got := sender.calls[0].args[4]; got != "token-123" {
+		t.Errorf("parse token arg = %#v, want token-123", got)
+	}
+	if got := sender.calls[0].args[5]; got != "event-id" {
 		t.Errorf("event ID arg = %#v, want event-id", got)
 	}
 }
@@ -217,7 +223,7 @@ func TestEnqueuePostParseTaskSurfacesDelayError(t *testing.T) {
 	}
 	sender := &fakeTaskSender{err: fmt.Errorf("redis down")}
 
-	err := s.enqueuePostParseTask(sender, 42, 0, "", parserModeGoShadow, "event-id")
+	err := s.enqueuePostParseTask(sender, 42, 0, "", parserModeGoShadow, "token-123", "event-id")
 
 	if err == nil || !strings.Contains(err.Error(), "redis down") {
 		t.Fatalf("error = %v, want redis down", err)

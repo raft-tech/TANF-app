@@ -284,6 +284,8 @@ services:
       - REDIS_URI=redis://redis-server:6379
       - REDIS_SERVER_LOCAL=TRUE
       - GO_PARSER_QUEUE=${GO_PARSER_QUEUE:-go-parser}
+      - STALE_PARSE_TIMEOUT_SECONDS
+      - STALE_PARSE_CHECK_INTERVAL_SECONDS
       - CYPRESS_TOKEN
       - DJANGO_DEBUG
       - SENDGRID_API_KEY
@@ -406,8 +408,11 @@ services:
       - REDIS_URI=redis://redis-server:6379
       - CELERY_WORKER_QUEUES=celery
       - CELERY_GO_PARSER_QUEUE=go-parser
+      - CELERY_LIFECYCLE_QUEUE=lifecycle
       - REDIS_SERVER_LOCAL=TRUE
       - GO_PARSER_QUEUE=go-parser
+      - STALE_PARSE_TIMEOUT_SECONDS
+      - STALE_PARSE_CHECK_INTERVAL_SECONDS
       - CYPRESS_TOKEN
       - DJANGO_DEBUG
       - SENDGRID_API_KEY
