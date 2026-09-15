@@ -200,6 +200,23 @@ def test_state_not_exposed_by_serializer(data_file_instance):
     assert "state" not in serialized
 
 
+@pytest.mark.django_db
+def test_serializer_reads_classification_from_canonical_section(data_file_instance):
+    """Response compatibility fields ignore drift in transitional scalar columns."""
+    canonical_section = data_file_instance.section_ref
+    DataFile.objects.filter(pk=data_file_instance.pk).update(
+        program_type=DataFile.ProgramType.FRA,
+        section=DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+    )
+    data_file_instance.refresh_from_db()
+
+    serialized = DataFileSerializer(data_file_instance).data
+
+    assert serialized["program_type"] == canonical_section.program.code
+    assert serialized["section"] == canonical_section.name
+    assert "section_ref" not in serialized
+
+
 @pytest.mark.parametrize(
     "file_name",
     [

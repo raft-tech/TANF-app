@@ -399,11 +399,15 @@ class Feedback(Reviewable):
         """Return a list of attached data files."""
         from tdpservice.data_files.models import DataFile
 
-        return [
-            a.content_object
-            for a in self.attachments.all()
-            if isinstance(a.content_object, DataFile)
-        ]
+        data_file_type = ContentType.objects.get_for_model(DataFile)
+        data_file_ids = self.attachments.filter(
+            content_type=data_file_type,
+        ).values_list("object_id", flat=True)
+        return list(
+            DataFile.objects.filter(pk__in=data_file_ids).select_related(
+                "section_ref__program"
+            )
+        )
 
     def mark_as_read(self, admin_user):
         """Mark the feedback as read."""

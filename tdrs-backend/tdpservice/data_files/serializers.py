@@ -95,6 +95,13 @@ class DataFileSerializer(serializers.ModelSerializer):
         data_file = DataFile.create_new_version(validated_data)
         return data_file
 
+    def to_representation(self, instance):
+        """Project canonical classification through the legacy response fields."""
+        representation = super().to_representation(instance)
+        representation["section"] = instance.section_ref.name
+        representation["program_type"] = instance.section_ref.program.code
+        return representation
+
     def update(self, instance, validated_data):
         """Throw an error if a user tries to update a data_file."""
         raise ImmutabilityError(instance, validated_data)
@@ -104,18 +111,21 @@ class DataFileSerializer(serializers.ModelSerializer):
         file = data["file"] if "file" in data else None
         section = data["section"] if "section" in data else None
 
-        if file and section:
-            validate_file_extension(file.name, is_fra=DataFile.Section.is_fra(section))
-
         if section and "ssp" in data and "stt" in data:
             if data["ssp"]:
                 program_type = DataFile.ProgramType.SSP
             elif data["stt"].type == "tribe":
                 program_type = DataFile.ProgramType.TRIBAL
-            elif DataFile.Section.is_fra(section):
-                program_type = DataFile.ProgramType.FRA
             else:
-                program_type = DataFile.ProgramType.TANF
+                is_fra = Section.objects.filter(
+                    program__code=DataFile.ProgramType.FRA,
+                    name=section,
+                ).exists()
+                program_type = (
+                    DataFile.ProgramType.FRA
+                    if is_fra
+                    else DataFile.ProgramType.TANF
+                )
 
             try:
                 section_ref = Section.from_legacy_values(program_type, section)
@@ -140,15 +150,25 @@ class DataFileSerializer(serializers.ModelSerializer):
                     }
                 )
 
+            user = self.context.get("user")
+            if (
+                program_type == DataFile.ProgramType.FRA
+                and not user.has_fra_access
+                and not user.is_ofa_sys_admin
+            ):
+                raise serializers.ValidationError({"section": "Section cannot be FRA"})
+
+            if file:
+                validate_file_extension(
+                    file.name,
+                    is_fra=program_type == DataFile.ProgramType.FRA,
+                )
+
             data["program_type"] = program_type
             data["section_ref"] = section_ref
 
         return data
 
     def validate_section(self, section):
-        """Validate the section field."""
-        if DataFile.Section.is_fra(section):
-            user = self.context.get("user")
-            if not user.has_fra_access and not user.is_ofa_sys_admin:
-                raise serializers.ValidationError("Section cannot be FRA")
+        """Return the compatibility section input for canonical validation."""
         return section

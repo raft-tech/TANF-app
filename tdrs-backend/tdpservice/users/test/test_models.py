@@ -86,7 +86,7 @@ def test_user_with_fra_access(client, ofa_system_admin):
     response = client.get(f"/admin/data_files/datafile/{datafile.id}/change/")
     assert response.status_code == 200
     assert (
-        '<div class="readonly">Fra Work Outcome Tanf Exiters</div>'
+        '<div class="readonly">Work Outcomes of TANF Exiters</div>'
         in response.content.decode("utf-8")
     )
 

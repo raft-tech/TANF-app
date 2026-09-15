@@ -9,10 +9,17 @@ from django.test.utils import CaptureQueriesContext
 
 import pytest
 
+from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.stts.test.factories import STTFactory
-from tdpservice.users.admin import UserAdmin
-from tdpservice.users.models import AccountApprovalStatusChoices, User
-from tdpservice.users.test.factories import UserFactory
+from tdpservice.users.admin import FeedbackAdmin, UserAdmin
+from tdpservice.users.models import (
+    AccountApprovalStatusChoices,
+    Feedback,
+    FeedbackAttachment,
+    User,
+)
+from tdpservice.users.test.factories import FeedbackFactory, UserFactory
 
 
 @pytest.mark.django_db
@@ -64,3 +71,22 @@ def test_user_admin_permission_formfield_content_types_are_eager_loaded(admin_us
             str(permission)
 
     assert len(captured_queries) == 0
+
+
+@pytest.mark.django_db
+def test_feedback_admin_attachment_label_uses_canonical_section():
+    """Feedback attachment labels ignore transitional DataFile section drift."""
+    feedback = FeedbackFactory()
+    data_file = DataFileFactory()
+    FeedbackAttachment.objects.create(
+        feedback=feedback,
+        content_object=data_file,
+    )
+    DataFile.objects.filter(pk=data_file.pk).update(
+        section="Work Outcomes of TANF Exiters",
+    )
+
+    rendered = FeedbackAdmin(Feedback, AdminSite()).attached_data_files_list(feedback)
+
+    assert "Active Case Data (2020 Q1)" in rendered
+    assert "Work Outcomes of TANF Exiters" not in rendered

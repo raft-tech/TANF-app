@@ -67,7 +67,10 @@ class Section(models.Model):
     @classmethod
     def from_legacy_values(cls, program_code: str, section_name: str) -> "Section":
         """Resolve a canonical section from legacy DataFile values."""
-        return cls.objects.get(program__code=program_code, name=section_name)
+        return cls.objects.select_related("program").get(
+            program__code=program_code,
+            name=section_name,
+        )
 
 
 def get_file_shasum(file: Union[File, StringIO]) -> str:
@@ -266,16 +269,18 @@ class DataFile(FileRecord):
     @property
     def filename(self):
         """Return the correct filename for this data file."""
-        filename = self.stt.filenames.get(self.section, None)
+        section_name = self.section_ref.name
+        program_code = self.section_ref.program.code
+        filename = self.stt.filenames.get(section_name, None)
         if filename is not None:
             return filename
 
         program_type = (
-            self.program_type.title()
-            if self.program_type == DataFile.ProgramType.TRIBAL
-            else self.program_type
+            program_code.title()
+            if program_code == DataFile.ProgramType.TRIBAL
+            else program_code
         )
-        key = f"{program_type} {self.section}"
+        key = f"{program_type} {section_name}"
         return self.stt.filenames.get(key, None)
 
     @property
@@ -335,6 +340,14 @@ class DataFile(FileRecord):
     @classmethod
     def create_new_version(self, data):
         """Create a new version of a data file with an incremented version."""
+        section_ref = data.get("section_ref")
+        if section_ref is None:
+            section_ref = Section.from_legacy_values(
+                data["program_type"],
+                data["section"],
+            )
+            data["section_ref"] = section_ref
+
         # EDGE CASE
         # We may need to try to get this all in one sql query
         # if we ever encounter race conditions.
@@ -342,8 +355,7 @@ class DataFile(FileRecord):
             self.find_latest_version_number(
                 year=data["year"],
                 quarter=data["quarter"],
-                section=data["section"],
-                program_type=data["program_type"],
+                section_ref=section_ref,
                 stt=data["stt"],
                 is_program_audit=data["is_program_audit"],
             )
@@ -357,33 +369,31 @@ class DataFile(FileRecord):
 
     @classmethod
     def find_latest_version_number(
-        self, year, quarter, section, program_type, stt, is_program_audit
+        self, year, quarter, section_ref, stt, is_program_audit
     ):
         """Locate the latest version number in a series of data files."""
         return self.objects.filter(
             stt=stt,
             year=year,
             quarter=quarter,
-            section=section,
-            program_type=program_type,
+            section_ref=section_ref,
             is_program_audit=is_program_audit,
         ).aggregate(Max("version"))["version__max"]
 
     @classmethod
     def find_latest_version(
-        self, year, quarter, section, program_type, stt, is_program_audit
+        self, year, quarter, section_ref, stt, is_program_audit
     ):
         """Locate the latest version of a data file."""
         version = self.find_latest_version_number(
-            year, quarter, section, program_type, stt, is_program_audit
+            year, quarter, section_ref, stt, is_program_audit
         )
 
         return self.objects.filter(
             version=version,
             year=year,
             quarter=quarter,
-            section=section,
-            program_type=program_type,
+            section_ref=section_ref,
             stt=stt,
             is_program_audit=is_program_audit,
         ).first()

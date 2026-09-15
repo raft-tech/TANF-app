@@ -4,8 +4,9 @@ import pytest
 from django.contrib import admin
 from django.test import RequestFactory
 
+from tdpservice.data_files.admin.admin import DataFileAdmin
 from tdpservice.data_files.admin.filters import LatestReparseEvent, VersionFilter
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.models import DataFile, Section
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 from tdpservice.stts.test.factories import STTFactory
@@ -140,8 +141,6 @@ def test_version_filter_returns_latest_versions():
         "stt": stt,
         "year": 2022,
         "quarter": "Q1",
-        "program_type": DataFile.ProgramType.TANF,
-        "section": DataFile.Section.ACTIVE_CASE_DATA,
         "is_program_audit": False,
     }
     old_version = DataFileFactory(version=1, **base_kwargs)
@@ -151,8 +150,6 @@ def test_version_filter_returns_latest_versions():
         stt=stt,
         year=2022,
         quarter="Q2",
-        program_type=DataFile.ProgramType.TANF,
-        section=DataFile.Section.ACTIVE_CASE_DATA,
         is_program_audit=False,
     )
 
@@ -164,6 +161,99 @@ def test_version_filter_returns_latest_versions():
         other_group.id,
     }
     assert old_version.id not in filtered.values_list("id", flat=True)
+
+
+@pytest.mark.django_db
+def test_version_filter_ignores_legacy_classification_drift(stt):
+    """Latest-version grouping follows the canonical Section relationship."""
+    old_version = DataFileFactory(stt=stt, version=1)
+    new_version = DataFileFactory(
+        stt=stt,
+        version=2,
+        section_ref=old_version.section_ref,
+    )
+    DataFile.objects.filter(pk=old_version.pk).update(
+        program_type=DataFile.ProgramType.FRA,
+        section=DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+    )
+    request = RequestFactory().get("/")
+    filter_instance = VersionFilter(
+        request,
+        {},
+        DataFile,
+        admin.ModelAdmin(DataFile, admin.site),
+    )
+
+    filtered = filter_instance.queryset(request, DataFile.objects.all())
+
+    assert list(filtered) == [new_version]
+
+
+@pytest.mark.django_db
+def test_fra_filter_uses_canonical_program(stt):
+    """FRA admin filtering ignores transitional classification drift."""
+    fra_section = Section.from_legacy_values(
+        DataFile.ProgramType.FRA,
+        DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+    )
+    fra_file = DataFileFactory(stt=stt, section_ref=fra_section)
+    tanf_file = DataFileFactory(stt=stt)
+    DataFile.objects.filter(pk=fra_file.pk).update(
+        program_type=DataFile.ProgramType.TANF,
+        section=DataFile.Section.CLOSED_CASE_DATA,
+    )
+    request = RequestFactory().get("/", {"fra_access": "1"})
+    filter_instance = DataFileAdmin.FRA_AccessFilter(
+        request,
+        request.GET.copy(),
+        DataFile,
+        DataFileAdmin(DataFile, admin.site),
+    )
+
+    filtered = filter_instance.queryset(request, DataFile.objects.all())
+
+    assert list(filtered) == [fra_file]
+    assert tanf_file not in filtered
+
+
+@pytest.mark.django_db
+def test_program_and_section_admin_filters_use_canonical_relations(stt):
+    """Admin classification filters retain scalar values but query canonical data."""
+    ssp_section = Section.from_legacy_values(
+        DataFile.ProgramType.SSP,
+        DataFile.Section.CLOSED_CASE_DATA,
+    )
+    ssp_file = DataFileFactory(stt=stt, section_ref=ssp_section)
+    DataFile.objects.filter(pk=ssp_file.pk).update(
+        program_type=DataFile.ProgramType.TANF,
+        section=DataFile.Section.ACTIVE_CASE_DATA,
+    )
+    model_admin = DataFileAdmin(DataFile, admin.site)
+
+    program_request = RequestFactory().get("/", {"program_type__exact": "SSP"})
+    program_filter = DataFileAdmin.ProgramTypeFilter(
+        program_request,
+        program_request.GET.copy(),
+        DataFile,
+        model_admin,
+    )
+    section_request = RequestFactory().get(
+        "/",
+        {"section__exact": DataFile.Section.CLOSED_CASE_DATA},
+    )
+    section_filter = DataFileAdmin.SectionFilter(
+        section_request,
+        section_request.GET.copy(),
+        DataFile,
+        model_admin,
+    )
+
+    assert list(program_filter.queryset(program_request, DataFile.objects.all())) == [
+        ssp_file
+    ]
+    assert list(section_filter.queryset(section_request, DataFile.objects.all())) == [
+        ssp_file
+    ]
 
 
 @pytest.mark.django_db

@@ -3,6 +3,7 @@
 import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.db.models.deletion import ProtectedError
 
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile, Program, Section
@@ -195,6 +196,7 @@ def test_create_new_data_file_version(data_file_instance):
         {
             "year": data_file_instance.year,
             "quarter": data_file_instance.quarter,
+            "section_ref": data_file_instance.section_ref,
             "section": data_file_instance.section,
             "program_type": data_file_instance.program_type,
             "stt": data_file_instance.stt,
@@ -217,6 +219,7 @@ def test_find_latest_version(data_file_instance):
         {
             "year": data_file_instance.year,
             "quarter": data_file_instance.quarter,
+            "section_ref": data_file_instance.section_ref,
             "section": data_file_instance.section,
             "program_type": data_file_instance.program_type,
             "stt": data_file_instance.stt,
@@ -231,8 +234,7 @@ def test_find_latest_version(data_file_instance):
     latest_data_file = DataFile.find_latest_version(
         year=data_file_instance.year,
         quarter=data_file_instance.quarter,
-        section=data_file_instance.section,
-        program_type=data_file_instance.program_type,
+        section_ref=data_file_instance.section_ref,
         stt=data_file_instance.stt.id,
         is_program_audit=data_file_instance.is_program_audit,
     )
@@ -246,6 +248,7 @@ def test_find_latest_version_number(data_file_instance):
         {
             "year": data_file_instance.year,
             "quarter": data_file_instance.quarter,
+            "section_ref": data_file_instance.section_ref,
             "section": data_file_instance.section,
             "program_type": data_file_instance.program_type,
             "stt": data_file_instance.stt,
@@ -260,12 +263,78 @@ def test_find_latest_version_number(data_file_instance):
     latest_version = DataFile.find_latest_version_number(
         year=data_file_instance.year,
         quarter=data_file_instance.quarter,
-        section=data_file_instance.section,
-        program_type=data_file_instance.program_type,
+        section_ref=data_file_instance.section_ref,
         stt=data_file_instance.stt.id,
         is_program_audit=data_file_instance.is_program_audit,
     )
     assert latest_version == new_data_file.version
+
+
+@pytest.mark.django_db
+def test_latest_version_uses_canonical_section(data_file_instance):
+    """Legacy scalar drift does not split a canonical version family."""
+    DataFile.objects.filter(pk=data_file_instance.pk).update(
+        program_type=DataFile.ProgramType.FRA,
+        section=DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+    )
+    latest = DataFileFactory(
+        stt=data_file_instance.stt,
+        year=data_file_instance.year,
+        quarter=data_file_instance.quarter,
+        section_ref=data_file_instance.section_ref,
+        is_program_audit=data_file_instance.is_program_audit,
+        version=data_file_instance.version + 1,
+    )
+
+    assert DataFile.find_latest_version_number(
+        year=data_file_instance.year,
+        quarter=data_file_instance.quarter,
+        section_ref=data_file_instance.section_ref,
+        stt=data_file_instance.stt,
+        is_program_audit=False,
+    ) == latest.version
+
+
+@pytest.mark.django_db
+def test_standard_and_program_audit_files_have_separate_version_families(
+    data_file_instance,
+):
+    """PIA classification remains part of canonical version identity."""
+    audit_file = DataFileFactory(
+        stt=data_file_instance.stt,
+        year=data_file_instance.year,
+        quarter=data_file_instance.quarter,
+        section_ref=data_file_instance.section_ref,
+        is_program_audit=True,
+    )
+
+    new_standard = DataFile.create_new_version(
+        {
+            "year": data_file_instance.year,
+            "quarter": data_file_instance.quarter,
+            "section_ref": data_file_instance.section_ref,
+            "stt": data_file_instance.stt,
+            "user": data_file_instance.user,
+            "is_program_audit": False,
+        }
+    )
+
+    assert new_standard.version == data_file_instance.version + 1
+    assert audit_file.version == 1
+    assert DataFile.find_latest_version_number(
+        year=data_file_instance.year,
+        quarter=data_file_instance.quarter,
+        section_ref=data_file_instance.section_ref,
+        stt=data_file_instance.stt,
+        is_program_audit=True,
+    ) == 1
+
+
+@pytest.mark.django_db
+def test_data_file_protects_canonical_section_from_deletion(data_file_instance):
+    """A Section cannot be deleted while a DataFile canonically references it."""
+    with pytest.raises(ProtectedError):
+        data_file_instance.section_ref.delete()
 
 
 @pytest.mark.django_db
@@ -328,6 +397,10 @@ def test_data_files_filename_prefers_section_key_with_legacy_fallback(
         {
             "year": 2020,
             "quarter": "Q1",
+            "section_ref": Section.from_legacy_values(
+                program_type,
+                "Active Case Data",
+            ),
             "section": "Active Case Data",
             "program_type": program_type,
             "user": user,
@@ -360,6 +433,7 @@ def test_prog_type(base_data_file_data, data_analyst, stt, section, program_type
         {
             "year": base_data_file_data["year"],
             "quarter": base_data_file_data["quarter"],
+            "section_ref": Section.from_legacy_values(program_type, section),
             "section": section,
             "program_type": program_type,
             "stt": stt,
@@ -382,6 +456,7 @@ def test_fiscal_year(data_file_instance):
         {
             "year": data_file_instance.year,
             "quarter": data_file_instance.quarter,
+            "section_ref": data_file_instance.section_ref,
             "section": data_file_instance.section,
             "program_type": data_file_instance.program_type,
             "stt": data_file_instance.stt,
@@ -409,6 +484,7 @@ def test_data_file_defaults_to_uploaded_submission_state(data_file_instance):
         {
             "year": data_file_instance.year,
             "quarter": data_file_instance.quarter,
+            "section_ref": data_file_instance.section_ref,
             "section": data_file_instance.section,
             "program_type": data_file_instance.program_type,
             "stt": data_file_instance.stt,

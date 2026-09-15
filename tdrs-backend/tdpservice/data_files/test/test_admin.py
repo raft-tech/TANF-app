@@ -45,7 +45,7 @@ def test_DataFileAdmin_status():
 
 
 def test_DataFileAdmin_exposes_transitional_fields_in_admin():
-    """Test DataFileAdmin surfaces state and canonical section details."""
+    """Test DataFileAdmin surfaces canonical classification details."""
     data_file_admin = DataFileAdmin(DataFile, AdminSite())
     properties_fieldset = next(
         fieldset
@@ -56,6 +56,10 @@ def test_DataFileAdmin_exposes_transitional_fields_in_admin():
     assert "parsing_state" in data_file_admin.list_display
     assert "parsing_state" in properties_fieldset[1]["fields"]
     assert "section_ref" in properties_fieldset[1]["fields"]
+    assert "canonical_section" in properties_fieldset[1]["fields"]
+    assert "canonical_program_type" in properties_fieldset[1]["fields"]
+    assert "section" not in data_file_admin.list_display
+    assert "program_type" not in data_file_admin.list_display
     assert data_file_admin.inlines[0] is DataFileStateTransitionInline
 
 
@@ -139,8 +143,27 @@ def test_DataFileAdmin_changelist_summary_and_error_count_are_eager_loaded(
             data_file_admin.case_totals(data_file)
             data_file_admin.data_file_summary(data_file)
             data_file_admin.error_report_link(data_file)
+            data_file_admin.canonical_section(data_file)
+            data_file_admin.canonical_program_type(data_file)
 
     assert len(captured_queries) == 0
+
+
+@pytest.mark.django_db
+def test_DataFileAdmin_displays_canonical_classification(data_file_instance):
+    """Admin labels do not read transitional scalar columns."""
+    canonical_section = data_file_instance.section_ref
+    DataFile.objects.filter(pk=data_file_instance.pk).update(
+        program_type=DataFile.ProgramType.FRA,
+        section=DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+    )
+    data_file_instance.refresh_from_db()
+    data_file_admin = DataFileAdmin(DataFile, AdminSite())
+
+    assert data_file_admin.canonical_program_type(data_file_instance) == (
+        canonical_section.program.code
+    )
+    assert data_file_admin.canonical_section(data_file_instance) == canonical_section.name
 
 
 @pytest.mark.django_db

@@ -55,12 +55,33 @@ class DataFileFactory(factory.django.DjangoModelFactory):
     file = factory.django.FileField(data=b"test", filename="my_data_file.txt")
     s3_versioning_id = 0
 
+    @staticmethod
+    def _synchronize_classification(kwargs, section_ref):
+        """Make the supplied canonical Section authoritative in factory output."""
+        kwargs["section_ref"] = section_ref
+        kwargs["program_type"] = section_ref.program.code
+        kwargs["section"] = section_ref.name
+        return kwargs
+
+    @classmethod
+    def _build(cls, model_class, *args, **kwargs):
+        """Build with an unsaved canonical relation without querying the database."""
+        section_ref = kwargs.get("section_ref")
+        if section_ref is None:
+            program_data = CANONICAL_PROGRAMS[kwargs["program_type"]]
+            program = Program(code=kwargs["program_type"], **program_data)
+            section_ref = Section(program=program, name=kwargs["section"])
+        kwargs = cls._synchronize_classification(kwargs, section_ref)
+        return super()._build(model_class, *args, **kwargs)
+
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
-        """Populate canonical section rows only for database-backed instances."""
-        if kwargs.get("section_ref") is None:
-            kwargs["section_ref"] = canonical_section_for(
+        """Create with a persisted canonical relation."""
+        section_ref = kwargs.get("section_ref")
+        if section_ref is None:
+            section_ref = canonical_section_for(
                 kwargs["program_type"],
                 kwargs["section"],
             )
+        kwargs = cls._synchronize_classification(kwargs, section_ref)
         return super()._create(model_class, *args, **kwargs)
