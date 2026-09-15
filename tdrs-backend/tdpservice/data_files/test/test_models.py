@@ -1,6 +1,7 @@
 """Module testing for data file model."""
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
 from tdpservice.data_files.enums import SubmissionState
@@ -85,6 +86,7 @@ def test_data_file_program_is_none_without_section_ref(data_file_instance):
             False,
         ),
         (DataFile.ProgramType.TANF, DataFile.Section.ACTIVE_CASE_DATA, True),
+        (DataFile.ProgramType.TRIBAL, DataFile.Section.ACTIVE_CASE_DATA, True),
     ],
 )
 def test_new_data_file_resolves_section_ref(
@@ -102,6 +104,88 @@ def test_new_data_file_resolves_section_ref(
     assert data_file.program_type == program_type
     assert data_file.section == section_name
     assert data_file.is_program_audit is is_program_audit
+
+
+@pytest.mark.django_db
+def test_canonical_section_overrides_mismatched_legacy_values(data_file_instance):
+    """Canonical section changes synchronize both transitional scalar fields."""
+    canonical_section = Section.from_legacy_values(
+        DataFile.ProgramType.SSP,
+        DataFile.Section.CLOSED_CASE_DATA,
+    )
+    data_file_instance.section_ref = canonical_section
+    data_file_instance.program_type = DataFile.ProgramType.FRA
+    data_file_instance.section = DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS
+
+    data_file_instance.save(update_fields=["section_ref"])
+    data_file_instance.refresh_from_db()
+
+    assert data_file_instance.section_ref == canonical_section
+    assert data_file_instance.program_type == DataFile.ProgramType.SSP
+    assert data_file_instance.section == DataFile.Section.CLOSED_CASE_DATA
+
+
+@pytest.mark.django_db
+def test_data_file_resolves_missing_canonical_section(data_file_instance):
+    """Compatibility writes can still resolve the canonical relation from scalars."""
+    data_file_instance.section_ref = None
+    data_file_instance.program_type = DataFile.ProgramType.FRA
+    data_file_instance.section = DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS
+
+    data_file_instance.save(update_fields=["program_type", "section"])
+    data_file_instance.refresh_from_db()
+
+    assert data_file_instance.section_ref.program.code == DataFile.ProgramType.FRA
+    assert (
+        data_file_instance.section_ref.name
+        == DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS
+    )
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "program_type,section_name",
+    [
+        (None, None),
+        ("UNKNOWN", DataFile.Section.ACTIVE_CASE_DATA),
+        (DataFile.ProgramType.SSP, DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS),
+    ],
+)
+def test_data_file_rejects_unresolvable_legacy_values(
+    data_file_instance, program_type, section_name
+):
+    """Null, unknown, and mismatched legacy pairs cannot be persisted."""
+    data_file_instance.section_ref = None
+    data_file_instance.program_type = program_type
+    data_file_instance.section = section_name
+
+    with pytest.raises(ValidationError):
+        data_file_instance.save()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "program_type,section_name",
+    [
+        (DataFile.ProgramType.SSP, DataFile.Section.ACTIVE_CASE_DATA),
+        (
+            DataFile.ProgramType.FRA,
+            DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+        ),
+    ],
+)
+def test_data_file_rejects_program_audit_for_invalid_program(
+    data_file_instance, program_type, section_name
+):
+    """Program Integrity Audit files are limited to TANF and Tribal TANF."""
+    data_file_instance.section_ref = Section.from_legacy_values(
+        program_type,
+        section_name,
+    )
+    data_file_instance.is_program_audit = True
+
+    with pytest.raises(ValidationError, match="TANF or Tribal TANF"):
+        data_file_instance.save()
 
 
 @pytest.mark.django_db

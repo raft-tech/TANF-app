@@ -9,6 +9,7 @@ from typing import Union
 from django.conf import settings
 from django.contrib.admin.models import ADDITION, LogEntry
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.core.files.base import File
 from django.db import models
 from django.db.models import Max
@@ -395,15 +396,44 @@ class DataFile(FileRecord):
         ).first()
 
     def save(self, *args, **kwargs):
-        """Populate the canonical section when legacy values are available."""
+        """Keep transitional classification fields aligned with the canonical section.
+
+        QuerySet.update(), bulk operations, and raw SQL bypass this guard. The contract
+        migration must validate those write paths before removing the legacy fields.
+        """
         if self.section_ref_id is None:
-            self.section_ref = Section.from_legacy_values(
-                self.program_type,
-                self.section,
+            if not self.program_type or not self.section:
+                raise ValidationError(
+                    "A canonical section or legacy program and section values are required."
+                )
+            try:
+                self.section_ref = Section.from_legacy_values(
+                    self.program_type,
+                    self.section,
+                )
+            except Section.DoesNotExist as error:
+                raise ValidationError(
+                    "The legacy program and section values do not map to a canonical section."
+                ) from error
+
+        if self.is_program_audit and self.section_ref.program.code not in {
+            DataFile.ProgramType.TANF,
+            DataFile.ProgramType.TRIBAL,
+        }:
+            raise ValidationError(
+                {"is_program_audit": "Program audits require a TANF or Tribal TANF section."}
             )
-            update_fields = kwargs.get("update_fields")
-            if update_fields is not None:
-                kwargs["update_fields"] = set(update_fields) | {"section_ref"}
+
+        self.program_type = self.section_ref.program.code
+        self.section = self.section_ref.name
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {
+                "program_type",
+                "section",
+                "section_ref",
+            }
 
         return super().save(*args, **kwargs)
 

@@ -7,6 +7,7 @@ from django.db.models import Q as Query
 
 import pytest
 
+from tdpservice.data_files.models import Section
 from tdpservice.parsers import aggregates, util
 from tdpservice.parsers.models import (
     DataFileSummary,
@@ -193,8 +194,7 @@ class TestParse:
         num_errors,
     ):
         """Test parsing when file metadata does not match the raw data layout."""
-        small_correct_file.program_type = program
-        small_correct_file.section = section
+        small_correct_file.section_ref = Section.from_legacy_values(program, section)
         small_correct_file.save()
 
         dfs.datafile = small_correct_file
@@ -262,7 +262,10 @@ class TestParse:
     ):
         """Test header-derived program type mismatches are rejected as prechecks."""
         datafile = request.getfixturevalue(fixture_name)
-        datafile.program_type = program_type
+        datafile.section_ref = Section.from_legacy_values(
+            program_type,
+            datafile.section,
+        )
         datafile.save()
 
         dfs.datafile = datafile
@@ -293,7 +296,10 @@ class TestParse:
         """Test TAN tribal headers still parse when submission metadata is TRIBAL."""
         tribal_section_1_file.year = 2022
         tribal_section_1_file.quarter = "Q1"
-        tribal_section_1_file.program_type = "TRIBAL"
+        tribal_section_1_file.section_ref = Section.from_legacy_values(
+            "TRIBAL",
+            tribal_section_1_file.section,
+        )
         tribal_section_1_file.save()
 
         dfs.datafile = tribal_section_1_file
@@ -888,7 +894,10 @@ class TestParse:
         """Test that the case aggregates are set correctly."""
         small_correct_file.year = 2020
         small_correct_file.quarter = "Q3"
-        small_correct_file.section = "Active Case Data"
+        small_correct_file.section_ref = Section.from_legacy_values(
+            small_correct_file.program_type,
+            "Active Case Data",
+        )
         small_correct_file.save()
         # this still needs to execute to create db objects to be queried
         parse_datafile(dfs, small_correct_file)
@@ -1277,7 +1286,10 @@ class TestParse:
         """Test that the rpt_month_year mismatch error is raised."""
         datafile = header_datafile
 
-        datafile.section = "Active Case Data"
+        datafile.section_ref = Section.from_legacy_values(
+            datafile.program_type,
+            "Active Case Data",
+        )
         # test_datafile fixture uses create_test_data_file which assigns
         # a default year / quarter of 2021 / Q1
         datafile.year = 2021

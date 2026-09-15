@@ -13,7 +13,7 @@ from celery import current_app as celery_app
 from celery.exceptions import TimeoutError as CeleryTimeoutError
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile, DataFileStateTransition
+from tdpservice.data_files.models import DataFile, DataFileStateTransition, Section
 from tdpservice.data_files.submission_lifecycle import (
     begin_parse,
     complete_datafile_av_scan,
@@ -429,8 +429,7 @@ class TestGoParse:
         num_errors,
     ):
         """Test parsing when file metadata does not match the raw data layout."""
-        small_correct_file.program_type = program
-        small_correct_file.section = section
+        small_correct_file.section_ref = Section.from_legacy_values(program, section)
         small_correct_file.version = small_correct_file.id
         small_correct_file.save()
 
@@ -1056,7 +1055,10 @@ class TestGoParse:
         """Test that the case aggregates are set correctly."""
         small_correct_file.year = 2020
         small_correct_file.quarter = "Q3"
-        small_correct_file.section = "Active Case Data"
+        small_correct_file.section_ref = Section.from_legacy_values(
+            small_correct_file.program_type,
+            "Active Case Data",
+        )
         small_correct_file.save()
         # this still needs to execute to create db objects to be queried
         parse_datafile(dfs, small_correct_file)

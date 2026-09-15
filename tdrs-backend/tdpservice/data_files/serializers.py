@@ -90,30 +90,7 @@ class DataFileSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Create a new entry with a new version number."""
-        ssp = validated_data.pop("ssp")
-
-        if ssp:
-            validated_data["program_type"] = DataFile.ProgramType.SSP
-        elif validated_data.get("stt").type == "tribe":
-            validated_data["program_type"] = DataFile.ProgramType.TRIBAL
-        elif DataFile.Section.is_fra(validated_data["section"]):
-            validated_data["program_type"] = DataFile.ProgramType.FRA
-        else:
-            validated_data["program_type"] = DataFile.ProgramType.TANF
-
-        try:
-            validated_data["section_ref"] = Section.from_legacy_values(
-                validated_data["program_type"],
-                validated_data["section"],
-            )
-        except Section.DoesNotExist as error:
-            raise serializers.ValidationError(
-                {
-                    "section": (
-                        "Section is not valid for the derived reporting program."
-                    )
-                }
-            ) from error
+        validated_data.pop("ssp")
 
         data_file = DataFile.create_new_version(validated_data)
         return data_file
@@ -129,6 +106,42 @@ class DataFileSerializer(serializers.ModelSerializer):
 
         if file and section:
             validate_file_extension(file.name, is_fra=DataFile.Section.is_fra(section))
+
+        if section and "ssp" in data and "stt" in data:
+            if data["ssp"]:
+                program_type = DataFile.ProgramType.SSP
+            elif data["stt"].type == "tribe":
+                program_type = DataFile.ProgramType.TRIBAL
+            elif DataFile.Section.is_fra(section):
+                program_type = DataFile.ProgramType.FRA
+            else:
+                program_type = DataFile.ProgramType.TANF
+
+            try:
+                section_ref = Section.from_legacy_values(program_type, section)
+            except Section.DoesNotExist as error:
+                raise serializers.ValidationError(
+                    {
+                        "section": (
+                            "Section is not valid for the derived reporting program."
+                        )
+                    }
+                ) from error
+
+            if data.get("is_program_audit") and program_type not in {
+                DataFile.ProgramType.TANF,
+                DataFile.ProgramType.TRIBAL,
+            }:
+                raise serializers.ValidationError(
+                    {
+                        "is_program_audit": (
+                            "Program audits require a TANF or Tribal TANF section."
+                        )
+                    }
+                )
+
+            data["program_type"] = program_type
+            data["section_ref"] = section_ref
 
         return data
 
