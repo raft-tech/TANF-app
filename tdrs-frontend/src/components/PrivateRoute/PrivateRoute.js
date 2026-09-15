@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { setAlert, clearAlert } from '../../actions/alert'
 import { ALERT_INFO } from '../Alert'
 import PrivateTemplate from '../PrivateTemplate'
 import IdleTimer from '../IdleTimer/IdleTimer'
 import AccessGuard from '../AccessGuard'
+import { saveLoginDestination } from '../../utils/loginRedirect'
 
 /**
  * @param {React.ReactNode} children - One or more React components to be
@@ -25,12 +26,16 @@ function PrivateRoute({
   const authLoading = useSelector((state) => state.auth.loading)
 
   const navigate = useNavigate()
+  const location = useLocation()
   const dispatch = useDispatch()
 
   useEffect(() => {
     if (!authenticated && !authLoading) {
+      saveLoginDestination(
+        `${location.pathname}${location.search}${location.hash}`
+      )
       dispatch(setAlert({ heading: 'Please sign in first', type: ALERT_INFO }))
-      navigate('/')
+      navigate('/', { replace: true })
     }
 
     if (authLoading) {
@@ -40,7 +45,7 @@ function PrivateRoute({
     if (authenticated) {
       dispatch(clearAlert())
     }
-  }, [authenticated, authLoading, dispatch, navigate])
+  }, [authenticated, authLoading, dispatch, navigate, location])
 
   if (authenticated) {
     return (

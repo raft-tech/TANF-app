@@ -13,6 +13,10 @@ import PrivateRoute from '.'
 describe('PrivateRoute.js', () => {
   const mockStore = configureStore([thunk])
 
+  afterEach(() => {
+    window.sessionStorage.clear()
+  })
+
   const createWrapper = (storeOptions) =>
     render(
       <Provider store={mockStore(storeOptions)}>
