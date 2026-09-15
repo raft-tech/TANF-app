@@ -213,7 +213,6 @@ describe('STTFeedbackReportsTable', () => {
         status: 200,
         error: null,
       })
-
       const mockData = [
         {
           id: 1,

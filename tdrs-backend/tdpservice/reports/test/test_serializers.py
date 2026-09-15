@@ -1,11 +1,15 @@
 """Tests for ReportFileSerializer and ReportSourceSerializer."""
 
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
+
 import pytest
 from rest_framework.exceptions import ValidationError
 
 from tdpservice.reports.models import ReportType
 from tdpservice.reports.serializers import (
     ReportFileSerializer,
+    ReportSourceDownloadStatisticsSerializer,
     ReportSourceSerializer,
 )
 
@@ -143,3 +147,42 @@ def test_report_source_serializer_with_tribal_tanf_report_type(
     obj = ser.save()
 
     assert obj.report_type == ReportType.TRIBAL_TANF
+
+
+@pytest.mark.django_db
+def test_report_source_serializer_includes_annotated_download_counts(
+    report_source_statistics,
+):
+    """Summary counts are serialized without additional database queries."""
+    source = report_source_statistics["source"]
+    source.downloaded_count = 2
+    source.total_count = 4
+
+    with CaptureQueriesContext(connection) as captured_queries:
+        output = ReportSourceSerializer(source).data
+
+    assert output["downloaded_count"] == 2
+    assert output["total_count"] == 4
+    assert len(captured_queries) == 0
+
+
+def test_report_source_download_statistics_serializer_contract():
+    """The detail contract contains only source, counts, and grouped STTs."""
+    data = {
+        "report_source_id": 12,
+        "downloaded_count": 1,
+        "total_count": 2,
+        "regions": [
+            {
+                "id": 4,
+                "stts": [
+                    {"id": 1, "name": "Alabama", "downloaded_at": None},
+                ],
+            }
+        ],
+    }
+
+    output = ReportSourceDownloadStatisticsSerializer(data).data
+
+    assert output == data
+    assert "file" not in output
