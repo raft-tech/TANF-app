@@ -4,7 +4,6 @@ import logging
 
 from django.conf import settings
 
-from tdpservice.data_files.models import DataFile
 from tdpservice.parsers import schema_defs
 from tdpservice.parsers.case_consistency_validator import CaseConsistencyValidator
 from tdpservice.parsers.constants import (
@@ -16,6 +15,8 @@ from tdpservice.parsers.constants import (
     SSN_GROUP_NUMBER_POSITION,
     SSN_SERIAL_NUMBER_POSITION,
     TRAILER_POSITION,
+    ProgramType,
+    Section,
 )
 from tdpservice.parsers.dataclasses import HeaderResult, ValidationErrorArgs
 from tdpservice.parsers.error_generator import ErrorGeneratorArgs, ErrorGeneratorType
@@ -258,7 +259,7 @@ class TanfDataReportParser(BaseParser):
         logger.debug(f"Datafile: {repr(self.datafile)}, is Tribal: {is_tribal}.")
 
         program_type = (
-            DataFile.ProgramType.TRIBAL if is_tribal else header["program_type"]
+            ProgramType.TRIBAL if is_tribal else header["program_type"]
         )
         section = header["type"]
         logger.debug(f"Program type: {program_type}, Section: {section}.")
@@ -445,13 +446,13 @@ class TanfDataReportParser(BaseParser):
     def is_valid_zero_record_submission(self):
         """Return whether this file is a structurally valid zero-record submission."""
         zero_record_sections = [
-            DataFile.Section.ACTIVE_CASE_DATA,
-            DataFile.Section.CLOSED_CASE_DATA,
-            DataFile.Section.AGGREGATE_DATA,
-            DataFile.Section.STRATUM_DATA,
+            Section.ACTIVE_CASE_DATA,
+            Section.CLOSED_CASE_DATA,
+            Section.AGGREGATE_DATA,
+            Section.STRATUM_DATA,
         ]
         return (
-            self.datafile.section in zero_record_sections
+            self.section in zero_record_sections
             and self.header_count == 1
             and self.trailer_count == 1
             and self.trailer_is_valid
@@ -523,7 +524,7 @@ class TanfDataReportParser(BaseParser):
 
     def generate_funded_ssn_errors(self):
         """Generate SSN validation errors for T1/T2 records with specific funding stream and family affiliation."""
-        if self.section == DataFile.Section.ACTIVE_CASE_DATA:
+        if self.section == Section.ACTIVE_CASE_DATA:
             t1_schema = None
             t2_schema = None
             for schemas in self.schema_manager.schema_map.values():

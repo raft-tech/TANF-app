@@ -13,7 +13,13 @@ from celery import current_app as celery_app
 from celery.exceptions import TimeoutError as CeleryTimeoutError
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile, DataFileStateTransition, Section
+from tdpservice.data_files.models import (
+    DataFile,
+    DataFileStateTransition,
+    Section,
+    ShadowDataFile,
+    create_or_update_shadow_data_file,
+)
 from tdpservice.data_files.submission_lifecycle import (
     REPARSE_REQUESTABLE_STATES,
     transition_datafile,
@@ -23,9 +29,11 @@ from tdpservice.parsers.models import (
     DataFileSummary,
     ParserError,
     ParserErrorCategoryChoices,
+    ShadowDataFileSummary,
 )
 from tdpservice.parsers.test.factories import ParsingFileFactory
 from tdpservice.search_indexes.models.fra import TANF_Exiter1
+from tdpservice.search_indexes.models.shadow import ShadowTANF_T1
 from tdpservice.search_indexes.models.ssp import (
     SSP_M1,
     SSP_M2,
@@ -61,14 +69,12 @@ GO_PARSE_TIMEOUT_SECONDS = 300
 GO_PARSE_LARGE_FILE_TIMEOUT_SECONDS = 300
 _GO_PARSER_DATAFILE_IDS = None
 
-os.environ["GO_PARSER_SHADOW_MODE"] = "False"
-
-
 @pytest.fixture(autouse=True)
-def disable_go_parser_shadow_mode(settings, monkeypatch):
-    """Keep Go parser integration tests pointed at production tables."""
-    monkeypatch.setenv("GO_PARSER_SHADOW_MODE", "False")
-    settings.GO_PARSER_SHADOW_MODE = False
+def configure_go_parser_shadow_mode(settings, monkeypatch):
+    """Keep Django output selection aligned with the live Go worker."""
+    shadow_mode = os.getenv("GO_PARSER_SHADOW_MODE", "false").lower() == "true"
+    monkeypatch.setenv("GO_PARSER_SHADOW_MODE", str(shadow_mode))
+    settings.GO_PARSER_SHADOW_MODE = shadow_mode
 
 
 def register_go_parser_datafile_for_cleanup(datafile):
@@ -153,6 +159,48 @@ def parse_datafile(dfs, datafile, timeout_seconds=GO_PARSE_TIMEOUT_SECONDS):
         async_result.id
     }
     return dfs
+
+
+@pytest.mark.go_parser_integration
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.skipif(
+    os.getenv("GO_PARSER_SHADOW_MODE", "false").lower() != "true",
+    reason="requires the isolated Go parser worker in shadow mode",
+)
+def test_go_parse_shadow_uses_canonical_metadata(small_tanf_section1_datafile):
+    """Live shadow parsing projects canonical metadata and writes shadow outputs."""
+    datafile = small_tanf_section1_datafile
+    register_go_parser_datafile_for_cleanup(datafile)
+    shadow = create_or_update_shadow_data_file(datafile)
+    ShadowDataFile.objects.filter(pk=shadow.pk).update(
+        program_type="STALE",
+        section="Stale Section",
+    )
+    DataFile.objects.filter(pk=datafile.pk).update(
+        program_type=DataFile.ProgramType.SSP,
+        section=DataFile.Section.CLOSED_CASE_DATA,
+    )
+
+    async_result = celery_app.send_task(
+        GO_PARSE_TASK_NAME,
+        args=[datafile.pk, 0, str(uuid.uuid4())],
+        queue=settings.CELERY_GO_PARSER_QUEUE,
+    )
+    task_result = async_result.get(
+        timeout=GO_PARSE_TIMEOUT_SECONDS,
+        propagate=True,
+    )
+
+    assert task_result == "success"
+    shadow.refresh_from_db()
+    assert shadow.program_type == datafile.section_ref.program.code
+    assert shadow.section == datafile.section_ref.name
+    assert shadow.state == SubmissionState.PARSE_COMPLETED
+    assert ShadowDataFileSummary.objects.filter(datafile=shadow).exists()
+    assert ShadowTANF_T1.objects.filter(datafile=shadow).exists()
+    datafile.refresh_from_db()
+    assert datafile.state == SubmissionState.UPLOADED
+    assert datafile.program_type == DataFile.ProgramType.SSP
 
 
 @pytest.mark.go_parser_integration

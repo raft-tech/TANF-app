@@ -11,10 +11,14 @@ def create_shadow_model(
     app_label=None,
     module=None,
     foreign_key_overrides=None,
+    field_overrides=None,
+    extra_fields=None,
     exclude_fields=None,
 ):
     """Create a managed shadow model with cloned fields from a source model."""
     foreign_key_overrides = foreign_key_overrides or {}
+    field_overrides = field_overrides or {}
+    extra_fields = extra_fields or {}
     exclude_fields = set(exclude_fields or ())
 
     attrs = {"__module__": module or source_model.__module__}
@@ -23,7 +27,7 @@ def create_shadow_model(
         if field.name in exclude_fields:
             continue
 
-        override = foreign_key_overrides.get(field.name)
+        override = foreign_key_overrides.get(field.name) or field_overrides.get(field.name)
         if override is not None:
             attrs[field.name] = override
             continue
@@ -34,6 +38,8 @@ def create_shadow_model(
             )
 
         attrs[field.name] = field.clone()
+
+    attrs.update(extra_fields)
 
     meta_attrs = {
         "db_table": db_table,

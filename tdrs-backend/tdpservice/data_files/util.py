@@ -1,20 +1,27 @@
 """Utility file for DataFiles."""
 
 
+def get_datafile_classification(datafile):
+    """Return parser metadata from the authoritative source for this table family."""
+    if datafile._meta.db_table.startswith("shadow_"):
+        return str(datafile.program_type), str(datafile.section)
+    return datafile.section_ref.program.code, datafile.section_ref.name
+
+
 def create_s3_log_file_path(datafile):
     """Create a unique S3 log file path per parse using the DataFile ID."""
-    return f"{datafile.year}/{datafile.quarter}/{datafile.stt}/{datafile.program_type}/{datafile.section}/{datafile.id}"
+    program_type, section = get_datafile_classification(datafile)
+    return f"{datafile.year}/{datafile.quarter}/{datafile.stt}/{program_type}/{section}/{datafile.id}"
 
 
 def create_legacy_s3_log_file_path(datafile):
     """Create the old-format S3 log path for backwards compatibility with pre-existing logs."""
-    from tdpservice.data_files.models import DataFile
-
+    program_type, section = get_datafile_classification(datafile)
     key = f"{datafile.year}/{datafile.quarter}/{datafile.stt}/"
-    if datafile.program_type in [DataFile.ProgramType.FRA, DataFile.ProgramType.TANF]:
-        key += f"{datafile.section}"
-    elif datafile.program_type == DataFile.ProgramType.TRIBAL:
-        key += f"{datafile.program_type.title()} {datafile.section}"
+    if program_type in ["FRA", "TAN"]:
+        key += section
+    elif program_type == "TRIBAL":
+        key += f"{program_type.title()} {section}"
     else:
-        key += f"{datafile.program_type} {datafile.section}"
+        key += f"{program_type} {section}"
     return key

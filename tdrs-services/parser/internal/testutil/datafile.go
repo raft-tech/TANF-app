@@ -14,6 +14,13 @@ import (
 	"go-parser/internal/config"
 )
 
+const canonicalSectionIDQuery = `
+	SELECT section.id
+	FROM data_files_section AS section
+	JOIN data_files_program AS program ON program.id = section.program_id
+	WHERE section.name = $1 AND program.code = $2
+`
+
 func dataFileTableNameFromEnv() string {
 	if strings.EqualFold(os.Getenv("GO_PARSER_SHADOW_MODE"), "true") {
 		return config.DataFileTableName(config.DefaultTablePrefix)
@@ -30,6 +37,11 @@ func CreateTestDatafile(ctx context.Context, pool *pgxpool.Pool, quarter string,
 
 // CreateTestDatafileInTable creates a datafile record in the specified table.
 func CreateTestDatafileInTable(ctx context.Context, pool *pgxpool.Pool, tableName string, quarter string, year int, sectionName string, programType string) (int32, error) {
+	productionTable := config.DataFileTableName("")
+	shadowTable := config.DataFileTableName(config.DefaultTablePrefix)
+	if tableName != productionTable && tableName != shadowTable {
+		return 0, fmt.Errorf("unsupported datafile table %q", tableName)
+	}
 	sanitizedTableName := pgx.Identifier{tableName}.Sanitize()
 
 	// Get an existing STT ID
@@ -47,26 +59,16 @@ func CreateTestDatafileInTable(ctx context.Context, pool *pgxpool.Pool, tableNam
 		return 0, fmt.Errorf("failed to get user: %w (ensure users_user table has data)", err)
 	}
 
-	// Insert the datafile record
-	var datafileID int32
-	err = pool.QueryRow(ctx, fmt.Sprintf(`
-		INSERT INTO %s (
-			original_filename,
-			slug,
-			extension,
-			quarter,
-			year,
-			section,
-			version,
-			stt_id,
-			user_id,
-			created_at,
-			program_type,
-			is_program_audit,
-			state
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-		RETURNING id
-	`, sanitizedTableName),
+	sectionRefID := 0
+	if tableName == productionTable {
+		err = pool.QueryRow(ctx, canonicalSectionIDQuery, sectionName, programType).Scan(&sectionRefID)
+		if err != nil {
+			return 0, fmt.Errorf("failed to resolve canonical section %q/%q: %w", programType, sectionName, err)
+		}
+	}
+
+	query := shadowDataFileInsert(sanitizedTableName)
+	args := []any{
 		"test_file.txt",
 		fmt.Sprintf("test-%d", time.Now().UnixNano()),
 		"txt",
@@ -80,13 +82,49 @@ func CreateTestDatafileInTable(ctx context.Context, pool *pgxpool.Pool, tableNam
 		programType,
 		false,
 		"uploaded",
-	).Scan(&datafileID)
+	}
+	if sectionRefID != 0 {
+		query = productionDataFileInsert(sanitizedTableName)
+		args = append(args, sectionRefID)
+	}
+
+	var datafileID int32
+	err = pool.QueryRow(ctx, query, args...).Scan(&datafileID)
 
 	if err != nil {
 		return 0, fmt.Errorf("failed to create datafile: %w", err)
 	}
 
 	return datafileID, nil
+}
+
+func shadowDataFileInsert(sanitizedTableName string) string {
+	return dataFileInsert(sanitizedTableName, "", "")
+}
+
+func productionDataFileInsert(sanitizedTableName string) string {
+	return dataFileInsert(sanitizedTableName, ",\n\t\t\tsection_ref_id", ", $14")
+}
+
+func dataFileInsert(sanitizedTableName string, additionalColumns string, additionalValues string) string {
+	return fmt.Sprintf(`
+		INSERT INTO %s (
+			original_filename,
+			slug,
+			extension,
+			quarter,
+			year,
+			section,
+			version,
+			stt_id,
+			user_id,
+			created_at,
+			program_type,
+			is_program_audit,
+			state%s
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13%s)
+		RETURNING id
+	`, sanitizedTableName, additionalColumns, additionalValues)
 }
 
 // DeleteTestDatafile removes a test datafile and its associated records.
@@ -96,6 +134,9 @@ func DeleteTestDatafile(ctx context.Context, pool *pgxpool.Pool, datafileID int3
 
 // DeleteTestDatafileFromTable removes a test datafile from the specified table.
 func DeleteTestDatafileFromTable(ctx context.Context, pool *pgxpool.Pool, tableName string, datafileID int32) error {
+	if tableName != config.DataFileTableName("") && tableName != config.DataFileTableName(config.DefaultTablePrefix) {
+		return fmt.Errorf("unsupported datafile table %q", tableName)
+	}
 	sanitizedTableName := pgx.Identifier{tableName}.Sanitize()
 	_, err := pool.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE id = $1", sanitizedTableName), datafileID)
 	return err

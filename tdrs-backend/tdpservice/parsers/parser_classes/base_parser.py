@@ -8,6 +8,7 @@ from django.conf import settings
 from django.db.models import Count, Q
 from django.db.utils import DatabaseError
 
+from tdpservice.parsers.constants import Section
 from tdpservice.parsers.decoders import DecoderFactory
 from tdpservice.parsers.error_generator import (
     ErrorGeneratorArgs,
@@ -69,7 +70,7 @@ class BaseParser(ABC):
             log_parser_exception(
                 self.datafile, f"Could not determine encoding of file: \n{e}", "error"
             )
-            if self.datafile.Section.is_fra(self.section):
+            if Section.is_fra(self.section):
                 msg = (
                     "Could not determine encoding of FRA file. If the file is an XLSX file, ensure it "
                     "can be opened in Excel. If the file is a CSV, ensure it can be opened in a text "

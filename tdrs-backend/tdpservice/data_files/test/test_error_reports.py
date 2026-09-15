@@ -5,16 +5,62 @@ from io import BytesIO
 import pytest
 from openpyxl import load_workbook
 
-from tdpservice.data_files.error_reports import ActiveClosedErrorReport
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.error_reports import (
+    ActiveClosedErrorReport,
+    ErrorReportFactory,
+)
+from tdpservice.data_files.models import DataFile, create_or_update_shadow_data_file
 from tdpservice.data_files.parser_error_choices import ParserErrorCategoryChoices
 from tdpservice.data_files.test.factories import DataFileFactory
+from tdpservice.parsers.models import (
+    DataFileSummary,
+    ShadowDataFileSummary,
+    get_s3_upload_path,
+)
 from tdpservice.parsers.test.factories import ParserErrorFactory
 
 KNOWLEDGE_CENTER_URL = (
     "https://tdp-project-updates.app.cloud.gov/knowledge-center/"
     "viewing-error-reports.html"
 )
+
+
+@pytest.mark.django_db
+def test_error_report_factory_uses_canonical_section():
+    """Stale production scalar metadata does not change report dispatch."""
+    datafile = DataFileFactory.create(
+        section=DataFile.Section.ACTIVE_CASE_DATA,
+        program_type=DataFile.ProgramType.TANF,
+    )
+    DataFile.objects.filter(pk=datafile.pk).update(
+        section=DataFile.Section.AGGREGATE_DATA
+    )
+    datafile.refresh_from_db()
+
+    report = ErrorReportFactory.get_error_report_generator(datafile)
+
+    assert isinstance(report, ActiveClosedErrorReport)
+
+
+@pytest.mark.django_db
+def test_error_report_paths_preserve_production_and_shadow_formats():
+    """Report paths use canonical production and scalar shadow metadata."""
+    datafile = DataFileFactory.create(s3_versioning_id="version-1")
+    DataFile.objects.filter(pk=datafile.pk).update(
+        program_type="STALE", section="Stale Section"
+    )
+    datafile.refresh_from_db()
+    shadow = create_or_update_shadow_data_file(datafile)
+
+    expected = (
+        f"data_files/{datafile.year}/{datafile.quarter}/{datafile.stt_id}/"
+        f"TAN/Active Case Data/report_{datafile.s3_versioning_id}.xlsx"
+    )
+    assert get_s3_upload_path(DataFileSummary(datafile=datafile), "report") == expected
+    assert (
+        get_s3_upload_path(ShadowDataFileSummary(datafile=shadow), "report")
+        == expected
+    )
 
 
 @pytest.fixture

@@ -367,16 +367,16 @@ func (s *Server) processTask(
 	eventID string,
 	celeryTaskID string,
 ) error {
-	dataFileTable := config.DataFileTableName(s.Config.Database.EffectiveTablePrefix())
-
-	// 1. Look up datafile metadata from the database.
-	df, err := db.GetDataFile(taskCtx, s.dbPool, dataFileTable, dataFileID)
+	// Metadata remains production-owned even when parser output is shadowed.
+	df, err := db.GetProductionDataFile(taskCtx, s.dbPool, dataFileID)
 	if err != nil {
 		return fmt.Errorf("failed to get datafile: %w", err)
 	}
 
-	if err := db.EnsureShadowDataFile(taskCtx, s.dbPool, dataFileTable, df); err != nil {
-		return fmt.Errorf("failed to prepare shadow datafile: %w", err)
+	if s.Config.Database.ShadowMode {
+		if err := db.EnsureShadowDataFile(taskCtx, s.dbPool, df); err != nil {
+			return fmt.Errorf("failed to prepare shadow datafile: %w", err)
+		}
 	}
 
 	summaryTable := config.DataFileSummaryTableName(s.Config.Database.EffectiveTablePrefix())

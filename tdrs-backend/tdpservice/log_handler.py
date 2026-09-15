@@ -8,7 +8,10 @@ from django.conf import settings
 import boto3
 from botocore.exceptions import ClientError
 
-from tdpservice.data_files.util import create_s3_log_file_path
+from tdpservice.data_files.util import (
+    create_s3_log_file_path,
+    get_datafile_classification,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +35,10 @@ if settings.USE_LOCALSTACK:
 def change_log_filename(logger, datafile):
     """Change the filename of the log file handler."""
     handlers = getattr(logger, "handlers", [])
+    program_type, section = get_datafile_classification(datafile)
     new_filename = (
         f"/tmp/{datafile.year}_{datafile.quarter}_"
-        f"{datafile.stt}_{datafile.program_type}_{datafile.section}_{datafile.id}.log"
+        f"{datafile.stt}_{program_type}_{section}_{datafile.id}.log"
     )
     for handler in handlers:
         if isinstance(handler, S3FileHandler):

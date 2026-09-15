@@ -1,12 +1,21 @@
 """Module testing for data file model."""
 
-import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 
+import pytest
+
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile, Program, Section
+from tdpservice.data_files.models import (
+    DataFile,
+    Program,
+    Section,
+    ShadowDataFile,
+    create_or_update_shadow_data_file,
+    get_s3_upload_path,
+    get_shadow_s3_upload_path,
+)
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.stts.models import STT
 
@@ -105,6 +114,87 @@ def test_new_data_file_resolves_section_ref(
     assert data_file.program_type == program_type
     assert data_file.section == section_name
     assert data_file.is_program_audit is is_program_audit
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "program_type,section_name,is_program_audit",
+    [
+        (DataFile.ProgramType.TANF, DataFile.Section.ACTIVE_CASE_DATA, False),
+        (DataFile.ProgramType.SSP, DataFile.Section.CLOSED_CASE_DATA, False),
+        (DataFile.ProgramType.TRIBAL, DataFile.Section.AGGREGATE_DATA, False),
+        (
+            DataFile.ProgramType.FRA,
+            DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+            False,
+        ),
+        (DataFile.ProgramType.TANF, DataFile.Section.ACTIVE_CASE_DATA, True),
+        (DataFile.ProgramType.TRIBAL, DataFile.Section.ACTIVE_CASE_DATA, True),
+    ],
+)
+def test_shadow_data_file_projects_canonical_classification(
+    program_type, section_name, is_program_audit
+):
+    """Shadow parser metadata is projected from the production canonical relation."""
+    data_file = DataFileFactory.create(
+        program_type=program_type,
+        section=section_name,
+        is_program_audit=is_program_audit,
+    )
+    DataFile.objects.filter(pk=data_file.pk).update(
+        program_type="STALE", section="Stale Section"
+    )
+    data_file.refresh_from_db()
+
+    shadow = create_or_update_shadow_data_file(data_file)
+
+    assert shadow.program_type == program_type
+    assert shadow.section == section_name
+    assert shadow.is_program_audit is is_program_audit
+
+
+@pytest.mark.django_db
+def test_shadow_data_file_updates_existing_metadata():
+    """Canonical projection refreshes an existing stale shadow row."""
+    data_file = DataFileFactory.create()
+    shadow = create_or_update_shadow_data_file(data_file)
+    ShadowDataFile.objects.filter(pk=shadow.pk).update(
+        program_type="STALE", section="Stale Section", is_program_audit=True
+    )
+
+    shadow = create_or_update_shadow_data_file(data_file)
+
+    assert shadow.program_type == DataFile.ProgramType.TANF
+    assert shadow.section == DataFile.Section.ACTIVE_CASE_DATA
+    assert shadow.is_program_audit is False
+
+
+@pytest.mark.django_db
+def test_production_and_shadow_upload_paths_use_their_authoritative_metadata():
+    """Production and shadow paths preserve text while using separate metadata sources."""
+    data_file = DataFileFactory.create()
+    DataFile.objects.filter(pk=data_file.pk).update(
+        program_type="STALE", section="Stale Section"
+    )
+    data_file.refresh_from_db()
+    shadow = create_or_update_shadow_data_file(data_file)
+
+    expected = (
+        f"data_files/{data_file.year}/{data_file.quarter}/{data_file.stt_id}/"
+        "TAN/Active Case Data/submission.txt"
+    )
+    assert get_s3_upload_path(data_file, "submission.txt") == expected
+    assert get_shadow_s3_upload_path(shadow, "submission.txt") == expected
+
+
+def test_shadow_classification_fields_are_explicit_scalars():
+    """Shadow classification remains independent of production model fields."""
+    assert not ShadowDataFile._meta.get_field("program_type").choices
+    assert not ShadowDataFile._meta.get_field("section").choices
+    assert (
+        ShadowDataFile._meta.get_field("file").upload_to
+        is get_shadow_s3_upload_path
+    )
 
 
 @pytest.mark.django_db

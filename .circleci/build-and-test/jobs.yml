@@ -147,6 +147,7 @@
           command: |
             cd tdrs-backend
             task backend-pytest-go-integration
+            task backend-pytest-go-integration GO_PARSER_SHADOW_MODE=true PYTEST_ARGS="-k go_parse_shadow_uses_canonical_metadata -vv"
       - run:
           name: Run Go parser tests with coverage
           command: |

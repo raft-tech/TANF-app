@@ -132,6 +132,7 @@ tasks:
     dir: tdrs-backend
     vars:
       PYTEST_ARGS: '{{.PYTEST_ARGS | default ""}}'
+      GO_PARSER_SHADOW_MODE: '{{.GO_PARSER_SHADOW_MODE | default "false"}}'
     cmds:
       - task: create-network
       - |
@@ -163,12 +164,12 @@ tasks:
         docker compose -f docker-compose.yml run --rm --detach \
           --name "${container}" \
           -e DATABASE_URL="postgres://tdpuser:something_secure@postgres:5432/${db_name}?sslmode=disable" \
-          -e GO_PARSER_SHADOW_MODE=false \
+          -e GO_PARSER_SHADOW_MODE={{.GO_PARSER_SHADOW_MODE}} \
           -e GO_PARSER_QUEUE="${queue}" \
           -e GO_PARSER_POST_PARSE_QUEUE="${post_parse_queue}" \
           go-parser
 
-        docker compose -f docker-compose.yml exec web sh -c "DB_NAME=${db_name} CELERY_GO_PARSER_QUEUE=${queue} DJANGO_SETTINGS_MODULE=tdpservice.settings.go_parser_integration DJANGO_CONFIGURATION=GoParserIntegration pytest -c pytest-go-parser.ini --basetemp=/tmp/tdp-pytest-go-integration tdpservice/parsers/test/integration {{.PYTEST_ARGS}}"
+        docker compose -f docker-compose.yml exec web sh -c "DB_NAME=${db_name} CELERY_GO_PARSER_QUEUE=${queue} GO_PARSER_SHADOW_MODE={{.GO_PARSER_SHADOW_MODE}} DJANGO_SETTINGS_MODULE=tdpservice.settings.go_parser_integration DJANGO_CONFIGURATION=GoParserIntegration pytest -c pytest-go-parser.ini --basetemp=/tmp/tdp-pytest-go-integration tdpservice/parsers/test/integration {{.PYTEST_ARGS}}"
 
   backend-pytest-go-integration-active:
     desc: 'Run Go parser integration tests against the active local DB and go-parser service. Faster, but not isolated. E.g: task backend-pytest-go-integration-active PYTEST_ARGS="-k section1 -vv"'

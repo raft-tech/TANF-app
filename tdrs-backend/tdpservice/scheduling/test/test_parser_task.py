@@ -1096,8 +1096,13 @@ def test_parse_transitions_include_parse_context(monkeypatch, data_analyst):
         state=SubmissionState.VIRUS_SCAN_COMPLETED,
     )
     ensure_stt_filenames(datafile.stt)
+    DataFile.objects.filter(pk=datafile.pk).update(
+        program_type=DataFile.ProgramType.SSP,
+        section=DataFile.Section.CLOSED_CASE_DATA,
+    )
 
     transitions = []
+    parser_kwargs = {}
     real_transition = parser_task.transition_datafile
 
     def recording_transition(
@@ -1125,8 +1130,13 @@ def test_parse_transitions_include_parse_context(monkeypatch, data_analyst):
         )
 
     setup_parse_mocks(monkeypatch)
+
+    def get_parser(**kwargs):
+        parser_kwargs.update(kwargs)
+        return DummyParser()
+
     monkeypatch.setattr(
-        parser_task.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
+        parser_task.ParserFactory, "get_instance", get_parser
     )
     monkeypatch.setattr(parser_task, "send_data_submitted_email", lambda *a, **k: None)
     monkeypatch.setattr(parser_task, "transition_datafile", recording_transition)
@@ -1139,6 +1149,8 @@ def test_parse_transitions_include_parse_context(monkeypatch, data_analyst):
     assert start_transition["log_fields"]["section"] == datafile.section
     assert start_transition["log_fields"]["program_type"] == datafile.program_type
     assert start_transition["log_fields"]["reparse_id"] is None
+    assert parser_kwargs["section"] == datafile.section_ref.name
+    assert parser_kwargs["program_type"] == datafile.section_ref.program.code
 
     completion_transition = transitions[1]
     assert completion_transition["next_state"] == SubmissionState.PARSE_COMPLETED

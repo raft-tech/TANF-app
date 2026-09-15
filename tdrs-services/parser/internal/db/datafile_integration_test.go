@@ -179,3 +179,134 @@ func TestUpdateDataFileStateRollsBackWhenAuditInsertFails(t *testing.T) {
 		})
 	}
 }
+
+func TestGetProductionDataFileUsesCanonicalClassificationAndPreservesPIA(t *testing.T) {
+	pool, ctx := canonicalDataFileTestPool(t)
+
+	tests := []struct {
+		id           int32
+		program      string
+		section      string
+		programAudit bool
+	}{
+		{42, "FRA", "Work Outcomes of TANF Exiters", false},
+		{43, "TAN", "Active Case Data", true},
+		{44, "SSP", "Active Case Data", false},
+		{45, "TRIBAL", "Active Case Data", false},
+		{46, "FRA", "Secondary School Attainment", false},
+		{47, "FRA", "Supplemental Work Outcomes", false},
+		{48, "TRIBAL", "Active Case Data", true},
+	}
+	for _, tt := range tests {
+		df, err := GetProductionDataFile(ctx, pool, tt.id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if df.ProgramType != tt.program || df.Section != tt.section || df.IsProgramAudit != tt.programAudit {
+			t.Errorf("id=%d metadata = %q/%q audit=%t, want %q/%q audit=%t", tt.id, df.ProgramType, df.Section, df.IsProgramAudit, tt.program, tt.section, tt.programAudit)
+		}
+		if err := EnsureShadowDataFile(ctx, pool, df); err != nil {
+			t.Fatal(err)
+		}
+		var program, section string
+		var programAudit bool
+		if err := pool.QueryRow(ctx, `
+			SELECT program_type, section, is_program_audit
+			FROM shadow_data_files_datafile WHERE id = $1
+		`, tt.id).Scan(&program, &section, &programAudit); err != nil {
+			t.Fatal(err)
+		}
+		if program != tt.program || section != tt.section || programAudit != tt.programAudit {
+			t.Errorf("id=%d shadow metadata = %q/%q audit=%t, want %q/%q audit=%t", tt.id, program, section, programAudit, tt.program, tt.section, tt.programAudit)
+		}
+	}
+}
+
+func canonicalDataFileTestPool(t *testing.T) (*pgxpool.Pool, context.Context) {
+	t.Helper()
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("set TEST_DATABASE_URL to run PostgreSQL DataFile lookup tests")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	t.Cleanup(cancel)
+	conn, err := pgx.Connect(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := "datafile_lookup_test_" + strings.ReplaceAll(newLogEventUUID().String(), "-", "")
+	schemaName := pgx.Identifier{schema}.Sanitize()
+	if _, err := conn.Exec(ctx, "CREATE SCHEMA "+schemaName); err != nil {
+		_ = conn.Close(ctx)
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cleanupCancel()
+		if _, err := conn.Exec(cleanupCtx, "DROP SCHEMA "+schemaName+" CASCADE"); err != nil {
+			t.Error(err)
+		}
+		_ = conn.Close(cleanupCtx)
+	})
+	poolConfig, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	poolConfig.ConnConfig.RuntimeParams["search_path"] = schema
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(pool.Close)
+	_, err = pool.Exec(ctx, `
+		CREATE TABLE data_files_program (
+			id integer PRIMARY KEY, code text NOT NULL
+		);
+		CREATE TABLE data_files_section (
+			id integer PRIMARY KEY, name text NOT NULL, program_id integer NOT NULL REFERENCES data_files_program
+		);
+		CREATE TABLE data_files_datafile (
+			id integer PRIMARY KEY, original_filename text NOT NULL, slug text NOT NULL,
+			extension text NOT NULL, quarter text NOT NULL, year integer NOT NULL,
+			section text NOT NULL, version integer NOT NULL, stt_id integer NOT NULL,
+			user_id uuid, created_at timestamptz, file text, s3_versioning_id text,
+			program_type text NOT NULL, is_program_audit boolean NOT NULL, state text NOT NULL,
+			section_ref_id integer NOT NULL REFERENCES data_files_section
+		);
+		CREATE TABLE shadow_data_files_datafile (
+			id integer PRIMARY KEY, original_filename text NOT NULL, slug text NOT NULL,
+			extension text NOT NULL, quarter text NOT NULL, year integer NOT NULL,
+			section text NOT NULL, version integer NOT NULL, stt_id integer NOT NULL,
+			user_id uuid, created_at timestamptz, file text, s3_versioning_id text,
+			program_type text NOT NULL, is_program_audit boolean NOT NULL, state text NOT NULL
+		);
+		INSERT INTO data_files_program VALUES
+			(1, 'TAN'), (2, 'FRA'), (3, 'SSP'), (4, 'TRIBAL');
+		INSERT INTO data_files_section VALUES
+			(1, 'Active Case Data', 1),
+			(2, 'Work Outcomes of TANF Exiters', 2),
+			(3, 'Active Case Data', 3),
+			(4, 'Active Case Data', 4),
+			(5, 'Secondary School Attainment', 2),
+			(6, 'Supplemental Work Outcomes', 2);
+		INSERT INTO data_files_datafile VALUES
+			(42, 'fra.csv', 'fra', 'csv', 'Q1', 2026, 'stale section', 1, 1,
+			 NULL, NOW(), 'fra.csv', NULL, 'stale program', false, 'uploaded', 2),
+			(43, 'pia.txt', 'pia', 'txt', 'Q2', 2026, 'stale section', 1, 1,
+			 NULL, NOW(), 'pia.txt', NULL, 'stale program', true, 'uploaded', 1),
+			(44, 'ssp.txt', 'ssp', 'txt', 'Q2', 2026, 'stale section', 1, 1,
+			 NULL, NOW(), 'ssp.txt', NULL, 'stale program', false, 'uploaded', 3),
+			(45, 'tribal.txt', 'tribal', 'txt', 'Q2', 2026, 'stale section', 1, 1,
+			 NULL, NOW(), 'tribal.txt', NULL, 'stale program', false, 'uploaded', 4),
+			(46, 'fra-school.csv', 'fra-school', 'csv', 'Q1', 2026, 'stale section', 1, 1,
+			 NULL, NOW(), 'fra-school.csv', NULL, 'stale program', false, 'uploaded', 5),
+			(47, 'fra-supplemental.csv', 'fra-supplemental', 'csv', 'Q1', 2026, 'stale section', 1, 1,
+			 NULL, NOW(), 'fra-supplemental.csv', NULL, 'stale program', false, 'uploaded', 6),
+			(48, 'tribal-pia.txt', 'tribal-pia', 'txt', 'Q2', 2026, 'stale section', 1, 1,
+			 NULL, NOW(), 'tribal-pia.txt', NULL, 'stale program', true, 'uploaded', 4);
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return pool, ctx
+}

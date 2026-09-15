@@ -24,6 +24,7 @@ from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.util import (
     create_legacy_s3_log_file_path,
     create_s3_log_file_path,
+    get_datafile_classification,
 )
 from tdpservice.stts.models import STT
 from tdpservice.users.models import User
@@ -106,6 +107,16 @@ def get_file_shasum(file: Union[File, StringIO]) -> str:
 
 def get_s3_upload_path(instance, filename):
     """Produce a unique upload path for S3 files for a given STT and Quarter."""
+    program_type = instance.section_ref.program.code
+    section = instance.section_ref.name
+    return os.path.join(
+        f"data_files/{instance.year}/{instance.quarter}/{instance.stt.id}/{program_type}/{section}/",
+        filename,
+    )
+
+
+def get_shadow_s3_upload_path(instance, filename):
+    """Produce an upload path from denormalized shadow parser metadata."""
     return os.path.join(
         f"data_files/{instance.year}/{instance.quarter}/{instance.stt.id}/{instance.program_type}/{instance.section}/",
         filename,
@@ -523,7 +534,20 @@ ShadowDataFile = create_shadow_model(
             null=False,
         ),
     },
-    exclude_fields={"section_ref"},
+    field_overrides={
+        "file": S3VersionedFileField(
+            storage=DataFilesS3Storage,
+            upload_to=get_shadow_s3_upload_path,
+            version_id_field="s3_versioning_id",
+            null=True,
+            blank=True,
+        ),
+    },
+    extra_fields={
+        "program_type": models.CharField(max_length=32, blank=False, null=False),
+        "section": models.CharField(max_length=32, blank=False, null=False),
+    },
+    exclude_fields={"program_type", "section", "section_ref"},
 )
 
 
@@ -536,8 +560,6 @@ def create_or_update_shadow_data_file(data_file):
         "created_at",
         "quarter",
         "year",
-        "program_type",
-        "section",
         "is_program_audit",
         "version",
         "state",
@@ -547,6 +569,9 @@ def create_or_update_shadow_data_file(data_file):
         "s3_versioning_id",
     ]
     defaults = {field: getattr(data_file, field) for field in fields}
+    defaults["program_type"], defaults["section"] = get_datafile_classification(
+        data_file
+    )
 
     shadow_data_file, _ = ShadowDataFile.objects.update_or_create(
         id=data_file.id,

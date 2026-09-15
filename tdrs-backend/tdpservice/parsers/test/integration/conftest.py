@@ -10,8 +10,19 @@ import psycopg2
 import pytest
 from psycopg2 import sql
 
-from tdpservice.data_files.models import DataFile, LegacyFileTransfer, ReparseFileMeta
-from tdpservice.parsers.models import DataFileSummary, ParserError
+from tdpservice.data_files.models import (
+    DataFile,
+    LegacyFileTransfer,
+    ReparseFileMeta,
+    ShadowDataFile,
+)
+from tdpservice.parsers.models import (
+    DataFileSummary,
+    ParserError,
+    ShadowDataFileSummary,
+    ShadowParserError,
+)
+from tdpservice.search_indexes.models import shadow
 from tdpservice.search_indexes.models.program_audit import (
     ProgramAudit_T1,
     ProgramAudit_T2,
@@ -50,11 +61,20 @@ def _delete_datafiles_outside_transaction(datafile_ids: Iterable[int]) -> None:
     delete_specs = [
         (DataFileSummary._meta.db_table, "datafile_id"),
         (ParserError._meta.db_table, "file_id"),
+        (ShadowDataFileSummary._meta.db_table, "datafile_id"),
+        (ShadowParserError._meta.db_table, "file_id"),
         (ReparseFileMeta._meta.db_table, "data_file_id"),
     ]
     record_models = MODELS + [ProgramAudit_T1, ProgramAudit_T2, ProgramAudit_T3]
     delete_specs.extend(
         (model._meta.db_table, "datafile_id") for model in record_models
+    )
+    delete_specs.extend(
+        (model._meta.db_table, "datafile_id")
+        for model in shadow.__dict__.values()
+        if isinstance(model, type)
+        and getattr(model, "_meta", None) is not None
+        and model._meta.db_table.startswith("shadow_search_indexes_")
     )
     null_specs = [
         (ClamAVFileScan._meta.db_table, "data_file_id"),
@@ -83,6 +103,12 @@ def _delete_datafiles_outside_transaction(datafile_ids: Iterable[int]) -> None:
                     [datafile_ids],
                 )
 
+            cursor.execute(
+                sql.SQL("DELETE FROM {} WHERE id = ANY(%s)").format(
+                    sql.Identifier(ShadowDataFile._meta.db_table),
+                ),
+                [datafile_ids],
+            )
             cursor.execute(
                 sql.SQL("DELETE FROM {} WHERE id = ANY(%s)").format(
                     sql.Identifier(DataFile._meta.db_table),

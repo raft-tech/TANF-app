@@ -8,6 +8,8 @@ from django.contrib.admin.models import ADDITION
 
 from tdpservice.core.utils import log
 from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.models import Section as CanonicalSection
+from tdpservice.parsers.constants import ProgramType, Section
 
 logger = logging.getLogger(__name__)
 
@@ -16,20 +18,22 @@ def create_test_datafile(
     filename,
     stt_user,
     stt,
-    section=DataFile.Section.ACTIVE_CASE_DATA,
-    program_type=DataFile.ProgramType.TANF,
+    section=Section.ACTIVE_CASE_DATA,
+    program_type=ProgramType.TANF,
     year=2021,
     quarter="Q1",
     is_program_audit=False,
 ):
     """Create a test DataFile instance with the given file attached."""
     path = str(Path(__file__).parent.joinpath("test/data")) + f"/{filename}"
+    section_ref = CanonicalSection.from_legacy_values(program_type, section)
     datafile = DataFile.create_new_version(
         {
             "quarter": quarter,
             "year": year,
             "section": section,
             "program_type": program_type,
+            "section_ref": section_ref,
             "is_program_audit": is_program_audit,
             "user": stt_user,
             "stt": stt,

@@ -13,6 +13,7 @@ from tdpservice.backends import DataFilesS3Storage
 from tdpservice.common.shadow_models import create_shadow_model
 from tdpservice.data_files.models import DataFile
 from tdpservice.data_files.parser_error_choices import ParserErrorCategoryChoices
+from tdpservice.data_files.util import get_datafile_classification
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +21,10 @@ logger = logging.getLogger(__name__)
 def get_s3_upload_path(instance, filename):
     """Produce a unique upload path for S3 files for a given STT and Quarter."""
     df = instance.datafile
+    program_type, section = get_datafile_classification(df)
 
     file_path = (
-        f"data_files/{df.year}/{df.quarter}/{df.stt.id}/{df.program_type}/{df.section}/"
+        f"data_files/{df.year}/{df.quarter}/{df.stt.id}/{program_type}/{section}/"
     )
 
     file_name_info = filename

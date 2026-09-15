@@ -9,23 +9,11 @@ import (
 
 func TestDataFileHelpersRejectUnsupportedTables(t *testing.T) {
 	ctx := context.Background()
-	df := &DataFileRecord{ID: 42}
-
 	tests := []struct {
 		name string
 		err  error
 		want string
 	}{
-		{
-			name: "get datafile",
-			err:  func() error { _, err := GetDataFile(ctx, nil, "unknown_table", 42); return err }(),
-			want: `unsupported datafile table "unknown_table"`,
-		},
-		{
-			name: "ensure datafile",
-			err:  EnsureShadowDataFile(ctx, nil, "unknown_table", df),
-			want: `unsupported datafile table "unknown_table"`,
-		},
 		{
 			name: "update datafile state",
 			err:  UpdateDataFileState(ctx, nil, "unknown_table", 42, "Parsing"),
@@ -163,5 +151,18 @@ func TestStateTransitionSQLTargetsAuditTable(t *testing.T) {
 	}
 	if !strings.Contains(insertDataFileStateTransition, "baselog_ptr_id") {
 		t.Fatalf("state transition insert does not use inherited parent link")
+	}
+}
+
+func TestProductionDataFileLookupUsesCanonicalClassification(t *testing.T) {
+	for _, fragment := range []string{
+		"section.name AS section",
+		"program.code AS program_type",
+		"section.id = datafile.section_ref_id",
+		"program.id = section.program_id",
+	} {
+		if !strings.Contains(selectProductionDataFile, fragment) {
+			t.Errorf("production DataFile lookup does not contain %q", fragment)
+		}
 	}
 }

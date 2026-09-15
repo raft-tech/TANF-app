@@ -72,6 +72,9 @@ func TestSectionNumber(t *testing.T) {
 		{"Closed Case Data", "Closed Case Data", 2},
 		{"Aggregate Data", "Aggregate Data", 3},
 		{"Stratum Data", "Stratum Data", 4},
+		{"FRA work outcomes", "Work Outcomes of TANF Exiters", 1},
+		{"FRA school attainment", "Secondary School Attainment", 2},
+		{"FRA supplemental outcomes", "Supplemental Work Outcomes", 3},
 		{"unknown section", "Not A Real Section", 0},
 		{"empty string", "", 0},
 	}

@@ -49,49 +49,20 @@ type DataFileStateTransitionContext struct {
 	Metadata      map[string]any
 }
 
-const selectShadowDataFile = `
-	SELECT id, original_filename, slug, extension, quarter, year, section, version,
-	       stt_id, user_id, created_at, file, s3_versioning_id, program_type,
-	       is_program_audit, state
-	FROM shadow_data_files_datafile
-	WHERE id = $1
-`
-
 const selectProductionDataFile = `
-	SELECT id, original_filename, slug, extension, quarter, year, section, version,
-	       stt_id, user_id, created_at, file, s3_versioning_id, program_type,
-	       is_program_audit, state
-	FROM data_files_datafile
-	WHERE id = $1
+	SELECT datafile.id, datafile.original_filename, datafile.slug, datafile.extension,
+	       datafile.quarter, datafile.year, section.name AS section, datafile.version,
+	       datafile.stt_id, datafile.user_id, datafile.created_at, datafile.file,
+	       datafile.s3_versioning_id, program.code AS program_type,
+	       datafile.is_program_audit, datafile.state
+	FROM data_files_datafile AS datafile
+	JOIN data_files_section AS section ON section.id = datafile.section_ref_id
+	JOIN data_files_program AS program ON program.id = section.program_id
+	WHERE datafile.id = $1
 `
 
 const upsertShadowDataFile = `
 	INSERT INTO shadow_data_files_datafile (
-	    id, original_filename, slug, extension, quarter, year, section, version,
-	    stt_id, user_id, created_at, file, s3_versioning_id, program_type,
-	    is_program_audit, state
-	)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-	ON CONFLICT (id) DO UPDATE SET
-	    original_filename = EXCLUDED.original_filename,
-	    slug = EXCLUDED.slug,
-	    extension = EXCLUDED.extension,
-	    quarter = EXCLUDED.quarter,
-	    year = EXCLUDED.year,
-	    section = EXCLUDED.section,
-	    version = EXCLUDED.version,
-	    stt_id = EXCLUDED.stt_id,
-	    user_id = EXCLUDED.user_id,
-	    created_at = EXCLUDED.created_at,
-	    file = EXCLUDED.file,
-	    s3_versioning_id = EXCLUDED.s3_versioning_id,
-	    program_type = EXCLUDED.program_type,
-	    is_program_audit = EXCLUDED.is_program_audit,
-	    state = EXCLUDED.state
-`
-
-const upsertProductionDataFile = `
-	INSERT INTO data_files_datafile (
 	    id, original_filename, slug, extension, quarter, year, section, version,
 	    stt_id, user_id, created_at, file, s3_versioning_id, program_type,
 	    is_program_audit, state
@@ -240,41 +211,21 @@ const updateProductionDataFileSummaryStatus = `
 	WHERE datafile_id = $2
 `
 
-// GetDataFile retrieves a DataFile-compatible record by its primary key.
-func GetDataFile(ctx context.Context, pool *pgxpool.Pool, tableName string, id int32) (*DataFileRecord, error) {
-	var (
-		df  DataFileRecord
-		err error
-	)
-
-	switch tableName {
-	case shadowDataFileTable:
-		df, err = scanDataFile(pool.QueryRow(ctx, selectShadowDataFile, id))
-	case productionDataFileTable:
-		df, err = scanDataFile(pool.QueryRow(ctx, selectProductionDataFile, id))
-	default:
-		err = fmt.Errorf("unsupported datafile table %q", tableName)
-	}
+// GetProductionDataFile retrieves canonical production metadata by primary key.
+func GetProductionDataFile(ctx context.Context, pool *pgxpool.Pool, id int32) (*DataFileRecord, error) {
+	df, err := scanDataFile(pool.QueryRow(ctx, selectProductionDataFile, id))
 	if err != nil {
-		return nil, fmt.Errorf("query %s id=%d: %w", tableName, id, err)
+		return nil, fmt.Errorf("query %s id=%d: %w", productionDataFileTable, id, err)
 	}
 
 	return &df, nil
 }
 
 // EnsureShadowDataFile copies production DataFile metadata into the Go parser shadow table.
-func EnsureShadowDataFile(ctx context.Context, pool *pgxpool.Pool, tableName string, df *DataFileRecord) error {
-	var err error
-	switch tableName {
-	case shadowDataFileTable:
-		err = execDataFileUpsert(ctx, pool, upsertShadowDataFile, df)
-	case productionDataFileTable:
-		err = execDataFileUpsert(ctx, pool, upsertProductionDataFile, df)
-	default:
-		err = fmt.Errorf("unsupported datafile table %q", tableName)
-	}
+func EnsureShadowDataFile(ctx context.Context, pool *pgxpool.Pool, df *DataFileRecord) error {
+	err := execDataFileUpsert(ctx, pool, upsertShadowDataFile, df)
 	if err != nil {
-		return fmt.Errorf("upsert %s id=%d: %w", tableName, df.ID, err)
+		return fmt.Errorf("upsert %s id=%d: %w", shadowDataFileTable, df.ID, err)
 	}
 
 	return nil
