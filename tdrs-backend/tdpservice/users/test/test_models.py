@@ -4,7 +4,7 @@ from django.test import Client
 
 import pytest
 
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.models import DataFile, Section
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.stts.models import STT, Region
 
@@ -77,7 +77,10 @@ def test_user_with_fra_access(client, ofa_system_admin):
     client.login(username=ofa_system_admin.username, password="test_password")
 
     datafile = DataFileFactory()
-    datafile.section = DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS
+    datafile.section_ref = Section.from_legacy_values(
+        DataFile.ProgramType.FRA,
+        DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+    )
     datafile.save()
 
     response = client.get(f"/admin/data_files/datafile/{datafile.id}/change/")
@@ -100,7 +103,10 @@ def test_user_without_fra_access(client, data_analyst):
     client.login(username=data_analyst.username, password="test_password")
 
     datafile = DataFileFactory()
-    datafile.section = DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS
+    datafile.section_ref = Section.from_legacy_values(
+        DataFile.ProgramType.FRA,
+        DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+    )
     datafile.save()
 
     response = client.get(f"/admin/data_files/datafile/{datafile.id}/change/")
