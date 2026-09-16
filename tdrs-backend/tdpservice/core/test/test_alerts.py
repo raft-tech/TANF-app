@@ -100,4 +100,3 @@ def test_send_alert_request_exception():
             description="Test description",
         )
         assert result is False
-
