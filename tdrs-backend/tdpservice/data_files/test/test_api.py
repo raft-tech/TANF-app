@@ -5,6 +5,7 @@ import os
 from unittest.mock import ANY
 
 from django.contrib.auth.models import Permission
+from django.db import IntegrityError, transaction
 from django.test import override_settings
 
 import openpyxl
@@ -326,6 +327,8 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         assert response.data["allowed_next_states"] == [
             SubmissionState.REPARSE_REQUESTED,
             SubmissionState.PARSE_STARTED,
+            SubmissionState.PARSE_FAILED,
+            SubmissionState.STUCK,
             SubmissionState.CANCELED,
         ]
 
@@ -349,16 +352,19 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         assert serialized_file["allowed_next_states"] == [
             SubmissionState.REPARSE_REQUESTED,
             SubmissionState.PARSE_STARTED,
+            SubmissionState.PARSE_FAILED,
+            SubmissionState.STUCK,
             SubmissionState.CANCELED,
         ]
 
-    def test_list_data_files_handles_unknown_lifecycle_state(
+    def test_list_data_files_preserves_state_after_invalid_update(
         self, api_client, data_file_data, user
     ):
-        """Assert one unexpected state does not break the list response."""
+        """Assert rejected state updates leave list responses unchanged."""
         create_response = self.post_data_file(api_client, data_file_data)
         data_file_id = create_response.data["id"]
-        DataFile.objects.filter(pk=data_file_id).update(state="future_state")
+        with pytest.raises(IntegrityError), transaction.atomic():
+            DataFile.objects.filter(pk=data_file_id).update(state="future_state")
 
         response = api_client.get(
             f"{self.root_url}?stt={data_file_data['stt']}&file_type=tanf"
@@ -368,9 +374,15 @@ class TestDataFileAPIAsOfaAdmin(DataFileAPITestBase):
         serialized_file = next(
             data_file for data_file in response.data if data_file["id"] == data_file_id
         )
-        assert serialized_file["state"] == "future_state"
-        assert serialized_file["state_display"] == "future_state"
-        assert serialized_file["allowed_next_states"] == []
+        assert serialized_file["state"] == SubmissionState.VIRUS_SCAN_COMPLETED
+        assert serialized_file["state_display"] == "Virus scan completed"
+        assert serialized_file["allowed_next_states"] == [
+            SubmissionState.REPARSE_REQUESTED,
+            SubmissionState.PARSE_STARTED,
+            SubmissionState.PARSE_FAILED,
+            SubmissionState.STUCK,
+            SubmissionState.CANCELED,
+        ]
 
     def test_download_data_file_file(self, api_client, data_file_data, user):
         """Test that the file is transmitted with out errors."""
