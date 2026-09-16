@@ -12,14 +12,13 @@ import pytest
 from celery import current_app as celery_app
 from celery.exceptions import TimeoutError as CeleryTimeoutError
 
-from tdpservice.data_files.enums import SubmissionState
+from tdpservice.data_files.enums import ProgramCode, SectionName, SubmissionState
 from tdpservice.data_files.models import (
-    DataFile,
     DataFileStateTransition,
-    Section,
     ShadowDataFile,
     create_or_update_shadow_data_file,
 )
+from tdpservice.data_files.test.factories import canonical_section_for
 from tdpservice.data_files.submission_lifecycle import (
     REPARSE_REQUESTABLE_STATES,
     transition_datafile,
@@ -176,11 +175,6 @@ def test_go_parse_shadow_uses_canonical_metadata(small_tanf_section1_datafile):
         program_type="STALE",
         section="Stale Section",
     )
-    DataFile.objects.filter(pk=datafile.pk).update(
-        program_type=DataFile.ProgramType.SSP,
-        section=DataFile.Section.CLOSED_CASE_DATA,
-    )
-
     async_result = celery_app.send_task(
         GO_PARSE_TASK_NAME,
         args=[datafile.pk, 0, str(uuid.uuid4())],
@@ -193,14 +187,14 @@ def test_go_parse_shadow_uses_canonical_metadata(small_tanf_section1_datafile):
 
     assert task_result == "success"
     shadow.refresh_from_db()
-    assert shadow.program_type == datafile.section_ref.program.code
-    assert shadow.section == datafile.section_ref.name
+    assert shadow.program_type == datafile.section.program.code
+    assert shadow.section == datafile.section.name
     assert shadow.state == SubmissionState.PARSE_COMPLETED
     assert ShadowDataFileSummary.objects.filter(datafile=shadow).exists()
     assert ShadowTANF_T1.objects.filter(datafile=shadow).exists()
     datafile.refresh_from_db()
     assert datafile.state == SubmissionState.UPLOADED
-    assert datafile.program_type == DataFile.ProgramType.SSP
+    assert datafile.section.program.code == ProgramCode.TANF
 
 
 @pytest.mark.go_parser_integration
@@ -248,48 +242,48 @@ class TestGoParse:
         "program_type,section_name,header",
         [
             (
-                DataFile.ProgramType.TANF,
-                DataFile.Section.ACTIVE_CASE_DATA,
+                ProgramCode.TANF,
+                SectionName.ACTIVE_CASE_DATA,
                 "HEADER20244A06   TAN1ED",
             ),
             (
-                DataFile.ProgramType.TANF,
-                DataFile.Section.AGGREGATE_DATA,
+                ProgramCode.TANF,
+                SectionName.AGGREGATE_DATA,
                 "HEADER20244G06   TAN1ED",
             ),
             (
-                DataFile.ProgramType.TANF,
-                DataFile.Section.STRATUM_DATA,
+                ProgramCode.TANF,
+                SectionName.STRATUM_DATA,
                 "HEADER20244S06   TAN1ED",
             ),
             (
-                DataFile.ProgramType.SSP,
-                DataFile.Section.ACTIVE_CASE_DATA,
+                ProgramCode.SSP,
+                SectionName.ACTIVE_CASE_DATA,
                 "HEADER20244A06   SSP1ED",
             ),
             (
-                DataFile.ProgramType.SSP,
-                DataFile.Section.AGGREGATE_DATA,
+                ProgramCode.SSP,
+                SectionName.AGGREGATE_DATA,
                 "HEADER20244G06   SSP1ED",
             ),
             (
-                DataFile.ProgramType.SSP,
-                DataFile.Section.STRATUM_DATA,
+                ProgramCode.SSP,
+                SectionName.STRATUM_DATA,
                 "HEADER20244S06   SSP1ED",
             ),
             (
-                DataFile.ProgramType.TRIBAL,
-                DataFile.Section.ACTIVE_CASE_DATA,
+                ProgramCode.TRIBAL,
+                SectionName.ACTIVE_CASE_DATA,
                 "HEADER20244A00123TAN1ED",
             ),
             (
-                DataFile.ProgramType.TRIBAL,
-                DataFile.Section.AGGREGATE_DATA,
+                ProgramCode.TRIBAL,
+                SectionName.AGGREGATE_DATA,
                 "HEADER20244G00123TAN1ED",
             ),
             (
-                DataFile.ProgramType.TRIBAL,
-                DataFile.Section.STRATUM_DATA,
+                ProgramCode.TRIBAL,
+                SectionName.STRATUM_DATA,
                 "HEADER20244S00123TAN1ED",
             ),
         ],
@@ -321,10 +315,10 @@ class TestGoParse:
         datafile = ParsingFileFactory(
             year=2025,
             quarter="Q1",
-            section=DataFile.Section.ACTIVE_CASE_DATA,
-            program_type=DataFile.ProgramType.TANF,
+            section=SectionName.ACTIVE_CASE_DATA,
+            program_type=ProgramCode.TANF,
             file__name="tanf-active-zero-records-bad-trailer-count.txt",
-            file__section=DataFile.Section.ACTIVE_CASE_DATA,
+            file__section=SectionName.ACTIVE_CASE_DATA,
             file__data=(b"HEADER20244A06   TAN1ED\n" b"TRAILER0000001         "),
         )
 
@@ -448,7 +442,7 @@ class TestGoParse:
         num_errors,
     ):
         """Test parsing when file metadata does not match the raw data layout."""
-        small_correct_file.section_ref = Section.from_legacy_values(program, section)
+        small_correct_file.section = canonical_section_for(program, section)
         small_correct_file.version = small_correct_file.id
         small_correct_file.save()
 
@@ -1074,8 +1068,8 @@ class TestGoParse:
         """Test that the case aggregates are set correctly."""
         small_correct_file.year = 2020
         small_correct_file.quarter = "Q3"
-        small_correct_file.section_ref = Section.from_legacy_values(
-            small_correct_file.program_type,
+        small_correct_file.section = canonical_section_for(
+            small_correct_file.section.program.code,
             "Active Case Data",
         )
         small_correct_file.save()

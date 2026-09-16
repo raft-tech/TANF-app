@@ -46,7 +46,7 @@ def test_generated_view_has_no_legacy_column_dependencies_and_preserves_grants()
     user = UserFactory.create()
     files = [
         DataFileFactory.create(
-            section_ref=section,
+            section=section,
             stt=stt,
             user=user,
             year=2026,

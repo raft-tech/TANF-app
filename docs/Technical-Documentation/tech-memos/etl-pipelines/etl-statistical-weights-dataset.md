@@ -583,7 +583,7 @@ calculation nodes
 
 `publish_report_files` should reuse the existing `ReportFile` model and permissions so the current reports download and versioning behavior continues to apply.
 
-Program-specific behavior lives behind adapters at the statistical weights node level. TANF, SSP, and Tribal TANF share one pipeline key, run launcher, run history, QA storage, notification path, and output publication rule set. The run parameter uses exact `DataFile.ProgramType` values: `TAN`, `SSP`, or `TRIBAL`; display aliases such as `TANF` or `Tribal TANF` are not accepted as request values.
+Program-specific behavior lives behind adapters at the statistical weights node level. TANF, SSP, and Tribal TANF share one pipeline key, run launcher, run history, QA storage, notification path, and output publication rule set. The run parameter uses exact canonical Program codes: `TAN`, `SSP`, or `TRIBAL`; display aliases such as `TANF` or `Tribal TANF` are not accepted as request values.
 
 ---
 
@@ -619,7 +619,7 @@ Celery retries should be conservative. Retry transient database connection failu
 - Duplicate task handling: duplicate node task delivery does not run an already running or succeeded implementation again.
 - Node contract validation.
 - Output scope/idempotency key generation.
-- Exact `DataFile.ProgramType` program parameter validation and supported-program rejection.
+- Exact canonical Program code parameter validation and supported-program rejection.
 - Active-run partial unique constraint behavior.
 - Active-run scoping allows the same fiscal year to run concurrently for different programs.
 - Source snapshot reuse across nodes.

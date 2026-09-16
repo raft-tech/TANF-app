@@ -9,7 +9,6 @@ from typing import Union
 from django.conf import settings
 from django.contrib.admin.models import ADDITION, LogEntry
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ValidationError
 from django.core.files.base import File
 from django.db import models
 from django.db.models import Max
@@ -20,7 +19,7 @@ from tdpservice.common.fields import S3VersionedFileField
 from tdpservice.common.models import FileRecord
 from tdpservice.common.shadow_models import create_shadow_model
 from tdpservice.core.models import BaseLog
-from tdpservice.data_files.enums import ProgramCode, SectionName, SubmissionState
+from tdpservice.data_files.enums import ProgramCode, SubmissionState
 from tdpservice.data_files.util import (
     create_legacy_s3_log_file_path,
     create_s3_log_file_path,
@@ -65,15 +64,6 @@ class Section(models.Model):
         """Return the section name."""
         return f"{self.program.name} - {self.name}"
 
-    @classmethod
-    def from_legacy_values(cls, program_code: str, section_name: str) -> "Section":
-        """Resolve a canonical section from legacy DataFile values."""
-        return cls.objects.select_related("program").get(
-            program__code=program_code,
-            name=section_name,
-        )
-
-
 def get_file_shasum(file: Union[File, StringIO]) -> str:
     """Derive the SHA256 checksum of a file."""
     _hash = sha256()
@@ -107,8 +97,8 @@ def get_file_shasum(file: Union[File, StringIO]) -> str:
 
 def get_s3_upload_path(instance, filename):
     """Produce a unique upload path for S3 files for a given STT and Quarter."""
-    program_type = instance.section_ref.program.code
-    section = instance.section_ref.name
+    program_type = instance.section.program.code
+    section = instance.section.name
     return os.path.join(
         f"data_files/{instance.year}/{instance.quarter}/{instance.stt.id}/{program_type}/{section}/",
         filename,
@@ -150,44 +140,6 @@ class ReparseFileMeta(models.Model):
 class DataFile(FileRecord):
     """Represents a version of a data file."""
 
-    class ProgramType(models.TextChoices):
-        """Enum for data file program type."""
-
-        TANF = "TAN"
-        SSP = "SSP"
-        TRIBAL = "TRIBAL"
-        FRA = "FRA"
-
-    class Section(models.TextChoices):
-        """Enum for data file section."""
-
-        ACTIVE_CASE_DATA = "Active Case Data"
-        CLOSED_CASE_DATA = "Closed Case Data"
-        AGGREGATE_DATA = "Aggregate Data"
-        STRATUM_DATA = "Stratum Data"
-
-        FRA_WORK_OUTCOME_TANF_EXITERS = "Work Outcomes of TANF Exiters"
-        FRA_SECONDRY_SCHOOL_ATTAINMENT = "Secondary School Attainment"
-        FRA_SUPPLEMENT_WORK_OUTCOMES = "Supplemental Work Outcomes"
-
-        @classmethod
-        def is_fra(cls, section: str) -> bool:
-            """Determine if the section is a FRA section."""
-            return section in [
-                cls.FRA_WORK_OUTCOME_TANF_EXITERS,
-                cls.FRA_SECONDRY_SCHOOL_ATTAINMENT,
-                cls.FRA_SUPPLEMENT_WORK_OUTCOMES,
-            ]
-
-    @staticmethod
-    def get_fra_section_list():
-        """Return FRA section list."""
-        return [
-            SectionName.FRA_WORK_OUTCOME_TANF_EXITERS,
-            SectionName.FRA_SECONDRY_SCHOOL_ATTAINMENT,
-            SectionName.FRA_SUPPLEMENT_WORK_OUTCOMES,
-        ]
-
     class Quarter(models.TextChoices):
         """Enum for data file Quarter."""
 
@@ -202,7 +154,6 @@ class DataFile(FileRecord):
         constraints = [
             models.UniqueConstraint(
                 fields=(
-                    "program_type",
                     "section",
                     "version",
                     "quarter",
@@ -210,7 +161,7 @@ class DataFile(FileRecord):
                     "stt",
                     "is_program_audit",
                 ),
-                name="constraint_name",
+                name="datafile_uniq_section_version_period_stt_audit",
             )
         ]
 
@@ -220,18 +171,11 @@ class DataFile(FileRecord):
     )
     year = models.IntegerField()
 
-    program_type = models.CharField(
-        max_length=32, blank=False, null=False, choices=ProgramType.choices
-    )
-    section = models.CharField(
-        max_length=32, blank=False, null=False, choices=Section.choices
-    )
-    section_ref = models.ForeignKey(
+    section = models.ForeignKey(
         "data_files.Section",
+        db_column="section_ref_id",
         on_delete=models.PROTECT,
         related_name="data_files",
-        blank=True,
-        null=True,
     )
     is_program_audit = models.BooleanField(default=False)
 
@@ -273,15 +217,13 @@ class DataFile(FileRecord):
     @property
     def program(self):
         """Return the program associated with the canonical section."""
-        if self.section_ref_id is None:
-            return None
-        return self.section_ref.program
+        return self.section.program
 
     @property
     def filename(self):
         """Return the correct filename for this data file."""
-        section_name = self.section_ref.name
-        program_code = self.section_ref.program.code
+        section_name = self.section.name
+        program_code = self.section.program.code
         filename = self.stt.filenames.get(section_name, None)
         if filename is not None:
             return filename
@@ -351,13 +293,7 @@ class DataFile(FileRecord):
     @classmethod
     def create_new_version(self, data):
         """Create a new version of a data file with an incremented version."""
-        section_ref = data.get("section_ref")
-        if section_ref is None:
-            section_ref = Section.from_legacy_values(
-                data["program_type"],
-                data["section"],
-            )
-            data["section_ref"] = section_ref
+        section = data["section"]
 
         # EDGE CASE
         # We may need to try to get this all in one sql query
@@ -366,7 +302,7 @@ class DataFile(FileRecord):
             self.find_latest_version_number(
                 year=data["year"],
                 quarter=data["quarter"],
-                section_ref=section_ref,
+                section=section,
                 stt=data["stt"],
                 is_program_audit=data["is_program_audit"],
             )
@@ -380,76 +316,34 @@ class DataFile(FileRecord):
 
     @classmethod
     def find_latest_version_number(
-        self, year, quarter, section_ref, stt, is_program_audit
+        self, year, quarter, section, stt, is_program_audit
     ):
         """Locate the latest version number in a series of data files."""
         return self.objects.filter(
             stt=stt,
             year=year,
             quarter=quarter,
-            section_ref=section_ref,
+            section=section,
             is_program_audit=is_program_audit,
         ).aggregate(Max("version"))["version__max"]
 
     @classmethod
     def find_latest_version(
-        self, year, quarter, section_ref, stt, is_program_audit
+        self, year, quarter, section, stt, is_program_audit
     ):
         """Locate the latest version of a data file."""
         version = self.find_latest_version_number(
-            year, quarter, section_ref, stt, is_program_audit
+            year, quarter, section, stt, is_program_audit
         )
 
         return self.objects.filter(
             version=version,
             year=year,
             quarter=quarter,
-            section_ref=section_ref,
+            section=section,
             stt=stt,
             is_program_audit=is_program_audit,
         ).first()
-
-    def save(self, *args, **kwargs):
-        """Keep transitional classification fields aligned with the canonical section.
-
-        QuerySet.update(), bulk operations, and raw SQL bypass this guard. The contract
-        migration must validate those write paths before removing the legacy fields.
-        """
-        if self.section_ref_id is None:
-            if not self.program_type or not self.section:
-                raise ValidationError(
-                    "A canonical section or legacy program and section values are required."
-                )
-            try:
-                self.section_ref = Section.from_legacy_values(
-                    self.program_type,
-                    self.section,
-                )
-            except Section.DoesNotExist as error:
-                raise ValidationError(
-                    "The legacy program and section values do not map to a canonical section."
-                ) from error
-
-        if self.is_program_audit and self.section_ref.program.code not in {
-            ProgramCode.TANF,
-            ProgramCode.TRIBAL,
-        }:
-            raise ValidationError(
-                {"is_program_audit": "Program audits require a TANF or Tribal TANF section."}
-            )
-
-        self.program_type = self.section_ref.program.code
-        self.section = self.section_ref.name
-
-        update_fields = kwargs.get("update_fields")
-        if update_fields is not None:
-            kwargs["update_fields"] = set(update_fields) | {
-                "program_type",
-                "section",
-                "section_ref",
-            }
-
-        return super().save(*args, **kwargs)
 
     def __repr__(self):
         """Return a string representation of the model."""
@@ -547,7 +441,7 @@ ShadowDataFile = create_shadow_model(
         "program_type": models.CharField(max_length=32, blank=False, null=False),
         "section": models.CharField(max_length=32, blank=False, null=False),
     },
-    exclude_fields={"program_type", "section", "section_ref"},
+    exclude_fields={"section"},
 )
 
 

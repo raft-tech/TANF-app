@@ -10,9 +10,8 @@ from django.test import override_settings
 
 import pytest
 
-from tdpservice.data_files.enums import SubmissionState
+from tdpservice.data_files.enums import ProgramCode, SectionName, SubmissionState
 from tdpservice.data_files.models import (
-    DataFile,
     DataFileStateTransition,
     ReparseFileMeta,
     create_or_update_shadow_data_file,
@@ -60,13 +59,13 @@ class DummyParser:
 
 
 DEFAULT_FILENAMES = {
-    DataFile.Section.ACTIVE_CASE_DATA: "ADS.E2J.FTP1.TS72",
-    DataFile.Section.CLOSED_CASE_DATA: "ADS.E2J.FTP2.TS72",
-    DataFile.Section.AGGREGATE_DATA: "ADS.E2J.FTP3.TS72",
-    DataFile.Section.STRATUM_DATA: "ADS.E2J.FTP4.TS72",
-    DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS: "ADS.FRA.FTP1.TS72",
-    DataFile.Section.FRA_SECONDRY_SCHOOL_ATTAINMENT: "ADS.FRA.FTP2.TS72",
-    DataFile.Section.FRA_SUPPLEMENT_WORK_OUTCOMES: "ADS.FRA.FTP3.TS72",
+    SectionName.ACTIVE_CASE_DATA: "ADS.E2J.FTP1.TS72",
+    SectionName.CLOSED_CASE_DATA: "ADS.E2J.FTP2.TS72",
+    SectionName.AGGREGATE_DATA: "ADS.E2J.FTP3.TS72",
+    SectionName.STRATUM_DATA: "ADS.E2J.FTP4.TS72",
+    SectionName.FRA_WORK_OUTCOME_TANF_EXITERS: "ADS.FRA.FTP1.TS72",
+    SectionName.FRA_SECONDRY_SCHOOL_ATTAINMENT: "ADS.FRA.FTP2.TS72",
+    SectionName.FRA_SUPPLEMENT_WORK_OUTCOMES: "ADS.FRA.FTP3.TS72",
 }
 
 
@@ -247,8 +246,8 @@ def test_update_dfs_uses_fra_aggregates(monkeypatch, stt):
     datafile = DataFileFactory(
         stt=stt,
         version=1,
-        program_type=DataFile.ProgramType.FRA,
-        section=DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+        program_type=ProgramCode.FRA,
+        section=SectionName.FRA_WORK_OUTCOME_TANF_EXITERS,
     )
     dfs = DataFileSummary.objects.create(
         datafile=datafile, status=DataFileSummary.Status.ACCEPTED
@@ -270,8 +269,8 @@ def test_update_dfs_uses_case_aggregates(monkeypatch, stt):
     datafile = DataFileFactory(
         stt=stt,
         version=2,
-        program_type=DataFile.ProgramType.TANF,
-        section=DataFile.Section.ACTIVE_CASE_DATA,
+        program_type=ProgramCode.TANF,
+        section=SectionName.ACTIVE_CASE_DATA,
     )
     dfs = DataFileSummary.objects.create(
         datafile=datafile, status=DataFileSummary.Status.ACCEPTED
@@ -298,8 +297,8 @@ def test_update_dfs_uses_total_errors(monkeypatch, stt):
     datafile = DataFileFactory(
         stt=stt,
         version=3,
-        program_type=DataFile.ProgramType.TANF,
-        section=DataFile.Section.AGGREGATE_DATA,
+        program_type=ProgramCode.TANF,
+        section=SectionName.AGGREGATE_DATA,
     )
     dfs = DataFileSummary.objects.create(
         datafile=datafile, status=DataFileSummary.Status.ACCEPTED
@@ -350,7 +349,7 @@ def test_post_parse_finalizes_shadow_summary_only(monkeypatch, stt):
         stt=stt,
         version=4,
         state=SubmissionState.VIRUS_SCAN_COMPLETED,
-        section=DataFile.Section.AGGREGATE_DATA,
+        section=SectionName.AGGREGATE_DATA,
     )
     shadow_datafile = create_or_update_shadow_data_file(datafile)
     shadow_summary = ShadowDataFileSummary.objects.create(
@@ -504,7 +503,7 @@ def test_post_parse_can_finalize_production_summary(monkeypatch, stt):
         stt=stt,
         version=4,
         state=SubmissionState.VIRUS_SCAN_COMPLETED,
-        section=DataFile.Section.AGGREGATE_DATA,
+        section=SectionName.AGGREGATE_DATA,
     )
     summary = DataFileSummary.objects.create(
         datafile=datafile,
@@ -556,7 +555,7 @@ def test_post_parse_can_finalize_production_reparse(monkeypatch, stt):
         stt=stt,
         version=5,
         state=SubmissionState.VIRUS_SCAN_COMPLETED,
-        section=DataFile.Section.AGGREGATE_DATA,
+        section=SectionName.AGGREGATE_DATA,
     )
     summary = DataFileSummary.objects.create(
         datafile=datafile,
@@ -1096,11 +1095,6 @@ def test_parse_transitions_include_parse_context(monkeypatch, data_analyst):
         state=SubmissionState.VIRUS_SCAN_COMPLETED,
     )
     ensure_stt_filenames(datafile.stt)
-    DataFile.objects.filter(pk=datafile.pk).update(
-        program_type=DataFile.ProgramType.SSP,
-        section=DataFile.Section.CLOSED_CASE_DATA,
-    )
-
     transitions = []
     parser_kwargs = {}
     real_transition = parser_task.transition_datafile
@@ -1146,17 +1140,23 @@ def test_parse_transitions_include_parse_context(monkeypatch, data_analyst):
     start_transition = transitions[0]
     assert start_transition["next_state"] == SubmissionState.PARSE_STARTED
     assert start_transition["note"] == "parsing started"
-    assert start_transition["log_fields"]["section"] == datafile.section
-    assert start_transition["log_fields"]["program_type"] == datafile.program_type
+    assert start_transition["log_fields"]["section"] == datafile.section.name
+    assert (
+        start_transition["log_fields"]["program_type"]
+        == datafile.section.program.code
+    )
     assert start_transition["log_fields"]["reparse_id"] is None
-    assert parser_kwargs["section"] == datafile.section_ref.name
-    assert parser_kwargs["program_type"] == datafile.section_ref.program.code
+    assert parser_kwargs["section"] == datafile.section.name
+    assert parser_kwargs["program_type"] == datafile.section.program.code
 
     completion_transition = transitions[1]
     assert completion_transition["next_state"] == SubmissionState.PARSE_COMPLETED
     assert completion_transition["note"] == "parsing completed successfully"
-    assert completion_transition["log_fields"]["section"] == datafile.section
-    assert completion_transition["log_fields"]["program_type"] == datafile.program_type
+    assert completion_transition["log_fields"]["section"] == datafile.section.name
+    assert (
+        completion_transition["log_fields"]["program_type"]
+        == datafile.section.program.code
+    )
     assert completion_transition["log_fields"]["parse_summary_status"] == (
         DataFileSummary.Status.ACCEPTED
     )

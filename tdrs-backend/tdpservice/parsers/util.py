@@ -26,15 +26,15 @@ def create_test_datafile(
 ):
     """Create a test DataFile instance with the given file attached."""
     path = str(Path(__file__).parent.joinpath("test/data")) + f"/{filename}"
-    section_ref = CanonicalSection.from_legacy_values(program_type, section)
+    section = CanonicalSection.objects.get(
+        program__code=program_type,
+        name=section,
+    )
     datafile = DataFile.create_new_version(
         {
             "quarter": quarter,
             "year": year,
             "section": section,
-            "program_type": program_type,
-            "section_ref": section_ref,
-            "is_program_audit": is_program_audit,
             "user": stt_user,
             "stt": stt,
             "is_program_audit": is_program_audit,

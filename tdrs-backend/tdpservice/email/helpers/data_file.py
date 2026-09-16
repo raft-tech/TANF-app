@@ -112,8 +112,8 @@ def get_base_context(datafile_summary):
     """Build the context object shared by all submission emails."""
     datafile = datafile_summary.datafile
 
-    prog_type = datafile.section_ref.program.code
-    canonical_section_name = datafile.section_ref.name
+    prog_type = datafile.section.program.code
+    canonical_section_name = datafile.section.name
     section_name = get_program_section_str(prog_type, canonical_section_name)
     is_program_audit = datafile.is_program_audit
 
@@ -221,7 +221,7 @@ def get_tanf_fra_email_subject(status, section_name, is_reprocessed):
 def send_data_submitted_email(datafile_summary, recipients, is_reprocessed=False):
     """Send an email to a user when their account approval status is updated."""
     datafile = datafile_summary.datafile
-    prog_type = datafile.section_ref.program.code
+    prog_type = datafile.section.program.code
 
     logger_context = {
         "user_id": datafile.user.id,

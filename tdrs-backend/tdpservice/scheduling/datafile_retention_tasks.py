@@ -47,7 +47,7 @@ def remove_all_old_versions():
     existing_groupings = (
         DataFile.objects.filter(year__range=(min_year, max_year))
         .values_list(
-            "year", "quarter", "section_ref_id", "stt_id", "is_program_audit"
+            "year", "quarter", "section_id", "stt_id", "is_program_audit"
         )
         .distinct()
     )
@@ -58,7 +58,7 @@ def remove_all_old_versions():
         files = DataFile.objects.filter(
             year=year,
             quarter=quarter,
-            section_ref_id=section_id,
+            section_id=section_id,
             stt_id=stt_id,
             is_program_audit=is_program_audit,
         )

@@ -129,8 +129,8 @@ def parse_files(summary, f1, f2, f3, f4):
     parser = ParserFactory.get_instance(
         datafile=f1,
         dfs=summary,
-        section=f1.section_ref.name,
-        program_type=f1.section_ref.program.code,
+        section=f1.section.name,
+        program_type=f1.section.program.code,
     )
     parser.parse_and_validate()
 
@@ -138,8 +138,8 @@ def parse_files(summary, f1, f2, f3, f4):
     parser = ParserFactory.get_instance(
         datafile=f2,
         dfs=summary,
-        section=f2.section_ref.name,
-        program_type=f2.section_ref.program.code,
+        section=f2.section.name,
+        program_type=f2.section.program.code,
     )
     parser.parse_and_validate()
 
@@ -147,8 +147,8 @@ def parse_files(summary, f1, f2, f3, f4):
     parser = ParserFactory.get_instance(
         datafile=f3,
         dfs=summary,
-        section=f3.section_ref.name,
-        program_type=f3.section_ref.program.code,
+        section=f3.section.name,
+        program_type=f3.section.program.code,
     )
     parser.parse_and_validate()
 
@@ -156,8 +156,8 @@ def parse_files(summary, f1, f2, f3, f4):
     parser = ParserFactory.get_instance(
         datafile=f4,
         dfs=summary,
-        section=f4.section_ref.name,
-        program_type=f4.section_ref.program.code,
+        section=f4.section.name,
+        program_type=f4.section.program.code,
     )
     parser.parse_and_validate()
 

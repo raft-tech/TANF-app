@@ -4,8 +4,8 @@ from django.core.exceptions import ValidationError
 
 import pytest
 
+from tdpservice.data_files.enums import ProgramCode, SectionName
 from tdpservice.data_files.errors import ImmutabilityError
-from tdpservice.data_files.models import DataFile
 from tdpservice.data_files.serializers import DataFileSerializer
 from tdpservice.data_files.validators import (
     validate_file_extension,
@@ -37,9 +37,9 @@ def test_serializer_increment_create(data_file_data, other_data_file_data, user)
     data_file_2 = serializer_2.save()
 
     assert data_file_2.version == data_file_1.version + 1
-    assert data_file_1.section_ref.program.code == data_file_1.program_type
-    assert data_file_1.section_ref.name == data_file_1.section
-    assert data_file_2.section_ref == data_file_1.section_ref
+    assert data_file_1.section.program.code == ProgramCode.TANF
+    assert data_file_1.section.name == SectionName.ACTIVE_CASE_DATA
+    assert data_file_2.section == data_file_1.section
 
 
 @pytest.mark.django_db
@@ -47,43 +47,43 @@ def test_serializer_increment_create(data_file_data, other_data_file_data, user)
     "program_type,section_name,ssp,stt_type,is_program_audit",
     [
         (
-            DataFile.ProgramType.TANF,
-            DataFile.Section.ACTIVE_CASE_DATA,
+            ProgramCode.TANF,
+            SectionName.ACTIVE_CASE_DATA,
             False,
             "state",
             False,
         ),
         (
-            DataFile.ProgramType.SSP,
-            DataFile.Section.CLOSED_CASE_DATA,
+            ProgramCode.SSP,
+            SectionName.CLOSED_CASE_DATA,
             True,
             "state",
             False,
         ),
         (
-            DataFile.ProgramType.TRIBAL,
-            DataFile.Section.AGGREGATE_DATA,
+            ProgramCode.TRIBAL,
+            SectionName.AGGREGATE_DATA,
             False,
             "tribe",
             False,
         ),
         (
-            DataFile.ProgramType.FRA,
-            DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+            ProgramCode.FRA,
+            SectionName.FRA_WORK_OUTCOME_TANF_EXITERS,
             False,
             "state",
             False,
         ),
         (
-            DataFile.ProgramType.TANF,
-            DataFile.Section.ACTIVE_CASE_DATA,
+            ProgramCode.TANF,
+            SectionName.ACTIVE_CASE_DATA,
             False,
             "state",
             True,
         ),
         (
-            DataFile.ProgramType.TRIBAL,
-            DataFile.Section.ACTIVE_CASE_DATA,
+            ProgramCode.TRIBAL,
+            SectionName.ACTIVE_CASE_DATA,
             False,
             "tribe",
             True,
@@ -99,11 +99,11 @@ def test_serializer_creates_canonically_consistent_data_files(
     stt_type,
     is_program_audit,
 ):
-    """Compatibility inputs produce canonical values for every supported class."""
+    """API inputs produce canonical values for every supported class."""
     data_file_data["section"] = section_name
     data_file_data["ssp"] = ssp
     data_file_data["is_program_audit"] = is_program_audit
-    if program_type == DataFile.ProgramType.FRA:
+    if program_type == ProgramCode.FRA:
         data_file_data["file"].name = "report.csv"
         data_file_data["original_filename"] = "report.csv"
         data_file_data["extension"] = "csv"
@@ -118,10 +118,8 @@ def test_serializer_creates_canonically_consistent_data_files(
     serializer.is_valid(raise_exception=True)
     data_file = serializer.save()
 
-    assert data_file.section_ref.program.code == program_type
-    assert data_file.section_ref.name == section_name
-    assert data_file.program_type == program_type
-    assert data_file.section == section_name
+    assert data_file.section.program.code == program_type
+    assert data_file.section.name == section_name
     assert data_file.is_program_audit is is_program_audit
 
 
@@ -202,18 +200,11 @@ def test_state_not_exposed_by_serializer(data_file_instance):
 
 @pytest.mark.django_db
 def test_serializer_reads_classification_from_canonical_section(data_file_instance):
-    """Response compatibility fields ignore drift in transitional scalar columns."""
-    canonical_section = data_file_instance.section_ref
-    DataFile.objects.filter(pk=data_file_instance.pk).update(
-        program_type=DataFile.ProgramType.FRA,
-        section=DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
-    )
-    data_file_instance.refresh_from_db()
-
+    """Response compatibility fields are strings from the canonical Section."""
     serialized = DataFileSerializer(data_file_instance).data
 
-    assert serialized["program_type"] == canonical_section.program.code
-    assert serialized["section"] == canonical_section.name
+    assert serialized["program_type"] == data_file_instance.section.program.code
+    assert serialized["section"] == data_file_instance.section.name
     assert "section_ref" not in serialized
 
 

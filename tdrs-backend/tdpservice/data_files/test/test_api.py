@@ -12,16 +12,18 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from tdpservice.core.models import FeatureFlag
-from tdpservice.data_files.enums import SubmissionState
+from tdpservice.data_files.enums import ProgramCode, SectionName, SubmissionState
 from tdpservice.data_files.models import (
     DataFile,
     DataFileStateTransition,
-    Section,
     ShadowDataFile,
 )
 from tdpservice.data_files.serializers import DataFileSerializer
 from tdpservice.data_files.submission_lifecycle import InvalidTransition
-from tdpservice.data_files.test.factories import DataFileFactory
+from tdpservice.data_files.test.factories import (
+    DataFileFactory,
+    canonical_section_for,
+)
 from tdpservice.parsers import util
 from tdpservice.parsers.factory import ParserFactory
 from tdpservice.parsers.models import ParserError
@@ -65,8 +67,8 @@ class DataFileAPITestBase:
             "fra.csv",
             stt_user,
             stt,
-            DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
-            DataFile.ProgramType.FRA,
+            SectionName.FRA_WORK_OUTCOME_TANF_EXITERS,
+            ProgramCode.FRA,
         )
         test_datafile.year = 2024
         test_datafile.quarter = "Q2"
@@ -80,8 +82,8 @@ class DataFileAPITestBase:
             "fra.xlsx",
             stt_user,
             stt,
-            DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
-            DataFile.ProgramType.FRA,
+            SectionName.FRA_WORK_OUTCOME_TANF_EXITERS,
+            ProgramCode.FRA,
         )
         test_datafile.year = 2024
         test_datafile.quarter = "Q2"
@@ -96,7 +98,7 @@ class DataFileAPITestBase:
             stt_user,
             stt,
             "Active Case Data",
-            DataFile.ProgramType.SSP,
+            ProgramCode.SSP,
         )
         df.year = 2024
         df.quarter = "Q1"
@@ -121,7 +123,7 @@ class DataFileAPITestBase:
         return DataFile.objects.filter(
             slug=data_file_data["slug"],
             year=data_file_data["year"],
-            section_ref__name=data_file_data["section"],
+            section__name=data_file_data["section"],
             version=version,
             user=user,
         )
@@ -250,7 +252,7 @@ class DataFileAPITestBase:
         assert DataFile.objects.filter(
             slug=data_file_data["slug"],
             year=data_file_data["year"],
-            section_ref__name=data_file_data["section"],
+            section__name=data_file_data["section"],
             version=version,
         ).exists()
 
@@ -449,8 +451,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         parser = ParserFactory.get_instance(
             datafile=datafile,
             dfs=dfs,
-            section=datafile.section_ref.name,
-            program_type=datafile.section_ref.program.code,
+            section=datafile.section.name,
+            program_type=datafile.section.program.code,
         )
         parser.parse_and_validate()
 
@@ -468,8 +470,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         parser = ParserFactory.get_instance(
             datafile=test_datafile,
             dfs=dfs,
-            section=test_datafile.section_ref.name,
-            program_type=test_datafile.section_ref.program.code,
+            section=test_datafile.section.name,
+            program_type=test_datafile.section.program.code,
         )
         parser.parse_and_validate()
 
@@ -487,8 +489,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         parser = ParserFactory.get_instance(
             datafile=test_ssp_datafile,
             dfs=dfs,
-            section=test_ssp_datafile.section_ref.name,
-            program_type=test_ssp_datafile.section_ref.program.code,
+            section=test_ssp_datafile.section.name,
+            program_type=test_ssp_datafile.section.program.code,
         )
         parser.parse_and_validate()
         response = self.download_error_report_file(api_client, test_ssp_datafile.id)
@@ -505,8 +507,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         parser = ParserFactory.get_instance(
             datafile=test_datafile,
             dfs=dfs,
-            section=test_datafile.section_ref.name,
-            program_type=test_datafile.section_ref.program.code,
+            section=test_datafile.section.name,
+            program_type=test_datafile.section.program.code,
         )
         parser.parse_and_validate()
 
@@ -563,8 +565,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         response = self.post_data_file(api_client, data_file_data)
         assert response.data["section"] == "Active Case Data"
         data_file = DataFile.objects.get(id=response.data["id"])
-        assert data_file.section_ref.program.code == DataFile.ProgramType.SSP
-        assert data_file.section_ref.name == response.data["section"]
+        assert data_file.section.program.code == ProgramCode.SSP
+        assert data_file.section.name == response.data["section"]
 
     def test_data_file_data_upload_tribe(self, api_client, data_file_data, stt):
         """Test that when we upload a file for Tribe the section name is updated."""
@@ -573,8 +575,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         response = self.post_data_file(api_client, data_file_data)
         assert "Active Case Data" == response.data["section"]
         data_file = DataFile.objects.get(id=response.data["id"])
-        assert data_file.section_ref.program.code == DataFile.ProgramType.TRIBAL
-        assert data_file.section_ref.name == response.data["section"]
+        assert data_file.section.program.code == ProgramCode.TRIBAL
+        assert data_file.section.name == response.data["section"]
         stt.type = ""
         stt.save()
 
@@ -589,8 +591,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         response = self.post_data_file(api_client, data_file_data)
         assert response.data["section"] == "Active Case Data"
         data_file = DataFile.objects.get(id=response.data["id"])
-        assert data_file.section_ref.program.code == DataFile.ProgramType.TANF
-        assert data_file.section_ref.name == response.data["section"]
+        assert data_file.section.program.code == ProgramCode.TANF
+        assert data_file.section.name == response.data["section"]
 
     def test_data_files_data_upload_fra(self, api_client, csv_data_file, user):
         """FRA uploads reference their canonical FRA section."""
@@ -600,8 +602,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
 
         assert response.status_code == status.HTTP_201_CREATED
         data_file = DataFile.objects.get(id=response.data["id"])
-        assert data_file.section_ref.program.code == DataFile.ProgramType.FRA
-        assert data_file.section_ref.name == csv_data_file["section"]
+        assert data_file.section.program.code == ProgramCode.FRA
+        assert data_file.section.name == csv_data_file["section"]
 
     def test_data_files_data_upload_rejects_cross_program_section(
         self, api_client, csv_data_file, user
@@ -695,8 +697,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
             assert response.data["is_program_audit"] is True
             assert response.status_code == status.HTTP_201_CREATED
             data_file = DataFile.objects.get(id=response.data["id"])
-            assert data_file.section_ref.program.code == DataFile.ProgramType.TANF
-            assert data_file.section_ref.name == response.data["section"]
+            assert data_file.section.program.code == ProgramCode.TANF
+            assert data_file.section.name == response.data["section"]
         else:
             assert response.data == {
                 "detail": "This file was submitted for a reporting year not supported by this file type."
@@ -1036,7 +1038,7 @@ class TestDataFileAsOFARegionalStaff(DataFileAPITestBase):
 
 def multi_year_data_file_data(user, stt):
     """Return data file data that encompasses multiple years."""
-    section_ref = Section.from_legacy_values("TAN", "Active Case Data")
+    section = canonical_section_for("TAN", "Active Case Data")
     return [
         {
             "original_filename": "data_file.txt",
@@ -1044,9 +1046,7 @@ def multi_year_data_file_data(user, stt):
             "user": user,
             "stt": stt,
             "year": 2020,
-            "section_ref": section_ref,
-            "section": "Active Case Data",
-            "program_type": "TAN",
+            "section": section,
             "is_program_audit": False,
         },
         {
@@ -1055,9 +1055,7 @@ def multi_year_data_file_data(user, stt):
             "user": user,
             "stt": stt,
             "year": 2021,
-            "section_ref": section_ref,
-            "section": "Active Case Data",
-            "program_type": "TAN",
+            "section": section,
             "is_program_audit": False,
         },
         {
@@ -1066,9 +1064,7 @@ def multi_year_data_file_data(user, stt):
             "user": user,
             "stt": stt,
             "year": 2022,
-            "section_ref": section_ref,
-            "section": "Active Case Data",
-            "program_type": "TAN",
+            "section": section,
             "is_program_audit": False,
         },
     ]
@@ -1155,18 +1151,12 @@ def test_list_ofa_admin_data_file_years_no_self_stt(
 
 
 @pytest.mark.django_db
-def test_list_uses_canonical_classification_when_legacy_values_drift(
-    api_client, data_analyst
-):
+def test_list_uses_canonical_classification(api_client, data_analyst):
     """Filtering and response fields use the canonical Program and Section."""
-    canonical_section = Section.from_legacy_values("SSP", "Active Case Data")
+    canonical_section = canonical_section_for("SSP", "Active Case Data")
     data_file = DataFileFactory(
         stt=data_analyst.stt,
-        section_ref=canonical_section,
-    )
-    DataFile.objects.filter(pk=data_file.pk).update(
-        program_type="FRA",
-        section="Work Outcomes of TANF Exiters",
+        section=canonical_section,
     )
     api_client.login(username=data_analyst.username, password="test_password")
 
@@ -1181,23 +1171,23 @@ def test_list_uses_canonical_classification_when_legacy_values_drift(
     assert "section_ref" not in response.data[0]
 
 
-program_type_options = [i[0] for i in DataFile.ProgramType.choices]
+program_type_options = [i[0] for i in ProgramCode.choices]
 year_options = [2021, 2022]
 quarter_options = [i[0] for i in DataFile.Quarter.choices]
 
-fra_section_options = DataFile.get_fra_section_list()
+fra_section_options = [value for value, _label in SectionName.choices if SectionName.is_fra(value)]
 tanf_section_options = [
     i[0]
-    for i in DataFile.Section.choices
-    if not i[0] in DataFile.get_fra_section_list()
+    for i in SectionName.choices
+    if not SectionName.is_fra(i[0])
 ]
 
 
 def get_file_types(program_type):
     """Return the search api's `file_type`s for a given program."""
-    if program_type == DataFile.ProgramType.FRA.value:
+    if program_type == ProgramCode.FRA.value:
         return fra_section_options
-    elif program_type == DataFile.ProgramType.SSP.value:
+    elif program_type == ProgramCode.SSP.value:
         return ["ssp-moe"]
     return ["tanf"]
 
@@ -1231,19 +1221,19 @@ class TestDataFileQuerysetFiltering:
     def should_test_pia(self, program_type):
         """Return true if a file should be tested for program integrity audit."""
         return program_type in {
-            DataFile.ProgramType.TANF.value,
-            DataFile.ProgramType.TRIBAL.value,
+            ProgramCode.TANF.value,
+            ProgramCode.TRIBAL.value,
         }
 
     def get_section_options(self, program_type):
         """Return the allowed sections for a given program type."""
-        if program_type == DataFile.ProgramType.FRA.value:
+        if program_type == ProgramCode.FRA.value:
             return fra_section_options
         return tanf_section_options
 
     def get_location(self, program_type, stt, tribe_stt):
         """Return the submitting location for a given program type."""
-        if program_type == DataFile.ProgramType.TRIBAL.value:
+        if program_type == ProgramCode.TRIBAL.value:
             return tribe_stt
         return stt
 
@@ -1266,9 +1256,7 @@ class TestDataFileQuerysetFiltering:
                 "stt": location,
                 "year": year,
                 "quarter": quarter,
-                "section_ref": Section.from_legacy_values(program_type, section),
-                "section": section,
-                "program_type": program_type,
+                "section": canonical_section_for(program_type, section),
                 "is_program_audit": pia,
             }
         )
@@ -1295,7 +1283,7 @@ class TestDataFileQuerysetFiltering:
         assert len(response_file_ids) == 1
         assert response_file_ids[0] in [f.id for f in non_pia_files[k]]
         for f in non_pia_files[k]:
-            assert f.section_ref.program.code == DataFile.ProgramType.FRA.value
+            assert f.section.program.code == ProgramCode.FRA.value
 
     def _assert_pia(self, k, pia_files, response_file_ids, section_options):
         assert len(response_file_ids) == len(section_options)
@@ -1380,7 +1368,7 @@ class TestDataFileQuerysetFiltering:
             f"stt={location.id}&year={year}&quarter={quarter}&file_type={file_type}",
         )
 
-        if program_type == DataFile.ProgramType.FRA.value:
+        if program_type == ProgramCode.FRA.value:
             self._assert_fra(k, non_pia_files, non_pia_file_ids)
         else:
             self._assert_tanf(k, non_pia_files, non_pia_file_ids, section_options)

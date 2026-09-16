@@ -220,7 +220,7 @@ def send_data_submission_reminder(due_date, reporting_period, fiscal_quarter):
     for loc in all_locations:
         submitted_programs_sections = set(
             year_quarter_files.filter(stt=loc)
-            .values_list("section_ref__program__code", "section_ref__name")
+            .values_list("section__program__code", "section__name")
             .distinct()
         )
 

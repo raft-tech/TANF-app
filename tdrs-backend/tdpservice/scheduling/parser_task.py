@@ -164,7 +164,7 @@ def _get_post_parse_data_file(data_file_id):
     for parser_models in _post_parse_model_sets():
         queryset = parser_models.data_file_model.objects
         if parser_models.data_file_model is DataFile:
-            queryset = queryset.select_related("section_ref__program")
+            queryset = queryset.select_related("section__program")
         data_file = queryset.filter(id=data_file_id).first()
         if data_file is not None:
             return data_file, parser_models
@@ -503,7 +503,7 @@ def parse(data_file_id, reparse_id=None, event_id=None):
     reparse_success = True
     event_id = str(event_id or uuid.uuid4())
     try:
-        data_file = DataFile.objects.select_related("section_ref__program").get(
+        data_file = DataFile.objects.select_related("section__program").get(
             id=data_file_id
         )
         program_type, section = get_datafile_classification(data_file)

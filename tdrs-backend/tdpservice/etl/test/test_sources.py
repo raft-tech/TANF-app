@@ -112,16 +112,12 @@ def test_datafile_source_snapshotter_rejects_active_reparse_overlap(stt, user):
 
 @pytest.mark.django_db
 def test_datafile_source_uses_canonical_classification_and_excludes_audits(stt, user):
-    """Source selection ignores stale legacy values and PIA versions."""
+    """Source selection uses canonical classification and excludes PIA versions."""
     standard_file = _datafile(stt, user, version=1)
-    DataFile.objects.filter(pk=standard_file.pk).update(
-        program_type=ProgramCode.SSP,
-        section=SectionName.CLOSED_CASE_DATA,
-    )
     DataFileFactory.create(
         stt=stt,
         user=user,
-        section_ref=standard_file.section_ref,
+        section=standard_file.section,
         quarter=standard_file.quarter,
         year=FISCAL_YEAR,
         version=2,

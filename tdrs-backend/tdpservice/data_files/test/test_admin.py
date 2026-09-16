@@ -55,7 +55,7 @@ def test_DataFileAdmin_exposes_transitional_fields_in_admin():
 
     assert "parsing_state" in data_file_admin.list_display
     assert "parsing_state" in properties_fieldset[1]["fields"]
-    assert "section_ref" in properties_fieldset[1]["fields"]
+    assert "section" in properties_fieldset[1]["fields"]
     assert "canonical_section" in properties_fieldset[1]["fields"]
     assert "canonical_program_type" in properties_fieldset[1]["fields"]
     assert "section" not in data_file_admin.list_display
@@ -151,13 +151,8 @@ def test_DataFileAdmin_changelist_summary_and_error_count_are_eager_loaded(
 
 @pytest.mark.django_db
 def test_DataFileAdmin_displays_canonical_classification(data_file_instance):
-    """Admin labels do not read transitional scalar columns."""
-    canonical_section = data_file_instance.section_ref
-    DataFile.objects.filter(pk=data_file_instance.pk).update(
-        program_type=DataFile.ProgramType.FRA,
-        section=DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
-    )
-    data_file_instance.refresh_from_db()
+    """Admin labels display canonical classification."""
+    canonical_section = data_file_instance.section
     data_file_admin = DataFileAdmin(DataFile, AdminSite())
 
     assert data_file_admin.canonical_program_type(data_file_instance) == (

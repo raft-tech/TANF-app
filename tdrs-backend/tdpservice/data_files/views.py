@@ -87,7 +87,7 @@ class DataFileViewSet(ModelViewSet):
     # Ref: https://github.com/raft-tech/TANF-app/issues/1007
     queryset = (
         DataFile.objects.all()
-        .select_related("stt", "user", "summary", "section_ref__program")
+        .select_related("stt", "user", "summary", "section__program")
         .prefetch_related(
             Prefetch(
                 "reparse_file_metas",
@@ -258,8 +258,8 @@ class DataFileViewSet(ModelViewSet):
 
         logger.info(
             f"Preparing parse task: User META -> user: {request.user}, stt: {data_file.stt}. "
-            + f"Datafile META -> datafile: {data_file.id}, program type: {data_file.section_ref.program.code}, "
-            + f"section: {data_file.section_ref.name}, "
+            + f"Datafile META -> datafile: {data_file.id}, program type: {data_file.section.program.code}, "
+            + f"section: {data_file.section.name}, "
             + f"quarter {data_file.quarter}, year {data_file.year}."
         )
 
@@ -280,12 +280,12 @@ class DataFileViewSet(ModelViewSet):
         file_type = self.request.query_params.get("file_type", None)
 
         if file_type == DataFileViewSet.SSP_FILE_TYPE:
-            queryset = queryset.filter(section_ref__program__code="SSP")
+            queryset = queryset.filter(section__program__code="SSP")
         elif fra_section := Section.objects.filter(
             program__code="FRA",
             name=file_type,
         ).first():
-            queryset = queryset.filter(section_ref=fra_section)
+            queryset = queryset.filter(section=fra_section)
         else:
             pia_feature_flag_enabled, pia_feature_flag_config = get_feature_flag(
                 "program-integrity-audit"
@@ -311,7 +311,7 @@ class DataFileViewSet(ModelViewSet):
                     )
 
             queryset = queryset.filter(
-                section_ref__program__code__in=["TAN", "TRIBAL"],
+                section__program__code__in=["TAN", "TRIBAL"],
                 is_program_audit=is_program_audit,
             )
 

@@ -67,25 +67,38 @@ func CreateTestDatafileInTable(ctx context.Context, pool *pgxpool.Pool, tableNam
 		}
 	}
 
-	query := shadowDataFileInsert(sanitizedTableName)
+	query := productionDataFileInsert(sanitizedTableName)
 	args := []any{
 		"test_file.txt",
 		fmt.Sprintf("test-%d", time.Now().UnixNano()),
 		"txt",
 		quarter,
 		year,
-		sectionName,
 		rand.Intn(10000000),
 		sttID,
 		userID,
 		time.Now(),
-		programType,
 		false,
 		"uploaded",
+		sectionRefID,
 	}
-	if sectionRefID != 0 {
-		query = productionDataFileInsert(sanitizedTableName)
-		args = append(args, sectionRefID)
+	if tableName == shadowTable {
+		query = shadowDataFileInsert(sanitizedTableName)
+		args = []any{
+			"test_file.txt",
+			fmt.Sprintf("test-%d", time.Now().UnixNano()),
+			"txt",
+			quarter,
+			year,
+			sectionName,
+			rand.Intn(10000000),
+			sttID,
+			userID,
+			time.Now(),
+			programType,
+			false,
+			"uploaded",
+		}
 	}
 
 	var datafileID int32
@@ -99,32 +112,24 @@ func CreateTestDatafileInTable(ctx context.Context, pool *pgxpool.Pool, tableNam
 }
 
 func shadowDataFileInsert(sanitizedTableName string) string {
-	return dataFileInsert(sanitizedTableName, "", "")
+	return fmt.Sprintf(`
+		INSERT INTO %s (
+			original_filename, slug, extension, quarter, year, section,
+			version, stt_id, user_id, created_at, program_type,
+			is_program_audit, state
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		RETURNING id
+	`, sanitizedTableName)
 }
 
 func productionDataFileInsert(sanitizedTableName string) string {
-	return dataFileInsert(sanitizedTableName, ",\n\t\t\tsection_ref_id", ", $14")
-}
-
-func dataFileInsert(sanitizedTableName string, additionalColumns string, additionalValues string) string {
 	return fmt.Sprintf(`
 		INSERT INTO %s (
-			original_filename,
-			slug,
-			extension,
-			quarter,
-			year,
-			section,
-			version,
-			stt_id,
-			user_id,
-			created_at,
-			program_type,
-			is_program_audit,
-			state%s
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13%s)
+			original_filename, slug, extension, quarter, year, version,
+			stt_id, user_id, created_at, is_program_audit, state, section_ref_id
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id
-	`, sanitizedTableName, additionalColumns, additionalValues)
+	`, sanitizedTableName)
 }
 
 // DeleteTestDatafile removes a test datafile and its associated records.

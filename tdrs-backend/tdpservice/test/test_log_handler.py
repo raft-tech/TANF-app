@@ -6,7 +6,8 @@ import tempfile
 import pytest
 from botocore.exceptions import ClientError
 
-from tdpservice.data_files.models import DataFile, create_or_update_shadow_data_file
+from tdpservice.data_files.enums import SectionName
+from tdpservice.data_files.models import create_or_update_shadow_data_file
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.data_files.util import (
     create_legacy_s3_log_file_path,
@@ -88,12 +89,12 @@ def test_doRollover_uploads_to_s3_before_deleting(handler, mock_datafile):
 @pytest.mark.parametrize(
     "program_type,section_name,legacy_suffix",
     [
-        ("TAN", DataFile.Section.ACTIVE_CASE_DATA, "Active Case Data"),
-        ("SSP", DataFile.Section.ACTIVE_CASE_DATA, "SSP Active Case Data"),
-        ("TRIBAL", DataFile.Section.ACTIVE_CASE_DATA, "Tribal Active Case Data"),
+        ("TAN", SectionName.ACTIVE_CASE_DATA, "Active Case Data"),
+        ("SSP", SectionName.ACTIVE_CASE_DATA, "SSP Active Case Data"),
+        ("TRIBAL", SectionName.ACTIVE_CASE_DATA, "Tribal Active Case Data"),
         (
             "FRA",
-            DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+            SectionName.FRA_WORK_OUTCOME_TANF_EXITERS,
             "Work Outcomes of TANF Exiters",
         ),
     ],
@@ -106,11 +107,6 @@ def test_log_paths_use_canonical_production_metadata(
         program_type=program_type,
         section=section_name,
     )
-    DataFile.objects.filter(pk=datafile.pk).update(
-        program_type="STALE", section="Stale Section"
-    )
-    datafile.refresh_from_db()
-
     prefix = f"{datafile.year}/{datafile.quarter}/{datafile.stt}"
     assert create_s3_log_file_path(datafile) == (
         f"{prefix}/{program_type}/{section_name}/{datafile.id}"

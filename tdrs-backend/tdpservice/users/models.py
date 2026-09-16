@@ -405,7 +405,7 @@ class Feedback(Reviewable):
         ).values_list("object_id", flat=True)
         return list(
             DataFile.objects.filter(pk__in=data_file_ids).select_related(
-                "section_ref__program"
+                "section__program"
             )
         )
 

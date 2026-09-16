@@ -41,6 +41,7 @@ class DataFileSerializer(serializers.ModelSerializer):
     has_error = serializers.SerializerMethodField()
     summary = DataFileSummarySerializer(many=False, read_only=True)
     latest_reparse_file_meta = serializers.SerializerMethodField()
+    section = serializers.CharField()
     program_type = serializers.CharField(read_only=True)
 
     class Meta:
@@ -99,8 +100,8 @@ class DataFileSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         """Project canonical classification through the legacy response fields."""
         representation = super().to_representation(instance)
-        representation["section"] = instance.section_ref.name
-        representation["program_type"] = instance.section_ref.program.code
+        representation["section"] = instance.section.name
+        representation["program_type"] = instance.section.program.code
         return representation
 
     def update(self, instance, validated_data):
@@ -129,7 +130,10 @@ class DataFileSerializer(serializers.ModelSerializer):
                 )
 
             try:
-                section_ref = Section.from_legacy_values(program_type, section)
+                section = Section.objects.select_related("program").get(
+                    program__code=program_type,
+                    name=section,
+                )
             except Section.DoesNotExist as error:
                 raise serializers.ValidationError(
                     {
@@ -165,8 +169,7 @@ class DataFileSerializer(serializers.ModelSerializer):
                     is_fra=program_type == ProgramCode.FRA,
                 )
 
-            data["program_type"] = program_type
-            data["section_ref"] = section_ref
+            data["section"] = section
 
         return data
 

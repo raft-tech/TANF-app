@@ -10,7 +10,7 @@ from django.core.management.base import CommandError
 
 import pytest
 
-from tdpservice.data_files.enums import SubmissionState
+from tdpservice.data_files.enums import ProgramCode, SectionName, SubmissionState
 from tdpservice.data_files.models import DataFile
 from tdpservice.etl.pipelines.statistical_weights import StatisticalWeightsPipeline
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T6, TANF_T7
@@ -74,9 +74,9 @@ def test_load_statistical_weights_test_data_creates_datafiles_and_rows(tmp_path,
     assert set(datafiles.values_list("state", flat=True)) == {
         SubmissionState.PARSE_COMPLETED
     }
-    assert not datafiles.filter(section_ref__isnull=True).exists()
-    assert set(datafiles.values_list("section_ref__program__code", flat=True)) == {
-        DataFile.ProgramType.TANF
+    assert not datafiles.filter(section__isnull=True).exists()
+    assert set(datafiles.values_list("section__program__code", flat=True)) == {
+        ProgramCode.TANF
     }
 
     t1_rows = list(TANF_T1.objects.order_by("RPT_MONTH_YEAR"))
@@ -88,16 +88,16 @@ def test_load_statistical_weights_test_data_creates_datafiles_and_rows(tmp_path,
 
     source_ids = PIPELINE.nodes.validate_run_sources.snapshot_source_datafile_ids(
         2024,
-        DataFile.ProgramType.TANF,
+        ProgramCode.TANF,
     )
     assert set(source_ids[PIPELINE.source_keys["active"]]) == set(
         DataFile.objects.filter(
-            section_ref__name=DataFile.Section.ACTIVE_CASE_DATA
+            section__name=SectionName.ACTIVE_CASE_DATA
         ).values_list("id", flat=True)
     )
     assert PIPELINE.nodes.extract_active_family_counts.extract_rows(
         source_ids[PIPELINE.source_keys["active"]],
-        DataFile.ProgramType.TANF,
+        ProgramCode.TANF,
     ) == [
         {
             "stt_code": "55",

@@ -5,7 +5,7 @@ def get_datafile_classification(datafile):
     """Return parser metadata from the authoritative source for this table family."""
     if datafile._meta.db_table.startswith("shadow_"):
         return str(datafile.program_type), str(datafile.section)
-    return datafile.section_ref.program.code, datafile.section_ref.name
+    return datafile.section.program.code, datafile.section.name
 
 
 def create_s3_log_file_path(datafile):

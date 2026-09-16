@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestProductionDataFileInsertSynchronizesCanonicalAndScalarClassification(t *testing.T) {
+func TestProductionDataFileInsertUsesCanonicalClassification(t *testing.T) {
 	for _, fragment := range []string{
 		"data_files_section AS section",
 		"data_files_program AS program",
@@ -18,12 +18,15 @@ func TestProductionDataFileInsertSynchronizesCanonicalAndScalarClassification(t 
 	}
 
 	query := productionDataFileInsert(`"data_files_datafile"`)
-	for _, field := range []string{"section", "program_type", "section_ref_id"} {
-		if !strings.Contains(query, field) {
-			t.Errorf("production insert does not contain %q", field)
+	if !strings.Contains(query, "section_ref_id") {
+		t.Error("production insert does not contain section_ref_id")
+	}
+	for _, field := range []string{"section,", "program_type"} {
+		if strings.Contains(query, field) {
+			t.Errorf("production insert unexpectedly contains legacy field %q", field)
 		}
 	}
-	if !strings.Contains(query, "$14") {
+	if !strings.Contains(query, "$12") {
 		t.Error("production insert does not bind section_ref_id")
 	}
 }

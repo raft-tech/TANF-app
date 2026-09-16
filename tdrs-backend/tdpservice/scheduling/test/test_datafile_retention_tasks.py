@@ -183,21 +183,21 @@ class TestRemoveAllOldVersions:
         section = canonical_section_for("TAN", "Active Case Data")
         standard_v1 = DataFileFactory.create(
             year=current_year,
-            section_ref=section,
+            section=section,
             stt=stt,
             user=user,
             version=1,
         )
         standard_v2 = DataFileFactory.create(
             year=current_year,
-            section_ref=section,
+            section=section,
             stt=stt,
             user=user,
             version=2,
         )
         audit_v1 = DataFileFactory.create(
             year=current_year,
-            section_ref=section,
+            section=section,
             stt=stt,
             user=user,
             version=1,
@@ -205,7 +205,7 @@ class TestRemoveAllOldVersions:
         )
         audit_v3 = DataFileFactory.create(
             year=current_year,
-            section_ref=section,
+            section=section,
             stt=stt,
             user=user,
             version=3,

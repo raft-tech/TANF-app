@@ -5,11 +5,12 @@ from io import BytesIO
 import pytest
 from openpyxl import load_workbook
 
+from tdpservice.data_files.enums import ProgramCode, SectionName
 from tdpservice.data_files.error_reports import (
     ActiveClosedErrorReport,
     ErrorReportFactory,
 )
-from tdpservice.data_files.models import DataFile, create_or_update_shadow_data_file
+from tdpservice.data_files.models import create_or_update_shadow_data_file
 from tdpservice.data_files.parser_error_choices import ParserErrorCategoryChoices
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.parsers.models import (
@@ -27,16 +28,11 @@ KNOWLEDGE_CENTER_URL = (
 
 @pytest.mark.django_db
 def test_error_report_factory_uses_canonical_section():
-    """Stale production scalar metadata does not change report dispatch."""
+    """Canonical section metadata determines report dispatch."""
     datafile = DataFileFactory.create(
-        section=DataFile.Section.ACTIVE_CASE_DATA,
-        program_type=DataFile.ProgramType.TANF,
+        section=SectionName.ACTIVE_CASE_DATA,
+        program_type=ProgramCode.TANF,
     )
-    DataFile.objects.filter(pk=datafile.pk).update(
-        section=DataFile.Section.AGGREGATE_DATA
-    )
-    datafile.refresh_from_db()
-
     report = ErrorReportFactory.get_error_report_generator(datafile)
 
     assert isinstance(report, ActiveClosedErrorReport)
@@ -46,10 +42,6 @@ def test_error_report_factory_uses_canonical_section():
 def test_error_report_paths_preserve_production_and_shadow_formats():
     """Report paths use canonical production and scalar shadow metadata."""
     datafile = DataFileFactory.create(s3_versioning_id="version-1")
-    DataFile.objects.filter(pk=datafile.pk).update(
-        program_type="STALE", section="Stale Section"
-    )
-    datafile.refresh_from_db()
     shadow = create_or_update_shadow_data_file(datafile)
 
     expected = (
@@ -67,8 +59,8 @@ def test_error_report_paths_preserve_production_and_shadow_formats():
 def active_case_error_report_workbook():
     """Generate an Active Case Data error report workbook."""
     datafile = DataFileFactory(
-        section=DataFile.Section.ACTIVE_CASE_DATA,
-        program_type=DataFile.ProgramType.TANF,
+        section=SectionName.ACTIVE_CASE_DATA,
+        program_type=ProgramCode.TANF,
         year=2025,
         quarter="Q3",
     )

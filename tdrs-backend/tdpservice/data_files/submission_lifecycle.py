@@ -233,8 +233,8 @@ def _save_locked_data_file_transition(data_file, transition):
 def _sync_transitioned_data_file(data_file, persisted_data_file):
     """Keep caller-held DataFile instances aligned with the committed row."""
     data_file.state = persisted_data_file.state
-    if hasattr(data_file, "section_ref_id"):
-        data_file.section_ref_id = persisted_data_file.section_ref_id
+    if hasattr(data_file, "section_id"):
+        data_file.section_id = persisted_data_file.section_id
     return data_file
 
 

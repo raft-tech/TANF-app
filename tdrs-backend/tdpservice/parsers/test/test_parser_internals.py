@@ -2,7 +2,7 @@
 
 import pytest
 
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.enums import ProgramCode
 from tdpservice.parsers.dataclasses import RawRow
 from tdpservice.parsers.factory import ParserFactory
 from tdpservice.parsers.fields import TransformField
@@ -20,9 +20,9 @@ class TestParserFactory:
     @pytest.mark.parametrize(
         "program_type, expected",
         [
-            (DataFile.ProgramType.TANF, TanfDataReportParser),
-            (DataFile.ProgramType.SSP, TanfDataReportParser),
-            (DataFile.ProgramType.TRIBAL, TanfDataReportParser),
+            (ProgramCode.TANF, TanfDataReportParser),
+            (ProgramCode.SSP, TanfDataReportParser),
+            (ProgramCode.TRIBAL, TanfDataReportParser),
         ],
     )
     def test_get_class_tanf_like_programs(self, program_type, expected):
@@ -33,14 +33,14 @@ class TestParserFactory:
         """Return ProgramAuditParser when program audit is requested."""
         assert (
             ParserFactory.get_class(
-                DataFile.ProgramType.TANF, is_program_audit=True
+                ProgramCode.TANF, is_program_audit=True
             )
             is ProgramAuditParser
         )
 
     def test_get_class_fra(self):
         """Return FRAParser for FRA program type."""
-        assert ParserFactory.get_class(DataFile.ProgramType.FRA) is FRAParser
+        assert ParserFactory.get_class(ProgramCode.FRA) is FRAParser
 
     def test_get_class_unknown_raises(self):
         """Raise when no parser is available for program type."""
@@ -63,7 +63,7 @@ class TestParserFactory:
         monkeypatch.setattr(ParserFactory, "get_class", classmethod(fake_get_class))
 
         instance = ParserFactory.get_instance(
-            program_type=DataFile.ProgramType.TANF,
+            program_type=ProgramCode.TANF,
             is_program_audit=True,
             datafile="datafile",
             dfs="dfs",
@@ -71,7 +71,7 @@ class TestParserFactory:
         )
 
         assert captured == {
-            "program_type": DataFile.ProgramType.TANF,
+            "program_type": ProgramCode.TANF,
             "is_program_audit": True,
         }
         assert instance.kwargs == {
@@ -89,8 +89,8 @@ class TestSchemaManager:
         """Return record precheck error for unknown record type."""
         manager = SchemaManager(
             small_correct_file,
-            small_correct_file.program_type,
-            small_correct_file.section,
+            small_correct_file.section.program.code,
+            small_correct_file.section.name,
         )
         row = RawRow(
             data="Z9",
@@ -116,8 +116,8 @@ class TestSchemaManager:
         """Update TransformField encryption flags across schemas."""
         manager = SchemaManager(
             small_correct_file,
-            small_correct_file.program_type,
-            small_correct_file.section,
+            small_correct_file.section.program.code,
+            small_correct_file.section.name,
         )
 
         transform_fields = []

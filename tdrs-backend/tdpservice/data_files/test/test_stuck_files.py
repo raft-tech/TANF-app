@@ -29,7 +29,7 @@ def make_datafile(stt_user, stt, version):
     """Create a test data file with default params."""
     datafile = ParsingFileFactory.create(
         quarter=DataFile.Quarter.Q1,
-        section_ref=canonical_section_for("TAN", SectionName.ACTIVE_CASE_DATA),
+        section=canonical_section_for("TAN", SectionName.ACTIVE_CASE_DATA),
         year=2023,
         version=version,
         user=stt_user,

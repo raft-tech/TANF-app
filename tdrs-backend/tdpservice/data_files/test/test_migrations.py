@@ -24,7 +24,18 @@ def _migration_targets(executor, data_files_target):
     ]
 
 
-def _create_data_file(DataFile, user, stt, *, slug, program_type, section, audit=False):
+def _create_data_file(
+    DataFile,
+    user,
+    stt,
+    *,
+    slug,
+    program_type,
+    section,
+    section_ref=None,
+    audit=False,
+    version=1,
+):
     return DataFile.objects.create(
         original_filename=f"{slug}.txt",
         slug=slug,
@@ -33,8 +44,9 @@ def _create_data_file(DataFile, user, stt, *, slug, program_type, section, audit
         year=2020,
         program_type=program_type,
         section=section,
+        section_ref=section_ref,
         is_program_audit=audit,
-        version=1,
+        version=version,
         state="uploaded",
         user=user,
         stt=stt,
@@ -238,5 +250,299 @@ def test_data_file_section_ref_backfill_rejects_unmapped_values():
     finally:
         if invalid_data_file_id is not None:
             DataFile.objects.filter(id=invalid_data_file_id).delete()
+        executor = MigrationExecutor(connection)
+        executor.migrate(executor.loader.graph.leaf_nodes())
+
+
+@pytest.mark.django_db(transaction=True)
+def test_data_file_contract_migration_handles_empty_table():
+    """The contract migration succeeds when no DataFiles exist."""
+    executor = MigrationExecutor(connection)
+    migrate_from = _migration_targets(
+        executor, "0033_alter_shadowdatafile_file_and_more"
+    )
+    migrate_to = _migration_targets(
+        executor, "0034_contract_datafile_canonical_section"
+    )
+
+    try:
+        executor.migrate(migrate_from)
+        old_apps = executor.loader.project_state(migrate_from).apps
+        backfill_migration = importlib.import_module(
+            "tdpservice.data_files.migrations.0031_backfill_datafile_section_ref"
+        )
+        backfill_migration.ensure_canonical_sections(old_apps)
+        old_apps.get_model("data_files", "DataFile").objects.all().delete()
+
+        executor = MigrationExecutor(connection)
+        executor.migrate(migrate_to)
+        new_apps = executor.loader.project_state(migrate_to).apps
+
+        assert not new_apps.get_model("data_files", "DataFile").objects.exists()
+    finally:
+        executor = MigrationExecutor(connection)
+        executor.migrate(executor.loader.graph.leaf_nodes())
+
+
+@pytest.mark.django_db(transaction=True)
+def test_data_file_contract_migration_preserves_canonical_classification():
+    """The contract migration removes only production scalar classification."""
+    executor = MigrationExecutor(connection)
+    migrate_from = _migration_targets(
+        executor, "0033_alter_shadowdatafile_file_and_more"
+    )
+    migrate_to = _migration_targets(
+        executor, "0034_contract_datafile_canonical_section"
+    )
+
+    try:
+        executor.migrate(migrate_from)
+        old_apps = executor.loader.project_state(migrate_from).apps
+        DataFile = old_apps.get_model("data_files", "DataFile")
+        ShadowDataFile = old_apps.get_model("data_files", "ShadowDataFile")
+        Section = old_apps.get_model("data_files", "Section")
+        STT = old_apps.get_model("stts", "STT")
+        User = old_apps.get_model("users", "User")
+        backfill_migration = importlib.import_module(
+            "tdpservice.data_files.migrations.0031_backfill_datafile_section_ref"
+        )
+        backfill_migration.ensure_canonical_sections(old_apps)
+
+        stt = STT.objects.create(name="Contract migration STT")
+        user = User.objects.create(username="contract-migration@example.com")
+        classifications = [
+            ("TAN", "Active Case Data", False),
+            ("SSP", "Closed Case Data", False),
+            ("TRIBAL", "Aggregate Data", False),
+            ("FRA", "Work Outcomes of TANF Exiters", False),
+            ("FRA", "Secondary School Attainment", False),
+            ("FRA", "Supplemental Work Outcomes", False),
+            ("TAN", "Closed Case Data", True),
+            ("TRIBAL", "Active Case Data", True),
+        ]
+        expected = []
+        for version, (program_code, section_name, audit) in enumerate(
+            classifications, start=1
+        ):
+            canonical_section = Section.objects.get(
+                program__code=program_code,
+                name=section_name,
+            )
+            data_file = _create_data_file(
+                DataFile,
+                user,
+                stt,
+                slug=f"contract-{version}",
+                program_type=program_code,
+                section=section_name,
+                section_ref=canonical_section,
+                audit=audit,
+                version=version,
+            )
+            expected.append((data_file.id, canonical_section.id))
+
+        ShadowDataFile.objects.create(
+            id=999999,
+            original_filename="shadow.txt",
+            slug="contract-shadow",
+            extension="txt",
+            quarter="Q1",
+            year=2020,
+            program_type="TAN",
+            section="Active Case Data",
+            is_program_audit=False,
+            version=1,
+            state="uploaded",
+            user=user,
+            stt=stt,
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "CREATE VIEW tanf_t1 AS "
+                "SELECT id, program_type, section FROM data_files_datafile"
+            )
+            cursor.execute(
+                "CREATE VIEW latest_tanf_exiters_view_prod AS SELECT * FROM tanf_t1"
+            )
+
+        executor = MigrationExecutor(connection)
+        executor.migrate(migrate_to)
+        new_apps = executor.loader.project_state(migrate_to).apps
+        DataFile = new_apps.get_model("data_files", "DataFile")
+        ShadowDataFile = new_apps.get_model("data_files", "ShadowDataFile")
+
+        assert list(
+            DataFile.objects.order_by("id").values_list("id", "section_id")
+        ) == expected
+        assert not DataFile._meta.get_field("section").null
+        assert DataFile._meta.get_field("section").db_column == "section_ref_id"
+        assert ShadowDataFile.objects.get(id=999999).program_type == "TAN"
+        assert ShadowDataFile.objects.get(id=999999).section == "Active Case Data"
+
+        table_columns = {
+            column.name
+            for column in connection.introspection.get_table_description(
+                connection.cursor(), "data_files_datafile"
+            )
+        }
+        shadow_columns = {
+            column.name
+            for column in connection.introspection.get_table_description(
+                connection.cursor(), "shadow_data_files_datafile"
+            )
+        }
+        assert "section_ref_id" in table_columns
+        assert "section" not in table_columns
+        assert "program_type" not in table_columns
+        assert {"section", "program_type"} <= shadow_columns
+        table_names = connection.introspection.table_names(include_views=True)
+        assert "tanf_t1" not in table_names
+        assert "latest_tanf_exiters_view_prod" not in table_names
+    finally:
+        with connection.cursor() as cursor:
+            cursor.execute("DROP VIEW IF EXISTS latest_tanf_exiters_view_prod")
+            cursor.execute("DROP VIEW IF EXISTS tanf_t1")
+        executor = MigrationExecutor(connection)
+        executor.migrate(executor.loader.graph.leaf_nodes())
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize(
+    "invalid_case, expected_error",
+    [
+        ("null", "null section_ref"),
+        ("mismatch", "legacy/canonical mismatch"),
+        ("noncanonical", "noncanonical section"),
+        ("invalid_audit", "invalid program audit"),
+        ("duplicate", "canonical duplicates"),
+    ],
+)
+def test_data_file_contract_migration_rejects_invalid_data(
+    invalid_case, expected_error
+):
+    """Each contract precondition fails before destructive operations."""
+    executor = MigrationExecutor(connection)
+    migrate_from = _migration_targets(
+        executor, "0033_alter_shadowdatafile_file_and_more"
+    )
+    migrate_to = _migration_targets(
+        executor, "0034_contract_datafile_canonical_section"
+    )
+
+    try:
+        executor.migrate(migrate_from)
+        old_apps = executor.loader.project_state(migrate_from).apps
+        DataFile = old_apps.get_model("data_files", "DataFile")
+        Program = old_apps.get_model("data_files", "Program")
+        Section = old_apps.get_model("data_files", "Section")
+        STT = old_apps.get_model("stts", "STT")
+        User = old_apps.get_model("users", "User")
+        backfill_migration = importlib.import_module(
+            "tdpservice.data_files.migrations.0031_backfill_datafile_section_ref"
+        )
+        backfill_migration.ensure_canonical_sections(old_apps)
+
+        stt = STT.objects.create(name="Invalid contract migration STT")
+        user = User.objects.create(username="invalid-contract@example.com")
+        program_type = "TAN"
+        section_name = "Active Case Data"
+        section_ref = Section.objects.get(
+            program__code=program_type, name=section_name
+        )
+        audit = False
+
+        if invalid_case == "null":
+            section_ref = None
+        elif invalid_case == "mismatch":
+            program_type = "SSP"
+        elif invalid_case == "noncanonical":
+            program = Program.objects.create(
+                code="OTHER", slug="other", name="Other"
+            )
+            section_ref = Section.objects.create(
+                program=program, name="Other Section"
+            )
+            program_type = program.code
+            section_name = section_ref.name
+        elif invalid_case == "invalid_audit":
+            program_type = "SSP"
+            section_ref = Section.objects.get(
+                program__code=program_type, name=section_name
+            )
+            audit = True
+        elif invalid_case == "duplicate":
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "ALTER TABLE data_files_datafile "
+                    "DROP CONSTRAINT constraint_name"
+                )
+
+        copies = 2 if invalid_case == "duplicate" else 1
+        for index in range(copies):
+            _create_data_file(
+                DataFile,
+                user,
+                stt,
+                slug=f"invalid-contract-{invalid_case}-{index}",
+                program_type=program_type,
+                section=section_name,
+                section_ref=section_ref,
+                audit=audit,
+            )
+
+        executor = MigrationExecutor(connection)
+        with pytest.raises(RuntimeError, match=expected_error):
+            executor.migrate(migrate_to)
+
+        table_columns = {
+            column.name
+            for column in connection.introspection.get_table_description(
+                connection.cursor(), "data_files_datafile"
+            )
+        }
+        assert {"section", "program_type", "section_ref_id"} <= table_columns
+    finally:
+        DataFile.objects.all().delete()
+        if invalid_case == "duplicate":
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "ALTER TABLE data_files_datafile ADD CONSTRAINT constraint_name "
+                    "UNIQUE (program_type, section, version, quarter, year, "
+                    "stt_id, is_program_audit)"
+                )
+        executor = MigrationExecutor(connection)
+        executor.migrate(executor.loader.graph.leaf_nodes())
+
+
+@pytest.mark.django_db(transaction=True)
+def test_data_file_contract_migration_rejects_unknown_dependent_view():
+    """The migration refuses to cascade through an unrecognized view."""
+    executor = MigrationExecutor(connection)
+    migrate_from = _migration_targets(
+        executor, "0033_alter_shadowdatafile_file_and_more"
+    )
+    migrate_to = _migration_targets(
+        executor, "0034_contract_datafile_canonical_section"
+    )
+
+    try:
+        executor.migrate(migrate_from)
+        old_apps = executor.loader.project_state(migrate_from).apps
+        backfill_migration = importlib.import_module(
+            "tdpservice.data_files.migrations.0031_backfill_datafile_section_ref"
+        )
+        backfill_migration.ensure_canonical_sections(old_apps)
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "CREATE VIEW unexpected_legacy_view AS "
+                "SELECT program_type FROM data_files_datafile"
+            )
+
+        executor = MigrationExecutor(connection)
+        with pytest.raises(RuntimeError, match="unknown dependent views"):
+            executor.migrate(migrate_to)
+    finally:
+        with connection.cursor() as cursor:
+            cursor.execute("DROP VIEW IF EXISTS unexpected_legacy_view")
         executor = MigrationExecutor(connection)
         executor.migrate(executor.loader.graph.leaf_nodes())

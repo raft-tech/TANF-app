@@ -7,7 +7,7 @@ from django.db.models import Q as Query
 
 import pytest
 
-from tdpservice.data_files.models import Section
+from tdpservice.data_files.test.factories import canonical_section_for
 from tdpservice.parsers import aggregates, util
 from tdpservice.parsers.models import (
     DataFileSummary,
@@ -194,7 +194,7 @@ class TestParse:
         num_errors,
     ):
         """Test parsing when file metadata does not match the raw data layout."""
-        small_correct_file.section_ref = Section.from_legacy_values(program, section)
+        small_correct_file.section = canonical_section_for(program, section)
         small_correct_file.save()
 
         dfs.datafile = small_correct_file
@@ -262,9 +262,9 @@ class TestParse:
     ):
         """Test header-derived program type mismatches are rejected as prechecks."""
         datafile = request.getfixturevalue(fixture_name)
-        datafile.section_ref = Section.from_legacy_values(
+        datafile.section = canonical_section_for(
             program_type,
-            datafile.section,
+            datafile.section.name,
         )
         datafile.save()
 
@@ -296,9 +296,9 @@ class TestParse:
         """Test TAN tribal headers still parse when submission metadata is TRIBAL."""
         tribal_section_1_file.year = 2022
         tribal_section_1_file.quarter = "Q1"
-        tribal_section_1_file.section_ref = Section.from_legacy_values(
+        tribal_section_1_file.section = canonical_section_for(
             "TRIBAL",
-            tribal_section_1_file.section,
+            tribal_section_1_file.section.name,
         )
         tribal_section_1_file.save()
 
@@ -894,8 +894,8 @@ class TestParse:
         """Test that the case aggregates are set correctly."""
         small_correct_file.year = 2020
         small_correct_file.quarter = "Q3"
-        small_correct_file.section_ref = Section.from_legacy_values(
-            small_correct_file.program_type,
+        small_correct_file.section = canonical_section_for(
+            small_correct_file.section.program.code,
             "Active Case Data",
         )
         small_correct_file.save()
@@ -1286,8 +1286,8 @@ class TestParse:
         """Test that the rpt_month_year mismatch error is raised."""
         datafile = header_datafile
 
-        datafile.section_ref = Section.from_legacy_values(
-            datafile.program_type,
+        datafile.section = canonical_section_for(
+            datafile.section.program.code,
             "Active Case Data",
         )
         # test_datafile fixture uses create_test_data_file which assigns

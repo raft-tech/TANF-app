@@ -166,7 +166,7 @@ class Command(BaseCommand):
         """Return synthetic DataFiles created by this importer."""
         return DataFile.objects.filter(
             original_filename__startswith=IMPORT_PREFIX,
-            section_ref__program__code=ProgramCode.TANF,
+            section__program__code=ProgramCode.TANF,
             year=self.fiscal_year,
             version=self.version,
         )
@@ -341,12 +341,12 @@ class Command(BaseCommand):
                 f"No STT with stt_code={stt_code} exists for {spec.record_type}."
             )
 
-        section_ref = Section.objects.get(
+        section = Section.objects.get(
             program__code=ProgramCode.TANF,
             name=spec.section,
         )
         datafile, _created = DataFile.objects.get_or_create(
-            section_ref=section_ref,
+            section=section,
             version=self.version,
             quarter=quarter,
             year=self.fiscal_year,

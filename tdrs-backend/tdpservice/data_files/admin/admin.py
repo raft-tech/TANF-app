@@ -190,7 +190,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
                     "quarter",
                     "year",
                     "canonical_section",
-                    "section_ref",
+                    "section",
                     "canonical_program_type",
                     "is_program_audit",
                     "stt",
@@ -252,13 +252,13 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         qs = (
             super()
             .get_queryset(request)
-            .select_related("stt", "summary", "user", "section_ref__program")
+            .select_related("stt", "summary", "user", "section__program")
             .annotate(parser_error_count=Count("parser_errors", distinct=True))
         )
         # return data files based on user's section
         if not (request.user.has_fra_access or request.user.is_an_admin):
             filtered_for_fra = qs.exclude(
-                section_ref__program__code="FRA",
+                section__program__code="FRA",
             )
             return filtered_for_fra
         else:
@@ -474,13 +474,13 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
     def canonical_program_type(self, obj):
         """Return the canonical Program code using the legacy admin label."""
-        return obj.section_ref.program.code
+        return obj.section.program.code
 
     canonical_program_type.short_description = "Program type"
 
     def canonical_section(self, obj):
         """Return the canonical Section name using the legacy admin label."""
-        return obj.section_ref.name
+        return obj.section.name
 
     canonical_section.short_description = "Section"
 
@@ -592,9 +592,9 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         def queryset(self, request, queryset):
             """Return a queryset."""
             if self.value() == "1":
-                return queryset.filter(section_ref__program__code="FRA")
+                return queryset.filter(section__program__code="FRA")
             elif self.value() == "0":
-                return queryset.exclude(section_ref__program__code="FRA")
+                return queryset.exclude(section__program__code="FRA")
             else:
                 return queryset
 
@@ -612,7 +612,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
             """Filter by the Program related to the canonical Section."""
             if self.value() is None:
                 return queryset
-            return queryset.filter(section_ref__program__code=self.value())
+            return queryset.filter(section__program__code=self.value())
 
     class SectionFilter(admin.SimpleListFilter):
         """Filter DataFiles by canonical Section name."""
@@ -629,7 +629,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
             """Filter matching Section names across Programs."""
             if self.value() is None:
                 return queryset
-            return queryset.filter(section_ref__name=self.value())
+            return queryset.filter(section__name=self.value())
 
     inlines = [DataFileStateTransitionInline, DataFileInline]
 

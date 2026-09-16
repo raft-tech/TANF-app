@@ -7,7 +7,8 @@ from django.core import mail
 
 import pytest
 
-from tdpservice.data_files.models import DataFile, Section
+from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.test.factories import canonical_section_for
 from tdpservice.email.tasks import send_data_submission_reminder
 from tdpservice.stts.models import STT
 from tdpservice.users.models import User
@@ -42,7 +43,7 @@ def _submit_file(
     """Create a DataFile for the current fiscal year and given quarter."""
     return DataFile.create_new_version(
         {
-            "section_ref": Section.from_legacy_values(program_type, section),
+            "section": canonical_section_for(program_type, section),
             "quarter": fiscal_quarter,
             "year": datetime.now().year,
             "stt": stt,
@@ -156,8 +157,7 @@ def test_q1_files_with_previous_year_are_not_matched():
     last_year = datetime.now().year - 1
     DataFile.create_new_version(
         {
-            "section": "Active Case Data",
-            "program_type": "TAN",
+            "section": canonical_section_for("TAN", "Active Case Data"),
             "quarter": "Q1",
             "year": last_year,
             "stt": stt,
@@ -167,8 +167,7 @@ def test_q1_files_with_previous_year_are_not_matched():
     )
     DataFile.create_new_version(
         {
-            "section": "Closed Case Data",
-            "program_type": "TAN",
+            "section": canonical_section_for("TAN", "Closed Case Data"),
             "quarter": "Q1",
             "year": last_year,
             "stt": stt,
