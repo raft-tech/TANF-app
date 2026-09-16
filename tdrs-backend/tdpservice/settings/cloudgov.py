@@ -177,6 +177,10 @@ class CloudGov(Common):
         "OTEL_EXPORTER_OTLP_ENDPOINT", "http://tempo.apps.internal:4317"
     )
 
+    ALERTMANAGER_URL = os.getenv(
+        "ALERTMANAGER_URL", "http://alertmanager.apps.internal:8080/alerts"
+    )
+
     # Keycloak Sync
     KEYCLOAK_SYNC_ENABLED = bool(strtobool(os.getenv("KEYCLOAK_SYNC_ENABLED", "yes")))
     KEYCLOAK_SERVER_URL = os.getenv(

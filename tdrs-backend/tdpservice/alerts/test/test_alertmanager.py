@@ -26,7 +26,7 @@ def test_send_alert_success():
         assert result is True
         mock_post.assert_called_once()
         args, kwargs = mock_post.call_args
-        assert args[0] == "http://alertmanager:9093/api/v2/alerts"
+        assert args[0] == "http://alertmanager:9093/alerts/api/v2/alerts"
         payload = kwargs["json"]
         assert len(payload) == 1
         assert payload[0]["labels"]["alertname"] == "RequestParamMismatch"
@@ -36,6 +36,46 @@ def test_send_alert_success():
         assert payload[0]["annotations"]["summary"] == "Test summary"
         assert payload[0]["annotations"]["description"] == "Test description"
         assert payload[0]["annotations"]["details"] == "extra info"
+
+
+@override_settings(ALERTMANAGER_URL="http://custom-alertmanager:9093")
+def test_send_alert_url_normalization_without_alerts_suffix():
+    """send_alert normalizes base URL missing /alerts prefix."""
+    with patch("requests.post") as mock_post:
+        mock_response = MagicMock()
+        mock_response.raise_for_status.return_value = None
+        mock_post.return_value = mock_response
+
+        result = send_alert(
+            alertname="RequestParamMismatch",
+            summary="Test summary",
+            description="Test description",
+        )
+
+        assert result is True
+        mock_post.assert_called_once()
+        args, _ = mock_post.call_args
+        assert args[0] == "http://custom-alertmanager:9093/alerts/api/v2/alerts"
+
+
+@override_settings(ALERTMANAGER_URL="http://custom-alertmanager:9093/alerts/")
+def test_send_alert_url_normalization_with_trailing_slash():
+    """send_alert normalizes base URL with trailing slash."""
+    with patch("requests.post") as mock_post:
+        mock_response = MagicMock()
+        mock_response.raise_for_status.return_value = None
+        mock_post.return_value = mock_response
+
+        result = send_alert(
+            alertname="RequestParamMismatch",
+            summary="Test summary",
+            description="Test description",
+        )
+
+        assert result is True
+        mock_post.assert_called_once()
+        args, _ = mock_post.call_args
+        assert args[0] == "http://custom-alertmanager:9093/alerts/api/v2/alerts"
 
 
 @override_settings(ALERTMANAGER_URL="")
