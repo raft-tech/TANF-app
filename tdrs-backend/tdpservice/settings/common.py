@@ -219,7 +219,7 @@ class Common(Configuration):
     ADMINS = (("Admin1", "ADMIN_EMAIL_FIRST"), ("Admin2", "ADMIN_EMAIL_SECOND"))
 
     # Prometheus AlertManager endpoint
-    ALERTMANAGER_URL = os.getenv("ALERTMANAGER_URL", "http://alertmanager:9093")
+    ALERTMANAGER_URL = os.getenv("ALERTMANAGER_URL", "http://alertmanager:9093/alerts")
 
     DATABASES = {
         "default": {

@@ -28,12 +28,15 @@ def send_alert(
     :param timeout: Request timeout in seconds
     :return: True if sent successfully, False otherwise
     """
-    alertmanager_url = getattr(settings, "ALERTMANAGER_URL", "http://alertmanager:9093")
+    alertmanager_url = getattr(settings, "ALERTMANAGER_URL", "http://alertmanager:9093/alerts")
     if not alertmanager_url:
         logger.debug("ALERTMANAGER_URL not configured; skipping alert dispatch.")
         return False
 
-    api_url = f"{alertmanager_url.rstrip('/')}/api/v2/alerts"
+    base_url = alertmanager_url.rstrip("/")
+    if not base_url.endswith("/alerts"):
+        base_url = f"{base_url}/alerts"
+    api_url = f"{base_url}/api/v2/alerts"
 
     labels = {
         "alertname": alertname,
