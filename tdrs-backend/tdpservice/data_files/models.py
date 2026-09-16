@@ -12,6 +12,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.files.base import File
 from django.db import models
 from django.db.models import Max
+from django.utils import timezone
 from django.utils.html import format_html
 
 from tdpservice.backends import DataFilesS3Storage
@@ -162,7 +163,11 @@ class DataFile(FileRecord):
                     "is_program_audit",
                 ),
                 name="datafile_uniq_section_version_period_stt_audit",
-            )
+            ),
+            models.CheckConstraint(
+                condition=models.Q(state__in=SubmissionState.values),
+                name="datafile_valid_submission_state",
+            ),
         ]
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -187,6 +192,8 @@ class DataFile(FileRecord):
         choices=SubmissionState.choices,
         default=SubmissionState.UPLOADED,
     )
+    state_changed_at = models.DateTimeField(default=timezone.now)
+    current_parse_token = models.UUIDField(null=True, blank=True, editable=False)
 
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="user", blank=False, null=False
@@ -441,7 +448,7 @@ ShadowDataFile = create_shadow_model(
         "program_type": models.CharField(max_length=32, blank=False, null=False),
         "section": models.CharField(max_length=32, blank=False, null=False),
     },
-    exclude_fields={"section"},
+    exclude_fields={"current_parse_token", "section"},
 )
 
 
@@ -457,6 +464,7 @@ def create_or_update_shadow_data_file(data_file):
         "is_program_audit",
         "version",
         "state",
+        "state_changed_at",
         "user",
         "stt",
         "file",

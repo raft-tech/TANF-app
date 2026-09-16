@@ -9,19 +9,30 @@ from django.db.migrations.executor import MigrationExecutor
 
 MIGRATE_FROM = "0030_datafile_section_ref"
 MIGRATE_TO = "0031_backfill_datafile_section_ref"
+CONTRACT_MIGRATE_FROM = (
+    "0033_alter_shadowdatafile_file_and_more",
+    "0033_merge_lifecycle_and_transition_log",
+)
 
 
 def _migration_targets(executor, data_files_target):
     """Target DataFiles before the dependent STTs participation backfill."""
+    data_files_targets = (
+        (data_files_target,)
+        if isinstance(data_files_target, str)
+        else data_files_target
+    )
     target_overrides = {
-        "data_files": data_files_target,
         "stts": "0013_program_section_sttprogramparticipation",
         "users": "0059_reconcile_role_permissions",
     }
-    return [
+    targets = [
         (app_label, target_overrides.get(app_label, migration))
         for app_label, migration in executor.loader.graph.leaf_nodes()
+        if app_label != "data_files"
     ]
+    targets.extend(("data_files", migration) for migration in data_files_targets)
+    return targets
 
 
 def _create_data_file(
@@ -258,9 +269,7 @@ def test_data_file_section_ref_backfill_rejects_unmapped_values():
 def test_data_file_contract_migration_handles_empty_table():
     """The contract migration succeeds when no DataFiles exist."""
     executor = MigrationExecutor(connection)
-    migrate_from = _migration_targets(
-        executor, "0033_alter_shadowdatafile_file_and_more"
-    )
+    migrate_from = _migration_targets(executor, CONTRACT_MIGRATE_FROM)
     migrate_to = _migration_targets(
         executor, "0034_contract_datafile_canonical_section"
     )
@@ -288,9 +297,7 @@ def test_data_file_contract_migration_handles_empty_table():
 def test_data_file_contract_migration_preserves_canonical_classification():
     """The contract migration removes only production scalar classification."""
     executor = MigrationExecutor(connection)
-    migrate_from = _migration_targets(
-        executor, "0033_alter_shadowdatafile_file_and_more"
-    )
+    migrate_from = _migration_targets(executor, CONTRACT_MIGRATE_FROM)
     migrate_to = _migration_targets(
         executor, "0034_contract_datafile_canonical_section"
     )
@@ -422,9 +429,7 @@ def test_data_file_contract_migration_rejects_invalid_data(
 ):
     """Each contract precondition fails before destructive operations."""
     executor = MigrationExecutor(connection)
-    migrate_from = _migration_targets(
-        executor, "0033_alter_shadowdatafile_file_and_more"
-    )
+    migrate_from = _migration_targets(executor, CONTRACT_MIGRATE_FROM)
     migrate_to = _migration_targets(
         executor, "0034_contract_datafile_canonical_section"
     )
@@ -518,9 +523,7 @@ def test_data_file_contract_migration_rejects_invalid_data(
 def test_data_file_contract_migration_rejects_unknown_dependent_view():
     """The migration refuses to cascade through an unrecognized view."""
     executor = MigrationExecutor(connection)
-    migrate_from = _migration_targets(
-        executor, "0033_alter_shadowdatafile_file_and_more"
-    )
+    migrate_from = _migration_targets(executor, CONTRACT_MIGRATE_FROM)
     migrate_to = _migration_targets(
         executor, "0034_contract_datafile_canonical_section"
     )

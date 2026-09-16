@@ -180,6 +180,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("data_files", "0033_alter_shadowdatafile_file_and_more"),
+        ("data_files", "0033_merge_lifecycle_and_transition_log"),
     ]
 
     operations = [

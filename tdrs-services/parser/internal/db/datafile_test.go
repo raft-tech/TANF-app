@@ -3,9 +3,50 @@ package db
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 )
+
+func TestGoParserDoesNotWriteProductionSubmissionState(t *testing.T) {
+	_, sourceFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("could not locate Go parser source tree")
+	}
+	moduleRoot := filepath.Clean(filepath.Join(filepath.Dir(sourceFile), "..", ".."))
+	stateWrite := regexp.MustCompile(`(?is)UPDATE\s+data_files_datafile\s+SET\s+state\b|func\s+UpdateDataFileState\b`)
+
+	var violations []string
+	err := filepath.WalkDir(moduleRoot, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		source, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if stateWrite.Match(source) {
+			relativePath, relErr := filepath.Rel(moduleRoot, path)
+			if relErr != nil {
+				return relErr
+			}
+			violations = append(violations, relativePath)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("scan Go parser state writers: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Fatalf("Go parser must send production state outcomes to Python; found state writers in %v", violations)
+	}
+}
 
 func TestDataFileHelpersRejectUnsupportedTables(t *testing.T) {
 	ctx := context.Background()
@@ -15,8 +56,8 @@ func TestDataFileHelpersRejectUnsupportedTables(t *testing.T) {
 		want string
 	}{
 		{
-			name: "update datafile state",
-			err:  UpdateDataFileState(ctx, nil, "unknown_table", 42, "Parsing"),
+			name: "update shadow datafile state",
+			err:  UpdateShadowDataFileState(ctx, nil, "unknown_table", 42, "parse_started"),
 			want: `unsupported datafile table "unknown_table"`,
 		},
 		{
@@ -164,5 +205,12 @@ func TestProductionDataFileLookupUsesCanonicalClassification(t *testing.T) {
 		if !strings.Contains(selectProductionDataFile, fragment) {
 			t.Errorf("production DataFile lookup does not contain %q", fragment)
 		}
+	}
+}
+
+func TestUpdateShadowDataFileStateRejectsProductionWrites(t *testing.T) {
+	err := UpdateShadowDataFileState(context.Background(), nil, productionDataFileTable, 42, "parse_completed")
+	if err == nil || !strings.Contains(err.Error(), "owned by the Django lifecycle controller") {
+		t.Fatalf("expected production lifecycle protection, got %v", err)
 	}
 }

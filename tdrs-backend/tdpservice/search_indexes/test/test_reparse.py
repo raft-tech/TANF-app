@@ -13,6 +13,10 @@ import pytest
 
 from tdpservice.data_files.enums import ProgramCode
 from tdpservice.data_files.models import ReparseFileMeta
+from tdpservice.data_files.submission_lifecycle import (
+    prepare_datafile_for_reparse,
+    record_synthetic_import_completed,
+)
 from tdpservice.etl.models import ETLPipelineRun
 from tdpservice.etl.pipelines.sources import (
     SOURCE_DATAFILE_IDS_KEY,
@@ -165,6 +169,8 @@ def parse_files(summary, f1, f2, f3, f4):
     f2.save()
     f3.save()
     f4.save()
+    for data_file in (f1, f2, f3, f4):
+        record_synthetic_import_completed(data_file)
     return [f1.pk, f2.pk, f3.pk, f4.pk]
 
 
@@ -730,9 +736,12 @@ def test_handle_datafiles_persists_previous_summary_status(
     meta_model = ReparseMeta.objects.create(db_backup_location="s3://backup")
     delay_calls = []
 
+    record_synthetic_import_completed(big_file)
+    prepare_datafile_for_reparse(big_file)
+
     monkeypatch.setattr(
         "tdpservice.search_indexes.reparse.parser_task.parse.delay",
-        lambda file_id, reparse_id=None, event_id=None: delay_calls.append(
+        lambda file_id, reparse_id=None, parse_token=None, event_id=None: delay_calls.append(
             (file_id, reparse_id, event_id)
         ),
     )

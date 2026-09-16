@@ -186,6 +186,8 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
             {
                 "fields": (
                     "created_at",
+                    "state",
+                    "state_changed_at",
                     "parsing_state",
                     "quarter",
                     "year",
@@ -218,6 +220,8 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     )
     readonly_fields = (
         "year",
+        "state",
+        "state_changed_at",
         "parsing_state",
         "canonical_section",
         "canonical_program_type",
