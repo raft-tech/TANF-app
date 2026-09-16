@@ -1,21 +1,19 @@
-<!-- Membership mirrored from Action PR #6103 issue list; Iteration 5a8ecb5e unavailable (gh GraphQL cannot resolve project PVT_kwDOA5NZS84BgTba / missing read:project). Closed/open enriched from live GitHub issue state; movement phrases reused from Action for fair compare. -->
 # Sprint Summary: Sep 02, 2026 - Sep 15, 2026
 
 ## Overview
 
-- Closed a cluster of admin and data-file work: submission error handling and form reset, metadata-driven admin form contract, DataFile lifecycle exposure in the API, and a file-state transition log. ([#5603](https://github.com/raft-tech/TANF-app/issues/5603), [#5842](https://github.com/raft-tech/TANF-app/issues/5842), [#5973](https://github.com/raft-tech/TANF-app/issues/5973), [#5946](https://github.com/raft-tech/TANF-app/issues/5946))
-- React Admin UX exploration and IA improvements landed, closing a long-running design track. ([#5651](https://github.com/raft-tech/TANF-app/issues/5651))
-- Security and reliability items finished: admin auth isolated into a separate Keycloak realm, and stuck-submission admin email reporting scoped to the current year. ([#5986](https://github.com/raft-tech/TANF-app/issues/5986), [#5987](https://github.com/raft-tech/TANF-app/issues/5987))
-- Feedback-report download statistics development closed while related design and panel work stayed in progress. ([#6013](https://github.com/raft-tech/TANF-app/issues/6013), [#6011](https://github.com/raft-tech/TANF-app/issues/6011), [#6012](https://github.com/raft-tech/TANF-app/issues/6012))
-- Backend and auth tracks continued with FTANF research, Go Parser canary routing, and Keycloak canary rollout still open; Keycloak GHCR/CI deployments moved to blocked. ([#5683](https://github.com/raft-tech/TANF-app/issues/5683), [#5737](https://github.com/raft-tech/TANF-app/issues/5737), [#5757](https://github.com/raft-tech/TANF-app/issues/5757), [#5980](https://github.com/raft-tech/TANF-app/issues/5980))
-- Ops moved several items forward (file-handle closure, request-param mismatch) while legacy DataFile enum cleanup returned toward the sprint backlog. ([#2850](https://github.com/raft-tech/TANF-app/issues/2850), [#6051](https://github.com/raft-tech/TANF-app/issues/6051), [#5984](https://github.com/raft-tech/TANF-app/issues/5984))
+- Closed a cluster of (Re)Parse and admin data-path items: file-state transition logging, DataFile lifecycle exposure in the API, and narrowed stuck-submission admin email reporting. ([#5946](https://github.com/raft-tech/TANF-app/issues/5946), [#5973](https://github.com/raft-tech/TANF-app/issues/5973), [#5987](https://github.com/raft-tech/TANF-app/issues/5987))
+- React Admin advanced with UX/IA exploration finished and the metadata-driven admin form contract closed; upload error messaging and form reset also landed. ([#5651](https://github.com/raft-tech/TANF-app/issues/5651), [#5842](https://github.com/raft-tech/TANF-app/issues/5842), [#5603](https://github.com/raft-tech/TANF-app/issues/5603))
+- Keycloak work split outcomes: admin auth isolation into a separate realm closed, while GHCR robot accounts and CI/CD deployments moved to Blocked. ([#5986](https://github.com/raft-tech/TANF-app/issues/5986), [#5980](https://github.com/raft-tech/TANF-app/issues/5980))
+- Feedback Report Download Statistics development closed; related design and panel work remained in progress. ([#6013](https://github.com/raft-tech/TANF-app/issues/6013), [#6002](https://github.com/raft-tech/TANF-app/issues/6002), [#6011](https://github.com/raft-tech/TANF-app/issues/6011), [#6012](https://github.com/raft-tech/TANF-app/issues/6012))
+- Operations moved file-handle closure into active development and advanced request-param mismatch into Raft (Dev) Review; legacy DataFile enum cleanup returned to the sprint backlog. ([#2850](https://github.com/raft-tech/TANF-app/issues/2850), [#6051](https://github.com/raft-tech/TANF-app/issues/6051), [#5984](https://github.com/raft-tech/TANF-app/issues/5984))
 
 ---
 
 ⚪️ **Total Issues:** 25  
-✅ **Closed:** 9  
+✅ **Closed:** 8  
 ➡️ **Moved:** 3  
-⬛️ **Unchanged:** 12  
+⬛️ **Unchanged:** 13  
 🛑 **Blocked:** 1  
 
 ---
@@ -121,5 +119,6 @@ _Remained in **In Progress**_
 
 ## Issues without Parent
 
-- ✅ [As a data prepper, I want to know what my new task flow looks like (#25)](https://github.com/raft-tech/TANF-app/issues/25)  
-_**Closed**_ - _Moved from **No Pipeline Info**_  
+- ⬛️ [CRM for STT info and behavior (#25)]()  
+_Remained in **No Pipeline Info**_  
+
