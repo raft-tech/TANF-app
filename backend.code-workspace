@@ -21,13 +21,13 @@
       "Pipfile.lock": "json",
       "docker-compose*.yml": "yaml"
     },
-    "python.linting.enabled": true,
-    "python.linting.flake8Enabled": true,
-    "python.testing.pytestEnabled": true,
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestArgs": [
-      "tdpservice/test"
-    ],
+    // "python.linting.enabled": true,
+    // "python.linting.flake8Enabled": true,
+    // "python.testing.pytestEnabled": true,
+    // "python.testing.unittestEnabled": false,
+    // "python.testing.pytestArgs": [
+    //   "tdpservice/test"
+    // ],
     "files.exclude": {
       "**/node_modules": true
     }
