@@ -7,6 +7,7 @@ from django.core import mail
 import pytest
 
 from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.test.factories import canonical_section_for
 from tdpservice.email.helpers.data_file import (
     get_pia_quarter_label,
     get_tanf_aggregates_context_count,
@@ -23,6 +24,8 @@ def test_send_data_submitted_email_no_email_for_pending(user, stt):
     df = DataFile(
         user=user,
         section=DataFile.Section.ACTIVE_CASE_DATA,
+        section_ref=canonical_section_for("TAN", DataFile.Section.ACTIVE_CASE_DATA),
+        program_type=DataFile.ProgramType.TANF,
         quarter="Q1",
         year=2021,
         stt=stt,
@@ -336,6 +339,7 @@ def test_send_data_submitted_email(
     df = DataFile(
         user=user,
         section=section,
+        section_ref=canonical_section_for(program_type, section),
         program_type=program_type,
         quarter="Q1",
         year=2021,
@@ -430,6 +434,10 @@ def test_send_data_submitted_email_pia(
     df = DataFile(
         user=user,
         section=DataFile.Section.ACTIVE_CASE_DATA,
+        section_ref=canonical_section_for(
+            DataFile.ProgramType.TANF,
+            DataFile.Section.ACTIVE_CASE_DATA,
+        ),
         program_type=DataFile.ProgramType.TANF,
         quarter=DataFile.Quarter.Q1,
         year=2021,
@@ -584,6 +592,10 @@ def test_send_stuck_file_email(user, stt):
     df1 = DataFile(
         user=user,
         section=DataFile.Section.ACTIVE_CASE_DATA,
+        section_ref=canonical_section_for(
+            DataFile.ProgramType.TANF,
+            DataFile.Section.ACTIVE_CASE_DATA,
+        ),
         program_type=DataFile.ProgramType.TANF,
         quarter="Q1",
         year=2025,
@@ -592,6 +604,10 @@ def test_send_stuck_file_email(user, stt):
     df2 = DataFile(
         user=user,
         section=DataFile.Section.CLOSED_CASE_DATA,
+        section_ref=canonical_section_for(
+            DataFile.ProgramType.TANF,
+            DataFile.Section.CLOSED_CASE_DATA,
+        ),
         program_type=DataFile.ProgramType.TANF,
         quarter="Q1",
         year=2025,

@@ -3,6 +3,36 @@
 from django.db import models
 
 
+class ProgramCode(models.TextChoices):
+    """Canonical Program codes used outside the transitional DataFile schema."""
+
+    TANF = "TAN"
+    SSP = "SSP"
+    TRIBAL = "TRIBAL"
+    FRA = "FRA"
+
+
+class SectionName(models.TextChoices):
+    """Canonical Section names used by application and parser contracts."""
+
+    ACTIVE_CASE_DATA = "Active Case Data"
+    CLOSED_CASE_DATA = "Closed Case Data"
+    AGGREGATE_DATA = "Aggregate Data"
+    STRATUM_DATA = "Stratum Data"
+    FRA_WORK_OUTCOME_TANF_EXITERS = "Work Outcomes of TANF Exiters"
+    FRA_SECONDRY_SCHOOL_ATTAINMENT = "Secondary School Attainment"
+    FRA_SUPPLEMENT_WORK_OUTCOMES = "Supplemental Work Outcomes"
+
+    @classmethod
+    def is_fra(cls, section: str) -> bool:
+        """Return whether a section belongs to FRA."""
+        return section in {
+            cls.FRA_WORK_OUTCOME_TANF_EXITERS,
+            cls.FRA_SECONDRY_SCHOOL_ATTAINMENT,
+            cls.FRA_SUPPLEMENT_WORK_OUTCOMES,
+        }
+
+
 class SubmissionState(models.TextChoices):
     """Lifecycle states for a submitted data file."""
 

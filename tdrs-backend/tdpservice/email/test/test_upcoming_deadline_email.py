@@ -7,7 +7,7 @@ from django.core import mail
 
 import pytest
 
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.models import DataFile, Section
 from tdpservice.email.tasks import send_data_submission_reminder
 from tdpservice.stts.models import STT
 from tdpservice.users.models import User
@@ -36,17 +36,18 @@ def _create_stt_with_analyst(name, filenames, ssp=False, stt_type=STT.EntityType
     return stt, data_analyst
 
 
-def _submit_file(stt, user, program_type, section, fiscal_quarter):
+def _submit_file(
+    stt, user, program_type, section, fiscal_quarter, is_program_audit=False
+):
     """Create a DataFile for the current fiscal year and given quarter."""
     return DataFile.create_new_version(
         {
-            "section": section,
-            "program_type": program_type,
+            "section_ref": Section.from_legacy_values(program_type, section),
             "quarter": fiscal_quarter,
             "year": datetime.now().year,
             "stt": stt,
             "user": user,
-            "is_program_audit": False,
+            "is_program_audit": is_program_audit,
         }
     )
 
@@ -204,6 +205,27 @@ def test_tribal_submission_does_not_satisfy_tanf_requirement():
     send_data_submission_reminder("February 14", "Oct - Dec", "Q1")
 
     # Tribal files don't satisfy TANF requirement → reminder sent
+    assert len(mail.outbox) == 1
+
+
+@pytest.mark.django_db
+def test_program_audit_submission_does_not_satisfy_tanf_requirement():
+    """A PIA file does not satisfy an ordinary TANF submission requirement."""
+    stt, analyst = _create_stt_with_analyst(
+        "TestState",
+        {"Active Case Data": "file1.txt"},
+    )
+    _submit_file(
+        stt,
+        analyst,
+        "TAN",
+        "Active Case Data",
+        "Q1",
+        is_program_audit=True,
+    )
+
+    send_data_submission_reminder("February 14", "Oct - Dec", "Q1")
+
     assert len(mail.outbox) == 1
 
 

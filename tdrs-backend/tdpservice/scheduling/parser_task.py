@@ -16,7 +16,7 @@ from django.utils import timezone
 from celery import current_app, shared_task
 
 from tdpservice.core.utils import log
-from tdpservice.data_files.enums import SubmissionState
+from tdpservice.data_files.enums import ProgramCode, SubmissionState
 from tdpservice.data_files.error_reports import ErrorReportFactory
 from tdpservice.data_files.models import DataFile, ReparseFileMeta, ShadowDataFile
 from tdpservice.data_files.submission_lifecycle import (
@@ -224,7 +224,7 @@ def update_dfs(
     dfs.status = _get_summary_status(dfs, data_file, parser_error_model)
 
     program_type, section = get_datafile_classification(data_file)
-    if program_type == DataFile.ProgramType.FRA:
+    if program_type == ProgramCode.FRA:
         dfs.case_aggregates = fra_total_errors(
             data_file, parser_error_model=parser_error_model
         )
@@ -302,7 +302,7 @@ def _notify_data_analysts(data_file, dfs, file_meta=None, reparse_id=None):
     )
 
     program_type, _ = get_datafile_classification(data_file)
-    if program_type == DataFile.ProgramType.FRA:
+    if program_type == ProgramCode.FRA:
         qs = qs.filter(user_permissions__codename="has_fra_access")
 
     recipients = qs.values_list("username", flat=True).distinct()

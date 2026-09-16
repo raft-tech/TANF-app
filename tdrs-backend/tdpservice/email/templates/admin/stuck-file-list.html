@@ -26,7 +26,7 @@
     {% for file in files %}
     <tr>
       <td style="padding: 4px; border-style: solid; border-color: #000000; border-width: 1px;">{{ file.stt }}</td>
-      <td style="padding: 4px; border-style: solid; border-color: #000000; border-width: 1px;">{{ file.section }}</td>
+      <td style="padding: 4px; border-style: solid; border-color: #000000; border-width: 1px;">{{ file.section_ref.name }}</td>
       <td style="padding: 4px; border-style: solid; border-color: #000000; border-width: 1px;">{{ file.fiscal_year }}</td>
       <td style="padding: 4px; border-style: solid; border-color: #000000; border-width: 1px;">{{ file.created_at }} {{ file.created_time_ago }}</td>
       <td style="padding: 4px; border-style: solid; border-color: #000000; border-width: 1px;">

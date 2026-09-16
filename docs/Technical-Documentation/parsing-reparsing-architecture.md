@@ -2,7 +2,7 @@
 
 - **Status:** Internal reference documentation
 - **Scope:** TDP data file upload, parsing, validation, error reporting, and reparsing
-- **Last updated:** 2026-07-24
+- **Last updated:** 2026-09-15
 
 ---
 
@@ -32,14 +32,15 @@ For implementation details, use the source files referenced in [Where to Look](#
 
 Canonical program and section metadata is represented by `Program` and `Section`. `DataFile.section_ref` is a nullable foreign key to the canonical `Section`, and `DataFile.program` is a derived property that returns `section_ref.program` rather than a separately stored foreign key. Historical files are backfilled from their legacy program and section values, and normal new writes populate `section_ref` alongside those values.
 
-This is an expand-phase schema transition:
+The canonical relationship is authoritative throughout runtime behavior:
 
-- `DataFile.program_type` and the string `DataFile.section` remain stored and continue to drive parser selection, upload compatibility, filtering, uniqueness, and storage behavior.
-- `section_ref` remains nullable during the transition so deployment does not require an immediate coordinated rewrite of every reader.
-- A separate read-migration phase will move runtime consumers to `section_ref` and the derived `program`.
-- Only after those reads have shipped and canonical data has been verified can the contract phase remove the legacy fields, make the canonical relation required, and rename `section_ref` to `section`.
+- Production parser selection, paths, filtering, background jobs, ETL, and observability read `section_ref` and its related `Program`.
+- The upload API continues to accept and return string `section` and `program_type` values, but resolves and projects those values through the canonical relationship.
+- `ShadowDataFile` intentionally retains scalar `program_type` and `section` metadata for parser shadow output. Shadow rows receive those values as a projection of the production canonical relationship.
+- The Go parser joins production DataFiles through `section_ref_id` and only writes scalar classification metadata to shadow rows.
+- The coordinated contract release will validate the canonical data, remove the production legacy scalar columns and nested enums, require the relationship, and rename the Django field from `section_ref` to `section` while preserving its physical database column for parser compatibility.
 
-Until contract is complete, code must keep the canonical and legacy representations consistent rather than assuming either representation can be removed.
+The transitional scalar production columns remain dual-written only until that coordinated contract release. They are not runtime read sources and are not an independently deployable compatibility stage.
 
 Examples of lifecycle state:
 
@@ -174,14 +175,14 @@ The parser family determines how the row stream is interpreted, which schemas ar
 
 The parse task selects the parser family in two short steps:
 
-1. **Family from `program_type` and `is_program_audit`.** `ParserFactory.get_class(program_type, is_program_audit)` returns:
+1. **Family from canonical Program code and `is_program_audit`.** The parse task projects `section_ref.program.code` into `ParserFactory.get_class(program_type, is_program_audit)`, which returns:
    - `TanfDataReportParser` for `TANF`, `SSP`, or `TRIBAL` when the file is not a program audit submission;
    - `ProgramAuditParser` for `TANF`/`SSP`/`TRIBAL` when `is_program_audit` is true;
    - `FRAParser` for `FRA`.
 
-   Both `program_type` and `is_program_audit` are stored on the `DataFile` at upload time, so this decision does not depend on parsing the file.
+   `is_program_audit` remains an independent DataFile flag because PIA submissions use an underlying TANF or Tribal TANF Section. The Program code comes from the canonical relationship, so this decision does not depend on parsing the file or reading a legacy scalar.
 
-2. **Schema set from `program_type` + `section`.** Once the parser is constructed, it loads the appropriate schemas via `ProgramManager.get_schemas(program_type, section, is_program_audit)`. The mapping is:
+2. **Schema set from canonical Program and Section values.** Once the parser is constructed, it passes the projected `section_ref.program.code` and `section_ref.name` strings to `ProgramManager.get_schemas(program_type, section, is_program_audit)`. The mapping is:
 
    | Program | Section | Record types |
    |---|---|---|
@@ -193,11 +194,11 @@ The parse task selects the parser family in two short steps:
    | Tribal TANF | Active / Closed / Aggregate / Stratum | mirrors TANF (`T1`–`T7`) |
    | FRA | Work Outcome / TANF Exiters | `TE1` |
 
-   For TANF-family files, the parser also reads the file's `HEADER` row before loading record schemas; the header determines the final program type passed to the schema manager (for example, when the header has a non-empty `tribe_code`, the parser uses `DataFile.ProgramType.TRIBAL`) and whether record fields are encrypted.
+   For TANF-family files, the parser also reads the file's `HEADER` row before loading record schemas; the header determines the final parser-protocol Program code passed to the schema manager (for example, a non-empty `tribe_code` selects `TRIBAL`) and whether record fields are encrypted.
 
 Program-audit overrides only exist for Active Case Data (`T1`/`T2`/`T3`); other sections use the standard TANF schemas even when `is_program_audit` is true.
 
-FRA's two other planned sections (Secondary School Attainment, Supplement Work Outcomes) are recognized by the section enum but currently have no schemas, so the schema manager returns an empty map for them.
+FRA's two other planned canonical Sections (Secondary School Attainment and Supplemental Work Outcomes) currently have no schemas, so the schema manager returns an empty map for them.
 
 ---
 

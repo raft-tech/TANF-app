@@ -20,7 +20,7 @@ from tdpservice.common.fields import S3VersionedFileField
 from tdpservice.common.models import FileRecord
 from tdpservice.common.shadow_models import create_shadow_model
 from tdpservice.core.models import BaseLog
-from tdpservice.data_files.enums import SubmissionState
+from tdpservice.data_files.enums import ProgramCode, SectionName, SubmissionState
 from tdpservice.data_files.util import (
     create_legacy_s3_log_file_path,
     create_s3_log_file_path,
@@ -183,9 +183,9 @@ class DataFile(FileRecord):
     def get_fra_section_list():
         """Return FRA section list."""
         return [
-            DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
-            DataFile.Section.FRA_SECONDRY_SCHOOL_ATTAINMENT,
-            DataFile.Section.FRA_SUPPLEMENT_WORK_OUTCOMES,
+            SectionName.FRA_WORK_OUTCOME_TANF_EXITERS,
+            SectionName.FRA_SECONDRY_SCHOOL_ATTAINMENT,
+            SectionName.FRA_SUPPLEMENT_WORK_OUTCOMES,
         ]
 
     class Quarter(models.TextChoices):
@@ -288,7 +288,7 @@ class DataFile(FileRecord):
 
         program_type = (
             program_code.title()
-            if program_code == DataFile.ProgramType.TRIBAL
+            if program_code == ProgramCode.TRIBAL
             else program_code
         )
         key = f"{program_type} {section_name}"
@@ -431,8 +431,8 @@ class DataFile(FileRecord):
                 ) from error
 
         if self.is_program_audit and self.section_ref.program.code not in {
-            DataFile.ProgramType.TANF,
-            DataFile.ProgramType.TRIBAL,
+            ProgramCode.TANF,
+            ProgramCode.TRIBAL,
         }:
             raise ValidationError(
                 {"is_program_audit": "Program audits require a TANF or Tribal TANF section."}

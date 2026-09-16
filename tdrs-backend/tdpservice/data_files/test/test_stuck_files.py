@@ -8,7 +8,9 @@ from django.utils import timezone
 
 import pytest
 
+from tdpservice.data_files.enums import SectionName
 from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.test.factories import canonical_section_for
 from tdpservice.data_files.tasks import get_stuck_files
 from tdpservice.email.helpers.data_file import send_stuck_file_email
 from tdpservice.parsers.models import DataFileSummary
@@ -27,7 +29,7 @@ def make_datafile(stt_user, stt, version):
     """Create a test data file with default params."""
     datafile = ParsingFileFactory.create(
         quarter=DataFile.Quarter.Q1,
-        section=DataFile.Section.ACTIVE_CASE_DATA,
+        section_ref=canonical_section_for("TAN", SectionName.ACTIVE_CASE_DATA),
         year=2023,
         version=version,
         user=stt_user,

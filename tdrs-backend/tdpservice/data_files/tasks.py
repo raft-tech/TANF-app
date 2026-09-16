@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 def get_stuck_files():
     """Return a queryset containing files in a 'stuck' state."""
     stuck_files = (
-        DataFile.objects.annotate(reparse_count=Count("reparses"))
+        DataFile.objects.select_related("stt", "section_ref__program")
+        .annotate(reparse_count=Count("reparses"))
         .filter(
             # non-reparse submissions over an hour old
             Q(

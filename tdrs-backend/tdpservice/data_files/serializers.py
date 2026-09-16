@@ -4,6 +4,7 @@ import logging
 
 from rest_framework import serializers
 
+from tdpservice.data_files.enums import ProgramCode
 from tdpservice.data_files.errors import ImmutabilityError
 from tdpservice.data_files.models import DataFile, ReparseFileMeta, Section
 from tdpservice.data_files.validators import validate_file_extension
@@ -113,18 +114,18 @@ class DataFileSerializer(serializers.ModelSerializer):
 
         if section and "ssp" in data and "stt" in data:
             if data["ssp"]:
-                program_type = DataFile.ProgramType.SSP
+                program_type = ProgramCode.SSP
             elif data["stt"].type == "tribe":
-                program_type = DataFile.ProgramType.TRIBAL
+                program_type = ProgramCode.TRIBAL
             else:
                 is_fra = Section.objects.filter(
-                    program__code=DataFile.ProgramType.FRA,
+                    program__code=ProgramCode.FRA,
                     name=section,
                 ).exists()
                 program_type = (
-                    DataFile.ProgramType.FRA
+                    ProgramCode.FRA
                     if is_fra
-                    else DataFile.ProgramType.TANF
+                    else ProgramCode.TANF
                 )
 
             try:
@@ -139,8 +140,8 @@ class DataFileSerializer(serializers.ModelSerializer):
                 ) from error
 
             if data.get("is_program_audit") and program_type not in {
-                DataFile.ProgramType.TANF,
-                DataFile.ProgramType.TRIBAL,
+                ProgramCode.TANF,
+                ProgramCode.TRIBAL,
             }:
                 raise serializers.ValidationError(
                     {
@@ -152,7 +153,7 @@ class DataFileSerializer(serializers.ModelSerializer):
 
             user = self.context.get("user")
             if (
-                program_type == DataFile.ProgramType.FRA
+                program_type == ProgramCode.FRA
                 and not user.has_fra_access
                 and not user.is_ofa_sys_admin
             ):
@@ -161,7 +162,7 @@ class DataFileSerializer(serializers.ModelSerializer):
             if file:
                 validate_file_extension(
                     file.name,
-                    is_fra=program_type == DataFile.ProgramType.FRA,
+                    is_fra=program_type == ProgramCode.FRA,
                 )
 
             data["program_type"] = program_type

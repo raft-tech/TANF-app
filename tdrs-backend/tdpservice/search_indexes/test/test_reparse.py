@@ -11,7 +11,8 @@ from django.utils import timezone
 
 import pytest
 
-from tdpservice.data_files.models import DataFile, ReparseFileMeta
+from tdpservice.data_files.enums import ProgramCode
+from tdpservice.data_files.models import ReparseFileMeta
 from tdpservice.etl.models import ETLPipelineRun
 from tdpservice.etl.pipelines.sources import (
     SOURCE_DATAFILE_IDS_KEY,
@@ -80,7 +81,7 @@ def small_ssp_section1_datafile(stt_user, stt):
         stt_user,
         stt,
         "Active Case Data",
-        DataFile.ProgramType.SSP,
+        ProgramCode.SSP,
     )
     small_ssp_section1_datafile.year = 2024
     small_ssp_section1_datafile.quarter = "Q1"
@@ -96,7 +97,7 @@ def tribal_section_1_file(stt_user, stt):
         stt_user,
         stt,
         "Active Case Data",
-        DataFile.ProgramType.TRIBAL,
+        ProgramCode.TRIBAL,
     )
     tribal_section_1_file.year = 2022
     tribal_section_1_file.quarter = "Q1"
@@ -126,25 +127,37 @@ def parse_files(summary, f1, f2, f3, f4):
     """Parse all files."""
     summary.datafile = f1
     parser = ParserFactory.get_instance(
-        datafile=f1, dfs=summary, section=f1.section, program_type=f1.program_type
+        datafile=f1,
+        dfs=summary,
+        section=f1.section_ref.name,
+        program_type=f1.section_ref.program.code,
     )
     parser.parse_and_validate()
 
     summary.datafile = f2
     parser = ParserFactory.get_instance(
-        datafile=f2, dfs=summary, section=f2.section, program_type=f2.program_type
+        datafile=f2,
+        dfs=summary,
+        section=f2.section_ref.name,
+        program_type=f2.section_ref.program.code,
     )
     parser.parse_and_validate()
 
     summary.datafile = f3
     parser = ParserFactory.get_instance(
-        datafile=f3, dfs=summary, section=f3.section, program_type=f3.program_type
+        datafile=f3,
+        dfs=summary,
+        section=f3.section_ref.name,
+        program_type=f3.section_ref.program.code,
     )
     parser.parse_and_validate()
 
     summary.datafile = f4
     parser = ParserFactory.get_instance(
-        datafile=f4, dfs=summary, section=f4.section, program_type=f4.program_type
+        datafile=f4,
+        dfs=summary,
+        section=f4.section_ref.name,
+        program_type=f4.section_ref.program.code,
     )
     parser.parse_and_validate()
 

@@ -6,7 +6,10 @@ from unittest.mock import patch
 import pytest
 
 from tdpservice.data_files.models import DataFile
-from tdpservice.data_files.test.factories import DataFileFactory
+from tdpservice.data_files.test.factories import (
+    DataFileFactory,
+    canonical_section_for,
+)
 from tdpservice.scheduling.datafile_retention_tasks import remove_all_old_versions
 from tdpservice.search_indexes.models.fra import TANF_Exiter1
 from tdpservice.search_indexes.models.ssp import SSP_M1
@@ -171,6 +174,54 @@ class TestRemoveAllOldVersions:
         assert TANF_T1.objects.filter(id=tanf_record.id).exists()
         assert SSP_M1.objects.filter(id=ssp_record.id).exists()
         assert Tribal_TANF_T1.objects.filter(id=tribal_record.id).exists()
+
+    def test_standard_and_program_audit_versions_are_retained_separately(
+        self, stt, user
+    ):
+        """Retention keeps the newest standard and PIA versions independently."""
+        current_year = datetime.now().year
+        section = canonical_section_for("TAN", "Active Case Data")
+        standard_v1 = DataFileFactory.create(
+            year=current_year,
+            section_ref=section,
+            stt=stt,
+            user=user,
+            version=1,
+        )
+        standard_v2 = DataFileFactory.create(
+            year=current_year,
+            section_ref=section,
+            stt=stt,
+            user=user,
+            version=2,
+        )
+        audit_v1 = DataFileFactory.create(
+            year=current_year,
+            section_ref=section,
+            stt=stt,
+            user=user,
+            version=1,
+            is_program_audit=True,
+        )
+        audit_v3 = DataFileFactory.create(
+            year=current_year,
+            section_ref=section,
+            stt=stt,
+            user=user,
+            version=3,
+            is_program_audit=True,
+        )
+        records = {
+            datafile.id: create_tanf_t1_record(datafile)
+            for datafile in (standard_v1, standard_v2, audit_v1, audit_v3)
+        }
+
+        remove_all_old_versions()
+
+        assert not TANF_T1.objects.filter(id=records[standard_v1.id].id).exists()
+        assert TANF_T1.objects.filter(id=records[standard_v2.id].id).exists()
+        assert not TANF_T1.objects.filter(id=records[audit_v1.id].id).exists()
+        assert TANF_T1.objects.filter(id=records[audit_v3.id].id).exists()
 
     def test_mixed_scenario_program_types_with_versions(self, stt, user):
         """Test a complex scenario with different program types AND multiple versions.

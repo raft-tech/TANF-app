@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 
+from tdpservice.data_files.enums import ProgramCode, SectionName
 from tdpservice.data_files.models import DataFile
 from tdpservice.email.email import automated_email, log
 from tdpservice.email.email_enums import AdminEmail, FraDataFileEmail, TanfDataFileEmail
@@ -14,26 +15,26 @@ from tdpservice.users.models import User
 def get_friendly_program_type(program_type):
     """Return the human-readable name for a given program type."""
     match program_type:
-        case DataFile.ProgramType.TANF:
+        case ProgramCode.TANF:
             return "TANF"
-        case DataFile.ProgramType.SSP:
+        case ProgramCode.SSP:
             return "SSP"
-        case DataFile.ProgramType.TRIBAL:
+        case ProgramCode.TRIBAL:
             return "Tribal TANF"
-        case DataFile.ProgramType.FRA:
+        case ProgramCode.FRA:
             return "FRA"
 
 
 def get_program_section_str(program_type, section):
     """Return the human-readable section name, including program type."""
     match program_type:
-        case DataFile.ProgramType.TANF:
+        case ProgramCode.TANF:
             return section
-        case DataFile.ProgramType.SSP:
+        case ProgramCode.SSP:
             return f"SSP {section}"
-        case DataFile.ProgramType.TRIBAL:
+        case ProgramCode.TRIBAL:
             return f"Tribal {section}"
-        case DataFile.ProgramType.FRA:
+        case ProgramCode.FRA:
             return section
 
 
@@ -111,8 +112,9 @@ def get_base_context(datafile_summary):
     """Build the context object shared by all submission emails."""
     datafile = datafile_summary.datafile
 
-    prog_type = datafile.program_type
-    section_name = get_program_section_str(prog_type, datafile.section)
+    prog_type = datafile.section_ref.program.code
+    canonical_section_name = datafile.section_ref.name
+    section_name = get_program_section_str(prog_type, canonical_section_name)
     is_program_audit = datafile.is_program_audit
 
     file_type = (
@@ -130,9 +132,9 @@ def get_base_context(datafile_summary):
     fiscal_year = datafile.fiscal_year
     submitted_by = datafile.submitted_by
 
-    is_aggregate = datafile.section in (
-        DataFile.Section.AGGREGATE_DATA,
-        DataFile.Section.STRATUM_DATA,
+    is_aggregate = canonical_section_name in (
+        SectionName.AGGREGATE_DATA,
+        SectionName.STRATUM_DATA,
     )
 
     context = {
@@ -219,7 +221,7 @@ def get_tanf_fra_email_subject(status, section_name, is_reprocessed):
 def send_data_submitted_email(datafile_summary, recipients, is_reprocessed=False):
     """Send an email to a user when their account approval status is updated."""
     datafile = datafile_summary.datafile
-    prog_type = datafile.program_type
+    prog_type = datafile.section_ref.program.code
 
     logger_context = {
         "user_id": datafile.user.id,
@@ -266,9 +268,9 @@ def send_data_submitted_email(datafile_summary, recipients, is_reprocessed=False
 
         match prog_type:
             case (
-                DataFile.ProgramType.TANF
-                | DataFile.ProgramType.SSP
-                | DataFile.ProgramType.TRIBAL
+                ProgramCode.TANF
+                | ProgramCode.SSP
+                | ProgramCode.TRIBAL
             ):
                 if is_aggregate:
                     context.update(
@@ -280,7 +282,7 @@ def send_data_submitted_email(datafile_summary, recipients, is_reprocessed=False
                 template_options = get_tanf_template_options(is_reprocessed)
                 template_path = template_options[datafile_summary.status]
 
-            case DataFile.ProgramType.FRA:
+            case ProgramCode.FRA:
                 context.update(get_fra_aggregates_context_count(datafile_summary))
 
                 template_options = get_fra_template_options(is_reprocessed)

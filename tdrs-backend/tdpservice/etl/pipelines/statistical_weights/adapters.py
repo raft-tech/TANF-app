@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.enums import ProgramCode
 from tdpservice.search_indexes.models.ssp import SSP_M1, SSP_M6, SSP_M7
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T6, TANF_T7
 from tdpservice.search_indexes.models.tribal import (
@@ -50,8 +50,8 @@ class ProgramAdapter:
 
 
 PROGRAM_ADAPTERS = {
-    DataFile.ProgramType.TANF: ProgramAdapter(
-        program_type=DataFile.ProgramType.TANF,
+    ProgramCode.TANF: ProgramAdapter(
+        program_type=ProgramCode.TANF,
         active_model=TANF_T1,
         aggregate_model=TANF_T6,
         stratum_model=TANF_T7,
@@ -60,8 +60,8 @@ PROGRAM_ADAPTERS = {
         aggregate_label="T6",
         stratum_label="T7",
     ),
-    DataFile.ProgramType.SSP: ProgramAdapter(
-        program_type=DataFile.ProgramType.SSP,
+    ProgramCode.SSP: ProgramAdapter(
+        program_type=ProgramCode.SSP,
         active_model=SSP_M1,
         aggregate_model=SSP_M6,
         stratum_model=SSP_M7,
@@ -70,8 +70,8 @@ PROGRAM_ADAPTERS = {
         aggregate_label="M6",
         stratum_label="M7",
     ),
-    DataFile.ProgramType.TRIBAL: ProgramAdapter(
-        program_type=DataFile.ProgramType.TRIBAL,
+    ProgramCode.TRIBAL: ProgramAdapter(
+        program_type=ProgramCode.TRIBAL,
         active_model=Tribal_TANF_T1,
         aggregate_model=Tribal_TANF_T6,
         stratum_model=Tribal_TANF_T7,
@@ -84,7 +84,7 @@ PROGRAM_ADAPTERS = {
 
 
 def adapter_for_program(program_type: str) -> ProgramAdapter:
-    """Return the configured adapter for an exact DataFile program type."""
+    """Return the configured adapter for an exact canonical Program code."""
     try:
         return PROGRAM_ADAPTERS[program_type]
     except KeyError as exc:

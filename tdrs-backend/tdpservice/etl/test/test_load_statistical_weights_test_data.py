@@ -91,9 +91,9 @@ def test_load_statistical_weights_test_data_creates_datafiles_and_rows(tmp_path,
         DataFile.ProgramType.TANF,
     )
     assert set(source_ids[PIPELINE.source_keys["active"]]) == set(
-        DataFile.objects.filter(section=DataFile.Section.ACTIVE_CASE_DATA).values_list(
-            "id", flat=True
-        )
+        DataFile.objects.filter(
+            section_ref__name=DataFile.Section.ACTIVE_CASE_DATA
+        ).values_list("id", flat=True)
     )
     assert PIPELINE.nodes.extract_active_family_counts.extract_rows(
         source_ids[PIPELINE.source_keys["active"]],

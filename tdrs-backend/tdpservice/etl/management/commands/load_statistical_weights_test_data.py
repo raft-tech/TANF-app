@@ -14,8 +14,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import models
 from django.utils.text import slugify
 
-from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.enums import ProgramCode, SectionName, SubmissionState
+from tdpservice.data_files.models import DataFile, Section
 from tdpservice.data_files.submission_lifecycle import force_transition_datafile
 from tdpservice.search_indexes.models.tanf import TANF_T1, TANF_T6, TANF_T7
 from tdpservice.stts.models import STT
@@ -44,21 +44,21 @@ CSV_SPECS = (
         patterns=("TANF_T1_*.csv.xz", "TANF_T1_*.csv.gz", "TANF_T1_*.csv"),
         record_type="T1",
         model=TANF_T1,
-        section=DataFile.Section.ACTIVE_CASE_DATA,
+        section=SectionName.ACTIVE_CASE_DATA,
     ),
     CsvSpec(
         key="t6",
         patterns=("TANF_T6_*.csv.xz", "TANF_T6_*.csv.gz", "TANF_T6_*.csv"),
         record_type="T6",
         model=TANF_T6,
-        section=DataFile.Section.AGGREGATE_DATA,
+        section=SectionName.AGGREGATE_DATA,
     ),
     CsvSpec(
         key="t7",
         patterns=("TANF_T7_*.csv.xz", "TANF_T7_*.csv.gz", "TANF_T7_*.csv"),
         record_type="T7",
         model=TANF_T7,
-        section=DataFile.Section.STRATUM_DATA,
+        section=SectionName.STRATUM_DATA,
     ),
 )
 
@@ -166,7 +166,7 @@ class Command(BaseCommand):
         """Return synthetic DataFiles created by this importer."""
         return DataFile.objects.filter(
             original_filename__startswith=IMPORT_PREFIX,
-            program_type=DataFile.ProgramType.TANF,
+            section_ref__program__code=ProgramCode.TANF,
             year=self.fiscal_year,
             version=self.version,
         )
@@ -341,9 +341,12 @@ class Command(BaseCommand):
                 f"No STT with stt_code={stt_code} exists for {spec.record_type}."
             )
 
+        section_ref = Section.objects.get(
+            program__code=ProgramCode.TANF,
+            name=spec.section,
+        )
         datafile, _created = DataFile.objects.get_or_create(
-            program_type=DataFile.ProgramType.TANF,
-            section=spec.section,
+            section_ref=section_ref,
             version=self.version,
             quarter=quarter,
             year=self.fiscal_year,

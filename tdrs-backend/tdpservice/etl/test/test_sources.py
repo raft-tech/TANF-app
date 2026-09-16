@@ -4,7 +4,7 @@ from django.db import transaction
 
 import pytest
 
-from tdpservice.data_files.enums import SubmissionState
+from tdpservice.data_files.enums import ProgramCode, SectionName, SubmissionState
 from tdpservice.data_files.models import DataFile, ReparseFileMeta
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.etl.models import ETLPipelineRun
@@ -24,8 +24,8 @@ def _datafile(stt, user, version):
     return DataFileFactory.create(
         stt=stt,
         user=user,
-        section=DataFile.Section.ACTIVE_CASE_DATA,
-        program_type=DataFile.ProgramType.TANF,
+        section=SectionName.ACTIVE_CASE_DATA,
+        program_type=ProgramCode.TANF,
         quarter=DataFile.Quarter.Q1,
         year=FISCAL_YEAR,
         version=version,
@@ -36,7 +36,7 @@ def _datafile(stt, user, version):
 def _pipeline_run():
     """Create a statistical weights pipeline run for snapshot tests."""
     return PipelineRunFactory.for_pipeline_key("statistical_weights").create(
-        parameters={"fiscal_year": FISCAL_YEAR, "program": DataFile.ProgramType.TANF},
+        parameters={"fiscal_year": FISCAL_YEAR, "program": ProgramCode.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 
@@ -49,8 +49,8 @@ def test_datafile_source_snapshotter_reuses_existing_snapshot(stt, user):
     pipeline_run = _pipeline_run()
     source = DataFileSource(
         key="active",
-        program_type=DataFile.ProgramType.TANF,
-        section=DataFile.Section.ACTIVE_CASE_DATA,
+        program_type=ProgramCode.TANF,
+        section=SectionName.ACTIVE_CASE_DATA,
     )
     snapshotter = DataFileSourceSnapshot()
 
@@ -75,8 +75,8 @@ def test_datafile_source_snapshotter_rejects_duplicate_source_keys(stt, user):
     """Source keys must be unique so downstream nodes receive stable contracts."""
     source = DataFileSource(
         key="active",
-        program_type=DataFile.ProgramType.TANF,
-        section=DataFile.Section.ACTIVE_CASE_DATA,
+        program_type=ProgramCode.TANF,
+        section=SectionName.ACTIVE_CASE_DATA,
     )
     snapshotter = DataFileSourceSnapshot()
 
@@ -97,8 +97,8 @@ def test_datafile_source_snapshotter_rejects_active_reparse_overlap(stt, user):
     ReparseFileMeta.objects.create(data_file=data_file, reparse_meta=reparse)
     source = DataFileSource(
         key="active",
-        program_type=DataFile.ProgramType.TANF,
-        section=DataFile.Section.ACTIVE_CASE_DATA,
+        program_type=ProgramCode.TANF,
+        section=SectionName.ACTIVE_CASE_DATA,
     )
     snapshotter = DataFileSourceSnapshot()
 
@@ -108,3 +108,32 @@ def test_datafile_source_snapshotter_rejects_active_reparse_overlap(stt, user):
             fiscal_year=FISCAL_YEAR,
             sources=(source,),
         )
+
+
+@pytest.mark.django_db
+def test_datafile_source_uses_canonical_classification_and_excludes_audits(stt, user):
+    """Source selection ignores stale legacy values and PIA versions."""
+    standard_file = _datafile(stt, user, version=1)
+    DataFile.objects.filter(pk=standard_file.pk).update(
+        program_type=ProgramCode.SSP,
+        section=SectionName.CLOSED_CASE_DATA,
+    )
+    DataFileFactory.create(
+        stt=stt,
+        user=user,
+        section_ref=standard_file.section_ref,
+        quarter=standard_file.quarter,
+        year=FISCAL_YEAR,
+        version=2,
+        state=SubmissionState.PARSE_COMPLETED,
+        is_program_audit=True,
+    )
+    source = DataFileSource(
+        key="active",
+        program_type=ProgramCode.TANF,
+        section=SectionName.ACTIVE_CASE_DATA,
+    )
+
+    result = DataFileSourceSnapshot().latest_datafile_ids(FISCAL_YEAR, source)
+
+    assert result == [standard_file.id]
