@@ -1,18 +1,10 @@
-import React, { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
-import {
-  clearLoginDestination,
-  getLoginDestination,
-} from '../../utils/loginRedirect'
+import React from 'react'
+import { Navigate, useLocation } from 'react-router-dom'
+import { getLoginDestination } from '../../utils/loginRedirect'
 
 function PostLoginRedirect() {
-  const [destination] = useState(getLoginDestination)
-
-  useEffect(() => {
-    clearLoginDestination()
-  }, [])
-
-  return <Navigate to={destination} replace />
+  const location = useLocation()
+  return <Navigate to={getLoginDestination(location.search)} replace />
 }
 
 export default PostLoginRedirect

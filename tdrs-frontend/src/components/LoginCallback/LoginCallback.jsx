@@ -1,10 +1,9 @@
 import React, { useEffect } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { setAlert, clearAlert } from '../../actions/alert'
 import { ALERT_INFO } from '../Alert'
 import { useRUM } from '../../hooks/useRUM'
-import { clearLoginDestination } from '../../utils/loginRedirect'
 import PostLoginRedirect from './PostLoginRedirect'
 
 /**
@@ -27,6 +26,7 @@ import PostLoginRedirect from './PostLoginRedirect'
  * @param {boolean} authenticated - whether user is authenticated
  */
 function LoginCallback() {
+  const location = useLocation()
   const authLoading = useSelector((state) => state.auth.loading)
   const authenticated = useSelector((state) => state.auth.authenticated)
   const dispatch = useDispatch()
@@ -47,11 +47,10 @@ function LoginCallback() {
   }
 
   if (!authenticated) {
-    return <Navigate to="/" replace />
+    return <Navigate to={`/${location.search}`} replace />
   }
 
   if (isACFOCIO) {
-    clearLoginDestination()
     window.location = `${process.env.REACT_APP_BACKEND_HOST}/admin/`
     return null
   }

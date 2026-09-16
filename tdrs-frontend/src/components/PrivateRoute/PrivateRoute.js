@@ -6,7 +6,6 @@ import { ALERT_INFO } from '../Alert'
 import PrivateTemplate from '../PrivateTemplate'
 import IdleTimer from '../IdleTimer/IdleTimer'
 import AccessGuard from '../AccessGuard'
-import { saveLoginDestination } from '../../utils/loginRedirect'
 
 /**
  * @param {React.ReactNode} children - One or more React components to be
@@ -31,11 +30,11 @@ function PrivateRoute({
 
   useEffect(() => {
     if (!authenticated && !authLoading) {
-      saveLoginDestination(
-        `${location.pathname}${location.search}${location.hash}`
-      )
+      const next = new URLSearchParams({
+        next: `${location.pathname}${location.search}${location.hash}`,
+      })
       dispatch(setAlert({ heading: 'Please sign in first', type: ALERT_INFO }))
-      navigate('/', { replace: true })
+      navigate(`/?${next}`, { replace: true })
     }
 
     if (authLoading) {

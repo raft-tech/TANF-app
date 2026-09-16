@@ -6,7 +6,6 @@ import configureStore from 'redux-mock-store'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 
 import Routes from './Routes'
-import { saveLoginDestination } from '../../utils/loginRedirect'
 
 const CurrentLocation = () => {
   const { pathname, search, hash } = useLocation()
@@ -84,13 +83,8 @@ describe('Routes.js', () => {
   })
 
   beforeEach(() => {
-    window.sessionStorage.clear()
     mockHomeEditMode = false
     mockProfileEditMode = false
-  })
-
-  afterEach(() => {
-    window.sessionStorage.clear()
   })
 
   describe('login destinations', () => {
@@ -126,7 +120,6 @@ describe('Routes.js', () => {
       (entry) => {
         renderEntry(entry)
         expect(screen.getByTestId('location')).toHaveTextContent(entry)
-        expect(window.sessionStorage.getItem('loginDestination')).toBeNull()
       }
     )
 
@@ -162,17 +155,24 @@ describe('Routes.js', () => {
               screen.getByText('Sign into TANF Data Portal')
             ).toBeInTheDocument()
             expect(screen.queryByText('Reports')).not.toBeInTheDocument()
-            expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
+            expect(screen.getByTestId('location').textContent).toBe(
+              `/?${new URLSearchParams({ next: destination })}`
+            )
             initialVisit.unmount()
 
             // A refresh before sign-in must not lose the destination.
-            const refreshedVisit = renderEntry('/', { authenticated: false })
+            const refreshedVisit = renderEntry(
+              `/?${new URLSearchParams({ next: destination })}`,
+              { authenticated: false }
+            )
             fireEvent.click(screen.getByRole('button', { name: button }))
-            expect(window.location.href).toBe(`${authUrl}/login/${idp}`)
+            expect(window.location.href).toBe(
+              `${authUrl}/login/${idp}?${new URLSearchParams({ next: destination })}`
+            )
             refreshedVisit.unmount()
 
             // The IdP returns to a fresh app instance with an authenticated session.
-            const signedInVisit = renderEntry(callback)
+            const signedInVisit = renderEntry(destination)
             expect(screen.getByText('Reports')).toBeInTheDocument()
             expect(screen.getByTestId('location')).toHaveTextContent(
               destination
@@ -195,33 +195,32 @@ describe('Routes.js', () => {
       )
     })
 
-    it('waits for authentication before saving a destination', () => {
+    it('waits for authentication before leaving the requested page', () => {
       renderEntry(destination, { authenticated: false, loading: true })
       expect(screen.getByTestId('location')).toHaveTextContent(destination)
-      expect(window.sessionStorage.getItem('loginDestination')).toBeNull()
     })
 
     it.each(['/', '/login'])(
       'waits for authentication on %s before restoring a destination',
       (callback) => {
-        saveLoginDestination(destination)
-        const pendingVisit = renderEntry(callback, { loading: true })
-        expect(screen.getByTestId('location').textContent).toBe(callback)
+        const callbackUrl = `${callback}?${new URLSearchParams({ next: destination })}`
+        const pendingVisit = renderEntry(callbackUrl, { loading: true })
+        expect(screen.getByTestId('location').textContent).toBe(callbackUrl)
         expect(screen.queryByText('Reports')).not.toBeInTheDocument()
         pendingVisit.unmount()
 
-        renderEntry(callback)
+        renderEntry(callbackUrl)
         expect(screen.getByTestId('location')).toHaveTextContent(destination)
       }
     )
 
     it('preserves the destination after a failed login so the user can retry', () => {
-      saveLoginDestination(destination)
-      const failedVisit = renderEntry('/login', { authenticated: false })
+      const callback = `/login?${new URLSearchParams({ next: destination })}`
+      const failedVisit = renderEntry(callback, { authenticated: false })
       expect(screen.getByText('Sign into TANF Data Portal')).toBeInTheDocument()
       failedVisit.unmount()
 
-      renderEntry('/login')
+      renderEntry(callback)
       expect(screen.getByTestId('location')).toHaveTextContent(destination)
     })
 
@@ -229,14 +228,12 @@ describe('Routes.js', () => {
       { ...approvedUser, permissions: [] },
       { ...approvedUser, account_approval_status: 'Pending' },
     ])('enforces page access after sign-in for user %j', (user) => {
-      saveLoginDestination(destination)
-      renderEntry('/login', { user })
+      renderEntry(destination, { user })
       expect(screen.getByTestId('location')).toHaveTextContent('/home')
       expect(screen.queryByText('Reports')).not.toBeInTheDocument()
-      expect(window.sessionStorage.getItem('loginDestination')).toBeNull()
     })
 
-    it('sends ACF OCIO users to the admin site and clears their destination', () => {
+    it('sends ACF OCIO users to the admin site regardless of the destination', () => {
       const originalLocation = window.location
       Object.defineProperty(window, 'location', {
         configurable: true,
@@ -245,12 +242,10 @@ describe('Routes.js', () => {
       })
 
       try {
-        saveLoginDestination(destination)
         renderEntry('/login', { user: { roles: [{ name: 'ACF OCIO' }] } })
         expect(window.location).toBe(
           `${process.env.REACT_APP_BACKEND_HOST}/admin/`
         )
-        expect(window.sessionStorage.getItem('loginDestination')).toBeNull()
         expect(screen.queryByText('Reports')).not.toBeInTheDocument()
       } finally {
         Object.defineProperty(window, 'location', { value: originalLocation })

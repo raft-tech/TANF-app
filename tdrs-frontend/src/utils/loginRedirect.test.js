@@ -1,45 +1,20 @@
-import {
-  clearLoginDestination,
-  getLoginDestination,
-  saveLoginDestination,
-} from './loginRedirect'
+import { getLoginDestination } from './loginRedirect'
 
 describe('login destinations', () => {
-  beforeEach(() => {
-    window.sessionStorage.clear()
-  })
-
-  afterEach(() => {
-    jest.restoreAllMocks()
-    window.sessionStorage.clear()
-  })
-
   it.each([
     '/data-files?type=tanf',
     '/fra-data-files/2026/1?type=fra#history',
     '/profile',
     '/feedback-reports?name=a%26b%2Bc#reports',
   ])('preserves the full local destination %s', (destination) => {
-    saveLoginDestination(destination)
-    expect(getLoginDestination()).toBe(destination)
+    expect(
+      getLoginDestination(new URLSearchParams({ next: destination }).toString())
+    ).toBe(destination)
   })
 
-  it('defaults to home when no destination has been saved', () => {
+  it('defaults to home without a destination', () => {
     expect(getLoginDestination()).toBe('/home')
   })
-
-  it('clears the saved destination after use', () => {
-    saveLoginDestination('/profile')
-    clearLoginDestination()
-    expect(getLoginDestination()).toBe('/home')
-  })
-
-  it('uses the most recently requested page', () => {
-    saveLoginDestination('/profile')
-    saveLoginDestination('/data-files?type=tanf')
-    expect(getLoginDestination()).toBe('/data-files?type=tanf')
-  })
-
   it.each([
     '',
     'https://example.com/data-files',
@@ -60,28 +35,8 @@ describe('login destinations', () => {
     '/profile/..',
     '/%invalid',
   ])('rejects unsafe or looping destinations: %s', (destination) => {
-    saveLoginDestination(destination)
-    expect(getLoginDestination()).toBe('/home')
-  })
-
-  it('allows sign-in to continue when saving a destination fails', () => {
-    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new Error('Storage unavailable')
-    })
-    expect(() => saveLoginDestination('/profile')).not.toThrow()
-  })
-
-  it('defaults to home when reading storage fails', () => {
-    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-      throw new Error('Storage unavailable')
-    })
-    expect(getLoginDestination()).toBe('/home')
-  })
-
-  it('allows sign-in to continue when clearing a destination fails', () => {
-    jest.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
-      throw new Error('Storage unavailable')
-    })
-    expect(clearLoginDestination).not.toThrow()
+    expect(
+      getLoginDestination(new URLSearchParams({ next: destination }).toString())
+    ).toBe('/home')
   })
 })

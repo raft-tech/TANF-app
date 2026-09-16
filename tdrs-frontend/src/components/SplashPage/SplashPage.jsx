@@ -1,3 +1,4 @@
+import { useLocation } from 'react-router-dom'
 import React, { useEffect, useRef } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
@@ -7,6 +8,7 @@ import loginLogo from '../../assets/login-gov-logo.svg'
 import Button from '../Button'
 import ResourceCards from '../ResourceCards'
 import LinkComponent from '../Link'
+import { getLoginDestination } from '../../utils/loginRedirect'
 import PostLoginRedirect from '../LoginCallback/PostLoginRedirect'
 
 /**
@@ -15,6 +17,10 @@ import PostLoginRedirect from '../LoginCallback/PostLoginRedirect'
  * redirected to their requested page, or `/home` for a normal sign-in.
  */
 function SplashPage() {
+  const location = useLocation()
+  const next = new URLSearchParams({
+    next: getLoginDestination(location.search),
+  })
   const authenticated = useSelector((state) => state.auth.authenticated)
   const authLoading = useSelector((state) => state.auth.loading)
   const isInactive = useSelector((state) => state.auth.inactive)
@@ -32,13 +38,13 @@ function SplashPage() {
       dispatch(setMockLoginState())
     } else {
       event.preventDefault()
-      window.location.href = `${process.env.REACT_APP_AUTH_URL || process.env.REACT_APP_BACKEND_URL}/login/dotgov`
+      window.location.href = `${process.env.REACT_APP_AUTH_URL || process.env.REACT_APP_BACKEND_URL}/login/dotgov?${next}`
     }
   }
 
   const signInWithAMS = (event) => {
     event.preventDefault()
-    window.location.href = `${process.env.REACT_APP_AUTH_URL || process.env.REACT_APP_BACKEND_URL}/login/ams`
+    window.location.href = `${process.env.REACT_APP_AUTH_URL || process.env.REACT_APP_BACKEND_URL}/login/ams?${next}`
   }
 
   useEffect(() => {
