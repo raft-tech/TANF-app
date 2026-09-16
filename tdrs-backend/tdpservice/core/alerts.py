@@ -71,3 +71,4 @@ def send_alert(
             extra={"alertname": alertname, "severity": severity, "api_url": api_url},
         )
         return False
+

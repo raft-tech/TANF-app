@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
 
-from tdpservice.alerts.alertmanager import send_alert
+from tdpservice.core.alerts import send_alert
 
 
 def test_send_alert_success():
@@ -100,3 +100,4 @@ def test_send_alert_request_exception():
             description="Test description",
         )
         assert result is False
+

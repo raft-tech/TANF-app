@@ -1,2 +1,0 @@
-"""Alerts package for TDP."""
-

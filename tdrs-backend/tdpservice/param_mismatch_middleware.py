@@ -7,7 +7,7 @@ from typing import Any, Dict
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 
-from tdpservice.alerts.alertmanager import send_alert
+from tdpservice.core.alerts import send_alert
 from tdpservice.core.models import BaseLog
 
 logger = logging.getLogger(__name__)
