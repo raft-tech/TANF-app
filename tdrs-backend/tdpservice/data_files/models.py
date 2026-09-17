@@ -474,6 +474,10 @@ ShadowDataFile = create_shadow_model(
     "shadow_data_files_datafile",
     app_label="data_files",
     module=__name__,
+    field_overrides={
+        "program_type": models.CharField(max_length=32),
+        "section": models.CharField(max_length=32),
+    },
     foreign_key_overrides={
         "user": models.ForeignKey(
             "users.User",
@@ -503,8 +507,6 @@ def create_or_update_shadow_data_file(data_file):
         "created_at",
         "quarter",
         "year",
-        "program_type",
-        "section",
         "is_program_audit",
         "version",
         "state",
@@ -515,6 +517,10 @@ def create_or_update_shadow_data_file(data_file):
         "s3_versioning_id",
     ]
     defaults = {field: getattr(data_file, field) for field in fields}
+    defaults.update(
+        program_type=data_file.program.code,
+        section=data_file.section_ref.name,
+    )
 
     shadow_data_file, _ = ShadowDataFile.objects.update_or_create(
         id=data_file.id,

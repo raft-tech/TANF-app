@@ -1,0 +1,69 @@
+"""Behavior tests for generated Grafana data views."""
+
+import pytest
+from django.db import connection
+
+from plg.grafana_views.generate_views import render_query
+from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.test.factories import DataFileFactory
+
+
+@pytest.mark.django_db
+def test_generated_query_uses_canonical_values_for_latest_data_file():
+    """Generated views expose canonical strings from only the latest file."""
+    old_data_file = DataFileFactory.create(year=2026, version=1)
+    latest_data_file = DataFileFactory.create(
+        year=old_data_file.year,
+        quarter=old_data_file.quarter,
+        stt=old_data_file.stt,
+        user=old_data_file.user,
+        version=2,
+    )
+    DataFile.objects.filter(pk__in=[old_data_file.pk, latest_data_file.pk]).update(
+        program_type=DataFile.ProgramType.SSP,
+        section=DataFile.Section.CLOSED_CASE_DATA,
+    )
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            CREATE TEMP TABLE grafana_test_records (
+                datafile_id integer NOT NULL,
+                record_value text NOT NULL
+            ) ON COMMIT DROP
+            """
+        )
+        cursor.execute(
+            """
+            INSERT INTO grafana_test_records (datafile_id, record_value)
+            VALUES (%s, 'old'), (%s, 'latest')
+            """,
+            [old_data_file.pk, latest_data_file.pk],
+        )
+        cursor.execute(
+            render_query(
+                '"record_value",',
+                "grafana_test_records",
+                "test_record",
+            )
+        )
+        columns = [column.name for column in cursor.description]
+        rows = cursor.fetchall()
+
+    assert columns == [
+        "record_value",
+        "section",
+        "version",
+        "year",
+        "quarter",
+        "STT",
+        "STT_CODE",
+        "REGION",
+        "program_type",
+    ]
+    assert len(rows) == 1
+    row = dict(zip(columns, rows[0]))
+    assert row["record_value"] == "latest"
+    assert row["section"] == "Active Case Data"
+    assert row["program_type"] == "TAN"
+    assert row["version"] == 2

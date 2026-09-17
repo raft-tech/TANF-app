@@ -208,3 +208,15 @@ func TestUpdateShadowDataFileStateRejectsProductionWrites(t *testing.T) {
 		t.Fatalf("expected production lifecycle protection, got %v", err)
 	}
 }
+
+func TestEnsureShadowDataFileDoesNotWriteProductionDataFile(t *testing.T) {
+	err := EnsureShadowDataFile(
+		context.Background(),
+		nil,
+		productionDataFileTable,
+		&DataFileRecord{ID: 42},
+	)
+	if err != nil {
+		t.Fatalf("EnsureShadowDataFile() production path error = %v", err)
+	}
+}

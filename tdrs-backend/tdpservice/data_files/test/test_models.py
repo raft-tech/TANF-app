@@ -4,7 +4,13 @@ import pytest
 from django.db import IntegrityError, transaction
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile, Program, Section
+from tdpservice.data_files.models import (
+    DataFile,
+    Program,
+    Section,
+    ShadowDataFile,
+    create_or_update_shadow_data_file,
+)
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.stts.models import STT
 
@@ -102,6 +108,24 @@ def test_new_data_file_resolves_section_ref(
     assert data_file.program_type == program_type
     assert data_file.section == section_name
     assert data_file.is_program_audit is is_program_audit
+
+
+@pytest.mark.django_db
+def test_shadow_data_file_projects_scalar_canonical_values():
+    """Shadow rows store canonical classifications as unrestricted strings."""
+    data_file = DataFileFactory.create()
+    DataFile.objects.filter(pk=data_file.pk).update(
+        program_type=DataFile.ProgramType.SSP,
+        section=DataFile.Section.CLOSED_CASE_DATA,
+    )
+    data_file.refresh_from_db()
+
+    shadow_data_file = create_or_update_shadow_data_file(data_file)
+
+    assert shadow_data_file.program_type == data_file.program.code == "TAN"
+    assert shadow_data_file.section == data_file.section_ref.name == "Active Case Data"
+    assert ShadowDataFile._meta.get_field("program_type").choices is None
+    assert ShadowDataFile._meta.get_field("section").choices is None
 
 
 @pytest.mark.django_db
