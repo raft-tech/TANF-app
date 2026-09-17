@@ -36,6 +36,8 @@ from tdpservice.data_files.util import (
     create_s3_log_file_path,
 )
 from tdpservice.log_handler import S3FileHandler
+from tdpservice.parsers.admin import ParseExecutionLogInline
+from tdpservice.parsers.models import ParserError
 
 logger = logging.getLogger(__name__)
 
@@ -568,7 +570,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
             else:
                 return queryset
 
-    inlines = [DataFileStateTransitionInline, DataFileInline]
+    inlines = [DataFileStateTransitionInline, ParseExecutionLogInline, DataFileInline]
 
     list_display = [
         "id",
@@ -616,7 +618,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 class ShadowDataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Shadow admin model for convenience."""
 
-    inlines = [DataFileStateTransitionInline]
+    inlines = [DataFileStateTransitionInline, ParseExecutionLogInline]
     list_display = [
         "id",
         "stt",
