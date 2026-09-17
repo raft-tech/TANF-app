@@ -11,9 +11,8 @@
 #
 # Why schedule (not projects_v2_item):
 # GitHub Actions does not support `on: projects_v2_item` (webhook-only event).
-# This workflow polls every 15 minutes and also supports workflow_dispatch and
-# repository_dispatch (event_type: set-start-date-when-work-begins) for a
-# future org webhook → near-real-time path.
+# Polls once on weekdays (9:00 America/Denver) plus workflow_dispatch and
+# repository_dispatch (event_type: set-start-date-when-work-begins).
 #
 # Required secret: TDP_GITHUB_PROJECTS_TOKEN
 # Fine-grained PAT (preferred) or GitHub App token for org raft-tech with
@@ -25,8 +24,8 @@ name: Set Start date when work begins
 
 on:
   schedule:
-    # Every 15 minutes
-    - cron: '*/15 * * * *'
+    # Weekdays 9:00 America/Denver (15:00 UTC)
+    - cron: '0 15 * * 1-5'
   workflow_dispatch:
   repository_dispatch:
     types: [set-start-date-when-work-begins]
