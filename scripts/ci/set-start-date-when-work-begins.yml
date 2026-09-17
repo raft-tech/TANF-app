@@ -5,6 +5,10 @@
 # and Start date is empty, set Start date to today (America/Denver).
 # Never overwrites an existing Start date.
 #
+# IMPORTANT: Start date is a repo Issue Field (IFD_kgDOAO480A), not a pure
+# ProjectV2 custom field. Updates must use updateIssueFieldValue.
+# That mutation works for Issues only — open PRs are skipped.
+#
 # Why schedule (not projects_v2_item):
 # GitHub Actions does not support `on: projects_v2_item` (webhook-only event).
 # This workflow polls every 15 minutes and also supports workflow_dispatch and
@@ -13,7 +17,9 @@
 #
 # Required secret: TDP_PROJECT_TOKEN
 # Fine-grained PAT (preferred) or GitHub App token for org raft-tech with
-# Projects: Read and write. GITHUB_TOKEN cannot write org project fields.
+# enough access to read the org project and write repo Issue Fields on
+# raft-tech/TANF-app. GITHUB_TOKEN cannot write org project / issue fields
+# the same way.
 ###########################################################################
 name: Set Start date when work begins
 
@@ -42,7 +48,7 @@ jobs:
           TDP_PROJECT_TOKEN: ${{ secrets.TDP_PROJECT_TOKEN }}
         run: |
           if [ -z "${TDP_PROJECT_TOKEN}" ]; then
-            echo "::error::Missing secret TDP_PROJECT_TOKEN. Add a fine-grained PAT (or GitHub App token) for org raft-tech with Projects: Read and write as repository secret TDP_PROJECT_TOKEN."
+            echo "::error::Missing secret TDP_PROJECT_TOKEN. Add a fine-grained PAT (or GitHub App token) for org raft-tech that can read TDP Roadmap and write Issue Fields on raft-tech/TANF-app."
             exit 1
           fi
 
@@ -50,22 +56,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.TDP_PROJECT_TOKEN }}
           PROJECT_ID: PVT_kwDOA5NZS84BgTba
-          STATUS_FIELD_ID: PVTSSF_lADOA5NZS84BgTbazhagGkw
-          START_DATE_FIELD_ID: PVTF_lADOA5NZS84BgTbazhagGv8
+          # Repo Issue Field "Start date" on raft-tech/TANF-app (NOT ProjectV2 PVTF_*)
+          START_DATE_ISSUE_FIELD_ID: IFD_kgDOAO480A
           TZ: America/Denver
         run: |
           set -euo pipefail
           TODAY=$(TZ=America/Denver date +%F)
           echo "Today (America/Denver): $TODAY"
 
-          # Status names that mean work has begun
           python3 << 'PY'
           import json, os, subprocess, sys, time
 
           PROJECT = os.environ["PROJECT_ID"]
-          STATUS_FIELD = os.environ["STATUS_FIELD_ID"]
-          START_FIELD = os.environ["START_DATE_FIELD_ID"]
-          TODAY = subprocess.check_output(["date", "+%F"], env={**os.environ, "TZ": "America/Denver"}).decode().strip()
+          START_FIELD = os.environ["START_DATE_ISSUE_FIELD_ID"]
+          TODAY = subprocess.check_output(
+              ["date", "+%F"], env={**os.environ, "TZ": "America/Denver"}
+          ).decode().strip()
 
           BEGUN = {
               "In Progress",
@@ -102,6 +108,22 @@ jobs:
                   pageInfo { hasNextPage endCursor }
                   nodes {
                     id
+                    content {
+                      __typename
+                      ... on Issue {
+                        id number state
+                        issueFieldValues(first: 10) {
+                          nodes {
+                            __typename
+                            ... on IssueFieldDateValue {
+                              value
+                              field { ... on IssueFieldDate { id name } }
+                            }
+                          }
+                        }
+                      }
+                      ... on PullRequest { id number state }
+                    }
                     fieldValueByName(name: "Status") {
                       ... on ProjectV2ItemFieldSingleSelectValue { name }
                     }
@@ -116,18 +138,19 @@ jobs:
           """
 
           MUT = """
-          mutation($input: UpdateProjectV2ItemFieldValueInput!) {
-            updateProjectV2ItemFieldValue(input: $input) {
-              projectV2Item { id }
+          mutation($issueId: ID!, $fieldId: ID!, $date: String!) {
+            updateIssueFieldValue(input: {
+              issueId: $issueId
+              issueField: { fieldId: $fieldId, dateValue: $date }
+            }) {
+              issue { number }
+              issueFieldValue { ... on IssueFieldDateValue { value } }
             }
           }
           """
 
           after = None
-          scanned = 0
-          updated = 0
-          skipped_status = 0
-          skipped_set = 0
+          scanned = updated = skipped_status = skipped_set = skipped_pr = skipped_closed = 0
 
           while True:
               data = gql(QUERY, {"id": PROJECT, "after": after})
@@ -136,31 +159,55 @@ jobs:
                   scanned += 1
                   status = (item.get("fieldValueByName") or {}).get("name")
                   start = (item.get("start") or {}).get("date")
+                  content = item.get("content") or {}
+                  ctype = content.get("__typename")
+
                   if status not in BEGUN:
                       skipped_status += 1
                       continue
+
+                  if ctype == "Issue":
+                      for fv in (content.get("issueFieldValues") or {}).get("nodes") or []:
+                          field = fv.get("field") or {}
+                          if field.get("name") == "Start date" and fv.get("value"):
+                              start = fv["value"]
+                              break
+
                   if start:
                       skipped_set += 1
                       continue
+
+                  if ctype == "PullRequest":
+                      # Issue Fields cannot be set on PRs via updateIssueFieldValue
+                      skipped_pr += 1
+                      continue
+
+                  if ctype != "Issue":
+                      continue
+
+                  if content.get("state") and content["state"] != "OPEN":
+                      # Still allow Closed Status on open? Content closed with Status Closed is fine to set
+                      # if Start empty — keep closed issues eligible when Status is in BEGUN
+                      pass
+
                   gql(
                       MUT,
                       {
-                          "input": {
-                              "projectId": PROJECT,
-                              "itemId": item["id"],
-                              "fieldId": START_FIELD,
-                              "value": {"date": TODAY},
-                          }
+                          "issueId": content["id"],
+                          "fieldId": START_FIELD,
+                          "date": TODAY,
                       },
                   )
                   updated += 1
                   time.sleep(0.15)
+
               if not conn["pageInfo"]["hasNextPage"]:
                   break
               after = conn["pageInfo"]["endCursor"]
 
           print(
               f"scanned={scanned} updated={updated} "
-              f"skipped_wrong_status={skipped_status} skipped_already_set={skipped_set}"
+              f"skipped_wrong_status={skipped_status} skipped_already_set={skipped_set} "
+              f"skipped_prs={skipped_pr}"
           )
           PY
