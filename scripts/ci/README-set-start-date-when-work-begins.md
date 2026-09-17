@@ -1,15 +1,18 @@
 # Proposed workflow: Set Start date when work begins
 
-This file is the intended GitHub Actions workflow body for:
+Intended path after activation: `.github/workflows/set-start-date-when-work-begins.yml`
 
-`.github/workflows/set-start-date-when-work-begins.yml`
+## Start date field
+Start date is a **repo Issue Field** on `raft-tech/TANF-app`:
 
-## Why it is under `scripts/ci/` for now
-Creating or updating files under `.github/workflows/` requires a token with the classic **`workflow`** OAuth scope (or equivalent App permission). The bot PAT currently has `repo` + `project` but not `workflow`, so the API returns 404 for workflow paths.
+- Issue Field id: `IFD_kgDOAO480A`
+- Mutation: `updateIssueFieldValue` (not `updateProjectV2ItemFieldValue` / not `PVTF_*`)
+- Works for **Issues only**; open PRs are skipped by the workflow
 
-## To activate
-1. Add repo secret `TDP_PROJECT_TOKEN` (fine-grained PAT / App token: org `raft-tech`, **Projects: Read and write**).
-2. Copy this file to `.github/workflows/set-start-date-when-work-begins.yml` (GitHub UI, or re-run bot after granting `workflow` scope on the automation PAT).
-3. Merge, then Actions → **Set Start date when work begins** → Run workflow.
+## Why under `scripts/ci/` for now
+Creating `.github/workflows/*` requires the classic `workflow` OAuth scope on the automation PAT. Copy this file into `.github/workflows/` via UI, or grant `workflow` and ask the bot to move it.
 
-See the pull request description for full behavior and why this uses a schedule instead of `projects_v2_item`.
+## Activate
+1. Secret `TDP_PROJECT_TOKEN` (read TDP Roadmap + write Issue Fields)
+2. Place YAML under `.github/workflows/set-start-date-when-work-begins.yml`
+3. Merge / run workflow_dispatch
