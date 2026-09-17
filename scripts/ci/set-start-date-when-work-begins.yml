@@ -1,0 +1,166 @@
+###########################################################################
+# Set Start date when work begins
+#
+# When a TDP Roadmap (org project 123) item's Status is In Progress or beyond
+# and Start date is empty, set Start date to today (America/Denver).
+# Never overwrites an existing Start date.
+#
+# Why schedule (not projects_v2_item):
+# GitHub Actions does not support `on: projects_v2_item` (webhook-only event).
+# This workflow polls every 15 minutes and also supports workflow_dispatch and
+# repository_dispatch (event_type: set-start-date-when-work-begins) for a
+# future org webhook → near-real-time path.
+#
+# Required secret: TDP_PROJECT_TOKEN
+# Fine-grained PAT (preferred) or GitHub App token for org raft-tech with
+# Projects: Read and write. GITHUB_TOKEN cannot write org project fields.
+###########################################################################
+name: Set Start date when work begins
+
+on:
+  schedule:
+    # Every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [set-start-date-when-work-begins]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: set-start-date-when-work-begins
+  cancel-in-progress: false
+
+jobs:
+  set-start-date:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Require TDP_PROJECT_TOKEN
+        env:
+          TDP_PROJECT_TOKEN: ${{ secrets.TDP_PROJECT_TOKEN }}
+        run: |
+          if [ -z "${TDP_PROJECT_TOKEN}" ]; then
+            echo "::error::Missing secret TDP_PROJECT_TOKEN. Add a fine-grained PAT (or GitHub App token) for org raft-tech with Projects: Read and write as repository secret TDP_PROJECT_TOKEN."
+            exit 1
+          fi
+
+      - name: Set Start date when Status is In Progress or beyond
+        env:
+          GH_TOKEN: ${{ secrets.TDP_PROJECT_TOKEN }}
+          PROJECT_ID: PVT_kwDOA5NZS84BgTba
+          STATUS_FIELD_ID: PVTSSF_lADOA5NZS84BgTbazhagGkw
+          START_DATE_FIELD_ID: PVTF_lADOA5NZS84BgTbazhagGv8
+          TZ: America/Denver
+        run: |
+          set -euo pipefail
+          TODAY=$(TZ=America/Denver date +%F)
+          echo "Today (America/Denver): $TODAY"
+
+          # Status names that mean work has begun
+          python3 << 'PY'
+          import json, os, subprocess, sys, time
+
+          PROJECT = os.environ["PROJECT_ID"]
+          STATUS_FIELD = os.environ["STATUS_FIELD_ID"]
+          START_FIELD = os.environ["START_DATE_FIELD_ID"]
+          TODAY = subprocess.check_output(["date", "+%F"], env={**os.environ, "TZ": "America/Denver"}).decode().strip()
+
+          BEGUN = {
+              "In Progress",
+              "Blocked",
+              "Raft (Dev) Review",
+              "UX Review",
+              "QASP Review",
+              "Done and Ready for Demo",
+              "Ready to merge into staging branch",
+              "Closed",
+          }
+
+          def gql(query, variables=None):
+              payload = {"query": query, "variables": variables or {}}
+              proc = subprocess.run(
+                  ["gh", "api", "graphql", "--input", "-"],
+                  input=json.dumps(payload).encode(),
+                  capture_output=True,
+              )
+              if proc.returncode != 0:
+                  sys.stderr.write(proc.stderr.decode() or proc.stdout.decode())
+                  raise SystemExit(proc.returncode)
+              data = json.loads(proc.stdout.decode())
+              if data.get("errors"):
+                  sys.stderr.write(json.dumps(data["errors"], indent=2) + "\n")
+                  raise SystemExit(1)
+              return data["data"]
+
+          QUERY = """
+          query($id: ID!, $after: String) {
+            node(id: $id) {
+              ... on ProjectV2 {
+                items(first: 100, after: $after) {
+                  pageInfo { hasNextPage endCursor }
+                  nodes {
+                    id
+                    fieldValueByName(name: "Status") {
+                      ... on ProjectV2ItemFieldSingleSelectValue { name }
+                    }
+                    start: fieldValueByName(name: "Start date") {
+                      ... on ProjectV2ItemFieldDateValue { date }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          """
+
+          MUT = """
+          mutation($input: UpdateProjectV2ItemFieldValueInput!) {
+            updateProjectV2ItemFieldValue(input: $input) {
+              projectV2Item { id }
+            }
+          }
+          """
+
+          after = None
+          scanned = 0
+          updated = 0
+          skipped_status = 0
+          skipped_set = 0
+
+          while True:
+              data = gql(QUERY, {"id": PROJECT, "after": after})
+              conn = data["node"]["items"]
+              for item in conn["nodes"]:
+                  scanned += 1
+                  status = (item.get("fieldValueByName") or {}).get("name")
+                  start = (item.get("start") or {}).get("date")
+                  if status not in BEGUN:
+                      skipped_status += 1
+                      continue
+                  if start:
+                      skipped_set += 1
+                      continue
+                  gql(
+                      MUT,
+                      {
+                          "input": {
+                              "projectId": PROJECT,
+                              "itemId": item["id"],
+                              "fieldId": START_FIELD,
+                              "value": {"date": TODAY},
+                          }
+                      },
+                  )
+                  updated += 1
+                  time.sleep(0.15)
+              if not conn["pageInfo"]["hasNextPage"]:
+                  break
+              after = conn["pageInfo"]["endCursor"]
+
+          print(
+              f"scanned={scanned} updated={updated} "
+              f"skipped_wrong_status={skipped_status} skipped_already_set={skipped_set}"
+          )
+          PY
