@@ -406,3 +406,49 @@ def test_data_file_contract_migration_rejects_invalid_canonical_sections(
             DataFile.objects.filter(id=invalid_data_file_id).delete()
         executor = MigrationExecutor(connection)
         executor.migrate(executor.loader.graph.leaf_nodes())
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "model_name,field_name,unknown_value,defaults",
+    [
+        (
+            "Program",
+            "code",
+            "UNKNOWN",
+            {"slug": "unknown", "name": "Unknown Program"},
+        ),
+        (
+            "Section",
+            "name",
+            "Unknown Section",
+            {},
+        ),
+    ],
+)
+def test_program_section_choices_migration_rejects_unknown_values(
+    model_name,
+    field_name,
+    unknown_value,
+    defaults,
+):
+    """The choices migration rejects records outside the static catalog."""
+    migration = importlib.import_module(
+        "tdpservice.data_files.migrations.0036_add_program_section_choices"
+    )
+    apps = migration_apps = MigrationExecutor(connection).loader.project_state(
+        [("data_files", "0035_replace_datafile_classification_fields")]
+    ).apps
+    Program = migration_apps.get_model("data_files", "Program")
+    Model = migration_apps.get_model("data_files", model_name)
+
+    values = {field_name: unknown_value, **defaults}
+    if model_name == "Section":
+        values["program"] = Program.objects.get(code="TAN")
+    record = Model.objects.create(**values)
+
+    try:
+        with pytest.raises(RuntimeError, match="unknown values"):
+            migration.validate_program_and_section_values(apps, None)
+    finally:
+        record.delete()

@@ -25,6 +25,7 @@ from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.error_reports import ErrorReportFactory
 from tdpservice.data_files.models import (
     DataFile,
+    Program,
     ReparseFileMeta,
     create_or_update_shadow_data_file,
 )
@@ -278,12 +279,12 @@ class DataFileViewSet(ModelViewSet):
         file_type = self.request.query_params.get("file_type", None)
 
         if file_type == DataFileViewSet.SSP_FILE_TYPE:
-            queryset = queryset.filter(section__program__code="SSP")
+            queryset = queryset.filter(section__program__code=Program.Code.SSP)
         elif queryset.filter(
-            section__program__code="FRA", section__name=file_type
+            section__program__code=Program.Code.FRA, section__name=file_type
         ).exists():
             queryset = queryset.filter(
-                section__program__code="FRA", section__name=file_type
+                section__program__code=Program.Code.FRA, section__name=file_type
             )
         else:
             pia_feature_flag_enabled, pia_feature_flag_config = get_feature_flag(
@@ -310,7 +311,7 @@ class DataFileViewSet(ModelViewSet):
                     )
 
             queryset = queryset.filter(
-                section__program__code__in=["TAN", "TRIBAL"],
+                section__program__code__in=[Program.Code.TANF, Program.Code.TRIBAL],
                 is_program_audit=is_program_audit,
             )
 

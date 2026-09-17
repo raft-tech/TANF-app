@@ -8,10 +8,12 @@ def create_s3_log_file_path(datafile):
 
 def create_legacy_s3_log_file_path(datafile):
     """Create the old-format S3 log path for backwards compatibility with pre-existing logs."""
+    from tdpservice.data_files.models import Program
+
     key = f"{datafile.year}/{datafile.quarter}/{datafile.stt}/"
-    if datafile.program.code in ["FRA", "TAN"]:
+    if datafile.program.code in [Program.Code.FRA, Program.Code.TANF]:
         key += datafile.section.name
-    elif datafile.program.code == "TRIBAL":
+    elif datafile.program.code == Program.Code.TRIBAL:
         key += f"{datafile.program.code.title()} {datafile.section.name}"
     else:
         key += f"{datafile.program.code} {datafile.section.name}"

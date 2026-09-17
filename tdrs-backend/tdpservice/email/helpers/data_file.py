@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.models import DataFile, Program, Section
 from tdpservice.email.email import automated_email, log
 from tdpservice.email.email_enums import AdminEmail, FraDataFileEmail, TanfDataFileEmail
 from tdpservice.parsers.models import DataFileSummary
@@ -19,13 +19,13 @@ def get_friendly_program_type(program):
 def get_program_section_str(program_type, section):
     """Return the human-readable section name, including program type."""
     match program_type:
-        case "TAN":
+        case Program.Code.TANF:
             return section
-        case "SSP":
+        case Program.Code.SSP:
             return f"SSP {section}"
-        case "TRIBAL":
+        case Program.Code.TRIBAL:
             return f"Tribal {section}"
-        case "FRA":
+        case Program.Code.FRA:
             return section
 
 
@@ -123,7 +123,10 @@ def get_base_context(datafile_summary):
     fiscal_year = datafile.fiscal_year
     submitted_by = datafile.submitted_by
 
-    is_aggregate = datafile.section.name in ("Aggregate Data", "Stratum Data")
+    is_aggregate = datafile.section.name in (
+        Section.Name.AGGREGATE_DATA,
+        Section.Name.STRATUM_DATA,
+    )
 
     context = {
         "stt_name": stt_name,
@@ -255,7 +258,7 @@ def send_data_submitted_email(datafile_summary, recipients, is_reprocessed=False
         )
 
         match prog_type:
-            case "TAN" | "SSP" | "TRIBAL":
+            case Program.Code.TANF | Program.Code.SSP | Program.Code.TRIBAL:
                 if is_aggregate:
                     context.update(
                         get_tanf_total_errors_context_count(datafile_summary)
@@ -266,7 +269,7 @@ def send_data_submitted_email(datafile_summary, recipients, is_reprocessed=False
                 template_options = get_tanf_template_options(is_reprocessed)
                 template_path = template_options[datafile_summary.status]
 
-            case "FRA":
+            case Program.Code.FRA:
                 context.update(get_fra_aggregates_context_count(datafile_summary))
 
                 template_options = get_fra_template_options(is_reprocessed)

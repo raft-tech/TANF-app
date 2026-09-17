@@ -259,7 +259,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         )
         # return data files based on user's section
         if not (request.user.has_fra_access or request.user.is_an_admin):
-            filtered_for_fra = qs.exclude(section__program__code="FRA")
+            filtered_for_fra = qs.exclude(section__program__code=Program.Code.FRA)
             return filtered_for_fra
         else:
             return qs
@@ -585,9 +585,9 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         def queryset(self, request, queryset):
             """Return a queryset."""
             if self.value() == "1":
-                return queryset.filter(section__program__code="FRA")
+                return queryset.filter(section__program__code=Program.Code.FRA)
             elif self.value() == "0":
-                return queryset.exclude(section__program__code="FRA")
+                return queryset.exclude(section__program__code=Program.Code.FRA)
             else:
                 return queryset
 

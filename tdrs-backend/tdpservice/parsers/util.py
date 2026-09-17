@@ -7,7 +7,7 @@ from pathlib import Path
 from django.contrib.admin.models import ADDITION
 
 from tdpservice.core.utils import log
-from tdpservice.data_files.models import DataFile, Section
+from tdpservice.data_files.models import DataFile, Program, Section
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +16,8 @@ def create_test_datafile(
     filename,
     stt_user,
     stt,
-    section="Active Case Data",
-    program_type="TAN",
+    section=Section.Name.ACTIVE_CASE_DATA,
+    program_type=Program.Code.TANF,
     year=2021,
     quarter="Q1",
     is_program_audit=False,

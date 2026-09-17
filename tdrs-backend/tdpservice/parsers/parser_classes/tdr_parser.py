@@ -4,6 +4,7 @@ import logging
 
 from django.conf import settings
 
+from tdpservice.data_files.models import Program, Section
 from tdpservice.parsers import schema_defs
 from tdpservice.parsers.case_consistency_validator import CaseConsistencyValidator
 from tdpservice.parsers.constants import (
@@ -257,7 +258,7 @@ class TanfDataReportParser(BaseParser):
         logger.debug(f"Datafile: {repr(self.datafile)}, is Tribal: {is_tribal}.")
 
         program_type = (
-            "TRIBAL" if is_tribal else header["program_type"]
+            Program.Code.TRIBAL if is_tribal else header["program_type"]
         )
         section = header["type"]
         logger.debug(f"Program type: {program_type}, Section: {section}.")
@@ -444,10 +445,10 @@ class TanfDataReportParser(BaseParser):
     def is_valid_zero_record_submission(self):
         """Return whether this file is a structurally valid zero-record submission."""
         zero_record_sections = [
-            "Active Case Data",
-            "Closed Case Data",
-            "Aggregate Data",
-            "Stratum Data",
+            Section.Name.ACTIVE_CASE_DATA,
+            Section.Name.CLOSED_CASE_DATA,
+            Section.Name.AGGREGATE_DATA,
+            Section.Name.STRATUM_DATA,
         ]
         return (
             self.datafile.section.name in zero_record_sections
@@ -522,7 +523,7 @@ class TanfDataReportParser(BaseParser):
 
     def generate_funded_ssn_errors(self):
         """Generate SSN validation errors for T1/T2 records with specific funding stream and family affiliation."""
-        if self.section == "Active Case Data":
+        if self.section == Section.Name.ACTIVE_CASE_DATA:
             t1_schema = None
             t2_schema = None
             for schemas in self.schema_manager.schema_map.values():

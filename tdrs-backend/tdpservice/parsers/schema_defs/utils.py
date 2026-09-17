@@ -2,6 +2,7 @@
 
 import logging
 
+from tdpservice.data_files.models import Program, Section
 from tdpservice.parsers import schema_defs
 
 logger = logging.getLogger(__name__)
@@ -73,16 +74,16 @@ class ProgramManager:
     def get_section(cls, program_type: str, section_abbrev: str):
         """Get full section name given the program type and section abbreviation used in the datafile."""
         match program_type:
-            case "TAN" | "SSP" | "TRIBAL":
+            case Program.Code.TANF | Program.Code.SSP | Program.Code.TRIBAL:
                 match section_abbrev:
                     case "A":
-                        return "Active Case Data"
+                        return Section.Name.ACTIVE_CASE_DATA
                     case "C":
-                        return "Closed Case Data"
+                        return Section.Name.CLOSED_CASE_DATA
                     case "G":
-                        return "Aggregate Data"
+                        return Section.Name.AGGREGATE_DATA
                     case "S":
-                        return "Stratum Data"
+                        return Section.Name.STRATUM_DATA
 
     @classmethod
     def get_schema(cls, program_type: str, section: str, record_type: str):
@@ -99,43 +100,43 @@ class ProgramManager:
     ):
         """Get all schemas for a program type and section."""
         match program_type:
-            case "TAN":
+            case Program.Code.TANF:
                 match section:
-                    case "Active Case Data" | "A":
+                    case Section.Name.ACTIVE_CASE_DATA | "A":
                         if is_program_audit:
                             return cls.tan_active_audit_schemas
                         return cls.tan_active_schemas
-                    case "Closed Case Data" | "C":
+                    case Section.Name.CLOSED_CASE_DATA | "C":
                         return cls.tan_closed_schemas
-                    case "Aggregate Data" | "G":
+                    case Section.Name.AGGREGATE_DATA | "G":
                         return cls.tan_agg_schemas
-                    case "Stratum Data" | "S":
+                    case Section.Name.STRATUM_DATA | "S":
                         return cls.tan_strat_schemas
-            case "SSP":
+            case Program.Code.SSP:
                 match section:
-                    case "Active Case Data" | "A":
+                    case Section.Name.ACTIVE_CASE_DATA | "A":
                         return cls.ssp_active_schemas
-                    case "Closed Case Data" | "C":
+                    case Section.Name.CLOSED_CASE_DATA | "C":
                         return cls.ssp_closed_schemas
-                    case "Aggregate Data" | "G":
+                    case Section.Name.AGGREGATE_DATA | "G":
                         return cls.ssp_agg_schemas
-                    case "Stratum Data" | "S":
+                    case Section.Name.STRATUM_DATA | "S":
                         return cls.ssp_strat_schemas
-            case "TRIBAL":
+            case Program.Code.TRIBAL:
                 match section:
-                    case "Active Case Data" | "A":
+                    case Section.Name.ACTIVE_CASE_DATA | "A":
                         return cls.tribal_active_schemas
-                    case "Closed Case Data" | "C":
+                    case Section.Name.CLOSED_CASE_DATA | "C":
                         return cls.tribal_closed_schemas
-                    case "Aggregate Data" | "G":
+                    case Section.Name.AGGREGATE_DATA | "G":
                         return cls.tribal_agg_schemas
-                    case "Stratum Data" | "S":
+                    case Section.Name.STRATUM_DATA | "S":
                         return cls.tribal_strat_schemas
-            case "FRA":
+            case Program.Code.FRA:
                 match section:
-                    case "Work Outcomes of TANF Exiters":
+                    case Section.Name.FRA_WORK_OUTCOMES:
                         return cls.fra_work_outcomes_tanf_exiters
-                    case "Secondary School Attainment":
+                    case Section.Name.FRA_SECONDARY_SCHOOL_ATTAINMENT:
                         return {}
-                    case "Supplemental Work Outcomes":
+                    case Section.Name.FRA_SUPPLEMENTAL_WORK_OUTCOMES:
                         return {}

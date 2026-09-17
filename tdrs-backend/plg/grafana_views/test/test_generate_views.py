@@ -4,6 +4,7 @@ import pytest
 from django.db import connection
 
 from plg.grafana_views.generate_views import render_query
+from tdpservice.data_files.models import Program, Section
 from tdpservice.data_files.test.factories import DataFileFactory
 
 
@@ -22,8 +23,8 @@ def test_generated_query_uses_canonical_values_for_latest_data_file():
         stt=old_data_file.stt,
         user=old_data_file.user,
         version=2,
-        program_type="SSP",
-        section="Closed Case Data",
+        program_type=Program.Code.SSP,
+        section=Section.Name.CLOSED_CASE_DATA,
     )
 
     with connection.cursor() as cursor:

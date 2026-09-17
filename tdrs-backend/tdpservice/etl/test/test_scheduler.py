@@ -4,6 +4,7 @@ from datetime import date
 
 import pytest
 
+from tdpservice.data_files.models import Program
 from tdpservice.etl.models import ETLPipelineRun
 from tdpservice.etl.scheduler import (
     fiscal_year_for_date,
@@ -37,7 +38,7 @@ def test_schedule_statistical_weights_run_is_idempotent_for_month():
     assert pipeline_run.trigger_source == ETLPipelineRun.TriggerSource.SCHEDULED
     assert pipeline_run.parameters == {
         "fiscal_year": 2026,
-        "program": "TAN",
+        "program": Program.Code.TANF,
     }
     assert pipeline_run.node_runs.count() == 7
 
@@ -50,14 +51,14 @@ def test_schedule_statistical_weights_runs_creates_one_run_per_program():
     pipeline_runs = schedule_statistical_weights_runs(date(2026, 6, 1))
 
     assert [run.parameters["program"] for run in pipeline_runs] == [
-        "TAN",
-        "SSP",
-        "TRIBAL",
+        Program.Code.TANF,
+        Program.Code.SSP,
+        Program.Code.TRIBAL,
     ]
     assert {run.output_scope["program"] for run in pipeline_runs} == {
-        "TAN",
-        "SSP",
-        "TRIBAL",
+        Program.Code.TANF,
+        Program.Code.SSP,
+        Program.Code.TRIBAL,
     }
 
     assert schedule_statistical_weights_runs(date(2026, 6, 1)) == []

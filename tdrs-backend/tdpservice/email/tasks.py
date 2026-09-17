@@ -45,11 +45,11 @@ def _normalize_required_section(section: str) -> str:
 def _get_required_program_types(stt: STT) -> set[str]:
     """Return the TANF-family program types an STT must submit."""
     if stt.type == STT.EntityType.TRIBE:
-        return {Program.objects.get(code="TRIBAL").code}
+        return {Program.objects.get(code=Program.Code.TRIBAL).code}
 
-    program_types = {Program.objects.get(code="TAN").code}
+    program_types = {Program.objects.get(code=Program.Code.TANF).code}
     if stt.ssp:
-        program_types.add(Program.objects.get(code="SSP").code)
+        program_types.add(Program.objects.get(code=Program.Code.SSP).code)
 
     return program_types
 

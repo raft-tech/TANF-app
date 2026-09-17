@@ -31,6 +31,23 @@ def test_program_code_and_string_representation():
     assert str(program) == "Test Program"
 
 
+def test_program_and_section_choices_define_the_static_catalog():
+    """Program and section fields expose model-owned symbolic choices."""
+    assert set(Program.Code.values) == {"TAN", "SSP", "TRIBAL", "FRA"}
+    assert set(Section.Name.values) == {
+        "Active Case Data",
+        "Closed Case Data",
+        "Aggregate Data",
+        "Stratum Data",
+        "Work Outcomes of TANF Exiters",
+        "Secondary School Attainment",
+        "Supplemental Work Outcomes",
+    }
+    assert DataFile._meta.get_field("section").remote_field.model is Section
+    assert Program._meta.get_field("code").choices == Program.Code.choices
+    assert Section._meta.get_field("name").choices == Section.Name.choices
+
+
 @pytest.mark.django_db
 def test_program_code_is_unique():
     """Program codes uniquely identify reporting programs."""
@@ -96,11 +113,11 @@ def test_data_file_has_no_legacy_classification_fields():
 @pytest.mark.parametrize(
     "program_type,section_name,is_program_audit",
     [
-        ("TAN", "Active Case Data", False),
-        ("SSP", "Closed Case Data", False),
-        ("TRIBAL", "Aggregate Data", False),
-        ("FRA", "Work Outcomes of TANF Exiters", False),
-        ("TAN", "Active Case Data", True),
+        (Program.Code.TANF, Section.Name.ACTIVE_CASE_DATA, False),
+        (Program.Code.SSP, Section.Name.CLOSED_CASE_DATA, False),
+        (Program.Code.TRIBAL, Section.Name.AGGREGATE_DATA, False),
+        (Program.Code.FRA, Section.Name.FRA_WORK_OUTCOMES, False),
+        (Program.Code.TANF, Section.Name.ACTIVE_CASE_DATA, True),
     ],
 )
 def test_data_file_factory_resolves_canonical_section(
@@ -257,22 +274,22 @@ def test_data_files_filename_is_expected(user):
     "program_type, filenames, expected_filename",
     [
         (
-            "SSP",
+            Program.Code.SSP,
             {"Active Case Data": "section-based-ssp.txt"},
             "section-based-ssp.txt",
         ),
         (
-            "TRIBAL",
+            Program.Code.TRIBAL,
             {"Active Case Data": "section-based-tribal.txt"},
             "section-based-tribal.txt",
         ),
         (
-            "SSP",
+            Program.Code.SSP,
             {"SSP Active Case Data": "legacy-ssp.txt"},
             "legacy-ssp.txt",
         ),
         (
-            "TRIBAL",
+            Program.Code.TRIBAL,
             {"Tribal Active Case Data": "legacy-tribal.txt"},
             "legacy-tribal.txt",
         ),

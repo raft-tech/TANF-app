@@ -13,7 +13,7 @@ from celery import current_app as celery_app
 from celery.exceptions import TimeoutError as CeleryTimeoutError
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFileStateTransition, Section
+from tdpservice.data_files.models import DataFileStateTransition, Program, Section
 from tdpservice.data_files.submission_lifecycle import (
     begin_parse,
     complete_datafile_av_scan,
@@ -229,48 +229,48 @@ class TestGoParse:
         "program_type,section_name,header",
         [
             (
-                "TAN",
-                "Active Case Data",
+                Program.Code.TANF,
+                Section.Name.ACTIVE_CASE_DATA,
                 "HEADER20244A06   TAN1ED",
             ),
             (
-                "TAN",
-                "Aggregate Data",
+                Program.Code.TANF,
+                Section.Name.AGGREGATE_DATA,
                 "HEADER20244G06   TAN1ED",
             ),
             (
-                "TAN",
-                "Stratum Data",
+                Program.Code.TANF,
+                Section.Name.STRATUM_DATA,
                 "HEADER20244S06   TAN1ED",
             ),
             (
-                "SSP",
-                "Active Case Data",
+                Program.Code.SSP,
+                Section.Name.ACTIVE_CASE_DATA,
                 "HEADER20244A06   SSP1ED",
             ),
             (
-                "SSP",
-                "Aggregate Data",
+                Program.Code.SSP,
+                Section.Name.AGGREGATE_DATA,
                 "HEADER20244G06   SSP1ED",
             ),
             (
-                "SSP",
-                "Stratum Data",
+                Program.Code.SSP,
+                Section.Name.STRATUM_DATA,
                 "HEADER20244S06   SSP1ED",
             ),
             (
-                "TRIBAL",
-                "Active Case Data",
+                Program.Code.TRIBAL,
+                Section.Name.ACTIVE_CASE_DATA,
                 "HEADER20244A00123TAN1ED",
             ),
             (
-                "TRIBAL",
-                "Aggregate Data",
+                Program.Code.TRIBAL,
+                Section.Name.AGGREGATE_DATA,
                 "HEADER20244G00123TAN1ED",
             ),
             (
-                "TRIBAL",
-                "Stratum Data",
+                Program.Code.TRIBAL,
+                Section.Name.STRATUM_DATA,
                 "HEADER20244S00123TAN1ED",
             ),
         ],
@@ -302,10 +302,10 @@ class TestGoParse:
         datafile = ParsingFileFactory(
             year=2025,
             quarter="Q1",
-            section="Active Case Data",
-            program_type="TAN",
+            section=Section.Name.ACTIVE_CASE_DATA,
+            program_type=Program.Code.TANF,
             file__name="tanf-active-zero-records-bad-trailer-count.txt",
-            file__section="Active Case Data",
+            file__section=Section.Name.ACTIVE_CASE_DATA,
             file__data=(b"HEADER20244A06   TAN1ED\n" b"TRAILER0000001         "),
         )
 

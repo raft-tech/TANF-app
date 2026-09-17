@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from tdpservice.data_files.models import Program
 from tdpservice.etl.models import ETLPipelineRun, StatisticalWeight
 
 FISCAL_YEAR = 2024
@@ -40,7 +41,7 @@ def test_tanf_statistical_weights_pipeline_matches_expected_output(
             "pipeline_key": "statistical_weights",
             "parameters": {
                 "fiscal_year": FISCAL_YEAR,
-                "program": "TAN",
+                "program": Program.Code.TANF,
             },
         },
         format="json",

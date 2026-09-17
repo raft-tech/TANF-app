@@ -34,7 +34,15 @@ logger = logging.getLogger(__name__)
 class Program(models.Model):
     """A model representing a reporting program."""
 
-    code = models.CharField(max_length=32, unique=True)
+    class Code(models.TextChoices):
+        """Stable machine codes for reporting programs."""
+
+        TANF = "TAN", "TANF"
+        SSP = "SSP", "SSP"
+        TRIBAL = "TRIBAL", "Tribal TANF"
+        FRA = "FRA", "FRA"
+
+    code = models.CharField(max_length=32, choices=Code.choices, unique=True)
     slug = models.SlugField(max_length=50, unique=True)
     name = models.CharField(max_length=100, unique=True)
 
@@ -46,10 +54,30 @@ class Program(models.Model):
 class Section(models.Model):
     """A model representing a reporting section for a program."""
 
+    class Name(models.TextChoices):
+        """Stable names for reporting sections."""
+
+        ACTIVE_CASE_DATA = "Active Case Data", "Active Case Data"
+        CLOSED_CASE_DATA = "Closed Case Data", "Closed Case Data"
+        AGGREGATE_DATA = "Aggregate Data", "Aggregate Data"
+        STRATUM_DATA = "Stratum Data", "Stratum Data"
+        FRA_WORK_OUTCOMES = (
+            "Work Outcomes of TANF Exiters",
+            "Work Outcomes of TANF Exiters",
+        )
+        FRA_SECONDARY_SCHOOL_ATTAINMENT = (
+            "Secondary School Attainment",
+            "Secondary School Attainment",
+        )
+        FRA_SUPPLEMENTAL_WORK_OUTCOMES = (
+            "Supplemental Work Outcomes",
+            "Supplemental Work Outcomes",
+        )
+
     program = models.ForeignKey(
         Program, on_delete=models.CASCADE, related_name="sections"
     )
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, choices=Name.choices)
 
     class Meta:
         """Metadata."""
@@ -222,7 +250,11 @@ class DataFile(FileRecord):
             return filename
 
         program_code = self.program.code
-        program_type = program_code.title() if program_code == "TRIBAL" else program_code
+        program_type = (
+            program_code.title()
+            if program_code == Program.Code.TRIBAL
+            else program_code
+        )
         key = f"{program_type} {self.section.name}"
         return self.stt.filenames.get(key, None)
 

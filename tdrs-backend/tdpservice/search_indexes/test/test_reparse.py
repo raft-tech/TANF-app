@@ -11,7 +11,7 @@ from django.utils import timezone
 
 import pytest
 
-from tdpservice.data_files.models import ReparseFileMeta
+from tdpservice.data_files.models import Program, ReparseFileMeta
 from tdpservice.data_files.submission_lifecycle import (
     prepare_datafile_for_reparse,
     record_synthetic_import_completed,
@@ -84,7 +84,7 @@ def small_ssp_section1_datafile(stt_user, stt):
         stt_user,
         stt,
         "Active Case Data",
-        "SSP",
+        Program.Code.SSP,
     )
     small_ssp_section1_datafile.year = 2024
     small_ssp_section1_datafile.quarter = "Q1"
@@ -100,7 +100,7 @@ def tribal_section_1_file(stt_user, stt):
         stt_user,
         stt,
         "Active Case Data",
-        "TRIBAL",
+        Program.Code.TRIBAL,
     )
     tribal_section_1_file.year = 2022
     tribal_section_1_file.quarter = "Q1"

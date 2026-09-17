@@ -10,7 +10,7 @@ from django.utils import timezone
 import pytest
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.models import DataFile, Section
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.data_files.tasks import (
     get_current_fiscal_year,
@@ -30,7 +30,7 @@ def make_datafile(stt_user, stt, version, state=SubmissionState.UPLOADED, year=N
     """Create a test data file with default params."""
     return DataFileFactory.create(
         quarter=DataFile.Quarter.Q1,
-        section="Active Case Data",
+        section=Section.Name.ACTIVE_CASE_DATA,
         year=year or get_current_fiscal_year(),
         version=version,
         user=stt_user,

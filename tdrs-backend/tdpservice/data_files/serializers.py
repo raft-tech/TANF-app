@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.errors import ImmutabilityError
-from tdpservice.data_files.models import DataFile, ReparseFileMeta, Section
+from tdpservice.data_files.models import DataFile, Program, ReparseFileMeta, Section
 from tdpservice.data_files.submission_lifecycle import allowed_next_states
 from tdpservice.data_files.validators import validate_file_extension
 from tdpservice.parsers.models import ParserError
@@ -131,15 +131,15 @@ class DataFileSerializer(serializers.ModelSerializer):
 
         section_name = validated_data["section"]
         if ssp:
-            program_code = "SSP"
+            program_code = Program.Code.SSP
         elif validated_data.get("stt").type == "tribe":
-            program_code = "TRIBAL"
+            program_code = Program.Code.TRIBAL
         elif Section.objects.filter(
-            program__code="FRA", name=section_name
+            program__code=Program.Code.FRA, name=section_name
         ).exists():
-            program_code = "FRA"
+            program_code = Program.Code.FRA
         else:
-            program_code = "TAN"
+            program_code = Program.Code.TANF
 
         try:
             validated_data["section"] = Section.objects.get(
@@ -171,7 +171,7 @@ class DataFileSerializer(serializers.ModelSerializer):
             validate_file_extension(
                 file.name,
                 is_fra=Section.objects.filter(
-                    program__code="FRA", name=section
+                    program__code=Program.Code.FRA, name=section
                 ).exists(),
             )
 
@@ -179,7 +179,9 @@ class DataFileSerializer(serializers.ModelSerializer):
 
     def validate_section(self, section):
         """Validate the section field."""
-        if Section.objects.filter(program__code="FRA", name=section).exists():
+        if Section.objects.filter(
+            program__code=Program.Code.FRA, name=section
+        ).exists():
             user = self.context.get("user")
             if not user.has_fra_access and not user.is_ofa_sys_admin:
                 raise serializers.ValidationError("Section cannot be FRA")

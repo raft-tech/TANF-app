@@ -10,6 +10,7 @@ from django.db.models import Count, Q
 
 import xlsxwriter
 
+from tdpservice.data_files.models import Section
 from tdpservice.data_files.parser_error_choices import ParserErrorCategoryChoices
 from tdpservice.parsers.models import ParserError
 
@@ -25,11 +26,17 @@ class ErrorReportFactory:
             if isinstance(datafile.section, str)
             else datafile.section.name
         )
-        if "Active Case Data" in section_name or "Closed Case Data" in section_name:
+        if (
+            Section.Name.ACTIVE_CASE_DATA in section_name
+            or Section.Name.CLOSED_CASE_DATA in section_name
+        ):
             return ActiveClosedErrorReport(datafile, parser_error_model)
-        elif "Aggregate Data" in section_name or "Stratum Data" in section_name:
+        elif (
+            Section.Name.AGGREGATE_DATA in section_name
+            or Section.Name.STRATUM_DATA in section_name
+        ):
             return AggregateStratumErrorReport(datafile, parser_error_model)
-        elif section_name == "Work Outcomes of TANF Exiters":
+        elif section_name == Section.Name.FRA_WORK_OUTCOMES:
             return FRADataErrorReport(datafile, parser_error_model)
         else:
             raise ValueError(f"Unsupported section: {section_name}")

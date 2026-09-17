@@ -4,7 +4,7 @@ from django.test import Client
 
 import pytest
 
-from tdpservice.data_files.models import Section
+from tdpservice.data_files.models import Program, Section
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.stts.models import STT, Region
 
@@ -78,7 +78,7 @@ def test_user_with_fra_access(client, ofa_system_admin):
 
     datafile = DataFileFactory()
     datafile.section = Section.objects.get(
-        program__code="FRA", name="Work Outcomes of TANF Exiters"
+        program__code=Program.Code.FRA, name=Section.Name.FRA_WORK_OUTCOMES
     )
     datafile.save()
 
@@ -100,7 +100,7 @@ def test_user_without_fra_access(client, data_analyst):
 
     datafile = DataFileFactory()
     datafile.section = Section.objects.get(
-        program__code="FRA", name="Work Outcomes of TANF Exiters"
+        program__code=Program.Code.FRA, name=Section.Name.FRA_WORK_OUTCOMES
     )
     datafile.save()
 

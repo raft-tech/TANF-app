@@ -7,6 +7,7 @@ from django.db import IntegrityError, transaction
 
 import pytest
 
+from tdpservice.data_files.models import Program
 from tdpservice.etl.exceptions import ActivePipelineRunError, PipelineValidationError
 from tdpservice.etl.models import ETLArtifact, ETLNodeRun, ETLPipelineRun
 from tdpservice.etl.pipelines.base import (
@@ -109,7 +110,7 @@ def _definition(nodes, handlers=None):
 def _create_pipeline_run():
     """Create a statistical weights pipeline run for runner tests."""
     return PipelineRunFactory.for_pipeline_key("statistical_weights").create(
-        parameters={"fiscal_year": 2026, "program": "TAN"},
+        parameters={"fiscal_year": 2026, "program": Program.Code.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 
@@ -206,10 +207,10 @@ def test_statistical_weights_parameters_normalize_fiscal_year():
     definition = get_pipeline_definition("statistical_weights")
 
     assert definition.validate_parameters(
-        {"fiscal_year": "2026", "program": "TAN"}
+        {"fiscal_year": "2026", "program": Program.Code.TANF}
     ) == {
         "fiscal_year": 2026,
-        "program": "TAN",
+        "program": Program.Code.TANF,
     }
 
 
@@ -237,7 +238,7 @@ def test_validate_run_parameters_rejects_unknown_parameters():
         definition.validate_parameters(
             {
                 "fiscal_year": 2026,
-                "program": "TAN",
+                "program": Program.Code.TANF,
                 "raw_sql": "select 1",
             }
         )
@@ -247,7 +248,7 @@ def test_validate_run_parameters_rejects_unknown_parameters():
 def test_active_run_scope_key_constraint_allows_completed_reruns():
     """The database rejects duplicate active scopes and allows completed reruns."""
     definition = get_pipeline_definition("statistical_weights")
-    parameters = {"fiscal_year": 2026, "program": "TAN"}
+    parameters = {"fiscal_year": 2026, "program": Program.Code.TANF}
     scope = definition.output_scope(parameters)
     scope_key = output_scope_key(scope)
 
@@ -289,20 +290,20 @@ def test_create_pipeline_run_reports_active_scope():
     """Run creation converts active-scope conflicts into a domain error."""
     creator = PipelineRunFactory.for_pipeline_key("statistical_weights")
     first_run = creator.create(
-        parameters={"fiscal_year": 2026, "program": "TAN"},
+        parameters={"fiscal_year": 2026, "program": Program.Code.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 
     with pytest.raises(ActivePipelineRunError):
         creator.create(
-            parameters={"fiscal_year": 2026, "program": "TAN"},
+            parameters={"fiscal_year": 2026, "program": Program.Code.TANF},
             trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
         )
 
     first_run.status = ETLPipelineRun.Status.SUCCEEDED
     first_run.save(update_fields=["status", "updated_at"])
     second_run = creator.create(
-        parameters={"fiscal_year": 2026, "program": "TAN"},
+        parameters={"fiscal_year": 2026, "program": Program.Code.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 
@@ -315,17 +316,17 @@ def test_create_pipeline_run_scopes_active_runs_by_program():
     creator = PipelineRunFactory.for_pipeline_key("statistical_weights")
 
     tanf_run = creator.create(
-        parameters={"fiscal_year": 2026, "program": "TAN"},
+        parameters={"fiscal_year": 2026, "program": Program.Code.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
     ssp_run = creator.create(
-        parameters={"fiscal_year": 2026, "program": "SSP"},
+        parameters={"fiscal_year": 2026, "program": Program.Code.SSP},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
 
     assert tanf_run.output_scope_key != ssp_run.output_scope_key
-    assert tanf_run.output_scope["program"] == "TAN"
-    assert ssp_run.output_scope["program"] == "SSP"
+    assert tanf_run.output_scope["program"] == Program.Code.TANF
+    assert ssp_run.output_scope["program"] == Program.Code.SSP
 
 
 @pytest.mark.django_db

@@ -20,6 +20,7 @@ from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.error_reports import ErrorReportFactory
 from tdpservice.data_files.models import (
     DataFile,
+    Program,
     ReparseFileMeta,
     ShadowDataFile,
 )
@@ -278,7 +279,7 @@ def update_dfs(
 
     dfs.status = _get_summary_status(dfs, data_file, parser_error_model)
 
-    if _program_code(data_file) == "FRA":
+    if _program_code(data_file) == Program.Code.FRA:
         dfs.case_aggregates = fra_total_errors(
             data_file, parser_error_model=parser_error_model
         )
@@ -340,7 +341,7 @@ def _notify_data_analysts(data_file, dfs, file_meta=None, reparse_id=None):
         groups__name="Data Analyst",
     )
 
-    if _program_code(data_file) == "FRA":
+    if _program_code(data_file) == Program.Code.FRA:
         qs = qs.filter(user_permissions__codename="has_fra_access")
 
     recipients = qs.values_list("username", flat=True).distinct()
