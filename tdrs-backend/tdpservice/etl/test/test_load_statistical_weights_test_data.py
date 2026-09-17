@@ -74,10 +74,8 @@ def test_load_statistical_weights_test_data_creates_datafiles_and_rows(tmp_path,
     assert set(datafiles.values_list("state", flat=True)) == {
         SubmissionState.PARSE_COMPLETED
     }
-    assert not datafiles.filter(section_ref__isnull=True).exists()
-    assert set(datafiles.values_list("section_ref__program__code", flat=True)) == {
-        DataFile.ProgramType.TANF
-    }
+    assert not datafiles.filter(section__isnull=True).exists()
+    assert set(datafiles.values_list("section__program__code", flat=True)) == {"TAN"}
 
     t1_rows = list(TANF_T1.objects.order_by("RPT_MONTH_YEAR"))
     assert len(t1_rows) == 2
@@ -88,16 +86,16 @@ def test_load_statistical_weights_test_data_creates_datafiles_and_rows(tmp_path,
 
     source_ids = PIPELINE.nodes.validate_run_sources.snapshot_source_datafile_ids(
         2024,
-        DataFile.ProgramType.TANF,
+        "TAN",
     )
     assert set(source_ids[PIPELINE.source_keys["active"]]) == set(
-        DataFile.objects.filter(section=DataFile.Section.ACTIVE_CASE_DATA).values_list(
+        DataFile.objects.filter(section__name="Active Case Data").values_list(
             "id", flat=True
         )
     )
     assert PIPELINE.nodes.extract_active_family_counts.extract_rows(
         source_ids[PIPELINE.source_keys["active"]],
-        DataFile.ProgramType.TANF,
+        "TAN",
     ) == [
         {
             "stt_code": "55",

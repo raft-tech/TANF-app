@@ -6,7 +6,6 @@ import pytest
 from openpyxl import load_workbook
 
 from tdpservice.data_files.error_reports import ActiveClosedErrorReport
-from tdpservice.data_files.models import DataFile
 from tdpservice.data_files.parser_error_choices import ParserErrorCategoryChoices
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.parsers.test.factories import ParserErrorFactory
@@ -21,8 +20,8 @@ KNOWLEDGE_CENTER_URL = (
 def active_case_error_report_workbook():
     """Generate an Active Case Data error report workbook."""
     datafile = DataFileFactory(
-        section=DataFile.Section.ACTIVE_CASE_DATA,
-        program_type=DataFile.ProgramType.TANF,
+        section="Active Case Data",
+        program_type="TAN",
         year=2025,
         quarter="Q3",
     )

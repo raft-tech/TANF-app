@@ -31,23 +31,23 @@ INNER JOIN
     INNER JOIN (
         SELECT
             stt_id,                                                        -- Select stt_id
-            section_ref_id,                                                -- Select canonical section
+            section_id,                                                    -- Select canonical section
             year,                                                          -- Select fiscal_year
             quarter,                                                       -- Select fiscal_quarter
             MAX(version) AS version                                        -- Get the maximum version for each group
         FROM
             data_files_datafile                                            -- Subquery table
         GROUP BY
-            stt_id, section_ref_id, year, quarter                          -- Group by columns
+            stt_id, section_id, year, quarter                              -- Group by columns
     ) most_recent
         ON data_files.stt_id = most_recent.stt_id
-        AND data_files.section_ref_id = most_recent.section_ref_id
+        AND data_files.section_id = most_recent.section_id
         AND data_files.version = most_recent.version
         AND data_files.year = most_recent.year
         AND data_files.quarter = most_recent.quarter
     INNER JOIN
         data_files_section section                                         -- Join canonical section
-        ON data_files.section_ref_id = section.id
+        ON data_files.section_id = section.id
     INNER JOIN
         data_files_program program                                         -- Join canonical program
         ON section.program_id = program.id

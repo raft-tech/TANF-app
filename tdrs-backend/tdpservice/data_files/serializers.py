@@ -43,7 +43,8 @@ class DataFileSerializer(serializers.ModelSerializer):
     has_error = serializers.SerializerMethodField()
     summary = DataFileSummarySerializer(many=False, read_only=True)
     latest_reparse_file_meta = serializers.SerializerMethodField()
-    program_type = serializers.CharField(read_only=True)
+    section = serializers.CharField()
+    program_type = serializers.CharField(source="program.code", read_only=True)
     state_display = serializers.CharField(source="get_state_display", read_only=True)
     allowed_next_states = serializers.SerializerMethodField()
 
@@ -79,6 +80,12 @@ class DataFileSerializer(serializers.ModelSerializer):
         ]
 
         read_only_fields = ("version", "program_type", "state")
+
+    def to_representation(self, instance):
+        """Project the canonical Section relationship to its API string."""
+        representation = super().to_representation(instance)
+        representation["section"] = instance.section.name
+        return representation
 
     def get_has_error(self, obj):
         """Return whether the file has an error."""
@@ -122,19 +129,22 @@ class DataFileSerializer(serializers.ModelSerializer):
         """Create a new entry with a new version number."""
         ssp = validated_data.pop("ssp")
 
+        section_name = validated_data["section"]
         if ssp:
-            validated_data["program_type"] = DataFile.ProgramType.SSP
+            program_code = "SSP"
         elif validated_data.get("stt").type == "tribe":
-            validated_data["program_type"] = DataFile.ProgramType.TRIBAL
-        elif DataFile.Section.is_fra(validated_data["section"]):
-            validated_data["program_type"] = DataFile.ProgramType.FRA
+            program_code = "TRIBAL"
+        elif Section.objects.filter(
+            program__code="FRA", name=section_name
+        ).exists():
+            program_code = "FRA"
         else:
-            validated_data["program_type"] = DataFile.ProgramType.TANF
+            program_code = "TAN"
 
         try:
-            validated_data["section_ref"] = Section.from_legacy_values(
-                validated_data["program_type"],
-                validated_data["section"],
+            validated_data["section"] = Section.objects.get(
+                program__code=program_code,
+                name=section_name,
             )
         except Section.DoesNotExist as error:
             raise serializers.ValidationError(
@@ -158,13 +168,18 @@ class DataFileSerializer(serializers.ModelSerializer):
         section = data["section"] if "section" in data else None
 
         if file and section:
-            validate_file_extension(file.name, is_fra=DataFile.Section.is_fra(section))
+            validate_file_extension(
+                file.name,
+                is_fra=Section.objects.filter(
+                    program__code="FRA", name=section
+                ).exists(),
+            )
 
         return data
 
     def validate_section(self, section):
         """Validate the section field."""
-        if DataFile.Section.is_fra(section):
+        if Section.objects.filter(program__code="FRA", name=section).exists():
             user = self.context.get("user")
             if not user.has_fra_access and not user.is_ofa_sys_admin:
                 raise serializers.ValidationError("Section cannot be FRA")

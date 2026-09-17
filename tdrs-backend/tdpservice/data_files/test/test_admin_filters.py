@@ -140,8 +140,8 @@ def test_version_filter_returns_latest_versions():
         "stt": stt,
         "year": 2022,
         "quarter": "Q1",
-        "program_type": DataFile.ProgramType.TANF,
-        "section": DataFile.Section.ACTIVE_CASE_DATA,
+        "program_type": "TAN",
+        "section": "Active Case Data",
         "is_program_audit": False,
     }
     old_version = DataFileFactory(version=1, **base_kwargs)
@@ -151,8 +151,8 @@ def test_version_filter_returns_latest_versions():
         stt=stt,
         year=2022,
         quarter="Q2",
-        program_type=DataFile.ProgramType.TANF,
-        section=DataFile.Section.ACTIVE_CASE_DATA,
+        program_type="TAN",
+        section="Active Case Data",
         is_program_audit=False,
     )
 

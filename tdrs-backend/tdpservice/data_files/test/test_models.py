@@ -1,7 +1,9 @@
 """Module testing for data file model."""
 
 import pytest
+from django.core.exceptions import FieldDoesNotExist
 from django.db import IntegrityError, transaction
+from django.db.models.deletion import PROTECT, ProtectedError
 
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import (
@@ -11,7 +13,7 @@ from tdpservice.data_files.models import (
     ShadowDataFile,
     create_or_update_shadow_data_file,
 )
-from tdpservice.data_files.test.factories import DataFileFactory
+from tdpservice.data_files.test.factories import DataFileFactory, canonical_section_for
 from tdpservice.stts.models import STT
 
 
@@ -58,72 +60,87 @@ def test_section_name_is_unique_per_program():
 
 
 @pytest.mark.django_db
-def test_data_file_program_comes_from_section_ref(data_file_instance):
+def test_data_file_program_comes_from_section(data_file_instance):
     """Data files expose the program associated with their canonical section."""
     program = _create_program()
     section = Section.objects.create(program=program, name="Active Case Data")
-    data_file_instance.section_ref = section
-    data_file_instance.save(update_fields=["section_ref"])
+    data_file_instance.section = section
+    data_file_instance.save(update_fields=["section"])
     data_file_instance.refresh_from_db()
 
     assert data_file_instance.program == program
 
 
 @pytest.mark.django_db
-def test_data_file_program_is_none_without_section_ref(data_file_instance):
-    """Data files without a canonical section do not expose a program."""
-    data_file_instance.section_ref = None
+def test_data_file_section_is_required_and_protected(data_file_instance):
+    """Every data file retains its canonical section."""
+    field = DataFile._meta.get_field("section")
 
-    assert data_file_instance.section_ref is None
-    assert data_file_instance.program is None
+    assert field.null is False
+    assert field.blank is False
+    assert field.remote_field.on_delete is PROTECT
+    with pytest.raises(ProtectedError):
+        data_file_instance.section.delete()
+
+
+def test_data_file_has_no_legacy_classification_fields():
+    """Verify DataFile exposes only its canonical section and derived program."""
+    assert not hasattr(DataFile, "ProgramType")
+    assert not hasattr(DataFile, "Section")
+    for field_name in ("program_type", "section_ref"):
+        with pytest.raises(FieldDoesNotExist):
+            DataFile._meta.get_field(field_name)
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "program_type,section_name,is_program_audit",
     [
-        (DataFile.ProgramType.TANF, DataFile.Section.ACTIVE_CASE_DATA, False),
-        (DataFile.ProgramType.SSP, DataFile.Section.CLOSED_CASE_DATA, False),
-        (DataFile.ProgramType.TRIBAL, DataFile.Section.AGGREGATE_DATA, False),
-        (
-            DataFile.ProgramType.FRA,
-            DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
-            False,
-        ),
-        (DataFile.ProgramType.TANF, DataFile.Section.ACTIVE_CASE_DATA, True),
+        ("TAN", "Active Case Data", False),
+        ("SSP", "Closed Case Data", False),
+        ("TRIBAL", "Aggregate Data", False),
+        ("FRA", "Work Outcomes of TANF Exiters", False),
+        ("TAN", "Active Case Data", True),
     ],
 )
-def test_new_data_file_resolves_section_ref(
+def test_data_file_factory_resolves_canonical_section(
     program_type, section_name, is_program_audit
 ):
-    """Normal ORM writes resolve canonical sections without changing legacy data."""
+    """The factory resolves convenient scalar inputs to canonical sections."""
     data_file = DataFileFactory.create(
         program_type=program_type,
         section=section_name,
         is_program_audit=is_program_audit,
     )
 
-    assert data_file.section_ref.program.code == program_type
-    assert data_file.section_ref.name == section_name
-    assert data_file.program_type == program_type
-    assert data_file.section == section_name
+    assert data_file.program.code == program_type
+    assert data_file.section.name == section_name
     assert data_file.is_program_audit is is_program_audit
+
+
+@pytest.mark.django_db
+def test_data_file_uniqueness_uses_canonical_section(data_file_instance):
+    """A canonical section identifies the classification in the file key."""
+    with pytest.raises(IntegrityError), transaction.atomic():
+        DataFileFactory.create(
+            section=data_file_instance.section,
+            stt=data_file_instance.stt,
+            year=data_file_instance.year,
+            quarter=data_file_instance.quarter,
+            version=data_file_instance.version,
+            is_program_audit=data_file_instance.is_program_audit,
+        )
 
 
 @pytest.mark.django_db
 def test_shadow_data_file_projects_scalar_canonical_values():
     """Shadow rows store canonical classifications as unrestricted strings."""
     data_file = DataFileFactory.create()
-    DataFile.objects.filter(pk=data_file.pk).update(
-        program_type=DataFile.ProgramType.SSP,
-        section=DataFile.Section.CLOSED_CASE_DATA,
-    )
-    data_file.refresh_from_db()
 
     shadow_data_file = create_or_update_shadow_data_file(data_file)
 
     assert shadow_data_file.program_type == data_file.program.code == "TAN"
-    assert shadow_data_file.section == data_file.section_ref.name == "Active Case Data"
+    assert shadow_data_file.section == data_file.section.name == "Active Case Data"
     assert ShadowDataFile._meta.get_field("program_type").choices is None
     assert ShadowDataFile._meta.get_field("section").choices is None
 
@@ -136,7 +153,6 @@ def test_create_new_data_file_version(data_file_instance):
             "year": data_file_instance.year,
             "quarter": data_file_instance.quarter,
             "section": data_file_instance.section,
-            "program_type": data_file_instance.program_type,
             "stt": data_file_instance.stt,
             "original_filename": data_file_instance.original_filename,
             "slug": data_file_instance.slug,
@@ -146,8 +162,8 @@ def test_create_new_data_file_version(data_file_instance):
         }
     )
     assert new_version.version == data_file_instance.version + 1
-    assert new_version.section_ref.program.code == data_file_instance.program_type
-    assert new_version.section_ref.name == data_file_instance.section
+    assert new_version.program == data_file_instance.program
+    assert new_version.section == data_file_instance.section
 
 
 @pytest.mark.django_db
@@ -158,7 +174,6 @@ def test_find_latest_version(data_file_instance):
             "year": data_file_instance.year,
             "quarter": data_file_instance.quarter,
             "section": data_file_instance.section,
-            "program_type": data_file_instance.program_type,
             "stt": data_file_instance.stt,
             "original_filename": data_file_instance.original_filename,
             "slug": data_file_instance.slug,
@@ -172,7 +187,6 @@ def test_find_latest_version(data_file_instance):
         year=data_file_instance.year,
         quarter=data_file_instance.quarter,
         section=data_file_instance.section,
-        program_type=data_file_instance.program_type,
         stt=data_file_instance.stt.id,
         is_program_audit=data_file_instance.is_program_audit,
     )
@@ -187,7 +201,6 @@ def test_find_latest_version_number(data_file_instance):
             "year": data_file_instance.year,
             "quarter": data_file_instance.quarter,
             "section": data_file_instance.section,
-            "program_type": data_file_instance.program_type,
             "stt": data_file_instance.stt,
             "original_filename": data_file_instance.original_filename,
             "slug": data_file_instance.slug,
@@ -201,7 +214,6 @@ def test_find_latest_version_number(data_file_instance):
         year=data_file_instance.year,
         quarter=data_file_instance.quarter,
         section=data_file_instance.section,
-        program_type=data_file_instance.program_type,
         stt=data_file_instance.stt.id,
         is_program_audit=data_file_instance.is_program_audit,
     )
@@ -216,7 +228,17 @@ def test_data_files_filename_is_expected(user):
     if all_stts.count == 0:
         raise Exception("There are no stts, the test is invalid.")
     for stt in all_stts.iterator():
-        for section in stt.filenames:
+        for section in Section.objects.select_related("program"):
+            expected_filename = stt.filenames.get(section.name)
+            if expected_filename is None:
+                program_name = (
+                    section.program.code.title()
+                    if section.program.code == "TRIBAL"
+                    else section.program.code
+                )
+                expected_filename = stt.filenames.get(f"{program_name} {section.name}")
+            if expected_filename is None:
+                continue
             new_data_file = DataFile.create_new_version(
                 {
                     "year": 2020,
@@ -227,7 +249,7 @@ def test_data_files_filename_is_expected(user):
                     "is_program_audit": False,
                 }
             )
-            assert new_data_file.filename == stt.filenames[section]
+            assert new_data_file.filename == expected_filename
 
 
 @pytest.mark.django_db
@@ -235,22 +257,22 @@ def test_data_files_filename_is_expected(user):
     "program_type, filenames, expected_filename",
     [
         (
-            DataFile.ProgramType.SSP,
+            "SSP",
             {"Active Case Data": "section-based-ssp.txt"},
             "section-based-ssp.txt",
         ),
         (
-            DataFile.ProgramType.TRIBAL,
+            "TRIBAL",
             {"Active Case Data": "section-based-tribal.txt"},
             "section-based-tribal.txt",
         ),
         (
-            DataFile.ProgramType.SSP,
+            "SSP",
             {"SSP Active Case Data": "legacy-ssp.txt"},
             "legacy-ssp.txt",
         ),
         (
-            DataFile.ProgramType.TRIBAL,
+            "TRIBAL",
             {"Tribal Active Case Data": "legacy-tribal.txt"},
             "legacy-tribal.txt",
         ),
@@ -268,8 +290,7 @@ def test_data_files_filename_prefers_section_key_with_legacy_fallback(
         {
             "year": 2020,
             "quarter": "Q1",
-            "section": "Active Case Data",
-            "program_type": program_type,
+            "section": canonical_section_for(program_type, "Active Case Data"),
             "user": user,
             "stt": stt,
             "is_program_audit": False,
@@ -300,8 +321,7 @@ def test_prog_type(base_data_file_data, data_analyst, stt, section, program_type
         {
             "year": base_data_file_data["year"],
             "quarter": base_data_file_data["quarter"],
-            "section": section,
-            "program_type": program_type,
+            "section": canonical_section_for(program_type, section),
             "stt": stt,
             "original_filename": base_data_file_data["original_filename"],
             "slug": base_data_file_data["slug"],
@@ -311,8 +331,8 @@ def test_prog_type(base_data_file_data, data_analyst, stt, section, program_type
         }
     )
 
-    assert df.section == section
-    assert df.program_type == program_type
+    assert df.section.name == section
+    assert df.program.code == program_type
 
 
 @pytest.mark.django_db
@@ -323,7 +343,6 @@ def test_fiscal_year(data_file_instance):
             "year": data_file_instance.year,
             "quarter": data_file_instance.quarter,
             "section": data_file_instance.section,
-            "program_type": data_file_instance.program_type,
             "stt": data_file_instance.stt,
             "original_filename": data_file_instance.original_filename,
             "slug": data_file_instance.slug,
@@ -350,7 +369,6 @@ def test_data_file_defaults_to_uploaded_submission_state(data_file_instance):
             "year": data_file_instance.year,
             "quarter": data_file_instance.quarter,
             "section": data_file_instance.section,
-            "program_type": data_file_instance.program_type,
             "stt": data_file_instance.stt,
             "original_filename": data_file_instance.original_filename,
             "slug": data_file_instance.slug,

@@ -18,6 +18,7 @@ from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import (
     DataFile,
     DataFileStateTransition,
+    Section,
     ShadowDataFile,
 )
 from tdpservice.data_files.serializers import DataFileSerializer
@@ -41,6 +42,10 @@ def test_lifecycle_fields_are_read_only_in_openapi_schema(api_client):
     assert properties["state"]["readOnly"] is True
     assert properties["state"]["enum"] == list(SubmissionState.values)
     assert properties["state_display"]["readOnly"] is True
+    assert properties["section"]["type"] == "string"
+    assert properties["program_type"]["type"] == "string"
+    assert "enum" not in properties["section"]
+    assert "enum" not in properties["program_type"]
     allowed_states_schema = properties["allowed_next_states"]
     assert allowed_states_schema["type"] == "array"
     assert allowed_states_schema["items"]["type"] == "string"
@@ -85,8 +90,8 @@ class DataFileAPITestBase:
             "fra.csv",
             stt_user,
             stt,
-            DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
-            DataFile.ProgramType.FRA,
+            "Work Outcomes of TANF Exiters",
+            "FRA",
         )
         test_datafile.year = 2024
         test_datafile.quarter = "Q2"
@@ -100,8 +105,8 @@ class DataFileAPITestBase:
             "fra.xlsx",
             stt_user,
             stt,
-            DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
-            DataFile.ProgramType.FRA,
+            "Work Outcomes of TANF Exiters",
+            "FRA",
         )
         test_datafile.year = 2024
         test_datafile.quarter = "Q2"
@@ -116,7 +121,7 @@ class DataFileAPITestBase:
             stt_user,
             stt,
             "Active Case Data",
-            DataFile.ProgramType.SSP,
+            "SSP",
         )
         df.year = 2024
         df.quarter = "Q1"
@@ -141,7 +146,7 @@ class DataFileAPITestBase:
         return DataFile.objects.filter(
             slug=data_file_data["slug"],
             year=data_file_data["year"],
-            section=data_file_data["section"],
+            section__name=data_file_data["section"],
             version=version,
             user=user,
         )
@@ -270,7 +275,7 @@ class DataFileAPITestBase:
         assert DataFile.objects.filter(
             slug=data_file_data["slug"],
             year=data_file_data["year"],
-            section=data_file_data["section"],
+            section__name=data_file_data["section"],
             version=version,
         ).exists()
 
@@ -534,8 +539,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         parser = ParserFactory.get_instance(
             datafile=datafile,
             dfs=dfs,
-            section=datafile.section,
-            program_type=datafile.program_type,
+            section=datafile.section.name,
+            program_type=datafile.program.code,
         )
         parser.parse_and_validate()
 
@@ -553,8 +558,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         parser = ParserFactory.get_instance(
             datafile=test_datafile,
             dfs=dfs,
-            section=test_datafile.section,
-            program_type=test_datafile.program_type,
+            section=test_datafile.section.name,
+            program_type=test_datafile.program.code,
         )
         parser.parse_and_validate()
 
@@ -572,8 +577,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         parser = ParserFactory.get_instance(
             datafile=test_ssp_datafile,
             dfs=dfs,
-            section=test_ssp_datafile.section,
-            program_type=test_ssp_datafile.program_type,
+            section=test_ssp_datafile.section.name,
+            program_type=test_ssp_datafile.program.code,
         )
         parser.parse_and_validate()
         response = self.download_error_report_file(api_client, test_ssp_datafile.id)
@@ -590,8 +595,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         parser = ParserFactory.get_instance(
             datafile=test_datafile,
             dfs=dfs,
-            section=test_datafile.section,
-            program_type=test_datafile.program_type,
+            section=test_datafile.section.name,
+            program_type=test_datafile.program.code,
         )
         parser.parse_and_validate()
 
@@ -648,8 +653,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         response = self.post_data_file(api_client, data_file_data)
         assert response.data["section"] == "Active Case Data"
         data_file = DataFile.objects.get(id=response.data["id"])
-        assert data_file.section_ref.program.code == DataFile.ProgramType.SSP
-        assert data_file.section_ref.name == response.data["section"]
+        assert data_file.program.code == "SSP"
+        assert data_file.section.name == response.data["section"]
 
     def test_data_file_data_upload_tribe(self, api_client, data_file_data, stt):
         """Test that when we upload a file for Tribe the section name is updated."""
@@ -658,8 +663,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         response = self.post_data_file(api_client, data_file_data)
         assert "Active Case Data" == response.data["section"]
         data_file = DataFile.objects.get(id=response.data["id"])
-        assert data_file.section_ref.program.code == DataFile.ProgramType.TRIBAL
-        assert data_file.section_ref.name == response.data["section"]
+        assert data_file.program.code == "TRIBAL"
+        assert data_file.section.name == response.data["section"]
         stt.type = ""
         stt.save()
 
@@ -674,8 +679,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         response = self.post_data_file(api_client, data_file_data)
         assert response.data["section"] == "Active Case Data"
         data_file = DataFile.objects.get(id=response.data["id"])
-        assert data_file.section_ref.program.code == DataFile.ProgramType.TANF
-        assert data_file.section_ref.name == response.data["section"]
+        assert data_file.program.code == "TAN"
+        assert data_file.section.name == response.data["section"]
 
     def test_data_files_data_upload_fra(self, api_client, csv_data_file, user):
         """FRA uploads reference their canonical FRA section."""
@@ -685,8 +690,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
 
         assert response.status_code == status.HTTP_201_CREATED
         data_file = DataFile.objects.get(id=response.data["id"])
-        assert data_file.section_ref.program.code == DataFile.ProgramType.FRA
-        assert data_file.section_ref.name == csv_data_file["section"]
+        assert data_file.program.code == "FRA"
+        assert data_file.section.name == csv_data_file["section"]
 
     def test_data_files_data_upload_rejects_cross_program_section(
         self, api_client, csv_data_file, user
@@ -780,8 +785,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
             assert response.data["is_program_audit"] is True
             assert response.status_code == status.HTTP_201_CREATED
             data_file = DataFile.objects.get(id=response.data["id"])
-            assert data_file.section_ref.program.code == DataFile.ProgramType.TANF
-            assert data_file.section_ref.name == response.data["section"]
+            assert data_file.program.code == "TAN"
+            assert data_file.section.name == response.data["section"]
         else:
             assert response.data == {
                 "detail": "This file was submitted for a reporting year not supported by this file type."
@@ -1139,6 +1144,7 @@ class TestDataFileAsOFARegionalStaff(DataFileAPITestBase):
 
 def multi_year_data_file_data(user, stt):
     """Return data file data that encompasses multiple years."""
+    section = Section.objects.get(program__code="TAN", name="Active Case Data")
     return [
         {
             "original_filename": "data_file.txt",
@@ -1146,8 +1152,7 @@ def multi_year_data_file_data(user, stt):
             "user": user,
             "stt": stt,
             "year": 2020,
-            "section": "Active Case Data",
-            "program_type": "TAN",
+            "section": section,
             "is_program_audit": False,
         },
         {
@@ -1156,8 +1161,7 @@ def multi_year_data_file_data(user, stt):
             "user": user,
             "stt": stt,
             "year": 2021,
-            "section": "Active Case Data",
-            "program_type": "TAN",
+            "section": section,
             "is_program_audit": False,
         },
         {
@@ -1166,8 +1170,7 @@ def multi_year_data_file_data(user, stt):
             "user": user,
             "stt": stt,
             "year": 2022,
-            "section": "Active Case Data",
-            "program_type": "TAN",
+            "section": section,
             "is_program_audit": False,
         },
     ]
@@ -1253,23 +1256,28 @@ def test_list_ofa_admin_data_file_years_no_self_stt(
     assert response.data == [2020, 2021, 2022]
 
 
-program_type_options = [i[0] for i in DataFile.ProgramType.choices]
+program_type_options = ["TAN", "SSP", "TRIBAL", "FRA"]
 year_options = [2021, 2022]
 quarter_options = [i[0] for i in DataFile.Quarter.choices]
 
-fra_section_options = DataFile.get_fra_section_list()
+fra_section_options = [
+    "Work Outcomes of TANF Exiters",
+    "Secondary School Attainment",
+    "Supplemental Work Outcomes",
+]
 tanf_section_options = [
-    i[0]
-    for i in DataFile.Section.choices
-    if not i[0] in DataFile.get_fra_section_list()
+    "Active Case Data",
+    "Closed Case Data",
+    "Aggregate Data",
+    "Stratum Data",
 ]
 
 
 def get_file_types(program_type):
     """Return the search api's `file_type`s for a given program."""
-    if program_type == DataFile.ProgramType.FRA.value:
+    if program_type == "FRA":
         return fra_section_options
-    elif program_type == DataFile.ProgramType.SSP.value:
+    elif program_type == "SSP":
         return ["ssp-moe"]
     return ["tanf"]
 
@@ -1302,17 +1310,17 @@ class TestDataFileQuerysetFiltering:
 
     def should_test_pia(self, program_type):
         """Return true if a file should be tested for program integrity audit."""
-        return program_type == DataFile.ProgramType.TANF.value
+        return program_type == "TAN"
 
     def get_section_options(self, program_type):
         """Return the allowed sections for a given program type."""
-        if program_type == DataFile.ProgramType.FRA.value:
+        if program_type == "FRA":
             return fra_section_options
         return tanf_section_options
 
     def get_location(self, program_type, stt, tribe_stt):
         """Return the submitting location for a given program type."""
-        if program_type == DataFile.ProgramType.TRIBAL.value:
+        if program_type == "TRIBAL":
             return tribe_stt
         return stt
 
@@ -1335,8 +1343,10 @@ class TestDataFileQuerysetFiltering:
                 "stt": location,
                 "year": year,
                 "quarter": quarter,
-                "section": section,
-                "program_type": program_type,
+                "section": Section.objects.get(
+                    program__code=program_type,
+                    name=section,
+                ),
                 "is_program_audit": pia,
             }
         )
@@ -1363,7 +1373,7 @@ class TestDataFileQuerysetFiltering:
         assert len(response_file_ids) == 1
         assert response_file_ids[0] in [f.id for f in non_pia_files[k]]
         for f in non_pia_files[k]:
-            assert f.program_type == DataFile.ProgramType.FRA.value
+            assert f.program.code == "FRA"
 
     def _assert_pia(self, k, pia_files, response_file_ids, section_options):
         assert len(response_file_ids) == len(section_options)
@@ -1448,7 +1458,7 @@ class TestDataFileQuerysetFiltering:
             f"stt={location.id}&year={year}&quarter={quarter}&file_type={file_type}",
         )
 
-        if program_type == DataFile.ProgramType.FRA.value:
+        if program_type == "FRA":
             self._assert_fra(k, non_pia_files, non_pia_file_ids)
         else:
             self._assert_tanf(k, non_pia_files, non_pia_file_ids, section_options)

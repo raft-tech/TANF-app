@@ -4,7 +4,6 @@ from unittest.mock import patch
 
 import pytest
 
-from tdpservice.data_files.models import DataFile
 from tdpservice.etl.models import (
     ETLArtifact,
     ETLPipelineRun,
@@ -36,7 +35,7 @@ def test_pipeline_run_create_requires_ofa_system_admin(api_client, digit_team):
             "pipeline_key": "statistical_weights",
             "parameters": {
                 "fiscal_year": 2026,
-                "program": DataFile.ProgramType.TANF,
+                "program": "TAN",
             },
         },
         format="json",
@@ -57,7 +56,7 @@ def test_pipeline_run_create_enqueues_approved_pipeline(api_client, ofa_system_a
                 "pipeline_key": "statistical_weights",
                 "parameters": {
                     "fiscal_year": "2026",
-                    "program": DataFile.ProgramType.TANF,
+                    "program": "TAN",
                 },
             },
             format="json",
@@ -67,7 +66,7 @@ def test_pipeline_run_create_enqueues_approved_pipeline(api_client, ofa_system_a
     assert response.data["pipeline_key"] == "statistical_weights"
     assert response.data["parameters"] == {
         "fiscal_year": 2026,
-        "program": DataFile.ProgramType.TANF,
+        "program": "TAN",
     }
     assert response.data["metadata"] == {}
     assert ETLPipelineRun.objects.count() == 1
@@ -78,7 +77,7 @@ def test_pipeline_run_create_enqueues_approved_pipeline(api_client, ofa_system_a
 def test_pipeline_run_detail_includes_final_output(api_client, digit_team):
     """Run detail exposes the final output relation for easy navigation."""
     pipeline_run = PipelineRunFactory.for_pipeline_key("statistical_weights").create(
-        parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
+        parameters={"fiscal_year": 2026, "program": "TAN"},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
     output = ETLArtifact.objects.create(
@@ -122,7 +121,7 @@ def test_pipeline_run_detail_includes_final_output(api_client, digit_team):
 
 @pytest.mark.django_db
 def test_pipeline_run_create_rejects_program_alias(api_client, ofa_system_admin):
-    """Pipeline run creation requires exact DataFile.ProgramType values."""
+    """Pipeline run creation requires exact supported program codes."""
     api_client.force_authenticate(user=ofa_system_admin)
 
     response = api_client.post(
@@ -144,7 +143,7 @@ def test_pipeline_run_create_rejects_active_duplicate(api_client, ofa_system_adm
     api_client.force_authenticate(user=ofa_system_admin)
     request_body = {
         "pipeline_key": "statistical_weights",
-        "parameters": {"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
+        "parameters": {"fiscal_year": 2026, "program": "TAN"},
     }
 
     with patch("tdpservice.etl.views.enqueue_pipeline_run"):

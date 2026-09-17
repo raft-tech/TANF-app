@@ -3,9 +3,6 @@
 from django.conf import settings
 from django.db import models
 
-from tdpservice.data_files.models import DataFile
-
-
 class ETLPipelineRun(models.Model):
     """One execution of one approved ETL pipeline."""
 
@@ -326,7 +323,7 @@ class StatisticalWeight(models.Model):
 
     fiscal_year = models.PositiveIntegerField()
     reporting_month = models.PositiveIntegerField()
-    program = models.CharField(max_length=16, choices=DataFile.ProgramType.choices)
+    program = models.CharField(max_length=16)
     section = models.CharField(max_length=16)
     stt_code = models.CharField(max_length=3)
     stratum = models.CharField(max_length=2)

@@ -4,24 +4,26 @@ import pytest
 from django.db import connection
 
 from plg.grafana_views.generate_views import render_query
-from tdpservice.data_files.models import DataFile
 from tdpservice.data_files.test.factories import DataFileFactory
 
 
 @pytest.mark.django_db
 def test_generated_query_uses_canonical_values_for_latest_data_file():
     """Generated views expose canonical strings from only the latest file."""
-    old_data_file = DataFileFactory.create(year=2026, version=1)
+    old_data_file = DataFileFactory.create(
+        year=2026,
+        version=1,
+        program_type="SSP",
+        section="Closed Case Data",
+    )
     latest_data_file = DataFileFactory.create(
         year=old_data_file.year,
         quarter=old_data_file.quarter,
         stt=old_data_file.stt,
         user=old_data_file.user,
         version=2,
-    )
-    DataFile.objects.filter(pk__in=[old_data_file.pk, latest_data_file.pk]).update(
-        program_type=DataFile.ProgramType.SSP,
-        section=DataFile.Section.CLOSED_CASE_DATA,
+        program_type="SSP",
+        section="Closed Case Data",
     )
 
     with connection.cursor() as cursor:
@@ -64,6 +66,6 @@ def test_generated_query_uses_canonical_values_for_latest_data_file():
     assert len(rows) == 1
     row = dict(zip(columns, rows[0]))
     assert row["record_value"] == "latest"
-    assert row["section"] == "Active Case Data"
-    assert row["program_type"] == "TAN"
+    assert row["section"] == "Closed Case Data"
+    assert row["program_type"] == "SSP"
     assert row["version"] == 2

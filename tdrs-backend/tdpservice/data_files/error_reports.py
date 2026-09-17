@@ -10,7 +10,6 @@ from django.db.models import Count, Q
 
 import xlsxwriter
 
-from tdpservice.data_files.models import DataFile
 from tdpservice.data_files.parser_error_choices import ParserErrorCategoryChoices
 from tdpservice.parsers.models import ParserError
 
@@ -21,19 +20,19 @@ class ErrorReportFactory:
     @staticmethod
     def get_error_report_generator(datafile, parser_error_model=ParserError):
         """Get error report generator."""
-        active = DataFile.Section.ACTIVE_CASE_DATA
-        closed = DataFile.Section.CLOSED_CASE_DATA
-        if active in datafile.section or closed in datafile.section:
+        section_name = (
+            datafile.section
+            if isinstance(datafile.section, str)
+            else datafile.section.name
+        )
+        if "Active Case Data" in section_name or "Closed Case Data" in section_name:
             return ActiveClosedErrorReport(datafile, parser_error_model)
-        elif (
-            DataFile.Section.AGGREGATE_DATA in datafile.section
-            or DataFile.Section.STRATUM_DATA in datafile.section
-        ):
+        elif "Aggregate Data" in section_name or "Stratum Data" in section_name:
             return AggregateStratumErrorReport(datafile, parser_error_model)
-        elif datafile.section == DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS:
+        elif section_name == "Work Outcomes of TANF Exiters":
             return FRADataErrorReport(datafile, parser_error_model)
         else:
-            raise ValueError(f"Unsupported section: {datafile.section}")
+            raise ValueError(f"Unsupported section: {section_name}")
 
 
 class ErrorReportBase(ABC):

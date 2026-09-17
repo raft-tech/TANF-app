@@ -36,9 +36,13 @@ def test_serializer_increment_create(data_file_data, other_data_file_data, user)
     data_file_2 = serializer_2.save()
 
     assert data_file_2.version == data_file_1.version + 1
-    assert data_file_1.section_ref.program.code == data_file_1.program_type
-    assert data_file_1.section_ref.name == data_file_1.section
-    assert data_file_2.section_ref == data_file_1.section_ref
+    assert data_file_1.program.code == "TAN"
+    assert data_file_1.section.name == data_file_data["section"]
+    assert data_file_2.section == data_file_1.section
+    assert serializer_1.data["program_type"] == "TAN"
+    assert serializer_1.data["section"] == data_file_data["section"]
+    assert isinstance(serializer_1.data["program_type"], str)
+    assert isinstance(serializer_1.data["section"], str)
 
 
 @pytest.mark.django_db

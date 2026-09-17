@@ -2,7 +2,6 @@
 
 import logging
 
-from tdpservice.data_files.models import DataFile
 from tdpservice.parsers import schema_defs
 
 logger = logging.getLogger(__name__)
@@ -74,25 +73,19 @@ class ProgramManager:
     def get_section(cls, program_type: str, section_abbrev: str):
         """Get full section name given the program type and section abbreviation used in the datafile."""
         match program_type:
-            case (
-                DataFile.ProgramType.TANF
-                | DataFile.ProgramType.SSP
-                | DataFile.ProgramType.TRIBAL
-            ):
+            case "TAN" | "SSP" | "TRIBAL":
                 match section_abbrev:
                     case "A":
-                        return DataFile.Section.ACTIVE_CASE_DATA
+                        return "Active Case Data"
                     case "C":
-                        return DataFile.Section.CLOSED_CASE_DATA
+                        return "Closed Case Data"
                     case "G":
-                        return DataFile.Section.AGGREGATE_DATA
+                        return "Aggregate Data"
                     case "S":
-                        return DataFile.Section.STRATUM_DATA
+                        return "Stratum Data"
 
     @classmethod
-    def get_schema(
-        cls, program_type: str, section: DataFile.Section | str, record_type: str
-    ):
+    def get_schema(cls, program_type: str, section: str, record_type: str):
         """Get specific schema."""
         schemas = cls.get_schemas(program_type, section)
         return schemas.get(record_type, None)
@@ -101,48 +94,48 @@ class ProgramManager:
     def get_schemas(
         cls,
         program_type: str,
-        section: DataFile.Section | str,
+        section: str,
         is_program_audit: bool = False,
     ):
         """Get all schemas for a program type and section."""
         match program_type:
-            case DataFile.ProgramType.TANF:
+            case "TAN":
                 match section:
-                    case DataFile.Section.ACTIVE_CASE_DATA | "A":
+                    case "Active Case Data" | "A":
                         if is_program_audit:
                             return cls.tan_active_audit_schemas
                         return cls.tan_active_schemas
-                    case DataFile.Section.CLOSED_CASE_DATA | "C":
+                    case "Closed Case Data" | "C":
                         return cls.tan_closed_schemas
-                    case DataFile.Section.AGGREGATE_DATA | "G":
+                    case "Aggregate Data" | "G":
                         return cls.tan_agg_schemas
-                    case DataFile.Section.STRATUM_DATA | "S":
+                    case "Stratum Data" | "S":
                         return cls.tan_strat_schemas
-            case DataFile.ProgramType.SSP:
+            case "SSP":
                 match section:
-                    case DataFile.Section.ACTIVE_CASE_DATA | "A":
+                    case "Active Case Data" | "A":
                         return cls.ssp_active_schemas
-                    case DataFile.Section.CLOSED_CASE_DATA | "C":
+                    case "Closed Case Data" | "C":
                         return cls.ssp_closed_schemas
-                    case DataFile.Section.AGGREGATE_DATA | "G":
+                    case "Aggregate Data" | "G":
                         return cls.ssp_agg_schemas
-                    case DataFile.Section.STRATUM_DATA | "S":
+                    case "Stratum Data" | "S":
                         return cls.ssp_strat_schemas
-            case DataFile.ProgramType.TRIBAL:
+            case "TRIBAL":
                 match section:
-                    case DataFile.Section.ACTIVE_CASE_DATA | "A":
+                    case "Active Case Data" | "A":
                         return cls.tribal_active_schemas
-                    case DataFile.Section.CLOSED_CASE_DATA | "C":
+                    case "Closed Case Data" | "C":
                         return cls.tribal_closed_schemas
-                    case DataFile.Section.AGGREGATE_DATA | "G":
+                    case "Aggregate Data" | "G":
                         return cls.tribal_agg_schemas
-                    case DataFile.Section.STRATUM_DATA | "S":
+                    case "Stratum Data" | "S":
                         return cls.tribal_strat_schemas
-            case DataFile.ProgramType.FRA:
+            case "FRA":
                 match section:
-                    case DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS:
+                    case "Work Outcomes of TANF Exiters":
                         return cls.fra_work_outcomes_tanf_exiters
-                    case DataFile.Section.FRA_SECONDRY_SCHOOL_ATTAINMENT:
+                    case "Secondary School Attainment":
                         return {}
-                    case DataFile.Section.FRA_SUPPLEMENT_WORK_OUTCOMES:
+                    case "Supplemental Work Outcomes":
                         return {}

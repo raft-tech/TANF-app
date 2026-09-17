@@ -13,7 +13,7 @@ from celery import current_app as celery_app
 from celery.exceptions import TimeoutError as CeleryTimeoutError
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile, DataFileStateTransition
+from tdpservice.data_files.models import DataFileStateTransition, Section
 from tdpservice.data_files.submission_lifecycle import (
     begin_parse,
     complete_datafile_av_scan,
@@ -229,48 +229,48 @@ class TestGoParse:
         "program_type,section_name,header",
         [
             (
-                DataFile.ProgramType.TANF,
-                DataFile.Section.ACTIVE_CASE_DATA,
+                "TAN",
+                "Active Case Data",
                 "HEADER20244A06   TAN1ED",
             ),
             (
-                DataFile.ProgramType.TANF,
-                DataFile.Section.AGGREGATE_DATA,
+                "TAN",
+                "Aggregate Data",
                 "HEADER20244G06   TAN1ED",
             ),
             (
-                DataFile.ProgramType.TANF,
-                DataFile.Section.STRATUM_DATA,
+                "TAN",
+                "Stratum Data",
                 "HEADER20244S06   TAN1ED",
             ),
             (
-                DataFile.ProgramType.SSP,
-                DataFile.Section.ACTIVE_CASE_DATA,
+                "SSP",
+                "Active Case Data",
                 "HEADER20244A06   SSP1ED",
             ),
             (
-                DataFile.ProgramType.SSP,
-                DataFile.Section.AGGREGATE_DATA,
+                "SSP",
+                "Aggregate Data",
                 "HEADER20244G06   SSP1ED",
             ),
             (
-                DataFile.ProgramType.SSP,
-                DataFile.Section.STRATUM_DATA,
+                "SSP",
+                "Stratum Data",
                 "HEADER20244S06   SSP1ED",
             ),
             (
-                DataFile.ProgramType.TRIBAL,
-                DataFile.Section.ACTIVE_CASE_DATA,
+                "TRIBAL",
+                "Active Case Data",
                 "HEADER20244A00123TAN1ED",
             ),
             (
-                DataFile.ProgramType.TRIBAL,
-                DataFile.Section.AGGREGATE_DATA,
+                "TRIBAL",
+                "Aggregate Data",
                 "HEADER20244G00123TAN1ED",
             ),
             (
-                DataFile.ProgramType.TRIBAL,
-                DataFile.Section.STRATUM_DATA,
+                "TRIBAL",
+                "Stratum Data",
                 "HEADER20244S00123TAN1ED",
             ),
         ],
@@ -302,10 +302,10 @@ class TestGoParse:
         datafile = ParsingFileFactory(
             year=2025,
             quarter="Q1",
-            section=DataFile.Section.ACTIVE_CASE_DATA,
-            program_type=DataFile.ProgramType.TANF,
+            section="Active Case Data",
+            program_type="TAN",
             file__name="tanf-active-zero-records-bad-trailer-count.txt",
-            file__section=DataFile.Section.ACTIVE_CASE_DATA,
+            file__section="Active Case Data",
             file__data=(b"HEADER20244A06   TAN1ED\n" b"TRAILER0000001         "),
         )
 
@@ -429,8 +429,9 @@ class TestGoParse:
         num_errors,
     ):
         """Test parsing when file metadata does not match the raw data layout."""
-        small_correct_file.program_type = program
-        small_correct_file.section = section
+        small_correct_file.section = Section.objects.get(
+            program__code=program, name=section
+        )
         small_correct_file.version = small_correct_file.id
         small_correct_file.save()
 
@@ -1056,7 +1057,9 @@ class TestGoParse:
         """Test that the case aggregates are set correctly."""
         small_correct_file.year = 2020
         small_correct_file.quarter = "Q3"
-        small_correct_file.section = "Active Case Data"
+        small_correct_file.section = Section.objects.get(
+            program__code="TAN", name="Active Case Data"
+        )
         small_correct_file.save()
         # this still needs to execute to create db objects to be queried
         parse_datafile(dfs, small_correct_file)

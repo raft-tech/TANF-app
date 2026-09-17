@@ -64,12 +64,6 @@ class Section(models.Model):
         """Return the section name."""
         return f"{self.program.name} - {self.name}"
 
-    @classmethod
-    def from_legacy_values(cls, program_code: str, section_name: str) -> "Section":
-        """Resolve a canonical section from legacy DataFile values."""
-        return cls.objects.get(program__code=program_code, name=section_name)
-
-
 def get_file_shasum(file: Union[File, StringIO]) -> str:
     """Derive the SHA256 checksum of a file."""
     _hash = sha256()
@@ -104,7 +98,7 @@ def get_file_shasum(file: Union[File, StringIO]) -> str:
 def get_s3_upload_path(instance, filename):
     """Produce a unique upload path for S3 files for a given STT and Quarter."""
     return os.path.join(
-        f"data_files/{instance.year}/{instance.quarter}/{instance.stt.id}/{instance.program_type}/{instance.section}/",
+        f"data_files/{instance.year}/{instance.quarter}/{instance.stt.id}/{instance.program.code}/{instance.section.name}/",
         filename,
     )
 
@@ -136,44 +130,6 @@ class ReparseFileMeta(models.Model):
 class DataFile(FileRecord):
     """Represents a version of a data file."""
 
-    class ProgramType(models.TextChoices):
-        """Enum for data file program type."""
-
-        TANF = "TAN"
-        SSP = "SSP"
-        TRIBAL = "TRIBAL"
-        FRA = "FRA"
-
-    class Section(models.TextChoices):
-        """Enum for data file section."""
-
-        ACTIVE_CASE_DATA = "Active Case Data"
-        CLOSED_CASE_DATA = "Closed Case Data"
-        AGGREGATE_DATA = "Aggregate Data"
-        STRATUM_DATA = "Stratum Data"
-
-        FRA_WORK_OUTCOME_TANF_EXITERS = "Work Outcomes of TANF Exiters"
-        FRA_SECONDRY_SCHOOL_ATTAINMENT = "Secondary School Attainment"
-        FRA_SUPPLEMENT_WORK_OUTCOMES = "Supplemental Work Outcomes"
-
-        @classmethod
-        def is_fra(cls, section: str) -> bool:
-            """Determine if the section is a FRA section."""
-            return section in [
-                cls.FRA_WORK_OUTCOME_TANF_EXITERS,
-                cls.FRA_SECONDRY_SCHOOL_ATTAINMENT,
-                cls.FRA_SUPPLEMENT_WORK_OUTCOMES,
-            ]
-
-    @staticmethod
-    def get_fra_section_list():
-        """Return FRA section list."""
-        return [
-            DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
-            DataFile.Section.FRA_SECONDRY_SCHOOL_ATTAINMENT,
-            DataFile.Section.FRA_SUPPLEMENT_WORK_OUTCOMES,
-        ]
-
     class Quarter(models.TextChoices):
         """Enum for data file Quarter."""
 
@@ -188,7 +144,6 @@ class DataFile(FileRecord):
         constraints = [
             models.UniqueConstraint(
                 fields=(
-                    "program_type",
                     "section",
                     "version",
                     "quarter",
@@ -210,18 +165,10 @@ class DataFile(FileRecord):
     )
     year = models.IntegerField()
 
-    program_type = models.CharField(
-        max_length=32, blank=False, null=False, choices=ProgramType.choices
-    )
-    section = models.CharField(
-        max_length=32, blank=False, null=False, choices=Section.choices
-    )
-    section_ref = models.ForeignKey(
+    section = models.ForeignKey(
         "data_files.Section",
         on_delete=models.PROTECT,
         related_name="data_files",
-        blank=True,
-        null=True,
     )
     is_program_audit = models.BooleanField(default=False)
 
@@ -265,23 +212,18 @@ class DataFile(FileRecord):
     @property
     def program(self):
         """Return the program associated with the canonical section."""
-        if self.section_ref_id is None:
-            return None
-        return self.section_ref.program
+        return self.section.program
 
     @property
     def filename(self):
         """Return the correct filename for this data file."""
-        filename = self.stt.filenames.get(self.section, None)
+        filename = self.stt.filenames.get(self.section.name, None)
         if filename is not None:
             return filename
 
-        program_type = (
-            self.program_type.title()
-            if self.program_type == DataFile.ProgramType.TRIBAL
-            else self.program_type
-        )
-        key = f"{program_type} {self.section}"
+        program_code = self.program.code
+        program_type = program_code.title() if program_code == "TRIBAL" else program_code
+        key = f"{program_type} {self.section.name}"
         return self.stt.filenames.get(key, None)
 
     @property
@@ -349,7 +291,6 @@ class DataFile(FileRecord):
                 year=data["year"],
                 quarter=data["quarter"],
                 section=data["section"],
-                program_type=data["program_type"],
                 stt=data["stt"],
                 is_program_audit=data["is_program_audit"],
             )
@@ -362,26 +303,21 @@ class DataFile(FileRecord):
         )
 
     @classmethod
-    def find_latest_version_number(
-        self, year, quarter, section, program_type, stt, is_program_audit
-    ):
+    def find_latest_version_number(self, year, quarter, section, stt, is_program_audit):
         """Locate the latest version number in a series of data files."""
         return self.objects.filter(
             stt=stt,
             year=year,
             quarter=quarter,
             section=section,
-            program_type=program_type,
             is_program_audit=is_program_audit,
         ).aggregate(Max("version"))["version__max"]
 
     @classmethod
-    def find_latest_version(
-        self, year, quarter, section, program_type, stt, is_program_audit
-    ):
+    def find_latest_version(self, year, quarter, section, stt, is_program_audit):
         """Locate the latest version of a data file."""
         version = self.find_latest_version_number(
-            year, quarter, section, program_type, stt, is_program_audit
+            year, quarter, section, stt, is_program_audit
         )
 
         return self.objects.filter(
@@ -389,23 +325,9 @@ class DataFile(FileRecord):
             year=year,
             quarter=quarter,
             section=section,
-            program_type=program_type,
             stt=stt,
             is_program_audit=is_program_audit,
         ).first()
-
-    def save(self, *args, **kwargs):
-        """Populate the canonical section when legacy values are available."""
-        if self.section_ref_id is None:
-            self.section_ref = Section.from_legacy_values(
-                self.program_type,
-                self.section,
-            )
-            update_fields = kwargs.get("update_fields")
-            if update_fields is not None:
-                kwargs["update_fields"] = set(update_fields) | {"section_ref"}
-
-        return super().save(*args, **kwargs)
 
     def __repr__(self):
         """Return a string representation of the model."""
@@ -494,7 +416,7 @@ ShadowDataFile = create_shadow_model(
             null=False,
         ),
     },
-    exclude_fields={"current_parse_token", "section_ref"},
+    exclude_fields={"current_parse_token", "section"},
 )
 
 
@@ -519,7 +441,7 @@ def create_or_update_shadow_data_file(data_file):
     defaults = {field: getattr(data_file, field) for field in fields}
     defaults.update(
         program_type=data_file.program.code,
-        section=data_file.section_ref.name,
+        section=data_file.section.name,
     )
 
     shadow_data_file, _ = ShadowDataFile.objects.update_or_create(

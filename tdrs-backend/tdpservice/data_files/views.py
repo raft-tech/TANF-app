@@ -251,8 +251,8 @@ class DataFileViewSet(ModelViewSet):
 
         logger.info(
             f"Preparing parse task: User META -> user: {request.user}, stt: {data_file.stt}. "
-            + f"Datafile META -> datafile: {data_file.id}, program type: {data_file.program_type}, "
-            + f"section: {data_file.section}, "
+            + f"Datafile META -> datafile: {data_file.id}, program type: {data_file.program.code}, "
+            + f"section: {data_file.section.name}, "
             + f"quarter {data_file.quarter}, year {data_file.year}."
         )
 
@@ -278,10 +278,12 @@ class DataFileViewSet(ModelViewSet):
         file_type = self.request.query_params.get("file_type", None)
 
         if file_type == DataFileViewSet.SSP_FILE_TYPE:
-            queryset = queryset.filter(program_type=DataFile.ProgramType.SSP)
-        elif DataFile.Section.is_fra(file_type):
+            queryset = queryset.filter(section__program__code="SSP")
+        elif queryset.filter(
+            section__program__code="FRA", section__name=file_type
+        ).exists():
             queryset = queryset.filter(
-                program_type=DataFile.ProgramType.FRA, section=file_type
+                section__program__code="FRA", section__name=file_type
             )
         else:
             pia_feature_flag_enabled, pia_feature_flag_config = get_feature_flag(
@@ -308,10 +310,7 @@ class DataFileViewSet(ModelViewSet):
                     )
 
             queryset = queryset.filter(
-                program_type__in=[
-                    DataFile.ProgramType.TANF,
-                    DataFile.ProgramType.TRIBAL,
-                ],
+                section__program__code__in=["TAN", "TRIBAL"],
                 is_program_audit=is_program_audit,
             )
 
