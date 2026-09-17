@@ -7,6 +7,7 @@ This directory contains the core parsing infrastructure for processing TANF, SSP
 - [Core Classes](#core-classes)
   - [ParsingService](#parsingservice)
   - [ParseResult](#parseresult)
+  - [ParseExecutionLog](#parseexecutionlog)
 - [Example Usage](#example-usage)
   - [1. Direct / Synchronous Execution](#1-direct--synchronous-execution)
   - [2. Celery Single Task Execution](#2-celery-single-task-execution)
@@ -34,10 +35,10 @@ The parsing architecture follows a single-responsibility model centered around `
         +---------------------+---------------------+
         |                     |                     |
         v                     v                     v
-+---------------+    +-----------------+    +---------------+
-| Preconditions |    |  ParserFactory  |    |  ParseResult  |
-|  Validation   |    | (TANF/SSP/FRA)  |    |  (Structured) |
-+---------------+    +-----------------+    +---------------+
++---------------+    +-----------------+    +-------------------+
+| Preconditions |    |  ParserFactory  |    | ParseExecutionLog |
+|  Validation   |    | (TANF/SSP/FRA)  |    |     (BaseLog)     |
++---------------+    +-----------------+    +-------------------+
 ```
 
 ---
@@ -47,7 +48,7 @@ The parsing architecture follows a single-responsibility model centered around `
 ### `ParsingService`
 Defined in [`tdpservice.parsers.service`](file:///tdrs-backend/tdpservice/parsers/service.py).
 
-`ParsingService` is responsible for fetching the `DataFile`, enforcing precondition invariants (valid initial status, file existence, parse ownership tokens), selecting and instantiating the appropriate parser via `ParserFactory`, executing the parse lifecycle, creating/updating `DataFileSummary`, logging errors, and returning a structured `ParseResult`.
+`ParsingService` is responsible for fetching the `DataFile`, enforcing precondition invariants (valid initial status, file existence, parse ownership tokens), selecting and instantiating the appropriate parser via `ParserFactory`, executing the parse lifecycle, creating/updating `DataFileSummary`, recording persistent execution audit logs via `ParseExecutionLog`, and returning a structured `ParseResult`.
 
 #### Constructor Arguments
 | Parameter | Type | Default | Description |
@@ -56,7 +57,7 @@ Defined in [`tdpservice.parsers.service`](file:///tdrs-backend/tdpservice/parser
 | `data_file` | `Optional[DataFile]` | `None` | Pre-fetched `DataFile` instance. |
 | `reparse_id` | `Optional[int]` | `None` | Optional `ReparseMeta` ID if running as part of a reparse workflow. |
 | `parse_token` | `Optional[Union[UUID, str]]` | `None` | Concurrency/ownership lock token (UUID). |
-| `event_id` | `Optional[Union[UUID, str]]` | `None` | Correlation ID for lifecycle audit trail (`DataFileStateTransition`). |
+| `event_id` | `Optional[Union[UUID, str]]` | `None` | Correlation ID for lifecycle audit trail (`DataFileStateTransition`, `ParseExecutionLog`). |
 
 #### Primary Methods
 - `run() -> ParseResult` (alias: `parse()`): Executes the complete parsing flow and returns the structured outcome.
@@ -78,6 +79,29 @@ Dataclass representing the structured outcome of a parsing operation.
 | `status` | `Optional[str]` | The final `DataFileSummary.Status` (e.g. `ACCEPTED`, `ACCEPTED_WITH_ERRORS`, `REJECTED`). |
 | `errors` | `list[ParserError]` | List of generated `ParserError` records associated with the file. |
 | `error_message` | `Optional[str]` | Failure explanation if `success` is `False`. |
+
+---
+
+### `ParseExecutionLog`
+Defined in [`tdpservice.parsers.models`](file:///tdrs-backend/tdpservice/parsers/models.py).
+
+`ParseExecutionLog` inherits from [`BaseLog`](file:///tdrs-backend/tdpservice/core/models.py) using Django multi-table inheritance. It records an immutable database audit log for each parser execution attempt against a `DataFile` (tracking execution duration, parser class used, final status, record counts, and errors).
+
+#### Attributes
+| Field | Type | Description |
+|---|---|---|
+| `content_object` | `GenericForeignKey` | The target `DataFile` or `ShadowDataFile` parsed. |
+| `event_id` | `UUID` | Correlation UUID for distributed trace/workflow. |
+| `event_type` | `str` | Always `"parse_execution"`. |
+| `reparse_meta_id` | `Optional[int]` | The associated `ReparseMeta` ID if execution was a reparse run. |
+| `parser_class` | `Optional[str]` | Name of parser class used (e.g., `ActiveSection1Parser`). |
+| `execution_duration_ms` | `int` | Execution time elapsed in milliseconds. |
+| `status` | `Optional[str]` | Outcome summary status (e.g., `Accepted`, `Rejected`). |
+| `total_records_processed` | `int` | Count of records processed during parsing. |
+| `total_errors_generated` | `int` | Count of `ParserError` records generated. |
+| `metadata` | `dict` | JSON metadata (section, program type, reparse ID, error details). |
+| `note` | `str` | Descriptive note or error message. |
+
 
 ---
 
