@@ -1,9 +1,3 @@
-<!-- membership = Project Iteration 5a8ecb5e (16 items); Sprint: Sep 2 - Sep 15, 2026.
-     Source: GitHub ProjectV2 field Iteration = 5a8ecb5e (past/completed).
-     Rolled-forward work now on CURRENT Iteration e89b255f is excluded from membership
-     lists (GitHub allows one Iteration per item) but named in Overview when still in flight.
-     Dual-run compare vs Action PR #6103. -->
-
 # Sprint Summary: Sep 02, 2026 - Sep 15, 2026
 
 ## Overview
