@@ -497,6 +497,38 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         self.assert_data_file_created(response)
         self.assert_data_file_exists(data_file_data, 1, user)
 
+    def test_upload_sets_frontend_upload_source_by_default(
+        self, api_client, data_file_data, user
+    ):
+        """Test standard session upload marks upload_source as Frontend."""
+        response = self.post_data_file(api_client, data_file_data)
+        self.assert_data_file_created(response)
+        data_file = DataFile.objects.get(pk=response.data["id"])
+        assert data_file.upload_source == DataFile.UploadSource.FRONTEND
+        assert response.data["upload_source"] == "Frontend"
+
+    def test_upload_sets_api_upload_source_when_bearer_authenticated(
+        self, api_client, data_file_data, user, monkeypatch
+    ):
+        """Test upload with bearer token attribution sets upload_source as API."""
+        from tdpservice.users import authentication
+
+        monkeypatch.setattr(
+            authentication,
+            "_verify_keycloak_bearer_token",
+            lambda token: {
+                "azp": "tdp-cli",
+                "email": user.username,
+                "stt_id": user.stt_id,
+            },
+        )
+        api_client.credentials(HTTP_AUTHORIZATION="Bearer fake-token")
+        response = self.post_data_file(api_client, data_file_data)
+        self.assert_data_file_created(response)
+        data_file = DataFile.objects.get(pk=response.data["id"])
+        assert data_file.upload_source == DataFile.UploadSource.API
+        assert response.data["upload_source"] == "API"
+
     def test_data_files_data_analyst_not_allowed(
         self, api_client, data_file_data, user
     ):
