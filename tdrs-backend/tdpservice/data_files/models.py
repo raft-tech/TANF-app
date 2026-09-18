@@ -182,6 +182,12 @@ class DataFile(FileRecord):
         Q3 = "Q3"
         Q4 = "Q4"
 
+    class UploadSource(models.TextChoices):
+        """Enum for data file upload source."""
+
+        API = "API", "API"
+        FRONTEND = "Frontend", "Frontend"
+
     class Meta:
         """Metadata."""
 
@@ -224,6 +230,12 @@ class DataFile(FileRecord):
         null=True,
     )
     is_program_audit = models.BooleanField(default=False)
+    upload_source = models.CharField(
+        max_length=16,
+        choices=UploadSource.choices,
+        default=UploadSource.FRONTEND,
+        verbose_name="Upload Source",
+    )
 
     version = models.IntegerField()
     state = models.CharField(

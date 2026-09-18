@@ -552,10 +552,12 @@ class ParsingService:
             )
 
             status = result.status or (self.dfs.status if self.dfs else None)
+            upload_source = getattr(data_file, "upload_source", None) or ParseExecutionLog.UploadSource.FRONTEND
 
             log = ParseExecutionLog.objects.create_for_object(
                 data_file,
                 reparse_meta_id=self.reparse_id,
+                upload_source=upload_source,
                 parser_class=parser_class,
                 execution_duration_ms=duration_ms,
                 status=status,
