@@ -2,12 +2,12 @@
 
 This directory contains the core parsing infrastructure for processing TANF, SSP, Tribal, and FRA data files submitted to TDP.
 
-## Table of Contents
+### Table of Contents
 - [Overview](#overview)
 - [Core Classes](#core-classes)
   - [ParsingService](#parsingservice)
   - [ParseResult](#parseresult)
-  - [ParseExecutionLog](#parseexecutionlog)
+- [Execution Metadata & State Transitions](#execution-metadata--state-transitions)
 - [Example Usage](#example-usage)
   - [1. Direct / Synchronous Execution](#1-direct--synchronous-execution)
   - [2. Celery Single Task Execution](#2-celery-single-task-execution)
@@ -32,13 +32,13 @@ The parsing architecture follows a single-responsibility model centered around `
                    |   ParsingService   |
                    +--------------------+
                               |
-        +---------------------+---------------------+
-        |                     |                     |
-        v                     v                     v
-+---------------+    +-----------------+    +-------------------+
-| Preconditions |    |  ParserFactory  |    | ParseExecutionLog |
-|  Validation   |    | (TANF/SSP/FRA)  |    |     (BaseLog)     |
-+---------------+    +-----------------+    +-------------------+
+         +--------------------+--------------------+
+         |                                         |
+         v                                         v
++-----------------+                      +-------------------+
+|  Preconditions  |                      |   ParserFactory   |
+|   Validation    |                      |  (TANF/SSP/FRA)   |
++-----------------+                      +-------------------+
 ```
 
 ---
@@ -48,7 +48,7 @@ The parsing architecture follows a single-responsibility model centered around `
 ### `ParsingService`
 Defined in [`tdpservice.parsers.service`](file:///tdrs-backend/tdpservice/parsers/service.py).
 
-`ParsingService` is responsible for fetching the `DataFile`, enforcing precondition invariants (valid initial status, file existence, parse ownership tokens), selecting and instantiating the appropriate parser via `ParserFactory`, executing the parse lifecycle, creating/updating `DataFileSummary`, recording persistent execution audit logs via `ParseExecutionLog`, and returning a structured `ParseResult`.
+`ParsingService` is responsible for fetching the `DataFile`, enforcing precondition invariants (valid initial status, file existence, parse ownership tokens), selecting and instantiating the appropriate parser via `ParserFactory`, executing the parse lifecycle, creating/updating `DataFileSummary`, updating the lifecycle state via `DataFileStateTransition` (with execution metrics appended to `metadata`), and returning a structured `ParseResult`.
 
 #### Constructor Arguments
 | Parameter | Type | Default | Description |
@@ -57,7 +57,7 @@ Defined in [`tdpservice.parsers.service`](file:///tdrs-backend/tdpservice/parser
 | `data_file` | `Optional[DataFile]` | `None` | Pre-fetched `DataFile` instance. |
 | `reparse_id` | `Optional[int]` | `None` | Optional `ReparseMeta` ID if running as part of a reparse workflow. |
 | `parse_token` | `Optional[Union[UUID, str]]` | `None` | Concurrency/ownership lock token (UUID). |
-| `event_id` | `Optional[Union[UUID, str]]` | `None` | Correlation ID for lifecycle audit trail (`DataFileStateTransition`, `ParseExecutionLog`). |
+| `event_id` | `Optional[Union[UUID, str]]` | `None` | Correlation ID for lifecycle audit trail (`DataFileStateTransition`). |
 
 #### Primary Methods
 - `run() -> ParseResult` (alias: `parse()`): Executes the complete parsing flow and returns the structured outcome.
@@ -82,26 +82,18 @@ Dataclass representing the structured outcome of a parsing operation.
 
 ---
 
-### `ParseExecutionLog`
-Defined in [`tdpservice.parsers.models`](file:///tdrs-backend/tdpservice/parsers/models.py).
+## Execution Metadata & State Transitions
 
-`ParseExecutionLog` inherits from [`BaseLog`](file:///tdrs-backend/tdpservice/core/models.py) using Django multi-table inheritance. It records an immutable database audit log for each parser execution attempt against a `DataFile` (tracking execution duration, parser class used, final status, record counts, and errors).
+Parse execution metrics are appended directly to the `metadata` JSON field on the terminal [`DataFileStateTransition`](file:///tdrs-backend/tdpservice/data_files/models.py) record (e.g. `COMPLETED` or `PARSE_FAILED`).
 
-#### Attributes
+### Transition Metadata Fields
 | Field | Type | Description |
 |---|---|---|
-| `content_object` | `GenericForeignKey` | The target `DataFile` or `ShadowDataFile` parsed. |
-| `event_id` | `UUID` | Correlation UUID for distributed trace/workflow. |
-| `event_type` | `str` | Always `"parse_execution"`. |
-| `upload_source` | `Optional[str]` | Upload origin (`"API"` vs `"Frontend"`). |
-| `reparse_meta_id` | `Optional[int]` | The associated `ReparseMeta` ID if execution was a reparse run. |
-| `parser_class` | `Optional[str]` | Name of parser class used (e.g., `ActiveSection1Parser`). |
-| `execution_duration_ms` | `int` | Execution time elapsed in milliseconds. |
-| `status` | `Optional[str]` | Outcome summary status (e.g., `Accepted`, `Rejected`). |
-| `total_records_processed` | `int` | Count of records processed during parsing. |
-| `total_errors_generated` | `int` | Count of `ParserError` records generated. |
-| `metadata` | `dict` | JSON metadata (section, program type, reparse ID, error details). |
-| `note` | `str` | Descriptive note or error message. |
+| `parser_class` | `str` | Name of parser class executed (e.g., `ActiveSection1Parser`). |
+| `execution_duration_ms` | `int` | Parse execution duration in milliseconds. |
+| `total_records_processed` | `int` | Total number of data records parsed from the file. |
+| `total_errors_generated` | `int` | Total count of parser error records generated during parsing. |
+| `error` | `Optional[str]` | Error message / traceback snippet if parsing failed. |
 
 
 ---

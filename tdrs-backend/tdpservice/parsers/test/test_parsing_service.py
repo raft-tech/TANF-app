@@ -11,7 +11,7 @@ from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import DataFile, DataFileStateTransition
 from tdpservice.data_files.submission_lifecycle import StaleParseOwnership
 from tdpservice.data_files.test.factories import DataFileFactory
-from tdpservice.parsers.models import DataFileSummary, ParseExecutionLog, ParserError
+from tdpservice.parsers.models import DataFileSummary, ParserError
 from tdpservice.parsers.parser_classes.tdr_parser import TanfDataReportParser
 from tdpservice.parsers.service import ParseResult, ParsingService
 from tdpservice.parsers.util import DecoderUnknownException
@@ -339,8 +339,10 @@ class TestParsingServiceExecution:
         assert result.data_file is None
         assert result.error_message is not None
 
-    def test_parse_records_execution_log_on_success(self, monkeypatch, data_analyst):
-        """Verify ParseExecutionLog is recorded on successful parse."""
+    def test_parse_records_execution_metadata_on_success(
+        self, monkeypatch, data_analyst
+    ):
+        """Verify execution metadata is recorded on the state transition on successful parse."""
         datafile = DataFileFactory(
             stt=data_analyst.stt, version=4, state=SubmissionState.VIRUS_SCAN_COMPLETED
         )
@@ -358,48 +360,19 @@ class TestParsingServiceExecution:
         result = ps.run()
 
         assert result.success is True
-        logs = ParseExecutionLog.objects.for_object(datafile)
-        assert logs.count() == 1
-        log = logs.first()
-        assert log.event_type == "parse_execution"
-        assert log.status == DataFileSummary.Status.ACCEPTED
-        assert log.upload_source == "Frontend"
-        assert log.parser_class == "DummyParser"
-        assert log.execution_duration_ms is not None
-        assert log.execution_duration_ms >= 0
-        assert log.total_records_processed == 0
-        assert log.total_errors_generated == 0
-        assert log.metadata.get("success") is True
+        transitions = DataFileStateTransition.objects.for_object(datafile)
+        last_transition = transitions.first()
+        assert last_transition is not None
+        assert last_transition.metadata.get("parser_class") == "DummyParser"
+        assert last_transition.metadata.get("execution_duration_ms") is not None
+        assert last_transition.metadata.get("execution_duration_ms") >= 0
+        assert last_transition.metadata.get("total_records_processed") == 0
+        assert last_transition.metadata.get("total_errors_generated") == 0
 
-    def test_parse_records_execution_log_with_api_upload_source(
+    def test_parse_records_execution_metadata_on_failure(
         self, monkeypatch, data_analyst
     ):
-        """Verify ParseExecutionLog records API upload source when datafile was uploaded via API."""
-        datafile = DataFileFactory(
-            stt=data_analyst.stt,
-            version=7,
-            state=SubmissionState.VIRUS_SCAN_COMPLETED,
-            upload_source=DataFile.UploadSource.API,
-        )
-        ensure_stt_filenames(datafile.stt)
-        setup_service_mocks(monkeypatch)
-
-        dummy_parser = DummyParser()
-        from tdpservice.parsers import service
-        monkeypatch.setattr(
-            service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
-        )
-        monkeypatch.setattr(service, "send_data_submitted_email", lambda *a, **k: None)
-
-        ps = ParsingService(data_file_id=datafile.id)
-        result = ps.run()
-
-        assert result.success is True
-        log = ParseExecutionLog.objects.for_object(datafile).first()
-        assert log.upload_source == "API"
-
-    def test_parse_records_execution_log_on_failure(self, monkeypatch, data_analyst):
-        """Verify ParseExecutionLog is recorded on parse failure."""
+        """Verify execution metadata is recorded on the state transition on parse failure."""
         datafile = DataFileFactory(
             stt=data_analyst.stt, version=5, state=SubmissionState.VIRUS_SCAN_COMPLETED
         )
@@ -416,36 +389,11 @@ class TestParsingServiceExecution:
         result = ps.run()
 
         assert result.success is False
-        logs = ParseExecutionLog.objects.for_object(datafile)
-        assert logs.count() == 1
-        log = logs.first()
-        assert log.event_type == "parse_execution"
-        assert "unexpected crash" in log.note
-        assert log.execution_duration_ms is not None
-        assert log.metadata.get("success") is False
-
-    def test_parse_execution_log_error_does_not_break_run(self, monkeypatch, data_analyst):
-        """Verify that an error while writing ParseExecutionLog does not affect ParseResult."""
-        datafile = DataFileFactory(
-            stt=data_analyst.stt, version=6, state=SubmissionState.VIRUS_SCAN_COMPLETED
-        )
-        ensure_stt_filenames(datafile.stt)
-        setup_service_mocks(monkeypatch)
-
-        dummy_parser = DummyParser()
-        from tdpservice.parsers import service
-        monkeypatch.setattr(
-            service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
-        )
-        monkeypatch.setattr(service, "send_data_submitted_email", lambda *a, **k: None)
-
-        def raise_db_error(*args, **kwargs):
-            raise DatabaseError("DB disk full")
-
-        monkeypatch.setattr(ParseExecutionLog.objects, "create_for_object", raise_db_error)
-
-        ps = ParsingService(data_file_id=datafile.id)
-        result = ps.run()
-
-        # ParseResult should still succeed and not raise DatabaseError out
-        assert result.success is True
+        transitions = DataFileStateTransition.objects.for_object(datafile)
+        last_transition = transitions.first()
+        assert last_transition is not None
+        assert last_transition.metadata.get("parser_class") == "DummyParser"
+        assert last_transition.metadata.get("execution_duration_ms") is not None
+        assert last_transition.metadata.get("execution_duration_ms") >= 0
+        assert last_transition.metadata.get("total_records_processed") == 0
+        assert last_transition.metadata.get("total_errors_generated") == 0
