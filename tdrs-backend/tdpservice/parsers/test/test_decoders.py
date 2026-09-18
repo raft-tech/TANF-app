@@ -104,3 +104,41 @@ class TestDecoderFactory:
             decoded_length += len(row)
         assert raw_length == len(small_correct_file.file)
         assert decoded_length != raw_length
+
+    @pytest.mark.django_db
+    def test_utf8_decoder_close(self, small_correct_file):
+        """Test that Utf8Decoder close and context manager close underlying file."""
+        decoder = DecoderFactory.get_instance(small_correct_file.file)
+        assert isinstance(decoder, Utf8Decoder)
+        decoder.close()
+        assert small_correct_file.file.closed is True
+
+        with DecoderFactory.get_instance(small_correct_file.file) as dec:
+            next(dec.decode())
+        assert small_correct_file.file.closed is True
+
+    @pytest.mark.django_db
+    def test_csv_decoder_close(self, fra_csv):
+        """Test that CsvDecoder close and context manager close and cleanup files."""
+        decoder = DecoderFactory.get_instance(fra_csv.file)
+        assert isinstance(decoder, CsvDecoder)
+        decoder.close()
+        assert fra_csv.file.closed is True
+        assert decoder.local_file.closed is True
+
+        with DecoderFactory.get_instance(fra_csv.file) as dec:
+            next(dec.decode())
+        assert fra_csv.file.closed is True
+        assert dec.local_file.closed is True
+
+    @pytest.mark.django_db
+    def test_xlsx_decoder_close(self, fra_xlsx):
+        """Test that XlsxDecoder close and context manager close workbook and raw file."""
+        decoder = DecoderFactory.get_instance(fra_xlsx.file)
+        assert isinstance(decoder, XlsxDecoder)
+        decoder.close()
+        assert fra_xlsx.file.closed is True
+
+        with DecoderFactory.get_instance(fra_xlsx.file) as dec:
+            next(dec.decode())
+        assert fra_xlsx.file.closed is True
