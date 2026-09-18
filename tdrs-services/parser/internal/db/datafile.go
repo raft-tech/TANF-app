@@ -74,7 +74,7 @@ const selectProductionDataFile = `
 	       data_file.s3_versioning_id, program.code, data_file.is_program_audit,
 	       data_file.state, data_file.state_changed_at
 	FROM data_files_datafile AS data_file
-	INNER JOIN data_files_section AS section ON section.id = data_file.section_ref_id
+	INNER JOIN data_files_section AS section ON section.id = data_file.section_id
 	INNER JOIN data_files_program AS program ON program.id = section.program_id
 	WHERE data_file.id = $1
 `

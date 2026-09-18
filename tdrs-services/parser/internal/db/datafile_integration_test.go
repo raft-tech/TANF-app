@@ -64,7 +64,7 @@ func stateTransitionTestPool(t *testing.T) (*pgxpool.Pool, context.Context) {
 			s3_versioning_id text, program_type text NOT NULL,
 			is_program_audit boolean NOT NULL, state text NOT NULL,
 			state_changed_at timestamptz NOT NULL DEFAULT NOW(),
-			section_ref_id integer REFERENCES data_files_section
+			section_id integer REFERENCES data_files_section
 		);
 		CREATE TABLE shadow_data_files_datafile (LIKE data_files_datafile INCLUDING ALL);
 		INSERT INTO data_files_program VALUES (1, 'TAN');
@@ -72,7 +72,7 @@ func stateTransitionTestPool(t *testing.T) (*pgxpool.Pool, context.Context) {
 		INSERT INTO data_files_datafile (
 			id, original_filename, slug, extension, quarter, year, section, version,
 			stt_id, user_id, created_at, program_type, is_program_audit, state,
-			section_ref_id
+			section_id
 		) VALUES (
 			42, 'data.txt', 'data-txt', 'txt', 'Q1', 2026, 'Legacy Section', 1,
 			1, '123e4567-e89b-12d3-a456-426614174000', NOW(), 'LEGACY', false,
