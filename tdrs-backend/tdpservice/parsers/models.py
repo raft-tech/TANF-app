@@ -11,7 +11,6 @@ from django.db.models import Case, Count, IntegerField, When
 
 from tdpservice.backends import DataFilesS3Storage
 from tdpservice.common.shadow_models import create_shadow_model
-from tdpservice.core.models import BaseLog
 from tdpservice.data_files.models import DataFile
 from tdpservice.data_files.parser_error_choices import ParserErrorCategoryChoices
 
@@ -210,78 +209,6 @@ class DataFileSummary(models.Model):
             return DataFileSummary.Status.PARTIALLY_ACCEPTED
         else:
             return DataFileSummary.Status.ACCEPTED_WITH_ERRORS
-
-
-class ParseExecutionLog(BaseLog):
-    """Persistent audit record for a DataFile parse execution run."""
-
-    EVENT_TYPE = "parse_execution"
-
-    class UploadSource(models.TextChoices):
-        """Enum for upload source."""
-
-        API = "API", "API"
-        FRONTEND = "Frontend", "Frontend"
-
-    reparse_meta_id = models.PositiveIntegerField(blank=True, null=True)
-    upload_source = models.CharField(
-        max_length=16,
-        choices=UploadSource.choices,
-        blank=True,
-        null=True,
-        verbose_name="Upload Source",
-    )
-    parser_class = models.CharField(max_length=128, blank=True, null=True)
-    execution_duration_ms = models.PositiveIntegerField(null=True, blank=True)
-    status = models.CharField(
-        max_length=32,
-        choices=DataFileSummary.Status.choices,
-        null=True,
-        blank=True,
-    )
-    total_records_processed = models.PositiveIntegerField(default=0)
-    total_errors_generated = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        """Metadata for ParseExecutionLog."""
-
-        default_permissions = ()
-        ordering = ["-created_at", "-id"]
-        indexes = [
-            models.Index(
-                fields=["reparse_meta_id"],
-                name="parsers_pel_reparse_idx",
-            ),
-            models.Index(
-                fields=["status"],
-                name="parsers_pel_status_idx",
-            ),
-            models.Index(
-                fields=["upload_source"],
-                name="parsers_pel_source_idx",
-            ),
-        ]
-
-    @property
-    def data_file_id(self):
-        """Return the associated DataFile id stored by the generic log relation."""
-        try:
-            return int(self.object_id)
-        except (TypeError, ValueError):
-            return self.object_id
-
-    def save(self, *args, **kwargs):
-        """Save the log with its default event type."""
-        if not self.event_type:
-            self.event_type = self.EVENT_TYPE
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        """Return string representation of the parse log."""
-        return (
-            f"ParseExecutionLog for DataFile {self.object_id} "
-            f"({self.status or 'INCOMPLETE'}) [{self.execution_duration_ms or 0}ms]"
-        )
 
 
 ShadowParserError = create_shadow_model(
