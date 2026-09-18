@@ -73,12 +73,13 @@ class DataFileSerializer(serializers.ModelSerializer):
             "latest_reparse_file_meta",
             "is_program_audit",
             "program_type",
+            "upload_source",
             "state",
             "state_display",
             "allowed_next_states",
         ]
 
-        read_only_fields = ("version", "program_type", "state")
+        read_only_fields = ("version", "program_type", "state", "upload_source")
 
     def get_has_error(self, obj):
         """Return whether the file has an error."""

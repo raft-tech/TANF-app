@@ -202,12 +202,26 @@ class DataFileViewSet(ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        attribution = getattr(request, "tdp_attribution", None)
+        if attribution and attribution.source == "api_client":
+            upload_source = DataFile.UploadSource.API
+        elif (
+            request.META.get("HTTP_AUTHORIZATION", "").lower().startswith("bearer ")
+            or getattr(request, "_keycloak_client_id", None)
+        ):
+            upload_source = DataFile.UploadSource.API
+        else:
+            upload_source = DataFile.UploadSource.FRONTEND
+
         uploaded_file = serializer.validated_data.get("file")
-        data_file = serializer.save(file=None)
+        data_file = serializer.save(file=None, upload_source=upload_source)
         event_id = uuid.uuid4()
 
         start_datafile_av_scan(
-            data_file, actor=request.user, source="api", event_id=event_id
+            data_file,
+            actor=request.user,
+            source=upload_source.lower(),
+            event_id=event_id,
         )
 
         scan_failure_response, scan_result = self._scan_uploaded_file(
@@ -221,7 +235,7 @@ class DataFileViewSet(ModelViewSet):
                 scan_result=scan_result,
                 note=scan_failure_response.data["detail"],
                 actor=request.user,
-                source="api",
+                source=upload_source.lower(),
                 event_id=event_id,
             )
             return scan_failure_response
@@ -231,7 +245,7 @@ class DataFileViewSet(ModelViewSet):
             scan_result=scan_result,
             note="file passed virus scan",
             actor=request.user,
-            source="api",
+            source=upload_source.lower(),
             event_id=event_id,
         )
 
