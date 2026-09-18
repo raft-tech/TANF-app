@@ -45,7 +45,6 @@ from tdpservice.parsers.error_generator import (
 from tdpservice.parsers.factory import ParserFactory
 from tdpservice.parsers.models import (
     DataFileSummary,
-    ParseExecutionLog,
     ParserError,
     ParserErrorCategoryChoices,
     ShadowDataFileSummary,
@@ -242,13 +241,16 @@ def set_error_report(dfs, error_report, parse_token=None):
         dfs.save()
 
 
-def _transition_parse_outcome(data_file, dfs, parse_token, reparse_id=None, event_id=None):
+def _transition_parse_outcome(
+    data_file, dfs, parse_token, reparse_id=None, event_id=None, extra_metadata=None
+):
     """Report a parse outcome to the lifecycle controller."""
     parse_context = {
         "section": data_file.section,
         "program_type": data_file.program_type,
         "parse_summary_status": dfs.status,
         "reparse_id": reparse_id,
+        **(extra_metadata or {}),
     }
 
     record_parse_outcome(
@@ -294,7 +296,13 @@ def _notify_data_analysts(data_file, dfs, file_meta=None, reparse_id=None):
 
 
 def _handle_parse_failure(
-    data_file, parse_token, note, reparse_id=None, event_id=None, actor="python_parser"
+    data_file,
+    parse_token,
+    note,
+    reparse_id=None,
+    event_id=None,
+    actor="python_parser",
+    extra_metadata=None,
 ):
     """Report a technical parser failure to the lifecycle controller."""
     return record_parse_failure(
@@ -309,6 +317,7 @@ def _handle_parse_failure(
             "program_type": data_file.program_type,
             "reparse_id": reparse_id,
             **({"parse_error": note} if actor == "go_parser" else {}),
+            **(extra_metadata or {}),
         },
     )
 
@@ -420,6 +429,7 @@ def _record_failed_parse(
     reparse_id=None,
     add_unexpected_error=False,
     event_id=None,
+    extra_metadata=None,
 ):
     """Best-effort failure artifacts, followed by the authoritative outcome."""
     try:
@@ -440,7 +450,14 @@ def _record_failed_parse(
             },
         )
     if data_file is not None and parse_token is not None:
-        return _handle_parse_failure(data_file, parse_token, note, reparse_id, event_id)
+        return _handle_parse_failure(
+            data_file,
+            parse_token,
+            note,
+            reparse_id=reparse_id,
+            event_id=event_id,
+            extra_metadata=extra_metadata,
+        )
     return False
 
 
@@ -515,66 +532,39 @@ class ParsingService:
         """Alias for run()."""
         return self.run()
 
-    def _record_execution_log(
+    def _calculate_total_records(self) -> int:
+        """Calculate total records processed from DataFileSummary case aggregates."""
+        total_records = 0
+        if self.dfs and self.dfs.case_aggregates and isinstance(self.dfs.case_aggregates, dict):
+            for month_data in self.dfs.case_aggregates.get("months", []):
+                accepted_no_err = month_data.get("accepted_without_errors")
+                accepted_err = month_data.get("accepted_with_errors")
+                if isinstance(accepted_no_err, int):
+                    total_records += accepted_no_err
+                if isinstance(accepted_err, int):
+                    total_records += accepted_err
+        return total_records
+
+    def _get_execution_metadata(
         self,
-        data_file: DataFile,
-        result: ParseResult,
         duration_ms: int,
         parser_class: Optional[str] = None,
-    ) -> Optional[ParseExecutionLog]:
-        """Record a ParseExecutionLog entry for this execution run."""
-        try:
-            total_records = 0
-            if self.dfs and self.dfs.case_aggregates and isinstance(self.dfs.case_aggregates, dict):
-                for month_data in self.dfs.case_aggregates.get("months", []):
-                    accepted_no_err = month_data.get("accepted_without_errors")
-                    accepted_err = month_data.get("accepted_with_errors")
-                    if isinstance(accepted_no_err, int):
-                        total_records += accepted_no_err
-                    if isinstance(accepted_err, int):
-                        total_records += accepted_err
-
+        data_file: Optional[DataFile] = None,
+    ) -> dict:
+        """Return execution metrics metadata dictionary to append to state transition."""
+        total_records = self._calculate_total_records()
+        total_errors = 0
+        if data_file is not None:
             total_errors = ParserError.objects.filter(
                 file=data_file, deprecated=False
             ).count()
 
-            metadata = {
-                "section": data_file.section,
-                "program_type": data_file.program_type,
-                "reparse_id": self.reparse_id,
-                "success": result.success,
-            }
-            if result.error_message:
-                metadata["error_message"] = result.error_message
-
-            note = result.error_message or (
-                "Parse completed successfully" if result.success else "Parse failed"
-            )
-
-            status = result.status or (self.dfs.status if self.dfs else None)
-            upload_source = getattr(data_file, "upload_source", None) or ParseExecutionLog.UploadSource.FRONTEND
-
-            log = ParseExecutionLog.objects.create_for_object(
-                data_file,
-                reparse_meta_id=self.reparse_id,
-                upload_source=upload_source,
-                parser_class=parser_class,
-                execution_duration_ms=duration_ms,
-                status=status,
-                total_records_processed=total_records,
-                total_errors_generated=total_errors,
-                event_id=self.event_id or uuid.uuid4(),
-                event_type=ParseExecutionLog.EVENT_TYPE,
-                note=note,
-                metadata=metadata,
-            )
-            return log
-        except Exception:
-            logger.exception(
-                "Failed to record parse execution log.",
-                extra={"data_file_id": self.data_file_id},
-            )
-            return None
+        return {
+            "parser_class": parser_class,
+            "execution_duration_ms": duration_ms,
+            "total_records_processed": total_records,
+            "total_errors_generated": total_errors,
+        }
 
     def run(self) -> ParseResult:
         """Execute parsing flow for the target DataFile and return a ParseResult."""
@@ -583,7 +573,6 @@ class ParsingService:
         stale_owner = False
         error_message = None
         parser_class_name = None
-        result = None
         start_time = time.monotonic()
 
         try:
@@ -616,7 +605,20 @@ class ParsingService:
             logger.info(f"Parsing finished for file -> {repr(data_file)}.")
 
             _finalize_parse(data_file, self.dfs, parse_token=self.parse_token)
-            _transition_parse_outcome(data_file, self.dfs, self.parse_token, self.reparse_id, self.event_id)
+            duration_ms = int((time.monotonic() - start_time) * 1000)
+            execution_meta = self._get_execution_metadata(
+                duration_ms=duration_ms,
+                parser_class=parser_class_name,
+                data_file=data_file,
+            )
+            _transition_parse_outcome(
+                data_file,
+                self.dfs,
+                self.parse_token,
+                self.reparse_id,
+                self.event_id,
+                extra_metadata=execution_meta,
+            )
 
             try:
                 _notify_data_analysts(data_file, self.dfs, self.file_meta, self.reparse_id)
@@ -629,7 +631,7 @@ class ParsingService:
                     },
                 )
 
-            result = ParseResult(
+            return ParseResult(
                 success=True,
                 data_file=data_file,
                 summary=self.dfs,
@@ -637,7 +639,6 @@ class ParsingService:
                 errors=list(data_file.parser_errors.all()) if data_file else [],
                 error_message=None,
             )
-            return result
 
         except StaleParseOwnership as exc:
             stale_owner = True
@@ -651,14 +652,13 @@ class ParsingService:
                     "reparse_id": self.reparse_id,
                 },
             )
-            result = ParseResult(
+            return ParseResult(
                 success=False,
                 data_file=data_file,
                 summary=self.dfs,
                 status=self.dfs.status if self.dfs else None,
                 error_message=error_message,
             )
-            return result
         except DecoderUnknownException as exc:
             reparse_success = False
             error_message = str(exc) or "decoder unknown exception"
@@ -671,6 +671,12 @@ class ParsingService:
                     "reparse_id": self.reparse_id,
                 },
             )
+            duration_ms = int((time.monotonic() - start_time) * 1000)
+            execution_meta = self._get_execution_metadata(
+                duration_ms=duration_ms,
+                parser_class=parser_class_name,
+                data_file=data_file,
+            )
             stale_owner = not _record_failed_parse(
                 data_file,
                 self.dfs,
@@ -678,15 +684,15 @@ class ParsingService:
                 "decoder unknown exception",
                 self.reparse_id,
                 event_id=self.event_id,
+                extra_metadata=execution_meta,
             )
-            result = ParseResult(
+            return ParseResult(
                 success=False,
                 data_file=data_file,
                 summary=self.dfs,
                 status=self.dfs.status if self.dfs else None,
                 error_message=error_message,
             )
-            return result
         except DatabaseError as e:
             reparse_success = False
             error_message = str(e) or "database error during parsing"
@@ -704,6 +710,12 @@ class ParsingService:
                     "reparse_id": self.reparse_id,
                 },
             )
+            duration_ms = int((time.monotonic() - start_time) * 1000)
+            execution_meta = self._get_execution_metadata(
+                duration_ms=duration_ms,
+                parser_class=parser_class_name,
+                data_file=data_file,
+            )
             stale_owner = not _record_failed_parse(
                 data_file,
                 self.dfs,
@@ -711,15 +723,15 @@ class ParsingService:
                 "database error during parsing",
                 self.reparse_id,
                 event_id=self.event_id,
+                extra_metadata=execution_meta,
             )
-            result = ParseResult(
+            return ParseResult(
                 success=False,
                 data_file=data_file,
                 summary=self.dfs,
                 status=self.dfs.status if self.dfs else None,
                 error_message=error_message,
             )
-            return result
         except Exception as e:
             reparse_success = False
             error_message = str(e) or "unexpected error during parsing"
@@ -729,14 +741,13 @@ class ParsingService:
                     "Exception during parse before ownership establishment: %s", e,
                     extra={"data_file_id": self.data_file_id},
                 )
-                result = ParseResult(
+                return ParseResult(
                     success=False,
                     data_file=data_file,
                     summary=self.dfs,
                     status=None,
                     error_message=error_message,
                 )
-                return result
 
             log_parser_exception(
                 data_file,
@@ -755,6 +766,12 @@ class ParsingService:
                     "reparse_id": self.reparse_id,
                 },
             )
+            duration_ms = int((time.monotonic() - start_time) * 1000)
+            execution_meta = self._get_execution_metadata(
+                duration_ms=duration_ms,
+                parser_class=parser_class_name,
+                data_file=data_file,
+            )
             stale_owner = not _record_failed_parse(
                 data_file,
                 self.dfs,
@@ -763,15 +780,15 @@ class ParsingService:
                 self.reparse_id,
                 add_unexpected_error=True,
                 event_id=self.event_id,
+                extra_metadata=execution_meta,
             )
-            result = ParseResult(
+            return ParseResult(
                 success=False,
                 data_file=data_file,
                 summary=self.dfs,
                 status=self.dfs.status if self.dfs else None,
                 error_message=error_message,
             )
-            return result
         finally:
             if not stale_owner and self.reparse_id is not None:
                 _finalize_reparse(
@@ -780,12 +797,4 @@ class ParsingService:
                     self.file_meta,
                     self.dfs,
                     reparse_success,
-                )
-            if data_file is not None and result is not None:
-                duration_ms = int((time.monotonic() - start_time) * 1000)
-                self._record_execution_log(
-                    data_file=data_file,
-                    result=result,
-                    duration_ms=duration_ms,
-                    parser_class=parser_class_name,
                 )
