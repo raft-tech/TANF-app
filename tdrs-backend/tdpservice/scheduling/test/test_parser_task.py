@@ -12,9 +12,10 @@ import pytest
 
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import (
-    DataFile,
     DataFileStateTransition,
+    Program,
     ReparseFileMeta,
+    Section,
     create_or_update_shadow_data_file,
 )
 from tdpservice.data_files.submission_lifecycle import prepare_datafile_for_reparse
@@ -61,13 +62,13 @@ class DummyParser:
 
 
 DEFAULT_FILENAMES = {
-    DataFile.Section.ACTIVE_CASE_DATA: "ADS.E2J.FTP1.TS72",
-    DataFile.Section.CLOSED_CASE_DATA: "ADS.E2J.FTP2.TS72",
-    DataFile.Section.AGGREGATE_DATA: "ADS.E2J.FTP3.TS72",
-    DataFile.Section.STRATUM_DATA: "ADS.E2J.FTP4.TS72",
-    DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS: "ADS.FRA.FTP1.TS72",
-    DataFile.Section.FRA_SECONDRY_SCHOOL_ATTAINMENT: "ADS.FRA.FTP2.TS72",
-    DataFile.Section.FRA_SUPPLEMENT_WORK_OUTCOMES: "ADS.FRA.FTP3.TS72",
+    Section.Name.ACTIVE_CASE_DATA: "ADS.E2J.FTP1.TS72",
+    Section.Name.CLOSED_CASE_DATA: "ADS.E2J.FTP2.TS72",
+    Section.Name.AGGREGATE_DATA: "ADS.E2J.FTP3.TS72",
+    Section.Name.STRATUM_DATA: "ADS.E2J.FTP4.TS72",
+    Section.Name.FRA_WORK_OUTCOMES: "ADS.FRA.FTP1.TS72",
+    Section.Name.FRA_SECONDARY_SCHOOL_ATTAINMENT: "ADS.FRA.FTP2.TS72",
+    Section.Name.FRA_SUPPLEMENTAL_WORK_OUTCOMES: "ADS.FRA.FTP3.TS72",
 }
 
 
@@ -258,8 +259,8 @@ def test_update_dfs_uses_fra_aggregates(monkeypatch, stt):
     datafile = DataFileFactory(
         stt=stt,
         version=1,
-        program_type=DataFile.ProgramType.FRA,
-        section=DataFile.Section.FRA_WORK_OUTCOME_TANF_EXITERS,
+        program_type=Program.Code.FRA,
+        section=Section.Name.FRA_WORK_OUTCOMES,
     )
     dfs = DataFileSummary.objects.create(
         datafile=datafile, status=DataFileSummary.Status.ACCEPTED
@@ -281,8 +282,8 @@ def test_update_dfs_uses_case_aggregates(monkeypatch, stt):
     datafile = DataFileFactory(
         stt=stt,
         version=2,
-        program_type=DataFile.ProgramType.TANF,
-        section=DataFile.Section.ACTIVE_CASE_DATA,
+        program_type=Program.Code.TANF,
+        section=Section.Name.ACTIVE_CASE_DATA,
     )
     dfs = DataFileSummary.objects.create(
         datafile=datafile, status=DataFileSummary.Status.ACCEPTED
@@ -309,8 +310,8 @@ def test_update_dfs_uses_total_errors(monkeypatch, stt):
     datafile = DataFileFactory(
         stt=stt,
         version=3,
-        program_type=DataFile.ProgramType.TANF,
-        section=DataFile.Section.AGGREGATE_DATA,
+        program_type=Program.Code.TANF,
+        section=Section.Name.AGGREGATE_DATA,
     )
     dfs = DataFileSummary.objects.create(
         datafile=datafile, status=DataFileSummary.Status.ACCEPTED
@@ -361,7 +362,7 @@ def test_post_parse_finalizes_shadow_summary_only(monkeypatch, stt):
         stt=stt,
         version=4,
         state=SubmissionState.VIRUS_SCAN_COMPLETED,
-        section=DataFile.Section.AGGREGATE_DATA,
+        section=Section.Name.AGGREGATE_DATA,
     )
     shadow_datafile = create_or_update_shadow_data_file(datafile)
     shadow_summary = ShadowDataFileSummary.objects.create(
@@ -523,7 +524,7 @@ def test_post_parse_can_finalize_production_summary(monkeypatch, stt):
         stt=stt,
         version=4,
         state=SubmissionState.VIRUS_SCAN_COMPLETED,
-        section=DataFile.Section.AGGREGATE_DATA,
+        section=Section.Name.AGGREGATE_DATA,
     )
     summary = DataFileSummary.objects.create(
         datafile=datafile,
@@ -575,7 +576,7 @@ def test_post_parse_can_finalize_production_reparse(monkeypatch, stt):
         stt=stt,
         version=5,
         state=SubmissionState.VIRUS_SCAN_COMPLETED,
-        section=DataFile.Section.AGGREGATE_DATA,
+        section=Section.Name.AGGREGATE_DATA,
     )
     summary = DataFileSummary.objects.create(
         datafile=datafile,

@@ -68,39 +68,19 @@ const selectShadowDataFile = `
 `
 
 const selectProductionDataFile = `
-	SELECT id, original_filename, slug, extension, quarter, year, section, version,
-	       stt_id, user_id, created_at, file, s3_versioning_id, program_type,
-	       is_program_audit, state, state_changed_at
-	FROM data_files_datafile
-	WHERE id = $1
+	SELECT data_file.id, data_file.original_filename, data_file.slug, data_file.extension,
+	       data_file.quarter, data_file.year, section.name, data_file.version,
+	       data_file.stt_id, data_file.user_id, data_file.created_at, data_file.file,
+	       data_file.s3_versioning_id, program.code, data_file.is_program_audit,
+	       data_file.state, data_file.state_changed_at
+	FROM data_files_datafile AS data_file
+	INNER JOIN data_files_section AS section ON section.id = data_file.section_id
+	INNER JOIN data_files_program AS program ON program.id = section.program_id
+	WHERE data_file.id = $1
 `
 
 const upsertShadowDataFile = `
 	INSERT INTO shadow_data_files_datafile (
-	    id, original_filename, slug, extension, quarter, year, section, version,
-	    stt_id, user_id, created_at, file, s3_versioning_id, program_type,
-	    is_program_audit, state, state_changed_at
-	)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-	ON CONFLICT (id) DO UPDATE SET
-	    original_filename = EXCLUDED.original_filename,
-	    slug = EXCLUDED.slug,
-	    extension = EXCLUDED.extension,
-	    quarter = EXCLUDED.quarter,
-	    year = EXCLUDED.year,
-	    section = EXCLUDED.section,
-	    version = EXCLUDED.version,
-	    stt_id = EXCLUDED.stt_id,
-	    user_id = EXCLUDED.user_id,
-	    created_at = EXCLUDED.created_at,
-	    file = EXCLUDED.file,
-	    s3_versioning_id = EXCLUDED.s3_versioning_id,
-	    program_type = EXCLUDED.program_type,
-	    is_program_audit = EXCLUDED.is_program_audit
-`
-
-const upsertProductionDataFile = `
-	INSERT INTO data_files_datafile (
 	    id, original_filename, slug, extension, quarter, year, section, version,
 	    stt_id, user_id, created_at, file, s3_versioning_id, program_type,
 	    is_program_audit, state, state_changed_at
@@ -257,14 +237,14 @@ func GetDataFile(ctx context.Context, pool *pgxpool.Pool, tableName string, id i
 	return &df, nil
 }
 
-// EnsureShadowDataFile copies production DataFile metadata into the Go parser shadow table.
+// EnsureShadowDataFile writes parser-owned metadata only when shadow mode is active.
 func EnsureShadowDataFile(ctx context.Context, pool *pgxpool.Pool, tableName string, df *DataFileRecord) error {
 	var err error
 	switch tableName {
 	case shadowDataFileTable:
 		err = execDataFileUpsert(ctx, pool, upsertShadowDataFile, df)
 	case productionDataFileTable:
-		err = execDataFileUpsert(ctx, pool, upsertProductionDataFile, df)
+		return nil
 	default:
 		err = fmt.Errorf("unsupported datafile table %q", tableName)
 	}
