@@ -63,24 +63,13 @@ export default async function AdminDashboardPage() {
       <header className="admin-page-header admin-dashboard-header">
         <div>
           <h1>Welcome, {displayName}</h1>
-          <p>Here are your most recent updates.</p>
+          <p>Review user accounts and access requests.</p>
         </div>
         <NextLink className="usa-button usa-button--outline" href="/users">
           Find a user
         </NextLink>
       </header>
       <div className="admin-overview-grid">
-        {widgets.map((widget) => (
-          <section
-            key={widget.area}
-            className={`admin-overview-card admin-overview-card--${widget.area}`}
-            aria-labelledby={`widget-${widget.area}`}
-          >
-            <h2 id={`widget-${widget.area}`}>{widget.title}</h2>
-            <span className="admin-status-badge">Not available yet</span>
-            <p>{widget.description}</p>
-          </section>
-        ))}
         <section
           className="admin-overview-card admin-overview-card--users"
           aria-labelledby="user-summary"
@@ -114,7 +103,9 @@ export default async function AdminDashboardPage() {
                 ].map((item) => (
                   <div key={item.label}>
                     <dt>
-                      <NextLink href={item.href}>{item.label}</NextLink>
+                      <NextLink href={item.href} className="admin-summary-link">
+                        {item.label}
+                      </NextLink>
                     </dt>
                     <dd>{item.count}</dd>
                   </div>
@@ -130,6 +121,17 @@ export default async function AdminDashboardPage() {
             />
           )}
         </section>
+        {widgets.map((widget) => (
+          <section
+            key={widget.area}
+            className={`admin-overview-card admin-overview-card--${widget.area}`}
+            aria-labelledby={`widget-${widget.area}`}
+          >
+            <h2 id={`widget-${widget.area}`}>{widget.title}</h2>
+            <span className="admin-status-badge">Not available yet</span>
+            <p>{widget.description}</p>
+          </section>
+        ))}
       </div>
     </AdminShell>
   );

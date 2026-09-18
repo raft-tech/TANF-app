@@ -85,8 +85,8 @@ Next.js proxy only forwards request context and the server-side proxy token.
 - `/login` renders the same login page.
 - `/logout` redirects through the admin-scoped Django logout flow.
 - `/api/backend-health` is a backing JSON probe for the Django auth endpoint.
-  The login and home pages show its result as page detail instead of linking
-  admins directly to the JSON response.
+  The login page shows recovery guidance when the service is unavailable,
+  without exposing internal URLs or probe errors.
 - `/api/admin/*` forwards backend API requests with the Django session cookie,
   CSRF token required by mutating requests, and server-side proxy token to
   `/admin-api/v1/*`.
@@ -149,8 +149,8 @@ open http://localhost:3001/users
 
 ## Reference read-only list/detail pattern
 
-The first migrated surface is **User accounts**. `/dashboard` uses the supplied
-#5966 dashboard card layout with live, database-aggregated user counts. The other
+The first migrated surface is **User accounts**. `/dashboard` places live, database-aggregated user counts first, followed by
+the #5966 operational cards. The other
 cards explicitly say **Not available yet** until their APIs are migrated; they do
 not report sample scan results, service health, or activity as live data.
 

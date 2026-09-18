@@ -110,6 +110,13 @@ describe("server-rendered user screens", () => {
     expect(html).toContain("User not found");
     expect(html).not.toContain("private debug data");
   });
+  it("keeps unavailable account totals distinct from zero", async () => {
+    api.summary.mockResolvedValue(new Response(null, { status: 500 }));
+    const html = renderToStaticMarkup(await DashboardPage());
+    expect(html).toContain("Could not load user summary");
+    expect(html).not.toContain("Current account totals");
+    expect(html).toContain("Find a user");
+  });
   it("uses aggregate counts on the dashboard and labels unavailable widgets", async () => {
     api.summary.mockResolvedValue(
       Response.json({
@@ -124,6 +131,9 @@ describe("server-rendered user screens", () => {
     expect(html).toContain("Not available yet");
     expect(html).toContain("/users?status=Access+request");
     expect(html).toContain("100");
+    expect(html.indexOf('id="user-summary"')).toBeLessThan(
+      html.indexOf('id="widget-scans"'),
+    );
     expect(api.list).not.toHaveBeenCalled();
   });
 });

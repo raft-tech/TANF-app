@@ -492,11 +492,17 @@ a {
   background-color: var(--primary-light-pale-blue);
   box-shadow: 0 0 29px 0 rgb(0 0 0 / 50%);
   border-radius: 0.25rem;
-  max-width: 20rem;
+  width: 100%;
+  max-width: 28rem;
+  color: var(--primary-graphite);
 }
 
 .admin-login-page__login-button-content {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
   text-align: center;
 }
 
@@ -504,7 +510,6 @@ a {
   display: inline-block;
   width: 7.5rem;
   height: auto;
-  padding-left: 0.5rem;
   vertical-align: middle;
 }
 
@@ -930,17 +935,18 @@ a {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-template-areas:
+    "users users users"
     "scans security files"
     "logs system reparse"
-    "logs feedback feedback"
-    "users users users";
+    "feedback feedback feedback";
   gap: 1.5rem;
 }
 
 .admin-overview-card {
   padding: 1.5rem;
-  border-radius: 6px;
-  background: #f8f8f8;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: #fff;
   overflow-wrap: anywhere;
 }
 
@@ -1008,7 +1014,7 @@ a {
 @media (max-width: 1100px) {
   .admin-overview-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-areas: "scans security" "files system" "logs reparse" "feedback feedback" "users users";
+    grid-template-areas: "users users" "scans security" "files system" "logs reparse" "feedback feedback";
   }
   .admin-user-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1330,5 +1336,67 @@ a {
   .admin-header__account .usa-button {
     width: auto;
     flex-shrink: 0;
+  }
+}
+
+.admin-login-page__callout .usa-hero__heading {
+  margin-bottom: 1rem;
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
+.admin-login-page__lede {
+  margin-bottom: 1.5rem;
+}
+
+.admin-overview-card--users {
+  border-top: 4px solid var(--primary-medium-blue);
+}
+
+.admin-overview-card--users a {
+  color: #005ea2;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.admin-overview-card--users a:hover {
+  color: #1a4480;
+}
+
+.admin-user-summary > div {
+  position: relative;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: #f7f9fb;
+}
+
+.admin-summary-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+}
+
+.admin-user-summary > div:focus-within {
+  outline: 0.25rem solid #face00;
+}
+
+.admin-user-summary > div:hover {
+  background: #e2eff7;
+}
+
+.admin-user-summary dd {
+  color: var(--primary-acf-blue);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-overview-card .admin-status-badge {
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 400px) {
+  .admin-user-summary {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
