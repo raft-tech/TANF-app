@@ -363,12 +363,40 @@ class TestParsingServiceExecution:
         log = logs.first()
         assert log.event_type == "parse_execution"
         assert log.status == DataFileSummary.Status.ACCEPTED
+        assert log.upload_source == "Frontend"
         assert log.parser_class == "DummyParser"
         assert log.execution_duration_ms is not None
         assert log.execution_duration_ms >= 0
         assert log.total_records_processed == 0
         assert log.total_errors_generated == 0
         assert log.metadata.get("success") is True
+
+    def test_parse_records_execution_log_with_api_upload_source(
+        self, monkeypatch, data_analyst
+    ):
+        """Verify ParseExecutionLog records API upload source when datafile was uploaded via API."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=7,
+            state=SubmissionState.VIRUS_SCAN_COMPLETED,
+            upload_source=DataFile.UploadSource.API,
+        )
+        ensure_stt_filenames(datafile.stt)
+        setup_service_mocks(monkeypatch)
+
+        dummy_parser = DummyParser()
+        from tdpservice.parsers import service
+        monkeypatch.setattr(
+            service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
+        )
+        monkeypatch.setattr(service, "send_data_submitted_email", lambda *a, **k: None)
+
+        ps = ParsingService(data_file_id=datafile.id)
+        result = ps.run()
+
+        assert result.success is True
+        log = ParseExecutionLog.objects.for_object(datafile).first()
+        assert log.upload_source == "API"
 
     def test_parse_records_execution_log_on_failure(self, monkeypatch, data_analyst):
         """Verify ParseExecutionLog is recorded on parse failure."""

@@ -93,6 +93,7 @@ Defined in [`tdpservice.parsers.models`](file:///tdrs-backend/tdpservice/parsers
 | `content_object` | `GenericForeignKey` | The target `DataFile` or `ShadowDataFile` parsed. |
 | `event_id` | `UUID` | Correlation UUID for distributed trace/workflow. |
 | `event_type` | `str` | Always `"parse_execution"`. |
+| `upload_source` | `Optional[str]` | Upload origin (`"API"` vs `"Frontend"`). |
 | `reparse_meta_id` | `Optional[int]` | The associated `ReparseMeta` ID if execution was a reparse run. |
 | `parser_class` | `Optional[str]` | Name of parser class used (e.g., `ActiveSection1Parser`). |
 | `execution_duration_ms` | `int` | Execution time elapsed in milliseconds. |

@@ -217,7 +217,20 @@ class ParseExecutionLog(BaseLog):
 
     EVENT_TYPE = "parse_execution"
 
+    class UploadSource(models.TextChoices):
+        """Enum for upload source."""
+
+        API = "API", "API"
+        FRONTEND = "Frontend", "Frontend"
+
     reparse_meta_id = models.PositiveIntegerField(blank=True, null=True)
+    upload_source = models.CharField(
+        max_length=16,
+        choices=UploadSource.choices,
+        blank=True,
+        null=True,
+        verbose_name="Upload Source",
+    )
     parser_class = models.CharField(max_length=128, blank=True, null=True)
     execution_duration_ms = models.PositiveIntegerField(null=True, blank=True)
     status = models.CharField(
@@ -242,6 +255,10 @@ class ParseExecutionLog(BaseLog):
             models.Index(
                 fields=["status"],
                 name="parsers_pel_status_idx",
+            ),
+            models.Index(
+                fields=["upload_source"],
+                name="parsers_pel_source_idx",
             ),
         ]
 

@@ -67,6 +67,7 @@ class ParseExecutionLogAdmin(BaseLogAdmin):
     list_display = [
         "created_at",
         "data_file_id",
+        "upload_source",
         "status",
         "parser_class",
         "execution_duration_ms",
@@ -75,6 +76,7 @@ class ParseExecutionLogAdmin(BaseLogAdmin):
         "reparse_meta_id",
     ]
     list_filter = [
+        "upload_source",
         "status",
         "parser_class",
         "reparse_meta_id",
@@ -95,6 +97,7 @@ class ParseExecutionLogInline(GenericTabularInline):
     ct_fk_field = "object_id"
     fields = [
         "created_at",
+        "upload_source",
         "status",
         "parser_class",
         "execution_duration_ms",
