@@ -136,8 +136,9 @@ setup_prod_net_pols() {
     cf add-network-policy $PROD_FRONTEND alertmanager -s tanf-prod --protocol tcp --port 8080
     cf add-network-policy $PROD_FRONTEND grafana -s tanf-prod --protocol tcp --port 8080
 
-    # Let prod backend send logs to loki
+    # Let prod backend send logs to loki and alerts to alertmanager
     cf add-network-policy $PROD_BACKEND  loki -s tanf-prod --protocol tcp --port 8080
+    cf add-network-policy $PROD_BACKEND  alertmanager -s tanf-prod --protocol tcp --port 8080
     cf add-network-policy $PROD_CELERY  loki -s tanf-prod --protocol tcp --port 8080
 
     # Let tempo talk to prometheus
@@ -182,6 +183,7 @@ setup_dev_staging_net_pols() {
         cf add-network-policy ${DEV_FRONTEND_APPS[$i]} grafana -s tanf-prod --protocol tcp --port 8080
         cf add-network-policy ${DEV_BACKEND_APPS[$i]} loki -s tanf-prod --protocol tcp --port 8080
         cf add-network-policy ${DEV_FRONTEND_APPS[$i]} alertmanager -s tanf-prod --protocol tcp --port 8080
+        cf add-network-policy ${DEV_BACKEND_APPS[$i]} alertmanager -s tanf-prod --protocol tcp --port 8080
     done
 
     for i in ${!DEV_CELERY_APPS[@]}; do
@@ -194,6 +196,7 @@ setup_dev_staging_net_pols() {
         cf add-network-policy ${STAGING_FRONTEND_APPS[$i]} grafana -s tanf-prod --protocol tcp --port 8080
         cf add-network-policy ${STAGING_BACKEND_APPS[$i]} loki -s tanf-prod --protocol tcp --port 8080
         cf add-network-policy ${STAGING_FRONTEND_APPS[$i]} alertmanager -s tanf-prod --protocol tcp --port 8080
+        cf add-network-policy ${STAGING_BACKEND_APPS[$i]} alertmanager -s tanf-prod --protocol tcp --port 8080
     done
 
     for i in ${!STAGING_CELERY_APPS[@]}; do
