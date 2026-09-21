@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('data_files', '0033_merge_lifecycle_and_transition_log'),
+        ('data_files', '0034_merge_parser_mode_and_lifecycle'),
     ]
 
     operations = [
         migrations.AddField(
             model_name='datafile',
             name='upload_source',
-            field=models.CharField(choices=[('API', 'API'), ('Frontend', 'Frontend')], default='Frontend', max_length=16, verbose_name='Upload Source'),
+            field=models.CharField(choices=[('API', 'API'), ('Frontend', 'Frontend')], default='Frontend', max_length=16, verbose_name='Upload Source', blank=True),
         ),
         migrations.AddField(
             model_name='shadowdatafile',
             name='upload_source',
-            field=models.CharField(choices=[('API', 'API'), ('Frontend', 'Frontend')], default='Frontend', max_length=16, verbose_name='Upload Source'),
+            field=models.CharField(choices=[('API', 'API'), ('Frontend', 'Frontend')], default='Frontend', max_length=16, verbose_name='Upload Source', blank=True),
         ),
     ]
