@@ -756,6 +756,15 @@ def test_post_parse_finalizes_shadow_summary_only(monkeypatch, stt):
     assert datafile.state == SubmissionState.VIRUS_SCAN_COMPLETED
     assert sent["called"] is False
 
+    transition = DataFileStateTransition.objects.for_object(shadow_datafile).filter(
+        next_state=SubmissionState.PARSED_WITH_ERRORS
+    ).get()
+    assert transition.metadata["parser_class"] == "GoParser"
+    assert transition.metadata["total_records_processed"] == 0
+    assert transition.metadata["total_errors_generated"] == 1
+    assert transition.metadata["execution_duration_ms"] == 0
+    assert transition.metadata["section"] == DataFile.Section.AGGREGATE_DATA
+
 
 @pytest.mark.django_db
 def test_post_parse_parse_error_rejects_shadow_summary(stt):
@@ -801,6 +810,10 @@ def test_post_parse_parse_error_rejects_shadow_summary(stt):
     assert transition.task_name == parser_task.GO_PARSER_POST_PARSE_TASK_NAME
     assert transition.reparse_meta_id == 7
     assert transition.metadata["parse_error"] == "pipeline failed"
+    assert transition.metadata["parser_class"] == "GoParser"
+    assert transition.metadata["total_records_processed"] == 0
+    assert transition.metadata["total_errors_generated"] == 0
+    assert transition.metadata["execution_duration_ms"] == 0
 
     parser_task.post_parse(
         datafile.id,

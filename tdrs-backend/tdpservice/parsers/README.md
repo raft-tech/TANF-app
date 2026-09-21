@@ -84,16 +84,19 @@ Dataclass representing the structured outcome of a parsing operation.
 
 ## Execution Metadata & State Transitions
 
-Parse execution metrics are appended directly to the `metadata` JSON field on the terminal [`DataFileStateTransition`](file:///tdrs-backend/tdpservice/data_files/models.py) record (e.g. `COMPLETED` or `PARSE_FAILED`).
+Parse execution metrics are appended directly to the `metadata` JSON field on the terminal [`DataFileStateTransition`](file:///tdrs-backend/tdpservice/data_files/models.py) record (e.g. `COMPLETED` or `PARSE_FAILED`) for both production `DataFile` and `ShadowDataFile` instances.
 
 ### Transition Metadata Fields
 | Field | Type | Description |
 |---|---|---|
-| `parser_class` | `str` | Name of parser class executed (e.g., `ActiveSection1Parser`). |
+| `parser_class` | `str` | Name of parser class executed (e.g., `ActiveSection1Parser`, `GoParser`). |
 | `execution_duration_ms` | `int` | Parse execution duration in milliseconds. |
 | `total_records_processed` | `int` | Total number of data records parsed from the file. |
 | `total_errors_generated` | `int` | Total count of parser error records generated during parsing. |
-| `error` | `Optional[str]` | Error message / traceback snippet if parsing failed. |
+| `section` | `Optional[str]` | DataFile section name. |
+| `program_type` | `Optional[str]` | Program type (e.g. TANF, SSP, Tribal, FRA). |
+| `parse_summary_status` | `Optional[str]` | Final summary status on completion. |
+| `parse_error` / `error` | `Optional[str]` | Error message / traceback snippet if parsing failed. |
 
 
 ---
