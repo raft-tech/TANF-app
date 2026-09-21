@@ -16,7 +16,6 @@ from tdpservice.data_files.error_reports import ErrorReportFactory
 from tdpservice.data_files.models import (
     DataFile,
     ReparseFileMeta,
-    ShadowDataFile,
     create_or_update_shadow_data_file,
 )
 from tdpservice.data_files.parser_error_choices import ParserErrorCategoryChoices
