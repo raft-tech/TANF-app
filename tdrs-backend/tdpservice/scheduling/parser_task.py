@@ -50,8 +50,10 @@ from tdpservice.parsers.service import (
     ParseResult,
     ParsingService,
     _add_unexpected_error,
+    _calculate_total_records,
     _finalize_parse,
     _finalize_reparse,
+    _get_execution_metadata,
     _get_summary_status,
     _handle_parse_failure,
     _notify_data_analysts,
@@ -106,8 +108,10 @@ __all__ = [
     "ShadowParserError",
     "StaleParseOwnership",
     "_add_unexpected_error",
+    "_calculate_total_records",
     "_finalize_parse",
     "_finalize_reparse",
+    "_get_execution_metadata",
     "_get_summary_status",
     "_handle_parse_failure",
     "_notify_data_analysts",
@@ -304,7 +308,6 @@ def post_parse(
         "event_id": event_id,
         "reparse_meta_id": reparse_id or None,
         "task_name": GO_PARSER_POST_PARSE_TASK_NAME,
-        "log_fields": {"parse_error": str(parse_error)} if parse_error else None,
     }
     if is_shadow:
         if parse_error and data_file.state == SubmissionState.PARSE_FAILED:
@@ -323,10 +326,21 @@ def post_parse(
         if parse_error:
             dfs.status = DataFileSummary.Status.REJECTED
             dfs.save()
+            execution_meta = _get_execution_metadata(
+                dfs,
+                duration_ms=0,
+                parser_class="GoParser",
+                data_file=data_file,
+            )
+            execution_meta["parse_error"] = str(parse_error)
+            execution_meta["section"] = data_file.section
+            execution_meta["program_type"] = data_file.program_type
+            execution_meta["reparse_id"] = reparse_id or None
             record_shadow_parse_state(
                 data_file,
                 SubmissionState.PARSE_FAILED,
                 note=str(parse_error),
+                log_fields=execution_meta,
                 **audit_context,
             )
             return
@@ -342,10 +356,21 @@ def post_parse(
             if dfs.status == DataFileSummary.Status.ACCEPTED
             else SubmissionState.PARSED_WITH_ERRORS
         )
+        execution_meta = _get_execution_metadata(
+            dfs,
+            duration_ms=0,
+            parser_class="GoParser",
+            data_file=data_file,
+        )
+        execution_meta["parse_summary_status"] = dfs.status
+        execution_meta["section"] = data_file.section
+        execution_meta["program_type"] = data_file.program_type
+        execution_meta["reparse_id"] = reparse_id or None
         record_shadow_parse_state(
             data_file,
             target_state,
             note="Go shadow parsing completed",
+            log_fields=execution_meta,
             **audit_context,
         )
         return
@@ -368,6 +393,12 @@ def post_parse(
 
     if parse_error:
         _reject_dfs(dfs, parse_token=parse_token)
+        execution_meta = _get_execution_metadata(
+            dfs,
+            duration_ms=0,
+            parser_class="GoParser",
+            data_file=data_file,
+        )
         _handle_parse_failure(
             data_file,
             parse_token,
@@ -375,6 +406,7 @@ def post_parse(
             reparse_id=reparse_id or None,
             event_id=event_id,
             actor="go_parser",
+            extra_metadata=execution_meta,
         )
         logger.error(
             "Go parser %s post-parse received parse_error for data_file_id=%s: %s",
@@ -392,14 +424,19 @@ def post_parse(
             roll_log=False,
             parse_token=parse_token,
         )
-        record_parse_outcome(
+        execution_meta = _get_execution_metadata(
+            dfs,
+            duration_ms=0,
+            parser_class="GoParser",
+            data_file=data_file,
+        )
+        _transition_parse_outcome(
             data_file,
+            dfs,
             parse_token,
-            dfs.status,
-            actor="go_parser",
+            reparse_id=reparse_id or None,
             event_id=event_id,
-            reparse_meta_id=reparse_id or None,
-            task_name=GO_PARSER_POST_PARSE_TASK_NAME,
+            extra_metadata=execution_meta,
         )
         reparse_success = True
     _finalize_reparse(

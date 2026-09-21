@@ -8,7 +8,11 @@ from django.db.utils import DatabaseError
 import pytest
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile, DataFileStateTransition
+from tdpservice.data_files.models import (
+    DataFile,
+    DataFileStateTransition,
+    create_or_update_shadow_data_file,
+)
 from tdpservice.data_files.submission_lifecycle import StaleParseOwnership
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.parsers.models import DataFileSummary, ParserError
@@ -397,3 +401,73 @@ class TestParsingServiceExecution:
         assert last_transition.metadata.get("execution_duration_ms") >= 0
         assert last_transition.metadata.get("total_records_processed") == 0
         assert last_transition.metadata.get("total_errors_generated") == 0
+
+    def test_parse_records_execution_metadata_on_shadow_data_file_success(
+        self, monkeypatch, data_analyst
+    ):
+        """Verify execution metadata is recorded on ShadowDataFile state transition on success."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=8,
+            state=SubmissionState.VIRUS_SCAN_COMPLETED,
+            section=DataFile.Section.AGGREGATE_DATA,
+        )
+        shadow_datafile = create_or_update_shadow_data_file(datafile)
+        ensure_stt_filenames(datafile.stt)
+        setup_service_mocks(monkeypatch)
+
+        dummy_parser = DummyParser()
+        from tdpservice.parsers import service
+        monkeypatch.setattr(
+            service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
+        )
+
+        ps = ParsingService(data_file=shadow_datafile)
+        result = ps.run()
+
+        assert result.success is True
+        transitions = DataFileStateTransition.objects.for_object(shadow_datafile)
+        last_transition = transitions.first()
+        assert last_transition is not None
+        assert last_transition.content_object == shadow_datafile
+        assert last_transition.metadata.get("parser_class") == "DummyParser"
+        assert last_transition.metadata.get("execution_duration_ms") is not None
+        assert last_transition.metadata.get("execution_duration_ms") >= 0
+        assert last_transition.metadata.get("total_records_processed") == 0
+        assert last_transition.metadata.get("total_errors_generated") == 0
+        assert last_transition.metadata.get("section") == DataFile.Section.AGGREGATE_DATA
+
+    def test_parse_records_execution_metadata_on_shadow_data_file_failure(
+        self, monkeypatch, data_analyst
+    ):
+        """Verify execution metadata is recorded on ShadowDataFile state transition on failure."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=9,
+            state=SubmissionState.VIRUS_SCAN_COMPLETED,
+            section=DataFile.Section.ACTIVE_CASE_DATA,
+        )
+        shadow_datafile = create_or_update_shadow_data_file(datafile)
+        ensure_stt_filenames(datafile.stt)
+        setup_service_mocks(monkeypatch)
+
+        dummy_parser = DummyParser(exc=RuntimeError("shadow parse failed"))
+        from tdpservice.parsers import service
+        monkeypatch.setattr(
+            service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
+        )
+
+        ps = ParsingService(data_file=shadow_datafile)
+        result = ps.run()
+
+        assert result.success is False
+        transitions = DataFileStateTransition.objects.for_object(shadow_datafile)
+        last_transition = transitions.first()
+        assert last_transition is not None
+        assert last_transition.content_object == shadow_datafile
+        assert last_transition.metadata.get("parser_class") == "DummyParser"
+        assert last_transition.metadata.get("execution_duration_ms") is not None
+        assert last_transition.metadata.get("execution_duration_ms") >= 0
+        assert last_transition.metadata.get("total_records_processed") == 0
+        assert last_transition.metadata.get("total_errors_generated") == 0
+        assert last_transition.metadata.get("section") == DataFile.Section.ACTIVE_CASE_DATA

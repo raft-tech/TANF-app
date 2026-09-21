@@ -29,6 +29,7 @@ from tdpservice.data_files.submission_lifecycle import (
     parse_write_scope,
     record_parse_failure,
     record_parse_outcome,
+    record_shadow_parse_state,
 )
 from tdpservice.email.helpers.data_file import send_data_submitted_email
 from tdpservice.log_handler import change_log_filename
@@ -242,7 +243,7 @@ def set_error_report(dfs, error_report, parse_token=None):
 
 
 def _transition_parse_outcome(
-    data_file, dfs, parse_token, reparse_id=None, event_id=None, extra_metadata=None
+    data_file, dfs, parse_token=None, reparse_id=None, event_id=None, extra_metadata=None
 ):
     """Report a parse outcome to the lifecycle controller."""
     parse_context = {
@@ -252,6 +253,24 @@ def _transition_parse_outcome(
         "reparse_id": reparse_id,
         **(extra_metadata or {}),
     }
+
+    if _uses_shadow_table(data_file):
+        target_state = (
+            SubmissionState.PARSE_COMPLETED
+            if dfs.status == DataFileSummary.Status.ACCEPTED
+            else SubmissionState.PARSED_WITH_ERRORS
+        )
+        is_go = extra_metadata and extra_metadata.get("parser_class") == "GoParser"
+        record_shadow_parse_state(
+            data_file,
+            target_state,
+            note="Go shadow parsing completed" if is_go else "Shadow parsing completed",
+            log_fields=parse_context,
+            event_id=event_id,
+            reparse_meta_id=reparse_id,
+            source="go_parser" if is_go else "python_parser",
+        )
+        return
 
     record_parse_outcome(
         data_file,
@@ -297,14 +316,31 @@ def _notify_data_analysts(data_file, dfs, file_meta=None, reparse_id=None):
 
 def _handle_parse_failure(
     data_file,
-    parse_token,
-    note,
+    parse_token=None,
+    note="",
     reparse_id=None,
     event_id=None,
     actor="python_parser",
     extra_metadata=None,
 ):
     """Report a technical parser failure to the lifecycle controller."""
+    log_fields = {
+        "section": getattr(data_file, "section", None),
+        "program_type": getattr(data_file, "program_type", None),
+        "reparse_id": reparse_id,
+        **({"parse_error": note} if actor == "go_parser" else {}),
+        **(extra_metadata or {}),
+    }
+    if data_file is not None and _uses_shadow_table(data_file):
+        return record_shadow_parse_state(
+            data_file,
+            SubmissionState.PARSE_FAILED,
+            note=note,
+            log_fields=log_fields,
+            event_id=event_id,
+            reparse_meta_id=reparse_id,
+            source=actor,
+        )
     return record_parse_failure(
         data_file,
         parse_token,
@@ -312,13 +348,7 @@ def _handle_parse_failure(
         event_id=event_id,
         reparse_meta_id=reparse_id,
         actor=actor,
-        log_fields={
-            "section": data_file.section,
-            "program_type": data_file.program_type,
-            "reparse_id": reparse_id,
-            **({"parse_error": note} if actor == "go_parser" else {}),
-            **(extra_metadata or {}),
-        },
+        log_fields=log_fields,
     )
 
 
@@ -421,6 +451,52 @@ def _add_unexpected_error(data_file, parse_token=None):
         error.save()
 
 
+def _calculate_total_records(dfs: Optional[Any] = None) -> int:
+    """Calculate total records processed from summary case aggregates or record totals."""
+    if dfs is None:
+        return 0
+    total_records = 0
+    if dfs.case_aggregates and isinstance(dfs.case_aggregates, dict):
+        for month_data in dfs.case_aggregates.get("months", []):
+            accepted_no_err = month_data.get("accepted_without_errors")
+            accepted_err = month_data.get("accepted_with_errors")
+            if isinstance(accepted_no_err, int):
+                total_records += accepted_no_err
+            if isinstance(accepted_err, int):
+                total_records += accepted_err
+    if total_records == 0:
+        total_records = (
+            getattr(dfs, "total_number_of_records_in_file", 0)
+            or getattr(dfs, "total_number_of_records_created", 0)
+            or 0
+        )
+    return total_records
+
+
+def _get_execution_metadata(
+    dfs: Optional[Any] = None,
+    duration_ms: int = 0,
+    parser_class: Optional[str] = None,
+    data_file: Optional[Any] = None,
+) -> dict:
+    """Return execution metrics metadata dictionary to append to state transition."""
+    total_records = _calculate_total_records(dfs)
+    total_errors = 0
+    if data_file is not None:
+        parser_models = _parser_models_for_instance(data_file)
+        if parser_models.parser_error_model:
+            total_errors = parser_models.parser_error_model.objects.filter(
+                file=data_file, deprecated=False
+            ).count()
+
+    return {
+        "parser_class": parser_class,
+        "execution_duration_ms": duration_ms,
+        "total_records_processed": total_records,
+        "total_errors_generated": total_errors,
+    }
+
+
 def _record_failed_parse(
     data_file,
     dfs,
@@ -432,12 +508,20 @@ def _record_failed_parse(
     extra_metadata=None,
 ):
     """Best-effort failure artifacts, followed by the authoritative outcome."""
+    is_shadow = _uses_shadow_table(data_file) if data_file else False
+    models = _parser_models_for_instance(data_file) if data_file else _production_parser_models()
     try:
-        if add_unexpected_error and data_file is not None:
+        if add_unexpected_error and data_file is not None and not is_shadow:
             _add_unexpected_error(data_file, parse_token=parse_token)
         if dfs is not None:
             _reject_dfs(dfs, parse_token=parse_token)
-            _finalize_parse(data_file, dfs, parse_token=parse_token)
+            _finalize_parse(
+                data_file,
+                dfs,
+                parser_error_model=models.parser_error_model,
+                record_model_resolver=models.record_model_resolver,
+                parse_token=parse_token,
+            )
     except StaleParseOwnership:
         return False
     except Exception:
@@ -449,7 +533,9 @@ def _record_failed_parse(
                 "reparse_id": reparse_id,
             },
         )
-    if data_file is not None and parse_token is not None:
+    if data_file is not None:
+        if not is_shadow and parse_token is None:
+            return False
         return _handle_parse_failure(
             data_file,
             parse_token,
@@ -467,7 +553,7 @@ class ParsingService:
     def __init__(
         self,
         data_file_id: Optional[int] = None,
-        data_file: Optional[DataFile] = None,
+        data_file: Optional[Union[DataFile, ShadowDataFile]] = None,
         reparse_id: Optional[int] = None,
         parse_token: Optional[Union[str, UUID]] = None,
         event_id: Optional[Union[str, UUID]] = None,
@@ -479,9 +565,9 @@ class ParsingService:
         self.parse_token = str(parse_token) if parse_token else None
         self.event_id = str(event_id or uuid.uuid4())
         self.file_meta = file_meta
-        self.dfs: Optional[DataFileSummary] = None
+        self.dfs: Optional[Union[DataFileSummary, ShadowDataFileSummary]] = None
 
-    def fetch_data_file(self) -> DataFile:
+    def fetch_data_file(self) -> Union[DataFile, ShadowDataFile]:
         """Fetch the target DataFile if not already populated."""
         if self.data_file is None:
             if self.data_file_id is None:
@@ -509,7 +595,7 @@ class ParsingService:
                 f"Cannot queue parsing for DataFile {data_file.id} from state '{state_val}'."
             )
 
-        if self.parse_token and data_file.current_parse_token:
+        if not _uses_shadow_table(data_file) and self.parse_token and data_file.current_parse_token:
             if str(data_file.current_parse_token) != str(self.parse_token):
                 raise StaleParseOwnership(
                     f"DataFile {data_file.id} has an active parse token {data_file.current_parse_token} "
@@ -533,38 +619,53 @@ class ParsingService:
         return self.run()
 
     def _calculate_total_records(self) -> int:
-        """Calculate total records processed from DataFileSummary case aggregates."""
-        total_records = 0
-        if self.dfs and self.dfs.case_aggregates and isinstance(self.dfs.case_aggregates, dict):
-            for month_data in self.dfs.case_aggregates.get("months", []):
-                accepted_no_err = month_data.get("accepted_without_errors")
-                accepted_err = month_data.get("accepted_with_errors")
-                if isinstance(accepted_no_err, int):
-                    total_records += accepted_no_err
-                if isinstance(accepted_err, int):
-                    total_records += accepted_err
-        return total_records
+        """Calculate total records processed from summary case aggregates."""
+        return _calculate_total_records(self.dfs)
 
     def _get_execution_metadata(
         self,
         duration_ms: int,
         parser_class: Optional[str] = None,
-        data_file: Optional[DataFile] = None,
+        data_file: Optional[Union[DataFile, ShadowDataFile]] = None,
     ) -> dict:
         """Return execution metrics metadata dictionary to append to state transition."""
-        total_records = self._calculate_total_records()
-        total_errors = 0
-        if data_file is not None:
-            total_errors = ParserError.objects.filter(
-                file=data_file, deprecated=False
-            ).count()
+        return _get_execution_metadata(
+            self.dfs,
+            duration_ms=duration_ms,
+            parser_class=parser_class,
+            data_file=data_file or self.data_file,
+        )
 
-        return {
-            "parser_class": parser_class,
-            "execution_duration_ms": duration_ms,
-            "total_records_processed": total_records,
-            "total_errors_generated": total_errors,
-        }
+    def _start_parse_lifecycle(self, data_file: Any, is_shadow: bool) -> None:
+        """Initialize parse owner, metadata, and initial state transition."""
+        if not is_shadow:
+            self.file_meta, self.parse_token = _resolve_parse_owner(
+                data_file,
+                self.reparse_id,
+                self.parse_token,
+            )
+            begin_parse(data_file, self.parse_token, self.file_meta, event_id=self.event_id)
+        else:
+            self.file_meta, self.parse_token = None, None
+            if data_file.state != SubmissionState.PARSE_STARTED:
+                record_shadow_parse_state(
+                    data_file,
+                    SubmissionState.PARSE_STARTED,
+                    note="Shadow parsing started",
+                    event_id=self.event_id,
+                    reparse_meta_id=self.reparse_id,
+                    source="python_parser",
+                )
+
+    def _fetch_errors_list(self, parser_error_model: Any, data_file: Any) -> list:
+        """Fetch non-deprecated errors for data file."""
+        if not parser_error_model or not data_file:
+            return []
+        error_qs = parser_error_model.objects.filter(file=data_file, deprecated=False)
+        try:
+            return list(error_qs)
+        except TypeError:
+            return []
 
     def run(self) -> ParseResult:
         """Execute parsing flow for the target DataFile and return a ParseResult."""
@@ -579,32 +680,42 @@ class ParsingService:
             data_file = self.fetch_data_file()
             self.validate_preconditions()
 
+            models = _parser_models_for_instance(data_file)
+            is_shadow = _uses_shadow_table(data_file)
+            filename = getattr(data_file, "filename", getattr(data_file, "original_filename", str(data_file)))
+
             change_log_filename(logger, data_file)
             logger.info(
-                f"\n\n\n __ Starting to {'re-' if self.reparse_id else ''}parse datafile {data_file.filename}__ \n\n\n"
+                f"\n\n\n __ Starting to {'re-' if self.reparse_id else ''}parse datafile {filename}__ \n\n\n"
             )
 
-            self.file_meta, self.parse_token = _resolve_parse_owner(
-                data_file,
-                self.reparse_id,
-                self.parse_token,
-            )
-
-            begin_parse(data_file, self.parse_token, self.file_meta, event_id=self.event_id)
+            self._start_parse_lifecycle(data_file, is_shadow)
 
             with _parse_write_scope(data_file, self.parse_token):
-                self.dfs = DataFileSummary.objects.create(
+                self.dfs = models.summary_model.objects.create(
                     datafile=data_file, status=DataFileSummary.Status.PENDING
                 )
 
             parser = self.get_parser()
             parser_class_name = parser.__class__.__name__
             parser.parse_and_validate()
-            update_dfs(self.dfs, data_file, parse_token=self.parse_token)
+            update_dfs(
+                self.dfs,
+                data_file,
+                parser_error_model=models.parser_error_model,
+                record_model_resolver=models.record_model_resolver,
+                parse_token=self.parse_token,
+            )
 
             logger.info(f"Parsing finished for file -> {repr(data_file)}.")
 
-            _finalize_parse(data_file, self.dfs, parse_token=self.parse_token)
+            _finalize_parse(
+                data_file,
+                self.dfs,
+                parser_error_model=models.parser_error_model,
+                record_model_resolver=models.record_model_resolver,
+                parse_token=self.parse_token,
+            )
             duration_ms = int((time.monotonic() - start_time) * 1000)
             execution_meta = self._get_execution_metadata(
                 duration_ms=duration_ms,
@@ -620,23 +731,26 @@ class ParsingService:
                 extra_metadata=execution_meta,
             )
 
-            try:
-                _notify_data_analysts(data_file, self.dfs, self.file_meta, self.reparse_id)
-            except Exception:
-                logger.exception(
-                    "Failed to notify data analysts after successful parse.",
-                    extra={
-                        "data_file_id": self.data_file_id,
-                        "reparse_id": self.reparse_id,
-                    },
-                )
+            if not is_shadow:
+                try:
+                    _notify_data_analysts(data_file, self.dfs, self.file_meta, self.reparse_id)
+                except Exception:
+                    logger.exception(
+                        "Failed to notify data analysts after successful parse.",
+                        extra={
+                            "data_file_id": self.data_file_id,
+                            "reparse_id": self.reparse_id,
+                        },
+                    )
+
+            errors_list = self._fetch_errors_list(models.parser_error_model, data_file)
 
             return ParseResult(
                 success=True,
                 data_file=data_file,
                 summary=self.dfs,
                 status=self.dfs.status if self.dfs else None,
-                errors=list(data_file.parser_errors.all()) if data_file else [],
+                errors=errors_list,
                 error_message=None,
             )
 
@@ -735,7 +849,8 @@ class ParsingService:
         except Exception as e:
             reparse_success = False
             error_message = str(e) or "unexpected error during parsing"
-            if data_file is None or self.parse_token is None:
+            is_shadow = _uses_shadow_table(data_file) if data_file else False
+            if data_file is None or (self.parse_token is None and not is_shadow):
                 # If we failed before resolving data_file or token (e.g. precondition / DoesNotExist)
                 logger.exception(
                     "Exception during parse before ownership establishment: %s", e,
