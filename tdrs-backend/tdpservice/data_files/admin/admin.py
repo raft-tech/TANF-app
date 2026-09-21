@@ -197,6 +197,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
                     "is_program_audit",
                     "stt",
                     "version",
+                    "parser_mode",
                 ),
                 "classes": ("wide", "extrapretty"),
             },
