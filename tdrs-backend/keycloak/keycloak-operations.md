@@ -23,7 +23,7 @@ For architectural context, see [Authentication Architecture](auth-architecture.m
 
 ### Automated CI/CD Deployment
 
-Keycloak is normally built and deployed by the `keycloak-deployment` CircleCI workflow. The workflow derives the GHCR package owner from the CircleCI GitHub project, publishes `ghcr.io/<repository-owner>/tdp-keycloak:<commit-sha>`, resolves the image digest, and gives that immutable digest to Cloud Foundry.
+Keycloak is normally built and deployed by the `keycloak-deployment` CircleCI workflow. The workflow derives the GHCR package owner from the CircleCI GitHub project, publishes `ghcr.io/<repository-owner>/tdp-keycloak:<commit-sha>` for `linux/amd64` and `linux/arm64`, verifies both platforms, resolves the image index digest, and gives that immutable digest to Cloud Foundry.
 
 | Source | Target app | Space | Registry owner |
 | --- | --- | --- | --- |

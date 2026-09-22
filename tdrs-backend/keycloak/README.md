@@ -387,7 +387,7 @@ For testing without going through the full Login.gov / AMS broker flow, you can 
 
 ### Automated deployment
 
-CircleCI rebuilds and deploys Keycloak only when a running-container or deployment input changes. The image is published as `ghcr.io/<repository-owner>/tdp-keycloak:<commit-sha>` and Cloud Foundry is given the resolved digest, not a mutable `latest` tag.
+CircleCI rebuilds and deploys Keycloak only when a running-container or deployment input changes. The image is published for `linux/amd64` and `linux/arm64` as `ghcr.io/<repository-owner>/tdp-keycloak:<commit-sha>`, and Cloud Foundry is given the resolved multi-platform digest rather than a mutable `latest` tag.
 
 | Source | Keycloak target |
 | --- | --- |

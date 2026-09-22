@@ -61,14 +61,23 @@
             if docker buildx imagetools inspect "$IMAGE_TAG" >/dev/null 2>&1; then
               echo "Reusing existing immutable image tag $IMAGE_TAG"
             else
+              docker run --privileged --rm \
+                tonistiigi/binfmt@sha256:400a4873b838d1b89194d982c45e5fb3cda4593fbfd7e08a02e76b03b21166f0 \
+                --install arm64
+              docker buildx create --name keycloak-multiarch --driver docker-container --use
+              docker buildx inspect --bootstrap
               docker buildx build \
-                --platform linux/amd64 \
+                --platform linux/amd64,linux/arm64 \
                 --tag "$IMAGE_TAG" \
                 --push \
                 tdrs-backend/keycloak
             fi
 
-            IMAGE_DIGEST=$(docker buildx imagetools inspect "$IMAGE_TAG" | awk '/^Digest:/ {print $2; exit}')
+            IMAGE_DETAILS=$(docker buildx imagetools inspect "$IMAGE_TAG")
+            grep --quiet 'Platform:[[:space:]]*linux/amd64' <<< "$IMAGE_DETAILS"
+            grep --quiet 'Platform:[[:space:]]*linux/arm64' <<< "$IMAGE_DETAILS"
+
+            IMAGE_DIGEST=$(printf '%s\n' "$IMAGE_DETAILS" | awk '/^Digest:/ {print $2; exit}')
             if [[ ! "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
               echo "Unable to resolve a valid digest for $IMAGE_TAG" >&2
               exit 1
