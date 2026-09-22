@@ -1,0 +1,69 @@
+# workflows:
+  keycloak-deployment:
+    when:
+      or:
+        - equal: [develop, << pipeline.git.branch >>]
+        - equal: [main, << pipeline.git.branch >>]
+        - equal: [master, << pipeline.git.branch >>]
+        - << pipeline.parameters.run_dev_deployment >>
+    jobs:
+      - deploy-keycloak:
+          name: deploy-keycloak-dev
+          environment: dev
+          app-name: keycloak-dev
+          rds-service: tdp-keycloak-db-dev
+          public-hostname: dev.auth
+          cf-password: CF_PASSWORD_DEV
+          cf-space: tanf-dev
+          cf-username: CF_USERNAME_DEV
+          compare-with-develop: true
+          expected-project-owner: raft-tech
+          filters:
+            branches:
+              ignore:
+                - develop
+                - main
+                - master
+                - /^release.*/
+      - deploy-keycloak:
+          name: deploy-keycloak-staging-from-develop
+          environment: staging
+          app-name: keycloak-staging
+          rds-service: tdp-keycloak-db-staging
+          public-hostname: staging.auth
+          cf-password: CF_PASSWORD_STAGING
+          cf-space: tanf-staging
+          cf-username: CF_USERNAME_STAGING
+          expected-project-owner: raft-tech
+          filters:
+            branches:
+              only:
+                - develop
+      - deploy-keycloak:
+          name: deploy-keycloak-staging-from-main
+          environment: staging
+          app-name: keycloak-staging
+          rds-service: tdp-keycloak-db-staging
+          public-hostname: staging.auth
+          cf-password: CF_PASSWORD_STAGING
+          cf-space: tanf-staging
+          cf-username: CF_USERNAME_STAGING
+          expected-project-owner: hhs
+          filters:
+            branches:
+              only:
+                - main
+      - deploy-keycloak:
+          name: deploy-keycloak-production
+          environment: prod
+          app-name: keycloak
+          rds-service: tdp-keycloak-db-prod
+          public-hostname: auth
+          cf-password: CF_PASSWORD_PROD
+          cf-space: tanf-prod
+          cf-username: CF_USERNAME_PROD
+          expected-project-owner: hhs
+          filters:
+            branches:
+              only:
+                - master

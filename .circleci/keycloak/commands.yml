@@ -1,0 +1,148 @@
+# commands:
+  verify-keycloak-project-owner:
+    parameters:
+      expected-owner:
+        type: string
+    steps:
+      - run:
+          name: Verify Keycloak deployment repository
+          command: |
+            ACTUAL_OWNER=$(printf '%s' "$CIRCLE_PROJECT_USERNAME" | tr '[:upper:]' '[:lower:]')
+            if [ "$ACTUAL_OWNER" != "<<parameters.expected-owner>>" ]; then
+              echo "Skipping Keycloak deployment: branch belongs to $ACTUAL_OWNER, expected <<parameters.expected-owner>>."
+              circleci-agent step halt
+            fi
+
+  detect-keycloak-deployment:
+    parameters:
+      compare-with-develop:
+        type: boolean
+        default: false
+    steps:
+      - run:
+          name: Determine whether Keycloak deployment is required
+          command: |
+            if [ "<<parameters.compare-with-develop>>" = "true" ]; then
+              git fetch --no-tags origin develop
+              BASE_REVISION=$(git merge-base origin/develop "$CIRCLE_SHA1")
+            elif [[ "${CIRCLE_COMPARE_URL:-}" =~ /compare/([0-9a-fA-F]{7,40})\.\.\. ]]; then
+              BASE_REVISION="${BASH_REMATCH[1]}"
+              if ! git cat-file -e "${BASE_REVISION}^{commit}" 2>/dev/null; then
+                git fetch --no-tags origin "$BASE_REVISION"
+              fi
+            else
+              BASE_REVISION="${CIRCLE_SHA1}^"
+            fi
+
+            echo "Checking Keycloak deployment inputs in ${BASE_REVISION}..${CIRCLE_SHA1}"
+            CHANGED_FILES=$(git diff --name-only "$BASE_REVISION" "$CIRCLE_SHA1")
+            printf '%s\n' "$CHANGED_FILES"
+
+            if ! printf '%s\n' "$CHANGED_FILES" | ./scripts/keycloak-deploy-required.sh; then
+              circleci-agent step halt
+            fi
+
+  publish-keycloak-image:
+    steps:
+      - run:
+          name: Publish immutable Keycloak image
+          no_output_timeout: 30m
+          command: |
+            set -euo pipefail
+
+            REGISTRY_OWNER=$(printf '%s' "$CIRCLE_PROJECT_USERNAME" | tr '[:upper:]' '[:lower:]')
+            IMAGE_REPOSITORY="ghcr.io/${REGISTRY_OWNER}/tdp-keycloak"
+            IMAGE_TAG="${IMAGE_REPOSITORY}:${CIRCLE_SHA1}"
+
+            printf '%s' "$GHCR_PUBLISH_TOKEN" | docker login ghcr.io \
+              --username "$GHCR_PUBLISH_USERNAME" \
+              --password-stdin
+
+            if docker buildx imagetools inspect "$IMAGE_TAG" >/dev/null 2>&1; then
+              echo "Reusing existing immutable image tag $IMAGE_TAG"
+            else
+              docker buildx build \
+                --platform linux/amd64 \
+                --tag "$IMAGE_TAG" \
+                --push \
+                tdrs-backend/keycloak
+            fi
+
+            IMAGE_DIGEST=$(docker buildx imagetools inspect "$IMAGE_TAG" | awk '/^Digest:/ {print $2; exit}')
+            if [[ ! "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+              echo "Unable to resolve a valid digest for $IMAGE_TAG" >&2
+              exit 1
+            fi
+
+            echo "export KEYCLOAK_IMAGE=${IMAGE_REPOSITORY}@${IMAGE_DIGEST}" >> "$BASH_ENV"
+            docker logout ghcr.io
+
+  deploy-keycloak-image:
+    parameters:
+      environment:
+        type: enum
+        enum: [dev, staging, prod]
+      rds-service:
+        type: string
+      public-hostname:
+        type: string
+    steps:
+      - install-deploy-dependencies
+      - run:
+          name: Test Keycloak deployment scripts
+          command: |
+            ./scripts/test-keycloak-deploy-required.sh
+            ./scripts/test-keycloak-deploy.sh
+      - run:
+          name: Deploy Keycloak
+          command: |
+            CF_DOCKER_PASSWORD="$GHCR_PULL_TOKEN" \
+              bash ./tdrs-backend/keycloak/deploy.sh \
+                -P \
+                -e <<parameters.environment>> \
+                -d <<parameters.rds-service>> \
+                -p <<parameters.public-hostname>> \
+                -i "$KEYCLOAK_IMAGE" \
+                -u "$GHCR_PULL_USERNAME"
+
+  verify-keycloak-deployment:
+    parameters:
+      app-name:
+        type: string
+      public-hostname:
+        type: string
+    steps:
+      - run:
+          name: Verify Keycloak package and realm endpoint
+          command: |
+            set -euo pipefail
+
+            APP_GUID=$(cf app <<parameters.app-name>> --guid)
+            PACKAGE=$(cf curl "/v3/apps/${APP_GUID}/packages?states=READY")
+            PACKAGE_IMAGE=$(printf '%s' "$PACKAGE" | jq -r '.resources | max_by(.created_at) | .data.image')
+            PACKAGE_USERNAME=$(printf '%s' "$PACKAGE" | jq -r '.resources | max_by(.created_at) | .data.username')
+
+            if [ "$PACKAGE_IMAGE" != "$KEYCLOAK_IMAGE" ]; then
+              echo "Cloud Foundry package image does not match $KEYCLOAK_IMAGE" >&2
+              exit 1
+            fi
+            if [ "$PACKAGE_USERNAME" != "$GHCR_PULL_USERNAME" ]; then
+              echo "Cloud Foundry package does not use the configured GHCR robot username" >&2
+              exit 1
+            fi
+
+            READY_URL="https://<<parameters.public-hostname>>.tanfdata.acf.hhs.gov/realms/tdp/.well-known/openid-configuration"
+            ready=false
+            for attempt in $(seq 1 60); do
+              if curl --fail --silent --show-error "$READY_URL" >/dev/null; then
+                ready=true
+                break
+              fi
+              echo "Waiting for the Keycloak public endpoint (${attempt}/60)..."
+              sleep 5
+            done
+            if [ "$ready" != "true" ]; then
+              echo "Keycloak public endpoint did not become ready: $READY_URL" >&2
+              exit 1
+            fi
+            echo "Keycloak deployment and stored GHCR pull credentials verified."

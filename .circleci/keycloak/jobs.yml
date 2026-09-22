@@ -1,0 +1,46 @@
+# jobs:
+  deploy-keycloak:
+    parameters:
+      environment:
+        type: enum
+        enum: [dev, staging, prod]
+      app-name:
+        type: string
+      rds-service:
+        type: string
+      public-hostname:
+        type: string
+      cf-password:
+        type: env_var_name
+      cf-space:
+        type: string
+      cf-username:
+        type: env_var_name
+      compare-with-develop:
+        type: boolean
+        default: false
+      expected-project-owner:
+        type: enum
+        enum: [raft-tech, hhs]
+    executor: machine-executor
+    working_directory: ~/tdp-deploy
+    steps:
+      - checkout
+      - verify-keycloak-project-owner:
+          expected-owner: <<parameters.expected-project-owner>>
+      - detect-keycloak-deployment:
+          compare-with-develop: <<parameters.compare-with-develop>>
+      - publish-keycloak-image
+      - sudo-check
+      - cf-check
+      - login-cloud-dot-gov:
+          cf-password: <<parameters.cf-password>>
+          cf-space: <<parameters.cf-space>>
+          cf-username: <<parameters.cf-username>>
+      - deploy-keycloak-image:
+          environment: <<parameters.environment>>
+          rds-service: <<parameters.rds-service>>
+          public-hostname: <<parameters.public-hostname>>
+      - verify-keycloak-deployment:
+          app-name: <<parameters.app-name>>
+          public-hostname: <<parameters.public-hostname>>

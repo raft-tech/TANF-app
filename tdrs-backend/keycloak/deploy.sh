@@ -10,15 +10,14 @@ PROD_CELERY="tdp-celery-prod"
 
 PUBLIC_DOMAIN="tanfdata.acf.hhs.gov"
 
-# Environment variables that must be set in the deployer's shell.
-# These are injected into the CF app's environment via the manifest.
-REQUIRED_ENV_VARS=(
+# Environment variables needed to bootstrap or explicitly reconfigure an app.
+# CI preserves the existing runtime environment and does not need these values.
+RUNTIME_ENV_VARS=(
     "KEYCLOAK_ADMIN"              # Admin console username
     "KEYCLOAK_ADMIN_PASSWORD"     # Admin console password
     "KC_TDP_DJANGO_CLIENT_SECRET" # tdp-django client secret (realm config)
     "KC_TDP_ADMIN_CLIENT_SECRET"  # tdp-admin client secret (realm config)
     "LOGIN_GOV_JWT_KEY"           # Login.gov RSA private key (PEM or base64)
-    "CF_DOCKER_PASSWORD"          # Docker registry password/token (used by cf push)
     "AMS_CLIENT_ID"                # AMS OIDC client ID
     "AMS_CLIENT_SECRET"            # AMS OIDC client secret
 )
@@ -45,7 +44,7 @@ OPTIONAL_ENV_VARS=(
 help() {
     echo "Deploy Keycloak to the Cloud Foundry space you're currently authenticated in."
     echo ""
-    echo "Syntax: deploy.sh [-h] -e <environment> -d <rds_service_name> -p <public_hostname> -i <docker_image> -u <docker_username>"
+    echo "Syntax: deploy.sh [-hP] -e <environment> -d <rds_service_name> -p <public_hostname> -i <docker_image> -u <docker_username>"
     echo ""
     echo "Options:"
     echo "  h     Print this help message."
@@ -56,17 +55,20 @@ help() {
     echo "        WARNING: do NOT use -r when upgrading the Keycloak version — the rolling"
     echo "        strategy runs old and new instances simultaneously, which can cause DB"
     echo "        migration conflicts and authentication failures during the transition."
+    echo "  P     Preserve the existing Cloud Foundry runtime environment. This is intended"
+    echo "        for CI redeployments of an existing app and fails if the app does not exist."
     echo "  d     The Cloud Foundry service name of the RDS instance (e.g. tdp-db-dev)."
     echo "  p     The public hostname for Keycloak (e.g. dev.auth)."
     echo "        This will create a public route at <hostname>.${PUBLIC_DOMAIN}"
     echo "        and set KC_HOSTNAME so Keycloak generates correct redirect URIs."
-    echo "  i     The Docker image URI for Keycloak (e.g. ghcr.io/hhs/tdp-keycloak:latest)."
+    echo "  i     An immutable Keycloak image URI (e.g. ghcr.io/hhs/tdp-keycloak@sha256:<digest>)."
     echo "  u     Docker registry username. Password must be set via CF_DOCKER_PASSWORD env var."
     echo ""
     echo "Required environment variables (must be set in your shell):"
-    for var in "${REQUIRED_ENV_VARS[@]}"; do
+    for var in "${RUNTIME_ENV_VARS[@]}"; do
         echo "  $var"
     done
+    echo "  CF_DOCKER_PASSWORD"
     echo ""
     echo "Optional environment variables:"
     for var in "${OPTIONAL_ENV_VARS[@]}"; do
@@ -74,13 +76,13 @@ help() {
     done
     echo ""
     echo "Example:"
-    echo "  ./deploy.sh -e dev -d tdp-db-dev -p dev.auth -i ghcr.io/raft-tech/keycloak_26:latest -u myuser"
+    echo "  ./deploy.sh -e dev -d tdp-keycloak-db-dev -p dev.auth -i ghcr.io/raft-tech/tdp-keycloak@sha256:<digest> -u <ghcr-robot>"
     echo ""
 }
 
 check_required_env_vars() {
     local missing=()
-    for var in "${REQUIRED_ENV_VARS[@]}"; do
+    for var in "$@"; do
         if [ -z "${!var:-}" ]; then
             missing+=("$var")
         fi
@@ -99,16 +101,11 @@ check_required_env_vars() {
 
 inject_env_vars() {
     local manifest="$1"
-    # Env vars used by cf push itself, not by the Keycloak app
-    local skip_vars=("CF_DOCKER_PASSWORD")
 
-    for var in "${REQUIRED_ENV_VARS[@]}" "${OPTIONAL_ENV_VARS[@]}"; do
-        if [[ " ${skip_vars[*]} " =~ " ${var} " ]]; then
-            continue
-        fi
+    for var in "${RUNTIME_ENV_VARS[@]}" "${OPTIONAL_ENV_VARS[@]}"; do
         if [ -n "${!var:-}" ]; then
             # Use yq strenv() to safely handle values with special characters
-            export "$var"
+            export "${var?}"
             yq eval -i ".applications[0].env.$var = strenv($var)" "$manifest"
         fi
     done
@@ -169,25 +166,28 @@ deploy_keycloak() {
     local docker_image="$4"
     local docker_username="$5"
     local rolling="$6"
+    local preserve_runtime_env="$7"
     local public_url="https://${public_hostname}.${PUBLIC_DOMAIN}"
 
     MANIFEST=manifest.tmp.yml
     cp manifest.yml $MANIFEST
 
-    yq eval -i ".applications[0].name = \"${app_name}\"" $MANIFEST
-    yq eval -i ".applications[0].services[0] = \"${db_service}\"" $MANIFEST
-    yq eval -i ".applications[0].env.KC_HOSTNAME = \"${public_url}\"" $MANIFEST
-    yq eval -i ".applications[0].env.DEPLOY_ENV = \"${DEPLOY_ENV}\"" $MANIFEST
-    yq eval -i ".applications[0].docker.image = \"${docker_image}\"" $MANIFEST
-    inject_env_vars $MANIFEST
-    inject_default_config_cli_env_vars $MANIFEST
-
-    local strategy_flag=""
-    if [ "$rolling" == "true" ]; then
-        strategy_flag="--strategy rolling"
+    yq eval -i ".applications[0].name = \"${app_name}\"" "$MANIFEST"
+    yq eval -i ".applications[0].services[0] = \"${db_service}\"" "$MANIFEST"
+    yq eval -i ".applications[0].env.KC_HOSTNAME = \"${public_url}\"" "$MANIFEST"
+    yq eval -i ".applications[0].env.DEPLOY_ENV = \"${DEPLOY_ENV}\"" "$MANIFEST"
+    yq eval -i ".applications[0].docker.image = \"${docker_image}\"" "$MANIFEST"
+    if [ "$preserve_runtime_env" != "true" ]; then
+        inject_env_vars "$MANIFEST"
+        inject_default_config_cli_env_vars "$MANIFEST"
     fi
 
-    CF_DOCKER_PASSWORD="$CF_DOCKER_PASSWORD" cf push --no-route -f $MANIFEST $strategy_flag --docker-image "$docker_image" --docker-username "$docker_username"
+    local strategy_args=()
+    if [ "$rolling" == "true" ]; then
+        strategy_args=(--strategy rolling)
+    fi
+
+    CF_DOCKER_PASSWORD="$CF_DOCKER_PASSWORD" cf push --no-route -f "$MANIFEST" "${strategy_args[@]}" --docker-image "$docker_image" --docker-username "$docker_username"
 
     # Internal route for server-to-server communication (backend/celery -> keycloak)
     cf map-route "$app_name" apps.internal --hostname "$app_name"
@@ -195,7 +195,7 @@ deploy_keycloak() {
     # Public route for browser redirects and admin console access
     cf map-route "$app_name" "$public_hostname"."$PUBLIC_DOMAIN"
 
-    rm $MANIFEST
+    rm "$MANIFEST"
 }
 
 setup_keycloak_net_pols() {
@@ -203,12 +203,12 @@ setup_keycloak_net_pols() {
     CURRENT_SPACE=$(cf target | grep -Eo "tanf-[a-z]+")
 
     if [ "$CURRENT_SPACE" == "tanf-dev" ]; then
-        for app in ${DEV_BACKEND_APPS[@]} ${DEV_CELERY_APPS[@]}; do
-            cf add-network-policy $app "$app_name" --protocol tcp --port 8080
+        for app in "${DEV_BACKEND_APPS[@]}" "${DEV_CELERY_APPS[@]}"; do
+            cf add-network-policy "$app" "$app_name" --protocol tcp --port 8080
         done
     elif [ "$CURRENT_SPACE" == "tanf-staging" ]; then
-        for app in ${STAGING_BACKEND_APPS[@]} ${STAGING_CELERY_APPS[@]}; do
-            cf add-network-policy $app "$app_name" --protocol tcp --port 8080
+        for app in "${STAGING_BACKEND_APPS[@]}" "${STAGING_CELERY_APPS[@]}"; do
+            cf add-network-policy "$app" "$app_name" --protocol tcp --port 8080
         done
     elif [ "$CURRENT_SPACE" == "tanf-prod" ]; then
         cf add-network-policy $PROD_BACKEND "$app_name" --protocol tcp --port 8080
@@ -217,18 +217,22 @@ setup_keycloak_net_pols() {
 }
 
 pushd "$(dirname "$0")"
+trap 'rm -f "${MANIFEST:-}"' EXIT
 
 ROLLING="false"
+PRESERVE_RUNTIME_ENV="false"
 
-while getopts ":he:rd:p:i:u:" option; do
+while getopts ":he:rPd:p:i:u:" option; do
    case $option in
       h) # display Help
          help
          exit;;
       e) # Target environment
          DEPLOY_ENV=$OPTARG;;
-      r) # Rolling strategy
-         ROLLING="true";;
+       r) # Rolling strategy
+          ROLLING="true";;
+       P) # Preserve existing runtime environment
+          PRESERVE_RUNTIME_ENV="true";;
       d) # RDS service name
          DB_SERVICE_NAME=$OPTARG;;
       p) # Public hostname
@@ -310,7 +314,19 @@ if [ "$DOCKER_USERNAME" == "" ]; then
     exit 1
 fi
 
-check_required_env_vars
+if [ -z "${CF_DOCKER_PASSWORD:-}" ]; then
+    check_required_env_vars "CF_DOCKER_PASSWORD"
+fi
+
+if [ "$PRESERVE_RUNTIME_ENV" == "true" ]; then
+    if ! cf app "$APP_NAME" --guid >/dev/null 2>&1; then
+        echo "Error: -P can only redeploy an existing Cloud Foundry app (${APP_NAME})."
+        popd
+        exit 1
+    fi
+else
+    check_required_env_vars "${RUNTIME_ENV_VARS[@]}"
+fi
 
 echo "Deploying Keycloak..."
 echo "  Environment:    $DEPLOY_ENV"
@@ -320,9 +336,10 @@ echo "  RDS service:    $DB_SERVICE_NAME"
 echo "  Internal route: ${APP_NAME}.apps.internal"
 echo "  Public route:   ${PUBLIC_HOSTNAME}.${PUBLIC_DOMAIN}"
 echo "  Rolling deploy: $ROLLING"
+echo "  Preserve env:   $PRESERVE_RUNTIME_ENV"
 echo ""
 
-deploy_keycloak "$APP_NAME" "$DB_SERVICE_NAME" "$PUBLIC_HOSTNAME" "$DOCKER_IMAGE" "$DOCKER_USERNAME" "$ROLLING"
+deploy_keycloak "$APP_NAME" "$DB_SERVICE_NAME" "$PUBLIC_HOSTNAME" "$DOCKER_IMAGE" "$DOCKER_USERNAME" "$ROLLING" "$PRESERVE_RUNTIME_ENV"
 setup_keycloak_net_pols "$APP_NAME"
 
 popd
