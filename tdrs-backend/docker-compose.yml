@@ -54,6 +54,8 @@ services:
       context: ./keycloak
     environment:
       - DEPLOY_ENV=local
+      - KEYCLOAK_REALM=tdp
+      - KEYCLOAK_TDP_ADMIN_REALM=tdp-admin
       - KC_DB=postgres
       - KC_DB_URL=jdbc:postgresql://keycloak-pg:5432/keycloak
       - KC_DB_USERNAME=keycloak
@@ -282,7 +284,8 @@ services:
       - REDIS_URI=redis://redis-server:6379
       - REDIS_SERVER_LOCAL=TRUE
       - GO_PARSER_QUEUE=${GO_PARSER_QUEUE:-go-parser}
-      - GO_PARSER_SHADOW_MODE=${GO_PARSER_SHADOW_MODE:-true}
+      - STALE_PARSE_TIMEOUT_SECONDS
+      - STALE_PARSE_CHECK_INTERVAL_SECONDS
       - CYPRESS_TOKEN
       - DJANGO_DEBUG
       - SENDGRID_API_KEY
@@ -308,9 +311,9 @@ services:
       - KEYCLOAK_ADMIN_CLIENT_SECRET=tdp-django-local-secret
       - KEYCLOAK_DJANGO_CLIENT_ID=tdp-django
       - KEYCLOAK_DJANGO_CLIENT_SECRET=tdp-django-local-secret
+      - KEYCLOAK_TDP_ADMIN_REALM=tdp-admin
       - KEYCLOAK_TDP_ADMIN_CLIENT_ID=tdp-admin
       - KEYCLOAK_TDP_ADMIN_CLIENT_SECRET=tdp-admin-local-secret
-      - KEYCLOAK_AUTH_PERCENTAGE
     volumes:
       - .:/tdpapp
       - ../tdrs-services/parser/config/schemas:/tdrs-services/parser/config/schemas:ro
@@ -354,13 +357,14 @@ services:
     build:
       context: ../tdrs-services/parser
       dockerfile: Dockerfile
-    command: ["--server.mode=celery", "--storage.source=s3"]
+    command:
+      - "--server.mode=celery"
+      - "--storage.source=s3"
     ports:
       - "9809:9809"
     environment:
       - REDIS_URL=redis://redis-server:6379/0
       - GO_PARSER_QUEUE=${GO_PARSER_QUEUE:-go-parser}
-      - GO_PARSER_SHADOW_MODE=${GO_PARSER_SHADOW_MODE:-true}
       - DATABASE_URL=postgres://tdpuser:something_secure@postgres:5432/tdrs_test?sslmode=disable
       - S3_BUCKET=tdp-datafiles-localstack
       - S3_ENDPOINT=http://localstack:4566
@@ -404,9 +408,11 @@ services:
       - REDIS_URI=redis://redis-server:6379
       - CELERY_WORKER_QUEUES=celery
       - CELERY_GO_PARSER_QUEUE=go-parser
+      - CELERY_LIFECYCLE_QUEUE=lifecycle
       - REDIS_SERVER_LOCAL=TRUE
       - GO_PARSER_QUEUE=go-parser
-      - GO_PARSER_SHADOW_MODE=${GO_PARSER_SHADOW_MODE:-true}
+      - STALE_PARSE_TIMEOUT_SECONDS
+      - STALE_PARSE_CHECK_INTERVAL_SECONDS
       - CYPRESS_TOKEN
       - DJANGO_DEBUG
       - SENDGRID_API_KEY
@@ -425,6 +431,7 @@ services:
       - KEYCLOAK_ADMIN_CLIENT_SECRET=tdp-django-local-secret
       - KEYCLOAK_DJANGO_CLIENT_ID=tdp-django
       - KEYCLOAK_DJANGO_CLIENT_SECRET=tdp-django-local-secret
+      - KEYCLOAK_TDP_ADMIN_REALM=tdp-admin
       - KEYCLOAK_TDP_ADMIN_CLIENT_ID=tdp-admin
       - KEYCLOAK_TDP_ADMIN_CLIENT_SECRET=tdp-admin-local-secret
     volumes:

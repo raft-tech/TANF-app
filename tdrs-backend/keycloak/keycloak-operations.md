@@ -121,7 +121,7 @@ cd tdrs-backend/keycloak
 4. Maps the **public** route: `<hostname>.tanfdata.acf.hhs.gov` (browser redirects, admin console)
 5. Sets `DEPLOY_ENV`, `KC_HOSTNAME`, and all config-cli substitution variables in the app environment
 6. Creates network policies so backend and celery apps can reach Keycloak on port 8080
-7. Starts Keycloak with `KEYCLOAK_CONFIG_IMPORT_ON_STARTUP=true`. The entrypoint waits for Keycloak readiness, calls `/opt/keycloak/normalize-login-gov-key.sh`, decodes `LOGIN_GOV_JWT_KEY`, exports `LOGIN_GOV_JWT_KEY_PEM`, and invokes `keycloak-config-cli` against the selected realm export before nginx starts.
+7. Starts Keycloak with `KEYCLOAK_CONFIG_IMPORT_ON_STARTUP=true`. The entrypoint waits for Keycloak readiness, calls `/opt/keycloak/normalize-login-gov-key.sh`, decodes `LOGIN_GOV_JWT_KEY`, exports `LOGIN_GOV_JWT_KEY_PEM`, and invokes `keycloak-config-cli` against the selected standard and admin realm exports before nginx starts.
 
 Keycloak no longer starts with native `--import-realm` in cloud.gov. The container starts Keycloak first, then the entrypoint runs config-cli against the local Keycloak port through the Admin API.
 
@@ -158,7 +158,7 @@ Choose the app for the target environment:
 | Staging | `keycloak-staging` |
 | Prod | `keycloak` |
 
-The import is idempotent and safe to run multiple times. `select-realm-config.sh` chooses the realm export from `DEPLOY_ENV` before Keycloak starts.
+The import is idempotent and safe to run multiple times. `select-realm-config.sh` chooses the standard and admin realm exports from `DEPLOY_ENV` before Keycloak starts.
 
 ---
 
@@ -397,7 +397,7 @@ Then confirm the startup config import completed so Keycloak updates the `ams` i
 
 ### Updating the Realm Export
 
-The realms are defined in `tdrs-backend/keycloak/realm-configs/`. Changes to clients, groups, IdP mappers, authentication flows, or token settings should be made in the environment-specific file you intend to deploy.
+The realms are defined in `tdrs-backend/keycloak/realm-configs/`. Changes to clients, groups, IdP mappers, authentication flows, or token settings should be made in the environment-specific standard or admin file you intend to deploy.
 
 1. Make changes to the relevant file in `realm-configs/`
 2. Test locally:
@@ -423,7 +423,7 @@ For one-off changes that don't warrant a full redeployment:
 
 1. Access the admin console at `https://<hostname>.tanfdata.acf.hhs.gov/admin`
 2. Log in with admin credentials
-3. Select the `tdp` realm
+3. Select the `tdp` realm for standard frontend/API/Grafana changes, or `tdp-admin` for standalone admin frontend changes
 4. Make changes through the UI
 
 **Remember to back-port durable realm changes to the matching file in `realm-configs/`** so they persist across redeployments.
@@ -439,13 +439,14 @@ cf restage "$APP_NAME"
 cf logs "$APP_NAME" --recent
 ```
 
-The import is idempotent and safe to run multiple times. It requires all `$(env:...)` placeholders referenced by the selected realm export to be present in the Keycloak app environment. Optional placeholders, such as `KC_TDP_GRAFANA_CLIENT_SECRET`, must exist even if their value is blank.
+The import is idempotent and safe to run multiple times. It requires all `$(env:...)` placeholders referenced by the selected realm exports to be present in the Keycloak app environment. Optional placeholders, such as `KC_TDP_GRAFANA_CLIENT_SECRET`, must exist even if their value is blank.
 
 Realm selection for config-cli:
 
-- `realm-configs/realm-export.dev-local.json` is used for both `local` and `dev`.
-- `realm-configs/realm-export.staging.json` is used for `staging`.
-- `realm-configs/realm-export.prod.json` is used for `prod`.
+- `realm-configs/realm-export.dev-local.json` and `realm-configs/admin-realm-export.dev-local.json` are used for both `local` and `dev`.
+- `realm-configs/realm-export.staging.json` and `realm-configs/admin-realm-export.staging.json` are used for `staging`.
+- `realm-configs/realm-export.prod.json` and `realm-configs/admin-realm-export.prod.json` are used for `prod`.
+- `select-realm-config.sh` copies the selected standard and admin files into Keycloak's import path using `DEPLOY_ENV`.
 
 ### Updating Token Lifespans
 
@@ -601,7 +602,9 @@ Export the current realm configuration from a running instance:
 cf ssh keycloak
 /tmp/lifecycle/shell
 /opt/keycloak/bin/kc.sh export --dir /tmp/export --realm tdp
+/opt/keycloak/bin/kc.sh export --dir /tmp/export --realm tdp-admin
 cat /tmp/export/tdp-realm.json
+cat /tmp/export/tdp-admin-realm.json
 ```
 
 Note: This exports realm configuration but **not** user credentials or sessions.

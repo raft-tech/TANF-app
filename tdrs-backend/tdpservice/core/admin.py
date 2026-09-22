@@ -12,7 +12,7 @@ from django.utils.safestring import mark_safe
 from django_json_widget.widgets import JSONEditorWidget
 from simple_history.admin import SimpleHistoryAdmin
 
-from tdpservice.core.models import FeatureFlag
+from tdpservice.core.models import BaseLog, FeatureFlag
 from tdpservice.core.utils import ReadOnlyAdminMixin
 
 # LogEntry needs to be de-registered first before registering a custom Admin Model below.
@@ -57,6 +57,31 @@ class LogEntryAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     object_link.short_description = "object"
 
 
+@admin.register(BaseLog)
+class BaseLogAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
+    """Read-only admin view for generic application logs."""
+
+    date_hierarchy = "created_at"
+
+    list_filter = ["event_type", "content_type", "source", "task_name"]
+
+    search_fields = ["object_id", "note"]
+
+    list_display = [
+        "created_at",
+        "event_id",
+        "event_type",
+        "content_type",
+        "object_id",
+        "actor",
+        "source",
+        "task_name",
+        "note",
+    ]
+
+    list_select_related = ("content_type", "actor")
+
+
 # Update GroupAdmin to use SimpleHistory
 admin.site.unregister(Group)
 
@@ -70,6 +95,11 @@ class HistoricalGroupAdmin(SimpleHistoryAdmin, GroupAdmin):
 
 class FeatureFlagAdminForm(ModelForm):
     """Custom form for FeatureFlag admin with JSON editor widget."""
+
+    class Media:
+        """Include the flag type field toggle script."""
+
+        js = ("admin/js/feature_flag_type_toggle.js",)
 
     class Meta:
         """Metadata."""
@@ -89,8 +119,14 @@ class FeatureFlagAdmin(SimpleHistoryAdmin):
 
     form = FeatureFlagAdminForm
 
-    list_display = ["feature_name", "enabled", "updated_at"]
-    list_filter = ["enabled", "created_at", "updated_at"]
+    list_display = [
+        "feature_name",
+        "type",
+        "enabled",
+        "rollout_percentage",
+        "updated_at",
+    ]
+    list_filter = ["type", "enabled", "created_at", "updated_at"]
     search_fields = ["feature_name", "description"]
     readonly_fields = ["created_at", "updated_at"]
 
@@ -99,8 +135,11 @@ class FeatureFlagAdmin(SimpleHistoryAdmin):
         (
             "Configuration",
             {
-                "fields": ("enabled", "config"),
-                "description": "Toggle the feature on/off and configure feature-specific settings",
+                "fields": ("type", "enabled", "rollout_percentage", "config"),
+                "description": (
+                    "Choose how the flag is evaluated, then enable it and configure "
+                    "any feature-specific settings. Rollout decisions are random per request."
+                ),
             },
         ),
         (

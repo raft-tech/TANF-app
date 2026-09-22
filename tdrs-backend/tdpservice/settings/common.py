@@ -4,6 +4,7 @@ import json
 import logging
 import logging.handlers
 import os
+import re
 from distutils.util import strtobool
 from os.path import join
 from typing import Any, Optional
@@ -569,9 +570,6 @@ class Common(Configuration):
     # Keycloak Settings        #
     ############################
 
-    # Canary cutover: percentage of new login requests routed through Keycloak (0-100).
-    # 0 = 100% legacy (default), 100 = 100% Keycloak. Changeable via cf set-env.
-    KEYCLOAK_AUTH_PERCENTAGE = int(os.getenv("KEYCLOAK_AUTH_PERCENTAGE", "0"))
     KEYCLOAK_SYNC_ENABLED = bool(strtobool(os.getenv("KEYCLOAK_SYNC_ENABLED", "yes")))
     KEYCLOAK_SERVER_URL = os.getenv("KEYCLOAK_SERVER_URL", "http://keycloak:8080")
     KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "tdp")
@@ -589,6 +587,7 @@ class Common(Configuration):
     KEYCLOAK_TDP_ADMIN_CLIENT_SECRET = os.getenv(
         "KEYCLOAK_TDP_ADMIN_CLIENT_SECRET", "tdp-admin-local-secret"
     )
+    KEYCLOAK_TDP_ADMIN_REALM = os.getenv("KEYCLOAK_TDP_ADMIN_REALM", "tdp-admin")
     KEYCLOAK_BEARER_CLIENT_ID = os.getenv("KEYCLOAK_BEARER_CLIENT_ID", "tdp-cli")
     KEYCLOAK_API_AUDIENCE = os.getenv(
         "KEYCLOAK_API_AUDIENCE", KEYCLOAK_DJANGO_CLIENT_ID
@@ -614,17 +613,59 @@ class Common(Configuration):
     _KC_REALM_URL = f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}"
     _KC_BROWSER_REALM_URL = f"{KEYCLOAK_BROWSER_URL}/realms/{KEYCLOAK_REALM}"
     KEYCLOAK_ISSUER = os.getenv("KEYCLOAK_ISSUER", _KC_BROWSER_REALM_URL)
+    OIDC_OP_ISSUER = KEYCLOAK_ISSUER
 
     # Browser-facing endpoints (user's browser is redirected here)
-    OIDC_OP_AUTHORIZATION_ENDPOINT = (
-        f"{_KC_BROWSER_REALM_URL}/protocol/openid-connect/auth"
+    OIDC_OP_AUTHORIZATION_ENDPOINT = os.getenv(
+        "KEYCLOAK_AUTHORIZATION_ENDPOINT",
+        f"{_KC_BROWSER_REALM_URL}/protocol/openid-connect/auth",
     )
-    OIDC_OP_LOGOUT_ENDPOINT = f"{_KC_BROWSER_REALM_URL}/protocol/openid-connect/logout"
+    OIDC_OP_LOGOUT_ENDPOINT = os.getenv(
+        "KEYCLOAK_LOGOUT_ENDPOINT",
+        f"{_KC_BROWSER_REALM_URL}/protocol/openid-connect/logout",
+    )
 
     # Server-to-server endpoints (Django backend talks to Keycloak within Docker)
-    OIDC_OP_TOKEN_ENDPOINT = f"{_KC_REALM_URL}/protocol/openid-connect/token"
-    OIDC_OP_USER_ENDPOINT = f"{_KC_REALM_URL}/protocol/openid-connect/userinfo"
-    OIDC_OP_JWKS_ENDPOINT = f"{_KC_REALM_URL}/protocol/openid-connect/certs"
+    OIDC_OP_TOKEN_ENDPOINT = os.getenv(
+        "KEYCLOAK_TOKEN_ENDPOINT",
+        f"{_KC_REALM_URL}/protocol/openid-connect/token",
+    )
+    OIDC_OP_USER_ENDPOINT = os.getenv(
+        "KEYCLOAK_USER_ENDPOINT",
+        f"{_KC_REALM_URL}/protocol/openid-connect/userinfo",
+    )
+    OIDC_OP_JWKS_ENDPOINT = os.getenv(
+        "KEYCLOAK_JWKS_ENDPOINT",
+        f"{_KC_REALM_URL}/protocol/openid-connect/certs",
+    )
+
+    _KC_ADMIN_REALM_URL = f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_TDP_ADMIN_REALM}"
+    _KC_ADMIN_BROWSER_REALM_URL = (
+        f"{KEYCLOAK_BROWSER_URL}/realms/{KEYCLOAK_TDP_ADMIN_REALM}"
+    )
+    KEYCLOAK_TDP_ADMIN_ISSUER = os.getenv(
+        "KEYCLOAK_TDP_ADMIN_ISSUER", _KC_ADMIN_BROWSER_REALM_URL
+    )
+    KEYCLOAK_TDP_ADMIN_AUTHORIZATION_ENDPOINT = os.getenv(
+        "KEYCLOAK_TDP_ADMIN_AUTHORIZATION_ENDPOINT",
+        f"{_KC_ADMIN_BROWSER_REALM_URL}/protocol/openid-connect/auth",
+    )
+    KEYCLOAK_TDP_ADMIN_LOGOUT_ENDPOINT = os.getenv(
+        "KEYCLOAK_TDP_ADMIN_LOGOUT_ENDPOINT",
+        f"{_KC_ADMIN_BROWSER_REALM_URL}/protocol/openid-connect/logout",
+    )
+    KEYCLOAK_TDP_ADMIN_TOKEN_ENDPOINT = os.getenv(
+        "KEYCLOAK_TDP_ADMIN_TOKEN_ENDPOINT",
+        f"{_KC_ADMIN_REALM_URL}/protocol/openid-connect/token",
+    )
+    KEYCLOAK_TDP_ADMIN_USER_ENDPOINT = os.getenv(
+        "KEYCLOAK_TDP_ADMIN_USER_ENDPOINT",
+        f"{_KC_ADMIN_REALM_URL}/protocol/openid-connect/userinfo",
+    )
+    KEYCLOAK_TDP_ADMIN_JWKS_ENDPOINT = os.getenv(
+        "KEYCLOAK_TDP_ADMIN_JWKS_ENDPOINT",
+        f"{_KC_ADMIN_REALM_URL}/protocol/openid-connect/certs",
+    )
 
     # Custom authentication backend
     OIDC_AUTHENTICATION_CALLBACK_URL = "oidc_authentication_callback"
@@ -649,14 +690,15 @@ class Common(Configuration):
 
     # SessionRefresh middleware: exempt API endpoints from silent re-auth redirects
     OIDC_EXEMPT_URLS = [
-        "/v1/",
-        "/admin/",
-        "/prometheus/",
-        "/plg_auth_check/",
-        "/login/",
+        re.compile(r"^/v1/"),
+        re.compile(r"^/admin/"),
+        re.compile(r"^/prometheus/"),
+        re.compile(r"^/plg_auth_check/"),
+        re.compile(r"^/login/"),
         "/auth_check",
-        "/admin-auth/",
-        "/logout/",
+        re.compile(r"^/admin-auth/"),
+        re.compile(r"^/admin-api/"),
+        re.compile(r"^/logout/"),
     ]
 
     # -------- CELERY CONFIG
@@ -667,6 +709,7 @@ class Common(Configuration):
     CELERY_RESULT_BACKEND = REDIS_URI + "/0"
     CELERY_TASK_DEFAULT_QUEUE = os.getenv("CELERY_TASK_DEFAULT_QUEUE", "celery")
     CELERY_GO_PARSER_QUEUE = os.getenv("CELERY_GO_PARSER_QUEUE", "go-parser")
+    CELERY_LIFECYCLE_QUEUE = os.getenv("CELERY_LIFECYCLE_QUEUE", "lifecycle")
     CELERY_ACCEPT_CONTENT = ["application/json"]
     CELERY_TASK_SERIALIZER = "json"
     CELERY_RESULT_SERIALIZER = "json"
@@ -675,10 +718,26 @@ class Common(Configuration):
     CELERY_ENABLE_UTC = True
     CELERY_TASK_PROTOCOL = 1
     CELERY_TASK_ROUTES = {
-        "tdpservice.scheduling.parser_task.go_parse": {"queue": CELERY_GO_PARSER_QUEUE}
+        "tdpservice.scheduling.parser_task.go_parse": {"queue": CELERY_GO_PARSER_QUEUE},
+        "tdpservice.data_files.tasks.mark_stale_files_stuck": {
+            "queue": CELERY_LIFECYCLE_QUEUE
+        },
     }
     GO_PARSER_QUEUE = os.getenv("GO_PARSER_QUEUE", "go-parser")
-    GO_PARSER_SHADOW_MODE = bool(strtobool(os.getenv("GO_PARSER_SHADOW_MODE", "true")))
+    # Production submissions get a full day before they are considered stale.
+    # The interval override lets local/CI browser tests exercise the real timeout
+    # task without waiting for the hourly production schedule.
+    STALE_PARSE_TIMEOUT_SECONDS = int(
+        os.getenv("STALE_PARSE_TIMEOUT_SECONDS", str(24 * 60 * 60))
+    )
+    _STALE_PARSE_CHECK_INTERVAL_SECONDS = os.getenv(
+        "STALE_PARSE_CHECK_INTERVAL_SECONDS"
+    )
+    STALE_PARSE_CHECK_SCHEDULE = (
+        int(_STALE_PARSE_CHECK_INTERVAL_SECONDS)
+        if _STALE_PARSE_CHECK_INTERVAL_SECONDS
+        else crontab(minute="30")
+    )
 
     CELERY_BEAT_SCHEDULE = {
         "Database Backup": {
@@ -723,6 +782,10 @@ class Common(Configuration):
                 day_of_month="*",
                 month_of_year="*",
             ),  # Every day at 1am UTC (9pm EST)
+        },
+        "Mark Stale Data Files Stuck": {
+            "task": "tdpservice.data_files.tasks.mark_stale_files_stuck",
+            "schedule": STALE_PARSE_CHECK_SCHEDULE,
         },
         "Schedule Statistical Weights ETL": {
             "task": "tdpservice.etl.tasks.schedule_statistical_weights",

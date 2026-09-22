@@ -1,9 +1,11 @@
 """Tests for KeycloakOIDCBackend authentication backend."""
 
-from importlib import import_module
 import logging
+from importlib import import_module
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
+from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.test import RequestFactory
 from django.urls import reverse
 
@@ -167,9 +169,7 @@ class TestAuthenticateClientSelection:
             backend.authenticate(request)
 
         assert seen_clients == [("tdp-django", "django-secret")]
-        assert request.session["oidc_clients"] == {
-            "abandoned-admin-state": "tdp-admin"
-        }
+        assert request.session["oidc_clients"] == {"abandoned-admin-state": "tdp-admin"}
 
     def test_admin_token_request_uses_admin_callback_uri(
         self, backend, request_factory, settings
@@ -179,6 +179,16 @@ class TestAuthenticateClientSelection:
         settings.KEYCLOAK_DJANGO_CLIENT_SECRET = "django-secret"
         settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID = "tdp-admin"
         settings.KEYCLOAK_TDP_ADMIN_CLIENT_SECRET = "admin-secret"
+        settings.KEYCLOAK_TDP_ADMIN_TOKEN_ENDPOINT = (
+            "https://auth.example.gov/realms/tdp-admin/protocol/openid-connect/token"
+        )
+        settings.KEYCLOAK_TDP_ADMIN_JWKS_ENDPOINT = (
+            "https://auth.example.gov/realms/tdp-admin/protocol/openid-connect/certs"
+        )
+        settings.KEYCLOAK_TDP_ADMIN_USER_ENDPOINT = (
+            "https://auth.example.gov/realms/tdp-admin/protocol/openid-connect/userinfo"
+        )
+        settings.KEYCLOAK_TDP_ADMIN_ISSUER = "https://auth.example.gov/realms/tdp-admin"
 
         request = request_factory.get(
             "/admin-auth/oidc/callback/",
@@ -190,10 +200,12 @@ class TestAuthenticateClientSelection:
         request._oidc_client = ADMIN_OIDC_CLIENT
         request._oidc_callback_url = ADMIN_OIDC_CALLBACK_URL_NAME
         token_payloads = []
+        token_endpoints = []
         authenticated_user = object()
 
         def capture_token_payload(payload):
             token_payloads.append(payload.copy())
+            token_endpoints.append(backend.OIDC_OP_TOKEN_ENDPOINT)
             return {"id_token": "id-token", "access_token": "access-token"}
 
         with (
@@ -219,58 +231,190 @@ class TestAuthenticateClientSelection:
                 "redirect_uri": "https://auth.example.gov/admin-auth/oidc/callback/",
             }
         ]
+        assert token_endpoints == [
+            "https://auth.example.gov/realms/tdp-admin/protocol/openid-connect/token"
+        ]
+        assert (
+            backend.OIDC_OP_JWKS_ENDPOINT != settings.KEYCLOAK_TDP_ADMIN_JWKS_ENDPOINT
+        )
         assert not hasattr(backend, "_oidc_callback_url")
+
+    def test_verify_token_accepts_expected_realm_issuer(self, backend):
+        """OIDC token issuer validation should allow the selected realm only."""
+        backend._oidc_expected_issuer = "https://auth.example.gov/realms/tdp-admin"
+
+        with patch(
+            "mozilla_django_oidc.auth.OIDCAuthenticationBackend.verify_token",
+            return_value={
+                "iss": "https://auth.example.gov/realms/tdp-admin",
+                "email": "admin@example.gov",
+            },
+        ):
+            payload = backend.verify_token("id-token", nonce="nonce")
+
+        assert payload["email"] == "admin@example.gov"
+
+    def test_verify_token_rejects_wrong_realm_issuer(self, backend):
+        """A token issued by one realm must not validate against another realm."""
+        backend._oidc_expected_issuer = "https://auth.example.gov/realms/tdp"
+
+        with (
+            patch(
+                "mozilla_django_oidc.auth.OIDCAuthenticationBackend.verify_token",
+                return_value={
+                    "iss": "https://auth.example.gov/realms/tdp-admin",
+                    "email": "admin@example.gov",
+                },
+            ),
+            pytest.raises(SuspiciousOperation),
+        ):
+            backend.verify_token("id-token", nonce="nonce")
+
+
+@pytest.mark.django_db
+class TestAdminOIDCAuthenticationCallback:
+    """Tests for the admin OIDC callback view."""
+
+    def test_failed_callbacks_return_to_admin_frontend_login(
+        self, api_client, settings
+    ):
+        """Generic OIDC failures should not redirect to the Django root."""
+        settings.ADMIN_FRONTEND_BASE_URL = "http://localhost:3001"
+
+        response = api_client.get(
+            reverse("admin_oidc_authentication_callback"),
+            {"state": "admin-state", "code": "authorization-code"},
+        )
+
+        assert response.status_code == 302
+        parsed_url = urlparse(response.url)
+        assert (
+            f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+            == "http://localhost:3001/login"
+        )
+        query_params = parse_qs(parsed_url.query)
+        assert query_params["error"] == ["admin_login_failed"]
+        assert query_params["message"] == ["Unable to complete admin sign in."]
+
+    def test_validation_errors_return_to_admin_frontend_login(
+        self, api_client, settings
+    ):
+        """Validation failures during admin login should render in the admin UI."""
+        settings.ADMIN_FRONTEND_BASE_URL = "http://localhost:3001"
+        message = (
+            "Users other than Regional Staff, Developers, Data Analysts "
+            "do not get assigned a location"
+        )
+
+        with patch(
+            "mozilla_django_oidc.views.OIDCAuthenticationCallbackView.get",
+            side_effect=ValidationError(message),
+        ):
+            response = api_client.get(
+                reverse("admin_oidc_authentication_callback"),
+                {"state": "admin-state", "code": "authorization-code"},
+            )
+
+        assert response.status_code == 302
+        parsed_url = urlparse(response.url)
+        assert (
+            f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+            == "http://localhost:3001/login"
+        )
+        query_params = parse_qs(parsed_url.query)
+        assert query_params["error"] == ["admin_login_validation"]
+        assert query_params["message"] == [message]
+
+    def test_stale_callback_state_returns_to_admin_frontend_login(
+        self, api_client, settings
+    ):
+        """Stale admin callback URLs should not render a backend error page."""
+        settings.ADMIN_FRONTEND_BASE_URL = "http://localhost:3001"
+
+        with patch(
+            "mozilla_django_oidc.views.OIDCAuthenticationCallbackView.get",
+            side_effect=SuspiciousOperation("OIDC callback state not found"),
+        ):
+            response = api_client.get(
+                reverse("admin_oidc_authentication_callback"),
+                {"state": "stale-state", "code": "authorization-code"},
+            )
+
+        assert response.status_code == 302
+        parsed_url = urlparse(response.url)
+        assert (
+            f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+            == "http://localhost:3001/login"
+        )
+        query_params = parse_qs(parsed_url.query)
+        assert query_params["error"] == ["admin_login_failed"]
 
 
 @pytest.mark.django_db
 class TestKeycloakLogout:
-    """Tests for app-scoped Keycloak logout behavior."""
+    """Tests for realm-scoped Keycloak logout behavior."""
 
-    def test_standard_logout_does_not_end_keycloak_sso_or_admin_session(
+    def test_standard_logout_uses_standard_realm_and_preserves_admin_session(
         self, api_client, settings
     ):
-        """Standard logout must only clear the standard Django session."""
+        """Standard logout must only clear the standard app session."""
         settings.FRONTEND_BASE_URL = "https://tdp.example.gov"
+        settings.KEYCLOAK_DJANGO_CLIENT_ID = "tdp-django"
         settings.OIDC_OP_LOGOUT_ENDPOINT = (
             "https://keycloak.example.gov/realms/tdp/protocol/openid-connect/logout"
         )
         api_client.cookies[settings.SESSION_COOKIE_NAME] = _session_cookie(
-            settings, {"oidc_id_token": "standard-id-token"}
+            settings,
+            {"session_scope": "standard", "oidc_id_token": "standard-id-token"},
         )
         api_client.cookies[settings.ADMIN_SESSION_COOKIE_NAME] = _session_cookie(
-            settings, {"oidc_id_token": "admin-id-token"}
+            settings, {"session_scope": "admin", "oidc_id_token": "admin-id-token"}
         )
 
         response = api_client.get(reverse("v2-oidc-logout"))
 
         assert response.status_code == 302
-        assert response.url == settings.FRONTEND_BASE_URL
-        assert settings.OIDC_OP_LOGOUT_ENDPOINT not in response.url
-        assert "id_token_hint" not in response.url
+        parsed_url = urlparse(response.url)
+        query_params = parse_qs(parsed_url.query)
+        assert (
+            f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+            == settings.OIDC_OP_LOGOUT_ENDPOINT
+        )
+        assert query_params["client_id"] == ["tdp-django"]
+        assert query_params["id_token_hint"] == ["standard-id-token"]
+        assert query_params["post_logout_redirect_uri"] == [settings.FRONTEND_BASE_URL]
         assert settings.SESSION_COOKIE_NAME in response.cookies
         assert settings.ADMIN_SESSION_COOKIE_NAME not in response.cookies
 
-    def test_admin_logout_does_not_end_keycloak_sso_or_standard_session(
+    def test_admin_logout_uses_admin_realm_and_preserves_standard_session(
         self, api_client, settings
     ):
-        """Admin logout must only clear the admin Django session."""
+        """Admin logout must only clear the admin app session."""
         settings.ADMIN_FRONTEND_BASE_URL = "https://admin.example.gov"
-        settings.OIDC_OP_LOGOUT_ENDPOINT = (
-            "https://keycloak.example.gov/realms/tdp/protocol/openid-connect/logout"
-        )
+        settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID = "tdp-admin"
+        settings.KEYCLOAK_TDP_ADMIN_LOGOUT_ENDPOINT = "https://keycloak.example.gov/realms/tdp-admin/protocol/openid-connect/logout"
         api_client.cookies[settings.SESSION_COOKIE_NAME] = _session_cookie(
-            settings, {"oidc_id_token": "standard-id-token"}
+            settings,
+            {"session_scope": "standard", "oidc_id_token": "standard-id-token"},
         )
         api_client.cookies[settings.ADMIN_SESSION_COOKIE_NAME] = _session_cookie(
-            settings, {"oidc_id_token": "admin-id-token"}
+            settings, {"session_scope": "admin", "oidc_id_token": "admin-id-token"}
         )
 
         response = api_client.get(reverse("admin-oidc-logout"))
 
         assert response.status_code == 302
-        assert response.url == settings.ADMIN_FRONTEND_BASE_URL
-        assert settings.OIDC_OP_LOGOUT_ENDPOINT not in response.url
-        assert "id_token_hint" not in response.url
+        parsed_url = urlparse(response.url)
+        query_params = parse_qs(parsed_url.query)
+        assert (
+            f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+            == settings.KEYCLOAK_TDP_ADMIN_LOGOUT_ENDPOINT
+        )
+        assert query_params["client_id"] == ["tdp-admin"]
+        assert query_params["id_token_hint"] == ["admin-id-token"]
+        assert query_params["post_logout_redirect_uri"] == [
+            settings.ADMIN_FRONTEND_BASE_URL
+        ]
         assert settings.ADMIN_SESSION_COOKIE_NAME in response.cookies
         assert settings.SESSION_COOKIE_NAME not in response.cookies
 

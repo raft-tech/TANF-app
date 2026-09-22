@@ -1,15 +1,16 @@
 """Define API views for user class."""
 
-import datetime
 import logging
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from django.conf import settings
 from django.contrib.auth import logout
-from django.contrib.auth.models import AnonymousUser, Group, Permission
+from django.contrib.auth.models import Group, Permission
+from django.core.exceptions import SuspiciousOperation, ValidationError
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 
 from mozilla_django_oidc.views import (
@@ -56,6 +57,42 @@ from tdpservice.users.serializers import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _keycloak_logout_url(
+    logout_endpoint, client_id, post_logout_redirect_uri, id_token
+):
+    """Build a realm-specific RP-initiated logout URL."""
+    logout_params = {
+        "client_id": client_id,
+        "id_token_hint": id_token,
+        "post_logout_redirect_uri": post_logout_redirect_uri,
+    }
+    return f"{logout_endpoint}?{urlencode(logout_params)}"
+
+
+def _validation_error_message(exc):
+    """Return a user-facing string from a Django ValidationError."""
+    if hasattr(exc, "message_dict"):
+        return " ".join(
+            message
+            for messages in exc.message_dict.values()
+            for message in messages
+        )
+
+    return " ".join(exc.messages)
+
+
+def _admin_login_error_url(error, message):
+    """Build a failed admin login URL for the admin frontend."""
+    query_string = urlencode({"error": error, "message": message})
+    login_url = f"{settings.ADMIN_FRONTEND_BASE_URL.rstrip('/')}/login"
+    return f"{login_url}?{query_string}"
+
+
+def _admin_login_error_redirect(error, message):
+    """Redirect failed admin logins back to the admin frontend."""
+    return HttpResponseRedirect(_admin_login_error_url(error, message))
 
 
 class UserViewSet(
@@ -124,7 +161,7 @@ class UserViewSet(
         serializer.is_valid(raise_exception=True)
         instance = serializer.save(
             account_approval_status=AccountApprovalStatusChoices.ACCESS_REQUEST,
-            access_requested_date=datetime.datetime.now(),
+            access_requested_date=timezone.now(),
         )  # DRF ignores commit, but semantically clearer
         for field, value in serializer.validated_data.items():
             try:
@@ -270,10 +307,6 @@ class FeedbackViewSet(viewsets.ModelViewSet):
         feedback_id = response.data["id"]
         feedback = Feedback.objects.get(id=feedback_id)
 
-        # Force anonymity if user is None to prevent us from know if authenticated users chose to remain anonymous
-        if request.user is None or isinstance(request.user, AnonymousUser):
-            feedback.anonymous = True
-
         if not feedback.anonymous:
             feedback.user = request.user
         feedback.save()
@@ -348,23 +381,31 @@ class AdminKeycloakLoginMixin:
         """Use the admin callback route for admin OIDC logins."""
         if attr == "OIDC_AUTHENTICATION_CALLBACK_URL":
             return ADMIN_OIDC_CALLBACK_URL_NAME
+        if attr == "OIDC_OP_AUTHORIZATION_ENDPOINT":
+            return settings.KEYCLOAK_TDP_ADMIN_AUTHORIZATION_ENDPOINT
+        if attr == "OIDC_RP_CLIENT_ID":
+            return settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID
 
         return OIDCAuthenticationRequestView.get_settings(attr, *args)
 
     def get(self, request, *args, **kwargs):
         """Mark this OIDC request as admin-scoped before redirecting."""
         request.session.pop("oidc_client", None)
-        self.OIDC_RP_CLIENT_ID = settings.KEYCLOAK_TDP_ADMIN_CLIENT_ID
         response = super().get(request, *args, **kwargs)
         request.session["session_scope"] = ADMIN_SESSION_SCOPE
-        state = parse_qs(urlparse(response["Location"]).query).get("state", [None])[
-            0
-        ]
+        state = parse_qs(urlparse(response["Location"]).query).get("state", [None])[0]
         if state:
             oidc_clients = request.session.get("oidc_clients", {}).copy()
             oidc_clients[state] = ADMIN_OIDC_CLIENT
             request.session["oidc_clients"] = oidc_clients
-        if not request.session.get("oidc_login_next"):
+        next_url = request.GET.get("next")
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url,
+            allowed_hosts=getattr(settings, "OIDC_REDIRECT_ALLOWED_HOSTS", set()),
+            require_https=request.is_secure(),
+        ):
+            request.session["oidc_login_next"] = next_url
+        else:
             request.session["oidc_login_next"] = settings.ADMIN_FRONTEND_BASE_URL
         return response
 
@@ -380,30 +421,74 @@ class AdminKeycloakLoginAMSView(AdminKeycloakLoginMixin, KeycloakLoginAMSView):
 class AdminOIDCAuthenticationCallbackView(OIDCAuthenticationCallbackView):
     """Handle admin OIDC callbacks with admin-scoped client settings."""
 
+    @property
+    def failure_url(self):
+        """Return failed admin login attempts to the admin frontend."""
+        return _admin_login_error_url(
+            "admin_login_failed", "Unable to complete admin sign in."
+        )
+
     def get(self, request):
         """Mark this callback so token exchange uses the admin redirect URI."""
         request.session["session_scope"] = ADMIN_SESSION_SCOPE
         request._oidc_client = ADMIN_OIDC_CLIENT
         request._oidc_callback_url = ADMIN_OIDC_CALLBACK_URL_NAME
-        return super().get(request)
+        try:
+            return super().get(request)
+        except SuspiciousOperation:
+            logger.warning("Admin OIDC callback state validation failed", exc_info=True)
+            return _admin_login_error_redirect(
+                "admin_login_failed", "Unable to complete admin sign in."
+            )
+        except ValidationError as exc:
+            logger.warning("Admin OIDC callback validation failed", exc_info=True)
+            return _admin_login_error_redirect(
+                "admin_login_validation", _validation_error_message(exc)
+            )
 
 
 class KeycloakLogoutView(View):
-    """Logout from the standard Django session and return to the frontend."""
+    """Logout from the standard Django session and standard Keycloak realm."""
+
+    logout_endpoint_setting = "OIDC_OP_LOGOUT_ENDPOINT"
+    client_id_setting = "KEYCLOAK_DJANGO_CLIENT_ID"
+    redirect_url_setting = "FRONTEND_BASE_URL"
+
+    def get_logout_endpoint(self):
+        """Return the realm-specific OIDC logout endpoint."""
+        return getattr(settings, self.logout_endpoint_setting)
+
+    def get_client_id(self):
+        """Return the realm-specific OIDC client ID."""
+        return getattr(settings, self.client_id_setting)
+
+    def get_redirect_url(self):
+        """Return the application URL Keycloak should redirect to after logout."""
+        return getattr(settings, self.redirect_url_setting)
 
     def get(self, request):
-        """Clear only the standard app session."""
-        # RP-initiated logout would terminate the shared Keycloak SSO session.
+        """Clear only the current app session and invoke its Keycloak logout."""
+        id_token = request.session.get("oidc_id_token")
+        redirect_url = self.get_redirect_url()
+        logout_url = (
+            _keycloak_logout_url(
+                self.get_logout_endpoint(),
+                self.get_client_id(),
+                redirect_url,
+                id_token,
+            )
+            if id_token
+            else redirect_url
+        )
+
         logout(request)
 
-        return HttpResponseRedirect(settings.FRONTEND_BASE_URL)
+        return HttpResponseRedirect(logout_url)
 
 
 class AdminKeycloakLogoutView(KeycloakLogoutView):
-    """Logout from the admin-scoped session and return to the admin console."""
+    """Logout from the admin-scoped session and admin Keycloak realm."""
 
-    def get(self, request):
-        """Clear only the admin app session."""
-        logout(request)
-
-        return HttpResponseRedirect(settings.ADMIN_FRONTEND_BASE_URL)
+    logout_endpoint_setting = "KEYCLOAK_TDP_ADMIN_LOGOUT_ENDPOINT"
+    client_id_setting = "KEYCLOAK_TDP_ADMIN_CLIENT_ID"
+    redirect_url_setting = "ADMIN_FRONTEND_BASE_URL"

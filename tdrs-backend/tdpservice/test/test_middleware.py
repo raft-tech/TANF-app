@@ -12,6 +12,7 @@ from tdpservice import middleware
 from tdpservice.middleware import AdminAPIAuthorizationMiddleware, SessionMiddleware
 from tdpservice.request_attribution import RequestAttribution
 from tdpservice.users.models import AccountApprovalStatusChoices
+from tdpservice.users.oidc import ADMIN_OIDC_CLIENT
 
 
 class CounterSpy:
@@ -585,6 +586,35 @@ def test_session_middleware_uses_admin_cookie_for_admin_auth(settings):
     assert request.session["scope"] == "admin"
 
 
+def test_session_middleware_uses_admin_cookie_for_admin_oidc_callback(settings):
+    """Versionless callbacks with admin OIDC state should use the admin session."""
+    middleware = SessionMiddleware(lambda request: HttpResponse())
+    standard_cookie = _session_cookie(
+        middleware, {"scope": "standard", "session_scope": "standard"}
+    )
+    admin_cookie = _session_cookie(
+        middleware,
+        {
+            "scope": "admin",
+            "session_scope": "admin",
+            "oidc_clients": {"admin-state": ADMIN_OIDC_CLIENT},
+        },
+    )
+    request = RequestFactory().get(
+        "/oidc/callback/",
+        {"state": "admin-state"},
+        HTTP_COOKIE=(
+            f"{settings.SESSION_COOKIE_NAME}={standard_cookie}; "
+            f"{settings.ADMIN_SESSION_COOKIE_NAME}={admin_cookie}"
+        ),
+    )
+
+    middleware.process_request(request)
+
+    assert request._tdp_session_cookie_name == settings.ADMIN_SESSION_COOKIE_NAME
+    assert request.session["scope"] == "admin"
+
+
 def test_session_middleware_ignores_service_header_for_standard_api(settings):
     """Client-controlled headers should not switch /v1 to the admin session."""
     middleware = SessionMiddleware(lambda request: HttpResponse())
@@ -754,7 +784,8 @@ def test_admin_api_authorization_middleware_rejects_unapproved_admin_user():
     """Admin API middleware should require approved admin users."""
     user = SimpleNamespace(
         is_authenticated=True,
-        is_ofa_sys_admin=True,
+        is_staff=True,
+        is_superuser=True,
         is_active=True,
         account_approval_status=AccountApprovalStatusChoices.PENDING,
     )
@@ -768,7 +799,8 @@ def test_admin_api_authorization_middleware_rejects_inactive_admin_user():
     """Admin API middleware should require active admin users."""
     user = SimpleNamespace(
         is_authenticated=True,
-        is_ofa_sys_admin=True,
+        is_staff=True,
+        is_superuser=True,
         is_active=False,
         account_approval_status=AccountApprovalStatusChoices.APPROVED,
     )
@@ -776,3 +808,18 @@ def test_admin_api_authorization_middleware_rejects_inactive_admin_user():
     response = _admin_api_response_for_user(user)
 
     assert response.status_code == 403
+
+
+def test_admin_api_authorization_middleware_allows_django_superuser():
+    """Admin API middleware should not depend on the user's assigned role."""
+    user = SimpleNamespace(
+        is_authenticated=True,
+        is_staff=True,
+        is_superuser=True,
+        is_active=True,
+        account_approval_status=AccountApprovalStatusChoices.APPROVED,
+    )
+
+    response = _admin_api_response_for_user(user)
+
+    assert response.status_code == 200

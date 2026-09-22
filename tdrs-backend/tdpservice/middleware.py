@@ -19,7 +19,11 @@ from tdpservice.request_attribution import (
     RequestAttribution,
 )
 from tdpservice.users.authorization import is_authorized_admin_user
-from tdpservice.users.oidc import ADMIN_SESSION_SCOPE, STANDARD_SESSION_SCOPE
+from tdpservice.users.oidc import (
+    ADMIN_OIDC_CLIENT,
+    ADMIN_SESSION_SCOPE,
+    STANDARD_SESSION_SCOPE,
+)
 
 ADMIN_AUTH_PREFIX = "/admin-auth/"
 ADMIN_API_PREFIX = "/admin-api/"
@@ -194,6 +198,25 @@ class SessionMiddleware(DjangoSessionMiddleware):
         """Return whether this request belongs to admin API proxying."""
         return self._path_matches_prefix(request, ADMIN_API_PREFIX)
 
+    def _is_admin_oidc_callback_request(self, request):
+        """Return whether a versionless OIDC callback belongs to admin auth."""
+        path = getattr(request, "path_info", request.path)
+        if path != "/oidc/callback/":
+            return False
+
+        state = request.GET.get("state")
+        if not state:
+            return False
+
+        admin_session_key = request.COOKIES.get(settings.ADMIN_SESSION_COOKIE_NAME)
+        if not admin_session_key:
+            return False
+
+        admin_session = self.SessionStore(admin_session_key)
+        oidc_clients = admin_session.get("oidc_clients", {})
+
+        return oidc_clients.get(state) == ADMIN_OIDC_CLIENT
+
     @staticmethod
     def _has_admin_proxy_token(request):
         """Return whether the request has the server-side admin proxy token."""
@@ -206,8 +229,13 @@ class SessionMiddleware(DjangoSessionMiddleware):
 
     def _is_admin_session_request(self, request):
         """Return whether this request should use the admin session cookie."""
-        return self._is_admin_auth_request(request) or (
-            self._is_admin_api_request(request) and self._has_admin_proxy_token(request)
+        return (
+            self._is_admin_auth_request(request)
+            or self._is_admin_oidc_callback_request(request)
+            or (
+                self._is_admin_api_request(request)
+                and self._has_admin_proxy_token(request)
+            )
         )
 
     def _get_session_cookie_name(self, request):

@@ -1,7 +1,6 @@
 """Test DataFileAdmin methods."""
 from datetime import datetime, timedelta, timezone
 
-from django.conf import settings
 from django.contrib.admin.sites import AdminSite
 from django.db import connection
 from django.test import RequestFactory
@@ -10,9 +9,18 @@ from django.test.utils import CaptureQueriesContext
 import pytest
 
 from tdpservice.data_files.admin import admin as data_file_admin_module
-from tdpservice.data_files.admin.admin import DataFileAdmin
+from tdpservice.data_files.admin.admin import (
+    DataFileAdmin,
+    DataFileStateTransitionInline,
+    ShadowDataFileAdmin,
+)
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile
+from tdpservice.data_files.models import (
+    DataFile,
+    DataFileStateTransition,
+    ShadowDataFile,
+    create_or_update_shadow_data_file,
+)
 from tdpservice.data_files.parser_error_choices import ParserErrorCategoryChoices
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.parsers.models import DataFileSummary, ParserError
@@ -28,11 +36,6 @@ def test_DataFileAdmin_status():
 
     assert data_file_admin.status(data_file) == data_file_summary.status
     assert data_file_admin.case_totals(data_file) == data_file_summary.case_aggregates
-    DOMAIN = settings.FRONTEND_BASE_URL
-    assert (
-        data_file_admin.error_report_link(data_file)
-        == f"<a href='{DOMAIN}/admin/parsers/parsererror/?file={data_file.id}'>Parser Errors: 0</a>"
-    )
 
 
 def test_DataFileAdmin_exposes_transitional_fields_in_admin():
@@ -47,6 +50,49 @@ def test_DataFileAdmin_exposes_transitional_fields_in_admin():
     assert "parsing_state" in data_file_admin.list_display
     assert "parsing_state" in properties_fieldset[1]["fields"]
     assert "section_ref" in properties_fieldset[1]["fields"]
+    assert data_file_admin.inlines[0] is DataFileStateTransitionInline
+
+
+@pytest.mark.parametrize("model", [DataFile, ShadowDataFile])
+def test_DataFileStateTransitionInline_is_read_only(model):
+    """State transition history should be visible but not editable in admin."""
+    inline = DataFileStateTransitionInline(model, AdminSite())
+
+    assert inline.ordering == ["-created_at", "-id"]
+    assert inline.has_view_permission(None) is True
+    assert inline.has_add_permission(None) is False
+    assert inline.has_change_permission(None) is False
+    assert inline.has_delete_permission(None) is False
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("shadow", [False, True])
+def test_state_transition_inline_separates_production_and_shadow(admin_user, shadow):
+    """Identical file IDs must show only the history for the selected model."""
+    data_file = DataFileFactory()
+    shadow_file = create_or_update_shadow_data_file(data_file)
+    transitions = [
+        DataFileStateTransition.objects.create_for_object(
+            obj,
+            previous_state=SubmissionState.PARSE_STARTED,
+            next_state=SubmissionState.PARSE_COMPLETED,
+        )
+        for obj in (data_file, shadow_file)
+    ]
+    obj = shadow_file if shadow else data_file
+    admin_class = ShadowDataFileAdmin if shadow else DataFileAdmin
+    model_admin = admin_class(type(obj), AdminSite())
+    request = RequestFactory().get("/admin/")
+    request.user = admin_user
+
+    inline = next(
+        item
+        for item in model_admin.get_inline_instances(request, obj)
+        if isinstance(item, DataFileStateTransitionInline)
+    )
+    formset = inline.get_formset(request, obj)(instance=obj)
+
+    assert list(formset.get_queryset()) == [transitions[int(shadow)]]
 
 
 @pytest.mark.django_db
@@ -59,10 +105,10 @@ def test_DataFileAdmin_parsing_state_uses_choice_label():
 
 
 @pytest.mark.django_db
-def test_DataFileAdmin_changelist_summary_and_error_count_are_eager_loaded(
+def test_DataFileAdmin_changelist_summary_is_eager_loaded(
     admin_user,
 ):
-    """The data file admin should not query per row for summary links or error counts."""
+    """The data file admin should not query per row for summary links."""
     for _ in range(3):
         data_file = DataFileFactory()
         DataFileSummaryFactory(
@@ -86,9 +132,44 @@ def test_DataFileAdmin_changelist_summary_and_error_count_are_eager_loaded(
             data_file_admin.status(data_file)
             data_file_admin.case_totals(data_file)
             data_file_admin.data_file_summary(data_file)
-            data_file_admin.error_report_link(data_file)
 
     assert len(captured_queries) == 0
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("all_versions", [False, True])
+def test_DataFileAdmin_changelist_does_not_query_parser_errors(
+    admin_user, all_versions: bool
+) -> None:
+    """Pagination and latest-version selection must not scan parser errors."""
+    old_file = DataFileFactory(version=1)
+    latest_file = DataFileFactory(stt=old_file.stt, version=2)
+    for data_file in (old_file, latest_file):
+        DataFileSummaryFactory(datafile=data_file)
+        ParserError.objects.create(
+            file=data_file,
+            error_type=ParserErrorCategoryChoices.PRE_CHECK,
+        )
+
+    params = {"created_at": "1"} if all_versions else {}
+    request = RequestFactory().get("/admin/data_files/datafile/", params)
+    request.user = admin_user
+    model_admin = DataFileAdmin(DataFile, AdminSite())
+
+    with CaptureQueriesContext(connection) as queries:
+        changelist = model_admin.get_changelist_instance(request)
+        result_ids = {data_file.pk for data_file in changelist.result_list}
+
+    expected_ids = {old_file.pk, latest_file.pk} if all_versions else {latest_file.pk}
+    assert result_ids == expected_ids
+    assert changelist.result_count == len(expected_ids)
+    assert changelist.full_result_count == 2
+    assert "error_report_link" not in changelist.list_display
+    assert queries.captured_queries
+    assert all(
+        ParserError._meta.db_table not in query["sql"]
+        for query in queries.captured_queries
+    )
 
 
 @pytest.mark.django_db
@@ -143,6 +224,11 @@ def test_DataFileAdmin_reparse_requests_reparse_for_safe_files(
     assert any(
         f"Skipped 2 file(s): {uploaded_file.id}" in message for message, _ in messages
     )
+    transition = DataFileStateTransition.objects.for_object(ready_file).get()
+    assert transition.previous_state == SubmissionState.PARSE_COMPLETED
+    assert transition.next_state == SubmissionState.REPARSE_REQUESTED
+    assert str(transition.actor_id) == str(admin_user.id)
+    assert transition.source == "django_admin"
 
 
 @pytest.mark.django_db
@@ -216,6 +302,14 @@ def test_DataFileAdmin_reparse_rolls_back_state_when_queue_fails(
 
     ready_file.refresh_from_db()
     assert ready_file.state == SubmissionState.PARSE_COMPLETED
+    transitions = list(DataFileStateTransition.objects.for_object(ready_file))
+    assert [transition.next_state for transition in transitions] == [
+        SubmissionState.PARSE_COMPLETED,
+        SubmissionState.REPARSE_REQUESTED,
+    ]
+    assert all(
+        str(transition.actor_id) == str(admin_user.id) for transition in transitions
+    )
     assert any("Could not queue the reparse task" in message for message, _ in messages)
     assert not any(
         "file successfully submitted for reparsing" in message

@@ -52,14 +52,17 @@ set_cf_envs()
   "DJANGO_SETTINGS_MODULE"
   "DJANGO_SU_NAME"
   "FRONTEND_BASE_URL"
+  "ADMIN_FRONTEND_BASE_URL"
   "LOGGING_LEVEL"
   "JWT_KEY"
   "SENDGRID_API_KEY"
   "OFA_READ_ONLY_PASSWORD"
   "OFA_ADMIN_READ_ONLY_PASSWORD"
-  "KEYCLOAK_AUTH_PERCENTAGE"
   "KEYCLOAK_ADMIN_CLIENT_SECRET"
   "KEYCLOAK_DJANGO_CLIENT_SECRET"
+  "KEYCLOAK_TDP_ADMIN_REALM"
+  "KEYCLOAK_TDP_ADMIN_CLIENT_ID"
+  "KEYCLOAK_TDP_ADMIN_CLIENT_SECRET"
   "KEYCLOAK_BROWSER_URL"
   "KEYCLOAK_SERVER_URL"
   "KEYCLOAK_SYNC_ENABLED"
@@ -90,6 +93,9 @@ set_cf_envs()
     echo "Setting var : $var_name"
     $cf_cmd
   done
+
+  # The Keycloak canary is now managed by the keycloak_auth database feature flag.
+  cf unset-env "$APP" KEYCLOAK_AUTH_PERCENTAGE
 
   set_alloy_envs "$APP"
 }

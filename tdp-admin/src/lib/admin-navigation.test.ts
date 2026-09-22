@@ -51,12 +51,33 @@ describe("admin navigation helpers", () => {
     ]);
     expect(
       items.find((item) => item.id === "users")?.children?.map((item) => item.id)
-    ).toEqual(["requests-authorization", "feedback"]);
+    ).toEqual(["user-accounts", "requests-authorization", "feedback"]);
     expect(dashboardItems.map((item) => item.id)).toEqual([
       "acf-ocio-dashboard",
       "digit-team-dashboard",
       "ofa-admin-dashboard",
     ]);
+  });
+
+  it("shows full navigation to Django admins without a TDP role", () => {
+    const items = getVisibleAdminNavItems(
+      [],
+      ADMIN_PRIMARY_NAV_ITEMS,
+      true
+    );
+    const dashboardItems = getVisibleAdminNavItems(
+      [],
+      ADMIN_DASHBOARD_NAV_ITEMS,
+      true
+    );
+
+    expect(getAdminNavigationTitle([], true)).toBe("System Admin");
+    expect(items.map((item) => item.id)).toEqual(
+      ADMIN_PRIMARY_NAV_ITEMS.map((item) => item.id)
+    );
+    expect(dashboardItems.map((item) => item.id)).toEqual(
+      ADMIN_DASHBOARD_NAV_ITEMS.map((item) => item.id)
+    );
   });
 
   it("shows ACF OCIO navigation", () => {
@@ -118,6 +139,14 @@ describe("admin navigation helpers", () => {
     expect(
       isAdminNavItemActive("/data-files", dataFilesItem as AdminNavItem)
     ).toBe(false);
+    expect(
+      isAdminNavItemActive(
+        "/users/123/edit",
+        ADMIN_PRIMARY_NAV_ITEMS.find(
+          (item) => item.id === "users"
+        ) as AdminNavItem
+      )
+    ).toBe(true);
   });
 
   it("expands the Users group by default", () => {
