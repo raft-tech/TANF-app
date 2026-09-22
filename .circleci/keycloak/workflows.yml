@@ -1,11 +1,6 @@
 # workflows:
   keycloak-deployment:
-    when:
-      or:
-        - equal: [develop, << pipeline.git.branch >>]
-        - equal: [main, << pipeline.git.branch >>]
-        - equal: [master, << pipeline.git.branch >>]
-        - << pipeline.parameters.run_dev_deployment >>
+    when: << pipeline.parameters.run_keycloak_deployment >>
     jobs:
       - deploy-keycloak:
           name: deploy-keycloak-dev
@@ -16,8 +11,10 @@
           cf-password: CF_PASSWORD_DEV
           cf-space: tanf-dev
           cf-username: CF_USERNAME_DEV
-          compare-with-develop: true
           expected-project-owner: raft-tech
+          image: << pipeline.parameters.keycloak_image >>
+          source-revision: << pipeline.parameters.keycloak_source_revision >>
+          serial-group: keycloak-dev
           filters:
             branches:
               ignore:
@@ -35,6 +32,9 @@
           cf-space: tanf-staging
           cf-username: CF_USERNAME_STAGING
           expected-project-owner: raft-tech
+          image: << pipeline.parameters.keycloak_image >>
+          source-revision: << pipeline.parameters.keycloak_source_revision >>
+          serial-group: keycloak-staging
           filters:
             branches:
               only:
@@ -49,6 +49,9 @@
           cf-space: tanf-staging
           cf-username: CF_USERNAME_STAGING
           expected-project-owner: hhs
+          image: << pipeline.parameters.keycloak_image >>
+          source-revision: << pipeline.parameters.keycloak_source_revision >>
+          serial-group: keycloak-staging
           filters:
             branches:
               only:
@@ -63,6 +66,9 @@
           cf-space: tanf-prod
           cf-username: CF_USERNAME_PROD
           expected-project-owner: hhs
+          image: << pipeline.parameters.keycloak_image >>
+          source-revision: << pipeline.parameters.keycloak_source_revision >>
+          serial-group: keycloak-production
           filters:
             branches:
               only:

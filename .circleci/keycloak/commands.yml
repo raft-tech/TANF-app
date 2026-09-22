@@ -13,78 +13,24 @@
               circleci-agent step halt
             fi
 
-  detect-keycloak-deployment:
+  checkout-keycloak-source:
     parameters:
-      compare-with-develop:
-        type: boolean
-        default: false
+      revision:
+        type: string
     steps:
       - run:
-          name: Determine whether Keycloak deployment is required
+          name: Pin Keycloak deployment revision
+          environment:
+            KEYCLOAK_SOURCE_REVISION: <<parameters.revision>>
           command: |
-            if [ "<<parameters.compare-with-develop>>" = "true" ]; then
-              git fetch --no-tags origin develop
-              BASE_REVISION=$(git merge-base origin/develop "$CIRCLE_SHA1")
-            elif [[ "${CIRCLE_COMPARE_URL:-}" =~ /compare/([0-9a-fA-F]{7,40})\.\.\. ]]; then
-              BASE_REVISION="${BASH_REMATCH[1]}"
-              if ! git cat-file -e "${BASE_REVISION}^{commit}" 2>/dev/null; then
-                git fetch --no-tags origin "$BASE_REVISION"
-              fi
-            else
-              BASE_REVISION="${CIRCLE_SHA1}^"
-            fi
-
-            echo "Checking Keycloak deployment inputs in ${BASE_REVISION}..${CIRCLE_SHA1}"
-            CHANGED_FILES=$(git diff --name-only "$BASE_REVISION" "$CIRCLE_SHA1")
-            printf '%s\n' "$CHANGED_FILES"
-
-            if ! printf '%s\n' "$CHANGED_FILES" | ./scripts/keycloak-deploy-required.sh; then
-              circleci-agent step halt
-            fi
-
-  publish-keycloak-image:
-    steps:
-      - run:
-          name: Publish immutable Keycloak image
-          no_output_timeout: 30m
-          command: |
-            set -euo pipefail
-
-            REGISTRY_OWNER=$(printf '%s' "$CIRCLE_PROJECT_USERNAME" | tr '[:upper:]' '[:lower:]')
-            IMAGE_REPOSITORY="ghcr.io/${REGISTRY_OWNER}/tdp-keycloak"
-            IMAGE_TAG="${IMAGE_REPOSITORY}:${CIRCLE_SHA1}"
-
-            printf '%s' "$GHCR_PUBLISH_TOKEN" | docker login ghcr.io \
-              --username "$GHCR_PUBLISH_USERNAME" \
-              --password-stdin
-
-            if docker buildx imagetools inspect "$IMAGE_TAG" >/dev/null 2>&1; then
-              echo "Reusing existing immutable image tag $IMAGE_TAG"
-            else
-              docker run --privileged --rm \
-                tonistiigi/binfmt@sha256:400a4873b838d1b89194d982c45e5fb3cda4593fbfd7e08a02e76b03b21166f0 \
-                --install arm64
-              docker buildx create --name keycloak-multiarch --driver docker-container --use
-              docker buildx inspect --bootstrap
-              docker buildx build \
-                --platform linux/amd64,linux/arm64 \
-                --tag "$IMAGE_TAG" \
-                --push \
-                tdrs-backend/keycloak
-            fi
-
-            IMAGE_DETAILS=$(docker buildx imagetools inspect "$IMAGE_TAG")
-            grep --quiet 'Platform:[[:space:]]*linux/amd64' <<< "$IMAGE_DETAILS"
-            grep --quiet 'Platform:[[:space:]]*linux/arm64' <<< "$IMAGE_DETAILS"
-
-            IMAGE_DIGEST=$(printf '%s\n' "$IMAGE_DETAILS" | awk '/^Digest:/ {print $2; exit}')
-            if [[ ! "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-              echo "Unable to resolve a valid digest for $IMAGE_TAG" >&2
+            if ! echo "$KEYCLOAK_SOURCE_REVISION" | grep -Eq '^[0-9a-f]{40}$'; then
+              echo "Invalid Keycloak source revision: $KEYCLOAK_SOURCE_REVISION" >&2
               exit 1
             fi
-
-            echo "export KEYCLOAK_IMAGE=${IMAGE_REPOSITORY}@${IMAGE_DIGEST}" >> "$BASH_ENV"
-            docker logout ghcr.io
+            if ! git cat-file -e "${KEYCLOAK_SOURCE_REVISION}^{commit}" 2>/dev/null; then
+              git fetch --no-tags --depth=1 origin "$KEYCLOAK_SOURCE_REVISION"
+            fi
+            git checkout --detach "$KEYCLOAK_SOURCE_REVISION"
 
   deploy-keycloak-image:
     parameters:
@@ -95,16 +41,24 @@
         type: string
       public-hostname:
         type: string
+      image:
+        type: string
+      expected-owner:
+        type: string
     steps:
       - install-deploy-dependencies
       - run:
-          name: Test Keycloak deployment scripts
-          command: |
-            ./scripts/test-keycloak-deploy-required.sh
-            ./scripts/test-keycloak-deploy.sh
+          name: Test Keycloak deployment script
+          command: ./scripts/test-keycloak-deploy.sh
       - run:
           name: Deploy Keycloak
+          environment:
+            KEYCLOAK_IMAGE: <<parameters.image>>
           command: |
+            if [[ ! "$KEYCLOAK_IMAGE" =~ ^ghcr\.io/<<parameters.expected-owner>>/tdp-keycloak@sha256:[0-9a-f]{64}$ ]]; then
+              echo "Invalid Keycloak image for <<parameters.expected-owner>>: $KEYCLOAK_IMAGE" >&2
+              exit 1
+            fi
             CF_DOCKER_PASSWORD="$GHCR_PULL_TOKEN" \
               bash ./tdrs-backend/keycloak/deploy.sh \
                 -P \
@@ -120,9 +74,13 @@
         type: string
       public-hostname:
         type: string
+      image:
+        type: string
     steps:
       - run:
           name: Verify Keycloak package and realm endpoint
+          environment:
+            KEYCLOAK_IMAGE: <<parameters.image>>
           command: |
             set -euo pipefail
 

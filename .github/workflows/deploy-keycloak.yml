@@ -1,0 +1,132 @@
+name: Build and deploy Keycloak
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - master
+    paths:
+      - 'tdrs-backend/keycloak/Dockerfile'
+      - 'tdrs-backend/keycloak/manifest.yml'
+      - 'tdrs-backend/keycloak/deploy.sh'
+      - 'tdrs-backend/keycloak/entrypoint.sh'
+      - 'tdrs-backend/keycloak/nginx.conf'
+      - 'tdrs-backend/keycloak/normalize-login-gov-key.sh'
+      - 'tdrs-backend/keycloak/select-realm-config.sh'
+      - 'tdrs-backend/keycloak/realm-configs/**'
+      - '.circleci/keycloak/**'
+      - '.circleci/config.yml'
+      - '.circleci/base_config.yml'
+      - '.circleci/generate_config.sh'
+      - '.circleci/deployment/commands.yml'
+      - '.circleci/deployment/workflows.yml'
+      - '.circleci/build-and-test/workflows.yml'
+      - '.circleci/util/commands.yml'
+      - '.github/workflows/deploy-keycloak.yml'
+      - 'scripts/test-keycloak-deploy.sh'
+  pull_request:
+    types:
+      - labeled
+    paths:
+      - 'tdrs-backend/keycloak/Dockerfile'
+      - 'tdrs-backend/keycloak/manifest.yml'
+      - 'tdrs-backend/keycloak/deploy.sh'
+      - 'tdrs-backend/keycloak/entrypoint.sh'
+      - 'tdrs-backend/keycloak/nginx.conf'
+      - 'tdrs-backend/keycloak/normalize-login-gov-key.sh'
+      - 'tdrs-backend/keycloak/select-realm-config.sh'
+      - 'tdrs-backend/keycloak/realm-configs/**'
+      - '.circleci/keycloak/**'
+      - '.circleci/config.yml'
+      - '.circleci/base_config.yml'
+      - '.circleci/generate_config.sh'
+      - '.circleci/deployment/commands.yml'
+      - '.circleci/deployment/workflows.yml'
+      - '.circleci/build-and-test/workflows.yml'
+      - '.circleci/util/commands.yml'
+      - '.github/workflows/deploy-keycloak.yml'
+      - 'scripts/test-keycloak-deploy.sh'
+
+permissions:
+  contents: read
+  packages: write
+  statuses: read
+
+env:
+  IMAGE_NAME: tdp-keycloak
+  IMAGE_TAG: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+concurrency:
+  group: keycloak-${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-trigger-deployment:
+    if: >-
+      github.event_name == 'push' ||
+      (startsWith(github.event.label.name, 'Deploy with CircleCI') &&
+      github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify PR status checks
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          STATE=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/status" --jq '.state')
+          echo "Current PR state: $STATE"
+          if [ "$STATE" != "success" ]; then
+            echo "Refusing to deploy Keycloak before PR status checks pass." >&2
+            exit 1
+          fi
+
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.IMAGE_TAG }}
+
+      - name: Set registry owner
+        run: |
+          echo "REGISTRY_OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Keycloak
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: tdrs-backend/keycloak
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/${{ env.REGISTRY_OWNER }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/TANF-app
+            org.opencontainers.image.description=Keycloak authentication service for TDP.
+            org.opencontainers.image.licenses=CC0-1.0
+
+      - name: Trigger CircleCI Keycloak deployment
+        uses: promiseofcake/circleci-trigger-action@v1
+        with:
+          user-token: ${{ secrets.CIRCLE_CI_V2_TOKEN }}
+          project-slug: ${{ github.repository }}
+          branch: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+          payload: '{
+              "run_keycloak_deployment": true,
+              "keycloak_image": "ghcr.io/${{ env.REGISTRY_OWNER }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}",
+              "keycloak_source_revision": "${{ env.IMAGE_TAG }}",
+              "keycloak_only": true,
+              "triggered": true
+            }'

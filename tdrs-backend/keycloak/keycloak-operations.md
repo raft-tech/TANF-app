@@ -23,7 +23,7 @@ For architectural context, see [Authentication Architecture](auth-architecture.m
 
 ### Automated CI/CD Deployment
 
-Keycloak is normally built and deployed by the `keycloak-deployment` CircleCI workflow. The workflow derives the GHCR package owner from the CircleCI GitHub project, publishes `ghcr.io/<repository-owner>/tdp-keycloak:<commit-sha>` for `linux/amd64` and `linux/arm64`, verifies both platforms, resolves the image index digest, and gives that immutable digest to Cloud Foundry.
+Keycloak publishing follows the existing GHCR release-image pattern. The path-filtered `.github/workflows/deploy-keycloak.yml` workflow uses `docker/build-push-action@v5` and the repository's `GITHUB_TOKEN` to publish `ghcr.io/<repository-owner>/tdp-keycloak:<commit-sha>` for `linux/amd64` and `linux/arm64`. GitHub Actions then passes the immutable image index digest to the deployment-only `keycloak-deployment` CircleCI workflow.
 
 | Source | Target app | Space | Registry owner |
 | --- | --- | --- | --- |
@@ -45,24 +45,26 @@ The job deploys only when at least one of these inputs changes:
 - `.circleci/keycloak/**`
 - `.circleci/config.yml`, `.circleci/base_config.yml`, or `.circleci/generate_config.sh`
 - `.circleci/deployment/commands.yml`
+- `.circleci/deployment/workflows.yml`
+- `.circleci/build-and-test/workflows.yml`
 - `.circleci/util/commands.yml`
-- `.github/workflows/deploy-on-label.yml`
-- `scripts/keycloak-deploy-required.sh`
+- `.github/workflows/deploy-keycloak.yml`
+- `scripts/test-keycloak-deploy.sh`
 
-The CircleCI step logs either the matching paths or `No Keycloak build or deployment inputs changed; skipping Keycloak deployment.` Documentation-only and unrelated application changes do not redeploy Keycloak.
+GitHub path filters prevent the workflow from running for documentation-only and unrelated application changes. A relevant push to `develop`, `main`, or `master` builds and deploys Keycloak. A relevant feature branch deploys Keycloak only when a `Deploy with CircleCI-*` label is applied to its pull request and existing status checks have passed.
 
 #### External prerequisites
 
-Configure these masked variables in each CircleCI project's settings before enabling the workflow. The Raft project uses the Raft robot and the HHS project uses the HHS robot.
+Connect each manually created `tdp-keycloak` package to its corresponding `TANF-app` repository and grant that repository GitHub Actions write access. The built-in `GITHUB_TOKEN` then publishes images without a long-lived write PAT.
+
+Configure these masked variables in each CircleCI project's settings before enabling deployment. The Raft project uses the Raft robot and the HHS project uses the HHS robot.
 
 | Variable | Required access | Use |
 | --- | --- | --- |
-| `GHCR_PUBLISH_USERNAME` | Machine-user login | Authenticate image publishing |
-| `GHCR_PUBLISH_TOKEN` | `write:packages` | Publish the commit-SHA image tag |
 | `GHCR_PULL_USERNAME` | Machine-user login | Stored as the Cloud Foundry Docker package username |
 | `GHCR_PULL_TOKEN` | `read:packages` | Stored by Cloud Foundry for pulls and restages |
 
-The machine user must be granted access to the organization's `tdp-keycloak` package and its classic PAT must be authorized for organization SSO where required. Do not grant repository, organization administration, package deletion, or other unrelated access. The pull and publish duties must use separate tokens even if one machine user performs both duties.
+The machine user needs read access to the organization's `tdp-keycloak` package. Its classic PAT must have only `read:packages` and must be authorized for organization SSO where required. Do not grant repository write, organization administration, package deletion, or other unrelated access.
 
 The Keycloak apps must be bootstrapped before CI uses `deploy.sh -P`. Preserve mode intentionally fails for a missing app and leaves existing runtime secrets in Cloud Foundry rather than copying them to CircleCI.
 
@@ -229,9 +231,9 @@ Ownership is role-based so it survives personnel changes:
 
 Store the GitHub password, MFA recovery material, PAT values, expiration dates, package grants, SSO authorization, and current owner in the registry organization's approved team secrets inventory. Never put them in this repository, Keycloak environment variables, deployment manifests, or email archives. Review access when maintainers change and rotate tokens before expiration and at least quarterly.
 
-To rotate a token:
+To rotate the read-only machine-user token:
 
-1. Create a replacement classic PAT on the machine user with only `read:packages` or `write:packages`, according to its duty.
+1. Create a replacement classic PAT on the machine user with only `read:packages`.
 2. Authorize the token for organization SSO, if required, and test access to the private `tdp-keycloak` package.
 3. Replace the corresponding masked CircleCI project variable.
 4. For a pull-token rotation, redeploy Keycloak through CI. Updating CircleCI alone does not replace the credential stored on an existing Cloud Foundry Docker package.

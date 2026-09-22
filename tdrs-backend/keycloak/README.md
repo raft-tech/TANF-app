@@ -387,7 +387,7 @@ For testing without going through the full Login.gov / AMS broker flow, you can 
 
 ### Automated deployment
 
-CircleCI rebuilds and deploys Keycloak only when a running-container or deployment input changes. The image is published for `linux/amd64` and `linux/arm64` as `ghcr.io/<repository-owner>/tdp-keycloak:<commit-sha>`, and Cloud Foundry is given the resolved multi-platform digest rather than a mutable `latest` tag.
+The `deploy-keycloak.yml` GitHub Actions workflow builds and publishes Keycloak only when a running-container or deployment input changes. It follows the existing GHCR release-image pattern by using `docker/build-push-action@v5` and the repository-scoped `GITHUB_TOKEN`. The image is published for `linux/amd64` and `linux/arm64` as `ghcr.io/<repository-owner>/tdp-keycloak:<commit-sha>`, then its immutable multi-platform digest is passed to CircleCI for cloud.gov deployment.
 
 | Source | Keycloak target |
 | --- | --- |
@@ -395,7 +395,7 @@ CircleCI rebuilds and deploys Keycloak only when a running-container or deployme
 | `develop` or `main` | `keycloak-staging` in `tanf-staging` |
 | `master` | `keycloak` in `tanf-prod` |
 
-CircleCI uses separate GHCR credentials for publishing and for the credential stored on the Cloud Foundry Docker package. The deployment uses `deploy.sh -P` so existing Keycloak runtime secrets remain in Cloud Foundry and are not copied into CircleCI. See [Keycloak Operations](keycloak-operations.md#automated-cicd-deployment) for provisioning, trigger paths, rotation, and verification.
+GitHub Actions publishes through `GITHUB_TOKEN`; it does not need a machine-user write token. CircleCI supplies the machine user's read-only GHCR credential to `cf push` so cloud.gov can pull the private image during deploys and restages. The deployment uses `deploy.sh -P` so existing Keycloak runtime secrets remain in Cloud Foundry and are not copied into CircleCI. See [Keycloak Operations](keycloak-operations.md#automated-cicd-deployment) for provisioning, trigger paths, rotation, and verification.
 
 ### Break-glass deployment
 
