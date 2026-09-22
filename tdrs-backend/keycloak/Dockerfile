@@ -53,8 +53,8 @@ RUN apk add --no-cache ca-certificates curl && \
     curl --fail --location --silent --show-error \
         "https://github.com/moparisthebest/static-curl/releases/download/v${CURL_VERSION}/curl-${curl_arch}" \
         --output /tools/curl && \
-    echo "${jq_sha256}  /tools/jq" | sha256sum --check - && \
-    echo "${curl_sha256}  /tools/curl" | sha256sum --check - && \
+    echo "${jq_sha256}  /tools/jq" | sha256sum -c - && \
+    echo "${curl_sha256}  /tools/curl" | sha256sum -c - && \
     chmod 755 /tools/jq /tools/curl
 
 FROM quay.io/keycloak/keycloak:26.5.5
