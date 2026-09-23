@@ -114,7 +114,7 @@ func TestGetDataFileProjectsCanonicalProductionValuesIntoShadow(t *testing.T) {
 		t.Fatalf("production lookup returned program=%q section=%q", dataFile.ProgramType, dataFile.Section)
 	}
 
-	if err := EnsureShadowDataFile(ctx, pool, shadowDataFileTable, dataFile); err != nil {
+	if err := EnsureDataFile(ctx, pool, shadowDataFileTable, dataFile); err != nil {
 		t.Fatal(err)
 	}
 	shadowDataFile, err := GetDataFile(ctx, pool, shadowDataFileTable, 42)

@@ -64,7 +64,7 @@ func TestDataFileHelpersRejectUnsupportedTables(t *testing.T) {
 		},
 		{
 			name: "ensure datafile",
-			err:  EnsureShadowDataFile(ctx, nil, "unknown_table", df),
+			err:  EnsureDataFile(ctx, nil, "unknown_table", df),
 			want: `unsupported datafile table "unknown_table"`,
 		},
 		{
@@ -209,14 +209,14 @@ func TestUpdateShadowDataFileStateRejectsProductionWrites(t *testing.T) {
 	}
 }
 
-func TestEnsureShadowDataFileDoesNotWriteProductionDataFile(t *testing.T) {
-	err := EnsureShadowDataFile(
+func TestEnsureDataFileDoesNotWriteProductionDataFile(t *testing.T) {
+	err := EnsureDataFile(
 		context.Background(),
 		nil,
 		productionDataFileTable,
 		&DataFileRecord{ID: 42},
 	)
 	if err != nil {
-		t.Fatalf("EnsureShadowDataFile() production path error = %v", err)
+		t.Fatalf("EnsureDataFile() production path error = %v", err)
 	}
 }

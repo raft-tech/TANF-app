@@ -20,7 +20,7 @@ from tdpservice.common.fields import S3VersionedFileField
 from tdpservice.common.models import FileRecord
 from tdpservice.common.shadow_models import create_shadow_model
 from tdpservice.core.models import BaseLog
-from tdpservice.data_files.enums import SubmissionState
+from tdpservice.data_files.enums import GoParserMode, SubmissionState
 from tdpservice.data_files.util import (
     create_legacy_s3_log_file_path,
     create_s3_log_file_path,
@@ -207,6 +207,11 @@ class DataFile(FileRecord):
         null=False,
         choices=SubmissionState.choices,
         default=SubmissionState.UPLOADED,
+    )
+    parser_mode = models.CharField(
+        max_length=16,
+        choices=GoParserMode.choices,
+        null=True,
     )
     state_changed_at = models.DateTimeField(default=timezone.now)
     current_parse_token = models.UUIDField(null=True, blank=True, editable=False)
@@ -417,8 +422,7 @@ class DataFileStateTransition(BaseLog):
     def __str__(self):
         """Return a string representation of the transition."""
         return (
-            f"DataFile {self.object_id}: "
-            f"{self.previous_state} -> {self.next_state}"
+            f"DataFile {self.object_id}: " f"{self.previous_state} -> {self.next_state}"
         )
 
 
@@ -448,7 +452,7 @@ ShadowDataFile = create_shadow_model(
             null=False,
         ),
     },
-    exclude_fields={"current_parse_token", "section"},
+    exclude_fields={"current_parse_token", "parser_mode", "section"},
 )
 
 
