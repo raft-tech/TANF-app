@@ -1,8 +1,10 @@
 """Tests for ETL admin helpers."""
 
+import json
 import re
 from decimal import Decimal
 from html import unescape
+from unittest.mock import patch
 
 from django.contrib.admin.sites import AdminSite
 from django.urls import reverse
@@ -13,6 +15,7 @@ import pytest
 from tdpservice.data_files.models import DataFile
 from tdpservice.etl.admin import ETLPipelineRunAdmin
 from tdpservice.etl.models import ETLArtifact, ETLPipelineRun, StatisticalWeight
+from tdpservice.etl.registry import get_pipeline_definition
 from tdpservice.etl.runner import PipelineRunFactory
 
 
@@ -21,6 +24,97 @@ def _create_pipeline_run() -> ETLPipelineRun:
         parameters={"fiscal_year": 2026, "program": DataFile.ProgramType.TANF},
         trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
     )
+
+
+@pytest.mark.django_db
+def test_pipeline_run_admin_add_creates_and_enqueues_pipeline_run(
+    client,
+    admin_user,
+    django_capture_on_commit_callbacks,
+):
+    """Admin additions use the validated pipeline creation and launch flow."""
+    assert client.login(username=admin_user.username, password="test_password")
+
+    with (
+        patch("tdpservice.etl.admin.enqueue_pipeline_run") as enqueue_pipeline_run,
+        django_capture_on_commit_callbacks(execute=True),
+    ):
+        response = client.post(
+            reverse("admin:etl_etlpipelinerun_add"),
+            {
+                "pipeline_key": "statistical_weights",
+                "parameters": json.dumps(
+                    {
+                        "fiscal_year": "2026",
+                        "program": DataFile.ProgramType.TANF,
+                    }
+                ),
+            },
+        )
+
+    assert response.status_code == 302
+    pipeline_run = ETLPipelineRun.objects.get()
+    assert pipeline_run.pipeline_version == "1"
+    assert pipeline_run.status == ETLPipelineRun.Status.PENDING
+    assert pipeline_run.parameters == {
+        "fiscal_year": 2026,
+        "program": DataFile.ProgramType.TANF,
+    }
+    assert pipeline_run.output_scope == {
+        "pipeline": "statistical_weights",
+        "fiscal_year": 2026,
+        "program": DataFile.ProgramType.TANF,
+        "section": "1",
+    }
+    assert pipeline_run.trigger_source == ETLPipelineRun.TriggerSource.ADMIN
+    assert pipeline_run.triggered_by == admin_user
+    assert list(pipeline_run.node_runs.values_list("node_key", flat=True)) == [
+        node.key for node in get_pipeline_definition("statistical_weights").nodes
+    ]
+    enqueue_pipeline_run.assert_called_once_with(pipeline_run)
+
+
+@pytest.mark.django_db
+def test_pipeline_run_admin_add_rejects_invalid_parameters(client, admin_user):
+    """Admin additions display pipeline parameter validation errors."""
+    assert client.login(username=admin_user.username, password="test_password")
+
+    response = client.post(
+        reverse("admin:etl_etlpipelinerun_add"),
+        {
+            "pipeline_key": "statistical_weights",
+            "parameters": json.dumps(
+                {
+                    "fiscal_year": 2026,
+                    "program": "TANF",
+                }
+            ),
+        },
+    )
+
+    assert response.status_code == 200
+    assert "program must be one of" in response.content.decode()
+    assert ETLPipelineRun.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_pipeline_run_admin_add_rejects_active_duplicate(client, admin_user):
+    """Admin additions report an active run conflict without creating a duplicate."""
+    pipeline_run = _create_pipeline_run()
+    assert client.login(username=admin_user.username, password="test_password")
+
+    response = client.post(
+        reverse("admin:etl_etlpipelinerun_add"),
+        {
+            "pipeline_key": "statistical_weights",
+            "parameters": json.dumps(pipeline_run.parameters),
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    assert f"Run {pipeline_run.id} is already active" in response.content.decode()
+    assert ETLPipelineRun.objects.count() == 1
 
 
 @pytest.mark.django_db
