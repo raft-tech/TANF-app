@@ -1,5 +1,6 @@
 """Test the implementation of the decoders with realistic datafiles."""
 
+import os
 import pytest
 
 from tdpservice.parsers.dataclasses import RawRow, TupleRow
@@ -122,14 +123,44 @@ class TestDecoderFactory:
         """Test that CsvDecoder close and context manager close and cleanup files."""
         decoder = DecoderFactory.get_instance(fra_csv.file)
         assert isinstance(decoder, CsvDecoder)
+        local_file = decoder.local_file
         decoder.close()
         assert fra_csv.file.closed is True
-        assert decoder.local_file.closed is True
+        assert local_file.closed is True
+        assert not os.path.exists(local_file.name)
+        assert decoder.local_file is None
+        assert decoder.csv_file is None
 
         with DecoderFactory.get_instance(fra_csv.file) as dec:
+            local_file = dec.local_file
             next(dec.decode())
         assert fra_csv.file.closed is True
-        assert dec.local_file.closed is True
+        assert local_file.closed is True
+        assert not os.path.exists(local_file.name)
+        assert dec.local_file is None
+        assert dec.csv_file is None
+
+    @pytest.mark.django_db
+    def test_csv_decoder_del_does_not_delete_recreated_file(self, fra_csv):
+        """Test that calling __del__ or close again after cleanup does not delete a recreated file."""
+        decoder = DecoderFactory.get_instance(fra_csv.file)
+        temp_file_path = decoder.local_file.name
+        decoder.close()
+        assert decoder.local_file is None
+
+        # Recreate a file at the same temporary path
+        with open(temp_file_path, "w") as f:
+            f.write("test content")
+
+        try:
+            assert os.path.exists(temp_file_path)
+            # Invoke __del__ and close on the old decoder
+            decoder.__del__()
+            decoder.close()
+            assert os.path.exists(temp_file_path)
+        finally:
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
 
     @pytest.mark.django_db
     def test_xlsx_decoder_close(self, fra_xlsx):
@@ -138,7 +169,9 @@ class TestDecoderFactory:
         assert isinstance(decoder, XlsxDecoder)
         decoder.close()
         assert fra_xlsx.file.closed is True
+        assert decoder.work_book is None
 
         with DecoderFactory.get_instance(fra_xlsx.file) as dec:
             next(dec.decode())
         assert fra_xlsx.file.closed is True
+        assert dec.work_book is None
