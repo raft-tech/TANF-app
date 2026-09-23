@@ -1,11 +1,14 @@
 """Middleware request interceptor for parameter mismatches."""
 
+import io
 import json
 import logging
 from typing import Any, Dict
 
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
+from django.http import QueryDict
+from django.http.multipartparser import MultiPartParser
 
 from tdpservice.core.alerts import send_alert
 from tdpservice.core.models import BaseLog
@@ -64,19 +67,58 @@ class RequestParamMismatchMiddleware:
         content_type = request.content_type or ""
 
         if "application/json" in content_type:
-            try:
-                body = request.body
-                if body:
-                    data = json.loads(body.decode("utf-8"))
-                    if isinstance(data, dict):
-                        return data
-            except Exception as exc:
-                logger.debug("Unable to parse JSON body for param check: %s", exc)
-                return {}
+            return self._parse_json_body(request)
+
+        if "application/x-www-form-urlencoded" in content_type:
+            return self._parse_urlencoded_body(request)
+
+        if "multipart/form-data" in content_type:
+            return self._parse_multipart_body(request)
 
         if request.POST:
             return request.POST
 
+        return {}
+
+    def _parse_json_body(self, request) -> Dict[str, Any]:
+        """Parse JSON request body into a dictionary."""
+        try:
+            body = request.body
+            if body:
+                data = json.loads(body.decode("utf-8"))
+                if isinstance(data, dict):
+                    return data
+        except Exception as exc:
+            logger.debug("Unable to parse JSON body for param check: %s", exc)
+        return {}
+
+    def _parse_urlencoded_body(self, request) -> Dict[str, Any]:
+        """Parse urlencoded request body."""
+        if request.POST:
+            return request.POST
+        try:
+            body = request.body
+            if body:
+                return QueryDict(body, encoding=getattr(request, "encoding", None))
+        except Exception as exc:
+            logger.debug("Unable to parse form-urlencoded body for param check: %s", exc)
+        return {}
+
+    def _parse_multipart_body(self, request) -> Dict[str, Any]:
+        """Parse multipart/form-data request body."""
+        if request.POST:
+            return request.POST
+        try:
+            parser = MultiPartParser(
+                request.META,
+                io.BytesIO(request.body),
+                getattr(request, "upload_handlers", []),
+                getattr(request, "encoding", None),
+            )
+            data, _files = parser.parse()
+            return data
+        except Exception as exc:
+            logger.debug("Unable to parse multipart body for param check: %s", exc)
         return {}
 
     def _find_mismatches(self, query_dict, body_dict) -> Dict[str, Dict[str, str]]:

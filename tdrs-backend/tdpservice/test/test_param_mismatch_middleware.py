@@ -7,6 +7,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse
 from django.test import RequestFactory
+from django.test.client import BOUNDARY, MULTIPART_CONTENT, encode_multipart
 
 import pytest
 
@@ -124,6 +125,100 @@ def test_put_json_mismatch(request_factory, dummy_response):
     assert logs.count() == 1
     log = logs.first()
     assert log.metadata["mismatches"] == {"stt": {"query": "20", "body": "10"}}
+    mock_alert.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_put_urlencoded_mismatch(request_factory, dummy_response):
+    """PUT request with URL-encoded form body detects mismatch and logs to BaseLog."""
+    middleware = RequestParamMismatchMiddleware(dummy_response)
+    request = request_factory.put(
+        "/api/v1/users/?role=admin&section=A",
+        data="role=analyst&section=A",
+        content_type="application/x-www-form-urlencoded",
+    )
+    request.user = AnonymousUser()
+
+    with patch("tdpservice.param_mismatch_middleware.send_alert") as mock_alert:
+        response = middleware(request)
+
+    assert response.status_code == 200
+    logs = BaseLog.objects.filter(event_type="request_param_mismatch")
+    assert logs.count() == 1
+    log = logs.first()
+    assert log.metadata["mismatches"] == {"role": {"query": "admin", "body": "analyst"}}
+    assert log.metadata["is_file_upload"] is False
+    mock_alert.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_patch_urlencoded_mismatch(request_factory, dummy_response):
+    """PATCH request with URL-encoded form body detects mismatch and logs to BaseLog."""
+    middleware = RequestParamMismatchMiddleware(dummy_response)
+    request = request_factory.patch(
+        "/api/v1/users/?role=admin",
+        data="role=manager",
+        content_type="application/x-www-form-urlencoded",
+    )
+    request.user = AnonymousUser()
+
+    with patch("tdpservice.param_mismatch_middleware.send_alert") as mock_alert:
+        response = middleware(request)
+
+    assert response.status_code == 200
+    logs = BaseLog.objects.filter(event_type="request_param_mismatch")
+    assert logs.count() == 1
+    log = logs.first()
+    assert log.metadata["mismatches"] == {"role": {"query": "admin", "body": "manager"}}
+    mock_alert.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_put_multipart_mismatch(request_factory, dummy_response):
+    """PUT request with multipart/form-data body detects mismatch and alerts for file uploads."""
+    middleware = RequestParamMismatchMiddleware(dummy_response)
+    dummy_file = SimpleUploadedFile("test.txt", b"dummy content", content_type="text/plain")
+    data = encode_multipart(BOUNDARY, {"stt": "2", "file": dummy_file})
+    request = request_factory.put(
+        "/data_files/?stt=1",
+        data=data,
+        content_type=MULTIPART_CONTENT,
+    )
+    request.user = AnonymousUser()
+
+    with patch("tdpservice.param_mismatch_middleware.send_alert") as mock_alert:
+        response = middleware(request)
+
+    assert response.status_code == 200
+    logs = BaseLog.objects.filter(event_type="request_param_mismatch")
+    assert logs.count() == 1
+    log = logs.first()
+    assert log.metadata["mismatches"] == {"stt": {"query": "1", "body": "2"}}
+    assert log.metadata["is_file_upload"] is True
+    mock_alert.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_patch_multipart_mismatch(request_factory, dummy_response):
+    """PATCH request with multipart/form-data body detects mismatch."""
+    middleware = RequestParamMismatchMiddleware(dummy_response)
+    data = encode_multipart(BOUNDARY, {"stt": "99", "name": "updated"})
+    request = request_factory.patch(
+        "/api/v1/settings/?stt=100",
+        data=data,
+        content_type=MULTIPART_CONTENT,
+    )
+    request.user = AnonymousUser()
+
+    with patch("tdpservice.param_mismatch_middleware.send_alert") as mock_alert:
+        response = middleware(request)
+
+    assert response.status_code == 200
+    logs = BaseLog.objects.filter(event_type="request_param_mismatch")
+    assert logs.count() == 1
+    log = logs.first()
+    assert log.metadata["mismatches"] == {"stt": {"query": "100", "body": "99"}}
+    assert log.metadata["is_file_upload"] is False
     mock_alert.assert_not_called()
 
 
