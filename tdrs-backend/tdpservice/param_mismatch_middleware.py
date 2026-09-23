@@ -23,31 +23,41 @@ class RequestParamMismatchMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        """Inspect request parameters and continue downstream execution."""
+        """Inspect parameters early and record mismatches after authentication."""
+        mismatches = None
+        body_data = None
         try:
-            self._inspect_request_parameters(request)
+            mismatches, body_data = self._inspect_request_parameters(request)
         except Exception as exc:
             logger.warning("Failed inspecting request parameters for mismatch: %s", exc)
 
-        return self.get_response(request)
+        response = self.get_response(request)
+
+        if mismatches:
+            try:
+                self._handle_mismatch(request, mismatches, body_data)
+            except Exception as exc:
+                logger.warning("Failed handling request parameter mismatch: %s", exc)
+
+        return response
 
     def _inspect_request_parameters(self, request):
         """Check for parameter mismatches between query string and body payload."""
         if request.method not in self.INTERCEPTED_METHODS:
-            return
+            return None, None
 
         if not request.GET:
-            return
+            return None, None
 
         body_data = self._extract_body_params(request)
         if not body_data:
-            return
+            return None, None
 
         mismatches = self._find_mismatches(request.GET, body_data)
         if not mismatches:
-            return
+            return None, None
 
-        self._handle_mismatch(request, mismatches, body_data)
+        return mismatches, body_data
 
     def _extract_body_params(self, request) -> Dict[str, Any]:
         """Extract body parameters from json or form data safely."""
