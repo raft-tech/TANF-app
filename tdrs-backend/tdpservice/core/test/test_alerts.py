@@ -33,9 +33,39 @@ def test_send_alert_success():
         assert payload[0]["labels"]["severity"] == "ERROR"
         assert payload[0]["labels"]["endpoint"] == "/data_files/"
         assert payload[0]["labels"]["service"] == "tdp-backend"
+        assert payload[0]["labels"]["env"] == "local"
+        assert payload[0]["labels"]["app"] == "tdp-backend-local"
         assert payload[0]["annotations"]["summary"] == "Test summary"
         assert payload[0]["annotations"]["description"] == "Test description"
         assert payload[0]["annotations"]["details"] == "extra info"
+
+
+@override_settings(
+    ENVIRONMENT="production",
+    APP_NAME="tdp-backend-prod",
+    ALERTMANAGER_URL="http://alertmanager.apps.internal:8080/alerts",
+)
+def test_send_alert_custom_environment_labels():
+    """send_alert includes custom environment and app labels."""
+    with patch("requests.post") as mock_post:
+        mock_response = MagicMock()
+        mock_response.raise_for_status.return_value = None
+        mock_post.return_value = mock_response
+
+        result = send_alert(
+            alertname="RequestParamMismatch",
+            summary="Prod mismatch",
+            description="Prod mismatch desc",
+        )
+
+        assert result is True
+        mock_post.assert_called_once()
+        args, kwargs = mock_post.call_args
+        assert args[0] == "http://alertmanager.apps.internal:8080/alerts/api/v2/alerts"
+        payload = kwargs["json"]
+        assert payload[0]["labels"]["env"] == "production"
+        assert payload[0]["labels"]["app"] == "tdp-backend-prod"
+        assert payload[0]["labels"]["service"] == "tdp-backend"
 
 
 @override_settings(ALERTMANAGER_URL="http://custom-alertmanager:9093")

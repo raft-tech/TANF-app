@@ -38,10 +38,15 @@ def send_alert(
         base_url = f"{base_url}/alerts"
     api_url = f"{base_url}/api/v2/alerts"
 
+    env = getattr(settings, "ENVIRONMENT", "local")
+    app_name = getattr(settings, "APP_NAME", "tdp-backend")
+
     labels = {
         "alertname": alertname,
         "severity": severity,
         "service": "tdp-backend",
+        "env": env,
+        "app": app_name,
     }
     if extra_labels:
         labels.update(extra_labels)

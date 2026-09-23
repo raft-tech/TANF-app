@@ -177,6 +177,9 @@ class CloudGov(Common):
         "OTEL_EXPORTER_OTLP_ENDPOINT", "http://tempo.apps.internal:4317"
     )
 
+    ENVIRONMENT = os.getenv("ENVIRONMENT", cloudgov_space_suffix)
+    APP_NAME = os.getenv("CGAPPNAME_BACKEND", f"tdp-backend-{cloudgov_name}")
+
     ALERTMANAGER_URL = os.getenv(
         "ALERTMANAGER_URL", "http://alertmanager.apps.internal:8080/alerts"
     )
@@ -296,6 +299,8 @@ class CloudGov(Common):
 class Development(CloudGov):
     """Settings for applications deployed in the Cloud.gov dev space."""
 
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "dev")
+
     # https://docs.djangoproject.com/en/2.0/ref/settings/#allowed-hosts
     ALLOWED_HOSTS = [
         ".tanfdata.acf.hhs.gov",
@@ -322,6 +327,8 @@ class Development(CloudGov):
 
 class Staging(CloudGov):
     """Settings for applications deployed in the Cloud.gov staging space."""
+
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "staging")
 
     ADMIN_FRONTEND_BASE_URL = os.getenv(
         "ADMIN_FRONTEND_BASE_URL", "https://staging.admin.tanfdata.acf.hhs.gov"
@@ -360,6 +367,8 @@ class Staging(CloudGov):
 
 class Production(CloudGov):
     """Settings for applications deployed in the Cloud.gov production space."""
+
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 
     ADMIN_FRONTEND_BASE_URL = os.getenv(
         "ADMIN_FRONTEND_BASE_URL", "https://admin.tanfdata.acf.hhs.gov"
