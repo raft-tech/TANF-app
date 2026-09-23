@@ -187,6 +187,8 @@ class CsvDecoder(BaseDecoder):
                 "Encountered exception while closing and deleting file instance."
             )
         finally:
+            self.local_file = None
+            self.csv_file = None
             super().close()
 
     def __del__(self):
@@ -246,6 +248,7 @@ class XlsxDecoder(BaseDecoder):
         except Exception:
             logger.exception("Encountered exception while closing XLSX workbook.")
         finally:
+            self.work_book = None
             super().close()
 
 
