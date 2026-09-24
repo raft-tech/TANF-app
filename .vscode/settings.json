@@ -111,5 +111,7 @@
     "wsgi",
     "yarnpkg",
     "zaproxy"
-  ]
+  ],
+  "circleci.filters.branchFilter": "allBranches",
+  "circleci.filters.myPipelinesOnly": true
 }
