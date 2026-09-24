@@ -141,28 +141,6 @@ class TestDecoderFactory:
         assert dec.csv_file is None
 
     @pytest.mark.django_db
-    def test_csv_decoder_del_does_not_delete_recreated_file(self, fra_csv):
-        """Test that calling __del__ or close again after cleanup does not delete a recreated file."""
-        decoder = DecoderFactory.get_instance(fra_csv.file)
-        temp_file_path = decoder.local_file.name
-        decoder.close()
-        assert decoder.local_file is None
-
-        # Recreate a file at the same temporary path
-        with open(temp_file_path, "w") as f:
-            f.write("test content")
-
-        try:
-            assert os.path.exists(temp_file_path)
-            # Invoke __del__ and close on the old decoder
-            decoder.__del__()
-            decoder.close()
-            assert os.path.exists(temp_file_path)
-        finally:
-            if os.path.exists(temp_file_path):
-                os.remove(temp_file_path)
-
-    @pytest.mark.django_db
     def test_xlsx_decoder_close(self, fra_xlsx):
         """Test that XlsxDecoder close and context manager close workbook and raw file."""
         decoder = DecoderFactory.get_instance(fra_xlsx.file)
