@@ -61,7 +61,7 @@ class BaseDecoder(ABC):
 
     def close(self):
         """Close the decoder and release underlying file handles."""
-        if hasattr(self, "raw_file") and self.raw_file and not getattr(self.raw_file, "closed", True):
+        if self.raw_file and not getattr(self.raw_file, "closed", True):
             self.raw_file.close()
 
     def __enter__(self):
@@ -178,10 +178,11 @@ class CsvDecoder(BaseDecoder):
     def close(self):
         """Close and delete local file instance, and close raw_file."""
         try:
-            if self.local_file and not getattr(self.local_file, "closed", True):
-                self.local_file.close()
-            if self.local_file and hasattr(self.local_file, "name") and os.path.exists(self.local_file.name):
-                os.remove(self.local_file.name)
+            if self.local_file:
+                if not getattr(self.local_file, "closed", True):
+                    self.local_file.close()
+                if os.path.exists(self.local_file.name):
+                    os.remove(self.local_file.name)
         except Exception:
             logger.exception(
                 "Encountered exception while closing and deleting file instance."
@@ -190,10 +191,6 @@ class CsvDecoder(BaseDecoder):
             self.local_file = None
             self.csv_file = None
             super().close()
-
-    def __del__(self):
-        """Close and delete the file when destructed."""
-        self.close()
 
 
 class XlsxDecoder(BaseDecoder):
@@ -243,7 +240,7 @@ class XlsxDecoder(BaseDecoder):
     def close(self):
         """Close workbook and close raw_file."""
         try:
-            if hasattr(self, "work_book") and self.work_book:
+            if self.work_book:
                 self.work_book.close()
         except Exception:
             logger.exception("Encountered exception while closing XLSX workbook.")

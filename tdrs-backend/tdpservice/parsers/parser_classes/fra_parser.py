@@ -53,11 +53,8 @@ class FRAParser(BaseParser):
 
     def parse_and_validate(self):
         """Parse and validate the datafile."""
-        try:
-            with self.datafile.file.open():
-                return self._parse_and_validate_file()
-        finally:
-            self.close()
+        with self.decoder:
+            return self._parse_and_validate_file()
 
     def _parse_and_validate_file(self):
         """Parse and validate the opened datafile."""
