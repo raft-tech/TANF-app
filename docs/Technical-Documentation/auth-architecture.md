@@ -49,9 +49,9 @@ Users with `@acf.hhs.gov` email addresses **must** authenticate via AMS, not Log
 
 ### Returning to a Requested Page
 
-When a signed-out user opens a protected frontend page, `PrivateRoute` saves its path, query string, and fragment in the tab's `sessionStorage` before routing to the sign-in page. This survives refreshes and the Login.gov or AMS round trip while keeping separate tabs' destinations independent.
+When a signed-out user opens a protected frontend page, `PrivateRoute` puts its path, query string, and fragment in a URL-encoded `next` query parameter and routes to the sign-in page. `SplashPage` validates the destination and forwards it to the selected backend login endpoint.
 
-After authentication finishes, `PostLoginRedirect` restores the saved destination from either the legacy `/login` callback or the Keycloak `/` landing page, then removes it from storage. The destination must be a local path and cannot point back to the sign-in or callback page. Without a valid saved destination, the user goes to `/home`. The destination's normal permission and account approval checks still apply; the legacy ACF OCIO redirect to the admin site takes precedence. Failed sign-ins retain the destination for a retry. If browser storage is unavailable, sign-in continues with the usual `/home` destination.
+The backend validates `next` again and stores it with the OIDC state in the Django session for the Login.gov or AMS round trip. Keycloak login destinations are associated with their individual OIDC states so concurrent sign-ins do not overwrite one another. After authentication succeeds, the callback redirects directly to the requested frontend URL. The frontend also handles authenticated arrivals at `/` or the legacy `/login` callback by reading a validated `next` parameter. The destination must be a local path and cannot point back to the sign-in page; missing or invalid destinations fall back to `/home`. Normal permission and account approval checks still apply, and the ACF OCIO redirect to the admin site takes precedence.
 
 ## System Architecture
 
