@@ -6,7 +6,7 @@ Thank you for taking the time to contribute!
 
 All active development takes place in [raft-tech/TANF-app](https://github.com/raft-tech/TANF-app). Please submit community pull requests, bug reports, and feature requests there rather than to `HHS/TANF-app`.
 
-Security vulnerabilities must be reported privately through the [HHS responsible disclosure portal](https://hhs.responsibledisclosure.com), not through issues or pull requests in either repository. See [SECURITY.md](./SECURITY.md) for reporting guidance.
+Security vulnerabilities must be reported privately through the [HHS responsible disclosure portal](https://hhs.responsibledisclosure.com), not through issues or pull requests in either repository. After submitting, email a copy to both [tanfdata@acf.hhs.gov](mailto:tanfdata@acf.hhs.gov) and [tdp-devs@teamraft.com](mailto:tdp-devs@teamraft.com). Include both addresses whenever contacting the repository owners about a security vulnerability. See [SECURITY.md](./SECURITY.md) for reporting guidance.
 
 We're so thankful you're considering contributing to an [open source project of the U.S. government](https://code.gov/)! If you're unsure about anything, please feel free to reach out to the points of contact documented in the project readme. The worst that can happen is you'll be politely asked to change something. We appreciate all friendly contributions.
 
@@ -49,7 +49,7 @@ Please refer to readmes in the [project repo's root](https://github.com/raft-tec
 The Department of Health and Human Services is committed to ensuring the security of the American public by protecting their information from
 unwarranted disclosure. We want security researchers to feel comfortable reporting vulnerabilities they have discovered so we can fix them and keep our users safe. We developed our disclosure policy to reflect our values and uphold our sense of responsibility to security researchers who share their expertise with us in good faith.
 
-_Submit a vulnerability:_ Unfortunately, we cannot accept secure submissions via email or via GitHub Issues. Please use our website to submit vulnerabilities at [https://hhs.responsibledisclosure.com](https://hhs.responsibledisclosure.com). HHS maintains an acknowledgements page to recognize your efforts on behalf of the American public, but you are also welcome to submit anonymously.
+_Submit a vulnerability:_ Submit vulnerabilities through the [HHS responsible disclosure portal](https://hhs.responsibledisclosure.com), then email a copy to both [tanfdata@acf.hhs.gov](mailto:tanfdata@acf.hhs.gov) and [tdp-devs@teamraft.com](mailto:tdp-devs@teamraft.com). Include both addresses whenever contacting the repository owners about a security vulnerability. Email does not replace the required portal submission, and vulnerabilities must not be reported via GitHub Issues. See [SECURITY.md](./SECURITY.md) for reporting guidance. HHS maintains an acknowledgements page to recognize your efforts on behalf of the American public, but you are also welcome to submit anonymously.
 
 Review the HHS Disclosure Policy and websites in scope:
 [https://www.hhs.gov/vulnerability-disclosure-policy/index.html](https://www.hhs.gov/vulnerability-disclosure-policy/index.html).

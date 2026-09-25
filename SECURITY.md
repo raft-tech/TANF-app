@@ -19,9 +19,11 @@ Submit vulnerability reports through the HHS responsible disclosure portal:
 
 Reports submitted to the portal must mention **ACF TANF Data Portal (TDP)**
 so they can be routed to the appropriate team. After submitting through the
-portal, send a copy of the submission by email to
-[tanfdata@acf.hhs.gov](mailto:tanfdata@acf.hhs.gov). The email copy does not
-replace the required portal submission.
+portal, send a copy of the submission by email to both
+[tanfdata@acf.hhs.gov](mailto:tanfdata@acf.hhs.gov) and
+[tdp-devs@teamraft.com](mailto:tdp-devs@teamraft.com). Include both addresses
+whenever contacting the repository owners about a security vulnerability.
+The email copy does not replace the required portal submission.
 
 Reports may be submitted anonymously. The HHS Vulnerability Disclosure Policy
 describes eligible systems, authorized research, reporting requirements,
