@@ -86,7 +86,7 @@ class DataFileViewSet(ModelViewSet):
     # Ref: https://github.com/raft-tech/TANF-app/issues/1007
     queryset = (
         DataFile.objects.all()
-        .select_related("stt", "user", "summary")
+        .select_related("section__program", "stt", "user", "summary")
         .prefetch_related(
             Prefetch(
                 "reparse_file_metas",
