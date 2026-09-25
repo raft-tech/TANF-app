@@ -48,8 +48,12 @@ We manually set some environment variables in the project settings for Circle CI
 * `CF_USERNAME_STAGING`: the username of the cloud.gov service account for the staging space
 * `CF_PASSWORD_STAGING`: the password for the account above
 * `CF_USERNAME_PROD` / `CF_PASSWORD_PROD` : service account for prod - only will be configured in HHS Circle CI
+* `GHCR_PULL_USERNAME`: GitHub machine user recorded on the Cloud Foundry Keycloak Docker package
+* `GHCR_PULL_TOKEN`: machine-user token limited to `read:packages`
 
 NOTE: These do not get copied to the Cloud.gov application
+
+GitHub Actions publishes Keycloak with the repository-scoped `GITHUB_TOKEN` and passes the immutable image digest into CircleCI. The GHCR pull token is supplied only to `cf push`. Cloud Foundry stores it on the Docker package so later restages can retrieve the private image; it is not a Keycloak runtime environment variable. See `tdrs-backend/keycloak/keycloak-operations.md` for account ownership, rotation, trigger rules, and verification.
 
 ### set-backend-env-vars.sh
 This script is called from deploy-backend during initial deployments and sets the following environment variables:

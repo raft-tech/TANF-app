@@ -385,19 +385,35 @@ For testing without going through the full Login.gov / AMS broker flow, you can 
 
 ## Deployment (cloud.gov)
 
-### Deploy Keycloak
+### Automated deployment
+
+The `deploy-keycloak.yml` GitHub Actions workflow builds and publishes Keycloak only when a running-container or deployment input changes. It follows the existing GHCR release-image pattern by using `docker/build-push-action@v5` and the repository-scoped `GITHUB_TOKEN`. The image is published for `linux/amd64` and `linux/arm64` as `ghcr.io/<repository-owner>/tdp-keycloak:<commit-sha>`, then its immutable multi-platform digest is passed to CircleCI for cloud.gov deployment.
+
+| Source | Keycloak target |
+| --- | --- |
+| Feature branch with a `Deploy with CircleCI-*` label | `keycloak-dev` in `tanf-dev` |
+| `develop` or `main` | `keycloak-staging` in `tanf-staging` |
+| `master` | `keycloak` in `tanf-prod` |
+
+GitHub Actions publishes through `GITHUB_TOKEN`; it does not need a machine-user write token. CircleCI supplies the machine user's read-only GHCR credential to `cf push` so cloud.gov can pull the private image during deploys and restages. The deployment uses `deploy.sh -P` so existing Keycloak runtime secrets remain in Cloud Foundry and are not copied into CircleCI. See [Keycloak Operations](keycloak-operations.md#automated-cicd-deployment) for provisioning, trigger paths, rotation, and verification.
+
+### Break-glass deployment
+
+Manual deployment remains available for initial provisioning and emergencies. Use the team-owned GHCR robot's read-only token rather than a personal PAT, and use an immutable image digest.
 
 ```bash
 cd keycloak
 ./deploy.sh -e <environment> -d <rds_service_name> -p <public_hostname> -i <docker_image> -u <docker_username>
-# Example: ./deploy.sh -e dev -d tdp-keycloak-db-dev -p tdp-keycloak-dev -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
+# Example image: ghcr.io/raft-tech/tdp-keycloak@sha256:<digest>
 ```
 
+Use `-P` only when redeploying an existing app whose runtime environment is already configured. Without `-P`, the script requires and injects the runtime configuration variables listed below.
+
 This will:
-1. Push the Keycloak Docker image to Cloud Foundry
+1. Configure the Keycloak Docker package in Cloud Foundry
 2. Bind the RDS service for the database
-3. Map the internal route `keycloak.apps.internal:8080` (for server-to-server backend/celery calls)
-4. Map the public route `<public_hostname>.app.cloud.gov` (for browser redirects and admin console)
+3. Map the internal route `<app-name>.apps.internal:8080` (for server-to-server backend/celery calls)
+4. Map the public route `<public_hostname>.tanfdata.acf.hhs.gov` (for browser redirects and admin console)
 5. Set `KC_HOSTNAME`, `DEPLOY_ENV`, and config-cli substitution variables
 6. Set up network policies so backend and celery can reach Keycloak
 7. Start Keycloak with `KEYCLOAK_CONFIG_IMPORT_ON_STARTUP=true`, causing the entrypoint to run `/opt/keycloak/normalize-login-gov-key.sh` after Keycloak is healthy. This decodes the Login.gov key and invokes `keycloak-config-cli` against the selected standard and admin realm exports before nginx starts.
@@ -408,10 +424,10 @@ Cloud deployment does **not** use Keycloak's native `--import-realm`. The app st
 
 Keycloak is deployed with two routes:
 
-- **Internal** (`keycloak.apps.internal:8080`) — used by the Django backend and Celery for server-to-server API calls (token exchange, user sync, JWKS). Configured via `KEYCLOAK_SERVER_URL`.
-- **Public** (`<hostname>.app.cloud.gov`) — used by the browser for OIDC redirects and the admin console. Configured via `KEYCLOAK_BROWSER_URL`.
+- **Internal** (`<app-name>.apps.internal:8080`) - used by the Django backend and Celery for server-to-server API calls (token exchange, user sync, JWKS). Configured via `KEYCLOAK_SERVER_URL`.
+- **Public** (`<hostname>.tanfdata.acf.hhs.gov`) - used by the browser for OIDC redirects and the admin console. Configured via `KEYCLOAK_BROWSER_URL`.
 
-Set `KEYCLOAK_BROWSER_URL` in the backend's environment to match the public route (e.g., `https://tdp-keycloak-dev.app.cloud.gov`).
+Set `KEYCLOAK_BROWSER_URL` in the backend's environment to match the public route (e.g., `https://dev.auth.tanfdata.acf.hhs.gov`).
 
 For the checked-in realm exports:
 
