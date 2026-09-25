@@ -30,8 +30,8 @@ def validate_canonical_sections(apps, schema_editor):
 
 
 FORWARD_SQL = """
-ALTER TABLE data_files_datafile DROP COLUMN program_type;
-ALTER TABLE data_files_datafile DROP COLUMN section;
+ALTER TABLE data_files_datafile DROP COLUMN program_type CASCADE;
+ALTER TABLE data_files_datafile DROP COLUMN section CASCADE;
 ALTER TABLE data_files_datafile ALTER COLUMN section_ref_id SET NOT NULL;
 ALTER TABLE data_files_datafile RENAME COLUMN section_ref_id TO section_id;
 """
