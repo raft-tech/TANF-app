@@ -36,6 +36,7 @@ from tdpservice.data_files.util import (
     create_s3_log_file_path,
 )
 from tdpservice.log_handler import S3FileHandler
+from tdpservice.parsers.models import ParserError
 
 logger = logging.getLogger(__name__)
 
@@ -573,6 +574,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     list_display = [
         "id",
         "stt",
+        "upload_source",
         "parsing_state",
         "year",
         "quarter",
@@ -585,6 +587,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
     list_filter = [
         "stt",
+        "upload_source",
         "year",
         "quarter",
         "program_type",
