@@ -36,7 +36,6 @@ from tdpservice.data_files.util import (
     create_s3_log_file_path,
 )
 from tdpservice.log_handler import S3FileHandler
-from tdpservice.parsers.models import ParserError
 
 logger = logging.getLogger(__name__)
 

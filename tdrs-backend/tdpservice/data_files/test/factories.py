@@ -19,7 +19,7 @@ CANONICAL_PROGRAMS = {
 def canonical_section_for(program_code, section_name):
     """Create canonical program/section rows if a transactional test flushed them."""
     program_data = CANONICAL_PROGRAMS[program_code]
-    program, _ = Program.objects.update_or_create(
+    program, _ = Program.objects.get_or_create(
         code=program_code,
         defaults={
             "slug": program_data["slug"],

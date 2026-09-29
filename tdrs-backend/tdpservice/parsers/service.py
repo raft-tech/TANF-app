@@ -667,6 +667,43 @@ class ParsingService:
         except TypeError:
             return []
 
+    def _execute_parse(
+        self,
+        data_file: Any,
+        models: ParserModelSet,
+    ) -> tuple[str, list]:
+        """Run the parser, update summary, and finalize parse artifacts."""
+        with _parse_write_scope(data_file, self.parse_token):
+            self.dfs, _ = models.summary_model.objects.get_or_create(
+                datafile=data_file,
+                defaults={"status": DataFileSummary.Status.PENDING},
+            )
+            if self.dfs.status != DataFileSummary.Status.PENDING:
+                self.dfs.status = DataFileSummary.Status.PENDING
+                self.dfs.save()
+
+        parser = self.get_parser()
+        parser_class_name = parser.__class__.__name__
+        parser.parse_and_validate()
+        update_dfs(
+            self.dfs,
+            data_file,
+            parser_error_model=models.parser_error_model,
+            record_model_resolver=models.record_model_resolver,
+            parse_token=self.parse_token,
+        )
+
+        logger.info(f"Parsing finished for file -> {repr(data_file)}.")
+
+        _finalize_parse(
+            data_file,
+            self.dfs,
+            parser_error_model=models.parser_error_model,
+            record_model_resolver=models.record_model_resolver,
+            parse_token=self.parse_token,
+        )
+        return parser_class_name, self._fetch_errors_list(models.parser_error_model, data_file)
+
     def run(self) -> ParseResult:
         """Execute parsing flow for the target DataFile and return a ParseResult."""
         data_file = None
@@ -690,32 +727,8 @@ class ParsingService:
             )
 
             self._start_parse_lifecycle(data_file, is_shadow)
+            parser_class_name, errors_list = self._execute_parse(data_file, models)
 
-            with _parse_write_scope(data_file, self.parse_token):
-                self.dfs = models.summary_model.objects.create(
-                    datafile=data_file, status=DataFileSummary.Status.PENDING
-                )
-
-            parser = self.get_parser()
-            parser_class_name = parser.__class__.__name__
-            parser.parse_and_validate()
-            update_dfs(
-                self.dfs,
-                data_file,
-                parser_error_model=models.parser_error_model,
-                record_model_resolver=models.record_model_resolver,
-                parse_token=self.parse_token,
-            )
-
-            logger.info(f"Parsing finished for file -> {repr(data_file)}.")
-
-            _finalize_parse(
-                data_file,
-                self.dfs,
-                parser_error_model=models.parser_error_model,
-                record_model_resolver=models.record_model_resolver,
-                parse_token=self.parse_token,
-            )
             duration_ms = int((time.monotonic() - start_time) * 1000)
             execution_meta = self._get_execution_metadata(
                 duration_ms=duration_ms,
@@ -742,8 +755,6 @@ class ParsingService:
                             "reparse_id": self.reparse_id,
                         },
                     )
-
-            errors_list = self._fetch_errors_list(models.parser_error_model, data_file)
 
             return ParseResult(
                 success=True,

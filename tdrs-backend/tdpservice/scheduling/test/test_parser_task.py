@@ -577,6 +577,7 @@ def test_concurrent_first_dispatch_persists_one_parser_mode(monkeypatch, stt):
             dispatch_barrier.wait()
             parser_task.queue_parse(datafile.id)
         finally:
+            connection.close()
             close_old_connections()
 
     with ThreadPoolExecutor(max_workers=2) as executor:
@@ -1615,3 +1616,33 @@ def test_parse_pre_dfs_failure_surfaces_original_exception(monkeypatch, stt):
 
     with pytest.raises(ValueError, match="Cannot queue parsing.*uploaded"):
         parser_task.parse(datafile.id)
+
+
+@pytest.mark.django_db
+def test_parse_retry_after_failure_completes(monkeypatch, data_analyst):
+    """Retrying the parse Celery task after a previous failure succeeds and completes the lifecycle."""
+    datafile = DataFileFactory(
+        stt=data_analyst.stt,
+        version=17,
+        state=SubmissionState.PARSE_FAILED,
+        section=DataFile.Section.ACTIVE_CASE_DATA,
+    )
+    ensure_stt_filenames(datafile.stt)
+    DataFileSummary.objects.create(
+        datafile=datafile,
+        status=DataFileSummary.Status.REJECTED,
+    )
+
+    setup_parse_mocks(monkeypatch)
+    dummy_parser = DummyParser()
+    monkeypatch.setattr(
+        parser_task.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
+    )
+    patch_parser_task(monkeypatch, "send_data_submitted_email", lambda *a, **k: None)
+
+    result = parser_task.parse(datafile.id)
+
+    assert result.success is True
+    datafile.refresh_from_db()
+    assert datafile.state == SubmissionState.PARSE_COMPLETED
+    assert datafile.current_parse_token is None
