@@ -67,7 +67,7 @@ def test_pipeline_run_admin_add_creates_and_enqueues_pipeline_run(
         "section": "1",
     }
     assert pipeline_run.trigger_source == ETLPipelineRun.TriggerSource.ADMIN
-    assert pipeline_run.triggered_by == admin_user
+    assert str(pipeline_run.triggered_by_id) == str(admin_user.id)
     assert list(pipeline_run.node_runs.values_list("node_key", flat=True)) == [
         node.key for node in get_pipeline_definition("statistical_weights").nodes
     ]
