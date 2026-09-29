@@ -49,10 +49,37 @@ func stateTransitionTestPool(t *testing.T) (*pgxpool.Pool, context.Context) {
 	}
 	t.Cleanup(pool.Close)
 	_, err = pool.Exec(ctx, `
-		CREATE TABLE data_files_datafile (id integer PRIMARY KEY, state text NOT NULL, state_changed_at timestamptz NOT NULL DEFAULT NOW());
+		CREATE TABLE data_files_program (
+			id integer PRIMARY KEY, code text NOT NULL
+		);
+		CREATE TABLE data_files_section (
+			id integer PRIMARY KEY, name text NOT NULL,
+			program_id integer NOT NULL REFERENCES data_files_program
+		);
+		CREATE TABLE data_files_datafile (
+			id integer PRIMARY KEY, original_filename text NOT NULL, slug text NOT NULL,
+			extension text NOT NULL, quarter text NOT NULL, year integer NOT NULL,
+			section text NOT NULL, version integer NOT NULL, stt_id integer NOT NULL,
+			user_id uuid NOT NULL, created_at timestamptz NOT NULL, file text,
+			s3_versioning_id text, program_type text NOT NULL,
+			is_program_audit boolean NOT NULL, state text NOT NULL,
+			state_changed_at timestamptz NOT NULL DEFAULT NOW(),
+			section_id integer REFERENCES data_files_section
+		);
 		CREATE TABLE shadow_data_files_datafile (LIKE data_files_datafile INCLUDING ALL);
-		INSERT INTO data_files_datafile VALUES (42, 'parse_started');
-		INSERT INTO shadow_data_files_datafile VALUES (42, 'parse_started');
+		INSERT INTO data_files_program VALUES (1, 'TAN');
+		INSERT INTO data_files_section VALUES (1, 'Active Case Data', 1);
+		INSERT INTO data_files_datafile (
+			id, original_filename, slug, extension, quarter, year, section, version,
+			stt_id, user_id, created_at, program_type, is_program_audit, state,
+			section_id
+		) VALUES (
+			42, 'data.txt', 'data-txt', 'txt', 'Q1', 2026, 'Legacy Section', 1,
+			1, '123e4567-e89b-12d3-a456-426614174000', NOW(), 'LEGACY', false,
+			'parse_started', 1
+		);
+		INSERT INTO shadow_data_files_datafile
+		SELECT * FROM data_files_datafile;
 		CREATE TABLE django_content_type (
 			id integer PRIMARY KEY, app_label text NOT NULL, model text NOT NULL,
 			UNIQUE (app_label, model)
@@ -74,6 +101,39 @@ func stateTransitionTestPool(t *testing.T) (*pgxpool.Pool, context.Context) {
 		t.Fatal(err)
 	}
 	return pool, ctx
+}
+
+func TestGetDataFileProjectsCanonicalProductionValuesIntoShadow(t *testing.T) {
+	pool, ctx := stateTransitionTestPool(t)
+
+	dataFile, err := GetDataFile(ctx, pool, productionDataFileTable, 42)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dataFile.ProgramType != "TAN" || dataFile.Section != "Active Case Data" {
+		t.Fatalf("production lookup returned program=%q section=%q", dataFile.ProgramType, dataFile.Section)
+	}
+
+	if err := EnsureDataFile(ctx, pool, shadowDataFileTable, dataFile); err != nil {
+		t.Fatal(err)
+	}
+	shadowDataFile, err := GetDataFile(ctx, pool, shadowDataFileTable, 42)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if shadowDataFile.ProgramType != "TAN" || shadowDataFile.Section != "Active Case Data" {
+		t.Fatalf("shadow lookup returned program=%q section=%q", shadowDataFile.ProgramType, shadowDataFile.Section)
+	}
+
+	var legacyProgram, legacySection string
+	if err := pool.QueryRow(ctx, `
+		SELECT program_type, section FROM data_files_datafile WHERE id = 42
+	`).Scan(&legacyProgram, &legacySection); err != nil {
+		t.Fatal(err)
+	}
+	if legacyProgram != "LEGACY" || legacySection != "Legacy Section" {
+		t.Fatalf("production legacy values were changed to program=%q section=%q", legacyProgram, legacySection)
+	}
 }
 
 func TestUpdateShadowDataFileStatePersistsShadowHistory(t *testing.T) {
