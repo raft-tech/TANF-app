@@ -45,11 +45,17 @@ def user():
     return UserFactory.create()
 
 
+def _get_group(name):
+    """Return a group with the given name, creating it when needed."""
+    group, _ = Group.objects.get_or_create(name=name)
+    return group
+
+
 @pytest.fixture
 def stt_data_analyst():
     """Return a basic, approved, data analyst stt user."""
     user = UserFactory.create(
-        groups=(Group.objects.get(name="Data Analyst"),),
+        groups=(_get_group("Data Analyst"),),
     )
     user.account_approval_status = AccountApprovalStatusChoices.APPROVED
     user.save()
@@ -60,7 +66,7 @@ def stt_data_analyst():
 def stt_data_analyst_initial():
     """Return a basic, data analyst stt user."""
     return UserFactory.create(
-        groups=(Group.objects.get(name="Data Analyst"),),
+        groups=(_get_group("Data Analyst"),),
     )
 
 
@@ -68,7 +74,7 @@ def stt_data_analyst_initial():
 def regional_user(region, stt):
     """Return a regional staff user."""
     user = STTUserFactory.create(
-        groups=(Group.objects.get(name="OFA Regional Staff"),),
+        groups=(_get_group("OFA Regional Staff"),),
     )
     user.regions.add(region)
     user.account_approval_status = AccountApprovalStatusChoices.APPROVED
@@ -81,7 +87,7 @@ def regional_user(region, stt):
 def user_in_region(stt, region):
     """Return a user in the same region as a regional staff user."""
     user = STTUserFactory.create(
-        groups=(Group.objects.get(name="Data Analyst"),),
+        groups=(_get_group("Data Analyst"),),
     )
     user.stt = stt
     user.account_approval_status = AccountApprovalStatusChoices.APPROVED
@@ -93,7 +99,7 @@ def user_in_region(stt, region):
 def user_in_other_region(other_stt, other_region):
     """Return a user that is not in the same region as the tested regional staff."""
     user = STTUserFactory.create(
-        groups=(Group.objects.get(name="Data Analyst"),),
+        groups=(_get_group("Data Analyst"),),
     )
     user.stt = other_stt
     user.account_approval_status = AccountApprovalStatusChoices.APPROVED
@@ -110,14 +116,14 @@ def stt_user():
 @pytest.fixture
 def stt_user_with_group():
     """Return a user without an STT but with a group for STT tests."""
-    return STTUserFactory.create(groups=(Group.objects.get(name="Data Analyst"),))
+    return STTUserFactory.create(groups=(_get_group("Data Analyst"),))
 
 
 @pytest.fixture
 def ofa_admin_stt_user():
     """Return an admin user without an STT for Data File tests."""
     ofa_admin = AdminSTTUserFactory.create(
-        groups=(Group.objects.get(name="OFA Admin"),)
+        groups=(_get_group("OFA Admin"),)
     )
     ofa_admin.account_approval_status = AccountApprovalStatusChoices.APPROVED
     ofa_admin.save()
@@ -127,7 +133,7 @@ def ofa_admin_stt_user():
 @pytest.fixture
 def ofa_admin():
     """Return an ofa admin user."""
-    ofa_admin = UserFactory.create(groups=(Group.objects.get(name="OFA Admin"),))
+    ofa_admin = UserFactory.create(groups=(_get_group("OFA Admin"),))
     ofa_admin.account_approval_status = AccountApprovalStatusChoices.APPROVED
     ofa_admin.save()
     return ofa_admin
@@ -137,7 +143,7 @@ def ofa_admin():
 def ofa_system_admin():
     """Return on OFA System Admin user."""
     ofa_sys_admin = UserFactory.create(
-        groups=(Group.objects.get(name="OFA System Admin"),)
+        groups=(_get_group("OFA System Admin"),)
     )
     ofa_sys_admin.account_approval_status = AccountApprovalStatusChoices.APPROVED
     ofa_sys_admin.save()
@@ -148,7 +154,7 @@ def ofa_system_admin():
 def data_analyst(stt):
     """Return a data analyst user."""
     user = UserFactory.create(
-        groups=(Group.objects.get(name="Data Analyst"),),
+        groups=(_get_group("Data Analyst"),),
     )
     user.stt = stt
     user.account_approval_status = AccountApprovalStatusChoices.APPROVED
@@ -160,7 +166,7 @@ def data_analyst(stt):
 def digit_team(stt):
     """Return a DIGIT Team user."""
     user = UserFactory.create(
-        groups=(Group.objects.get(name="DIGIT Team"),),
+        groups=(_get_group("DIGIT Team"),),
     )
     user.account_approval_status = AccountApprovalStatusChoices.APPROVED
     user.save()
