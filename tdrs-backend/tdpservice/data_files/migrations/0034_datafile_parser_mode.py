@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("data_files", "0032_datafilestatetransition"),
+        ("data_files", "0033_submission_state_controller"),
     ]
 
     operations = [
