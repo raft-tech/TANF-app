@@ -13,11 +13,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='datafile',
             name='upload_source',
-            field=models.CharField(choices=[('API', 'API'), ('Frontend', 'Frontend')], default='Frontend', max_length=16, verbose_name='Upload Source', blank=True),
+            field=models.CharField(choices=[('API', 'API'), ('Frontend', 'Frontend')], max_length=16, verbose_name='Upload Source', blank=True),
         ),
         migrations.AddField(
             model_name='shadowdatafile',
             name='upload_source',
-            field=models.CharField(choices=[('API', 'API'), ('Frontend', 'Frontend')], default='Frontend', max_length=16, verbose_name='Upload Source', blank=True),
+            field=models.CharField(choices=[('API', 'API'), ('Frontend', 'Frontend')], max_length=16, verbose_name='Upload Source', blank=True),
         ),
     ]
