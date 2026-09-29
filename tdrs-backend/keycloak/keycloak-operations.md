@@ -21,12 +21,59 @@ For architectural context, see [Authentication Architecture](auth-architecture.m
 
 ## Deployment
 
+### Automated CI/CD Deployment
+
+Keycloak publishing follows the existing GHCR release-image pattern. The path-filtered `.github/workflows/deploy-keycloak.yml` workflow uses `docker/build-push-action@v5` and the repository's `GITHUB_TOKEN` to publish `ghcr.io/<repository-owner>/tdp-keycloak:<commit-sha>` for `linux/amd64` and `linux/arm64`. GitHub Actions then passes the immutable image index digest to the deployment-only `keycloak-deployment` CircleCI workflow.
+
+| Source | Target app | Space | Registry owner |
+| --- | --- | --- | --- |
+| Feature branch with a `Deploy with CircleCI-*` label | `keycloak-dev` | `tanf-dev` | `raft-tech` |
+| `develop` | `keycloak-staging` | `tanf-staging` | `raft-tech` |
+| `main` | `keycloak-staging` | `tanf-staging` | `hhs` |
+| `master` | `keycloak` | `tanf-prod` | `hhs` |
+
+The job deploys only when at least one of these inputs changes:
+
+- `tdrs-backend/keycloak/Dockerfile`
+- `tdrs-backend/keycloak/manifest.yml`
+- `tdrs-backend/keycloak/deploy.sh`
+- `tdrs-backend/keycloak/entrypoint.sh`
+- `tdrs-backend/keycloak/nginx.conf`
+- `tdrs-backend/keycloak/normalize-login-gov-key.sh`
+- `tdrs-backend/keycloak/select-realm-config.sh`
+- `tdrs-backend/keycloak/realm-configs/**`
+- `.circleci/keycloak/**`
+- `.circleci/config.yml`, `.circleci/base_config.yml`, or `.circleci/generate_config.sh`
+- `.circleci/deployment/commands.yml`
+- `.circleci/deployment/workflows.yml`
+- `.circleci/build-and-test/workflows.yml`
+- `.circleci/util/commands.yml`
+- `.github/workflows/deploy-keycloak.yml`
+- `scripts/test-keycloak-deploy.sh`
+
+GitHub path filters prevent the workflow from running for documentation-only and unrelated application changes. A relevant push to `develop`, `main`, or `master` builds and deploys Keycloak. A relevant feature branch deploys Keycloak only when a `Deploy with CircleCI-*` label is applied to its pull request and existing status checks have passed.
+
+#### External prerequisites
+
+Connect each manually created `tdp-keycloak` package to its corresponding `TANF-app` repository and grant that repository GitHub Actions write access. The built-in `GITHUB_TOKEN` then publishes images without a long-lived write PAT.
+
+Configure these masked variables in each CircleCI project's settings before enabling deployment. The Raft project uses the Raft robot and the HHS project uses the HHS robot.
+
+| Variable | Required access | Use |
+| --- | --- | --- |
+| `GHCR_PULL_USERNAME` | Machine-user login | Stored as the Cloud Foundry Docker package username |
+| `GHCR_PULL_TOKEN` | `read:packages` | Stored by Cloud Foundry for pulls and restages |
+
+The machine user needs read access to the organization's `tdp-keycloak` package. Its classic PAT must have only `read:packages` and must be authorized for organization SSO where required. Do not grant repository write, organization administration, package deletion, or other unrelated access.
+
+The Keycloak apps must be bootstrapped before CI uses `deploy.sh -P`. Preserve mode intentionally fails for a missing app and leaves existing runtime secrets in Cloud Foundry rather than copying them to CircleCI.
+
 ### Prerequisites
 
 - Authenticated to Cloud.gov (`cf login`) and targeting the correct space
 - Docker image built and pushed to the container registry
 - `yq` installed locally (the deploy script uses it to inject env vars into the manifest)
-- Required environment variables set in your shell (see below)
+- Required environment variables set in your shell for initial or explicit runtime reconfiguration (see below)
 
 ### Deploy Script
 
@@ -40,9 +87,10 @@ cd tdrs-backend/keycloak
 | Flag | Description | Example |
 |------|-------------|---------|
 | `-d` | Cloud Foundry RDS service name | `tdp-keycloak-db-dev` |
-| `-p` | Public hostname (creates `<hostname>.app.cloud.gov`) | `tdp-keycloak-dev` |
-| `-i` | Docker image URI | `ghcr.io/hhs/tdp-keycloak:latest` |
-| `-u` | Docker registry username | `myuser` |
+| `-p` | Public hostname prefix (creates `<hostname>.tanfdata.acf.hhs.gov`) | `dev.auth` |
+| `-i` | Immutable Docker image URI | `ghcr.io/hhs/tdp-keycloak@sha256:<digest>` |
+| `-u` | GHCR robot username | `<hhs-ghcr-robot>` |
+| `-P` | Preserve an existing app's runtime environment; used by CI | N/A |
 
 **Required environment variables:**
 
@@ -53,7 +101,7 @@ cd tdrs-backend/keycloak
 | `KC_TDP_DJANGO_CLIENT_SECRET` | `tdp-django` client secret |
 | `KC_TDP_ADMIN_CLIENT_SECRET` | `tdp-admin` client secret |
 | `LOGIN_GOV_JWT_KEY` | Base64-encoded Login.gov RSA private key PEM |
-| `CF_DOCKER_PASSWORD` | Docker registry password/token |
+| `CF_DOCKER_PASSWORD` | GHCR robot token with `read:packages` |
 | `AMS_CLIENT_ID` | AMS OIDC client ID |
 | `AMS_CLIENT_SECRET` | AMS OIDC client secret |
 
@@ -70,9 +118,9 @@ cd tdrs-backend/keycloak
 ### What the Deploy Script Does
 
 1. Copies `manifest.yml` → `manifest.tmp.yml` and injects environment-specific values via `yq`
-2. Pushes the Docker image to Cloud Foundry with rolling strategy
+2. Pushes the Docker image to Cloud Foundry with a standard stop-start deployment by default; `-r` explicitly enables rolling deployment
 3. Maps the **internal** route: `keycloak-<ENV>.apps.internal:8080` (server-to-server)
-4. Maps the **public** route: `<hostname>.app.cloud.gov` (browser redirects, admin console)
+4. Maps the **public** route: `<hostname>.tanfdata.acf.hhs.gov` (browser redirects, admin console)
 5. Sets `DEPLOY_ENV`, `KC_HOSTNAME`, and all config-cli substitution variables in the app environment
 6. Creates network policies so backend and celery apps can reach Keycloak on port 8080
 7. Starts Keycloak with `KEYCLOAK_CONFIG_IMPORT_ON_STARTUP=true`. The entrypoint waits for Keycloak readiness, calls `/opt/keycloak/normalize-login-gov-key.sh`, decodes `LOGIN_GOV_JWT_KEY`, exports `LOGIN_GOV_JWT_KEY_PEM`, and invokes `keycloak-config-cli` against the selected standard and admin realm exports before nginx starts.
@@ -83,14 +131,16 @@ Keycloak no longer starts with native `--import-realm` in cloud.gov. The contain
 
 ```bash
 # Dev
-./deploy.sh -e dev -d tdp-keycloak-db-dev -p tdp-keycloak-dev -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
+./deploy.sh -e dev -d tdp-keycloak-db-dev -p dev.auth -i ghcr.io/raft-tech/tdp-keycloak@sha256:<digest> -u <raft-ghcr-robot>
 
 # Staging
-./deploy.sh -e staging -d tdp-keycloak-db-staging -p tdp-keycloak-staging -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
+./deploy.sh -e staging -d tdp-keycloak-db-staging -p staging.auth -i ghcr.io/hhs/tdp-keycloak@sha256:<digest> -u <hhs-ghcr-robot>
 
 # Production
-./deploy.sh -e prod -d tdp-keycloak-db-prod -p tdp-keycloak-prod -i ghcr.io/hhs/tdp-keycloak:latest -u myuser
+./deploy.sh -e prod -d tdp-keycloak-db-prod -p auth -i ghcr.io/hhs/tdp-keycloak@sha256:<digest> -u <hhs-ghcr-robot>
 ```
+
+For an existing app, add `-P` to preserve its current runtime configuration. Initial deployments must omit `-P` and provide all required runtime variables.
 
 ### Rerun Startup Config Import
 
@@ -170,6 +220,41 @@ cf scale keycloak -m 1G
 ---
 
 ## Secret Rotation
+
+### Rotate GHCR Robot Credentials
+
+Ownership is role-based so it survives personnel changes:
+
+- The Raft TDP technical lead owns the Raft machine-user lifecycle; a designated Raft platform or security administrator is the backup.
+- The HHS GitHub organization owner or designated OFA technical lead owns the HHS machine-user lifecycle and recovery; vendor personnel must not be the sole recovery owner.
+- The TDP deployment maintainer updates CircleCI, redeploys, and verifies the Cloud Foundry package after rotation.
+
+Store the GitHub password, MFA recovery material, PAT values, expiration dates, package grants, SSO authorization, and current owner in the registry organization's approved team secrets inventory. Never put them in this repository, Keycloak environment variables, deployment manifests, or email archives. Review access when maintainers change and rotate tokens before expiration and at least quarterly.
+
+To rotate the read-only machine-user token:
+
+1. Create a replacement classic PAT on the machine user with only `read:packages`.
+2. Authorize the token for organization SSO, if required, and test access to the private `tdp-keycloak` package.
+3. Replace the corresponding masked CircleCI project variable.
+4. For a pull-token rotation, redeploy Keycloak through CI. Updating CircleCI alone does not replace the credential stored on an existing Cloud Foundry Docker package.
+5. Verify the package username and image, then restage the app to prove Cloud Foundry can pull without the old token.
+6. Revoke the old PAT and update the secrets inventory with the rotation and expiration dates.
+
+Use the following read-only checks in the target space:
+
+```bash
+APP_NAME=keycloak-staging
+APP_GUID=$(cf app "$APP_NAME" --guid)
+
+cf curl "/v3/apps/${APP_GUID}/packages?states=READY" | \
+  jq '.resources | max_by(.created_at) | {image: .data.image, username: .data.username}'
+
+cf restage "$APP_NAME"
+cf app "$APP_NAME"
+curl --fail "https://staging.auth.tanfdata.acf.hhs.gov/realms/tdp/.well-known/openid-configuration"
+```
+
+The image must contain an `@sha256:` digest, the username must be the expected machine user, and the restage must succeed. The API does not return the stored password.
 
 ### Rotate the Keycloak Admin Password
 
@@ -338,7 +423,7 @@ When a checked-in realm change does not appear after deploy:
 
 For one-off changes that don't warrant a full redeployment:
 
-1. Access the admin console at `https://<hostname>.app.cloud.gov/admin`
+1. Access the admin console at `https://<hostname>.tanfdata.acf.hhs.gov/admin`
 2. Log in with admin credentials
 3. Select the `tdp` realm for standard frontend/API/Grafana changes, or `tdp-admin` for standalone admin frontend changes
 4. Make changes through the UI
@@ -475,7 +560,7 @@ Developer accounts for Grafana are **local Keycloak accounts** in the prod Keycl
 
 ### Create a Developer Account
 
-1. Access the prod Keycloak admin console: `https://<prod-hostname>.app.cloud.gov/admin`
+1. Access the prod Keycloak admin console: `https://auth.tanfdata.acf.hhs.gov/admin`
 2. Select the `tdp` realm
 3. Go to **Users** → **Add user**
 4. Fill in:
@@ -569,7 +654,7 @@ If the Keycloak instance is completely lost:
 
 ```bash
 # Via public route
-curl -sf https://<hostname>.app.cloud.gov/health/ready
+curl -sf https://<hostname>.tanfdata.acf.hhs.gov/health/ready
 
 # Via internal route (from within a CF app)
 curl -sf http://keycloak-<ENV>.apps.internal:8080/health/ready
@@ -601,7 +686,7 @@ cf logs keycloak
 Verify the realm is properly configured:
 
 ```bash
-curl -sf https://<hostname>.app.cloud.gov/realms/tdp/.well-known/openid-configuration | jq .
+curl -sf https://<hostname>.tanfdata.acf.hhs.gov/realms/tdp/.well-known/openid-configuration | jq .
 ```
 
 This should return all OIDC endpoints (authorization, token, userinfo, JWKS, end_session, etc.).
@@ -719,7 +804,7 @@ The nginx proxy in the Keycloak container strips `X-Frame-Options: DENY` and rep
 
 1. Verify the response header:
    ```bash
-   curl -sI https://<hostname>.app.cloud.gov/ | grep -i x-frame
+   curl -sI https://<hostname>.tanfdata.acf.hhs.gov/ | grep -i x-frame
    ```
    Should show `X-Frame-Options: SAMEORIGIN`.
 

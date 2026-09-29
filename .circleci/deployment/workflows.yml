@@ -8,6 +8,7 @@
             - equal: [ develop, << pipeline.git.branch >> ]
             - << pipeline.parameters.run_dev_deployment >>
         - not: << pipeline.parameters.run_nightly_owasp_scan >>
+        - not: << pipeline.parameters.keycloak_only >>
 
     jobs:
       - deploy-project-updates-site:

@@ -42,6 +42,18 @@ parameters:
   run_dev_deployment:
     type: boolean
     default: false
+  run_keycloak_deployment:
+    type: boolean
+    default: false
+  keycloak_image:
+    type: string
+    default: ''
+  keycloak_source_revision:
+    type: string
+    default: ''
+  keycloak_only:
+    type: boolean
+    default: false
   run_nightly_owasp_scan:
     type: boolean
     default: false

@@ -34,6 +34,18 @@ parameters:
   run_dev_deployment:
     type: boolean
     default: false
+  run_keycloak_deployment:
+    type: boolean
+    default: false
+  keycloak_image:
+    type: string
+    default: ''
+  keycloak_source_revision:
+    type: string
+    default: ''
+  keycloak_only:
+    type: boolean
+    default: false
   run_nightly_owasp_scan:
     type: boolean
     default: false
@@ -56,8 +68,23 @@ parameters:
 jobs:
   setup:
     executor: continuation/default
+    environment:
+      KEYCLOAK_SOURCE_REVISION: << pipeline.parameters.keycloak_source_revision >>
     steps:
       - checkout # checkout code
+      - run:
+          name: Pin Keycloak pipeline revision
+          command: |
+            if [ -n "$KEYCLOAK_SOURCE_REVISION" ]; then
+              if ! echo "$KEYCLOAK_SOURCE_REVISION" | grep -Eq '^[0-9a-f]{40}$'; then
+                echo "Invalid Keycloak source revision: $KEYCLOAK_SOURCE_REVISION" >&2
+                exit 1
+              fi
+              if ! git cat-file -e "${KEYCLOAK_SOURCE_REVISION}^{commit}" 2>/dev/null; then
+                git fetch --no-tags --depth=1 origin "$KEYCLOAK_SOURCE_REVISION"
+              fi
+              git checkout --detach "$KEYCLOAK_SOURCE_REVISION"
+            fi
       - run: # run a command
           name: Generate config
           command: |
@@ -72,14 +99,10 @@ workflows:
   github-triggered-setup:
     when: << pipeline.parameters.triggered >>
     jobs:
-      - setup:
-          filters:
-            branches:
-              ignore:
-                - main
-                - master
-                - /^release.*/
+      - setup
   circle-ci-setup:
+    when:
+      not: << pipeline.parameters.triggered >>
     jobs:
       - setup:
           filters:

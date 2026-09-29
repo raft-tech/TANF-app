@@ -1,0 +1,115 @@
+# commands:
+  verify-keycloak-project-owner:
+    parameters:
+      expected-owner:
+        type: string
+    steps:
+      - run:
+          name: Verify Keycloak deployment repository
+          command: |
+            ACTUAL_OWNER=$(printf '%s' "$CIRCLE_PROJECT_USERNAME" | tr '[:upper:]' '[:lower:]')
+            if [ "$ACTUAL_OWNER" != "<<parameters.expected-owner>>" ]; then
+              echo "Skipping Keycloak deployment: branch belongs to $ACTUAL_OWNER, expected <<parameters.expected-owner>>."
+              circleci-agent step halt
+            fi
+
+  checkout-keycloak-source:
+    parameters:
+      revision:
+        type: string
+    steps:
+      - run:
+          name: Pin Keycloak deployment revision
+          environment:
+            KEYCLOAK_SOURCE_REVISION: <<parameters.revision>>
+          command: |
+            if ! echo "$KEYCLOAK_SOURCE_REVISION" | grep -Eq '^[0-9a-f]{40}$'; then
+              echo "Invalid Keycloak source revision: $KEYCLOAK_SOURCE_REVISION" >&2
+              exit 1
+            fi
+            if ! git cat-file -e "${KEYCLOAK_SOURCE_REVISION}^{commit}" 2>/dev/null; then
+              git fetch --no-tags --depth=1 origin "$KEYCLOAK_SOURCE_REVISION"
+            fi
+            git checkout --detach "$KEYCLOAK_SOURCE_REVISION"
+
+  deploy-keycloak-image:
+    parameters:
+      environment:
+        type: enum
+        enum: [dev, staging, prod]
+      rds-service:
+        type: string
+      public-hostname:
+        type: string
+      image:
+        type: string
+      expected-owner:
+        type: string
+    steps:
+      - install-deploy-dependencies
+      - run:
+          name: Test Keycloak deployment script
+          command: ./scripts/test-keycloak-deploy.sh
+      - run:
+          name: Deploy Keycloak
+          environment:
+            KEYCLOAK_IMAGE: <<parameters.image>>
+          command: |
+            if [[ ! "$KEYCLOAK_IMAGE" =~ ^ghcr\.io/<<parameters.expected-owner>>/tdp-keycloak@sha256:[0-9a-f]{64}$ ]]; then
+              echo "Invalid Keycloak image for <<parameters.expected-owner>>: $KEYCLOAK_IMAGE" >&2
+              exit 1
+            fi
+            CF_DOCKER_PASSWORD="$GHCR_PULL_TOKEN" \
+              bash ./tdrs-backend/keycloak/deploy.sh \
+                -P \
+                -e <<parameters.environment>> \
+                -d <<parameters.rds-service>> \
+                -p <<parameters.public-hostname>> \
+                -i "$KEYCLOAK_IMAGE" \
+                -u "$GHCR_PULL_USERNAME"
+
+  verify-keycloak-deployment:
+    parameters:
+      app-name:
+        type: string
+      public-hostname:
+        type: string
+      image:
+        type: string
+    steps:
+      - run:
+          name: Verify Keycloak package and realm endpoint
+          environment:
+            KEYCLOAK_IMAGE: <<parameters.image>>
+          command: |
+            set -euo pipefail
+
+            APP_GUID=$(cf app <<parameters.app-name>> --guid)
+            PACKAGE=$(cf curl "/v3/apps/${APP_GUID}/packages?states=READY")
+            PACKAGE_IMAGE=$(printf '%s' "$PACKAGE" | jq -r '.resources | max_by(.created_at) | .data.image')
+            PACKAGE_USERNAME=$(printf '%s' "$PACKAGE" | jq -r '.resources | max_by(.created_at) | .data.username')
+
+            if [ "$PACKAGE_IMAGE" != "$KEYCLOAK_IMAGE" ]; then
+              echo "Cloud Foundry package image does not match $KEYCLOAK_IMAGE" >&2
+              exit 1
+            fi
+            if [ "$PACKAGE_USERNAME" != "$GHCR_PULL_USERNAME" ]; then
+              echo "Cloud Foundry package does not use the configured GHCR robot username" >&2
+              exit 1
+            fi
+
+            READY_URL="https://<<parameters.public-hostname>>.tanfdata.acf.hhs.gov/realms/tdp/.well-known/openid-configuration"
+            ready=false
+            for attempt in $(seq 1 60); do
+              if curl --fail --silent --show-error "$READY_URL" >/dev/null; then
+                ready=true
+                break
+              fi
+              echo "Waiting for the Keycloak public endpoint (${attempt}/60)..."
+              sleep 5
+            done
+            if [ "$ready" != "true" ]; then
+              echo "Keycloak public endpoint did not become ready: $READY_URL" >&2
+              exit 1
+            fi
+            echo "Keycloak deployment and stored GHCR pull credentials verified."

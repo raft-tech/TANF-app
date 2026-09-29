@@ -1,11 +1,15 @@
 #!/usr/bin/env sh
 
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cd "$SCRIPT_DIR"
+
 cat base_config.yml > generated_config.yml
 
 # Commands
 echo 'commands:' >> generated_config.yml
 cat build-and-test/commands.yml >> generated_config.yml
 cat deployment/commands.yml >> generated_config.yml
+cat keycloak/commands.yml >> generated_config.yml
 cat owasp/commands.yml >> generated_config.yml
 cat util/commands.yml >> generated_config.yml
 
@@ -13,6 +17,7 @@ cat util/commands.yml >> generated_config.yml
 echo 'jobs:' >> generated_config.yml
 cat build-and-test/jobs.yml >> generated_config.yml
 cat deployment/jobs.yml >> generated_config.yml
+cat keycloak/jobs.yml >> generated_config.yml
 cat owasp/jobs.yml >> generated_config.yml
 cat util/jobs.yml >> generated_config.yml
 
@@ -20,6 +25,7 @@ cat util/jobs.yml >> generated_config.yml
 echo 'workflows:' >> generated_config.yml
 cat build-and-test/workflows.yml >> generated_config.yml
 cat deployment/workflows.yml >> generated_config.yml
+cat keycloak/workflows.yml >> generated_config.yml
 cat owasp/workflows.yml >> generated_config.yml
 
 cat generated_config.yml

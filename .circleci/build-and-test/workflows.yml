@@ -17,6 +17,8 @@
             - secrets-check
 
   ci-build-and-test-all:
+    when:
+      not: << pipeline.parameters.keycloak_only >>
     jobs:
       - secrets-check:
           filters:
