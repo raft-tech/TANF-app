@@ -30,6 +30,20 @@ class ReadOnlyAdminMixin:
         return False
 
 
+class ReadAndCreateOnlyAdminMixin(ReadOnlyAdminMixin):
+    """
+    Mixin to enforce read- and create-only models in Django Admin.
+
+    e.g. => class LogEntryAdmin(ReadAndCreateOnlyAdminMixin, admin.ModelAdmin)
+    This mixin must be first in the param list due to the way Python
+    handles Method Order Resolution for multiple inheritance.
+    """
+
+    def has_add_permission(self, request):
+        """Enable add permissions."""
+        return True
+
+
 def log(msg, logger_context={}, level="info"):
     """Create a log in the terminal and django admin console, for email tasks."""
     log_func = logger.info
