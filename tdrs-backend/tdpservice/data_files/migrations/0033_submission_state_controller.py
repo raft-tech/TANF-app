@@ -29,7 +29,7 @@ def backfill_state_changed_at(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("data_files", "0031_backfill_datafile_section_ref"),
+        ("data_files", "0032_datafilestatetransition"),
     ]
 
     operations = [
