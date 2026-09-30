@@ -80,9 +80,9 @@ class RawRow:
 class BaseDecoder(ABC):
     """Abstract base class for all decoders."""
 
-    def __init__(self, raw_file):
+    def __init__(self, data_file):
         super().__init__()
-        self.raw_file = raw_file
+        self.data_file = data_file
         self.current_row = 0
 
     @abstractmethod
@@ -96,7 +96,7 @@ class Utf8Decoder(BaseDecoder):
 
     def decode(self):
         """Decode and yield each row."""
-        for row in self.raw_file:
+        for row in self.data_file:
             yield RawRow(raw_data=row.decode().strip('\r\n'), row_num=self.current_row)
             self.current_row += 1
 
@@ -104,9 +104,9 @@ class Utf8Decoder(BaseDecoder):
 class CsvDecoder(BaseDecoder):
     """Decoder for csv files."""
 
-    def __init__(self, raw_file):
-        super().__init__(raw_file)
-        self.csv_file = csv.reader(raw_file)
+    def __init__(self, data_file):
+        super().__init__(data_file)
+        self.csv_file = csv.reader(data_file)
 
     def decode(self):
         """Decode and yield each row."""
@@ -118,9 +118,9 @@ class CsvDecoder(BaseDecoder):
 class XlsxDecoder(BaseDecoder):
     """Decoder for xlsx files."""
 
-    def __init__(self, raw_file):
-        super().__init__(raw_file)
-        self.work_book = load_workbook(raw_file)
+    def __init__(self, data_file):
+        super().__init__(data_file)
+        self.work_book = load_workbook(data_file)
 
     def decode(self):
         """Decode and yield each row."""
@@ -140,21 +140,21 @@ class DecoderFactory:
     """Factory class to get/instantiate parsers."""
 
     @classmethod
-    def get_suggested_decoder(raw_file):
+    def get_suggested_decoder(data_file):
         # use puremagic and chardet to determine the correct decoder. This should probably return an enum
         return info
 
     @classmethod
-    def get_instance(cls, raw_file):
+    def get_instance(cls, data_file):
         """Return the correct parser class to be constructed manually."""
-        decoder = cls.get_suggested_decoder(raw_file)
+        decoder = cls.get_suggested_decoder(data_file)
         match decoder:
             case "UTF8":
-                return Utf8Decoder(raw_file)
+                return Utf8Decoder(data_file)
             case "CSV":
-                return CsvDecoder(raw_file)
+                return CsvDecoder(data_file)
             case "XLSX":
-                return XlsxDecoder(raw_file)
+                return XlsxDecoder(data_file)
             case _:
                 raise ValueError(f"No decoder available for the file.")
 
