@@ -456,6 +456,4 @@ def parse(data_file_id, reparse_id=None, parse_token=None, event_id=None):
         parse_token=parse_token,
         event_id=event_id,
     )
-    service.fetch_data_file()
-    service.validate_preconditions()
-    return service.run()
+    service.run()
