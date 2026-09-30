@@ -36,13 +36,13 @@ class Decoder(IntEnum):
 class BaseDecoder(ABC):
     """Abstract base class for all decoders."""
 
-    def __init__(self, raw_file):
+    def __init__(self, data_file):
         super().__init__()
-        self.raw_file = raw_file
+        self.data_file = data_file
         self.current_row_num = 0
 
         # Always ensure our file pointer is at the start
-        self.raw_file.seek(0)
+        self.data_file.seek(0)
 
     @abstractmethod
     def get_record_type(self, raw_data) -> str:
@@ -61,8 +61,8 @@ class BaseDecoder(ABC):
 
     def close(self):
         """Close the decoder and release underlying file handles."""
-        if self.raw_file and not getattr(self.raw_file, "closed", True):
-            self.raw_file.close()
+        if self.data_file and not getattr(self.data_file, "closed", True):
+            self.data_file.close()
 
     def __enter__(self):
         """Enter context manager."""
@@ -87,7 +87,7 @@ class Utf8Decoder(BaseDecoder):
 
     def get_header(self):
         """Get the first line in the file. Assumed to be the header."""
-        raw_data = self.raw_file.readline().decode().strip()
+        raw_data = self.data_file.readline().decode().strip()
         return RawRow(
             data=raw_data,
             raw_len=len(raw_data),
@@ -98,7 +98,7 @@ class Utf8Decoder(BaseDecoder):
 
     def decode(self):
         """Decode and yield each row."""
-        for raw_data in self.raw_file:
+        for raw_data in self.data_file:
             self.current_row_num += 1
             raw_len = len(raw_data)
             raw_data = raw_data.decode().strip("\r\n")
@@ -116,17 +116,17 @@ class Utf8Decoder(BaseDecoder):
 class CsvDecoder(BaseDecoder):
     """Decoder for csv files."""
 
-    def __init__(self, raw_file):
-        super().__init__(raw_file)
+    def __init__(self, data_file):
+        super().__init__(data_file)
         self.local_file = None
         self.csv_file = None
         self._open_as_csv()
 
     def _open_as_csv(self):
         """Read binary csv to local storage and reopen in text mode."""
-        name = self.raw_file.name.split("/")[-1]
+        name = self.data_file.name.split("/")[-1]
         with open(f"/tmp/{name}", "wb") as file:
-            for line in self.raw_file:
+            for line in self.data_file:
                 file.write(line)
 
         self.local_file = open(f"/tmp/{name}", "rt")
@@ -176,7 +176,7 @@ class CsvDecoder(BaseDecoder):
             )
 
     def close(self):
-        """Close and delete local file instance, and close raw_file."""
+        """Close and delete local file instance, and close data_file."""
         try:
             if self.local_file:
                 if not getattr(self.local_file, "closed", True):
@@ -196,9 +196,9 @@ class CsvDecoder(BaseDecoder):
 class XlsxDecoder(BaseDecoder):
     """Decoder for xlsx files."""
 
-    def __init__(self, raw_file):
-        super().__init__(raw_file)
-        self.work_book = load_workbook(raw_file, data_only=True)
+    def __init__(self, data_file):
+        super().__init__(data_file)
+        self.work_book = load_workbook(data_file, data_only=True)
 
     def get_record_type(self, raw_data):
         """Get the record type based on the raw data."""
@@ -238,7 +238,7 @@ class XlsxDecoder(BaseDecoder):
             )
 
     def close(self):
-        """Close workbook and close raw_file."""
+        """Close workbook and close data_file."""
         try:
             if self.work_book:
                 self.work_book.close()
@@ -253,15 +253,15 @@ class DecoderFactory:
     """Factory class to get/instantiate parsers."""
 
     @classmethod
-    def get_suggested_decoder(cls, raw_file):
+    def get_suggested_decoder(cls, data_file):
         """Try and determine what decoder to use based on file encoding and magic numbers."""
         # We need to guarantee that the file pointer is at the first byte
-        raw_file.seek(0)
-        extension = os.path.splitext(raw_file.name)[-1].lower()
+        data_file.seek(0)
+        extension = os.path.splitext(data_file.name)[-1].lower()
 
         # If our file has size zero, use the extension to try and determine the correct decoder. Default to UTF8 in
         # the worst case.
-        if not len(raw_file):
+        if not len(data_file):
             match extension:
                 case ".csv":
                     logger.warning(
@@ -279,7 +279,7 @@ class DecoderFactory:
                     )
                     return Decoder.UTF8
 
-        data = raw_file.read(4096)
+        data = data_file.read(4096)
         char_result = chardet.detect(data)
         encoding = char_result.get("encoding")
         if encoding is not None and (encoding == "ascii" or encoding == "UTF-8"):
@@ -307,15 +307,15 @@ class DecoderFactory:
         return Decoder.UNKNOWN
 
     @classmethod
-    def get_instance(cls, raw_file):
+    def get_instance(cls, data_file):
         """Return the correct parser class to be constructed manually."""
-        decoder = cls.get_suggested_decoder(raw_file)
+        decoder = cls.get_suggested_decoder(data_file)
         match decoder:
             case Decoder.UTF8:
-                return Utf8Decoder(raw_file)
+                return Utf8Decoder(data_file)
             case Decoder.CSV:
-                return CsvDecoder(raw_file)
+                return CsvDecoder(data_file)
             case Decoder.XLSX:
-                return XlsxDecoder(raw_file)
+                return XlsxDecoder(data_file)
             case Decoder.UNKNOWN:
                 raise ValueError("Could not determine what decoder to use for file.")
