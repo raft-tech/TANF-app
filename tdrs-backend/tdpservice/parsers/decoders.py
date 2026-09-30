@@ -120,7 +120,11 @@ class CsvDecoder(BaseDecoder):
         super().__init__(data_file)
         self.local_file = None
         self.csv_file = None
-        self._open_as_csv()
+        try:
+            self._open_as_csv()
+        except Exception:
+            self.close()
+            raise
 
     def _open_as_csv(self):
         """Read binary csv to local storage and reopen in text mode."""
@@ -198,7 +202,12 @@ class XlsxDecoder(BaseDecoder):
 
     def __init__(self, data_file):
         super().__init__(data_file)
-        self.work_book = load_workbook(data_file, data_only=True)
+        self.work_book = None
+        try:
+            self.work_book = load_workbook(data_file, data_only=True)
+        except Exception:
+            self.close()
+            raise
 
     def get_record_type(self, raw_data):
         """Get the record type based on the raw data."""
@@ -309,13 +318,18 @@ class DecoderFactory:
     @classmethod
     def get_instance(cls, data_file):
         """Return the correct parser class to be constructed manually."""
-        decoder = cls.get_suggested_decoder(data_file)
-        match decoder:
-            case Decoder.UTF8:
-                return Utf8Decoder(data_file)
-            case Decoder.CSV:
-                return CsvDecoder(data_file)
-            case Decoder.XLSX:
-                return XlsxDecoder(data_file)
-            case Decoder.UNKNOWN:
-                raise ValueError("Could not determine what decoder to use for file.")
+        try:
+            decoder = cls.get_suggested_decoder(data_file)
+            match decoder:
+                case Decoder.UTF8:
+                    return Utf8Decoder(data_file)
+                case Decoder.CSV:
+                    return CsvDecoder(data_file)
+                case Decoder.XLSX:
+                    return XlsxDecoder(data_file)
+                case Decoder.UNKNOWN:
+                    raise ValueError("Could not determine what decoder to use for file.")
+        except Exception:
+            if data_file and not getattr(data_file, "closed", True):
+                data_file.close()
+            raise
