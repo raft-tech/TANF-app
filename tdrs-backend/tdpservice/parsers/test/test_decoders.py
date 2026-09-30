@@ -30,7 +30,7 @@ class TestDecoderFactory:
         """Test UTF8 decoder is selected and decodes data."""
         decoder = DecoderFactory.get_instance(small_correct_file.file)
         assert isinstance(decoder, Utf8Decoder)
-        assert decoder.raw_file == small_correct_file.file
+        assert decoder.data_file == small_correct_file.file
         header_row = next(decoder.decode())
         assert isinstance(header_row, RawRow)
         assert isinstance(header_row.data, str)
@@ -58,7 +58,7 @@ class TestDecoderFactory:
         """Test CSV decoder is selected and decodes data."""
         decoder = DecoderFactory.get_instance(fra_csv.file)
         assert isinstance(decoder, CsvDecoder)
-        assert decoder.raw_file == fra_csv.file
+        assert decoder.data_file == fra_csv.file
         first_row = next(decoder.decode())
         assert isinstance(first_row, TupleRow)
         assert isinstance(first_row.data, tuple)
@@ -113,7 +113,7 @@ class TestDecoderFactory:
         """Test XLSX decoder is selected and decodes data."""
         decoder = DecoderFactory.get_instance(fra_xlsx.file)
         assert isinstance(decoder, XlsxDecoder)
-        assert decoder.raw_file == fra_xlsx.file
+        assert decoder.data_file == fra_xlsx.file
         first_row = next(decoder.decode())
         assert isinstance(first_row, TupleRow)
         assert isinstance(first_row.data, tuple)
@@ -151,7 +151,7 @@ class TestDecoderFactory:
         """Test XLSX decoder is selected and decodes data."""
         decoder = DecoderFactory.get_instance(fra_multi_sheet_xlsx.file)
         assert isinstance(decoder, XlsxDecoder)
-        assert decoder.raw_file == fra_multi_sheet_xlsx.file
+        assert decoder.data_file == fra_multi_sheet_xlsx.file
         first_row = next(decoder.decode())
         assert isinstance(first_row, TupleRow)
         assert isinstance(first_row.data, tuple)
@@ -164,7 +164,7 @@ class TestDecoderFactory:
         with pytest.raises(StopIteration):
             decoder = DecoderFactory.get_instance(empty_file.file)
             assert isinstance(decoder, Utf8Decoder)
-            assert decoder.raw_file == empty_file.file
+            assert decoder.data_file == empty_file.file
 
             # Shouldn't be able to decode anything since file is empty
             next(decoder.decode())
@@ -188,7 +188,7 @@ class TestDecoderFactory:
         assert unknown_png.file.closed is True
 
     def test_decoder_factory_closes_file_on_exception(self):
-        """Test DecoderFactory closes raw_file if an exception occurs during get_instance."""
+        """Test DecoderFactory closes data_file if an exception occurs during get_instance."""
         uploaded = SimpleUploadedFile("test.bin", b"\x80\x81\x82\x83")
         with patch.object(DecoderFactory, "get_suggested_decoder", side_effect=RuntimeError("Detection error")):
             with pytest.raises(RuntimeError):
@@ -196,7 +196,7 @@ class TestDecoderFactory:
         assert uploaded.closed is True
 
     def test_csv_decoder_closes_file_on_init_failure(self):
-        """Test CsvDecoder closes raw_file if _open_as_csv fails."""
+        """Test CsvDecoder closes data_file if _open_as_csv fails."""
         uploaded = SimpleUploadedFile("test.csv", b"col1,col2\nval1,val2\n")
         with patch.object(CsvDecoder, "_open_as_csv", side_effect=OSError("Disk full")):
             with pytest.raises(OSError):
@@ -204,7 +204,7 @@ class TestDecoderFactory:
         assert uploaded.closed is True
 
     def test_xlsx_decoder_closes_file_on_init_failure(self):
-        """Test XlsxDecoder closes raw_file if load_workbook fails."""
+        """Test XlsxDecoder closes data_file if load_workbook fails."""
         uploaded = SimpleUploadedFile("test.xlsx", b"invalid_xlsx_content")
         with pytest.raises(Exception):
             XlsxDecoder(uploaded)
@@ -229,7 +229,7 @@ class TestDecoderFactory:
         """Test raw length matches file length."""
         decoder = DecoderFactory.get_instance(small_correct_file.file)
         assert isinstance(decoder, Utf8Decoder)
-        assert decoder.raw_file == small_correct_file.file
+        assert decoder.data_file == small_correct_file.file
         raw_length = 0
         decoded_length = 0
         for row in decoder.decode():
