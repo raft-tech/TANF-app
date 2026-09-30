@@ -107,6 +107,7 @@ class BaseParser(ABC):
             self.unsaved_parser_errors.update({0: [err_obj]})
             self.num_errors += 1
             self.bulk_create_errors(flush=True)
+            self.datafile.close()  # If the decoder could not be initialized, close the datafile.
             raise DecoderUnknownException(msg)
 
     def _init_schema_manager(self, program_type):
