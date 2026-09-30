@@ -185,6 +185,30 @@ class TestDecoderFactory:
         with pytest.raises(ValueError) as e:
             DecoderFactory.get_instance(unknown_png.file)
             assert repr(e) == "Could not determine what decoder to use for file."
+        assert unknown_png.file.closed is True
+
+    def test_decoder_factory_closes_file_on_exception(self):
+        """Test DecoderFactory closes raw_file if an exception occurs during get_instance."""
+        uploaded = SimpleUploadedFile("test.bin", b"\x80\x81\x82\x83")
+        with patch.object(DecoderFactory, "get_suggested_decoder", side_effect=RuntimeError("Detection error")):
+            with pytest.raises(RuntimeError):
+                DecoderFactory.get_instance(uploaded)
+        assert uploaded.closed is True
+
+    def test_csv_decoder_closes_file_on_init_failure(self):
+        """Test CsvDecoder closes raw_file if _open_as_csv fails."""
+        uploaded = SimpleUploadedFile("test.csv", b"col1,col2\nval1,val2\n")
+        with patch.object(CsvDecoder, "_open_as_csv", side_effect=OSError("Disk full")):
+            with pytest.raises(OSError):
+                CsvDecoder(uploaded)
+        assert uploaded.closed is True
+
+    def test_xlsx_decoder_closes_file_on_init_failure(self):
+        """Test XlsxDecoder closes raw_file if load_workbook fails."""
+        uploaded = SimpleUploadedFile("test.xlsx", b"invalid_xlsx_content")
+        with pytest.raises(Exception):
+            XlsxDecoder(uploaded)
+        assert uploaded.closed is True
 
     def test_puremagic_pure_error_returns_unknown(self):
         """Test puremagic PureError returns UNKNOWN decoder."""
