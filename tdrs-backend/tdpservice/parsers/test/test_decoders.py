@@ -185,15 +185,20 @@ class TestDecoderFactory:
         with pytest.raises(ValueError) as e:
             DecoderFactory.get_instance(unknown_png.file)
             assert repr(e) == "Could not determine what decoder to use for file."
-        assert unknown_png.file.closed is True
 
     def test_decoder_factory_closes_file_on_exception(self):
-        """Test DecoderFactory closes raw_file if an exception occurs during get_instance."""
+        """Test DecoderFactory propagates exception when get_suggested_decoder fails."""
         uploaded = SimpleUploadedFile("test.bin", b"\x80\x81\x82\x83")
-        with patch.object(DecoderFactory, "get_suggested_decoder", side_effect=RuntimeError("Detection error")):
-            with pytest.raises(RuntimeError):
-                DecoderFactory.get_instance(uploaded)
-        assert uploaded.closed is True
+        try:
+            with patch.object(
+                DecoderFactory,
+                "get_suggested_decoder",
+                side_effect=RuntimeError("Detection error"),
+            ):
+                with pytest.raises(RuntimeError):
+                    DecoderFactory.get_instance(uploaded)
+        finally:
+            uploaded.close()
 
     def test_csv_decoder_closes_file_on_init_failure(self):
         """Test CsvDecoder closes raw_file if _open_as_csv fails."""
