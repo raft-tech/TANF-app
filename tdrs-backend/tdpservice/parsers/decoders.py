@@ -328,4 +328,6 @@ class DecoderFactory:
             case Decoder.XLSX:
                 return XlsxDecoder(raw_file)
             case Decoder.UNKNOWN:
+                if raw_file and not getattr(raw_file, "closed", True):
+                    raw_file.close()
                 raise ValueError("Could not determine what decoder to use for file.")

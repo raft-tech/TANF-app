@@ -107,8 +107,6 @@ class BaseParser(ABC):
             self.unsaved_parser_errors.update({0: [err_obj]})
             self.num_errors += 1
             self.bulk_create_errors(flush=True)
-            if self.datafile.file and not getattr(self.datafile.file, "closed", True):
-                self.datafile.file.close()
             raise DecoderUnknownException(msg)
 
     def _init_schema_manager(self, program_type):
