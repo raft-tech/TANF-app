@@ -80,9 +80,9 @@ class RawRow:
 class BaseDecoder(ABC):
     """Abstract base class for all decoders."""
 
-    def __init__(self, data_file):
+    def __init__(self, raw_file):
         super().__init__()
-        self.data_file = data_file
+        self.raw_file = raw_file
         self.current_row = 0
 
     @abstractmethod
@@ -96,7 +96,7 @@ class Utf8Decoder(BaseDecoder):
 
     def decode(self):
         """Decode and yield each row."""
-        for row in self.data_file:
+        for row in self.raw_file:
             yield RawRow(raw_data=row.decode().strip('\r\n'), row_num=self.current_row)
             self.current_row += 1
 
@@ -104,9 +104,9 @@ class Utf8Decoder(BaseDecoder):
 class CsvDecoder(BaseDecoder):
     """Decoder for csv files."""
 
-    def __init__(self, data_file):
-        super().__init__(data_file)
-        self.csv_file = csv.reader(data_file)
+    def __init__(self, raw_file):
+        super().__init__(raw_file)
+        self.csv_file = csv.reader(raw_file)
 
     def decode(self):
         """Decode and yield each row."""
@@ -118,9 +118,9 @@ class CsvDecoder(BaseDecoder):
 class XlsxDecoder(BaseDecoder):
     """Decoder for xlsx files."""
 
-    def __init__(self, data_file):
-        super().__init__(data_file)
-        self.work_book = load_workbook(data_file)
+    def __init__(self, raw_file):
+        super().__init__(raw_file)
+        self.work_book = load_workbook(raw_file)
 
     def decode(self):
         """Decode and yield each row."""
@@ -140,21 +140,21 @@ class DecoderFactory:
     """Factory class to get/instantiate parsers."""
 
     @classmethod
-    def get_suggested_decoder(data_file):
+    def get_suggested_decoder(raw_file):
         # use puremagic and chardet to determine the correct decoder. This should probably return an enum
         return info
 
     @classmethod
-    def get_instance(cls, data_file):
+    def get_instance(cls, raw_file):
         """Return the correct parser class to be constructed manually."""
-        decoder = cls.get_suggested_decoder(data_file)
+        decoder = cls.get_suggested_decoder(raw_file)
         match decoder:
             case "UTF8":
-                return Utf8Decoder(data_file)
+                return Utf8Decoder(raw_file)
             case "CSV":
-                return CsvDecoder(data_file)
+                return CsvDecoder(raw_file)
             case "XLSX":
-                return XlsxDecoder(data_file)
+                return XlsxDecoder(raw_file)
             case _:
                 raise ValueError(f"No decoder available for the file.")
 
@@ -348,26 +348,26 @@ from tdpservice.parsers.parsers.factory import ParserFactory
 # Other functions omitted
 
 @shared_task
-def parse(data_file_id, reparse_id=None):
+def parse(raw_file_id, reparse_id=None):
     """Send data file for processing."""
     # passing the data file FileField across redis was rendering non-serializable failures, doing the below lookup
     # to avoid those. I suppose good practice to not store/serializer large file contents in memory when stored in redis
     # for undetermined amount of time.
     try:
-        data_file = DataFile.objects.get(id=data_file_id)
-        logger.info(f"DataFile parsing started for file {data_file.filename}")
+        raw_file = DataFile.objects.get(id=raw_file_id)
+        logger.info(f"DataFile parsing started for file {raw_file.filename}")
 
         file_meta = None
         if reparse_id:
-            file_meta = ReparseFileMeta.objects.get(data_file_id=data_file_id, reparse_meta_id=reparse_id)
+            file_meta = ReparseFileMeta.objects.get(raw_file_id=raw_file_id, reparse_meta_id=reparse_id)
             file_meta.started_at = timezone.now()
             file_meta.save()
 
-        dfs = DataFileSummary.objects.create(datafile=data_file, status=DataFileSummary.Status.PENDING)
-        parser = ParserFactory.get_instance(datafile=data_file, dfs=dfs,
-                                            section=data_file.section,
-                                            program_type=data_file.program_type,
-                                            is_program_audit=data_file.is_program_audit)
+        dfs = DataFileSummary.objects.create(datafile=raw_file, status=DataFileSummary.Status.PENDING)
+        parser = ParserFactory.get_instance(datafile=raw_file, dfs=dfs,
+                                            section=raw_file.section,
+                                            program_type=raw_file.program_type,
+                                            is_program_audit=raw_file.is_program_audit)
         errors = parser.parse_and_validate()
         # Rest of the file is exactly the same and is omitted for brevity.
 ```
