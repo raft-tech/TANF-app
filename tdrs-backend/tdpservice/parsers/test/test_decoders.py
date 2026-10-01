@@ -185,6 +185,19 @@ class TestDecoderFactory:
         with pytest.raises(ValueError) as e:
             DecoderFactory.get_instance(unknown_png.file)
             assert repr(e) == "Could not determine what decoder to use for file."
+        assert unknown_png.file.closed is True
+
+    def test_unknown_decoder_closes_file(self):
+        """Test DecoderFactory closes raw_file when decoder is UNKNOWN."""
+        uploaded = SimpleUploadedFile("unknown.bin", b"\x00\x01\x02\x03")
+        with patch.object(
+            DecoderFactory, "get_suggested_decoder", return_value=Decoder.UNKNOWN
+        ):
+            with pytest.raises(
+                ValueError, match="Could not determine what decoder to use for file."
+            ):
+                DecoderFactory.get_instance(uploaded)
+        assert uploaded.closed is True
 
     def test_decoder_factory_closes_file_on_exception(self):
         """Test DecoderFactory propagates exception when get_suggested_decoder fails."""
