@@ -62,6 +62,7 @@ class BaseDecoder(ABC):
     def close(self):
         """Close the decoder and release underlying file handles."""
         if self.data_file and not getattr(self.data_file, "closed", True):
+            logger.info(f"File closed -> {repr(self.data_file)}.")
             self.data_file.close()
 
     def __enter__(self):
