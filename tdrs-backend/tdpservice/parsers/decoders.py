@@ -1,5 +1,6 @@
 """Decoder and utility classes."""
 
+from ast import Try
 import csv
 import logging
 import os
@@ -319,7 +320,13 @@ class DecoderFactory:
     @classmethod
     def get_instance(cls, raw_file):
         """Return the correct parser class to be constructed manually."""
-        decoder = cls.get_suggested_decoder(raw_file)
+        try:
+            decoder = cls.get_suggested_decoder(raw_file)
+        except Exception:
+            if raw_file:
+                raw_file.close()
+            raise ValueError("Could not determine what decoder to use for file.")
+
         match decoder:
             case Decoder.UTF8:
                 return Utf8Decoder(raw_file)
@@ -328,6 +335,6 @@ class DecoderFactory:
             case Decoder.XLSX:
                 return XlsxDecoder(raw_file)
             case Decoder.UNKNOWN:
-                if raw_file and not getattr(raw_file, "closed", True):
+                if raw_file:
                     raw_file.close()
                 raise ValueError("Could not determine what decoder to use for file.")
