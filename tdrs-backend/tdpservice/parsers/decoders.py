@@ -1,6 +1,5 @@
 """Decoder and utility classes."""
 
-from ast import Try
 import csv
 import logging
 import os
