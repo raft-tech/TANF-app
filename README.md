@@ -39,7 +39,7 @@ Our vision is to build a new, secure, web-based data reporting system to improve
     + **[Figma](https://www.figma.com/file/irgQPLTrajxCXNiYBTEnMV/TDP-Mockups-For-Feedback):** Design
     + **[MURAL](https://app.mural.co/t/raft2792):** User research and product planning collaboration
     + **[ACF's TDP Sharepoint Site](https://hhsgov.sharepoint.com/sites/TANFDataPortalOFA/Shared%20Documents/Forms/AllItems.aspx)**: File storage, historic chats
-    + **[Zenhub](https://app.zenhub.com/workspaces/tdrs-sprint-board-5f18ab06dfd91c000f7e682e/board?repos=281707402)**: Tracking issues
+    + **[Github](https://github.com/orgs/raft-tech/projects/123/views/10)**: Tracking issues
     + **[Product Updates](./product-updates)**: communication on project updates and research findings to the broader TDP stakeholders and target users
 
 ## Working With VSCode ##
@@ -67,7 +67,7 @@ brew install go-task
 
 This repo includes agent-facing context files to help coding agents understand the monorepo layout, subsystem boundaries, issue tracker workflow, and domain vocabulary. Start with [AGENTS.md](./AGENTS.md), [CONTEXT.md](./CONTEXT.md), [CONTEXT-MAP.md](./CONTEXT-MAP.md), and the supporting files under [docs/agents](./docs/agents).
 
-For a stronger starting point, contributors using local coding agents are encouraged to set up [mattpocock/skills](https://github.com/mattpocock/skills) on their machine with the skills installed under `~/.agents/skills/`. Those skills can then use this repo's agent context files when creating issues, triaging work, diagnosing bugs, practicing TDD, or improving architecture.
+For a stronger starting point, contributors using local coding agents are encouraged to set up [mattpocock/skills](https://github.com/mattpocock/skills) on their machine with the skills installed under `~/.agents/skills/`. Those skills can then use this repo's agent context files when creating issues, triaging work, diagnosing bugs, practicing TDD, or improving architecture. We've decided not to keep these skills in the TDP project, but you can symlink them from the repo mentioned, or the [AI-stuff](tbd) repo once it has been created.
 
 ## Infrastructure
 
