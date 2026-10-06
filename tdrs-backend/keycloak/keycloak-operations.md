@@ -338,6 +338,7 @@ The realms are defined in `tdrs-backend/keycloak/realm-configs/`. Changes to cli
 3. Verify changes in the admin console at http://localhost:8443/admin
 4. Rebuild and push the Docker image
     ```bash
+    cd keycloak
     docker buildx build -t ghcr.io/raft-tech/keycloak_26:latest -f Dockerfile . --platform linux/amd64 --push
     ```
 5. Deploy with `deploy.sh`
