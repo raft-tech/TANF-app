@@ -104,12 +104,42 @@ describe("server-rendered user screens", () => {
     const html = renderToStaticMarkup(
       await UserDetailPage({
         params: Promise.resolve({ id: "missing" }),
-        searchParams: Promise.resolve({}),
+        searchParams: Promise.resolve({ status: "Pending", page: "2" }),
       }),
     );
     expect(html).toContain("User not found");
+    expect(html).toContain(
+      "This account does not exist or is no longer available.",
+    );
+    expect(html).toContain(
+      '<a href="/users?status=Pending&amp;page=2&amp;page_size=25">Return to user accounts</a>',
+    );
+    expect(html).not.toContain("Try again");
+    expect(html).not.toContain("Edit user account");
     expect(html).not.toContain("private debug data");
   });
+  it.each([500, 503])(
+    "offers a safe retry URL with list context when user details fail with %i",
+    async (status) => {
+      api.get.mockResolvedValue(new Response("private debug data", { status }));
+      const html = renderToStaticMarkup(
+        await UserDetailPage({
+          params: Promise.resolve({ id: "user/123" }),
+          searchParams: Promise.resolve({ search: "Alex", page: "2" }),
+        }),
+      );
+      expect(html).toContain("Could not load user");
+      expect(html).toContain(
+        "Account details are temporarily unavailable. Please try again.",
+      );
+      expect(html).toContain(
+        '<a href="/users/user%2F123?search=Alex&amp;page=2&amp;page_size=25">Try again</a>',
+      );
+      expect(html).not.toContain("User not found");
+      expect(html).not.toContain("Edit user account");
+      expect(html).not.toContain("private debug data");
+    },
+  );
   it("keeps unavailable account totals distinct from zero", async () => {
     api.summary.mockResolvedValue(new Response(null, { status: 500 }));
     const html = renderToStaticMarkup(await DashboardPage());

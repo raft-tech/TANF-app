@@ -1,6 +1,6 @@
 import NextLink from "next/link";
 import AdminShell from "@/components/admin-shell";
-import AdminReadState from "@/components/admin-read-state";
+import AdminDataLoadError from "@/components/admin-data-load-error";
 import { adminApi } from "@/lib/admin-api";
 import { readAdminResource } from "@/lib/admin-read";
 import type { UserSummary } from "@/lib/admin-users";
@@ -8,6 +8,8 @@ import { requireAdminSession } from "@/lib/require-admin-session";
 
 export const dynamic = "force-dynamic";
 
+// TODO: Extract a component per widget as functionality is added so each can own
+// its headers, actions, and content without expanding shared config or conditionals.
 const widgets = [
   {
     title: "ClamAV File Scans",
@@ -47,6 +49,29 @@ const widgets = [
   },
 ];
 
+const userSummaryItems = [
+  {
+    label: "Total users",
+    count: (summary: UserSummary): number => summary.total,
+    href: "/users",
+  },
+  {
+    label: "Approved",
+    count: (summary: UserSummary): number => summary.approved,
+    href: "/users?status=Approved",
+  },
+  {
+    label: "Access requests",
+    count: (summary: UserSummary): number => summary.access_requests,
+    href: "/users?status=Access+request",
+  },
+  {
+    label: "Pending",
+    count: (summary: UserSummary): number => summary.pending,
+    href: "/users?status=Pending",
+  },
+];
+
 export default async function AdminDashboardPage() {
   const { session, cookieHeader, requestHeaders } = await requireAdminSession();
   const displayName = session.user?.first_name || "admin";
@@ -79,42 +104,21 @@ export default async function AdminDashboardPage() {
             <>
               <p>Current account totals</p>
               <dl className="admin-user-summary">
-                {[
-                  {
-                    label: "Total users",
-                    count: summary.data.total,
-                    href: "/users",
-                  },
-                  {
-                    label: "Approved",
-                    count: summary.data.approved,
-                    href: "/users?status=Approved",
-                  },
-                  {
-                    label: "Access requests",
-                    count: summary.data.access_requests,
-                    href: "/users?status=Access+request",
-                  },
-                  {
-                    label: "Pending",
-                    count: summary.data.pending,
-                    href: "/users?status=Pending",
-                  },
-                ].map((item) => (
+                {userSummaryItems.map((item) => (
                   <div key={item.label}>
                     <dt>
                       <NextLink href={item.href} className="admin-summary-link">
                         {item.label}
                       </NextLink>
                     </dt>
-                    <dd>{item.count}</dd>
+                    <dd>{item.count(summary.data)}</dd>
                   </div>
                 ))}
               </dl>
               <NextLink href="/users">View all user accounts</NextLink>
             </>
           ) : (
-            <AdminReadState
+            <AdminDataLoadError
               title="Could not load user summary"
               message="Account totals are temporarily unavailable."
               href="/dashboard"

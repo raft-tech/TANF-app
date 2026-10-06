@@ -1,6 +1,6 @@
 import NextLink from "next/link";
 
-export default function AdminReadState({
+export default function AdminDataLoadError({
   title,
   message,
   href,

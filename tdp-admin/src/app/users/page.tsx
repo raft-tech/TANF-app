@@ -1,7 +1,7 @@
 import NextLink from "next/link";
 import AdminShell from "@/components/admin-shell";
 import AdminPagination from "@/components/admin-pagination";
-import AdminReadState from "@/components/admin-read-state";
+import AdminDataLoadError from "@/components/admin-data-load-error";
 import { adminApi } from "@/lib/admin-api";
 import { readAdminResource } from "@/lib/admin-read";
 import {
@@ -130,7 +130,7 @@ export default async function UsersPage({
           </form>
           {!result.ok ? (
             <div className="admin-users__message">
-              <AdminReadState
+              <AdminDataLoadError
                 title={
                   result.status === 404
                     ? "Page not found"

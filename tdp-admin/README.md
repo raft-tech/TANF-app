@@ -175,7 +175,7 @@ not report sample scan results, service health, or activity as live data.
   redirects expired sessions to login, and invokes the forbidden page for 403s.
   Empty results are never inferred from failed requests. Loading and error
   boundaries cover both routes. An out-of-range page offers a filtered page-1 link.
-- Reuse `adminApi`, `readAdminResource`, `AdminReadState`, and `AdminPagination`
+- Reuse `adminApi`, `readAdminResource`, `AdminDataLoadError`, and `AdminPagination`
   for later surfaces. Keep query parsing and URL construction next to each
   resource, with backend validation and authorization remaining authoritative.
 
