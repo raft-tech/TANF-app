@@ -47,6 +47,12 @@ Same as above, except:
 
 Users with `@acf.hhs.gov` email addresses **must** authenticate via AMS, not Login.gov. This is enforced in `KeycloakOIDCBackend.verify_claims()` — if the email ends with `@acf.hhs.gov` and the `identity_provider` claim is `login-gov`, the authentication is rejected.
 
+### Returning to a Requested Page
+
+When a signed-out user opens a protected frontend page, `PrivateRoute` puts its path, query string, and fragment in a URL-encoded `next` query parameter and routes to the sign-in page. `SplashPage` validates the destination and forwards it to the selected backend login endpoint.
+
+The backend validates `next` again and stores it with the OIDC state in the Django session for the Login.gov or AMS round trip. Keycloak login destinations are associated with their individual OIDC states so concurrent sign-ins do not overwrite one another. After authentication succeeds, the callback redirects directly to the requested frontend URL. The frontend also handles authenticated arrivals at `/` or the legacy `/login` callback by reading a validated `next` parameter. The destination must be a local path and cannot point back to the sign-in page; missing or invalid destinations fall back to `/home`. Normal permission and account approval checks still apply, and the ACF OCIO redirect to the admin site takes precedence.
+
 ## System Architecture
 
 ### Environment Topology
@@ -270,8 +276,10 @@ The frontend uses `REACT_APP_AUTH_URL` for auth endpoints and `REACT_APP_BACKEND
 | Login.gov endpoints | `idp.int.identitysandbox.gov` | `idp.int.identitysandbox.gov` | `secure.login.gov` |
 | AMS endpoint | `sso-stage.acf.hhs.gov` | `sso-stage.acf.hhs.gov` | Production AMS |
 | Keycloak public route | `tdp-keycloak-dev.app.cloud.gov` | `tdp-keycloak-staging.acf.hhs.gov` | `tdp-keycloak-prod.acf.hhs.gov` |
+| Standard realm | `tdp` | `tdp` | `tdp` |
+| Admin realm | `tdp-admin` | `tdp-admin` | `tdp-admin` |
 
-The `realm-export.json` uses Keycloak's `${ENV_VAR}` syntax for environment-specific values (Login.gov client ID, endpoints, redirect URIs). These are injected as environment variables per space.
+The files in `tdrs-backend/keycloak/realm-configs/` use config-cli `$(env:ENV_VAR)` placeholders for environment-specific values (Login.gov client ID, endpoints, redirect URIs, and client secrets). `select-realm-config.sh` stages the standard realm export and the matching admin realm export for Keycloak import based on `DEPLOY_ENV`.
 
 ## Key Files
 
@@ -282,8 +290,8 @@ The `realm-export.json` uses Keycloak's `${ENV_VAR}` syntax for environment-spec
 | Sync Signals | `tdrs-backend/tdpservice/users/keycloak_sync.py` | Django signal handlers for auto-sync |
 | Login Views | `tdrs-backend/tdpservice/users/views.py` | Keycloak login/logout views with IdP hints |
 | URL Routing | `tdrs-backend/tdpservice/urls.py` | `/v2/` auth route definitions |
-| Realm Config | `tdrs-backend/keycloak/realm-export.json` | Complete Keycloak realm definition |
-| IdP Config | `tdrs-backend/keycloak/configure-idps.sh` | Post-startup IdP configuration script |
+| Realm Configs | `tdrs-backend/keycloak/realm-configs/` | Standard and admin Keycloak realm definitions |
+| Config Import | `tdrs-backend/keycloak/normalize-login-gov-key.sh` | Decodes the Login.gov key and invokes config-cli during startup |
 | Keycloak Deploy | `tdrs-backend/keycloak/deploy.sh` | Cloud Foundry deployment script |
 | Keycloak README | `tdrs-backend/keycloak/README.md` | Detailed integration reference |
 

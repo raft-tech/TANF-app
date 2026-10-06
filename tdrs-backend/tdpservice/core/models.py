@@ -1,8 +1,15 @@
 """Core models."""
 
+import random
+import uuid
+
+from django.conf import settings
 from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import caches
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models.signals import post_delete, post_migrate, post_save
 from django.dispatch import receiver
@@ -14,8 +21,91 @@ from simple_history.models import HistoricalRecords
 register(Group, app=__package__, m2m_fields=["permissions"])
 
 
+class BaseLogQuerySet(models.QuerySet):
+    """QuerySet helpers shared by concrete log models."""
+
+    def for_object(self, obj):
+        """Return logs attached to a model instance through the generic relation."""
+        return self.filter(
+            content_type=ContentType.objects.get_for_model(obj),
+            object_id=str(obj.pk),
+        )
+
+
+class BaseLogManager(models.Manager.from_queryset(BaseLogQuerySet)):
+    """Manager for models that inherit from BaseLog."""
+
+    def create_for_object(self, obj, **kwargs):
+        """Create a log attached to a model instance through the generic relation."""
+        kwargs["content_type"] = ContentType.objects.get_for_model(obj)
+        kwargs["object_id"] = str(obj.pk)
+        return self.create(**kwargs)
+
+
+class BaseLog(models.Model):
+    """Concrete base model for application logs tied to any model instance.
+
+    Subclasses use Django multi-table inheritance so all log types remain
+    queryable through this base table.
+    """
+
+    id = models.BigAutoField(primary_key=True)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.TextField()
+    content_object = GenericForeignKey("content_type", "object_id")
+    event_id = models.UUIDField(default=uuid.uuid4, db_index=True)
+    event_type = models.CharField(max_length=100, db_index=True)
+    note = models.TextField(blank=True, default="")
+    metadata = models.JSONField(blank=True, default=dict)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="logs",
+        blank=True,
+        null=True,
+    )
+    source = models.CharField(max_length=64, blank=True, null=True)
+    task_name = models.CharField(max_length=255, blank=True, null=True)
+    celery_task_id = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = BaseLogManager()
+
+    class Meta:
+        """Metadata."""
+
+        default_permissions = ()
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(
+                fields=["content_type", "object_id", "-created_at"],
+                name="baselog_object_created_idx",
+            ),
+            models.Index(
+                fields=["event_id", "-created_at"],
+                name="baselog_event_created_idx",
+            ),
+            models.Index(
+                fields=["event_type", "-created_at"],
+                name="baselog_type_created_idx",
+            ),
+            models.Index(fields=["source"], name="baselog_source_idx"),
+            models.Index(fields=["task_name"], name="baselog_task_name_idx"),
+        ]
+
+    def __str__(self):
+        """Return a string representation of the log."""
+        return f"{self.event_type}: {self.content_type} {self.object_id}"
+
+
 class FeatureFlag(models.Model):
-    """Model for storing feature flags that can be toggled on/off via Django admin."""
+    """Model for storing feature flags managed through Django admin."""
+
+    class Type(models.TextChoices):
+        """Supported feature flag evaluation strategies."""
+
+        ON_OFF = "on_off", "On/off"
+        RANDOM_ROLLOUT = "random_rollout", "Random rollout"
 
     class Meta:
         """Metadata."""
@@ -23,9 +113,39 @@ class FeatureFlag(models.Model):
         ordering = ["feature_name"]
         verbose_name = "Feature Flag"
         verbose_name_plural = "Feature Flags"
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(rollout_percentage__isnull=True)
+                    | models.Q(
+                        rollout_percentage__gte=0,
+                        rollout_percentage__lte=100,
+                    )
+                ),
+                name="feature_flag_rollout_percentage_range",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    ~models.Q(type__in=["on_off", "random_rollout"])
+                    | models.Q(type="on_off", rollout_percentage__isnull=True)
+                    | models.Q(
+                        type="random_rollout",
+                        rollout_percentage__isnull=False,
+                    )
+                ),
+                name="feature_flag_type_configuration",
+            ),
+        ]
 
     feature_name = models.CharField(max_length=100, unique=True, db_index=True)
+    type = models.CharField(max_length=50, choices=Type.choices, default=Type.ON_OFF)
     enabled = models.BooleanField(default=False)
+    rollout_percentage = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Required for rollout percentage flags; leave blank for on/off flags.",
+    )
     config = models.JSONField(null=False, blank=True, default=dict)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -39,6 +159,44 @@ class FeatureFlag(models.Model):
         status = "enabled" if self.enabled else "disabled"
         return f"{self.feature_name} ({status})"
 
+    def clean(self) -> None:
+        """Validate fields that depend on the selected flag type."""
+        super().clean()
+
+        if self.type == self.Type.RANDOM_ROLLOUT and self.rollout_percentage is None:
+            raise ValidationError(
+                {
+                    "rollout_percentage": (
+                        "A rollout percentage is required for rollout percentage flags."
+                    )
+                }
+            )
+
+        if self.type == self.Type.ON_OFF and self.rollout_percentage is not None:
+            raise ValidationError(
+                {
+                    "rollout_percentage": (
+                        "Rollout percentage must be blank for on/off flags."
+                    )
+                }
+            )
+
+    def is_enabled(self, random_value: float | None = None) -> bool:
+        """Return whether this request should use the feature."""
+        if not self.enabled:
+            return False
+
+        if self.type == self.Type.ON_OFF:
+            return True
+
+        if self.type == self.Type.RANDOM_ROLLOUT:
+            if self.rollout_percentage is None:
+                return False
+            sample = random.random() * 100 if random_value is None else random_value
+            return sample < self.rollout_percentage
+
+        return False
+
 
 @receiver([post_delete, post_migrate, post_save], sender=FeatureFlag)
 def clear_feature_flag_cache(sender, instance, **kwargs):
@@ -46,7 +204,7 @@ def clear_feature_flag_cache(sender, instance, **kwargs):
 
     This depends on the cache being separated by feature, so the entire cache can be deleted.
     There are too many options for headers/cookies to determine the key programatically,
-    so we segment the different featuers into separate caches to be able to invalidate efficiently
+    so we segment the different features into separate caches to be able to invalidate efficiently
     """
     cache = caches["feature-flags"]
     cache.clear()

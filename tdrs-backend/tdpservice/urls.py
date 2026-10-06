@@ -32,6 +32,7 @@ from .users.api.login import (
 from .users.api.login_redirect_oidc import LoginRedirectAMS, LoginRedirectLoginDotGov
 from .users.api.logout import LogoutUser
 from .users.api.logout_redirect_oidc import LogoutRedirectOIDC
+from .users.login_destination import KeycloakOIDCCallbackView
 from .users.views import (
     AdminOIDCAuthenticationCallbackView,
     AdminKeycloakLoginAMSView,
@@ -59,6 +60,7 @@ urlpatterns = [
     path("logout", LogoutUser.as_view(), name="logout"),
     path("logout/oidc", LogoutRedirectOIDC.as_view(), name="oidc-logout"),
     path("auth_check", AuthorizationCheck.as_view(), name="authorization-check"),
+    path("admin-forms/", include("tdpservice.admin_forms.urls")),
     path("", include("tdpservice.users.urls")),
     path("stts/", include("tdpservice.stts.urls")),
     path("data_files/", include("tdpservice.data_files.urls")),
@@ -85,6 +87,11 @@ if settings.DEBUG:
 v2_urlpatterns = [
     path("login/dotgov", KeycloakLoginDotGovView.as_view(), name="v2-login-dotgov"),
     path("login/ams", KeycloakLoginAMSView.as_view(), name="v2-login-ams"),
+    path(
+        "oidc/callback/",
+        KeycloakOIDCCallbackView.as_view(),
+        name="oidc_authentication_callback",
+    ),
     path("oidc/", include("mozilla_django_oidc.urls")),
     path("auth_check", AuthorizationCheck.as_view(), name="v2-authorization-check"),
     path("logout/oidc", KeycloakLogoutView.as_view(), name="v2-oidc-logout"),
@@ -94,6 +101,11 @@ v2_urlpatterns = [
 canary_auth_urlpatterns = [
     path("login/dotgov", CanaryLoginDotGovView.as_view(), name="canary-login-dotgov"),
     path("login/ams", CanaryLoginAMSView.as_view(), name="canary-login-ams"),
+    path(
+        "oidc/callback/",
+        KeycloakOIDCCallbackView.as_view(),
+        name="oidc_authentication_callback",
+    ),
     path("oidc/", include("mozilla_django_oidc.urls")),
     path("auth_check", AuthorizationCheck.as_view(), name="canary-auth-check"),
     path("logout/oidc", CanaryLogoutView.as_view(), name="canary-oidc-logout"),

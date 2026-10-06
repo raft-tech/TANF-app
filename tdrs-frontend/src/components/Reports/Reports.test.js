@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 import { Provider } from 'react-redux'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { thunk } from 'redux-thunk'
 import { get, post } from '../../fetch-instance'
 import configureStore from 'redux-mock-store'
@@ -939,7 +939,7 @@ describe('Reports', () => {
     expect(queryByText('Submit Data Files')).not.toBeInTheDocument()
   })
 
-  it("should skip the file upload step when submitted files header doesn't match submitted year and quarter", async () => {
+  it('should retain and revalidate a file when its fiscal quarter is corrected', async () => {
     const currentYear = new Date().getFullYear()
     const store = appConfigureStore({
       ...initialState,
@@ -953,7 +953,7 @@ describe('Reports', () => {
     const origDispatch = store.dispatch
     store.dispatch = jest.fn(origDispatch)
 
-    const { getByText, getByLabelText } = render(
+    const { getByText, getByLabelText, queryByText } = render(
       <Provider store={store}>
         <MemoryRouter>
           <Reports />
@@ -988,6 +988,35 @@ describe('Reports', () => {
           `, Quarter 1. Adjust your search parameters or upload a different file.`
       )
       expect(divElement).toBeInTheDocument()
+      expect(getByText('test2.txt')).toBeInTheDocument()
+    })
+
+    fireEvent.click(getByText('Submit Data Files'))
+
+    await waitFor(() => {
+      expect(
+        getByText('There is 1 error that must be resolved before submitting')
+      ).toBeInTheDocument()
+    })
+    expect(post).not.toHaveBeenCalled()
+
+    const quarterSelect = getByLabelText('Fiscal Quarter*')
+    fireEvent.change(quarterSelect, { target: { value: 'Q1' } })
+
+    await waitFor(() => {
+      expect(
+        queryByText(
+          `File contains data from Oct 1 - Dec 31, which belongs to Fiscal Year ` +
+            (currentYear - 1).toString() +
+            `, Quarter 1. Adjust your search parameters or upload a different file.`
+        )
+      ).not.toBeInTheDocument()
+      expect(queryByText('Files Not Submitted')).not.toBeInTheDocument()
+      expect(getByText('test2.txt')).toBeInTheDocument()
+      expect(getByText('Submit Data Files')).toHaveAttribute(
+        'data-has-uploaded-files',
+        'true'
+      )
     })
   })
 
@@ -2350,6 +2379,45 @@ describe('Reports', () => {
   })
 
   describe('URL parameter validation', () => {
+    it('preserves the URL fragment while initializing and changing report filters', async () => {
+      const CurrentLocation = () => {
+        const { search, hash } = useLocation()
+        return (
+          <output data-testid="report-location">{`${search}${hash}`}</output>
+        )
+      }
+
+      render(
+        <Provider store={mockStore(initialState)}>
+          <MemoryRouter
+            initialEntries={['/data-files?fy=2023&q=Q1&type=tanf#history']}
+          >
+            <Reports />
+            <CurrentLocation />
+          </MemoryRouter>
+        </Provider>
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('report-location').textContent).toBe(
+          '?fy=2023&q=Q1&type=tanf#history'
+        )
+      })
+
+      fireEvent.change(
+        screen.getByLabelText('Fiscal Year (October - September)*'),
+        {
+          target: { value: '2024' },
+        }
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('report-location').textContent).toBe(
+          '?fy=2024&q=Q1&type=tanf#history'
+        )
+      })
+    })
+
     it('should accept valid URL parameters', async () => {
       const store = mockStore(initialState)
       const { getByLabelText } = render(
