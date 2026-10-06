@@ -11,7 +11,7 @@ from django.shortcuts import redirect
 from django.urls import NoReverseMatch, reverse
 from django.utils.html import format_html
 
-from tdpservice.core.utils import ReadAndCreateOnlyAdminMixin, ReadOnlyAdminMixin
+from tdpservice.core.utils import ReadOnlyAdminMixin
 from tdpservice.etl.exceptions import ActivePipelineRunError, PipelineValidationError
 from tdpservice.etl.models import (
     ETLArtifact,
@@ -21,6 +21,7 @@ from tdpservice.etl.models import (
     StatisticalWeight,
     StatisticalWeightsCaseCount,
 )
+from tdpservice.etl.permissions import ETLPermissions
 from tdpservice.etl.registry import get_pipeline_definition, list_pipeline_definitions
 from tdpservice.etl.runner import PipelineRunFactory
 from tdpservice.etl.tasks import enqueue_pipeline_run
@@ -63,7 +64,7 @@ class ETLPipelineRunAdminForm(forms.ModelForm):
 
 
 @admin.register(ETLPipelineRun)
-class ETLPipelineRunAdmin(ReadAndCreateOnlyAdminMixin, admin.ModelAdmin):
+class ETLPipelineRunAdmin(admin.ModelAdmin):
     """Admin view for pipeline runs."""
 
     list_display = (
@@ -96,6 +97,10 @@ class ETLPipelineRunAdmin(ReadAndCreateOnlyAdminMixin, admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
+
+    def has_add_permission(self, request):
+        """Enable add permissions."""
+        return ETLPermissions().has_action_permission(request, "create")
 
     def get_form(self, request, obj=None, change=False, **kwargs):
         """Use the pipeline input form when adding a run."""
