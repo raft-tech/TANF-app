@@ -343,6 +343,15 @@ The realms are defined in `tdrs-backend/keycloak/realm-configs/`. Changes to cli
     ```
 5. Deploy with `deploy.sh`
 
+For the HHS GHCR, the image can be built by fetching the latest raft-tech image, re-tagging, and pushing to HHS
+
+```bash
+docker pull ghcr.io/raft-tech/keycloak_26:latest
+docker images # need to grab the ID for the next step
+docker tag {image ID} ghcr.io/HHS/keycloak_26:latest
+docker push ghcr.io/HHS/keycloak_26:latest
+```
+
 **Important:** cloud.gov deploys do not use `--import-realm`. Realm updates are applied by `keycloak-config-cli` after Keycloak starts. Config-cli can create and update many realm resources through the Admin API, including clients, IdPs, mappers, flows, and the Login.gov key provider. Existing users and sessions remain in the database.
 
 When a checked-in realm change does not appear after deploy:
