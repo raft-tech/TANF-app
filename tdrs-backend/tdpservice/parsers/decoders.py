@@ -61,9 +61,12 @@ class BaseDecoder(ABC):
 
     def close(self):
         """Close the decoder and release underlying file handles."""
-        if self.raw_file and not getattr(self.raw_file, "closed", True):
-            logger.info(f"File closed -> {repr(self.raw_file)}.")
-            self.raw_file.close()
+        try:
+            if self.raw_file and not getattr(self.raw_file, "closed", True):
+                logger.info(f"File closed -> {repr(self.raw_file)}.")
+                self.raw_file.close()
+        except Exception:
+            logger.exception("Encountered exception while closing raw file.")
 
     def __enter__(self):
         """Enter context manager."""
@@ -71,7 +74,10 @@ class BaseDecoder(ABC):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit context manager and close decoder."""
-        self.close()
+        try:
+            self.close()
+        except Exception:
+            logger.exception("Encountered exception while closing decoder.")
 
 
 class Utf8Decoder(BaseDecoder):
@@ -322,9 +328,9 @@ class DecoderFactory:
         try:
             decoder = cls.get_suggested_decoder(raw_file)
         except Exception:
-            if raw_file:
+            if raw_file and not getattr(raw_file, "closed", True):
                 raw_file.close()
-            raise ValueError("Could not determine what decoder to use for file.")
+            raise
 
         match decoder:
             case Decoder.UTF8:
@@ -334,6 +340,6 @@ class DecoderFactory:
             case Decoder.XLSX:
                 return XlsxDecoder(raw_file)
             case Decoder.UNKNOWN:
-                if raw_file:
+                if raw_file and not getattr(raw_file, "closed", True):
                     raw_file.close()
                 raise ValueError("Could not determine what decoder to use for file.")

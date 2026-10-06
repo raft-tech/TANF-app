@@ -200,18 +200,16 @@ class TestDecoderFactory:
         assert uploaded.closed is True
 
     def test_decoder_factory_closes_file_on_exception(self):
-        """Test DecoderFactory propagates exception when get_suggested_decoder fails."""
+        """Test DecoderFactory closes raw_file and propagates original exception when get_suggested_decoder fails."""
         uploaded = SimpleUploadedFile("test.bin", b"\x80\x81\x82\x83")
-        try:
-            with patch.object(
-                DecoderFactory,
-                "get_suggested_decoder",
-                side_effect=RuntimeError("Detection error"),
-            ):
-                with pytest.raises(RuntimeError):
-                    DecoderFactory.get_instance(uploaded)
-        finally:
-            uploaded.close()
+        with patch.object(
+            DecoderFactory,
+            "get_suggested_decoder",
+            side_effect=RuntimeError("Detection error"),
+        ):
+            with pytest.raises(RuntimeError):
+                DecoderFactory.get_instance(uploaded)
+        assert uploaded.closed is True
 
     def test_csv_decoder_closes_file_on_init_failure(self):
         """Test CsvDecoder closes raw_file if _open_as_csv fails."""
@@ -267,6 +265,22 @@ class TestDecoderFactory:
         assert uploaded.closed is True
         # Calling close again should not raise
         decoder.close()
+
+    def test_base_decoder_close_exception_handled(self):
+        """Test that BaseDecoder close handles and logs exceptions gracefully."""
+        uploaded = SimpleUploadedFile("test.txt", b"HEADER20204A06\n")
+        decoder = Utf8Decoder(uploaded)
+        with patch.object(uploaded, "close", side_effect=OSError("Close error")):
+            # Calling close should handle exception and not raise
+            decoder.close()
+
+    def test_base_decoder_exit_suppresses_close_exception(self):
+        """Test that BaseDecoder __exit__ handles close exceptions without escaping."""
+        uploaded = SimpleUploadedFile("test.txt", b"HEADER20204A06\n")
+        with patch.object(uploaded, "close", side_effect=OSError("Close error")):
+            with Utf8Decoder(uploaded) as decoder:
+                next(decoder.decode())
+            # Exiting context manager should not raise close error
 
     @pytest.mark.django_db
     def test_utf8_decoder_close(self, small_correct_file):
