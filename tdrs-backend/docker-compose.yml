@@ -303,6 +303,8 @@ services:
       - OTEL_PYTHON_DJANGO_EXCLUDED_URLS
       - CGAPPNAME_BACKEND
       - SENTRY_DSN
+      - ALERTMANAGER_URL
+      - ENVIRONMENT
       # Keycloak sync
       - KEYCLOAK_SYNC_ENABLED=True
       - KEYCLOAK_SERVER_URL=http://keycloak:8080
