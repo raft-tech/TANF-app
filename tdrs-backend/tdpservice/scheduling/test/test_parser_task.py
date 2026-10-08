@@ -55,14 +55,15 @@ from tdpservice.scheduling import parser_task
 from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 
 
-def patch_parser_task(monkeypatch, attr, value, raising=True):
+def patch_parser_task(monkeypatch, attr, value, raising=False):
     """Patch attribute across parser_task and parsing_service modules."""
+    patched = False
     for module in (parser_task, parsing_service):
         if hasattr(module, attr):
             monkeypatch.setattr(module, attr, value, raising=False)
-        elif raising:
-            monkeypatch.setattr(module, attr, value, raising=True)
-
+            patched = True
+    if not patched and raising:
+        monkeypatch.setattr(parsing_service, attr, value, raising=True)
 
 
 class DummyHandler:
@@ -116,30 +117,29 @@ def ensure_stt_filenames(stt):
 def setup_parse_mocks(monkeypatch, dfs=None):
     """Patch common dependencies for parser_task.parse tests."""
     handlers = [DummyHandler(), DummyHandler(), DummyHandler()]
-    for module in (parser_task, parsing_service):
-        monkeypatch.setattr(module.logger, "handlers", handlers, raising=False)
-        monkeypatch.setattr(module, "change_log_filename", lambda *a, **k: None)
+    monkeypatch.setattr(parsing_service.logger, "handlers", handlers, raising=False)
+    monkeypatch.setattr(parsing_service, "change_log_filename", lambda *a, **k: None)
 
-        def fake_update_dfs(dfs, data_file, **kwargs):
-            dfs.status = DataFileSummary.Status.ACCEPTED
-            dfs.save()
+    def fake_update_dfs(dfs, data_file, **kwargs):
+        dfs.status = DataFileSummary.Status.ACCEPTED
+        dfs.save()
 
-        monkeypatch.setattr(module, "update_dfs", fake_update_dfs)
-        monkeypatch.setattr(module, "set_error_report", lambda *a, **k: None)
-        if dfs is not None:
-            monkeypatch.setattr(
-                module.DataFileSummary.objects, "create", lambda **kwargs: dfs
-            )
-
-        class DummyReport:
-            def generate(self):
-                return io.BytesIO(b"report")
-
+    monkeypatch.setattr(parsing_service, "update_dfs", fake_update_dfs)
+    monkeypatch.setattr(parsing_service, "set_error_report", lambda *a, **k: None)
+    if dfs is not None:
         monkeypatch.setattr(
-            module.ErrorReportFactory,
-            "get_error_report_generator",
-            staticmethod(lambda data_file, parser_error_model=None: DummyReport()),
+            parsing_service.DataFileSummary.objects, "create", lambda **kwargs: dfs
         )
+
+    class DummyReport:
+        def generate(self):
+            return io.BytesIO(b"report")
+
+    monkeypatch.setattr(
+        parsing_service.ErrorReportFactory,
+        "get_error_report_generator",
+        staticmethod(lambda data_file, parser_error_model=None: DummyReport()),
+    )
     return handlers
 
 
@@ -749,8 +749,8 @@ def test_post_parse_finalizes_shadow_summary_only(monkeypatch, stt):
     )
 
     sent = {"called": False}
-    monkeypatch.setattr(
-        parser_task,
+    patch_parser_task(
+        monkeypatch,
         "send_data_submitted_email",
         lambda *args, **kwargs: sent.update(called=True),
     )
@@ -943,8 +943,8 @@ def test_post_parse_can_finalize_production_summary(monkeypatch, stt):
     )
 
     sent = {"called": False}
-    monkeypatch.setattr(
-        parser_task,
+    patch_parser_task(
+        monkeypatch,
         "send_data_submitted_email",
         lambda *args, **kwargs: sent.update(called=True),
     )
@@ -1211,8 +1211,8 @@ def test_parse_success_reparse_finishes_when_notification_fails(monkeypatch, stt
     def fail_notification(*args, **kwargs):
         raise RuntimeError("email provider unavailable")
 
-    monkeypatch.setattr(
-        parser_task,
+    patch_parser_task(
+        monkeypatch,
         "send_data_submitted_email",
         fail_notification,
     )
@@ -1681,7 +1681,7 @@ def test_parse_close_exception_cancels_successful_return_and_fails_submission(
         "get_instance",
         lambda **kwargs: SampleParser(kwargs["datafile"], kwargs["dfs"]),
     )
-    monkeypatch.setattr(parser_task, "send_data_submitted_email", lambda *a, **k: None)
+    patch_parser_task(monkeypatch, "send_data_submitted_email", lambda *a, **k: None)
 
     # Execute parser_task.parse
     parser_task.parse(datafile.id)
@@ -1733,7 +1733,7 @@ def test_parse_base_decoder_suppresses_close_exception_preventing_failed_submiss
         "get_instance",
         lambda **kwargs: SampleParserWithRealDecoder(kwargs["datafile"], kwargs["dfs"]),
     )
-    monkeypatch.setattr(parser_task, "send_data_submitted_email", lambda *a, **k: None)
+    patch_parser_task(monkeypatch, "send_data_submitted_email", lambda *a, **k: None)
 
     parser_task.parse(datafile.id)
 
