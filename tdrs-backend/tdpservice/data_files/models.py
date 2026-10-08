@@ -529,6 +529,7 @@ def create_or_update_shadow_data_file(data_file):
         "stt",
         "file",
         "s3_versioning_id",
+        "upload_source",
     ]
     defaults = {field: getattr(data_file, field) for field in fields}
 
