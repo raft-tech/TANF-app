@@ -657,16 +657,6 @@ class ParsingService:
                     source="python_parser",
                 )
 
-    def _fetch_errors_list(self, parser_error_model: Any, data_file: Any) -> list:
-        """Fetch non-deprecated errors for data file."""
-        if not parser_error_model or not data_file:
-            return []
-        error_qs = parser_error_model.objects.filter(file=data_file, deprecated=False)
-        try:
-            return list(error_qs)
-        except TypeError:
-            return []
-
     def run(self) -> ParseResult:
         """Execute parsing flow for the target DataFile and return a ParseResult."""
         data_file = None
@@ -743,14 +733,11 @@ class ParsingService:
                         },
                     )
 
-            errors_list = self._fetch_errors_list(models.parser_error_model, data_file)
-
             return ParseResult(
                 success=True,
                 data_file=data_file,
                 summary=self.dfs,
                 status=self.dfs.status if self.dfs else None,
-                errors=errors_list,
                 error_message=None,
             )
 
