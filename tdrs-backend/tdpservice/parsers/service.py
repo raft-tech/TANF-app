@@ -667,6 +667,172 @@ class ParsingService:
                     source="python_parser",
                 )
 
+    def post_parse(
+        self,
+        parse_error: Optional[str] = None,
+        table_mode: Optional[str] = None,
+        task_name: Optional[str] = None,
+    ) -> None:
+        """Finalize Go parser output for this DataFile in its selected table family."""
+        parser_models = (
+            _parser_models_for_mode(table_mode)
+            if table_mode
+            else _parser_models_for_instance(self.data_file)
+        )
+        data_file = self.data_file
+        is_shadow = _uses_shadow_table(data_file)
+
+        audit_context = {
+            "source": "go_parser",
+            "event_id": self.event_id,
+            "reparse_meta_id": self.reparse_id or None,
+            "task_name": task_name,
+        }
+        if is_shadow:
+            if parse_error and data_file.state == SubmissionState.PARSE_FAILED:
+                return
+            if data_file.state != SubmissionState.PARSE_STARTED:
+                record_shadow_parse_state(
+                    data_file,
+                    SubmissionState.PARSE_STARTED,
+                    note="Go shadow parsing started",
+                    **audit_context,
+                )
+            dfs, _ = parser_models.summary_model.objects.get_or_create(
+                datafile=data_file,
+                defaults={"status": DataFileSummary.Status.PENDING},
+            )
+            self.dfs = dfs
+            if parse_error:
+                dfs.status = DataFileSummary.Status.REJECTED
+                dfs.save()
+                execution_meta = _get_execution_metadata(
+                    dfs,
+                    duration_ms=0,
+                    parser_class="GoParser",
+                    data_file=data_file,
+                )
+                execution_meta["parse_error"] = str(parse_error)
+                execution_meta["section"] = data_file.section
+                execution_meta["program_type"] = data_file.program_type
+                execution_meta["reparse_id"] = self.reparse_id or None
+                record_shadow_parse_state(
+                    data_file,
+                    SubmissionState.PARSE_FAILED,
+                    note=str(parse_error),
+                    log_fields=execution_meta,
+                    **audit_context,
+                )
+                return
+            _finalize_parse(
+                data_file,
+                dfs,
+                parser_error_model=parser_models.parser_error_model,
+                record_model_resolver=parser_models.record_model_resolver,
+                roll_log=False,
+            )
+            target_state = (
+                SubmissionState.PARSE_COMPLETED
+                if dfs.status == DataFileSummary.Status.ACCEPTED
+                else SubmissionState.PARSED_WITH_ERRORS
+            )
+            execution_meta = _get_execution_metadata(
+                dfs,
+                duration_ms=0,
+                parser_class="GoParser",
+                data_file=data_file,
+            )
+            execution_meta["parse_summary_status"] = dfs.status
+            execution_meta["section"] = data_file.section
+            execution_meta["program_type"] = data_file.program_type
+            execution_meta["reparse_id"] = self.reparse_id or None
+            record_shadow_parse_state(
+                data_file,
+                target_state,
+                note="Go shadow parsing completed",
+                log_fields=execution_meta,
+                **audit_context,
+            )
+            return
+
+        file_meta, parse_token = _resolve_parse_owner(
+            data_file,
+            self.reparse_id or None,
+            self.parse_token or None,
+        )
+        self.file_meta = file_meta
+        self.parse_token = parse_token
+        if data_file.state != SubmissionState.PARSE_STARTED:
+            begin_parse(
+                data_file, parse_token, file_meta, actor="go_parser", event_id=self.event_id
+            )
+
+        with _parse_write_scope(data_file, parse_token):
+            dfs, _ = parser_models.summary_model.objects.get_or_create(
+                datafile=data_file,
+                defaults={"status": DataFileSummary.Status.PENDING},
+            )
+            self.dfs = dfs
+
+        if parse_error:
+            _reject_dfs(dfs, parse_token=parse_token)
+            execution_meta = _get_execution_metadata(
+                dfs,
+                duration_ms=0,
+                parser_class="GoParser",
+                data_file=data_file,
+            )
+            _handle_parse_failure(
+                data_file,
+                parse_token,
+                str(parse_error),
+                reparse_id=self.reparse_id or None,
+                event_id=self.event_id,
+                actor="go_parser",
+                extra_metadata=execution_meta,
+                task_name=task_name,
+            )
+            logger.error(
+                "Go parser %s post-parse received parse_error for data_file_id=%s: %s",
+                parser_models.label,
+                data_file.id,
+                parse_error,
+            )
+            reparse_success = False
+        else:
+            _finalize_parse(
+                data_file,
+                dfs,
+                parser_error_model=parser_models.parser_error_model,
+                record_model_resolver=parser_models.record_model_resolver,
+                roll_log=False,
+                parse_token=parse_token,
+            )
+            execution_meta = _get_execution_metadata(
+                dfs,
+                duration_ms=0,
+                parser_class="GoParser",
+                data_file=data_file,
+            )
+            _transition_parse_outcome(
+                data_file,
+                dfs,
+                parse_token,
+                reparse_id=self.reparse_id or None,
+                event_id=self.event_id,
+                extra_metadata=execution_meta,
+                actor="go_parser",
+                task_name=task_name,
+            )
+            reparse_success = True
+        _finalize_reparse(
+            data_file,
+            self.reparse_id or None,
+            file_meta,
+            dfs,
+            reparse_success,
+        )
+
     def run(self) -> ParseResult:
         """Execute parsing flow for the target DataFile and return a ParseResult."""
         data_file = None

@@ -455,3 +455,33 @@ class TestParsingServiceExecution:
         assert last_transition.metadata.get("total_records_processed") == 0
         assert last_transition.metadata.get("total_errors_generated") == 0
         assert last_transition.metadata.get("section") == DataFile.Section.ACTIVE_CASE_DATA
+
+    def test_post_parse_production_success(self, data_analyst):
+        """Verify post_parse finalizes production data file summary and transitions state."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=10,
+            state=SubmissionState.VIRUS_SCAN_COMPLETED,
+        )
+        ps = ParsingService(data_file=datafile)
+        ps.post_parse(table_mode="go-only")
+
+        datafile.refresh_from_db()
+        dfs = DataFileSummary.objects.get(datafile=datafile)
+        assert dfs.status == DataFileSummary.Status.ACCEPTED
+        assert datafile.state == SubmissionState.PARSE_COMPLETED
+
+    def test_post_parse_production_error(self, data_analyst):
+        """Verify post_parse handles parse_error for production data file."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=11,
+            state=SubmissionState.VIRUS_SCAN_COMPLETED,
+        )
+        ps = ParsingService(data_file=datafile)
+        ps.post_parse(parse_error="Go fatal error", table_mode="go-only")
+
+        datafile.refresh_from_db()
+        dfs = DataFileSummary.objects.get(datafile=datafile)
+        assert dfs.status == DataFileSummary.Status.REJECTED
+        assert datafile.state == SubmissionState.PARSE_FAILED
