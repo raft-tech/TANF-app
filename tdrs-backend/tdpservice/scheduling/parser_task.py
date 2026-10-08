@@ -459,4 +459,13 @@ def parse(data_file_id, reparse_id=None, parse_token=None, event_id=None):
         parse_token=parse_token,
         event_id=event_id,
     )
-    service.run()
+    result = service.run()
+    if not result.success and (
+        result.data_file is None
+        or (service.parse_token is None and not _uses_shadow_table(result.data_file))
+    ):
+        if result.error_message:
+            raise ValueError(result.error_message)
+        raise RuntimeError("Parsing failed before ownership establishment")
+    return result
+
