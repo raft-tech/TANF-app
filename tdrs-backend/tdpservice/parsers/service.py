@@ -243,7 +243,14 @@ def set_error_report(dfs, error_report, parse_token=None):
 
 
 def _transition_parse_outcome(
-    data_file, dfs, parse_token=None, reparse_id=None, event_id=None, extra_metadata=None
+    data_file,
+    dfs,
+    parse_token=None,
+    reparse_id=None,
+    event_id=None,
+    extra_metadata=None,
+    actor="python_parser",
+    task_name=None,
 ):
     """Report a parse outcome to the lifecycle controller."""
     parse_context = {
@@ -260,7 +267,7 @@ def _transition_parse_outcome(
             if dfs.status == DataFileSummary.Status.ACCEPTED
             else SubmissionState.PARSED_WITH_ERRORS
         )
-        is_go = extra_metadata and extra_metadata.get("parser_class") == "GoParser"
+        is_go = actor == "go_parser" or (extra_metadata and extra_metadata.get("parser_class") == "GoParser")
         record_shadow_parse_state(
             data_file,
             target_state,
@@ -268,7 +275,8 @@ def _transition_parse_outcome(
             log_fields=parse_context,
             event_id=event_id,
             reparse_meta_id=reparse_id,
-            source="go_parser" if is_go else "python_parser",
+            source="go_parser" if is_go else actor,
+            task_name=task_name,
         )
         return
 
@@ -279,6 +287,8 @@ def _transition_parse_outcome(
         log_fields=parse_context,
         event_id=event_id,
         reparse_meta_id=reparse_id,
+        actor=actor,
+        task_name=task_name,
     )
 
 
@@ -322,6 +332,7 @@ def _handle_parse_failure(
     event_id=None,
     actor="python_parser",
     extra_metadata=None,
+    task_name=None,
 ):
     """Report a technical parser failure to the lifecycle controller."""
     log_fields = {
@@ -340,6 +351,7 @@ def _handle_parse_failure(
             event_id=event_id,
             reparse_meta_id=reparse_id,
             source=actor,
+            task_name=task_name,
         )
     return record_parse_failure(
         data_file,
@@ -349,6 +361,7 @@ def _handle_parse_failure(
         reparse_meta_id=reparse_id,
         actor=actor,
         log_fields=log_fields,
+        task_name=task_name,
     )
 
 

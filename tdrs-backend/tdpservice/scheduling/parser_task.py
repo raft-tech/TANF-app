@@ -406,6 +406,7 @@ def post_parse(
             event_id=event_id,
             actor="go_parser",
             extra_metadata=execution_meta,
+            task_name=GO_PARSER_POST_PARSE_TASK_NAME,
         )
         logger.error(
             "Go parser %s post-parse received parse_error for data_file_id=%s: %s",
@@ -436,6 +437,8 @@ def post_parse(
             reparse_id=reparse_id or None,
             event_id=event_id,
             extra_metadata=execution_meta,
+            actor="go_parser",
+            task_name=GO_PARSER_POST_PARSE_TASK_NAME,
         )
         reparse_success = True
     _finalize_reparse(
