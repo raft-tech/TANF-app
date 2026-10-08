@@ -485,3 +485,74 @@ class TestParsingServiceExecution:
         dfs = DataFileSummary.objects.get(datafile=datafile)
         assert dfs.status == DataFileSummary.Status.REJECTED
         assert datafile.state == SubmissionState.PARSE_FAILED
+
+
+@pytest.mark.django_db
+class TestParsingServiceIdempotencyAndRetry:
+    """Tests for retry and idempotency scenarios in ParsingService."""
+
+    def test_retry_after_failed_parse_succeeds_cleanly(self, monkeypatch, data_analyst):
+        """A retried task after a partial/failed parse must not corrupt state and should succeed."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=10,
+            state=SubmissionState.PARSE_FAILED,
+            section=DataFile.Section.ACTIVE_CASE_DATA,
+        )
+        ensure_stt_filenames(datafile.stt)
+        # Previous failed summary
+        DataFileSummary.objects.create(
+            datafile=datafile,
+            status=DataFileSummary.Status.REJECTED,
+        )
+        setup_service_mocks(monkeypatch)
+
+        dummy_parser = DummyParser()
+        from tdpservice.parsers import service
+        monkeypatch.setattr(
+            service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
+        )
+        monkeypatch.setattr(service, "send_data_submitted_email", lambda *a, **k: None)
+
+        # Retry parse
+        ps = ParsingService(data_file=datafile)
+        result = ps.run()
+
+        assert result.success is True
+        assert result.status == DataFileSummary.Status.ACCEPTED
+        datafile.refresh_from_db()
+        assert datafile.state == SubmissionState.PARSE_COMPLETED
+        assert datafile.current_parse_token is None
+
+        # Verify summary status is accepted
+        latest_dfs = DataFileSummary.objects.filter(datafile=datafile).latest("id")
+        assert latest_dfs.status == DataFileSummary.Status.ACCEPTED
+
+    def test_stale_token_does_not_corrupt_active_parse(self, data_analyst):
+        """A worker with a stale parse token must be rejected without mutating active state."""
+        active_token = uuid.uuid4()
+        stale_token = uuid.uuid4()
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=11,
+            state=SubmissionState.PARSE_STARTED,
+            current_parse_token=active_token,
+            section=DataFile.Section.ACTIVE_CASE_DATA,
+        )
+        ensure_stt_filenames(datafile.stt)
+        active_dfs = DataFileSummary.objects.create(
+            datafile=datafile,
+            status=DataFileSummary.Status.PENDING,
+        )
+
+        ps = ParsingService(data_file=datafile, parse_token=stale_token)
+        result = ps.run()
+
+        assert result.success is False
+        assert "stale ownership" in result.error_message.lower() or "does not match" in result.error_message.lower()
+
+        datafile.refresh_from_db()
+        assert datafile.state == SubmissionState.PARSE_STARTED
+        assert datafile.current_parse_token == active_token
+        active_dfs.refresh_from_db()
+        assert active_dfs.status == DataFileSummary.Status.PENDING
