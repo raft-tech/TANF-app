@@ -32,8 +32,8 @@ from tdpservice.data_files.submission_lifecycle import (
 )
 from tdpservice.log_handler import S3FileHandler
 from tdpservice.parsers.models import ParserError
+from tdpservice.parsers.service import set_error_report
 from tdpservice.scheduling import parser_task
-from tdpservice.scheduling.parser_task import set_error_report
 from tdpservice.security.clients import ClamAVClient
 from tdpservice.security.models import ClamAVFileScan
 from tdpservice.users.permissions import DataFilePermissions, IsApprovedPermission

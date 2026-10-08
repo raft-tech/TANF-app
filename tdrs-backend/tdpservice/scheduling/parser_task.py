@@ -11,73 +11,22 @@ from django.db import transaction
 from celery import current_app, shared_task
 
 from tdpservice.core.utils import get_feature_flag, log
-from tdpservice.data_files.enums import GoParserMode, SubmissionState
-from tdpservice.data_files.error_reports import ErrorReportFactory
+from tdpservice.data_files.enums import GoParserMode
 from tdpservice.data_files.models import (
     DataFile,
     ReparseFileMeta,
     create_or_update_shadow_data_file,
 )
-from tdpservice.data_files.parser_error_choices import ParserErrorCategoryChoices
 from tdpservice.data_files.submission_lifecycle import (
-    StaleParseOwnership,
     begin_parse,
     claim_parse,
     record_parse_dispatch_failure,
-    record_parse_outcome,
-    record_shadow_parse_state,
-)
-from tdpservice.parsers.aggregates import (
-    case_aggregates_by_month,
-    fra_total_errors,
-    total_errors_by_month,
-)
-from tdpservice.parsers.error_generator import (
-    ErrorGeneratorArgs,
-    ErrorGeneratorFactory,
-    ErrorGeneratorType,
-)
-from tdpservice.parsers.factory import ParserFactory
-from tdpservice.parsers.models import (
-    DataFileSummary,
-    ParserError,
-    ShadowDataFileSummary,
-    ShadowParserError,
 )
 from tdpservice.parsers.service import (
-    ParserModelSet,
-    ParseResult,
     ParsingService,
-    _add_unexpected_error,
-    _calculate_total_records,
-    _finalize_parse,
-    _finalize_reparse,
-    _get_execution_metadata,
-    _get_summary_status,
-    _handle_parse_failure,
-    _notify_data_analysts,
-    _parse_write_scope,
-    _parser_models_for_instance,
     _parser_models_for_mode,
-    _production_parser_models,
-    _record_failed_parse,
-    _reject_dfs,
-    _resolve_parse_owner,
-    _shadow_parser_models,
-    _shadow_record_model,
-    _transition_parse_outcome,
     _uses_shadow_table,
-    set_error_report,
-    should_send_reparse_notification,
-    update_dfs,
 )
-from tdpservice.log_handler import change_log_filename
-from tdpservice.parsers.util import (
-    DecoderUnknownException,
-    log_parser_exception,
-)
-from tdpservice.email.helpers.data_file import send_data_submitted_email
-from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 
 logger = logging.getLogger("tdpservice.parsers")
 
@@ -87,64 +36,16 @@ GO_PARSER_QUEUE = getattr(settings, "GO_PARSER_QUEUE", "go-parser")
 GO_PARSER_FEATURE_FLAG = "go_parser_mode"
 
 __all__ = [
-    "DecoderUnknownException",
-    "DataFileSummary",
-    "ErrorReportFactory",
-    "ErrorGeneratorArgs",
-    "ErrorGeneratorFactory",
-    "ErrorGeneratorType",
+    "GO_PARSER_FEATURE_FLAG",
     "GO_PARSER_POST_PARSE_TASK_NAME",
     "GO_PARSER_QUEUE",
     "GO_PARSER_TASK_NAME",
-    "ParserError",
-    "ParserErrorCategoryChoices",
-    "ParserFactory",
-    "ParserModelSet",
-    "ParseResult",
-    "ParsingService",
-    "ReparseMeta",
-    "ShadowDataFileSummary",
-    "ShadowParserError",
-    "StaleParseOwnership",
-    "_add_unexpected_error",
-    "_calculate_total_records",
-    "_finalize_parse",
-    "_finalize_reparse",
-    "_get_execution_metadata",
-    "_get_summary_status",
-    "_handle_parse_failure",
-    "_notify_data_analysts",
-    "_parse_write_scope",
-    "_parser_models_for_instance",
-    "_parser_models_for_mode",
-    "_production_parser_models",
-    "_record_failed_parse",
-    "_reject_dfs",
-    "_resolve_parse_owner",
-    "_shadow_parser_models",
-    "_shadow_record_model",
-    "_transition_parse_outcome",
-    "_uses_shadow_table",
-    "begin_parse",
-    "case_aggregates_by_month",
-    "change_log_filename",
-    "claim_parse",
-    "fra_total_errors",
     "go_parse",
-    "logger",
-    "log_parser_exception",
     "parse",
     "post_parse",
     "queue_go_parse",
     "queue_parse",
-    "record_parse_dispatch_failure",
-    "record_parse_outcome",
-    "record_shadow_parse_state",
-    "send_data_submitted_email",
-    "set_error_report",
-    "should_send_reparse_notification",
-    "total_errors_by_month",
-    "update_dfs",
+    "resolve_or_reuse_parser_mode",
 ]
 
 
