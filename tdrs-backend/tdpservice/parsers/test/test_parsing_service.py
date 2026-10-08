@@ -104,24 +104,16 @@ def setup_service_mocks(monkeypatch, dfs=None):
 class TestParsingServicePreconditions:
     """Tests for ParsingService data fetching and precondition checks."""
 
-    def test_fetch_data_file_by_id(self, data_analyst):
-        """Fetch DataFile instance by ID."""
-        datafile = DataFileFactory(stt=data_analyst.stt)
-        service = ParsingService(data_file_id=datafile.id)
-        fetched = service.fetch_data_file()
-        assert fetched.id == datafile.id
-
-    def test_fetch_data_file_already_provided(self, data_analyst):
-        """Use provided DataFile instance without DB lookup."""
+    def test_fetch_data_file(self, data_analyst):
+        """Return the provided DataFile instance."""
         datafile = DataFileFactory(stt=data_analyst.stt)
         service = ParsingService(data_file=datafile)
         assert service.fetch_data_file() is datafile
 
-    def test_fetch_data_file_missing_id_and_instance(self):
-        """Raise ValueError when neither ID nor instance is provided."""
-        service = ParsingService()
-        with pytest.raises(ValueError, match="Neither data_file nor data_file_id was provided"):
-            service.fetch_data_file()
+    def test_fetch_data_file_missing_instance(self):
+        """Raise ValueError when data_file is not provided."""
+        with pytest.raises(ValueError, match="data_file must be provided"):
+            ParsingService(data_file=None)
 
     def test_validate_preconditions_missing_file_content(self, data_analyst):
         """Raise ValueError when DataFile has no file attached."""
@@ -223,7 +215,7 @@ class TestParsingServiceExecution:
         monkeypatch.setattr(service, "send_data_submitted_email", fake_send)
 
         event_id = uuid.uuid4()
-        ps = ParsingService(data_file_id=datafile.id, event_id=event_id)
+        ps = ParsingService(data_file=datafile, event_id=event_id)
         result = ps.run()
 
         assert isinstance(result, ParseResult)
@@ -280,7 +272,7 @@ class TestParsingServiceExecution:
             service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
         )
 
-        ps = ParsingService(data_file_id=datafile.id)
+        ps = ParsingService(data_file=datafile)
         result = ps.run()
 
         assert result.success is False
@@ -302,7 +294,7 @@ class TestParsingServiceExecution:
             service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
         )
 
-        ps = ParsingService(data_file_id=datafile.id)
+        ps = ParsingService(data_file=datafile)
         result = ps.run()
 
         assert result.success is False
@@ -326,7 +318,7 @@ class TestParsingServiceExecution:
             service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
         )
 
-        ps = ParsingService(data_file_id=datafile.id)
+        ps = ParsingService(data_file=datafile)
         result = ps.run()
 
         assert result.success is False
@@ -334,14 +326,6 @@ class TestParsingServiceExecution:
         datafile.refresh_from_db()
         assert datafile.state == SubmissionState.PARSE_FAILED
         assert ParserError.objects.filter(file=datafile).exists()
-
-    def test_parse_nonexistent_datafile_id_returns_failed_result(self):
-        """Return failure ParseResult when DataFile id does not exist."""
-        ps = ParsingService(data_file_id=99999999)
-        result = ps.run()
-        assert result.success is False
-        assert result.data_file is None
-        assert result.error_message is not None
 
     def test_parse_records_execution_metadata_on_success(
         self, monkeypatch, data_analyst
@@ -360,7 +344,7 @@ class TestParsingServiceExecution:
         )
         monkeypatch.setattr(service, "send_data_submitted_email", lambda *a, **k: None)
 
-        ps = ParsingService(data_file_id=datafile.id)
+        ps = ParsingService(data_file=datafile)
         result = ps.run()
 
         assert result.success is True
@@ -389,7 +373,7 @@ class TestParsingServiceExecution:
             service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
         )
 
-        ps = ParsingService(data_file_id=datafile.id)
+        ps = ParsingService(data_file=datafile)
         result = ps.run()
 
         assert result.success is False

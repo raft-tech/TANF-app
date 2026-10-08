@@ -453,8 +453,9 @@ def post_parse(
 @shared_task
 def parse(data_file_id, reparse_id=None, parse_token=None, event_id=None):
     """Send data file for processing."""
+    data_file = DataFile.objects.get(id=data_file_id)
     service = ParsingService(
-        data_file_id=data_file_id,
+        data_file=data_file,
         reparse_id=reparse_id,
         parse_token=parse_token,
         event_id=event_id,

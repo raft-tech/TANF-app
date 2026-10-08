@@ -565,15 +565,16 @@ class ParsingService:
 
     def __init__(
         self,
-        data_file_id: Optional[int] = None,
-        data_file: Optional[Union[DataFile, ShadowDataFile]] = None,
+        data_file: Union[DataFile, ShadowDataFile],
         reparse_id: Optional[int] = None,
         parse_token: Optional[Union[str, UUID]] = None,
         event_id: Optional[Union[str, UUID]] = None,
         file_meta: Optional[ReparseFileMeta] = None,
     ):
-        self.data_file_id = data_file_id or (data_file.id if data_file else None)
+        if data_file is None:
+            raise ValueError("data_file must be provided to ParsingService.")
         self.data_file = data_file
+        self.data_file_id = getattr(data_file, "id", None)
         self.reparse_id = reparse_id
         self.parse_token = str(parse_token) if parse_token else None
         self.event_id = str(event_id or uuid.uuid4())
@@ -581,11 +582,7 @@ class ParsingService:
         self.dfs: Optional[Union[DataFileSummary, ShadowDataFileSummary]] = None
 
     def fetch_data_file(self) -> Union[DataFile, ShadowDataFile]:
-        """Fetch the target DataFile if not already populated."""
-        if self.data_file is None:
-            if self.data_file_id is None:
-                raise ValueError("Neither data_file nor data_file_id was provided.")
-            self.data_file = DataFile.objects.get(id=self.data_file_id)
+        """Return the target DataFile."""
         return self.data_file
 
     def validate_preconditions(self) -> None:
@@ -596,7 +593,7 @@ class ParsingService:
         2. Valid submission state for parsing.
         3. Idempotency / parse token ownership guard.
         """
-        data_file = self.fetch_data_file()
+        data_file = self.data_file
 
         if not data_file.file or not getattr(data_file.file, "name", None):
             raise ValueError(f"DataFile {data_file.id} does not have an associated file.")
@@ -617,7 +614,7 @@ class ParsingService:
 
     def get_parser(self):
         """Construct and return the appropriate parser instance."""
-        data_file = self.fetch_data_file()
+        data_file = self.data_file
         return ParserFactory.get_instance(
             datafile=data_file,
             dfs=self.dfs,
@@ -680,7 +677,7 @@ class ParsingService:
         start_time = time.monotonic()
 
         try:
-            data_file = self.fetch_data_file()
+            data_file = self.data_file
             self.validate_preconditions()
 
             models = _parser_models_for_instance(data_file)

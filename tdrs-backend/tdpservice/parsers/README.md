@@ -109,23 +109,15 @@ Useful in management commands, scripts, synchronous debugging, or test fixtures:
 ```python
 from tdpservice.parsers.service import ParsingService
 
-# By DataFile ID
-service = ParsingService(data_file_id=123)
+data_file = DataFile.objects.get(id=123)
+service = ParsingService(data_file=data_file)
 result = service.run()
 
 if result.success:
     print(f"Parsed successfully with status: {result.status}")
-    print(f"Summary ID: {result.summary.id}, Total Errors: {len(result.errors)}")
+    print(f"Summary ID: {result.summary.id}, Total Errors: {result.total_errors_generated}")
 else:
     print(f"Parsing failed: {result.error_message}")
-```
-
-Or with an existing `DataFile` instance:
-
-```python
-data_file = DataFile.objects.get(id=123)
-service = ParsingService(data_file=data_file)
-result = service.run()
 ```
 
 ---
@@ -154,14 +146,13 @@ Inside [`tdpservice.scheduling.parser_task.parse`](file:///tdrs-backend/tdpservi
 ```python
 @shared_task
 def parse(data_file_id, reparse_id=None, parse_token=None, event_id=None):
+    data_file = DataFile.objects.get(id=data_file_id)
     service = ParsingService(
-        data_file_id=data_file_id,
+        data_file=data_file,
         reparse_id=reparse_id,
         parse_token=parse_token,
         event_id=event_id,
     )
-    service.fetch_data_file()
-    service.validate_preconditions()
     return service.run()
 ```
 
