@@ -468,4 +468,3 @@ def parse(data_file_id, reparse_id=None, parse_token=None, event_id=None):
             raise ValueError(result.error_message)
         raise RuntimeError("Parsing failed before ownership establishment")
     return result
-
