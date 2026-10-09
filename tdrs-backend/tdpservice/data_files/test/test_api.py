@@ -1412,6 +1412,56 @@ class TestDataFileQuerysetFiltering:
         for f in pia_files[k]:
             assert f.id in response_file_ids
 
+    @pytest.mark.parametrize("file_type", fra_section_options)
+    @pytest.mark.parametrize("program_type", [Program.Code.TANF, Program.Code.TRIBAL])
+    @pytest.mark.parametrize("has_failed_fra_file", [False, True])
+    def test_fra_list_without_visible_submissions_returns_empty(
+        self,
+        api_client,
+        stt,
+        tribe_stt,
+        ofa_system_admin,
+        file_type: str,
+        program_type: str,
+        has_failed_fra_file: bool,
+    ) -> None:
+        """An empty FRA history must not fall back to TANF or Tribal submissions."""
+        location = self.get_location(program_type, stt, tribe_stt)
+        self.create_file(
+            program_type,
+            Section.Name.ACTIVE_CASE_DATA,
+            2022,
+            "Q1",
+            location,
+            ofa_system_admin,
+        )
+        if has_failed_fra_file:
+            fra_file = self.create_file(
+                Program.Code.FRA,
+                file_type,
+                2022,
+                "Q1",
+                location,
+                ofa_system_admin,
+            )
+            DataFile.objects.filter(pk=fra_file.pk).update(
+                state=SubmissionState.VIRUS_SCAN_FAILED
+            )
+
+        api_client.login(username=ofa_system_admin.username, password="test_password")
+        response = api_client.get(
+            self.root_url,
+            {
+                "stt": location.id,
+                "year": 2022,
+                "quarter": "Q1",
+                "file_type": file_type,
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == []
+
     @pytest.fixture
     def filter_test_data(self, stt, tribe_stt, ofa_system_admin):
         """Create a file for each program, section, year, quarter, pia combo."""

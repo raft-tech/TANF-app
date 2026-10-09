@@ -27,6 +27,7 @@ from tdpservice.data_files.models import (
     DataFile,
     Program,
     ReparseFileMeta,
+    Section,
 )
 from tdpservice.data_files.s3_client import S3Client
 from tdpservice.data_files.serializers import DataFileSerializer
@@ -269,8 +270,8 @@ class DataFileViewSet(ModelViewSet):
 
         if file_type == DataFileViewSet.SSP_FILE_TYPE:
             queryset = queryset.filter(section__program__code=Program.Code.SSP)
-        elif queryset.filter(
-            section__program__code=Program.Code.FRA, section__name=file_type
+        elif Section.objects.filter(
+            program__code=Program.Code.FRA, name=file_type
         ).exists():
             queryset = queryset.filter(
                 section__program__code=Program.Code.FRA, section__name=file_type
