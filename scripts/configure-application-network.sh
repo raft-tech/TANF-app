@@ -23,6 +23,14 @@ fi
 
 if [[ "$CF_SPACE" == "tanf-prod" ]]; then
   cf map-route "$FRONTEND_APP_NAME" tanfdata.acf.hhs.gov
+
+  # Keep legacy help links working by routing the old hostname through nginx,
+  # which redirects requests to https://tanfdata.acf.hhs.gov/help/. Complete
+  # the one-time route handoff documented in product-updates/README.md first.
+  LEGACY_HELP_HOSTNAME="tdp-product-updates"
 else
   cf map-route "$FRONTEND_APP_NAME" "${FRONTEND_HOSTNAME}.tanfdata.acf.hhs.gov"
+  LEGACY_HELP_HOSTNAME="tdp-product-updates-${FRONTEND_HOSTNAME}"
 fi
+
+cf map-route "$FRONTEND_APP_NAME" app.cloud.gov --hostname "$LEGACY_HELP_HOSTNAME"
