@@ -8,6 +8,7 @@ from tdpservice.core.models import BaseLog
 from tdpservice.data_files import submission_lifecycle
 from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.models import (
+    DataFile,
     DataFileStateTransition,
     create_or_update_shadow_data_file,
 )
@@ -826,3 +827,14 @@ def test_shadow_transition_rejects_production_datafile():
     data_file = DataFileFactory.build(state=SubmissionState.VIRUS_SCAN_COMPLETED)
     with pytest.raises(ValueError, match="require a ShadowDataFile"):
         record_shadow_parse_state(data_file, SubmissionState.PARSE_STARTED)
+
+
+@pytest.mark.django_db
+def test_create_or_update_shadow_data_file_copies_upload_source():
+    """Shadow data file should clone upload_source from the production file."""
+    data_file = DataFileFactory(
+        state=SubmissionState.VIRUS_SCAN_COMPLETED,
+        upload_source=DataFile.UploadSource.API,
+    )
+    shadow_file = create_or_update_shadow_data_file(data_file)
+    assert shadow_file.upload_source == DataFile.UploadSource.API

@@ -573,6 +573,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     list_display = [
         "id",
         "stt",
+        "upload_source",
         "parsing_state",
         "year",
         "quarter",
@@ -585,6 +586,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
     list_filter = [
         "stt",
+        "upload_source",
         "year",
         "quarter",
         "program_type",
