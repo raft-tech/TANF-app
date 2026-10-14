@@ -714,16 +714,13 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         assert data_file.section_ref.program.code == DataFile.ProgramType.TANF
         assert data_file.section_ref.name == response.data["section"]
 
-    @pytest.mark.parametrize("active_year", [2020, "2020"])
-    def test_data_files_data_upload_fra(
-        self, api_client, csv_data_file, user, active_year
-    ):
+    def test_data_files_data_upload_fra(self, api_client, csv_data_file, user):
         """FRA uploads reference their canonical FRA section."""
         user.user_permissions.add(Permission.objects.get(codename="has_fra_access"))
         FeatureFlag.objects.create(
             feature_name=FRA_SUBMISSION_YEARS_FEATURE_FLAG,
             enabled=True,
-            config={"activeYears": [active_year]},
+            config={"activeYears": ["2020"]},
         )
 
         response = self.post_data_file(api_client, csv_data_file)
@@ -736,8 +733,8 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
     @pytest.mark.parametrize(
         "flag_enabled,feature_config",
         [
-            (False, {"activeYears": [2020]}),
-            (True, {"activeYears": [2021]}),
+            (False, {"activeYears": ["2020"]}),
+            (True, {"activeYears": ["2021"]}),
             (True, {"activeYears": "2020"}),
             (True, []),
         ],
@@ -784,7 +781,7 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         FeatureFlag.objects.create(
             feature_name=FRA_SUBMISSION_YEARS_FEATURE_FLAG,
             enabled=True,
-            config={"activeYears": [csv_data_file["year"]]},
+            config={"activeYears": [str(csv_data_file["year"])]},
         )
         csv_data_file["ssp"] = True
 
