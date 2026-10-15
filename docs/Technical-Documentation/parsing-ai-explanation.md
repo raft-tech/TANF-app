@@ -6,6 +6,8 @@ This document details the parsing architecture in TANF-app, how the Python parse
 
 ## Architecture Overview
 
+![Parsing Flow & Lifecycle Architecture](diagrams/parsing-flow.png)
+
 Parsing in TDP is orchestrated through Celery tasks, a persisted routing mode on each submission, and concurrency ownership tokens. The system supports three execution modes defined by [`GoParserMode`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/data_files/enums.py#L6-L11):
 
 1. **`python-only`**: Dispatches only the legacy Python parser.
