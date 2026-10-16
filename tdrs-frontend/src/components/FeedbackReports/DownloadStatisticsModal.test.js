@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import DownloadStatisticsModal from './DownloadStatisticsModal'
+import { MemoryRouter } from 'react-router-dom'
 
 const statistics = {
   report_source_id: 42,
@@ -114,6 +115,28 @@ describe('DownloadStatisticsModal', () => {
     expect(
       screen.getByText('No jurisdictions are available for this report source.')
     ).toBeInTheDocument()
+  })
+
+  it('links each jurisdiction to its reports with the source year and type', () => {
+    render(
+      <MemoryRouter>
+        <DownloadStatisticsModal
+          statistics={statistics}
+          loading={false}
+          formatDateTime={jest.fn()}
+          onClose={jest.fn()}
+          reportContext={{ year: 2025, reportType: 'FRA' }}
+        />
+      </MemoryRouter>
+    )
+    expect(screen.getByRole('link', { name: 'Alabama' })).toHaveAttribute(
+      'href',
+      '/feedback-reports?view=stt&stt=1&year=2025&type=FRA'
+    )
+    expect(screen.getByRole('link', { name: 'Example Tribe' })).toHaveAttribute(
+      'href',
+      '/feedback-reports?view=stt&stt=3&year=2025&type=FRA'
+    )
   })
 
   it('closes from the button and Escape key', () => {

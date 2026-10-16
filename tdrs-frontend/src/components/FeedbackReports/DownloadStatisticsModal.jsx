@@ -1,5 +1,6 @@
 import React, { Fragment, useCallback, useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
+import { Link } from 'react-router-dom'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import '../../assets/DownloadStatisticsModal.scss'
 
@@ -9,6 +10,8 @@ function DownloadStatisticsModal({
   error,
   formatDateTime,
   onClose,
+  reportContext,
+  onSelectStt,
 }) {
   const dialogRef = useRef(null)
   const returnFocusRef = useRef(document.activeElement)
@@ -122,7 +125,35 @@ function DownloadStatisticsModal({
                           </tr>
                           {region.stts.map((stt) => (
                             <tr key={stt.id}>
-                              <th scope="row">{stt.name}</th>
+                              <th scope="row">
+                                {reportContext ? (
+                                  <Link
+                                    to={`/feedback-reports?${new URLSearchParams({
+                                      view: 'stt',
+                                      stt: stt.id,
+                                      year: reportContext.year,
+                                      type: reportContext.reportType,
+                                    })}`}
+                                    onClick={(event) => {
+                                      if (
+                                        onSelectStt &&
+                                        event.button === 0 &&
+                                        !event.metaKey &&
+                                        !event.ctrlKey &&
+                                        !event.shiftKey &&
+                                        !event.altKey
+                                      ) {
+                                        event.preventDefault()
+                                        onSelectStt(stt, reportContext)
+                                      }
+                                    }}
+                                  >
+                                    {stt.name}
+                                  </Link>
+                                ) : (
+                                  stt.name
+                                )}
+                              </th>
                               <td>
                                 {stt.downloaded_at
                                   ? formatDateTime(stt.downloaded_at)
@@ -174,6 +205,11 @@ DownloadStatisticsModal.propTypes = {
   error: PropTypes.string,
   formatDateTime: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
+  onSelectStt: PropTypes.func,
+  reportContext: PropTypes.shape({
+    year: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    reportType: PropTypes.string.isRequired,
+  }),
 }
 
 export default DownloadStatisticsModal

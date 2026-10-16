@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import PropTypes from 'prop-types'
 import { useSelector } from 'react-redux'
 import { useSearchParams } from 'react-router-dom'
 import { get } from '../../fetch-instance'
@@ -65,24 +66,27 @@ const STT_REPORT_TYPE_LABELS = {
  * - Regional Staff select an STT from their region, auto-fetches when both STT and year are selected
  * - Users with FRA access see a report type selector; others default to TANF/SSP
  */
-function STTFeedbackReports() {
+function STTFeedbackReports({ adminView = false }) {
   const [searchParams, setSearchParams] = useSearchParams()
-  const yearOptions = constructYears()
+  const yearOptions = useMemo(() => constructYears(), [])
 
   const user = useSelector((state) => state.auth.user)
   const isRegionalStaff = useSelector(accountIsRegionalStaff)
+  const canSelectStt = isRegionalStaff || adminView
   // Always show all STTs (including tribes) in the ComboBox.
   const filteredStts = useSelector(availableStts('/feedback-reports'))
 
   // Get validated report type from URL params
   const getValidatedReportType = () => {
     // For Data Analysts, check their assigned STT type
-    if (!isRegionalStaff && user?.stt?.type === 'tribe') {
+    if (!canSelectStt && user?.stt?.type === 'tribe') {
       return REPORT_TYPES.TRIBAL_TANF
     }
-    if (isRegionalStaff) {
+    if (canSelectStt) {
       const urlStt = searchParams.get('stt')
-      const sttObj = filteredStts.find((s) => s.name === urlStt)
+      const sttObj = filteredStts.find((s) =>
+        adminView ? String(s.id) === urlStt : s.name === urlStt
+      )
       if (sttObj?.type === 'tribe') {
         return REPORT_TYPES.TRIBAL_TANF
       }
@@ -103,10 +107,12 @@ function STTFeedbackReports() {
 
   // Initialize STT from URL query param (regional staff only)
   const getValidatedStt = () => {
-    if (!isRegionalStaff) return null
+    if (!canSelectStt) return null
     const urlStt = searchParams.get('stt')
     if (!urlStt) return null
-    const sttObj = filteredStts.find((s) => s.name === urlStt)
+    const sttObj = filteredStts.find((s) =>
+      adminView ? String(s.id) === urlStt : s.name === urlStt
+    )
     return sttObj || null
   }
 
@@ -128,8 +134,8 @@ function STTFeedbackReports() {
   )
 
   // Derive display name and tribe status
-  const sttName = isRegionalStaff ? selectedStt?.name : user?.stt?.name
-  const isTribe = isRegionalStaff
+  const sttName = canSelectStt ? selectedStt?.name : user?.stt?.name
+  const isTribe = canSelectStt
     ? selectedStt?.type === 'tribe'
     : user?.stt?.type === 'tribe'
 
@@ -137,14 +143,45 @@ function STTFeedbackReports() {
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(false)
   const [selectedYear, setSelectedYear] = useState(getValidatedYear)
+  const [adminSearch, setAdminSearch] = useState(null)
+  const requestIdRef = useRef(0)
   const [alert, setAlert] = useState({
     active: false,
     type: null,
     message: null,
   })
 
+  useEffect(() => {
+    if (!adminView) return
+    const sttId = searchParams.get('stt')
+    const year = searchParams.get('year')
+    const type = searchParams.get('type') || REPORT_TYPES.TANF_SSP
+    const stt = filteredStts.find((item) => String(item.id) === sttId)
+    const validYear =
+      /^\d{4}$/.test(year || '') && yearOptions.includes(Number(year))
+    const validType = REPORT_TYPE_OPTIONS.some(({ value }) => value === type)
+    const reportType = stt?.type === 'tribe' ? REPORT_TYPES.TRIBAL_TANF : type
+    setSelectedStt(stt || null)
+    setSelectedSttName(stt?.name || '')
+    setSelectedYear(validYear ? Number(year) : null)
+    setSelectedReportType(validType ? reportType : REPORT_TYPES.TANF_SSP)
+    setAdminSearch(
+      stt &&
+        validYear &&
+        validType &&
+        !(stt.type !== 'tribe' && type === REPORT_TYPES.TRIBAL_TANF)
+        ? { stt, year: Number(year), reportType }
+        : null
+    )
+  }, [adminView, searchParams, filteredStts, yearOptions])
+
+  const requestYear = adminView ? adminSearch?.year : selectedYear
+  const requestType = adminView ? adminSearch?.reportType : selectedReportType
+  const requestStt = adminView ? adminSearch?.stt : selectedStt
+
   // Sync selections to URL query params
   useEffect(() => {
+    if (adminView) return
     const newParams = new URLSearchParams()
     newParams.set('type', selectedReportType)
     if (selectedYear) {
@@ -160,6 +197,7 @@ function STTFeedbackReports() {
     selectedReportType,
     isRegionalStaff,
     setSearchParams,
+    adminView,
   ])
 
   /**
@@ -167,30 +205,35 @@ function STTFeedbackReports() {
    * and STT (for regional staff)
    */
   const fetchReports = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     // Only fetch if a year is selected
-    if (!selectedYear) {
+    if (!requestYear) {
       setReports([])
+      setLoading(false)
       return
     }
 
     // Regional staff must also have an STT selected
-    if (isRegionalStaff && !selectedStt) {
+    if (canSelectStt && !requestStt) {
       setReports([])
+      setLoading(false)
       return
     }
 
     setLoading(true)
     setAlert({ active: false, type: null, message: null })
 
-    const params = { year: selectedYear, report_type: selectedReportType }
-    if (isRegionalStaff && selectedStt) {
-      params.stt = selectedStt.id
+    const params = { year: requestYear, report_type: requestType }
+    if (canSelectStt && requestStt) {
+      params.stt = requestStt.id
     }
 
     const { data, ok, error } = await get(
       `${process.env.REACT_APP_BACKEND_URL}/reports/`,
       { params }
     )
+
+    if (requestId !== requestIdRef.current) return
 
     if (ok) {
       setReports(data?.results || data || [])
@@ -203,11 +246,14 @@ function STTFeedbackReports() {
       })
     }
     setLoading(false)
-  }, [selectedYear, selectedReportType, isRegionalStaff, selectedStt])
+  }, [requestYear, requestType, canSelectStt, requestStt])
 
   // Auto-fetch when dependencies change (both user types)
   useEffect(() => {
     fetchReports()
+    return () => {
+      requestIdRef.current += 1
+    }
   }, [fetchReports])
 
   /**
@@ -215,7 +261,7 @@ function STTFeedbackReports() {
    */
   const handleReportTypeChange = (value) => {
     setSelectedReportType(value)
-    setReports([])
+    if (!adminView) setReports([])
   }
 
   /**
@@ -243,13 +289,13 @@ function STTFeedbackReports() {
       setSelectedStt(null)
     }
     // Clear reports when STT changes
-    setReports([])
+    if (!adminView) setReports([])
   }
 
   // Determine if content section should show
-  const showContent = isRegionalStaff
-    ? selectedYear && selectedStt
-    : selectedYear
+  const showContent = canSelectStt
+    ? requestYear && requestStt
+    : requestYear
 
   // Focus the H2 header for screen readers when content section appears
   useEffect(() => {
@@ -260,7 +306,7 @@ function STTFeedbackReports() {
 
   // Get reference table data for selected report type
   const referenceTable = REFERENCE_TABLES[selectedReportType]
-  const reportTypeLabel = STT_REPORT_TYPE_LABELS[selectedReportType]
+  const reportTypeLabel = STT_REPORT_TYPE_LABELS[requestType || selectedReportType]
 
   return (
     <div className="feedback-reports">
@@ -268,7 +314,7 @@ function STTFeedbackReports() {
         {/* STT Selector, Report Type, Fiscal Year Selector, and Reference Table */}
         <div className="grid-row grid-gap margin-top-5">
           <div className="mobile:grid-container desktop:padding-0 desktop:grid-col-auto">
-            {isRegionalStaff && (
+            {canSelectStt && (
               <div className="usa-form-group maxw-mobile margin-top-4">
                 <STTComboBox
                   selectStt={handleSttSelect}
@@ -309,6 +355,25 @@ function STTFeedbackReports() {
                 ))}
               </select>
             </div>
+            {adminView && (
+              <button
+                type="button"
+                className="usa-button margin-top-3"
+                disabled={!selectedStt || !selectedYear}
+                onClick={() => {
+                  setSearchParams(
+                    new URLSearchParams({
+                      view: 'stt',
+                      stt: selectedStt.id,
+                      year: selectedYear,
+                      type: selectedReportType,
+                    })
+                  )
+                }}
+              >
+                Search
+              </button>
+            )}
           </div>
 
           <div className="mobile:grid-container desktop:padding-0 desktop:grid-col-fill">
@@ -336,6 +401,13 @@ function STTFeedbackReports() {
           </div>
         </div>
 
+        {adminView && searchParams.has('stt') && !adminSearch && (
+          <p role="status">
+            Select a valid State, Tribe, or Territory and fiscal year, then search
+            for feedback reports.
+          </p>
+        )}
+
         {showContent && (
           <>
             <hr className="margin-top-4 margin-bottom-4" />
@@ -346,7 +418,7 @@ function STTFeedbackReports() {
               className="font-serif-xl margin-top-5 margin-bottom-0 text-normal"
               tabIndex="-1"
             >
-              {`${sttName} — ${reportTypeLabel} Fiscal Year ${selectedYear} Feedback Reports`}
+              {`${adminView ? requestStt?.name : sttName} — ${reportTypeLabel} Fiscal Year ${requestYear} Feedback Reports`}
             </h2>
 
             {/* Description Text */}
@@ -416,6 +488,10 @@ function STTFeedbackReports() {
       </div>
     </div>
   )
+}
+
+STTFeedbackReports.propTypes = {
+  adminView: PropTypes.bool,
 }
 
 export default STTFeedbackReports
