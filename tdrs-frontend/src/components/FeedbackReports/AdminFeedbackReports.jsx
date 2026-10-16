@@ -55,6 +55,8 @@ function AdminFeedbackReports() {
   )
   const [selectedYear, setSelectedYear] = useState(getValidatedYear)
   const [selectedFile, setSelectedFile] = useState(null)
+  const [notes, setNotes] = useState('')
+  const [notesError, setNotesError] = useState(null)
   const [uploadHistory, setUploadHistory] = useState([])
   const [loading, setLoading] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -241,6 +243,28 @@ function AdminFeedbackReports() {
   }
 
   /**
+   * Validates notes field content
+   */
+  const validateNotes = (value) => {
+    if (!value) return null
+    if (value.length > 2000) {
+      return 'Notes cannot exceed 2000 characters.'
+    }
+    if (/<[^>]+>/i.test(value) || /javascript\s*:/i.test(value)) {
+      return 'HTML and JavaScript are not allowed in the notes field.'
+    }
+    return null
+  }
+
+  const handleNotesChange = (e) => {
+    const value = e.target.value
+    setNotes(value)
+    if (formSubmitAttempted || notesError) {
+      setNotesError(validateNotes(value))
+    }
+  }
+
+  /**
    * Validates the form before upload
    * Returns true if valid, false otherwise
    */
@@ -260,6 +284,14 @@ function AdminFeedbackReports() {
       isValid = false
     }
 
+    const nError = validateNotes(notes)
+    if (nError) {
+      setNotesError(nError)
+      isValid = false
+    } else {
+      setNotesError(null)
+    }
+
     return isValid
   }
 
@@ -277,6 +309,9 @@ function AdminFeedbackReports() {
     formData.append('year', selectedYear)
     formData.append('date_extracted_on', getDatePickerValue())
     formData.append('report_type', selectedReportType)
+    if (notes && notes.trim()) {
+      formData.append('notes', notes.trim())
+    }
 
     const { data, ok } = await post(
       `${process.env.REACT_APP_BACKEND_URL}/reports/report-sources/`,
@@ -294,6 +329,8 @@ function AdminFeedbackReports() {
       // Clear the form
       setSelectedFile(null)
       setFileError(null)
+      setNotes('')
+      setNotesError(null)
       clearDatePicker()
       setDateError(null)
       setFormSubmitAttempted(false)
@@ -304,6 +341,7 @@ function AdminFeedbackReports() {
     } else {
       const errorMessage =
         data?.file?.[0] ||
+        data?.notes?.[0] ||
         data?.detail ||
         data?.message ||
         'Upload failed. Please try again.'
@@ -483,6 +521,9 @@ function AdminFeedbackReports() {
               inputRef={inputRef}
               dateError={showDateError ? dateError : null}
               onDateBlur={handleDateBlur}
+              notes={notes}
+              notesError={notesError}
+              onNotesChange={handleNotesChange}
             />
 
             {/* Upload History Section */}

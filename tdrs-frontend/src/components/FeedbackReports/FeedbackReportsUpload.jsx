@@ -37,6 +37,9 @@ const FeedbackReportsUpload = forwardRef(function FeedbackReportsUpload(
     inputRef,
     dateError,
     onDateBlur,
+    notes = '',
+    notesError,
+    onNotesChange,
   },
   ref
 ) {
@@ -165,6 +168,63 @@ const FeedbackReportsUpload = forwardRef(function FeedbackReportsUpload(
         </div>
       </div>
 
+      {/* Notes Input */}
+      <div
+        className={`usa-form-group margin-top-3 ${notesError ? 'usa-form-group--error' : ''}`}
+      >
+        <label
+          className="usa-label text-bold"
+          htmlFor="feedback-reports-notes"
+          id="notes-label"
+        >
+          Notes (optional)
+        </label>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            maxWidth: '470px',
+            gap: '1rem',
+          }}
+        >
+          <div className="usa-hint" id="notes-hint" style={{ marginTop: 0 }}>
+            Notes will be displayed to STTs when additional detail is needed to
+            contextualize a report
+          </div>
+          <div
+            className="usa-character-count__message"
+            aria-live="polite"
+            id="notes-count-message"
+            style={{
+              whiteSpace: 'nowrap',
+              textAlign: 'right',
+              marginTop: 0,
+              flexShrink: 0,
+            }}
+          >
+            {`${notes.length}/2000`}
+          </div>
+        </div>
+        {notesError && (
+          <div className="usa-error-message" id="notes-error" role="alert">
+            {notesError}
+          </div>
+        )}
+        <textarea
+          className="usa-textarea"
+          id="feedback-reports-notes"
+          name="notes"
+          aria-labelledby="notes-label"
+          aria-describedby={`notes-hint notes-count-message ${notesError ? 'notes-error' : ''}`.trim()}
+          value={notes}
+          onChange={onNotesChange}
+          maxLength={2000}
+          rows={4}
+          style={{ maxWidth: '470px' }}
+        />
+      </div>
+
       <Button
         type="submit"
         onClick={onUpload}
@@ -186,6 +246,9 @@ FeedbackReportsUpload.propTypes = {
   inputRef: PropTypes.object.isRequired,
   dateError: PropTypes.string,
   onDateBlur: PropTypes.func,
+  notes: PropTypes.string,
+  notesError: PropTypes.string,
+  onNotesChange: PropTypes.func,
 }
 
 export default FeedbackReportsUpload
