@@ -150,6 +150,7 @@ class Common(Configuration):
         "django.contrib.auth.middleware.AuthenticationMiddleware",
         "tdpservice.middleware.AdminAPIAuthorizationMiddleware",
         "mozilla_django_oidc.middleware.SessionRefresh",
+        "tdpservice.param_mismatch_middleware.RequestParamMismatchMiddleware",
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
         "corsheaders.middleware.CorsMiddleware",
@@ -216,6 +217,13 @@ class Common(Configuration):
 
     # Those who will receive error notifications from django via email
     ADMINS = (("Admin1", "ADMIN_EMAIL_FIRST"), ("Admin2", "ADMIN_EMAIL_SECOND"))
+
+    # Environment and service identification
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+    APP_NAME = os.getenv("CGAPPNAME_BACKEND", os.getenv("APP_NAME", "tdp-backend-local"))
+
+    # Prometheus AlertManager endpoint
+    ALERTMANAGER_URL = os.getenv("ALERTMANAGER_URL", "http://alertmanager:9093/alerts")
 
     DATABASES = {
         "default": {
