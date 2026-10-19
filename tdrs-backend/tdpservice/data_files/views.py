@@ -150,7 +150,7 @@ class DataFileViewSet(ModelViewSet):
         self, validated_data: dict[str, Any]
     ) -> Response | None:
         """Reject FRA submissions unless the reporting year is active."""
-        if not DataFile.Section.is_fra(validated_data["section"]):
+        if not Section.is_fra(validated_data["section"]):
             return None
 
         feature_enabled, feature_config = get_feature_flag(
