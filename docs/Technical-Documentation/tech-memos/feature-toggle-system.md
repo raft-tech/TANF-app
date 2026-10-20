@@ -618,12 +618,12 @@ FRA submissions:
 
 ```json
 {
-  "activeYears": ["2026"]
+  "activeYears": [2026]
 }
 ```
 
-Fiscal years should be stored as strings to match the values produced by the
-frontend fiscal-year selector.
+Fiscal years should be stored as integers. The frontend converts the value from
+its fiscal-year selector to an integer before evaluating the flag.
 
 The flag is fail-closed: when it is missing, disabled, malformed, or a fiscal
 year is absent from `activeYears`, that year remains available for submission

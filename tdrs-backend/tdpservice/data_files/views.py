@@ -166,7 +166,7 @@ class DataFileViewSet(ModelViewSet):
         if (
             not feature_enabled
             or not isinstance(active_years, list)
-            or str(year) not in {str(active_year) for active_year in active_years}
+            or year not in active_years
         ):
             return Response(
                 {"detail": FRA_READ_ONLY_ERROR},

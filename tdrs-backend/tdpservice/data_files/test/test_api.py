@@ -726,7 +726,7 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         FeatureFlag.objects.create(
             feature_name=FRA_SUBMISSION_YEARS_FEATURE_FLAG,
             enabled=True,
-            config={"activeYears": ["2020"]},
+            config={"activeYears": [2020]},
         )
 
         response = self.post_data_file(api_client, csv_data_file)
@@ -739,8 +739,9 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
     @pytest.mark.parametrize(
         "flag_enabled,feature_config",
         [
-            (False, {"activeYears": ["2020"]}),
-            (True, {"activeYears": ["2021"]}),
+            (False, {"activeYears": [2020]}),
+            (True, {"activeYears": [2021]}),
+            (True, {"activeYears": ["2020"]}),
             (True, {"activeYears": "2020"}),
             (True, []),
         ],
@@ -787,7 +788,7 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         FeatureFlag.objects.create(
             feature_name=FRA_SUBMISSION_YEARS_FEATURE_FLAG,
             enabled=True,
-            config={"activeYears": [str(csv_data_file["year"])]},
+            config={"activeYears": [csv_data_file["year"]]},
         )
         csv_data_file["ssp"] = True
 

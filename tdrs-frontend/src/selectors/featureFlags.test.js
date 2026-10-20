@@ -50,7 +50,7 @@ describe('reducers/featureFlags', () => {
     const activeFlag = {
       feature_name: 'fra_submission_years',
       enabled: true,
-      config: { activeYears: ['2025', '2026'] },
+      config: { activeYears: [2025, 2026] },
     }
 
     it.each(['2025', '2026'])(
@@ -66,6 +66,11 @@ describe('reducers/featureFlags', () => {
       ['a year is absent', '2024', activeFlag],
       ['the flag is disabled', '2025', { ...activeFlag, enabled: false }],
       ['activeYears is malformed', '2025', { ...activeFlag, config: {} }],
+      [
+        'activeYears contains strings',
+        '2025',
+        { ...activeFlag, config: { activeYears: ['2025'] } },
+      ],
     ])('returns false when %s', (_description, year, flag) => {
       expect(isFeatureActiveForYear('fra_submission_years', year, [flag])).toBe(
         false

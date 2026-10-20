@@ -13,10 +13,12 @@ export const getFlagOrDefault = (searchName, allFlags = []) =>
 export const isFeatureActiveForYear = (searchName, year, allFlags = []) => {
   const featureFlag = getFlagOrDefault(searchName, allFlags)
   const activeYears = featureFlag.config?.activeYears
+  const numericYear = Number(year)
 
   return (
     featureFlag.enabled &&
     Array.isArray(activeYears) &&
-    activeYears.some((activeYear) => `${activeYear}` === `${year}`)
+    Number.isInteger(numericYear) &&
+    activeYears.includes(numericYear)
   )
 }
