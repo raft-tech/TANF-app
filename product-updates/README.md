@@ -18,7 +18,7 @@ origin used by the frontend nginx proxy.
 
 ### Legacy URL handoff
 
-`https://tdp-product-updates.app.cloud.gov` is a legacy public URL. Before the
+`https://tdp-project-updates.app.cloud.gov` is a legacy public URL. Before the
 first production deployment of the `/help` proxy, transfer that route to the
 production frontend app. Target the space that owns the legacy route, unmap it
 from its current app, and delete the now-unmapped route:
