@@ -24,8 +24,8 @@ production frontend app. Target the space that owns the legacy route, unmap it
 from its current app, and delete the now-unmapped route:
 
 ```bash
-cf unmap-route <legacy-app-name> app.cloud.gov --hostname tdp-product-updates
-cf delete-route app.cloud.gov --hostname tdp-product-updates -f
+cf unmap-route <legacy-app-name> app.cloud.gov --hostname tdp-project-updates
+cf delete-route app.cloud.gov --hostname tdp-project-updates -f
 ```
 
 The production deployment then maps that hostname to `tdp-frontend-prod`.
