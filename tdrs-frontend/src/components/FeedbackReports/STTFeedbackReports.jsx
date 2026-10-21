@@ -293,9 +293,7 @@ function STTFeedbackReports({ adminView = false }) {
   }
 
   // Determine if content section should show
-  const showContent = canSelectStt
-    ? requestYear && requestStt
-    : requestYear
+  const showContent = canSelectStt ? requestYear && requestStt : requestYear
 
   // Focus the H2 header for screen readers when content section appears
   useEffect(() => {
@@ -306,7 +304,8 @@ function STTFeedbackReports({ adminView = false }) {
 
   // Get reference table data for selected report type
   const referenceTable = REFERENCE_TABLES[selectedReportType]
-  const reportTypeLabel = STT_REPORT_TYPE_LABELS[requestType || selectedReportType]
+  const reportTypeLabel =
+    STT_REPORT_TYPE_LABELS[requestType || selectedReportType]
 
   return (
     <div className="feedback-reports">
@@ -403,8 +402,8 @@ function STTFeedbackReports({ adminView = false }) {
 
         {adminView && searchParams.has('stt') && !adminSearch && (
           <p role="status">
-            Select a valid State, Tribe, or Territory and fiscal year, then search
-            for feedback reports.
+            Select a valid State, Tribe, or Territory and fiscal year, then
+            search for feedback reports.
           </p>
         )}
 

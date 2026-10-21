@@ -128,12 +128,14 @@ function DownloadStatisticsModal({
                               <th scope="row">
                                 {reportContext ? (
                                   <Link
-                                    to={`/feedback-reports?${new URLSearchParams({
-                                      view: 'stt',
-                                      stt: stt.id,
-                                      year: reportContext.year,
-                                      type: reportContext.reportType,
-                                    })}`}
+                                    to={`/feedback-reports?${new URLSearchParams(
+                                      {
+                                        view: 'stt',
+                                        stt: stt.id,
+                                        year: reportContext.year,
+                                        type: reportContext.reportType,
+                                      }
+                                    )}`}
                                     onClick={(event) => {
                                       if (
                                         onSelectStt &&

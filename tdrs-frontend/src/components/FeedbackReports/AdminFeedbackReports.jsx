@@ -517,7 +517,10 @@ function AdminFeedbackReports({ onSelectStt }) {
             error={downloadStatistics.error}
             formatDateTime={formatDateTime}
             onClose={closeDownloadStatistics}
-            reportContext={{ year: selectedYear, reportType: selectedReportType }}
+            reportContext={{
+              year: selectedYear,
+              reportType: selectedReportType,
+            }}
             onSelectStt={onSelectStt}
           />
         )}
