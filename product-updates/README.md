@@ -38,9 +38,9 @@ Lower environments use an environment-specific legacy-style route so the
 redirect can be tested without taking ownership of the production hostname:
 
 ```text
-https://tdp-product-updates-develop.app.cloud.gov
-https://tdp-product-updates-staging.app.cloud.gov
-https://tdp-product-updates-<dev-name>.app.cloud.gov
+https://tdp-project-updates-develop.app.cloud.gov
+https://tdp-project-updates-staging.app.cloud.gov
+https://tdp-project-updates-<dev-name>.app.cloud.gov
 ```
 
 The existing application-networking deployment step maps the appropriate route
