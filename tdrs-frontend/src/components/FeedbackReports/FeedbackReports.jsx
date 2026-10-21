@@ -45,18 +45,18 @@ function FeedbackReports() {
       <>
         <nav
           aria-label="Feedback report views"
-          className="display-flex flex-justify-end"
+          className="display-flex flex-justify-start"
         >
-          <ul className="usa-list--unstyled display-flex margin-0">
+          <ul className="usa-list--unstyled display-flex flex-wrap margin-0">
             {[
               [true, 'Manage Feedback Reports', showManageReports],
               [false, 'Feedback Reports', !showManageReports],
             ].map(([manageReports, label, active]) => (
-              <li key={label}>
+              <li className="margin-right-4" key={label}>
                 <button
                   type="button"
                   onClick={() => selectView(manageReports)}
-                  className={`usa-button usa-button--unstyled display-block padding-2 text-bold text-base-dark border-bottom-05 ${active ? 'border-primary' : 'border-transparent'}`}
+                  className={`usa-button usa-button--unstyled display-block margin-0 padding-y-2 padding-x-0 text-bold text-base-dark border-bottom-05 ${active ? 'border-primary' : 'border-transparent'}`}
                   aria-current={active ? 'page' : undefined}
                 >
                   <span>{label}</span>
