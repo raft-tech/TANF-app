@@ -605,7 +605,11 @@ class TestParsingServiceExecution:
 
     def test_parsing_service_scheduling_delegates(self, monkeypatch, data_analyst):
         """Verify ParsingService.schedule claims parse and routes dispatch."""
-        datafile = DataFileFactory(stt=data_analyst.stt, version=15)
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=15,
+            state=SubmissionState.VIRUS_SCAN_COMPLETED,
+        )
         calls = []
 
         from tdpservice.scheduling import parser_task
