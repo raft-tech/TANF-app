@@ -1418,7 +1418,9 @@ def test_parse_generic_exception_rejects_and_logs(monkeypatch, stt):
         return generate
 
     patch_parser_task(
-        monkeypatch, "ErrorGeneratorFactory", type("MockFactory", (), {"get_generator": fake_get_generator, "__call__": lambda self, *a, **k: self})
+        monkeypatch,
+        "ErrorGeneratorFactory",
+        type("MockFactory", (), {"get_generator": fake_get_generator, "__init__": lambda self, *a, **k: None}),
     )
     monkeypatch.setattr(
         parsing_service.ErrorGeneratorFactory, "get_generator", fake_get_generator
