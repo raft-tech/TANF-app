@@ -26,11 +26,17 @@ from tdpservice.data_files.models import (
     ShadowDataFile,
     create_or_update_shadow_data_file,
 )
-from tdpservice.data_files.submission_lifecycle import prepare_datafile_for_reparse
+from tdpservice.data_files.submission_lifecycle import (
+    begin_parse,
+    claim_parse,
+    prepare_datafile_for_reparse,
+    record_parse_outcome,
+)
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.parsers.models import (
     DataFileSummary,
     ParserError,
+    ParserErrorCategoryChoices,
     ShadowDataFileSummary,
     ShadowParserError,
 )
@@ -616,10 +622,10 @@ def test_update_dfs_uses_fra_aggregates(monkeypatch, stt):
     )
 
     monkeypatch.setattr(
-        parser_task, "fra_total_errors", lambda df, **kwargs: {"fra": 1}
+        parsing_service, "fra_total_errors", lambda df, **kwargs: {"fra": 1}
     )
 
-    parser_task.update_dfs(dfs, datafile)
+    parsing_service.update_dfs(dfs, datafile)
 
     dfs.refresh_from_db()
     assert dfs.case_aggregates == {"fra": 1}
@@ -639,15 +645,15 @@ def test_update_dfs_uses_case_aggregates(monkeypatch, stt):
     )
 
     monkeypatch.setattr(
-        parser_task, "case_aggregates_by_month", lambda *a, **kwargs: {"case": 2}
+        parsing_service, "case_aggregates_by_month", lambda *a, **kwargs: {"case": 2}
     )
     monkeypatch.setattr(
-        parser_task,
+        parsing_service,
         "total_errors_by_month",
         lambda *a, **kwargs: pytest.fail("total_errors_by_month should not be used"),
     )
 
-    parser_task.update_dfs(dfs, datafile)
+    parsing_service.update_dfs(dfs, datafile)
 
     dfs.refresh_from_db()
     assert dfs.case_aggregates == {"case": 2}
@@ -667,15 +673,15 @@ def test_update_dfs_uses_total_errors(monkeypatch, stt):
     )
 
     monkeypatch.setattr(
-        parser_task,
+        parsing_service,
         "case_aggregates_by_month",
         lambda *a, **kwargs: pytest.fail("case_aggregates_by_month should not be used"),
     )
     monkeypatch.setattr(
-        parser_task, "total_errors_by_month", lambda *a, **kwargs: {"total": 3}
+        parsing_service, "total_errors_by_month", lambda *a, **kwargs: {"total": 3}
     )
 
-    parser_task.update_dfs(dfs, datafile)
+    parsing_service.update_dfs(dfs, datafile)
 
     dfs.refresh_from_db()
     assert dfs.case_aggregates == {"total": 3}
@@ -698,7 +704,7 @@ def test_set_error_report_sets_filename():
 
     dfs = DummySummary()
 
-    parser_task.set_error_report(dfs, io.BytesIO(b"report"))
+    parsing_service.set_error_report(dfs, io.BytesIO(b"report"))
 
     assert dfs.saved is True
     assert dfs.error_report.name == "sample.txt_error_report"
@@ -731,13 +737,13 @@ def test_post_parse_finalizes_shadow_summary_only(monkeypatch, stt):
         rpt_month_year=201910,
         case_number="CASE",
         error_message="FIELD is invalid",
-        error_type=parser_task.ParserErrorCategoryChoices.FIELD_VALUE,
+        error_type=ParserErrorCategoryChoices.FIELD_VALUE,
         fields_json={"friendly_name": {"FIELD": "Field"}},
     )
 
     sent = {"called": False}
-    monkeypatch.setattr(
-        parser_task,
+    patch_parser_task(
+        monkeypatch,
         "send_data_submitted_email",
         lambda *args, **kwargs: sent.update(called=True),
     )
@@ -912,13 +918,13 @@ def test_post_parse_can_finalize_production_summary(monkeypatch, stt):
         rpt_month_year=201910,
         case_number="CASE",
         error_message="FIELD is invalid",
-        error_type=parser_task.ParserErrorCategoryChoices.FIELD_VALUE,
+        error_type=ParserErrorCategoryChoices.FIELD_VALUE,
         fields_json={"friendly_name": {"FIELD": "Field"}},
     )
 
     sent = {"called": False}
-    monkeypatch.setattr(
-        parser_task,
+    patch_parser_task(
+        monkeypatch,
         "send_data_submitted_email",
         lambda *args, **kwargs: sent.update(called=True),
     )
@@ -967,7 +973,7 @@ def test_post_parse_can_finalize_production_reparse(monkeypatch, stt):
         reparse_meta=meta_model,
     )
     monkeypatch.setattr(
-        parser_task.ReparseMeta, "set_total_num_records_post", lambda *a, **k: None
+        ReparseMeta, "set_total_num_records_post", lambda *a, **k: None
     )
 
     parser_task.post_parse(datafile.id, reparse_id=meta_model.pk, table_mode="go-only")
@@ -1021,18 +1027,18 @@ def test_finalize_reparse_sets_total_num_records_post_when_last_file_finishes(
         "tdpservice.search_indexes.models.reparse_meta.count_all_records",
         lambda: 42,
     )
-    parse_token = parser_task.claim_parse(
+    parse_token = claim_parse(
         datafile,
         reparse_file_meta=file_meta,
     )
-    parser_task.begin_parse(datafile, parse_token, file_meta)
-    parser_task.record_parse_outcome(
+    begin_parse(datafile, parse_token, file_meta)
+    record_parse_outcome(
         datafile,
         parse_token,
         DataFileSummary.Status.ACCEPTED,
     )
 
-    parser_task._finalize_reparse(
+    parsing_service._finalize_reparse(
         datafile,
         meta_model.pk,
         file_meta,
@@ -1065,7 +1071,7 @@ def test_parse_success_sends_email(monkeypatch, data_analyst):
     dummy_parser = DummyParser()
 
     monkeypatch.setattr(
-        parser_task.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
+        parsing_service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
     )
 
     captured = {}
@@ -1107,15 +1113,15 @@ def test_parse_success_reparse_updates_file_meta(monkeypatch, data_analyst):
     dummy_parser = DummyParser()
 
     monkeypatch.setattr(
-        parser_task.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
+        parsing_service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
     )
     monkeypatch.setattr(
-        parser_task.ParserError.objects,
+        ParserError.objects,
         "filter",
         lambda *a, **k: SimpleNamespace(count=lambda: 2),
     )
     monkeypatch.setattr(
-        parser_task.ReparseMeta, "set_total_num_records_post", lambda *a, **k: None
+        ReparseMeta, "set_total_num_records_post", lambda *a, **k: None
     )
 
     def fake_update_dfs(dfs, data_file, **kwargs):
@@ -1167,17 +1173,17 @@ def test_parse_success_reparse_finishes_when_notification_fails(monkeypatch, stt
     )
     setup_parse_mocks(monkeypatch, dfs=dfs)
     monkeypatch.setattr(
-        parser_task.ParserFactory,
+        parsing_service.ParserFactory,
         "get_instance",
         lambda **kwargs: DummyParser(),
     )
     monkeypatch.setattr(
-        parser_task.ParserError.objects,
+        ParserError.objects,
         "filter",
         lambda *args, **kwargs: SimpleNamespace(count=lambda: 0),
     )
     monkeypatch.setattr(
-        parser_task.ReparseMeta,
+        ReparseMeta,
         "set_total_num_records_post",
         lambda *args, **kwargs: None,
     )
@@ -1224,7 +1230,7 @@ def test_parse_success_reparse_suppresses_email_for_accepted_to_accepted(
     dummy_parser = DummyParser()
 
     monkeypatch.setattr(
-        parser_task.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
+        parsing_service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
     )
     patch_parser_task(
         monkeypatch,
@@ -1234,12 +1240,12 @@ def test_parse_success_reparse_suppresses_email_for_accepted_to_accepted(
         ),
     )
     monkeypatch.setattr(
-        parser_task.ParserError.objects,
+        ParserError.objects,
         "filter",
         lambda *a, **k: SimpleNamespace(count=lambda: 0),
     )
     monkeypatch.setattr(
-        parser_task.ReparseMeta, "set_total_num_records_post", lambda *a, **k: None
+        ReparseMeta, "set_total_num_records_post", lambda *a, **k: None
     )
 
     called = {"sent": False}
@@ -1279,7 +1285,7 @@ def test_parse_success_reparse_still_sends_email_for_unchanged_nonaccepted_statu
     dummy_parser = DummyParser()
 
     monkeypatch.setattr(
-        parser_task.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
+        parsing_service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
     )
     patch_parser_task(
         monkeypatch,
@@ -1289,12 +1295,12 @@ def test_parse_success_reparse_still_sends_email_for_unchanged_nonaccepted_statu
         ),
     )
     monkeypatch.setattr(
-        parser_task.ParserError.objects,
+        ParserError.objects,
         "filter",
         lambda *a, **k: SimpleNamespace(count=lambda: 1),
     )
     monkeypatch.setattr(
-        parser_task.ReparseMeta, "set_total_num_records_post", lambda *a, **k: None
+        ReparseMeta, "set_total_num_records_post", lambda *a, **k: None
     )
 
     called = {"sent": False}
@@ -1330,7 +1336,7 @@ def test_parse_decoder_unknown_sets_reparse_failed(monkeypatch, stt):
     dummy_parser = DummyParser(exc=DecoderUnknownException("decode"))
 
     monkeypatch.setattr(
-        parser_task.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
+        parsing_service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
     )
 
     prepare_datafile_for_reparse(datafile)
@@ -1363,7 +1369,7 @@ def test_parse_database_error_sets_reparse_failed(monkeypatch, stt):
     dummy_parser = DummyParser(exc=DatabaseError("db"))
 
     monkeypatch.setattr(
-        parser_task.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
+        parsing_service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
     )
     patch_parser_task(monkeypatch, "log_parser_exception", lambda *a, **k: None)
 
@@ -1395,7 +1401,7 @@ def test_parse_generic_exception_rejects_and_logs(monkeypatch, stt):
     dummy_parser = DummyParser(exc=RuntimeError("boom"))
 
     monkeypatch.setattr(
-        parser_task.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
+        parsing_service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
     )
     patch_parser_task(monkeypatch, "log_parser_exception", lambda *a, **k: None)
 
@@ -1451,7 +1457,7 @@ def test_parse_transitions_to_parsed_clean(monkeypatch, data_analyst):
     setup_parse_mocks(monkeypatch, dfs=dfs)
     patch_parser_task(monkeypatch, "update_dfs", fake_update_dfs)
     monkeypatch.setattr(
-        parser_task.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
+        parsing_service.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
     )
     patch_parser_task(monkeypatch, "send_data_submitted_email", lambda *a, **k: None)
 
@@ -1481,7 +1487,7 @@ def test_parse_transitions_to_parsed_with_errors(monkeypatch, data_analyst):
     setup_parse_mocks(monkeypatch, dfs=dfs)
     patch_parser_task(monkeypatch, "update_dfs", fake_update_dfs)
     monkeypatch.setattr(
-        parser_task.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
+        parsing_service.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
     )
     patch_parser_task(monkeypatch, "send_data_submitted_email", lambda *a, **k: None)
 
@@ -1505,7 +1511,7 @@ def test_parse_transitions_to_parse_failed_on_exception(monkeypatch, data_analys
     )
     setup_parse_mocks(monkeypatch, dfs=dfs)
     monkeypatch.setattr(
-        parser_task.ParserFactory,
+        parsing_service.ParserFactory,
         "get_instance",
         lambda **kwargs: DummyParser(exc=DecoderUnknownException("fail")),
     )
@@ -1530,15 +1536,15 @@ def test_reparse_transitions_to_parsing(monkeypatch, stt):
     ReparseFileMeta.objects.create(data_file=datafile, reparse_meta=meta_model)
     setup_parse_mocks(monkeypatch, dfs=dfs)
     monkeypatch.setattr(
-        parser_task.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
+        parsing_service.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
     )
     monkeypatch.setattr(
-        parser_task.ParserError.objects,
+        ParserError.objects,
         "filter",
         lambda *a, **k: SimpleNamespace(count=lambda: 0),
     )
     monkeypatch.setattr(
-        parser_task.ReparseMeta, "set_total_num_records_post", lambda *a, **k: None
+        ReparseMeta, "set_total_num_records_post", lambda *a, **k: None
     )
 
     prepare_datafile_for_reparse(datafile)
@@ -1568,7 +1574,7 @@ def test_parse_rejected_outcome_maps_to_parsed_with_errors(monkeypatch, data_ana
     setup_parse_mocks(monkeypatch, dfs=dfs)
     patch_parser_task(monkeypatch, "update_dfs", fake_update_dfs)
     monkeypatch.setattr(
-        parser_task.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
+        parsing_service.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
     )
     patch_parser_task(monkeypatch, "send_data_submitted_email", lambda *a, **k: None)
 
@@ -1592,7 +1598,7 @@ def test_parse_controller_releases_ownership_after_completion(
 
     setup_parse_mocks(monkeypatch)
     monkeypatch.setattr(
-        parser_task.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
+        parsing_service.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
     )
     patch_parser_task(monkeypatch, "send_data_submitted_email", lambda *a, **k: None)
 
@@ -1654,7 +1660,7 @@ def test_parse_close_exception_cancels_successful_return_and_fails_submission(
             # Step 6: Successful return is cancelled by the escaping close exception
 
     monkeypatch.setattr(
-        parser_task.ParserFactory,
+        parsing_service.ParserFactory,
         "get_instance",
         lambda **kwargs: SampleParser(kwargs["datafile"], kwargs["dfs"]),
     )
@@ -1706,7 +1712,7 @@ def test_parse_base_decoder_suppresses_close_exception_preventing_failed_submiss
             # BaseDecoder handles the close exception, so execution completes successfully!
 
     monkeypatch.setattr(
-        parser_task.ParserFactory,
+        parsing_service.ParserFactory,
         "get_instance",
         lambda **kwargs: SampleParserWithRealDecoder(kwargs["datafile"], kwargs["dfs"]),
     )
@@ -1735,7 +1741,7 @@ def test_parse_task_returns_serializable_dict(monkeypatch, data_analyst):
     )
     setup_parse_mocks(monkeypatch, dfs=dfs)
     monkeypatch.setattr(
-        parser_task.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
+        parsing_service.ParserFactory, "get_instance", lambda **kwargs: DummyParser()
     )
     patch_parser_task(monkeypatch, "send_data_submitted_email", lambda *a, **k: None)
 

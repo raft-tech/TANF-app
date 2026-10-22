@@ -545,3 +545,40 @@ class TestParsingServiceExecution:
         dfs = DataFileSummary.objects.get(datafile=datafile)
         assert dfs.status == DataFileSummary.Status.REJECTED
         assert datafile.state == SubmissionState.PARSE_FAILED
+
+    def test_uses_shadow_table_property(self, data_analyst):
+        """Verify uses_shadow_table property correctly distinguishes production vs shadow."""
+        datafile = DataFileFactory(stt=data_analyst.stt, version=12)
+        shadow_datafile = create_or_update_shadow_data_file(datafile)
+
+        prod_service = ParsingService(data_file=datafile)
+        assert prod_service.uses_shadow_table is False
+
+        shadow_service = ParsingService(data_file=shadow_datafile)
+        assert shadow_service.uses_shadow_table is True
+
+    def test_for_post_parse_factory(self, data_analyst):
+        """Verify for_post_parse constructs ParsingService with expected model family."""
+        datafile = DataFileFactory(stt=data_analyst.stt, version=13)
+        shadow_datafile = create_or_update_shadow_data_file(datafile)
+
+        prod_service = ParsingService.for_post_parse(
+            data_file_id=datafile.id,
+            table_mode="go-only",
+            reparse_id=1,
+            parse_token="test-token",
+        )
+        assert isinstance(prod_service.data_file, DataFile)
+        assert prod_service.data_file.id == datafile.id
+        assert prod_service.uses_shadow_table is False
+        assert prod_service.parse_token == "test-token"
+
+        shadow_service = ParsingService.for_post_parse(
+            data_file_id=shadow_datafile.id,
+            table_mode="go-shadow",
+            reparse_id=2,
+            parse_token="shadow-token",
+        )
+        assert isinstance(shadow_service.data_file, ShadowDataFile)
+        assert shadow_service.data_file.id == shadow_datafile.id
+        assert shadow_service.uses_shadow_table is True
