@@ -8,18 +8,22 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional, Union
 from uuid import UUID
 
+from celery import current_app
 from django.apps import apps
 from django.conf import settings
 from django.core.files import File
+from django.db import transaction
 from django.db.models import Case, Count, IntegerField, When
 from django.db.utils import DatabaseError
 
+from tdpservice.core.utils import get_feature_flag, log
 from tdpservice.data_files.enums import GoParserMode, SubmissionState
 from tdpservice.data_files.error_reports import ErrorReportFactory
 from tdpservice.data_files.models import (
     DataFile,
     ReparseFileMeta,
     ShadowDataFile,
+    create_or_update_shadow_data_file,
 )
 from tdpservice.data_files.submission_lifecycle import (
     PARSE_QUEUEABLE_STATES,
@@ -28,6 +32,7 @@ from tdpservice.data_files.submission_lifecycle import (
     claim_parse,
     finish_reparse,
     parse_write_scope,
+    record_parse_dispatch_failure,
     record_parse_failure,
     record_parse_outcome,
     record_shadow_parse_state,
@@ -57,6 +62,11 @@ from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 from tdpservice.users.models import AccountApprovalStatusChoices, User
 
 logger = getattr(settings, "PARSER_LOGGER", logging.getLogger("tdpservice.parsers"))
+
+GO_PARSER_TASK_NAME = "tdpservice.scheduling.parser_task.go_parse"
+GO_PARSER_POST_PARSE_TASK_NAME = "tdpservice.scheduling.parser_task.post_parse"
+GO_PARSER_QUEUE = getattr(settings, "GO_PARSER_QUEUE", "go-parser")
+GO_PARSER_FEATURE_FLAG = "go_parser_mode"
 
 
 @dataclass(frozen=True)
@@ -607,6 +617,165 @@ def _record_failed_parse(
     return False
 
 
+def _evaluate_go_parser_mode() -> GoParserMode:
+    """Evaluate the current feature flag for an unassigned data file."""
+    enabled, config = get_feature_flag(GO_PARSER_FEATURE_FLAG)
+    if not enabled:
+        return GoParserMode.PYTHON_ONLY
+
+    try:
+        return GoParserMode(config.get("mode"))
+    except (AttributeError, TypeError, ValueError):
+        if logger:
+            logger.error(
+                "Invalid %s feature flag configuration; disabling Go parser dispatch.",
+                GO_PARSER_FEATURE_FLAG,
+            )
+        return GoParserMode.PYTHON_ONLY
+
+
+@transaction.atomic
+def resolve_or_reuse_parser_mode(data_file_id: int) -> GoParserMode:
+    """Return one durable parser route for every dispatch of a data file."""
+    data_file = DataFile.objects.select_for_update().get(id=data_file_id)
+    if data_file.parser_mode is not None:
+        return GoParserMode(data_file.parser_mode)
+
+    parser_mode = _evaluate_go_parser_mode()
+    data_file.parser_mode = parser_mode
+    data_file.save(update_fields=["parser_mode"])
+    return parser_mode
+
+
+def queue_go_parse(
+    data_file_id: int,
+    table_mode: GoParserMode,
+    reparse_id: int | None = None,
+    parse_token=None,
+    event_id=None,
+) -> None:
+    """Queue a Go parser task with routing, ownership, and audit context."""
+    if table_mode not in (GoParserMode.GO_SHADOW, GoParserMode.GO_ONLY):
+        raise ValueError(f"Cannot queue Go parser in {table_mode.value!r} mode")
+    event_id = str(event_id or uuid.uuid4())
+    try:
+        current_app.send_task(
+            GO_PARSER_TASK_NAME,
+            args=[
+                data_file_id,
+                reparse_id or 0,
+                table_mode.value,
+                str(parse_token or ""),
+                event_id,
+            ],
+            queue=GO_PARSER_QUEUE,
+            ignore_result=True,
+        )
+    except Exception:
+        data_file = DataFile.objects.get(id=data_file_id)
+        log(
+            (
+                f"Failed to submit Go parser {table_mode.value} task "
+                f"for datafile {data_file_id}."
+            ),
+            logger_context={
+                "user_id": data_file.user_id,
+                "content_type": DataFile,
+                "object_id": data_file.pk,
+                "object_repr": repr(data_file),
+            },
+            level="exception",
+        )
+        if table_mode == GoParserMode.GO_ONLY:
+            raise
+
+
+def queue_parse(
+    data_file_id: int,
+    reparse_id: int | None = None,
+    event_id=None,
+) -> uuid.UUID:
+    """Route every parse of a data file using its persisted parser mode."""
+    from tdpservice.scheduling import parser_task
+
+    event_id = str(event_id or uuid.uuid4())
+    table_mode = resolve_or_reuse_parser_mode(data_file_id)
+    data_file = DataFile.objects.get(pk=data_file_id)
+    file_meta = None
+    if reparse_id:
+        file_meta = ReparseFileMeta.objects.get(
+            data_file_id=data_file_id,
+            reparse_meta_id=reparse_id,
+        )
+
+    if table_mode == GoParserMode.GO_SHADOW:
+        create_or_update_shadow_data_file(data_file)
+
+    parse_token = claim_parse(data_file, reparse_file_meta=file_meta)
+    try:
+        if table_mode != GoParserMode.GO_ONLY:
+            parser_task.parse.delay(
+                data_file_id,
+                reparse_id=reparse_id,
+                parse_token=str(parse_token),
+                event_id=event_id,
+            )
+        else:
+            begin_parse(
+                data_file,
+                parse_token,
+                file_meta,
+                actor="go_parser",
+                event_id=event_id,
+            )
+
+        if table_mode != GoParserMode.PYTHON_ONLY:
+            parser_task.queue_go_parse(
+                data_file_id,
+                table_mode,
+                reparse_id=reparse_id,
+                parse_token=parse_token,
+                event_id=event_id,
+            )
+    except Exception:
+        record_parse_dispatch_failure(
+            data_file, parse_token, file_meta, event_id=event_id
+        )
+        raise
+    return parse_token
+
+
+class PythonParserEngine:
+    """Transient execution engine for legacy Python-based file parsing."""
+
+    def __init__(
+        self,
+        data_file: Union[DataFile, ShadowDataFile],
+        dfs: Optional[Union[DataFileSummary, ShadowDataFileSummary]] = None,
+        parse_token: Optional[str] = None,
+    ):
+        self.data_file = data_file
+        self.dfs = dfs
+        self.parse_token = parse_token
+
+    def get_parser(self):
+        """Construct and return the appropriate parser instance via ParserFactory."""
+        return ParserFactory.get_instance(
+            datafile=self.data_file,
+            dfs=self.dfs,
+            section=_section_name(self.data_file),
+            program_type=_program_code(self.data_file),
+            is_program_audit=getattr(self.data_file, "is_program_audit", False),
+            parse_token=self.parse_token,
+        )
+
+    def execute(self):
+        """Execute legacy Python parser."""
+        parser = self.get_parser()
+        parser.parse()
+        return parser
+
+
 class ParsingService:
     """Service for orchestrating the parsing flow of a single DataFile."""
 
@@ -632,6 +801,45 @@ class ParsingService:
     def uses_shadow_table(self) -> bool:
         """Return True if this parsing service operates on a shadow table instance."""
         return _uses_shadow_table(self.data_file)
+
+    @staticmethod
+    def evaluate_parser_mode() -> GoParserMode:
+        """Evaluate the current feature flag for an unassigned data file."""
+        return _evaluate_go_parser_mode()
+
+    @staticmethod
+    def resolve_or_reuse_parser_mode(data_file_id: int) -> GoParserMode:
+        """Return one durable parser route for every dispatch of a data file."""
+        return resolve_or_reuse_parser_mode(data_file_id)
+
+    @classmethod
+    def schedule(
+        cls,
+        data_file_id: int,
+        reparse_id: int | None = None,
+        event_id=None,
+    ) -> uuid.UUID:
+        """Route and schedule every parse of a data file using its persisted parser mode."""
+        return queue_parse(data_file_id, reparse_id=reparse_id, event_id=event_id)
+
+    queue_parse = schedule
+
+    @staticmethod
+    def queue_go_parse(
+        data_file_id: int,
+        table_mode: GoParserMode,
+        reparse_id: int | None = None,
+        parse_token=None,
+        event_id=None,
+    ) -> None:
+        """Queue a Go parser task with routing, ownership, and audit context."""
+        return queue_go_parse(
+            data_file_id=data_file_id,
+            table_mode=table_mode,
+            reparse_id=reparse_id,
+            parse_token=parse_token,
+            event_id=event_id,
+        )
 
     @classmethod
     def for_post_parse(
@@ -692,16 +900,13 @@ class ParsingService:
                 )
 
     def get_parser(self):
-        """Construct and return the appropriate parser instance."""
-        data_file = self.data_file
-        return ParserFactory.get_instance(
-            datafile=data_file,
+        """Construct and return the parser instance via PythonParserEngine."""
+        engine = PythonParserEngine(
+            data_file=self.data_file,
             dfs=self.dfs,
-            section=_section_name(data_file),
-            program_type=_program_code(data_file),
-            is_program_audit=getattr(data_file, "is_program_audit", False),
             parse_token=self.parse_token,
         )
+        return engine.get_parser()
 
     def parse(self) -> ParseResult:
         """Alias for run()."""
