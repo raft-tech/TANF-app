@@ -8,6 +8,8 @@ This document details the refactored parsing architecture in the TDP backend ([I
 
 - **Visual Diagram (PNG)**: ![Parsing Service Architecture Flow](diagrams/parsing-service-flow.png)
 - **Editable Source (Draw.io)**: [`diagrams/parsing-service-flow.drawio`](diagrams/parsing-service-flow.drawio) (can be opened and edited with [app.diagrams.net](https://app.diagrams.net) or the VS Code Draw.io extension)
+- **Editable Source (Draw.io)**: [`diagrams/python-parsing-flow.drawio`](diagrams/python-parsing-flow.drawio) Python Parser Flow
+- **Editable Source (Draw.io)**: [`diagrams/golang-parsing-flow.drawio`](diagrams/golang-parsing-flow.drawio) Go Parser Flow
 
 ---
 
