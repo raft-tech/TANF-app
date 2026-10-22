@@ -13,6 +13,7 @@ from tdpservice.data_files.models import (
     DataFileStateTransition,
     Program,
     Section,
+    ShadowDataFile,
     create_or_update_shadow_data_file,
 )
 from tdpservice.data_files.submission_lifecycle import StaleParseOwnership
