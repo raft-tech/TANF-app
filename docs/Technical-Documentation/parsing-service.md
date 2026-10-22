@@ -1,6 +1,6 @@
 # Dedicated Parsing Service Architecture & Lifecycle Flow
 
-This document details the refactored parsing architecture in the TDP backend ([Issue #5570](https://github.com/raft-tech/TANF-app/issues/5570)). It explains how [`ParsingService`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/parsers/service.py) decouples parsing lifecycle management from Celery task execution, how traffic is routed between the Python and Go parsers, how the transient Python parser engine is separated from permanent Django lifecycle concerns, and how post-parse finalization is unified across all execution modes.
+This document details the refactored parsing architecture in the TDP backend ([Issue #5570](https://github.com/raft-tech/TANF-app/issues/5570)). It explains how [`ParsingService`](../../tdrs-backend/tdpservice/parsers/service.py) decouples parsing lifecycle management from Celery task execution, how traffic is routed between the Python and Go parsers, how the transient Python parser engine is separated from permanent Django lifecycle concerns, and how post-parse finalization is unified across all execution modes.
 
 ---
 
@@ -13,7 +13,7 @@ This document details the refactored parsing architecture in the TDP backend ([I
 
 ## 1. Architectural Motivation & Design Principles
 
-Historically, file parsing was implemented inside [`tdpservice.scheduling.parser_task`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/scheduling/parser_task.py) as a monolithic ~900-line Celery task. That design suffered from several architectural deficiencies:
+Historically, file parsing was implemented inside [`tdpservice.scheduling.parser_task`](../../tdrs-backend/tdpservice/scheduling/parser_task.py) as a monolithic ~900-line Celery task. That design suffered from several architectural deficiencies:
 1. **Coupling to Celery Infrastructure**: Parsing logic could not be invoked synchronously in unit tests, management commands, or CLI tools without mocking Celery internals.
 2. **Memory Crashes (OOM)**: Celery task return values serialized thousands of Django model instances (`ParserError`), causing worker out-of-memory crashes on large files.
 3. **Fragmentation Across Parsers**: As the high-performance Go parser was introduced, task dispatching, shadow table synchronization, and post-parse finalization were split haphazardly between Celery tasks and external workers.
@@ -21,15 +21,15 @@ Historically, file parsing was implemented inside [`tdpservice.scheduling.parser
 
 ### Core Architectural Decisions
 
-- **Permanent Lifecycle Orchestrator**: [`ParsingService`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/parsers/service.py#L779) is the permanent orchestrator for DataFile submission lifecycles. It permanently owns:
+- **Permanent Lifecycle Orchestrator**: [`ParsingService`](../../tdrs-backend/tdpservice/parsers/service.py#L779) is the permanent orchestrator for DataFile submission lifecycles. It permanently owns:
   - Task scheduling and route evaluation (`ParsingService.schedule()`).
   - Concurrency ownership locking and token verification (`claim_parse`, `parse_token`).
   - Terminal state transitions (`SubmissionState.PARSE_COMPLETED`, `PARSED_WITH_ERRORS`, `PARSE_FAILED`).
   - Post-parse finalization for both Python and Go (`post_parse()`).
   - DataFileSummary aggregate calculations, error report generation, and analyst email notifications.
-- **Decoupled Transient Engine**: The legacy Python parsing execution is isolated inside [`PythonParserEngine`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/parsers/service.py#L740). When the team moves 100% of traffic to Go, **only `PythonParserEngine` and its subpackages are deleted**—the lifecycle service remains 100% intact.
-- **Ultra-Thin Celery Task Layer**: [`tdpservice.scheduling.parser_task`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/scheduling/parser_task.py) is reduced to an ~80-line module containing strictly `@shared_task` decorators and backward-compatible dispatch shims.
-- **Memory Safety & Serialization**: [`ParseResult`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/parsers/service.py#L78) stores total error counts lazily and implements `to_dict()`, ensuring Celery tasks return only lightweight JSON primitives.
+- **Decoupled Transient Engine**: The legacy Python parsing execution is isolated inside [`PythonParserEngine`](../../tdrs-backend/tdpservice/parsers/service.py#L740). When the team moves 100% of traffic to Go, **only `PythonParserEngine` and its subpackages are deleted**—the lifecycle service remains 100% intact.
+- **Ultra-Thin Celery Task Layer**: [`tdpservice.scheduling.parser_task`](../../tdrs-backend/tdpservice/scheduling/parser_task.py) is reduced to an ~80-line module containing strictly `@shared_task` decorators and backward-compatible dispatch shims.
+- **Memory Safety & Serialization**: [`ParseResult`](../../tdrs-backend/tdpservice/parsers/service.py#L78) stores total error counts lazily and implements `to_dict()`, ensuring Celery tasks return only lightweight JSON primitives.
 
 ---
 
@@ -54,7 +54,7 @@ When a data file is uploaded to TDP, it flows through three pre-parsing stages:
 ```
 
 ### 1. Source Attribution
-[`DataFileViewSet.create`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/data_files/views.py) inspects the incoming request and records `upload_source`:
+[`DataFileViewSet.create`](../../tdrs-backend/tdpservice/data_files/views.py) inspects the incoming request and records `upload_source`:
 - **`Frontend`**: Upload initiated via browser UI session.
 - **`API`**: Upload initiated via automated machine-to-machine API client with Bearer token authentication.
 
@@ -62,16 +62,16 @@ When a data file is uploaded to TDP, it flows through three pre-parsing stages:
 The submission transitions to `VIRUS_SCAN_PENDING` and is scanned by ClamAV. Upon clean scan completion, the file transitions to `VIRUS_SCAN_COMPLETED` and invokes `ParsingService.schedule()`.
 
 ### 3. Concurrency Lock & Mode Resolution
-[`ParsingService.schedule(data_file_id)`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/parsers/service.py#L827):
-1. **Mode Resolution**: Queries [`resolve_or_reuse_parser_mode(data_file_id)`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/parsers/service.py#L638). If `data_file.parser_mode` is already persisted (such as during a reparse), it reuses that mode; otherwise, it evaluates the `go_parser_mode` feature flag.
-2. **Shadow Preparation**: In `go-shadow` mode, provisions or updates [`ShadowDataFile`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/data_files/models.py) to mirror the production submission metadata.
-3. **Parse Token Claim**: Calls [`claim_parse(data_file)`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/data_files/submission_lifecycle.py#L31), allocating an exclusive UUID `parse_token`. Any subsequent writes must present this token via [`parse_write_scope`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/data_files/submission_lifecycle.py#L30) to prevent concurrent or stale task overwrites.
+[`ParsingService.schedule(data_file_id)`](../../tdrs-backend/tdpservice/parsers/service.py#L827):
+1. **Mode Resolution**: Queries [`resolve_or_reuse_parser_mode(data_file_id)`](../../tdrs-backend/tdpservice/parsers/service.py#L638). If `data_file.parser_mode` is already persisted (such as during a reparse), it reuses that mode; otherwise, it evaluates the `go_parser_mode` feature flag.
+2. **Shadow Preparation**: In `go-shadow` mode, provisions or updates [`ShadowDataFile`](../../tdrs-backend/tdpservice/data_files/models.py) to mirror the production submission metadata.
+3. **Parse Token Claim**: Calls [`claim_parse(data_file)`](../../tdrs-backend/tdpservice/data_files/submission_lifecycle.py#L31), allocating an exclusive UUID `parse_token`. Any subsequent writes must present this token via [`parse_write_scope`](../../tdrs-backend/tdpservice/data_files/submission_lifecycle.py#L30) to prevent concurrent or stale task overwrites.
 
 ---
 
 ## 3. The Three Parser Execution Paths (Stage 2)
 
-Traffic is routed dynamically based on [`GoParserMode`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/data_files/enums.py):
+Traffic is routed dynamically based on [`GoParserMode`](../../tdrs-backend/tdpservice/data_files/enums.py):
 
 | Traffic Mode | Celery Tasks Dispatched | Target Database Partition | Authoritative Outcome |
 | :--- | :--- | :--- | :--- |
@@ -83,17 +83,17 @@ Traffic is routed dynamically based on [`GoParserMode`](file:///Users/hschwarz/D
 1. **Celery Wrapper**: Celery task `parse(data_file_id, ...)` runs on the Python worker queue.
 2. **Service Construction**: Instantiates `service = ParsingService(data_file=data_file, ...)` and executes `result = service.run()`.
 3. **Precondition Validation**: Checks that the file exists, the submission is in an allowable parse-queueable state, and the `parse_token` matches the active claim.
-4. **Engine Delegation**: Calls [`PythonParserEngine`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/parsers/service.py#L740), which queries [`ParserFactory.get_instance`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/parsers/factory.py) to select:
+4. **Engine Delegation**: Calls [`PythonParserEngine`](../../tdrs-backend/tdpservice/parsers/service.py#L740), which queries [`ParserFactory.get_instance`](../../tdrs-backend/tdpservice/parsers/factory.py) to select:
    - `TanfDataReportParser` (TANF / SSP / Tribal)
    - `FRAParser` (FRA Work Outcomes)
    - `ProgramAuditParser` (Audit submissions)
-5. **Record Streaming**: The parser decodes file lines, executes validation routines, and bulk-inserts rows and [`ParserError`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/parsers/models.py) entries wrapped in `parse_write_scope`.
+5. **Record Streaming**: The parser decodes file lines, executes validation routines, and bulk-inserts rows and [`ParserError`](../../tdrs-backend/tdpservice/parsers/models.py) entries wrapped in `parse_write_scope`.
 6. **Finalization (`_finalize_parse`)**:
-   - Updates [`DataFileSummary`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/parsers/models.py) with error aggregations by month.
-   - Generates downloadable Excel error report via [`ErrorReportFactory`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/data_files/error_reports.py).
-   - Appends duration, record counts, error counts, and `parser_class` to [`DataFileStateTransition.metadata`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/data_files/models.py).
+   - Updates [`DataFileSummary`](../../tdrs-backend/tdpservice/parsers/models.py) with error aggregations by month.
+   - Generates downloadable Excel error report via [`ErrorReportFactory`](../../tdrs-backend/tdpservice/data_files/error_reports.py).
+   - Appends duration, record counts, error counts, and `parser_class` to [`DataFileStateTransition.metadata`](../../tdrs-backend/tdpservice/data_files/models.py).
    - Transitions state to `PARSE_COMPLETED`, `PARSED_WITH_ERRORS`, or `PARSE_FAILED`.
-   - Sends notification emails to STT Data Analysts via [`send_data_submitted_email`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/email/helpers/data_file.py).
+   - Sends notification emails to STT Data Analysts via [`send_data_submitted_email`](../../tdrs-backend/tdpservice/email/helpers/data_file.py).
 
 ### Path B: `go-shadow` Dual Dispatch Flow
 1. **Parallel Dispatch**: `ParsingService.schedule()` dispatches:
