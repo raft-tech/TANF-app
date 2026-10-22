@@ -31,7 +31,6 @@ def get_report_source_upload_path(instance, filename):
 
 class ReportSource(FileRecord):
     """ReportSource is an intermediary model for submitting a zip file containing multiple zips to be parsed into ReportFile records."""
-
     class Status(models.TextChoices):
         """Whether or not a ReportSource record has been parsed into ReportFile records."""
 
@@ -65,6 +64,7 @@ class ReportSource(FileRecord):
     )
     num_reports_created = models.PositiveIntegerField(default=0)
     error_message = models.TextField(null=True, blank=True)
+    notes = models.TextField(blank=True, default="", max_length=2000)
 
     file = models.FileField(
         storage=DataFilesS3Storage,
@@ -81,7 +81,6 @@ def get_s3_upload_path(instance, filename):
         f"reports/{instance.year}/{date_str}/{instance.stt.id}/{instance.report_type}/",
         filename,
     )
-
 
 class ReportFile(FileRecord):
     """Represents a version of a report file."""
@@ -109,6 +108,7 @@ class ReportFile(FileRecord):
         choices=ReportType.choices,
         default=ReportType.TANF_SSP,
     )
+    notes = models.TextField(blank=True, default="", max_length=2000)
 
     version = models.IntegerField()
 
