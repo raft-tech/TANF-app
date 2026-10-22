@@ -582,3 +582,51 @@ class TestParsingServiceExecution:
         assert isinstance(shadow_service.data_file, ShadowDataFile)
         assert shadow_service.data_file.id == shadow_datafile.id
         assert shadow_service.uses_shadow_table is True
+
+    def test_python_parser_engine(self, monkeypatch, data_analyst):
+        """Verify PythonParserEngine constructs parser and executes parsing."""
+        datafile = DataFileFactory(stt=data_analyst.stt, version=14)
+        dummy_parser = DummyParser()
+        from tdpservice.parsers import service
+        from tdpservice.parsers.service import PythonParserEngine
+
+        monkeypatch.setattr(
+            service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
+        )
+
+        engine = PythonParserEngine(data_file=datafile)
+        parser = engine.get_parser()
+        assert parser is dummy_parser
+
+        result = engine.execute()
+        assert result is dummy_parser
+        assert dummy_parser.called is True
+
+    def test_parsing_service_scheduling_delegates(self, monkeypatch, data_analyst):
+        """Verify ParsingService.schedule claims parse and routes dispatch."""
+        datafile = DataFileFactory(stt=data_analyst.stt, version=15)
+        calls = []
+
+        from tdpservice.scheduling import parser_task
+        monkeypatch.setattr(
+            parser_task.parse,
+            "delay",
+            lambda df_id, **kwargs: calls.append(("python", df_id)),
+        )
+
+        token = ParsingService.schedule(data_file_id=datafile.id)
+        assert token is not None
+        assert ("python", datafile.id) in calls
+
+    def test_resolve_or_reuse_parser_mode(self, data_analyst):
+        """Verify ParsingService.resolve_or_reuse_parser_mode persists and reuses mode."""
+        datafile = DataFileFactory(stt=data_analyst.stt, version=16)
+        assert datafile.parser_mode is None
+
+        mode1 = ParsingService.resolve_or_reuse_parser_mode(datafile.id)
+        datafile.refresh_from_db()
+        assert datafile.parser_mode == mode1
+
+        # Second resolution returns persisted mode
+        mode2 = ParsingService.resolve_or_reuse_parser_mode(datafile.id)
+        assert mode2 == mode1
