@@ -3,73 +3,25 @@
 from __future__ import absolute_import
 
 import uuid
-from typing import Callable
 
-from django.apps import apps
 from django.conf import settings
 from django.db import transaction
 
 from celery import current_app, shared_task
 
 from tdpservice.core.utils import get_feature_flag, log
-from tdpservice.data_files.enums import GoParserMode, SubmissionState
-from tdpservice.data_files.error_reports import ErrorReportFactory
+from tdpservice.data_files.enums import GoParserMode
 from tdpservice.data_files.models import (
     DataFile,
     ReparseFileMeta,
-    ShadowDataFile,
     create_or_update_shadow_data_file,
 )
 from tdpservice.data_files.submission_lifecycle import (
-    StaleParseOwnership,
     begin_parse,
     claim_parse,
-    finish_reparse,
-    parse_write_scope,
     record_parse_dispatch_failure,
-    record_parse_failure,
-    record_parse_outcome,
-    record_shadow_parse_state,
 )
-from tdpservice.email.helpers.data_file import send_data_submitted_email
-from tdpservice.log_handler import change_log_filename
-from tdpservice.parsers.error_generator import (
-    ErrorGeneratorArgs,
-    ErrorGeneratorFactory,
-    ErrorGeneratorType,
-)
-from tdpservice.parsers.factory import ParserFactory
-from tdpservice.parsers.models import (
-    DataFileSummary,
-    ParserError,
-    ParserErrorCategoryChoices,
-    ShadowDataFileSummary,
-    ShadowParserError,
-)
-from tdpservice.parsers.service import (
-    ParserModelSet,
-    ParsingService,
-    _calculate_total_records,
-    _finalize_parse,
-    _finalize_reparse,
-    _get_execution_metadata,
-    _handle_parse_failure,
-    _parser_models_for_instance,
-    _parser_models_for_mode,
-    _production_parser_models,
-    _program_code,
-    _record_failed_parse,
-    _resolve_parse_owner,
-    _section_name,
-    _shadow_parser_models,
-    _transition_parse_outcome,
-    _uses_shadow_table,
-    set_error_report,
-    should_send_reparse_notification,
-    update_dfs,
-)
-from tdpservice.parsers.util import DecoderUnknownException, log_parser_exception
-from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
+from tdpservice.parsers.service import ParsingService
 
 logger = getattr(settings, "PARSER_LOGGER", None)
 
@@ -230,12 +182,11 @@ def post_parse(
     event_id=None,
 ) -> None:
     """Finalize Go parser output in its selected table family."""
-    parser_models = _parser_models_for_mode(table_mode)
-    data_file = parser_models.data_file_model.objects.get(id=data_file_id)
-    service = ParsingService(
-        data_file=data_file,
-        reparse_id=reparse_id or None,
-        parse_token=parse_token or None,
+    service = ParsingService.for_post_parse(
+        data_file_id=data_file_id,
+        table_mode=table_mode,
+        reparse_id=reparse_id,
+        parse_token=parse_token,
         event_id=event_id,
     )
     service.post_parse(
@@ -258,7 +209,7 @@ def parse(data_file_id, reparse_id=None, parse_token=None, event_id=None):
     result = service.run()
     if not result.success and (
         result.data_file is None
-        or (service.parse_token is None and not _uses_shadow_table(result.data_file))
+        or (service.parse_token is None and not service.uses_shadow_table)
     ):
         if result.error_message:
             raise ValueError(result.error_message)

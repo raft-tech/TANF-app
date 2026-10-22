@@ -628,6 +628,30 @@ class ParsingService:
         self.file_meta = file_meta
         self.dfs: Optional[Union[DataFileSummary, ShadowDataFileSummary]] = None
 
+    @property
+    def uses_shadow_table(self) -> bool:
+        """Return True if this parsing service operates on a shadow table instance."""
+        return _uses_shadow_table(self.data_file)
+
+    @classmethod
+    def for_post_parse(
+        cls,
+        data_file_id: int,
+        table_mode: str | None = None,
+        reparse_id: int = 0,
+        parse_token: str = "",
+        event_id=None,
+    ) -> "ParsingService":
+        """Construct a ParsingService instance for Go post-parse execution."""
+        parser_models = _parser_models_for_mode(table_mode)
+        data_file = parser_models.data_file_model.objects.get(id=data_file_id)
+        return cls(
+            data_file=data_file,
+            reparse_id=reparse_id or None,
+            parse_token=parse_token or None,
+            event_id=event_id,
+        )
+
     def fetch_data_file(self) -> Union[DataFile, ShadowDataFile]:
         """Return the target DataFile."""
         return self.data_file
