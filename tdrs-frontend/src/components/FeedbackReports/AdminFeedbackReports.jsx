@@ -175,6 +175,8 @@ function AdminFeedbackReports() {
   const handleFileChange = async (e) => {
     setSelectedFile(null)
     setFileError(null)
+    setNotes('')
+    setNotesError(null)
     setAlert({ active: false, type: null, message: null })
 
     const fileInputValue = e.target.files[0]
@@ -392,6 +394,8 @@ function AdminFeedbackReports() {
     closeDownloadStatistics()
     setSelectedFile(null)
     setFileError(null)
+    setNotes('')
+    setNotesError(null)
     clearDatePicker()
     setDateError(null)
     setFormSubmitAttempted(false)
