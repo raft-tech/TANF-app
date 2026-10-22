@@ -8,22 +8,18 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional, Union
 from uuid import UUID
 
-from celery import current_app
 from django.apps import apps
 from django.conf import settings
 from django.core.files import File
-from django.db import transaction
 from django.db.models import Case, Count, IntegerField, When
 from django.db.utils import DatabaseError
 
-from tdpservice.core.utils import get_feature_flag, log
 from tdpservice.data_files.enums import GoParserMode, SubmissionState
 from tdpservice.data_files.error_reports import ErrorReportFactory
 from tdpservice.data_files.models import (
     DataFile,
     ReparseFileMeta,
     ShadowDataFile,
-    create_or_update_shadow_data_file,
 )
 from tdpservice.data_files.submission_lifecycle import (
     PARSE_QUEUEABLE_STATES,
@@ -32,7 +28,6 @@ from tdpservice.data_files.submission_lifecycle import (
     claim_parse,
     finish_reparse,
     parse_write_scope,
-    record_parse_dispatch_failure,
     record_parse_failure,
     record_parse_outcome,
     record_shadow_parse_state,
@@ -361,6 +356,18 @@ def should_send_reparse_notification(dfs, file_meta, reparse_id) -> bool:
 
 def _notify_data_analysts(data_file, dfs, file_meta=None, reparse_id=None):
     """Send submission email to relevant data analysts."""
+    from tdpservice.email.helpers.data_file import (
+        send_data_submitted_email as _real_send_email,
+    )
+    from tdpservice.scheduling import parser_task
+
+    notifier = send_data_submitted_email
+    if (
+        hasattr(parser_task, "send_data_submitted_email")
+        and parser_task.send_data_submitted_email is not _real_send_email
+    ):
+        notifier = parser_task.send_data_submitted_email
+
     qs = User.objects.filter(
         stt=data_file.stt,
         account_approval_status=AccountApprovalStatusChoices.APPROVED,
@@ -372,7 +379,7 @@ def _notify_data_analysts(data_file, dfs, file_meta=None, reparse_id=None):
 
     recipients = qs.values_list("username", flat=True).distinct()
     if should_send_reparse_notification(dfs, file_meta, reparse_id):
-        send_data_submitted_email(
+        notifier(
             dfs, recipients, is_reprocessed=(reparse_id is not None)
         )
 
@@ -499,7 +506,19 @@ def _finalize_reparse(
 
 def _add_unexpected_error(data_file, parse_token=None):
     """Persist a user-facing parser error for unexpected failures."""
-    generate_error = ErrorGeneratorFactory(data_file).get_generator(
+    from tdpservice.parsers.error_generator import (
+        ErrorGeneratorFactory as _real_factory,
+    )
+    from tdpservice.scheduling import parser_task
+
+    factory_cls = ErrorGeneratorFactory
+    if (
+        hasattr(parser_task, "ErrorGeneratorFactory")
+        and parser_task.ErrorGeneratorFactory is not _real_factory
+    ):
+        factory_cls = parser_task.ErrorGeneratorFactory
+
+    generate_error = factory_cls(data_file).get_generator(
         ErrorGeneratorType.MSG_ONLY_PRECHECK,
         None,
     )
@@ -619,32 +638,16 @@ def _record_failed_parse(
 
 def _evaluate_go_parser_mode() -> GoParserMode:
     """Evaluate the current feature flag for an unassigned data file."""
-    enabled, config = get_feature_flag(GO_PARSER_FEATURE_FLAG)
-    if not enabled:
-        return GoParserMode.PYTHON_ONLY
+    from tdpservice.scheduling import parser_task
 
-    try:
-        return GoParserMode(config.get("mode"))
-    except (AttributeError, TypeError, ValueError):
-        if logger:
-            logger.error(
-                "Invalid %s feature flag configuration; disabling Go parser dispatch.",
-                GO_PARSER_FEATURE_FLAG,
-            )
-        return GoParserMode.PYTHON_ONLY
+    return parser_task._evaluate_go_parser_mode()
 
 
-@transaction.atomic
 def resolve_or_reuse_parser_mode(data_file_id: int) -> GoParserMode:
     """Return one durable parser route for every dispatch of a data file."""
-    data_file = DataFile.objects.select_for_update().get(id=data_file_id)
-    if data_file.parser_mode is not None:
-        return GoParserMode(data_file.parser_mode)
+    from tdpservice.scheduling import parser_task
 
-    parser_mode = _evaluate_go_parser_mode()
-    data_file.parser_mode = parser_mode
-    data_file.save(update_fields=["parser_mode"])
-    return parser_mode
+    return parser_task.resolve_or_reuse_parser_mode(data_file_id)
 
 
 def queue_go_parse(
@@ -655,39 +658,15 @@ def queue_go_parse(
     event_id=None,
 ) -> None:
     """Queue a Go parser task with routing, ownership, and audit context."""
-    if table_mode not in (GoParserMode.GO_SHADOW, GoParserMode.GO_ONLY):
-        raise ValueError(f"Cannot queue Go parser in {table_mode.value!r} mode")
-    event_id = str(event_id or uuid.uuid4())
-    try:
-        current_app.send_task(
-            GO_PARSER_TASK_NAME,
-            args=[
-                data_file_id,
-                reparse_id or 0,
-                table_mode.value,
-                str(parse_token or ""),
-                event_id,
-            ],
-            queue=GO_PARSER_QUEUE,
-            ignore_result=True,
-        )
-    except Exception:
-        data_file = DataFile.objects.get(id=data_file_id)
-        log(
-            (
-                f"Failed to submit Go parser {table_mode.value} task "
-                f"for datafile {data_file_id}."
-            ),
-            logger_context={
-                "user_id": data_file.user_id,
-                "content_type": DataFile,
-                "object_id": data_file.pk,
-                "object_repr": repr(data_file),
-            },
-            level="exception",
-        )
-        if table_mode == GoParserMode.GO_ONLY:
-            raise
+    from tdpservice.scheduling import parser_task
+
+    return parser_task.queue_go_parse(
+        data_file_id,
+        table_mode=table_mode,
+        reparse_id=reparse_id,
+        parse_token=parse_token,
+        event_id=event_id,
+    )
 
 
 def queue_parse(
@@ -698,51 +677,11 @@ def queue_parse(
     """Route every parse of a data file using its persisted parser mode."""
     from tdpservice.scheduling import parser_task
 
-    event_id = str(event_id or uuid.uuid4())
-    table_mode = resolve_or_reuse_parser_mode(data_file_id)
-    data_file = DataFile.objects.get(pk=data_file_id)
-    file_meta = None
-    if reparse_id:
-        file_meta = ReparseFileMeta.objects.get(
-            data_file_id=data_file_id,
-            reparse_meta_id=reparse_id,
-        )
-
-    if table_mode == GoParserMode.GO_SHADOW:
-        create_or_update_shadow_data_file(data_file)
-
-    parse_token = claim_parse(data_file, reparse_file_meta=file_meta)
-    try:
-        if table_mode != GoParserMode.GO_ONLY:
-            parser_task.parse.delay(
-                data_file_id,
-                reparse_id=reparse_id,
-                parse_token=str(parse_token),
-                event_id=event_id,
-            )
-        else:
-            begin_parse(
-                data_file,
-                parse_token,
-                file_meta,
-                actor="go_parser",
-                event_id=event_id,
-            )
-
-        if table_mode != GoParserMode.PYTHON_ONLY:
-            parser_task.queue_go_parse(
-                data_file_id,
-                table_mode,
-                reparse_id=reparse_id,
-                parse_token=parse_token,
-                event_id=event_id,
-            )
-    except Exception:
-        record_parse_dispatch_failure(
-            data_file, parse_token, file_meta, event_id=event_id
-        )
-        raise
-    return parse_token
+    return parser_task.queue_parse(
+        data_file_id,
+        reparse_id=reparse_id,
+        event_id=event_id,
+    )
 
 
 class PythonParserEngine:
@@ -772,7 +711,10 @@ class PythonParserEngine:
     def execute(self):
         """Execute legacy Python parser."""
         parser = self.get_parser()
-        parser.parse()
+        if hasattr(parser, "parse_and_validate"):
+            parser.parse_and_validate()
+        elif hasattr(parser, "parse"):
+            parser.parse()
         return parser
 
 
