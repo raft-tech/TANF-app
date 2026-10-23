@@ -1754,3 +1754,127 @@ def test_parse_task_returns_serializable_dict(monkeypatch, data_analyst):
     assert ret["data_file_id"] == datafile.id
     assert ret["summary_id"] == dfs.id
     assert ret["status"] == DataFileSummary.Status.ACCEPTED
+
+
+def test_go_parse_shared_task_raises_runtime_error():
+    """Verify executing the Go worker task directly in Python raises a RuntimeError."""
+    with pytest.raises(RuntimeError, match="routed to the Go parser worker"):
+        parser_task.go_parse(data_file_id=999)
+
+
+@pytest.mark.django_db
+def test_parse_task_raises_value_error_on_pre_ownership_failure_with_message(
+    monkeypatch, data_analyst
+):
+    """Verify parse task re-raises ValueError when pre-ownership failure has an error message."""
+    datafile = DataFileFactory(stt=data_analyst.stt, version=21)
+    failed_result = parsing_service.ParseResult(
+        success=False,
+        data_file=None,
+        error_message="Invalid precondition state",
+    )
+    monkeypatch.setattr(
+        parser_task.ParsingService,
+        "run",
+        lambda self: failed_result,
+    )
+    with pytest.raises(ValueError, match="Invalid precondition state"):
+        parser_task.parse(datafile.id)
+
+
+@pytest.mark.django_db
+def test_parse_task_raises_runtime_error_on_pre_ownership_failure_without_message(
+    monkeypatch, data_analyst
+):
+    """Verify parse task raises RuntimeError when pre-ownership failure lacks an error message."""
+    datafile = DataFileFactory(stt=data_analyst.stt, version=22)
+    failed_result = parsing_service.ParseResult(
+        success=False,
+        data_file=None,
+        error_message=None,
+    )
+    monkeypatch.setattr(
+        parser_task.ParsingService,
+        "run",
+        lambda self: failed_result,
+    )
+    with pytest.raises(
+        RuntimeError, match="Parsing failed before ownership establishment"
+    ):
+        parser_task.parse(datafile.id)
+
+
+@pytest.mark.django_db
+def test_queue_go_parse_go_only_reraises_on_broker_failure(
+    monkeypatch, data_analyst
+):
+    """Verify queue_go_parse logs and re-raises broker dispatch failures in go-only mode."""
+    datafile = DataFileFactory(stt=data_analyst.stt, version=23)
+
+    def fail_send_task(*args, **kwargs):
+        raise ConnectionError("Broker connection refused")
+
+    monkeypatch.setattr(parser_task.current_app, "send_task", fail_send_task)
+    with pytest.raises(ConnectionError, match="Broker connection refused"):
+        parser_task.queue_go_parse(
+            data_file_id=datafile.id,
+            table_mode=parser_task.GoParserMode.GO_ONLY,
+        )
+
+
+@pytest.mark.django_db
+def test_queue_go_parse_go_shadow_swallows_broker_failure(
+    monkeypatch, data_analyst
+):
+    """Verify queue_go_parse gracefully swallows broker dispatch failures in go-shadow mode."""
+    datafile = DataFileFactory(stt=data_analyst.stt, version=24)
+
+    def fail_send_task(*args, **kwargs):
+        raise ConnectionError("Broker connection refused")
+
+    monkeypatch.setattr(parser_task.current_app, "send_task", fail_send_task)
+    # In go-shadow, broker failure is non-fatal for primary execution
+    parser_task.queue_go_parse(
+        data_file_id=datafile.id,
+        table_mode=parser_task.GoParserMode.GO_SHADOW,
+    )
+
+
+@pytest.mark.django_db
+def test_queue_parse_dispatch_failure_records_state(monkeypatch, data_analyst):
+    """Verify queue_parse calls record_parse_dispatch_failure upon task dispatch error."""
+    datafile = DataFileFactory(
+        stt=data_analyst.stt,
+        version=25,
+        state=SubmissionState.VIRUS_SCAN_COMPLETED,
+    )
+    monkeypatch.setattr(
+        parser_task.parse,
+        "delay",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("Task queue failed")),
+    )
+
+    recorded = []
+    monkeypatch.setattr(
+        parser_task,
+        "record_parse_dispatch_failure",
+        lambda df, token, meta, event_id=None: recorded.append(df.id),
+    )
+
+    with pytest.raises(RuntimeError, match="Task queue failed"):
+        parser_task.queue_parse(datafile.id)
+
+    assert datafile.id in recorded
+
+
+def test_evaluate_go_parser_mode_invalid_config_falls_back_to_python(monkeypatch):
+    """Verify _evaluate_go_parser_mode returns PYTHON_ONLY on invalid config."""
+    monkeypatch.setattr(
+        parser_task,
+        "get_feature_flag",
+        lambda flag: (True, {"mode": "invalid_mode_value"}),
+    )
+    assert (
+        parser_task._evaluate_go_parser_mode()
+        == parser_task.GoParserMode.PYTHON_ONLY
+    )
