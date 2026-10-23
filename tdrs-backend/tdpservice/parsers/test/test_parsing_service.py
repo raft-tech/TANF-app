@@ -12,16 +12,39 @@ from tdpservice.data_files.models import (
     DataFile,
     DataFileStateTransition,
     Program,
+    ReparseFileMeta,
     Section,
     ShadowDataFile,
     create_or_update_shadow_data_file,
 )
 from tdpservice.data_files.submission_lifecycle import StaleParseOwnership
 from tdpservice.data_files.test.factories import DataFileFactory
-from tdpservice.parsers.models import DataFileSummary, ParserError
+from tdpservice.parsers.models import (
+    DataFileSummary,
+    ParserError,
+    ParserErrorCategoryChoices,
+    ShadowDataFileSummary,
+)
 from tdpservice.parsers.parser_classes.tdr_parser import TanfDataReportParser
-from tdpservice.parsers.service import ParseResult, ParsingService
+from tdpservice.parsers.service import (
+    ParseResult,
+    ParsingService,
+    PythonParserEngine,
+    _calculate_total_records,
+    _finalize_reparse,
+    _get_summary_status,
+    _parser_models_for_mode,
+    _program_code,
+    _section_name,
+    _shadow_record_model,
+    _uses_shadow_table,
+    should_send_reparse_notification,
+    update_dfs,
+)
 from tdpservice.parsers.util import DecoderUnknownException
+from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
+from tdpservice.search_indexes.models.shadow import ShadowTANF_T1
+from tdpservice.search_indexes.models.tanf import TANF_T1
 
 
 class DummyHandler:
@@ -635,3 +658,366 @@ class TestParsingServiceExecution:
         # Second resolution returns persisted mode
         mode2 = ParsingService.resolve_or_reuse_parser_mode(datafile.id)
         assert mode2 == mode1
+
+
+@pytest.mark.django_db
+class TestParsingServiceModelAndModeResolution:
+    """Tests for model mappings, shadow resolution, and parser mode routing."""
+
+    def test_shadow_record_model_lookup(self):
+        """Verify _shadow_record_model returns matching shadow model."""
+        assert _shadow_record_model(TANF_T1) == ShadowTANF_T1
+
+    def test_shadow_record_model_unmapped_raises_lookup_error(self):
+        """Verify _shadow_record_model raises LookupError for unknown tables."""
+
+        class UnmappedModel:
+            class _meta:
+                db_table = "nonexistent_table_xyz"
+
+        with pytest.raises(LookupError, match="No shadow model found for table"):
+            _shadow_record_model(UnmappedModel)
+
+    def test_parser_models_for_mode_invalid_raises_value_error(self):
+        """Verify _parser_models_for_mode raises ValueError for invalid modes."""
+        with pytest.raises(ValueError, match="Unsupported Go parser table mode"):
+            _parser_models_for_mode("unsupported_mode")
+
+    def test_uses_shadow_table_helper(self):
+        """Verify _uses_shadow_table handles None safely."""
+        assert _uses_shadow_table(None) is False
+
+    def test_program_code_and_section_name_helpers(self):
+        """Verify _program_code and _section_name projection helpers."""
+        assert _program_code(None) is None
+        assert _section_name(None) is None
+
+        class ObjWithDirectAttrs:
+            section = "Direct Section"
+            program_type = "SSP"
+
+        assert _section_name(ObjWithDirectAttrs()) == "Direct Section"
+        assert _program_code(ObjWithDirectAttrs()) == "SSP"
+
+
+@pytest.mark.django_db
+class TestSummaryStatusAndAggregates:
+    """Tests for DataFileSummary status rules, aggregates, and record calculations."""
+
+    def test_get_summary_status_returns_non_pending_status_immediately(self):
+        """If dfs.status is not PENDING, return existing status without error query."""
+        dfs = type("DFS", (), {"status": DataFileSummary.Status.ACCEPTED})()
+        assert _get_summary_status(dfs, None) == DataFileSummary.Status.ACCEPTED
+
+    def test_get_summary_status_precheck_error_returns_rejected(self, data_analyst):
+        """A PRE_CHECK error sets summary status to REJECTED."""
+        datafile = DataFileFactory(stt=data_analyst.stt, version=21)
+        dfs = DataFileSummary.objects.create(
+            datafile=datafile, status=DataFileSummary.Status.PENDING
+        )
+        ParserError.objects.create(
+            file=datafile,
+            error_type=ParserErrorCategoryChoices.PRE_CHECK,
+            error_message="Fatal precheck failure",
+        )
+        assert _get_summary_status(dfs, datafile) == DataFileSummary.Status.REJECTED
+
+    def test_get_summary_status_partially_accepted(self, data_analyst):
+        """RECORD_PRE_CHECK or CASE_CONSISTENCY errors set status to PARTIALLY_ACCEPTED."""
+        datafile = DataFileFactory(stt=data_analyst.stt, version=22)
+        dfs = DataFileSummary.objects.create(
+            datafile=datafile, status=DataFileSummary.Status.PENDING
+        )
+        ParserError.objects.create(
+            file=datafile,
+            error_type=ParserErrorCategoryChoices.RECORD_PRE_CHECK,
+            error_message="Record error",
+        )
+        assert (
+            _get_summary_status(dfs, datafile)
+            == DataFileSummary.Status.PARTIALLY_ACCEPTED
+        )
+
+    def test_get_summary_status_accepted_with_errors(self, data_analyst):
+        """Non-precheck/non-consistency errors set status to ACCEPTED_WITH_ERRORS."""
+        datafile = DataFileFactory(stt=data_analyst.stt, version=23)
+        dfs = DataFileSummary.objects.create(
+            datafile=datafile, status=DataFileSummary.Status.PENDING
+        )
+        ParserError.objects.create(
+            file=datafile,
+            error_type=ParserErrorCategoryChoices.FIELD_VALUE,
+            error_message="Field value error",
+        )
+        assert (
+            _get_summary_status(dfs, datafile)
+            == DataFileSummary.Status.ACCEPTED_WITH_ERRORS
+        )
+
+    def test_get_summary_status_clean_returns_accepted(self, data_analyst):
+        """Zero errors results in ACCEPTED status."""
+        datafile = DataFileFactory(stt=data_analyst.stt, version=24)
+        dfs = DataFileSummary.objects.create(
+            datafile=datafile, status=DataFileSummary.Status.PENDING
+        )
+        assert _get_summary_status(dfs, datafile) == DataFileSummary.Status.ACCEPTED
+
+    def test_calculate_total_records_variations(self):
+        """Verify _calculate_total_records handles case aggregates and fallbacks."""
+        assert _calculate_total_records(None) == 0
+
+        # With case_aggregates months dictionary
+        dfs_with_months = type(
+            "DFS",
+            (),
+            {
+                "case_aggregates": {
+                    "months": [
+                        {"accepted_without_errors": 10, "accepted_with_errors": 5},
+                        {"accepted_without_errors": 20, "accepted_with_errors": 0},
+                    ]
+                }
+            },
+        )()
+        assert _calculate_total_records(dfs_with_months) == 35
+
+        # Fallback to total_number_of_records_in_file
+        dfs_fallback_file = type(
+            "DFS",
+            (),
+            {
+                "case_aggregates": None,
+                "total_number_of_records_in_file": 42,
+                "total_number_of_records_created": 0,
+            },
+        )()
+        assert _calculate_total_records(dfs_fallback_file) == 42
+
+        # Fallback to total_number_of_records_created
+        dfs_fallback_created = type(
+            "DFS",
+            (),
+            {
+                "case_aggregates": {},
+                "total_number_of_records_in_file": 0,
+                "total_number_of_records_created": 99,
+            },
+        )()
+        assert _calculate_total_records(dfs_fallback_created) == 99
+
+    def test_update_dfs_fra_aggregates(self, monkeypatch, data_analyst):
+        """Verify update_dfs routes to fra_total_errors for FRA files."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=25,
+            section=Section.objects.filter(
+                name=Section.Name.FRA_WORK_OUTCOMES
+            ).first(),
+        )
+        dfs = DataFileSummary.objects.create(
+            datafile=datafile, status=DataFileSummary.Status.PENDING
+        )
+        fra_called = []
+        from tdpservice.parsers import service
+
+        monkeypatch.setattr(
+            service,
+            "fra_total_errors",
+            lambda *a, **k: fra_called.append(True) or {"fra": 1},
+        )
+        update_dfs(dfs, datafile)
+        assert len(fra_called) == 1
+        assert dfs.case_aggregates == {"fra": 1}
+
+    def test_update_dfs_non_case_data_aggregates(self, monkeypatch, data_analyst):
+        """Verify update_dfs routes to total_errors_by_month for non Case Data sections."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=26,
+            section=Section.objects.filter(
+                name=Section.Name.AGGREGATE_DATA
+            ).first(),
+        )
+        dfs = DataFileSummary.objects.create(
+            datafile=datafile, status=DataFileSummary.Status.PENDING
+        )
+        agg_called = []
+        from tdpservice.parsers import service
+
+        monkeypatch.setattr(
+            service,
+            "total_errors_by_month",
+            lambda *a, **k: agg_called.append(True) or {"agg": 1},
+        )
+        update_dfs(dfs, datafile)
+        assert len(agg_called) == 1
+        assert dfs.case_aggregates == {"agg": 1}
+
+
+@pytest.mark.django_db
+class TestReparseFlowAndNotifications:
+    """Tests for reparse notifications and reparse metadata closure."""
+
+    def test_should_send_reparse_notification_suppression_matrix(self):
+        """Verify email notification suppression rules for reparse events."""
+        # Non-reparse always sends email
+        assert should_send_reparse_notification(None, None, reparse_id=None) is True
+
+        # Missing file_meta sends email
+        dfs = type("DFS", (), {"status": DataFileSummary.Status.ACCEPTED})()
+        assert should_send_reparse_notification(dfs, None, reparse_id=1) is True
+
+        # ACCEPTED -> ACCEPTED suppresses email
+        file_meta_acc = type(
+            "FileMeta",
+            (),
+            {"previous_summary_status": DataFileSummary.Status.ACCEPTED},
+        )()
+        dfs_acc = type("DFS", (), {"status": DataFileSummary.Status.ACCEPTED})()
+        assert (
+            should_send_reparse_notification(dfs_acc, file_meta_acc, reparse_id=1)
+            is False
+        )
+
+        # REJECTED -> ACCEPTED sends email
+        file_meta_rej = type(
+            "FileMeta",
+            (),
+            {"previous_summary_status": DataFileSummary.Status.REJECTED},
+        )()
+        assert (
+            should_send_reparse_notification(dfs_acc, file_meta_rej, reparse_id=1)
+            is True
+        )
+
+        # ACCEPTED -> REJECTED sends email
+        dfs_rej = type("DFS", (), {"status": DataFileSummary.Status.REJECTED})()
+        assert (
+            should_send_reparse_notification(dfs_rej, file_meta_acc, reparse_id=1)
+            is True
+        )
+
+    def test_finalize_reparse_invokes_reparse_meta_totals(
+        self, monkeypatch, data_analyst
+    ):
+        """Verify _finalize_reparse invokes ReparseMeta.set_total_num_records_post when finalized."""
+        datafile = DataFileFactory(stt=data_analyst.stt, version=27)
+        dfs = DataFileSummary.objects.create(
+            datafile=datafile,
+            status=DataFileSummary.Status.ACCEPTED,
+            total_number_of_records_created=50,
+        )
+        reparse_meta = ReparseMeta.objects.create(
+            db_backup_location="s3://backup"
+        )
+        file_meta = ReparseFileMeta.objects.create(
+            data_file=datafile,
+            reparse_meta=reparse_meta,
+            previous_summary_status=DataFileSummary.Status.ACCEPTED,
+        )
+
+        from tdpservice.parsers import service
+
+        totals_called = []
+        monkeypatch.setattr(service, "finish_reparse", lambda *a, **k: True)
+        monkeypatch.setattr(
+            ReparseMeta,
+            "set_total_num_records_post",
+            lambda meta: totals_called.append(meta.id),
+        )
+
+        _finalize_reparse(
+            data_file=datafile,
+            reparse_id=reparse_meta.id,
+            file_meta=file_meta,
+            dfs=dfs,
+            reparse_success=True,
+        )
+
+        assert reparse_meta.id in totals_called
+
+
+@pytest.mark.django_db
+class TestShadowPostParseAndEngineFallback:
+    """Tests for shadow table post-parsing and legacy engine fallbacks."""
+
+    def test_post_parse_shadow_success(self, data_analyst):
+        """Verify post_parse on a ShadowDataFile marks summary ACCEPTED and records transition."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=28,
+            state=SubmissionState.VIRUS_SCAN_COMPLETED,
+        )
+        shadow_datafile = create_or_update_shadow_data_file(datafile)
+
+        ps = ParsingService(data_file=shadow_datafile)
+        ps.post_parse(table_mode="go-shadow")
+
+        shadow_datafile.refresh_from_db()
+        dfs = ShadowDataFileSummary.objects.get(datafile=shadow_datafile)
+        assert dfs.status == DataFileSummary.Status.ACCEPTED
+        assert shadow_datafile.state == SubmissionState.PARSE_COMPLETED
+
+        transitions = DataFileStateTransition.objects.for_object(shadow_datafile)
+        assert transitions.first().metadata.get("parser_class") == "GoParser"
+
+    def test_post_parse_shadow_parse_error(self, data_analyst):
+        """Verify post_parse on a ShadowDataFile handles parse_error."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=29,
+            state=SubmissionState.VIRUS_SCAN_COMPLETED,
+        )
+        shadow_datafile = create_or_update_shadow_data_file(datafile)
+
+        ps = ParsingService(data_file=shadow_datafile)
+        ps.post_parse(parse_error="Shadow worker panic", table_mode="go-shadow")
+
+        shadow_datafile.refresh_from_db()
+        dfs = ShadowDataFileSummary.objects.get(datafile=shadow_datafile)
+        assert dfs.status == DataFileSummary.Status.REJECTED
+        assert shadow_datafile.state == SubmissionState.PARSE_FAILED
+
+    def test_post_parse_shadow_idempotent_when_already_failed(self, data_analyst):
+        """Verify post_parse on an already failed ShadowDataFile returns early."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=30,
+            state=SubmissionState.PARSE_FAILED,
+        )
+        shadow_datafile = create_or_update_shadow_data_file(datafile)
+        initial_transitions = DataFileStateTransition.objects.for_object(
+            shadow_datafile
+        ).count()
+
+        ps = ParsingService(data_file=shadow_datafile)
+        ps.post_parse(parse_error="Duplicate error signal", table_mode="go-shadow")
+
+        # No new transitions recorded
+        assert (
+            DataFileStateTransition.objects.for_object(shadow_datafile).count()
+            == initial_transitions
+        )
+
+    def test_python_parser_engine_legacy_parse_method(self, monkeypatch, data_analyst):
+        """Verify PythonParserEngine calls .parse() if .parse_and_validate() is absent."""
+        datafile = DataFileFactory(stt=data_analyst.stt, version=31)
+
+        class LegacyParserOnly:
+            def __init__(self):
+                self.parse_called = False
+
+            def parse(self):
+                self.parse_called = True
+
+        legacy_parser = LegacyParserOnly()
+        from tdpservice.parsers import service
+
+        monkeypatch.setattr(
+            service.ParserFactory, "get_instance", lambda **kwargs: legacy_parser
+        )
+
+        engine = PythonParserEngine(data_file=datafile)
+        result = engine.execute()
+        assert result is legacy_parser
+        assert legacy_parser.parse_called is True
