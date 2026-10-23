@@ -33,8 +33,8 @@ from tdpservice.data_files.submission_lifecycle import (
 )
 from tdpservice.log_handler import S3FileHandler
 from tdpservice.parsers.models import ParserError
+from tdpservice.parsers.service import set_error_report
 from tdpservice.scheduling import parser_task
-from tdpservice.scheduling.parser_task import set_error_report
 from tdpservice.security.clients import ClamAVClient
 from tdpservice.security.models import ClamAVFileScan
 from tdpservice.users.permissions import DataFilePermissions, IsApprovedPermission
@@ -239,12 +239,26 @@ class DataFileViewSet(ModelViewSet):
         if fra_error is not None:
             return fra_error
 
+        attribution = getattr(request, "tdp_attribution", None)
+        if attribution and attribution.source == "api_client":
+            upload_source = DataFile.UploadSource.API
+        elif (
+            request.META.get("HTTP_AUTHORIZATION", "").lower().startswith("bearer ")
+            or getattr(request, "_keycloak_client_id", None)
+        ):
+            upload_source = DataFile.UploadSource.API
+        else:
+            upload_source = DataFile.UploadSource.FRONTEND
+
         uploaded_file = serializer.validated_data.get("file")
-        data_file = serializer.save(file=None, user=request.user)
+        data_file = serializer.save(file=None, user=request.user, upload_source=upload_source)
         event_id = uuid.uuid4()
 
         start_datafile_av_scan(
-            data_file, actor=request.user, source="api", event_id=event_id
+            data_file,
+            actor=request.user,
+            source=upload_source.lower(),
+            event_id=event_id,
         )
 
         scan_failure_response, scan_result = self._scan_uploaded_file(
@@ -258,7 +272,7 @@ class DataFileViewSet(ModelViewSet):
                 scan_result=scan_result,
                 note=scan_failure_response.data["detail"],
                 actor=request.user,
-                source="api",
+                source=upload_source.lower(),
                 event_id=event_id,
             )
             return scan_failure_response
@@ -268,7 +282,7 @@ class DataFileViewSet(ModelViewSet):
             scan_result=scan_result,
             note="file passed virus scan",
             actor=request.user,
-            source="api",
+            source=upload_source.lower(),
             event_id=event_id,
         )
 
