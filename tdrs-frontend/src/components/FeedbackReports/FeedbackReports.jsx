@@ -45,7 +45,12 @@ function FeedbackReports() {
       <>
         <nav
           aria-label="Feedback report views"
-          className="display-flex flex-justify-start"
+          className={`display-flex flex-justify-start ${
+            // without margin the toggle would move up and down due to a missing subtitle
+            // for STTFeedbackReports in the PrivateTemplate.jsx
+            // TODO: Consider adding a subtitle instead of margin here
+            showManageReports ? '' : 'margin-top-9'
+          }`}
         >
           <ul className="usa-list--unstyled display-flex flex-wrap margin-0">
             {[
