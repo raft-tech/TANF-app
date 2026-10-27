@@ -1,11 +1,17 @@
 import React from 'react'
-import { render, fireEvent, waitFor } from '@testing-library/react'
+import { render, fireEvent, act, waitFor } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import configureStore from '../../configureStore'
 import FileUpload from './FileUpload'
 import * as reportsActions from '../../actions/reports'
 import * as utils from './utils'
 import fileTypeChecker from 'file-type-checker'
+import {
+  createReportsStore,
+  uploadConfiguration,
+  deferred,
+} from '../../test-utils/reportScopes'
+import createFileInputErrorState from '../../utils/createFileInputErrorState'
 
 // Mock dependencies
 jest.mock('file-type-checker')
@@ -108,6 +114,118 @@ describe('FileUpload', () => {
       store,
     }
   }
+
+  describe('Scoped validation', () => {
+    const setup = () => {
+      const store = createReportsStore()
+      const scope = store.dispatch(
+        reportsActions.configureUploadSections(uploadConfiguration())
+      )
+      const props = {
+        section: 'Aggregate Data',
+        label: 'Section 3',
+        year: '2024',
+        quarter: 'Q1',
+        fileType: 'tanf',
+        uploadScope: scope,
+        sectionDescriptor: scope.sections[0],
+        setUploadAlertState: mockSetUploadAlertState,
+      }
+      const view = (overrides = {}) => (
+        <Provider store={store}>
+          <FileUpload {...props} {...overrides} />
+        </Provider>
+      )
+      return { store, scope, view, ...render(view()) }
+    }
+
+    beforeEach(() => {
+      utils.tryGetUTF8EncodedFile.mockImplementation(async (result, file) => ({
+        encodedFile: file,
+        header: 'HEADER',
+      }))
+    })
+
+    it.each(['selection', 'replacement', 'unmount'])(
+      'ignores an old FileReader extension error after %s',
+      async (transition) => {
+        const readers = []
+        global.FileReader.mockImplementation(() => {
+          const reader = {
+            readAsArrayBuffer: jest.fn(),
+            result: new ArrayBuffer(8),
+          }
+          readers.push(reader)
+          return reader
+        })
+        const hook = setup()
+        const input = hook.container.querySelector('input')
+        fireEvent.change(input, {
+          target: { files: [makeTestFile('old.pdf')] },
+        })
+        if (transition === 'selection') {
+          let scope
+          act(() => {
+            scope = hook.store.dispatch(
+              reportsActions.configureUploadSections(
+                uploadConfiguration({ programSlug: 'ssp' })
+              )
+            )
+          })
+          hook.rerender(
+            hook.view({
+              fileType: 'ssp-moe',
+              uploadScope: scope,
+              sectionDescriptor: scope.sections[0],
+            })
+          )
+        } else if (transition === 'replacement') {
+          fireEvent.change(input, {
+            target: { files: [makeTestFile('new.txt')] },
+          })
+          await act(async () => {
+            readers[1].onload()
+          })
+        } else hook.unmount()
+        const before = hook.store.getState().reports
+        mockSetUploadAlertState.mockClear()
+        await act(async () => {
+          readers[0].onload()
+        })
+        expect(hook.store.getState().reports).toBe(before)
+        expect(createFileInputErrorState).not.toHaveBeenCalled()
+        expect(mockSetUploadAlertState).not.toHaveBeenCalled()
+      }
+    )
+
+    it('retains and revalidates a staged file across fiscal corrections without accepting the old validation', async () => {
+      const oldValidation = deferred()
+      utils.validateHeader.mockReturnValueOnce(oldValidation.promise)
+      const hook = setup()
+      const file = makeTestFile('retained.txt')
+      fireEvent.change(hook.container.querySelector('input'), {
+        target: { files: [file] },
+      })
+      await waitFor(() => expect(utils.validateHeader).toHaveBeenCalledTimes(1))
+      hook.rerender(hook.view({ quarter: 'Q2' }))
+      await waitFor(() =>
+        expect(
+          hook.store.getState().reports.submittedFiles[0].validatedQuarter
+        ).toBe('Q2')
+      )
+      const current = hook.store.getState().reports
+      await act(async () => {
+        oldValidation.resolve({
+          isValid: false,
+          programTypeResult: { isValid: false, progType: 'SSP' },
+        })
+      })
+      expect(hook.store.getState().reports).toBe(current)
+      expect(current.uploadScope).toBe(hook.scope)
+      expect(current.submittedFiles[0].file).toBe(file)
+      expect(current.submittedFiles[0].error).toBeNull()
+    })
+  })
 
   describe('Rendering', () => {
     it('does not render error message when no error', () => {

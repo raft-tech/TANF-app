@@ -1,11 +1,27 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
  * Custom hook to manage form submission state and prevent multiple submissions
+ * @param {string} scopeKey - Optional generation isolating submitting state
  * @returns {Object} Form submission utilities
  */
-export const useFormSubmission = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+export const useFormSubmission = (scopeKey) => {
+  const [submission, setSubmission] = useState({ scopeKey, active: false })
+  const currentScopeRef = useRef(scopeKey)
+  const requestRef = useRef(null)
+  const mountedRef = useRef(true)
+  if (currentScopeRef.current !== scopeKey) {
+    currentScopeRef.current = scopeKey
+    requestRef.current = null
+  }
+  const isSubmitting = submission.scopeKey === scopeKey && submission.active
+  const setIsSubmitting = (active) => setSubmission({ scopeKey, active })
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   /**
    * Execute a submission with proper state management
@@ -17,32 +33,41 @@ export const useFormSubmission = () => {
    */
   const executeSubmission = async (submitFn, options = {}) => {
     // Prevent multiple submissions
-    if (isSubmitting) {
+    if (isSubmitting || requestRef.current) {
       return
     }
 
     // Set submitting state to true
     setIsSubmitting(true)
+    const request = {}
+    requestRef.current = request
+    const isCurrent = () =>
+      mountedRef.current &&
+      requestRef.current === request &&
+      (options.isCurrent?.() ?? true)
 
     try {
       // Execute the submission function
       const result = await submitFn()
 
       // Call success callback if provided
-      if (options.onSuccess) {
+      if (isCurrent() && options.onSuccess) {
         options.onSuccess(result)
       }
       return result
     } catch (error) {
       // Call error callback if provided
-      if (options.onError) {
+      if (isCurrent() && options.onError) {
         options.onError(error)
       }
       // Re-throw the error for further handling
       throw error
     } finally {
       // Reset submitting state
-      setIsSubmitting(false)
+      if (mountedRef.current && requestRef.current === request) {
+        requestRef.current = null
+        setIsSubmitting(false)
+      }
     }
   }
 

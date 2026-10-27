@@ -9,7 +9,22 @@ import {
   SET_SELECTED_STT,
   SET_FILE_LIST,
   SET_FILE_SUBMITTED,
+  configureUploadSections,
+  clearFileList,
+  reinitializeSubmittedFiles,
+  FETCH_FILE_LIST,
+  FETCH_FILE_LIST_ERROR,
+  INVALIDATE_FILE_LIST,
+  SET_TANF_SUBMISSION_STATUS,
+  BEGIN_FILE_VALIDATION,
 } from '../actions/reports'
+import {
+  createReportsStore,
+  uploadConfiguration,
+  stageScopedFile,
+} from '../test-utils/reportScopes'
+import { getUploadAssignmentKey } from '../utils/reportScopes'
+import { programIntegrityAuditLabels } from '../components/Reports/utils'
 
 const initialState = {
   files: [],
@@ -539,5 +554,258 @@ describe('reducers/reports', () => {
         uuid: null,
       },
     ])
+  })
+})
+
+describe('configured report state', () => {
+  it('starts replacement validation without retaining a submitted ID or fiscal validation', () => {
+    const store = createReportsStore()
+    const scope = store.dispatch(configureUploadSections(uploadConfiguration()))
+    const sourceFile = stageScopedFile(store, scope)
+    store.dispatch({
+      type: SET_FILE_SUBMITTED,
+      payload: {
+        uploadScope: scope,
+        sourceFile,
+        submittedFile: {
+          id: 42,
+          slug: sourceFile.uuid,
+          section: sourceFile.section,
+          program_type: 'TAN',
+        },
+      },
+    })
+    store.dispatch({
+      type: BEGIN_FILE_VALIDATION,
+      payload: {
+        uploadScope: scope,
+        section: sourceFile.section,
+        sectionId: sourceFile.sectionId,
+        program: sourceFile.program,
+        uuid: 'replacement',
+      },
+    })
+    const replacement = store.getState().reports.submittedFiles[0]
+    expect(replacement.id).toBeNull()
+    expect(replacement.isValidating).toBe(true)
+    expect(replacement.validatedYear).toBeUndefined()
+    expect(replacement.validatedQuarter).toBeUndefined()
+  })
+
+  it('initializes exactly sparse descriptors and keeps empty assignments empty across resets', () => {
+    const store = createReportsStore()
+    const configuration = uploadConfiguration({
+      sectionNames: ['Aggregate Data', 'Active Case Data'],
+    })
+    const scope = store.dispatch(configureUploadSections(configuration))
+    expect(
+      store.getState().reports.submittedFiles.map((slot) => slot.section)
+    ).toEqual(['Aggregate Data', 'Active Case Data'])
+    stageScopedFile(store, scope)
+    store.dispatch(clearFileList({ fileType: 'tanf', uploadScope: scope }))
+    expect(store.getState().reports.uploadScope.generation).not.toBe(
+      scope.generation
+    )
+    expect(store.getState().reports.submittedFiles).toHaveLength(2)
+    expect(
+      store.getState().reports.submittedFiles.every((file) => !file.uuid)
+    ).toBe(true)
+
+    store.dispatch(
+      configureUploadSections(uploadConfiguration({ sectionNames: [] }))
+    )
+    store.dispatch(clearFileList({ fileType: 'tanf' }))
+    store.dispatch(reinitializeSubmittedFiles('tanf'))
+    store.dispatch({
+      type: SET_FILE_ERROR,
+      payload: { section: 'Active Case Data' },
+    })
+    store.dispatch({
+      type: CLEAR_ERROR,
+      payload: { section: 'Active Case Data' },
+    })
+    expect(store.getState().reports.submittedFiles).toEqual([])
+  })
+
+  it('normalizes assignment identity without fiscal periods, status, or API ordering', () => {
+    const configuration = uploadConfiguration({
+      sectionNames: ['Aggregate Data', 'Active Case Data'],
+    })
+    expect(getUploadAssignmentKey(configuration)).toBe(
+      getUploadAssignmentKey({
+        ...configuration,
+        year: '2025',
+        quarter: 'Q2',
+        status: 'NEVER',
+        sections: [...configuration.sections].reverse(),
+      })
+    )
+    const store = createReportsStore()
+    const scope = store.dispatch(configureUploadSections(configuration))
+    stageScopedFile(store, scope)
+    expect(
+      store.dispatch(
+        configureUploadSections({
+          ...configuration,
+          sections: [...configuration.sections].reverse(),
+        })
+      )
+    ).toBe(scope)
+    expect(store.getState().reports.submittedFiles[0].uuid).toBe('file-a')
+  })
+
+  it.each(['ssp', 'tanf'])(
+    'rejects stale updates, unscoped writes, and wrong section/program identity for %s',
+    (programSlug) => {
+      const store = createReportsStore()
+      const oldScope = store.dispatch(
+        configureUploadSections(uploadConfiguration())
+      )
+      const oldFile = stageScopedFile(store, oldScope)
+      const scope = store.dispatch(
+        configureUploadSections(uploadConfiguration({ sttId: 2, programSlug }))
+      )
+      const file = stageScopedFile(store, scope, 'file-b')
+      const before = store.getState().reports
+      for (const type of [
+        SET_FILE,
+        SET_FILE_ERROR,
+        FILE_EXT_ERROR,
+        CLEAR_ERROR,
+        CLEAR_FILE,
+      ]) {
+        store.dispatch({ type, payload: { ...oldFile, uploadScope: oldScope } })
+        store.dispatch({
+          type,
+          payload: { ...file, uploadScope: scope, sectionId: -1 },
+        })
+        store.dispatch({
+          type,
+          payload: {
+            ...file,
+            uploadScope: scope,
+            program: { id: -1, slug: 'tanf' },
+          },
+        })
+        store.dispatch({ type, payload: { section: file.section } })
+      }
+      store.dispatch(clearFileList({ fileType: 'tanf', uploadScope: oldScope }))
+      store.dispatch(
+        reinitializeSubmittedFiles('tanf', { uploadScope: oldScope })
+      )
+      expect(store.getState().reports).toBe(before)
+      expect(Object.hasOwn(before.submittedFiles, '-1')).toBe(false)
+    }
+  )
+
+  it('never replaces a newer UUID with a same-name submitted file', () => {
+    const store = createReportsStore()
+    const scope = store.dispatch(configureUploadSections(uploadConfiguration()))
+    const sourceFile = stageScopedFile(store, scope)
+    const replacement = stageScopedFile(store, scope, 'replacement')
+    store.dispatch({
+      type: SET_FILE_SUBMITTED,
+      payload: {
+        uploadScope: scope,
+        sourceFile,
+        submittedFile: {
+          id: 99,
+          slug: sourceFile.uuid,
+          section: sourceFile.section,
+          program_type: 'TAN',
+        },
+      },
+    })
+    expect(store.getState().reports.submittedFiles[0]).toBe(replacement)
+  })
+
+  it('clears scoped errors without losing the staged file or mutating its array', () => {
+    const store = createReportsStore()
+    const scope = store.dispatch(configureUploadSections(uploadConfiguration()))
+    const file = stageScopedFile(store, scope)
+    store.dispatch({
+      type: SET_FILE_ERROR,
+      payload: { ...file, uploadScope: scope, error: { message: 'invalid' } },
+    })
+    const before = Object.freeze(store.getState().reports.submittedFiles)
+    store.dispatch({
+      type: CLEAR_ERROR,
+      payload: { ...file, uploadScope: scope },
+    })
+    expect(before[0].error).toEqual({ message: 'invalid' })
+    expect(store.getState().reports.submittedFiles[0]).toEqual({
+      ...before[0],
+      error: null,
+    })
+  })
+
+  it('keeps PIA defaults when the configured path is explicitly left', () => {
+    const store = createReportsStore()
+    const oldScope = store.dispatch(
+      configureUploadSections(uploadConfiguration({ sectionNames: [] }))
+    )
+    store.dispatch(configureUploadSections(null))
+    store.dispatch(reinitializeSubmittedFiles('program-integrity-audit'))
+    expect(
+      store.getState().reports.submittedFiles.map((file) => file.section)
+    ).toEqual(programIntegrityAuditLabels)
+    store.dispatch(clearFileList({ fileType: 'program-integrity-audit' }))
+    expect(
+      store.getState().reports.submittedFiles.map((file) => file.section)
+    ).toEqual(programIntegrityAuditLabels)
+    const before = store.getState().reports
+    store.dispatch(
+      reinitializeSubmittedFiles('tanf', { uploadScope: oldScope })
+    )
+    expect(store.getState().reports).toBe(before)
+  })
+
+  it('does not let an old unmount invalidate a newer upload assignment', () => {
+    const store = createReportsStore()
+    const oldScope = store.dispatch(
+      configureUploadSections(uploadConfiguration())
+    )
+    const current = store.dispatch(
+      configureUploadSections(uploadConfiguration({ sttId: 2 }))
+    )
+    store.dispatch(configureUploadSections(null, oldScope))
+    expect(store.getState().reports.uploadScope).toBe(current)
+    store.dispatch(configureUploadSections(null, current))
+    expect(store.getState().reports.uploadScope).toBeNull()
+  })
+
+  it('rejects stale history results/errors/status callbacks and invalidates cleared queries', () => {
+    const old = { key: 'query-a', requestId: '1' }
+    const current = { key: 'query-b', requestId: '2' }
+    let state = reducer(undefined, {
+      type: FETCH_FILE_LIST,
+      payload: { historyScope: old },
+    })
+    state = reducer(state, {
+      type: FETCH_FILE_LIST,
+      payload: { historyScope: current },
+    })
+    for (const type of [
+      SET_FILE_LIST,
+      FETCH_FILE_LIST_ERROR,
+      SET_TANF_SUBMISSION_STATUS,
+    ]) {
+      expect(
+        reducer(state, { type, payload: { historyScope: old, data: [] } })
+      ).toBe(state)
+      expect(reducer(state, { type, payload: { data: [] } })).toBe(state)
+    }
+    const cleared = reducer(state, {
+      type: INVALIDATE_FILE_LIST,
+      payload: { historyScope: current },
+    })
+    expect(cleared.files).toEqual([])
+    expect(cleared.loading).toBe(false)
+    expect(
+      reducer(cleared, {
+        type: SET_FILE_LIST,
+        payload: { historyScope: current, data: [{ id: 1 }] },
+      })
+    ).toBe(cleared)
   })
 })

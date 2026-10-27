@@ -1,10 +1,21 @@
-import { render, fireEvent, waitFor, act } from '@testing-library/react'
+import {
+  render,
+  renderHook,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react'
 import { get } from '../fetch-instance'
 import { usePollingTimer } from './usePollingTimer'
+import { deferred } from '../test-utils/reportScopes'
 
 jest.mock('../fetch-instance')
 
 describe('usePollingTimer', () => {
+  afterEach(() => {
+    jest.restoreAllMocks()
+    jest.useRealTimers()
+  })
   const setupMockFuncs = () => {
     jest.useFakeTimers()
     return {
@@ -412,9 +423,9 @@ describe('usePollingTimer', () => {
   })
 
   it('should clear all timers when un-mounted', async () => {
+    const mocks = setupMockFuncs()
     jest.spyOn(global, 'setTimeout')
     jest.spyOn(global, 'clearTimeout')
-    const mocks = setupMockFuncs()
     get.mockResolvedValue({
       data: { id: 1, hasErrors: false, summary: { status: 'Pending' } },
       ok: true,
@@ -451,4 +462,102 @@ describe('usePollingTimer', () => {
 
     expect(clearTimeout).toHaveBeenCalledTimes(2)
   })
+})
+
+describe('polling generation cancellation', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+
+  it.each(['success', 'network-error', 'retryable-error'])(
+    'does not retry or announce a stale in-flight %s after cancellation',
+    async (outcome) => {
+      const pending = deferred()
+      const request = jest.fn(() => pending.promise)
+      const onSuccess = jest.fn()
+      const onError = jest.fn()
+      const onTimeout = jest.fn()
+      const { result } = renderHook(() => usePollingTimer())
+      let current = true
+      act(() => {
+        result.current.startPolling(
+          'a',
+          request,
+          () => true,
+          onSuccess,
+          onError,
+          onTimeout,
+          10,
+          2,
+          { isCurrent: () => current }
+        )
+      })
+      await act(async () => {
+        jest.advanceTimersByTime(0)
+      })
+      current = false
+      await act(async () => {
+        if (outcome === 'network-error') pending.reject(new Error('offline'))
+        else
+          pending.resolve(
+            outcome === 'success' ? { ok: true } : { ok: false, status: 500 }
+          )
+      })
+      await act(async () => {
+        jest.advanceTimersByTime(100)
+      })
+      expect(request).toHaveBeenCalledTimes(1)
+      expect(onSuccess).not.toHaveBeenCalled()
+      expect(onError).not.toHaveBeenCalled()
+      expect(onTimeout).not.toHaveBeenCalled()
+      expect(result.current.isPolling.a).toBe(false)
+    }
+  )
+
+  it.each([false, true])(
+    'does not let an old request finish a newer poll with the same ID (stop all: %s)',
+    async (stopAll) => {
+      const old = deferred()
+      const newer = deferred()
+      const onOldSuccess = jest.fn()
+      const onNewSuccess = jest.fn()
+      const { result } = renderHook(() => usePollingTimer())
+      act(() => {
+        result.current.startPolling(
+          'same',
+          () => old.promise,
+          () => true,
+          onOldSuccess,
+          jest.fn(),
+          jest.fn()
+        )
+      })
+      await act(async () => {
+        jest.advanceTimersByTime(0)
+      })
+      if (stopAll) act(() => result.current.stopAllTimers())
+      act(() => {
+        result.current.startPolling(
+          'same',
+          () => newer.promise,
+          () => true,
+          onNewSuccess,
+          jest.fn(),
+          jest.fn()
+        )
+      })
+      await act(async () => {
+        jest.advanceTimersByTime(0)
+      })
+      await act(async () => {
+        old.resolve({ ok: true })
+      })
+      expect(onOldSuccess).not.toHaveBeenCalled()
+      expect(result.current.isPolling.same).toBe(true)
+      await act(async () => {
+        newer.resolve({ ok: true })
+      })
+      expect(onNewSuccess).toHaveBeenCalledTimes(1)
+      expect(result.current.isPolling.same).toBe(false)
+    }
+  )
 })

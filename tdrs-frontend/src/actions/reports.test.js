@@ -18,7 +18,15 @@ import {
   submit,
   getTanfSubmissionStatus,
   SET_FILE_SUBMITTED,
+  configureUploadSections,
+  INVALIDATE_FILE_LIST,
 } from './reports'
+import {
+  createReportsStore,
+  deferred,
+  uploadConfiguration,
+  stageScopedFile,
+} from '../test-utils/reportScopes'
 
 jest.mock('../fetch-instance')
 
@@ -299,5 +307,221 @@ describe('actions/reports', () => {
     )
 
     await expect(getTanfSubmissionStatus(123)).rejects.toThrow('Request failed')
+  })
+})
+
+describe('scoped report requests', () => {
+  const filters = {
+    stt: { id: 1 },
+    year: '2024',
+    quarter: 'Q1',
+    file_type: 'tanf',
+  }
+  const responseFor = (file) => ({
+    ok: true,
+    data: {
+      id: 42,
+      slug: file.uuid,
+      original_filename: file.fileName,
+      extension: 'txt',
+      section: file.section,
+      program_type: 'TAN',
+    },
+  })
+  const payloadFor = (scope, file) => ({
+    uploadScope: scope,
+    uploadedFiles: [file],
+    formattedSections: '3',
+    logger: { alert: jest.fn() },
+    setUploadAlertState: jest.fn(),
+    setProcessingAlertState: jest.fn(),
+    user: { id: 1 },
+    stt: scope.sttId,
+    year: '2024',
+    quarter: 'Q1',
+    ssp: false,
+    fileType: 'tanf',
+  })
+
+  it.each([false, true])(
+    'rejects old history results/errors before callbacks (same query: %s)',
+    async (sameQuery) => {
+      const store = createReportsStore()
+      const old = deferred()
+      const newer = deferred()
+      const onOldSuccess = jest.fn()
+      const onNewSuccess = jest.fn()
+      get.mockReturnValueOnce(old.promise).mockReturnValueOnce(newer.promise)
+      const first = store.dispatch(
+        getAvailableFileList(filters, onOldSuccess, { scoped: true })
+      )
+      const second = store.dispatch(
+        getAvailableFileList(
+          sameQuery ? filters : { ...filters, file_type: 'ssp-moe' },
+          onNewSuccess,
+          { scoped: true }
+        )
+      )
+      newer.resolve({
+        ok: true,
+        data: [{ id: 2, section: 'Closed Case Data' }],
+      })
+      await second
+      const current = store.getState().reports
+      old.resolve({ ok: true, data: [{ id: 1, section: 'Active Case Data' }] })
+      await first
+      expect(store.getState().reports).toBe(current)
+      expect(current.files.map((file) => file.id)).toEqual([2])
+      expect(onOldSuccess).not.toHaveBeenCalled()
+      expect(onNewSuccess).toHaveBeenCalledTimes(1)
+    }
+  )
+
+  it.each(['error-response', 'network-error'])(
+    'does not end a newer query when an old %s arrives',
+    async (errorType) => {
+      const store = createReportsStore()
+      const old = deferred()
+      const newer = deferred()
+      get.mockReturnValueOnce(old.promise).mockReturnValueOnce(newer.promise)
+      const first = store.dispatch(
+        getAvailableFileList(filters, undefined, { scoped: true })
+      )
+      const second = store.dispatch(
+        getAvailableFileList({ ...filters, year: '2025' }, undefined, {
+          scoped: true,
+        })
+      )
+      if (errorType === 'network-error') old.reject(new Error('offline'))
+      else old.resolve({ ok: false, error: new Error('bad request') })
+      await first
+      expect(store.getState().reports.loading).toBe(true)
+      newer.resolve({ ok: true, data: [] })
+      await second
+      expect(store.getState().reports.loading).toBe(false)
+    }
+  )
+
+  it('does not restore a cleared history selection or run its completion callback', async () => {
+    const store = createReportsStore()
+    const pending = deferred()
+    const onSuccess = jest.fn()
+    get.mockReturnValueOnce(pending.promise)
+    const request = store.dispatch(
+      getAvailableFileList(filters, onSuccess, { scoped: true })
+    )
+    const historyScope = store.getState().reports.historyScope
+    store.dispatch({ type: INVALIDATE_FILE_LIST, payload: { historyScope } })
+    pending.resolve({ ok: true, data: [{ id: 1 }] })
+    await request
+    expect(onSuccess).not.toHaveBeenCalled()
+    expect(store.getState().reports.files).toEqual([])
+  })
+
+  it.each(['selection', 'replacement', 'unmounted'])(
+    'retains successful server outcomes/audits but suppresses stale %s UI effects',
+    async (transition) => {
+      const store = createReportsStore()
+      const scope = store.dispatch(
+        configureUploadSections(uploadConfiguration())
+      )
+      const file = stageScopedFile(store, scope)
+      const payload = payloadFor(scope, file)
+      let mounted = true
+      payload.isCurrent = () => mounted
+      const pending = deferred()
+      post.mockReturnValueOnce(pending.promise)
+      const onComplete = jest.fn()
+      const request = store.dispatch(submit(payload, onComplete))
+      if (transition === 'selection')
+        store.dispatch(
+          configureUploadSections(uploadConfiguration({ sttId: 2 }))
+        )
+      else if (transition === 'replacement')
+        stageScopedFile(store, scope, 'replacement')
+      else mounted = false
+      const current = store.getState().reports
+      const response = responseFor(file)
+      pending.resolve(response)
+      await expect(request).resolves.toEqual([response.data])
+      expect(store.getState().reports).toBe(current)
+      expect(payload.logger.alert).toHaveBeenCalledWith(expect.any(String), {
+        files: [42],
+        activity: 'upload',
+      })
+      expect(payload.setProcessingAlertState).not.toHaveBeenCalled()
+      expect(payload.setUploadAlertState).not.toHaveBeenCalled()
+      expect(onComplete).not.toHaveBeenCalled()
+    }
+  )
+
+  it('ignores stale POST errors after switching programs', async () => {
+    const store = createReportsStore()
+    const scope = store.dispatch(configureUploadSections(uploadConfiguration()))
+    const payload = payloadFor(scope, stageScopedFile(store, scope))
+    const pending = deferred()
+    post.mockReturnValueOnce(pending.promise)
+    const request = store.dispatch(submit(payload))
+    store.dispatch(
+      configureUploadSections(uploadConfiguration({ programSlug: 'ssp' }))
+    )
+    pending.reject(new Error('offline'))
+    await request
+    expect(payload.setUploadAlertState).not.toHaveBeenCalled()
+  })
+
+  it('preserves the scalar multipart contract and updates only the captured UUID', async () => {
+    const store = createReportsStore()
+    const scope = store.dispatch(configureUploadSections(uploadConfiguration()))
+    const file = stageScopedFile(store, scope)
+    const payload = payloadFor(scope, file)
+    const response = responseFor(file)
+    const onComplete = jest.fn()
+    post.mockResolvedValueOnce(response)
+    await store.dispatch(submit(payload, onComplete))
+    const formData = post.mock.calls[0][1]
+    expect(formData.get('section')).toBe('Aggregate Data')
+    expect(formData.get('ssp')).toBe('false')
+    expect([...formData.keys()]).not.toEqual(
+      expect.arrayContaining(['uploadScope', 'sectionId', 'program'])
+    )
+    expect(store.getState().reports.submittedFiles[0]).toMatchObject({
+      id: 42,
+      uuid: file.uuid,
+      sectionId: file.sectionId,
+      program: file.program,
+    })
+    expect(onComplete).toHaveBeenCalledWith([42], [response.data])
+    expect(payload.logger.alert).toHaveBeenCalledTimes(1)
+  })
+
+  it('audits successful writes even when another scoped upload fails', async () => {
+    const store = createReportsStore()
+    const scope = store.dispatch(
+      configureUploadSections(
+        uploadConfiguration({
+          sectionNames: ['Aggregate Data', 'Active Case Data'],
+        })
+      )
+    )
+    const first = stageScopedFile(store, scope)
+    const second = stageScopedFile(store, scope, 'file-b', scope.sections[1])
+    const payload = {
+      ...payloadFor(scope, first),
+      uploadedFiles: [first, second],
+    }
+    post
+      .mockResolvedValueOnce(responseFor(first))
+      .mockRejectedValueOnce(new Error('offline'))
+    const onComplete = jest.fn()
+    await store.dispatch(submit(payload, onComplete))
+    expect(payload.logger.alert).toHaveBeenCalledWith(expect.any(String), {
+      files: [42],
+      activity: 'upload',
+    })
+    expect(payload.setUploadAlertState).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'error' })
+    )
+    expect(onComplete).not.toHaveBeenCalled()
   })
 })

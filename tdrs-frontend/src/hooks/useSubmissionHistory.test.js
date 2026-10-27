@@ -1,11 +1,15 @@
 import React from 'react'
-import { render, waitFor } from '@testing-library/react'
+import { render, renderHook, act, waitFor } from '@testing-library/react'
 import configureMockStore from 'redux-mock-store'
 import { Provider } from 'react-redux'
 import { thunk } from 'redux-thunk'
 
 import { useSubmissionHistory } from './useSubmissionHistory'
 import { SET_TANF_SUBMISSION_STATUS } from '../actions/reports'
+import { get } from '../fetch-instance'
+import { createReportsStore, deferred } from '../test-utils/reportScopes'
+
+jest.mock('../fetch-instance')
 
 const mockContext = {
   isPolling: {},
@@ -37,6 +41,7 @@ describe('useSubmissionHistory', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockContext.isPolling = {}
+    get.mockResolvedValue({ ok: true, data: [] })
   })
 
   it('restarts polling for pending files when history loads', async () => {
@@ -188,5 +193,133 @@ describe('useSubmissionHistory', () => {
         datafile: response.data,
       },
     })
+  })
+})
+
+describe('scoped useSubmissionHistory', () => {
+  const filters = {
+    stt: { id: 1 },
+    file_type: 'tanf',
+    year: '2024',
+    quarter: 'Q1',
+  }
+  const setup = (initialFilters = filters, enabled = true) => {
+    const store = createReportsStore()
+    const renders = []
+    const hook = renderHook(
+      ({ filterValues, enabled }) => {
+        const history = useSubmissionHistory(filterValues, {
+          scoped: true,
+          enabled,
+        })
+        renders.push({ filterValues, ...history })
+        return history
+      },
+      {
+        initialProps: { filterValues: initialFilters, enabled },
+        wrapper: ({ children }) => (
+          <Provider store={store}>{children}</Provider>
+        ),
+      }
+    )
+    return { ...hook, store, renders }
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockContext.isPolling = { 99: false }
+    get.mockResolvedValue({ ok: true, data: [] })
+  })
+
+  it('fetches on first mount/remount despite stale completed polling flags', async () => {
+    const first = setup()
+    await waitFor(() => expect(first.result.current.loading).toBe(false))
+    expect(get).toHaveBeenCalledTimes(1)
+    first.unmount()
+    const second = setup()
+    await waitFor(() => expect(second.result.current.loading).toBe(false))
+    expect(get).toHaveBeenCalledTimes(2)
+  })
+
+  it('uses primitive query identity instead of nested metadata or object references', async () => {
+    const hook = setup()
+    await waitFor(() => expect(hook.result.current.loading).toBe(false))
+    hook.rerender({
+      filterValues: { ...filters, stt: { id: 1, program_participations: [] } },
+      enabled: true,
+    })
+    expect(get).toHaveBeenCalledTimes(1)
+  })
+
+  it('hides old rows on the selection render and never restarts polling for a late result', async () => {
+    const old = deferred()
+    const newer = deferred()
+    get.mockReturnValueOnce(old.promise).mockReturnValueOnce(newer.promise)
+    const hook = setup()
+    hook.rerender({
+      filterValues: { ...filters, stt: { id: 2 } },
+      enabled: true,
+    })
+    await act(async () => {
+      newer.resolve({
+        ok: true,
+        data: [
+          { id: 2, section: 'Aggregate Data', summary: { status: 'Accepted' } },
+        ],
+      })
+    })
+    await act(async () => {
+      old.resolve({
+        ok: true,
+        data: [
+          { id: 1, section: 'Aggregate Data', summary: { status: 'Pending' } },
+        ],
+      })
+    })
+    expect(hook.result.current.files.map((file) => file.id)).toEqual([2])
+    expect(mockContext.startPolling).not.toHaveBeenCalled()
+
+    const third = deferred()
+    get.mockReturnValueOnce(third.promise)
+    hook.rerender({ filterValues: { ...filters, year: '2025' }, enabled: true })
+    const firstNewPeriodRender = hook.renders.find(
+      (entry) => entry.filterValues.year === '2025'
+    )
+    expect(firstNewPeriodRender.files).toEqual([])
+    await act(async () => {
+      third.resolve({ ok: true, data: [] })
+    })
+  })
+
+  it('guards old poll callbacks after clearing selection and cancels its timer', async () => {
+    const cancel = jest.fn()
+    mockContext.startPolling.mockReturnValue(cancel)
+    get.mockResolvedValueOnce({
+      ok: true,
+      data: [
+        { id: 7, section: 'Aggregate Data', summary: { status: 'Pending' } },
+      ],
+    })
+    const hook = setup()
+    await waitFor(() =>
+      expect(mockContext.startPolling).toHaveBeenCalledTimes(1)
+    )
+    const args = mockContext.startPolling.mock.calls[0]
+    expect(args[0]).toContain(':7')
+    expect(args[8].isCurrent()).toBe(true)
+    hook.rerender({ filterValues: { ...filters, stt: null }, enabled: true })
+    expect(args[8].isCurrent()).toBe(false)
+    act(() => args[3]({ data: { id: 7, summary: { status: 'Accepted' } } }))
+    expect(hook.result.current.files).toEqual([])
+    expect(cancel).toHaveBeenCalledTimes(1)
+    expect(get).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not fetch an explicitly disabled or unresolved history query', () => {
+    const hook = setup(filters, false)
+    expect(hook.result.current.files).toEqual([])
+    expect(get).not.toHaveBeenCalled()
+    hook.rerender({ filterValues: { ...filters, stt: null }, enabled: true })
+    expect(get).not.toHaveBeenCalled()
   })
 })
