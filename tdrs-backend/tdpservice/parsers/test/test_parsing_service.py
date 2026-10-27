@@ -381,6 +381,39 @@ class TestParsingServiceExecution:
         datafile.refresh_from_db()
         assert datafile.state == SubmissionState.PARSE_FAILED
 
+    def test_metrics_database_error_does_not_block_parse_cleanup(
+        self, monkeypatch, data_analyst
+    ):
+        """A failed optional error-count query does not prevent failure cleanup."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt, version=2, state=SubmissionState.VIRUS_SCAN_COMPLETED
+        )
+        ensure_stt_filenames(datafile.stt)
+        setup_service_mocks(monkeypatch)
+
+        dummy_parser = DummyParser(exc=RuntimeError("unexpected parser crash"))
+        from tdpservice.parsers import service
+
+        monkeypatch.setattr(
+            service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
+        )
+        original_filter = ParserError.objects.filter
+
+        def fail_metrics_filter(*args, **kwargs):
+            if kwargs.get("deprecated") is False:
+                raise DatabaseError("metrics query timed out")
+            return original_filter(*args, **kwargs)
+
+        monkeypatch.setattr(ParserError.objects, "filter", fail_metrics_filter)
+
+        result = ParsingService(data_file=datafile).run()
+
+        assert result.success is False
+        assert result.total_errors_generated == 0
+        datafile.refresh_from_db()
+        assert datafile.state == SubmissionState.PARSE_FAILED
+        assert datafile.current_parse_token is None
+
     def test_parse_unexpected_exception_creates_error_and_returns_failed_result(
         self, monkeypatch, data_analyst
     ):
@@ -466,12 +499,11 @@ class TestParsingServiceExecution:
         assert last_transition.metadata.get("execution_duration_ms") is not None
         assert last_transition.metadata.get("execution_duration_ms") >= 0
         assert last_transition.metadata.get("total_records_processed") == 0
-        assert last_transition.metadata.get("total_errors_generated") == 0
+        assert last_transition.metadata.get("total_errors_generated") == 1
+        assert result.total_errors_generated == 1
 
-    def test_parse_records_execution_metadata_on_shadow_data_file_success(
-        self, monkeypatch, data_analyst
-    ):
-        """Verify execution metadata is recorded on ShadowDataFile state transition on success."""
+    def test_python_run_rejects_shadow_data_file(self, data_analyst):
+        """Python run is limited to production files; Go output uses post_parse."""
         datafile = DataFileFactory(
             stt=data_analyst.stt,
             version=8,
@@ -480,65 +512,16 @@ class TestParsingServiceExecution:
         )
         shadow_datafile = create_or_update_shadow_data_file(datafile)
         ensure_stt_filenames(datafile.stt)
-        setup_service_mocks(monkeypatch)
 
-        dummy_parser = DummyParser()
-        from tdpservice.parsers import service
+        with pytest.raises(ValueError, match="Python parsing only supports production"):
+            ParsingService(data_file=shadow_datafile).run()
 
-        monkeypatch.setattr(
-            service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
-        )
-
-        ps = ParsingService(data_file=shadow_datafile)
-        result = ps.run()
-
-        assert result.success is True
-        transitions = DataFileStateTransition.objects.for_object(shadow_datafile)
-        last_transition = transitions.first()
-        assert last_transition is not None
-        assert last_transition.content_object == shadow_datafile
-        assert last_transition.metadata.get("parser_class") == "DummyParser"
-        assert last_transition.metadata.get("execution_duration_ms") is not None
-        assert last_transition.metadata.get("execution_duration_ms") >= 0
-        assert last_transition.metadata.get("total_records_processed") == 0
-        assert last_transition.metadata.get("total_errors_generated") == 0
-        assert last_transition.metadata.get("section") == Section.Name.AGGREGATE_DATA
-
-    def test_parse_records_execution_metadata_on_shadow_data_file_failure(
-        self, monkeypatch, data_analyst
-    ):
-        """Verify execution metadata is recorded on ShadowDataFile state transition on failure."""
-        datafile = DataFileFactory(
-            stt=data_analyst.stt,
-            version=9,
-            state=SubmissionState.VIRUS_SCAN_COMPLETED,
-            section=Section.Name.ACTIVE_CASE_DATA,
-        )
-        shadow_datafile = create_or_update_shadow_data_file(datafile)
-        ensure_stt_filenames(datafile.stt)
-        setup_service_mocks(monkeypatch)
-
-        dummy_parser = DummyParser(exc=RuntimeError("shadow parse failed"))
-        from tdpservice.parsers import service
-
-        monkeypatch.setattr(
-            service.ParserFactory, "get_instance", lambda **kwargs: dummy_parser
-        )
-
-        ps = ParsingService(data_file=shadow_datafile)
-        result = ps.run()
-
-        assert result.success is False
-        transitions = DataFileStateTransition.objects.for_object(shadow_datafile)
-        last_transition = transitions.first()
-        assert last_transition is not None
-        assert last_transition.content_object == shadow_datafile
-        assert last_transition.metadata.get("parser_class") == "DummyParser"
-        assert last_transition.metadata.get("execution_duration_ms") is not None
-        assert last_transition.metadata.get("execution_duration_ms") >= 0
-        assert last_transition.metadata.get("total_records_processed") == 0
-        assert last_transition.metadata.get("total_errors_generated") == 0
-        assert last_transition.metadata.get("section") == Section.Name.ACTIVE_CASE_DATA
+        shadow_datafile.refresh_from_db()
+        assert shadow_datafile.state == SubmissionState.VIRUS_SCAN_COMPLETED
+        assert not ShadowDataFileSummary.objects.filter(
+            datafile=shadow_datafile
+        ).exists()
+        assert not DataFileStateTransition.objects.for_object(shadow_datafile).exists()
 
     def test_post_parse_production_success(self, data_analyst):
         """Verify post_parse finalizes production data file summary and transitions state."""
@@ -776,10 +759,27 @@ class TestSummaryStatusAndAggregates:
                         {"accepted_without_errors": 10, "accepted_with_errors": 5},
                         {"accepted_without_errors": 20, "accepted_with_errors": 0},
                     ]
-                }
+                },
+                "total_number_of_records_in_file": 35,
             },
         )()
         assert _calculate_total_records(dfs_with_months) == 35
+
+        # A case with several records contributes several processed records.
+        dfs_multi_record_case = type(
+            "DFS",
+            (),
+            {
+                "case_aggregates": {
+                    "months": [
+                        {"accepted_without_errors": 1, "accepted_with_errors": 0}
+                    ]
+                },
+                "total_number_of_records_in_file": 3,
+                "total_number_of_records_created": 3,
+            },
+        )()
+        assert _calculate_total_records(dfs_multi_record_case) == 3
 
         # Fallback to total_number_of_records_in_file
         dfs_fallback_file = type(

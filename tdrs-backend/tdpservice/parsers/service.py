@@ -537,25 +537,29 @@ def _add_unexpected_error(data_file, parse_token=None):
 
 
 def _calculate_total_records(dfs: Optional[Any] = None) -> int:
-    """Calculate total records processed from summary case aggregates or record totals."""
+    """Calculate total records processed from summary record counters."""
     if dfs is None:
         return 0
-    total_records = 0
-    if dfs.case_aggregates and isinstance(dfs.case_aggregates, dict):
-        for month_data in dfs.case_aggregates.get("months", []):
-            accepted_no_err = month_data.get("accepted_without_errors")
-            accepted_err = month_data.get("accepted_with_errors")
-            if isinstance(accepted_no_err, int):
-                total_records += accepted_no_err
-            if isinstance(accepted_err, int):
-                total_records += accepted_err
-    if total_records == 0:
-        total_records = (
-            getattr(dfs, "total_number_of_records_in_file", 0)
-            or getattr(dfs, "total_number_of_records_created", 0)
-            or 0
+    return (
+        getattr(dfs, "total_number_of_records_in_file", 0)
+        or getattr(dfs, "total_number_of_records_created", 0)
+        or 0
+    )
+
+
+def _count_parser_errors(data_file, parser_error_model):
+    """Best-effort count of active errors for execution metrics."""
+    try:
+        return parser_error_model.objects.filter(
+            file=data_file, deprecated=False
+        ).count()
+    except DatabaseError:
+        logger.warning(
+            "Failed to count parser errors for execution metadata.",
+            extra={"data_file_id": getattr(data_file, "id", None)},
+            exc_info=True,
         )
-    return total_records
+        return None
 
 
 def _get_execution_metadata(
@@ -570,9 +574,11 @@ def _get_execution_metadata(
     if data_file is not None:
         parser_models = _parser_models_for_instance(data_file)
         if parser_models.parser_error_model:
-            total_errors = parser_models.parser_error_model.objects.filter(
-                file=data_file, deprecated=False
-            ).count()
+            error_count = _count_parser_errors(
+                data_file, parser_models.parser_error_model
+            )
+            if error_count is not None:
+                total_errors = error_count
 
     return {
         "parser_class": parser_class,
@@ -622,6 +628,10 @@ def _record_failed_parse(
                 "reparse_id": reparse_id,
             },
         )
+    if extra_metadata is not None and data_file is not None:
+        error_count = _count_parser_errors(data_file, models.parser_error_model)
+        if error_count is not None:
+            extra_metadata["total_errors_generated"] = error_count
     if data_file is not None:
         if not is_shadow and parse_token is None:
             return False
@@ -895,6 +905,14 @@ class ParsingService:
                     source="python_parser",
                 )
 
+    def _validate_python_parse_target(self) -> None:
+        """Ensure Python parsing is only used for production DataFiles."""
+        if self.uses_shadow_table:
+            raise ValueError(
+                "Python parsing only supports production DataFiles; use post_parse() "
+                "for shadow parser output."
+            )
+
     def post_parse(
         self,
         parse_error: Optional[str] = None,
@@ -1066,7 +1084,9 @@ class ParsingService:
         )
 
     def run(self) -> ParseResult:
-        """Execute parsing flow for the target DataFile and return a ParseResult."""
+        """Parse a production DataFile and return a ParseResult."""
+        self._validate_python_parse_target()
+
         data_file = None
         reparse_success = True
         stale_owner = False
@@ -1220,6 +1240,9 @@ class ParsingService:
                 event_id=self.event_id,
                 extra_metadata=execution_meta,
             )
+            total_errors_generated = execution_meta.get(
+                "total_errors_generated", 0
+            )
             return ParseResult(
                 success=False,
                 data_file=data_file,
@@ -1266,6 +1289,9 @@ class ParsingService:
                 self.reparse_id,
                 event_id=self.event_id,
                 extra_metadata=execution_meta,
+            )
+            total_errors_generated = execution_meta.get(
+                "total_errors_generated", 0
             )
             return ParseResult(
                 success=False,
@@ -1335,6 +1361,9 @@ class ParsingService:
                 add_unexpected_error=True,
                 event_id=self.event_id,
                 extra_metadata=execution_meta,
+            )
+            total_errors_generated = execution_meta.get(
+                "total_errors_generated", 0
             )
             return ParseResult(
                 success=False,
