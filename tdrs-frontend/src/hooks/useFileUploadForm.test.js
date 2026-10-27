@@ -20,7 +20,7 @@ jest.mock('../components/Reports/ReportsContext', () => ({
 }))
 
 describe('opt-in scoped upload form', () => {
-  const setup = () => {
+  const setup = (validateSubmission) => {
     const store = createReportsStore()
     const scope = store.dispatch(configureUploadSections(uploadConfiguration()))
     const file = stageScopedFile(store, scope)
@@ -42,6 +42,7 @@ describe('opt-in scoped upload form', () => {
         useFileUploadForm({
           stt: { id: scope.sttId },
           uploadScope: scope,
+          validateSubmission,
           formatSections: () => '3',
           getSubmitPayload: (payload) => ({ ...payload, ssp: false }),
         }),
@@ -77,6 +78,38 @@ describe('opt-in scoped upload form', () => {
     await act(async () => {
       await hook.result.current.onSubmit({ preventDefault: jest.fn() })
     })
+    expect(post).not.toHaveBeenCalled()
+    expect(mockContext.setUploadAlertState).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'error' })
+    )
+  })
+
+  it('runs the optional assignment validator against current Redux before any transformation or POST', async () => {
+    const validator = jest.fn(() => 'A staged file is no longer assigned.')
+    const hook = setup(validator)
+    await act(async () =>
+      hook.result.current.onSubmit({ preventDefault: jest.fn() })
+    )
+    expect(validator).toHaveBeenCalledWith({
+      reports: hook.store.getState().reports,
+      year: '2024',
+      quarter: 'Q1',
+    })
+    expect(post).not.toHaveBeenCalled()
+    expect(mockContext.setUploadAlertState).toHaveBeenCalledWith({
+      active: true,
+      type: 'error',
+      message: 'A staged file is no longer assigned.',
+    })
+  })
+
+  it('does not submit scoped files missing completed fiscal validation', async () => {
+    const hook = setup()
+    mockContext.uploadedFiles = [{ ...hook.file, validatedYear: undefined }]
+    hook.rerender({ scope: hook.scope })
+    await act(async () =>
+      hook.result.current.onSubmit({ preventDefault: jest.fn() })
+    )
     expect(post).not.toHaveBeenCalled()
     expect(mockContext.setUploadAlertState).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'error' })

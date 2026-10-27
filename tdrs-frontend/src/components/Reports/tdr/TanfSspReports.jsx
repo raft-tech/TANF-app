@@ -1,14 +1,12 @@
-import React, { useEffect, useRef } from 'react'
+import React from 'react'
 import classNames from 'classnames'
 import { quarters } from '../utils'
 import { FiscalQuarterExplainer } from '../components/Explainers'
 import SectionFileUploadForm from '../../FileUploadForms/SectionFileUploadForm'
 import SectionSubmissionHistory from '../../SubmissionHistory/SectionSubmissionHistory'
-import SegmentedControl from '../../SegmentedControl'
 import FiscalYearSelect from '../components/FiscalYearSelect'
 import FiscalQuarterSelect from '../components/FisclaQuarterSelect'
 import FeedbackReportAlert from '../../FeedbackReports/FeedbackReportAlert'
-import { POLLING_TIMEOUT_MESSAGE } from '../constants'
 import { useReportsContext } from '../ReportsContext'
 import { REPORT_TYPES } from '../../FeedbackReports/FeedbackReportsConstants'
 
@@ -17,7 +15,6 @@ const TanfSspReports = ({ stt, isRegionalStaff, isDataAnalyst }) => {
     yearInputValue,
     quarterInputValue,
     fileTypeInputValue,
-    setSelectedSubmissionTab,
     setReprocessedModalVisible,
     setReprocessedDate,
     headerRef,
@@ -25,7 +22,16 @@ const TanfSspReports = ({ stt, isRegionalStaff, isDataAnalyst }) => {
     processingAlert,
     uploadAlertRef,
     processingAlertRef,
+    tdrAssignment,
+    sttResolution,
+    uploadScope,
+    uploadScopeReady,
   } = useReportsContext()
+
+  const { sections, program, state, error } = tdrAssignment
+  const programLabel =
+    fileTypeInputValue === 'ssp-moe' ? 'SSP-MOE' : program?.name || 'TANF'
+  const ready = state === 'ready' && sections.length > 0 && uploadScopeReady
 
   const feedbackReportType =
     stt?.type?.toLowerCase() === 'tribe'
@@ -44,6 +50,15 @@ const TanfSspReports = ({ stt, isRegionalStaff, isDataAnalyst }) => {
         </div>
       </div>
 
+      {sttResolution.state === 'loading' && (
+        <p role="status">Loading report assignments...</p>
+      )}
+      {state === 'error' && (
+        <p role="alert">
+          Report section configuration could not be loaded. {error} Contact
+          support.
+        </p>
+      )}
       {yearInputValue && quarterInputValue && stt && (
         <>
           <hr />
@@ -52,7 +67,7 @@ const TanfSspReports = ({ stt, isRegionalStaff, isDataAnalyst }) => {
             className="font-serif-xl margin-top-5 margin-bottom-0 text-normal"
             tabIndex="-1"
           >
-            {`${stt.name} - ${fileTypeInputValue.toUpperCase()} - Fiscal Year ${yearInputValue} - ${quarters[quarterInputValue]}`}
+            {`${stt.name} - ${programLabel} - Fiscal Year ${yearInputValue} - ${quarters[quarterInputValue]}`}
           </h2>
 
           {(isDataAnalyst || isRegionalStaff) && (
@@ -77,7 +92,21 @@ const TanfSspReports = ({ stt, isRegionalStaff, isDataAnalyst }) => {
             </div>
           )}
 
-          {!isRegionalStaff && <SectionFileUploadForm stt={stt} />}
+          {state === 'ready' && !sections.length && (
+            <p role="status">
+              No report sections are assigned for this STT and program. Contact
+              support if this is unexpected.
+            </p>
+          )}
+          {ready && !isRegionalStaff && (
+            <SectionFileUploadForm
+              stt={stt}
+              sections={sections}
+              program={program}
+              programLabel={programLabel}
+              uploadScope={uploadScope}
+            />
+          )}
 
           <hr />
 
@@ -99,18 +128,22 @@ const TanfSspReports = ({ stt, isRegionalStaff, isDataAnalyst }) => {
             </div>
           )}
 
-          <SectionSubmissionHistory
-            filterValues={{
-              quarter: quarterInputValue,
-              year: yearInputValue,
-              stt: stt,
-              file_type: fileTypeInputValue,
-            }}
-            reprocessedState={{
-              setModalVisible: setReprocessedModalVisible,
-              setDate: setReprocessedDate,
-            }}
-          />
+          {ready && (
+            <SectionSubmissionHistory
+              sections={sections}
+              program={program}
+              filterValues={{
+                quarter: quarterInputValue,
+                year: yearInputValue,
+                stt: stt,
+                file_type: fileTypeInputValue,
+              }}
+              reprocessedState={{
+                setModalVisible: setReprocessedModalVisible,
+                setDate: setReprocessedDate,
+              }}
+            />
+          )}
         </>
       )}
     </>

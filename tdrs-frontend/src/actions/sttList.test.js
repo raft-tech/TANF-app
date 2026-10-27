@@ -59,7 +59,7 @@ describe('actions/stts.js', () => {
       { type: SET_STTS, payload: { data } },
     ])
     const state = store.getActions().reduce(sttListReducer, undefined)
-    expect(state).toEqual({ sttList: data, loading: false })
+    expect(state).toEqual({ sttList: data, loading: false, loaded: true })
     expect(
       state.sttList[0].program_participations[0].sections.map((s) => s.name)
     ).toEqual(['Aggregate Data', 'Active Case Data'])

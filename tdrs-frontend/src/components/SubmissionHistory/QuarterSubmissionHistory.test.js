@@ -10,6 +10,11 @@ import { MemoryRouter } from 'react-router'
 jest.mock('../../actions/reports')
 
 const initialState = {
+  featureFlags: {
+    flags: [
+      { feature_name: 'program-integrity-audit', enabled: true, config: {} },
+    ],
+  },
   auth: {
     authenticated: true,
     user: {
@@ -56,7 +61,9 @@ describe('QuarterSubmissionHistory', () => {
     return {
       ...render(
         <Provider store={store}>
-          <MemoryRouter>
+          <MemoryRouter
+            initialEntries={['/?type=program-integrity-audit&fy=2024']}
+          >
             <ReportsProvider>
               <QuarterSubmissionHistory
                 filterValues={filterValues}

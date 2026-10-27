@@ -146,7 +146,7 @@ describe('FileUpload', () => {
       }))
     })
 
-    it.each(['selection', 'replacement', 'unmount'])(
+    it.each(['selection', 'stt', 'assignment', 'replacement', 'unmount'])(
       'ignores an old FileReader extension error after %s',
       async (transition) => {
         const readers = []
@@ -163,18 +163,22 @@ describe('FileUpload', () => {
         fireEvent.change(input, {
           target: { files: [makeTestFile('old.pdf')] },
         })
-        if (transition === 'selection') {
+        if (['selection', 'stt', 'assignment'].includes(transition)) {
           let scope
           act(() => {
             scope = hook.store.dispatch(
               reportsActions.configureUploadSections(
-                uploadConfiguration({ programSlug: 'ssp' })
+                uploadConfiguration({
+                  programSlug: transition === 'selection' ? 'ssp' : 'tanf',
+                  sttId: transition === 'stt' ? 2 : 1,
+                  ...(transition === 'assignment' && { sectionNames: [] }),
+                })
               )
             )
           })
           hook.rerender(
             hook.view({
-              fileType: 'ssp-moe',
+              fileType: transition === 'selection' ? 'ssp-moe' : 'tanf',
               uploadScope: scope,
               sectionDescriptor: scope.sections[0],
             })
@@ -197,6 +201,28 @@ describe('FileUpload', () => {
         expect(mockSetUploadAlertState).not.toHaveBeenCalled()
       }
     )
+
+    it('does not replace or remove the USWDS preview before its reader finishes', async () => {
+      const readers = []
+      global.FileReader.mockImplementation(() => {
+        const reader = {
+          readAsArrayBuffer: jest.fn(),
+          result: new ArrayBuffer(8),
+        }
+        readers.push(reader)
+        return reader
+      })
+      const hook = setup()
+      utils.handlePreview.mockClear()
+      utils.removeOldPreviews.mockClear()
+      fireEvent.change(hook.container.querySelector('input'), {
+        target: { files: [makeTestFile('pending.txt')] },
+      })
+      expect(utils.handlePreview).not.toHaveBeenCalled()
+      expect(utils.removeOldPreviews).not.toHaveBeenCalled()
+      await act(async () => readers[0].onload())
+      expect(utils.handlePreview).toHaveBeenCalledTimes(1)
+    })
 
     it('retains and revalidates a staged file across fiscal corrections without accepting the old validation', async () => {
       const oldValidation = deferred()

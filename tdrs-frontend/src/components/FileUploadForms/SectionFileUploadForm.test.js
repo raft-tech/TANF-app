@@ -8,6 +8,11 @@ import { useFormSubmission } from '../../hooks/useFormSubmission'
 import { useEventLogger } from '../../utils/eventLogger'
 import { MemoryRouter } from 'react-router-dom'
 import * as reportsActions from '../../actions/reports'
+import {
+  createProgramParticipation,
+  CANONICAL_SECTION_NAMES,
+} from '../../test-utils/programParticipation'
+import { presentReportSections } from '../../utils/reportSections'
 
 // Mock dependencies
 jest.mock('../../hooks/useFormSubmission')
@@ -65,6 +70,9 @@ const initialState = {
         type: 'state',
         code: 'CA',
         name: 'California',
+        program_participations: [
+          createProgramParticipation({ sectionNames: CANONICAL_SECTION_NAMES }),
+        ],
       },
       roles: [{ id: 1, name: 'Data Analyst', permission: [] }],
       account_approval_status: 'Approved',
@@ -139,17 +147,63 @@ describe('SectionFileUploadForm', () => {
 
   const renderComponent = (
     storeState = initialState,
-    stt = { id: 1, num_sections: 4 },
-    initialEntry = '/'
+    stt = initialState.auth.user.stt,
+    initialEntry = '/?fy=2024&q=Q1&type=tanf',
+    sectionNames = CANONICAL_SECTION_NAMES
   ) => {
     const store = mockStore(storeState)
+    const participation = createProgramParticipation({ sectionNames })
+    const sections = presentReportSections(participation.sections)
+    const scope = store.dispatch(
+      reportsActions.configureUploadSections({
+        sttId: stt.id,
+        program: participation.program,
+        sections,
+      })
+    )
+    storeState.reports.submittedFiles.forEach((file, index) => {
+      const descriptor = sections.find(
+        (section) => section.name === file.section
+      )
+      if (!descriptor) return
+      store.dispatch({
+        type: reportsActions.BEGIN_FILE_VALIDATION,
+        payload: {
+          validatedYear: '2024',
+          validatedQuarter: 'Q1',
+          ...file,
+          uploadScope: scope,
+          sectionId: descriptor.id,
+          program: descriptor.program,
+          uuid: `staged-${index}`,
+        },
+      })
+      store.dispatch({
+        type: reportsActions.SET_FILE,
+        payload: {
+          validatedYear: '2024',
+          validatedQuarter: 'Q1',
+          ...file,
+          uploadScope: scope,
+          sectionId: descriptor.id,
+          program: descriptor.program,
+          uuid: `staged-${index}`,
+        },
+      })
+    })
     mockDispatch = jest.spyOn(store, 'dispatch')
 
     return render(
       <Provider store={store}>
         <MemoryRouter initialEntries={[initialEntry]}>
           <ReportsProvider>
-            <SectionFileUploadForm stt={stt} />
+            <SectionFileUploadForm
+              stt={stt}
+              sections={sections}
+              program={participation.program}
+              programLabel="TANF"
+              uploadScope={scope}
+            />
             <UploadAlert />
           </ReportsProvider>
         </MemoryRouter>
@@ -167,19 +221,24 @@ describe('SectionFileUploadForm', () => {
       expect(getByTestId('file-upload-Stratum Data')).toBeInTheDocument()
     })
 
-    it('renders correct number of sections based on stt.num_sections', () => {
+    it('renders exact sparse sections despite stt.num_sections disagreement', () => {
       const stt = { id: 1, num_sections: 2 }
-      const { getByTestId, queryByTestId } = renderComponent(initialState, stt)
+      const { getByTestId, queryByTestId } = renderComponent(
+        initialState,
+        stt,
+        undefined,
+        ['Active Case Data', 'Aggregate Data']
+      )
 
       expect(getByTestId('file-upload-Active Case Data')).toBeInTheDocument()
-      expect(getByTestId('file-upload-Closed Case Data')).toBeInTheDocument()
       expect(
-        queryByTestId('file-upload-Aggregate Data')
+        queryByTestId('file-upload-Closed Case Data')
       ).not.toBeInTheDocument()
+      expect(getByTestId('file-upload-Aggregate Data')).toBeInTheDocument()
       expect(queryByTestId('file-upload-Stratum Data')).not.toBeInTheDocument()
     })
 
-    it('renders 4 sections when stt is undefined', () => {
+    it('renders explicitly supplied sections independently of legacy defaults', () => {
       const { getByTestId } = renderComponent(initialState, undefined)
 
       expect(getByTestId('file-upload-Active Case Data')).toBeInTheDocument()

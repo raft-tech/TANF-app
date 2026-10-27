@@ -11,12 +11,19 @@ import {
 import { useDispatch, useSelector } from 'react-redux'
 import {
   clearFileList,
+  configureUploadSections,
   reinitializeSubmittedFiles,
   setStt,
 } from '../../actions/reports'
 import { openFeedbackWidget } from '../../reducers/feedbackWidget'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { accountCanSelectStt } from '../../selectors/auth'
+import {
+  accountCanSelectStt,
+  accountIsRegionalStaff,
+} from '../../selectors/auth'
+import { resolveReportStt } from '../../selectors/stts'
+import { getTdrAssignment } from '../../utils/reportSections'
+import { getUploadAssignmentKey } from '../../utils/reportScopes'
 import { usePollingTimer } from '../../hooks/usePollingTimer'
 import { getCurrentFiscalYear, quarters } from './utils'
 import {
@@ -148,6 +155,11 @@ const validateUrlParams = (
 export const ReportsProvider = ({ isFra = false, children }) => {
   const dispatch = useDispatch()
   const canSelectStt = useSelector(accountCanSelectStt)
+  const isRegionalStaff = useSelector(accountIsRegionalStaff)
+  const user = useSelector((state) => state.auth.user)
+  const catalog = useSelector((state) => state.stts)
+  const uploadScope = useSelector((state) => state.reports.uploadScope)
+  const historyScope = useSelector((state) => state.reports.historyScope)
   const sttList = useSelector((state) => state?.stts?.sttList)
   const featureFlags = useSelector(selectFeatureFlags)
   const piaFeatureFlag = getFlagOrDefault(
@@ -165,7 +177,7 @@ export const ReportsProvider = ({ isFra = false, children }) => {
   // run.
   const validatedParams = useMemo(
     () => validateUrlParams(searchParams, isFra, [], piaFeatureFlag),
-    [searchParams, isFra]
+    [searchParams, isFra, piaFeatureFlag]
   )
 
   // Form state
@@ -181,9 +193,90 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     featureFlags
   )
 
+  const sttResolution = useMemo(
+    () =>
+      resolveReportStt({
+        user,
+        canSelectStt,
+        isRegionalStaff,
+        catalog,
+        selectedName: sttInputValue,
+      }),
+    [user, canSelectStt, isRegionalStaff, catalog, sttInputValue]
+  )
+  const tdrAssignment = useMemo(
+    () =>
+      getTdrAssignment(
+        sttResolution,
+        fileTypeInputValue,
+        piaFeatureFlag.enabled
+      ),
+    [sttResolution, fileTypeInputValue, piaFeatureFlag.enabled]
+  )
+  const isTdr = !isFra && fileTypeInputValue !== 'program-integrity-audit'
+  const configuration = useMemo(
+    () => ({
+      sttId: sttResolution.stt?.id || null,
+      program: tdrAssignment.program || { id: null, slug: null },
+      sections: tdrAssignment.sections,
+    }),
+    [sttResolution.stt?.id, tdrAssignment.program, tdrAssignment.sections]
+  )
+  const assignmentKey = getUploadAssignmentKey(configuration)
+  const uploadScopeReady = isTdr && uploadScope?.key === assignmentKey
+  const ownedScopeRef = useRef(null)
+  useEffect(() => {
+    if (isFra) return
+    if (isTdr) {
+      ownedScopeRef.current = dispatch(configureUploadSections(configuration))
+    } else if (ownedScopeRef.current) {
+      dispatch(configureUploadSections(null, ownedScopeRef.current))
+      ownedScopeRef.current = null
+      dispatch(reinitializeSubmittedFiles('program-integrity-audit'))
+    }
+  }, [dispatch, isFra, isTdr, configuration])
+  // Clear/reset advances generations; cleanup must own the latest one.
+  if (
+    uploadScopeReady ||
+    (uploadScope && uploadScope.key === ownedScopeRef.current?.key)
+  )
+    ownedScopeRef.current = uploadScope
+  useEffect(
+    () => () => {
+      if (ownedScopeRef.current)
+        dispatch(configureUploadSections(null, ownedScopeRef.current))
+    },
+    [dispatch]
+  )
+
+  useEffect(() => {
+    if (isFra || sttResolution.state !== 'ready') return
+    if (sttResolution.unauthorized) {
+      setSttInputValue('')
+      setYearInputValue('')
+      setQuarterInputValue('')
+    } else if (canSelectStt && sttInputValue && !sttResolution.stt) {
+      setSttInputValue('')
+    } else if (
+      sttResolution.stt &&
+      !sttResolution.provisional &&
+      tdrAssignment.state === 'ready' &&
+      !tdrAssignment.options.some(({ value }) => value === fileTypeInputValue)
+    ) {
+      setFileTypeInputValue(tdrAssignment.options[0]?.value || '')
+    }
+  }, [
+    isFra,
+    sttResolution,
+    canSelectStt,
+    sttInputValue,
+    tdrAssignment,
+    fileTypeInputValue,
+  ])
+
   // Re-validate when STT list becomes available (only validates STT param) since it might not be available yet
   useEffect(() => {
-    if (sttList && sttList.length > 0 && !hasValidatedParams) {
+    if (isFra && sttList && sttList.length > 0 && !hasValidatedParams) {
       // Check if the STT from URL is valid
       const sttParam = searchParams.get('stt')
       if (sttParam && !sttList.some((s) => s?.name === sttParam)) {
@@ -194,6 +287,7 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     }
   }, [
     sttList,
+    isFra,
     hasValidatedParams,
     searchParams,
     setSttInputValue,
@@ -263,6 +357,11 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     type: null,
     message: null,
   })
+  useEffect(() => {
+    if (!isTdr) return
+    setUploadAlert({ active: false, type: null, message: null })
+    setProcessingAlertState({ active: false, type: null, message: null })
+  }, [assignmentKey, isTdr])
 
   // Refs
   const headerRef = useRef(null)
@@ -287,6 +386,20 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     : uploadedFiles.length > 0
 
   const { startPolling, isPolling, stopAllTimers } = usePollingTimer()
+  // Tables still consume file IDs; scoped timers use request-token:file-ID.
+  const visiblePolling = useMemo(() => {
+    if (!isTdr) return isPolling
+    const prefix = `${historyScope?.requestId}:`
+    return Object.fromEntries(
+      Object.entries(isPolling).flatMap(([key, active]) =>
+        key.startsWith(prefix)
+          ? [[key.slice(prefix.length), active]]
+          : key.includes(':')
+            ? []
+            : [[key, active]]
+      )
+    )
+  }, [isTdr, historyScope, isPolling])
 
   // Actions
   const handleClearAll = () => {
@@ -312,29 +425,8 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     } else {
       dispatch(clearFileList({ fileType: fileTypeInputValue }))
     }
-    switch (pendingChange.type) {
-      case 'fileType':
-        setFileTypeInputValue(pendingChange.value)
-        // Reset year if it's invalid for the new file type
-        resetPiaYear(pendingChange.value)
-        break
-      case 'stt':
-        setSttInputValue(pendingChange.value)
-        dispatch(setStt(pendingChange.value))
-        // Check if current file type is valid for the new STT
-        if (
-          pendingChange.sttObject &&
-          fileTypeInputValue === 'ssp-moe' &&
-          !pendingChange.sttObject.ssp
-        ) {
-          setFileTypeInputValue('tanf')
-          dispatch(clearFileList({ fileType: 'tanf' }))
-          dispatch(reinitializeSubmittedFiles('tanf'))
-        }
-        break
-      default:
-        break
-    }
+    if (pendingChange.type)
+      applySelection(pendingChange.type, pendingChange.value)
     setPendingChange({ type: null, value: null, sttObject: null })
   }
 
@@ -378,6 +470,22 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     }
   }
 
+  const applySelection = (type, value) => {
+    setUploadAlertState({ active: false, type: null, message: null })
+    setProcessingAlertState({ active: false, type: null, message: null })
+    if (type === 'fileType') {
+      setFileTypeInputValue(value)
+      resetPiaYear(value)
+      dispatch(clearFileList({ fileType: value }))
+      if (isFra || !isTdr) dispatch(reinitializeSubmittedFiles(value))
+    } else {
+      setSttInputValue(value)
+      dispatch(setStt(value))
+      dispatch(clearFileList({ fileType: fileTypeInputValue }))
+    }
+    setFraSelectedFile(null)
+  }
+
   const selectFileType = (value) => {
     setFileTypeTouched(true)
     handleFieldSelection('fileType')
@@ -387,14 +495,7 @@ export const ReportsProvider = ({ isFra = false, children }) => {
       setPendingChange({ type: 'fileType', value })
       setErrorModalVisible(true)
     } else {
-      setFileTypeInputValue(value)
-      setUploadAlertState({ active: false, type: null, message: null })
-      setProcessingAlertState({ active: false, type: null, message: null })
-      dispatch(clearFileList({ fileType: value }))
-      dispatch(reinitializeSubmittedFiles(value))
-      setFraSelectedFile(null)
-
-      resetPiaYear(value)
+      applySelection('fileType', value)
     }
   }
 
@@ -431,30 +532,7 @@ export const ReportsProvider = ({ isFra = false, children }) => {
       setPendingChange({ type: 'stt', value, sttObject })
       setErrorModalVisible(true)
     } else {
-      setSttInputValue(value)
-      dispatch(setStt(value))
-      setUploadAlertState({
-        active: false,
-        type: null,
-        message: null,
-      })
-      setProcessingAlertState({
-        active: false,
-        type: null,
-        message: null,
-      })
-
-      // Check if current file type is valid for the new STT
-      // If SSP is selected but new STT doesn't support SSP, reset to TANF
-      if (sttObject && fileTypeInputValue === 'ssp-moe' && !sttObject.ssp) {
-        setFileTypeInputValue('tanf')
-        dispatch(clearFileList({ fileType: 'tanf' }))
-        dispatch(reinitializeSubmittedFiles('tanf'))
-      } else {
-        dispatch(clearFileList({ fileType: fileTypeInputValue }))
-      }
-
-      setFraSelectedFile(null)
+      applySelection('stt', value)
     }
   }
 
@@ -559,6 +637,11 @@ export const ReportsProvider = ({ isFra = false, children }) => {
   }
 
   const value = {
+    effectiveStt: sttResolution.stt,
+    sttResolution,
+    tdrAssignment,
+    uploadScope,
+    uploadScopeReady,
     // State
     sttInputValue,
     fileTypeInputValue,
@@ -615,7 +698,7 @@ export const ReportsProvider = ({ isFra = false, children }) => {
 
     // polling
     startPolling,
-    isPolling,
+    isPolling: visiblePolling,
     stopAllTimers,
 
     // Program audit

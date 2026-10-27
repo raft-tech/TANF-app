@@ -7,9 +7,23 @@ import * as reportsActions from '../../actions/reports'
 import { fileUploadSections } from '../../reducers/reports'
 import { ReportsProvider } from '../Reports/ReportsContext'
 import { MemoryRouter } from 'react-router-dom'
+import {
+  createProgramParticipation,
+  CANONICAL_SECTION_NAMES,
+} from '../../test-utils/programParticipation'
+import { presentReportSections } from '../../utils/reportSections'
+import { getHistoryQueryKey } from '../../utils/reportScopes'
 
 // Mock only external actions
-jest.mock('../../actions/reports')
+jest.mock('../../actions/reports', () => ({
+  ...jest.requireActual('../../actions/reports'),
+  getAvailableFileList: jest.fn(),
+}))
+
+const participation = createProgramParticipation({
+  sectionNames: CANONICAL_SECTION_NAMES,
+})
+const sections = presentReportSections(participation.sections)
 
 const initialState = {
   auth: {
@@ -37,10 +51,10 @@ describe('SectionSubmissionHistory', () => {
 
   beforeEach(() => {
     // Mock getAvailableFileList to return a thunk that returns an action
-    mockGetAvailableFileList = jest.fn(() => () => ({
-      type: 'FETCH_FILE_LIST',
-    }))
-    reportsActions.getAvailableFileList = mockGetAvailableFileList
+    mockGetAvailableFileList =
+      reportsActions.getAvailableFileList.mockImplementation(() => () => ({
+        type: 'FETCH_FILE_LIST',
+      }))
   })
 
   afterEach(() => {
@@ -54,9 +68,24 @@ describe('SectionSubmissionHistory', () => {
       quarter: 'Q1',
       stt: { id: 1, num_sections: 4 },
     },
-    reprocessedState = { setDate: jest.fn(), setModalVisible: jest.fn() }
+    reprocessedState = { setDate: jest.fn(), setModalVisible: jest.fn() },
+    assignedSections = sections
   ) => {
-    const store = appConfigureStore(storeState)
+    filterValues = { file_type: 'tanf', ...filterValues }
+    const store = appConfigureStore({
+      ...storeState,
+      reports: {
+        ...storeState.reports,
+        files: (storeState.reports.files || []).map((file) => ({
+          program_type: 'TAN',
+          ...file,
+        })),
+        historyScope: {
+          key: getHistoryQueryKey(filterValues),
+          requestId: 'existing',
+        },
+      },
+    })
     const mockDispatch = jest.fn(store.dispatch)
     store.dispatch = mockDispatch
 
@@ -68,6 +97,8 @@ describe('SectionSubmissionHistory', () => {
               <SectionSubmissionHistory
                 filterValues={filterValues}
                 reprocessedState={reprocessedState}
+                sections={assignedSections}
+                program={participation.program}
               />
             </ReportsProvider>
           </MemoryRouter>
@@ -107,24 +138,22 @@ describe('SectionSubmissionHistory', () => {
       expect(screen.getByText('Section 4 - Stratum Data')).toBeInTheDocument()
     })
 
-    it('renders correct number of sections based on num_sections', () => {
+    it('renders supplied sparse sections instead of num_sections', () => {
       const filterValues = {
         year: '2024',
         quarter: 'Q1',
         stt: { id: 1, num_sections: 2 },
       }
 
-      setup(initialState, filterValues)
+      setup(initialState, filterValues, undefined, [sections[0], sections[2]])
 
       expect(
         screen.getByText('Section 1 - Active Case Data')
       ).toBeInTheDocument()
       expect(
-        screen.getByText('Section 2 - Closed Case Data')
-      ).toBeInTheDocument()
-      expect(
-        screen.queryByText('Section 3 - Aggregate Data')
+        screen.queryByText('Section 2 - Closed Case Data')
       ).not.toBeInTheDocument()
+      expect(screen.getByText('Section 3 - Aggregate Data')).toBeInTheDocument()
       expect(
         screen.queryByText('Section 4 - Stratum Data')
       ).not.toBeInTheDocument()
@@ -154,7 +183,11 @@ describe('SectionSubmissionHistory', () => {
       }
       const { store } = setup(initialState, filterValues)
 
-      expect(mockGetAvailableFileList).toHaveBeenCalledWith(filterValues)
+      expect(mockGetAvailableFileList).toHaveBeenCalledWith(
+        expect.objectContaining(filterValues),
+        undefined,
+        expect.objectContaining({ scoped: true })
+      )
       expect(store.dispatch).toHaveBeenCalled()
     })
 
@@ -179,6 +212,8 @@ describe('SectionSubmissionHistory', () => {
                   setDate: jest.fn(),
                   setModalVisible: jest.fn(),
                 }}
+                sections={sections}
+                program={participation.program}
               />
             </ReportsProvider>
           </MemoryRouter>
@@ -198,7 +233,11 @@ describe('SectionSubmissionHistory', () => {
       }
       setup(initialState, filterValues)
 
-      expect(mockGetAvailableFileList).toHaveBeenCalledWith(filterValues)
+      expect(mockGetAvailableFileList).toHaveBeenCalledWith(
+        expect.objectContaining(filterValues),
+        undefined,
+        expect.objectContaining({ scoped: true })
+      )
     })
   })
 
@@ -305,8 +344,7 @@ describe('SectionSubmissionHistory', () => {
 
       setup(filesState)
 
-      // File should be matched because section.includes('Active Case Data')
-      expect(screen.getByText('file1.txt')).toBeInTheDocument()
+      expect(screen.queryByText('file1.txt')).not.toBeInTheDocument()
     })
   })
 
@@ -645,17 +683,21 @@ describe('SectionSubmissionHistory', () => {
 
       setup(initialState, filterValues)
 
-      expect(mockGetAvailableFileList).toHaveBeenCalledWith(filterValues)
+      expect(mockGetAvailableFileList).toHaveBeenCalledWith(
+        expect.objectContaining(filterValues),
+        undefined,
+        expect.objectContaining({ scoped: true })
+      )
     })
 
-    it('uses num_sections from filterValues.stt', () => {
+    it('uses supplied descriptors for a single section', () => {
       const filterValues = {
         year: '2024',
         quarter: 'Q1',
         stt: { id: 1, num_sections: 1 },
       }
 
-      setup(initialState, filterValues)
+      setup(initialState, filterValues, undefined, [sections[0]])
 
       // Only section 1 should be rendered
       expect(
@@ -691,14 +733,14 @@ describe('SectionSubmissionHistory', () => {
       expect(screen.getByText('file1.txt')).toBeInTheDocument()
     })
 
-    it('handles num_sections of 0', () => {
+    it('renders no tables for an empty assignment', () => {
       const filterValues = {
         year: '2024',
         quarter: 'Q1',
         stt: { id: 1, num_sections: 0 },
       }
 
-      setup(initialState, filterValues)
+      setup(initialState, filterValues, undefined, [])
 
       // No sections should be rendered
       expect(
@@ -862,6 +904,7 @@ describe('SectionSubmissionHistory', () => {
             {
               id: 1,
               fileName: 'new-file.txt',
+              program_type: 'TAN',
               section: 'Active Case Data',
               quarter: 'Q1',
               year: '2024',
@@ -870,7 +913,21 @@ describe('SectionSubmissionHistory', () => {
         },
       }
 
-      const updatedStore = appConfigureStore(updatedState)
+      const updatedStore = appConfigureStore({
+        ...updatedState,
+        reports: {
+          ...updatedState.reports,
+          historyScope: {
+            key: getHistoryQueryKey({
+              stt: { id: 1 },
+              file_type: 'tanf',
+              year: '2024',
+              quarter: 'Q1',
+            }),
+            requestId: 'updated',
+          },
+        },
+      })
       const mockDispatch = jest.fn(updatedStore.dispatch)
       updatedStore.dispatch = mockDispatch
 
@@ -883,11 +940,14 @@ describe('SectionSubmissionHistory', () => {
                   year: '2024',
                   quarter: 'Q1',
                   stt: { id: 1, num_sections: 4 },
+                  file_type: 'tanf',
                 }}
                 reprocessedState={{
                   setDate: jest.fn(),
                   setModalVisible: jest.fn(),
                 }}
+                sections={sections}
+                program={participation.program}
               />
             </ReportsProvider>
           </MemoryRouter>
@@ -900,14 +960,14 @@ describe('SectionSubmissionHistory', () => {
   })
 
   describe('Section Number Variations', () => {
-    it('renders only 1 section when num_sections is 1', () => {
+    it('renders only 1 explicitly assigned section', () => {
       const filterValues = {
         year: '2024',
         quarter: 'Q1',
         stt: { id: 1, num_sections: 1 },
       }
 
-      setup(initialState, filterValues)
+      setup(initialState, filterValues, undefined, [sections[0]])
 
       expect(
         screen.getByText('Section 1 - Active Case Data')
@@ -923,14 +983,14 @@ describe('SectionSubmissionHistory', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('renders 3 sections when num_sections is 3', () => {
+    it('renders 3 explicitly assigned sections', () => {
       const filterValues = {
         year: '2024',
         quarter: 'Q1',
         stt: { id: 1, num_sections: 3 },
       }
 
-      setup(initialState, filterValues)
+      setup(initialState, filterValues, undefined, sections.slice(0, 3))
 
       expect(
         screen.getByText('Section 1 - Active Case Data')

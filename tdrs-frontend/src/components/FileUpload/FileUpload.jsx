@@ -178,6 +178,9 @@ function FileUpload({
     : `Drag file here or choose from folder.`
 
   useEffect(() => {
+    // Reserving a UUID happens before USWDS finishes its own FileReader.
+    // Do not replace/remove that in-flight preview during scoped validation.
+    if (selectedFile?.isValidating) return
     let active = true
     let timer
     const trySettingPreview = () => {
@@ -198,7 +201,13 @@ function FileUpload({
       active = false
       clearTimeout(timer)
     }
-  }, [hasPreview, hasFile, fileName, targetClassName])
+  }, [
+    hasPreview,
+    hasFile,
+    fileName,
+    targetClassName,
+    selectedFile?.isValidating,
+  ])
 
   const inputRef = useRef(null)
   const previousFiscalPeriodRef = useRef(null)

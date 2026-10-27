@@ -29,7 +29,7 @@ describe('reducers/stts', () => {
     ]
     const before = JSON.stringify(data)
     const state = reducer(undefined, { type: SET_STTS, payload: { data } })
-    expect(state).toEqual({ sttList: data, loading: false })
+    expect(state).toEqual({ sttList: data, loading: false, loaded: true })
     expect(JSON.stringify(state.sttList)).toBe(before)
     expect(state.sttList[0].program_participations[0].sections).toHaveLength(2)
     expect(state.sttList[0].program_participations[1].sections).toEqual([])
@@ -40,6 +40,7 @@ describe('reducers/stts', () => {
     expect(reducer(undefined, {})).toEqual({
       sttList: [],
       loading: false,
+      loaded: false,
     })
   })
 
@@ -51,6 +52,7 @@ describe('reducers/stts', () => {
     ).toEqual({
       sttList: [],
       loading: true,
+      loaded: false,
     })
   })
 
@@ -71,6 +73,7 @@ describe('reducers/stts', () => {
     ).toEqual({
       sttList: [{ id: 1, type: 'state', code: 'AL', name: 'Alabama' }],
       loading: false,
+      loaded: true,
     })
   })
 
@@ -88,6 +91,7 @@ describe('reducers/stts', () => {
     ).toEqual({
       sttList: [],
       loading: false,
+      loaded: false,
     })
   })
 
@@ -100,6 +104,7 @@ describe('reducers/stts', () => {
     ).toEqual({
       sttList: [],
       loading: false,
+      loaded: false,
       error: 'something went wrong',
     })
   })

@@ -3,6 +3,7 @@ import {
   fileTypeToProgramSlug,
   getProgramParticipation,
   getAssignedSections,
+  resolveReportStt,
 } from './stts'
 import {
   createParticipationStt,
@@ -15,6 +16,77 @@ const baseStts = [
   { id: 2, name: 'Tribe A', type: 'tribe' },
   { id: 3, name: 'Guam', type: 'territory' },
 ]
+
+describe('resolveReportStt source/readiness precedence', () => {
+  const profile = createParticipationStt({
+    program_participations: [
+      createProgramParticipation({ sectionNames: ['Aggregate Data'] }),
+    ],
+  })
+  const resolve = (overrides = {}) =>
+    resolveReportStt({
+      user: { stt: profile },
+      canSelectStt: false,
+      isRegionalStaff: false,
+      selectedName: '',
+      catalog: { sttList: [], loaded: false, loading: true },
+      ...overrides,
+    })
+  it('uses expanded profile metadata provisionally while idle, not during an initial catalog load', () => {
+    expect(
+      resolve({ catalog: { sttList: [], loaded: false, loading: false } })
+    ).toEqual({ state: 'ready', stt: profile, provisional: true })
+    expect(resolve()).toEqual({ state: 'loading', stt: null })
+  })
+  it('matches profile identity by ID, preferring a loaded empty assignment even during refresh', () => {
+    const empty = {
+      ...profile,
+      name: 'Renamed STT',
+      program_participations: [],
+    }
+    expect(
+      resolve({ catalog: { sttList: [empty], loading: true, loaded: true } })
+        .stt
+    ).toBe(empty)
+    expect(resolve({ catalog: { sttList: [], loaded: true } }).stt).toBeNull()
+  })
+  it('distinguishes idle/loading metadata from a completed empty catalog', () => {
+    const user = { stt: { id: profile.id, name: profile.name } }
+    expect(resolve({ user }).state).toBe('loading')
+    expect(
+      resolve({ user, catalog: { sttList: [], loaded: true } }).state
+    ).toBe('ready')
+    expect(resolve({ user, catalog: { error: 'Unavailable' } }).state).toBe(
+      'error'
+    )
+  })
+  it('never uses a global STT outside permitted regions', () => {
+    const global = { ...profile, program_participations: [] }
+    expect(
+      resolve({
+        user: { regions: [{ stts: [profile] }] },
+        canSelectStt: true,
+        isRegionalStaff: true,
+        selectedName: profile.name,
+        catalog: { sttList: [global], loaded: true },
+      }).stt
+    ).toBe(profile)
+    expect(
+      resolve({
+        user: { regions: [] },
+        isRegionalStaff: true,
+        selectedName: profile.name,
+        catalog: { sttList: [global] },
+      }).stt
+    ).toBeNull()
+  })
+  it('blocks foreign profile links and never invents an administrative selection', () => {
+    expect(resolve({ selectedName: 'Foreign' }).unauthorized).toBe(true)
+    expect(
+      resolve({ canSelectStt: true, catalog: { sttList: [profile] } }).stt
+    ).toBeNull()
+  })
+})
 
 const makeState = ({ roleName, sttList = baseStts, regions } = {}) => ({
   auth: {

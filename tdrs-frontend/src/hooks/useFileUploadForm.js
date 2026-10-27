@@ -27,6 +27,7 @@ import {
  * @param {Function} config.formatSections - Function to format section names for display
  * @param {Function} config.getSubmitPayload - Function to generate submit action payload
  * @param {Object} config.uploadScope - Optional configured TDR assignment/generation
+ * @param {Function} config.validateSubmission - Optional whole-batch guard before transformation/dispatch
  * @returns {Object} Form state and handlers
  */
 export const useFileUploadForm = ({
@@ -35,6 +36,7 @@ export const useFileUploadForm = ({
   formatSections,
   getSubmitPayload,
   uploadScope,
+  validateSubmission,
 }) => {
   const dispatch = useDispatch()
   const store = useStore()
@@ -176,12 +178,28 @@ export const useFileUploadForm = ({
   // Handle form submission
   const onSubmit = async (event) => {
     event.preventDefault()
+    const submissionError = validateSubmission?.({
+      reports: store.getState().reports,
+      year: yearInputValue,
+      quarter: quarterInputValue,
+    })
+    if (submissionError) {
+      setUploadAlertState({
+        active: true,
+        type: 'error',
+        message: submissionError,
+      })
+      return
+    }
     if (!isCurrentUpload()) return
 
     const validationErrorCount = uploadedFiles.filter(
       (file) =>
         file.error ||
-        (uploadScope && file.isValidating) ||
+        (uploadScope &&
+          (file.isValidating ||
+            file.validatedYear !== yearInputValue ||
+            file.validatedQuarter !== quarterInputValue)) ||
         (file.validatedYear && file.validatedYear !== yearInputValue) ||
         (fileTypeInputValue !== 'program-integrity-audit' &&
           quarterInputValue &&
