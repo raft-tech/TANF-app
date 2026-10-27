@@ -55,7 +55,7 @@ Defined in [`tdpservice.parsers.service`](file:///Users/hschwarz/Documents/Proje
 | `file_meta` | `Optional[ReparseFileMeta]` | `None` | Optional pre-resolved `ReparseFileMeta` instance. |
 
 #### Primary Methods
-- `run() -> ParseResult` (alias: `parse()`): Executes the complete Python parsing flow and returns the structured outcome.
+- `run() -> ParseResult` (alias: `parse()`): Executes the Python parsing flow for production `DataFile` instances and returns the structured outcome.
 - `post_parse(parse_error=None, table_mode=None, task_name=None) -> None`: Finalizes Go parser output for this DataFile in its selected table family.
 - `fetch_data_file() -> Union[DataFile, ShadowDataFile]`: Returns the bound data file instance.
 - `validate_preconditions() -> None`: Validates file presence, submission state eligibility, and token ownership without executing parsing.
