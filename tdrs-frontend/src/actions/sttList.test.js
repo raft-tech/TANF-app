@@ -1,6 +1,11 @@
 import { get } from '../fetch-instance'
 import { thunk } from 'redux-thunk'
 import configureStore from 'redux-mock-store'
+import {
+  createParticipationStt,
+  createProgramParticipation,
+} from '../test-utils/programParticipation'
+import sttListReducer from '../reducers/sttList'
 
 import {
   fetchSttList,
@@ -14,6 +19,55 @@ jest.mock('../fetch-instance')
 
 describe('actions/stts.js', () => {
   const mockStore = configureStore([thunk])
+
+  it('retains nested participation metadata through fetch and reducer storage', async () => {
+    const data = [
+      createParticipationStt({
+        program_participations: [
+          createProgramParticipation({
+            sectionNames: ['Aggregate Data', 'Active Case Data'],
+          }),
+          createProgramParticipation({
+            id: 502,
+            programSlug: 'ssp',
+            sectionNames: [],
+          }),
+        ],
+      }),
+      createParticipationStt({
+        id: 58,
+        type: 'tribe',
+        program_participations: [
+          createProgramParticipation({
+            id: 503,
+            programSlug: 'tribal',
+            sectionNames: ['Closed Case Data'],
+          }),
+        ],
+      }),
+    ]
+    get.mockResolvedValueOnce({ data, ok: true })
+    const store = mockStore()
+
+    await store.dispatch(fetchSttList())
+
+    expect(get).toHaveBeenLastCalledWith(
+      `${process.env.REACT_APP_BACKEND_URL}/stts/alpha`
+    )
+    expect(store.getActions()).toEqual([
+      { type: FETCH_STTS },
+      { type: SET_STTS, payload: { data } },
+    ])
+    const state = store.getActions().reduce(sttListReducer, undefined)
+    expect(state).toEqual({ sttList: data, loading: false })
+    expect(
+      state.sttList[0].program_participations[0].sections.map((s) => s.name)
+    ).toEqual(['Aggregate Data', 'Active Case Data'])
+    expect(state.sttList[0].program_participations[1].sections).toEqual([])
+    expect(state.sttList[1].program_participations[0].program.slug).toBe(
+      'tribal'
+    )
+  })
 
   it('fetches a list of stts, when the user is authenticated', async () => {
     get.mockImplementationOnce(() =>

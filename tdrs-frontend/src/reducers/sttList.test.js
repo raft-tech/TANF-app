@@ -1,5 +1,9 @@
 import reducer from './sttList'
 import {
+  createParticipationStt,
+  createProgramParticipation,
+} from '../test-utils/programParticipation'
+import {
   FETCH_STTS,
   SET_STTS,
   SET_STTS_ERROR,
@@ -7,6 +11,31 @@ import {
 } from '../actions/sttList'
 
 describe('reducers/stts', () => {
+  it('stores exact nested assignments, including empty and absent participations', () => {
+    const data = [
+      createParticipationStt({
+        program_participations: [
+          createProgramParticipation({
+            sectionNames: ['Aggregate Data', 'Active Case Data'],
+          }),
+          createProgramParticipation({
+            id: 502,
+            programSlug: 'ssp',
+            sectionNames: [],
+          }),
+        ],
+      }),
+      createParticipationStt({ id: 2 }),
+    ]
+    const before = JSON.stringify(data)
+    const state = reducer(undefined, { type: SET_STTS, payload: { data } })
+    expect(state).toEqual({ sttList: data, loading: false })
+    expect(JSON.stringify(state.sttList)).toBe(before)
+    expect(state.sttList[0].program_participations[0].sections).toHaveLength(2)
+    expect(state.sttList[0].program_participations[1].sections).toEqual([])
+    expect(state.sttList[1].program_participations).toEqual([])
+  })
+
   it('should return the initial state', () => {
     expect(reducer(undefined, {})).toEqual({
       sttList: [],

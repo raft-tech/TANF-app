@@ -1,4 +1,26 @@
 import { faker } from '@faker-js/faker'
+import {
+  CANONICAL_SECTION_NAMES,
+  createProgramParticipation,
+} from './test-utils/programParticipation'
+
+const mirageParticipations = (sttId, type) => [
+  createProgramParticipation({
+    id: sttId * 10 + 1,
+    programSlug: type === 'tribe' ? 'tribal' : 'tanf',
+    sectionNames: CANONICAL_SECTION_NAMES,
+  }),
+  ...(sttId === 31
+    ? [
+        createProgramParticipation({
+          id: sttId * 10 + 2,
+          programSlug: 'ssp',
+          sectionNames: ['Closed Case Data'],
+        }),
+      ]
+    : []),
+]
+
 export const AUTH_CHECK_DATA = {
   authenticated: true,
   user: {
@@ -13,6 +35,7 @@ export const AUTH_CHECK_DATA = {
       type: 'state',
       code: 'NJ',
       name: 'New Jersey',
+      program_participations: mirageParticipations(31, 'state'),
     },
     roles: [
       {
@@ -1065,7 +1088,10 @@ export const STT_ALPHA_DATA = [
     code: 'WA',
     name: 'Upper Skagit Tribe',
   },
-]
+].map((stt) => ({
+  ...stt,
+  program_participations: mirageParticipations(stt.id, stt.type),
+}))
 
 export const REPORTS_DATA = {
   count: 2,
