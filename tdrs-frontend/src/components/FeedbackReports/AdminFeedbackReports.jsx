@@ -5,6 +5,7 @@ import createFileInputErrorState from '../../utils/createFileInputErrorState'
 import FeedbackReportsUpload from './FeedbackReportsUpload'
 import FeedbackReportsHistory from './FeedbackReportsHistory'
 import DownloadStatisticsModal from './DownloadStatisticsModal'
+import Modal from '../Modal'
 import { PaginatedComponent } from '../Paginator/Paginator'
 import { Spinner } from '../Spinner'
 import { constructYears } from '../Reports/utils'
@@ -76,6 +77,8 @@ function AdminFeedbackReports() {
     loading: false,
     error: null,
   })
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false)
+  const [pendingChange, setPendingChange] = useState(null)
 
   const inputRef = useRef(null)
   const uploadFormRef = useRef(null)
@@ -397,6 +400,9 @@ function AdminFeedbackReports() {
     setNotes('')
     setNotesError(null)
     clearDatePicker()
+    if (inputRef.current) {
+      inputRef.current.value = null
+    }
     setDateError(null)
     setFormSubmitAttempted(false)
     setDateTouched(false)
@@ -404,12 +410,31 @@ function AdminFeedbackReports() {
   }
 
   /**
+   * Checks if any unsubmitted form values have been entered
+   */
+  const hasEnteredFormValues = () => {
+    return Boolean(
+      selectedFile ||
+        (notes && notes.length > 0) ||
+        getDatePickerValue() ||
+        inputRef.current?.files?.length
+    )
+  }
+
+  /**
    * Handles report type selection change
    */
   const handleReportTypeChange = (value) => {
-    setSelectedReportType(value)
-    resetFormState()
-    updateSearchParams({ type: value })
+    if (value === selectedReportType) return
+
+    if (hasEnteredFormValues()) {
+      setPendingChange({ type: 'reportType', value })
+      setConfirmModalVisible(true)
+    } else {
+      setSelectedReportType(value)
+      updateSearchParams({ type: value })
+      resetFormState()
+    }
   }
 
   /**
@@ -417,9 +442,43 @@ function AdminFeedbackReports() {
    */
   const handleYearChange = (e) => {
     const newYear = e.target.value || null
-    setSelectedYear(newYear)
+    if (newYear === selectedYear) return
+
+    if (hasEnteredFormValues()) {
+      setPendingChange({ type: 'year', value: newYear })
+      setConfirmModalVisible(true)
+    } else {
+      setSelectedYear(newYear)
+      updateSearchParams(newYear ? { year: newYear } : { year: undefined })
+      resetFormState()
+    }
+  }
+
+  const handleConfirmChange = () => {
+    if (!pendingChange) {
+      setConfirmModalVisible(false)
+      return
+    }
+
     resetFormState()
-    updateSearchParams(newYear ? { year: newYear } : { year: undefined })
+
+    if (pendingChange.type === 'reportType') {
+      setSelectedReportType(pendingChange.value)
+      updateSearchParams({ type: pendingChange.value })
+    } else if (pendingChange.type === 'year') {
+      setSelectedYear(pendingChange.value)
+      updateSearchParams(
+        pendingChange.value ? { year: pendingChange.value } : { year: undefined }
+      )
+    }
+
+    setPendingChange(null)
+    setConfirmModalVisible(false)
+  }
+
+  const handleCancelChange = () => {
+    setPendingChange(null)
+    setConfirmModalVisible(false)
   }
 
   /**
@@ -560,6 +619,25 @@ function AdminFeedbackReports() {
             onClose={closeDownloadStatistics}
           />
         )}
+
+        <Modal
+          title="Report Type or Fiscal Year changed"
+          message="Your uploaded files have not been submitted. Clicking 'OK' will discard all changes, reset the form and remove any uploaded files."
+          isVisible={confirmModalVisible}
+          onClose={handleCancelChange}
+          buttons={[
+            {
+              key: '1',
+              text: 'Cancel',
+              onClick: handleCancelChange,
+            },
+            {
+              key: '2',
+              text: 'OK',
+              onClick: handleConfirmChange,
+            },
+          ]}
+        />
       </div>
     </div>
   )
