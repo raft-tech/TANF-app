@@ -48,6 +48,7 @@ type DataFileRecord struct {
 	IsProgramAudit   bool
 	State            string
 	StateChangedAt   pgtype.Timestamptz
+	UploadSource     string
 }
 
 type DataFileStateTransitionContext struct {
@@ -65,7 +66,8 @@ const selectShadowDataFile = `
 	       data_file.quarter, data_file.year, section.name, data_file.version,
 	       data_file.stt_id, data_file.user_id, data_file.created_at, data_file.file,
 	       data_file.s3_versioning_id, program.code, data_file.is_program_audit,
-	       data_file.state, data_file.state_changed_at, data_file.section_id
+	       data_file.state, data_file.state_changed_at, data_file.section_id,
+	       data_file.upload_source
 	FROM shadow_data_files_datafile AS data_file
 	INNER JOIN data_files_section AS section ON section.id = data_file.section_id
 	INNER JOIN data_files_program AS program ON program.id = section.program_id
@@ -77,7 +79,8 @@ const selectProductionDataFile = `
 	       data_file.quarter, data_file.year, section.name, data_file.version,
 	       data_file.stt_id, data_file.user_id, data_file.created_at, data_file.file,
 	       data_file.s3_versioning_id, program.code, data_file.is_program_audit,
-	       data_file.state, data_file.state_changed_at, data_file.section_id
+	       data_file.state, data_file.state_changed_at, data_file.section_id,
+	       data_file.upload_source
 	FROM data_files_datafile AS data_file
 	INNER JOIN data_files_section AS section ON section.id = data_file.section_id
 	INNER JOIN data_files_program AS program ON program.id = section.program_id
@@ -88,9 +91,9 @@ const upsertShadowDataFile = `
 	INSERT INTO shadow_data_files_datafile (
 	    id, original_filename, slug, extension, quarter, year, section_id, version,
 	    stt_id, user_id, created_at, file, s3_versioning_id,
-	    is_program_audit, state, state_changed_at
+	    is_program_audit, state, state_changed_at, upload_source
 	)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 	ON CONFLICT (id) DO UPDATE SET
 	    original_filename = EXCLUDED.original_filename,
 	    slug = EXCLUDED.slug,
@@ -104,7 +107,8 @@ const upsertShadowDataFile = `
 	    created_at = EXCLUDED.created_at,
 	    file = EXCLUDED.file,
 	    s3_versioning_id = EXCLUDED.s3_versioning_id,
-	    is_program_audit = EXCLUDED.is_program_audit
+	    is_program_audit = EXCLUDED.is_program_audit,
+	    upload_source = EXCLUDED.upload_source
 `
 
 const updateShadowDataFileState = `
@@ -593,6 +597,7 @@ func scanDataFile(row pgx.Row) (DataFileRecord, error) {
 		&df.State,
 		&df.StateChangedAt,
 		&df.SectionID,
+		&df.UploadSource,
 	)
 	return df, err
 }
@@ -622,6 +627,7 @@ func execDataFileUpsert(
 		df.IsProgramAudit,
 		df.State,
 		df.StateChangedAt,
+		df.UploadSource,
 	)
 	return err
 }

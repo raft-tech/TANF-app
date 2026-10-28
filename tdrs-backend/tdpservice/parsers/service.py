@@ -28,6 +28,7 @@ from tdpservice.data_files.submission_lifecycle import (
     claim_parse,
     finish_reparse,
     parse_write_scope,
+    record_parse_dispatch_failure,
     record_parse_failure,
     record_parse_outcome,
     record_shadow_parse_state,
@@ -1306,6 +1307,28 @@ class ParsingService:
             reparse_success = False
             error_message = str(e) or "unexpected error during parsing"
             is_shadow = _uses_shadow_table(data_file) if data_file else False
+            if (
+                data_file is not None
+                and not is_shadow
+                and self.parse_token
+                and data_file.state in PARSE_QUEUEABLE_STATES
+            ):
+                stale_owner = not record_parse_dispatch_failure(
+                    data_file,
+                    self.parse_token,
+                    self.file_meta,
+                    note=f"Parser failed before parse start: {e}",
+                    event_id=self.event_id,
+                )
+                return ParseResult(
+                    success=False,
+                    data_file=data_file,
+                    summary=self.dfs,
+                    status=self.dfs.status if self.dfs else None,
+                    error_message=error_message,
+                    total_records_processed=0,
+                    total_errors_generated=0,
+                )
             if data_file is None or (self.parse_token is None and not is_shadow):
                 # If we failed before resolving data_file or token (e.g. precondition / DoesNotExist)
                 logger.exception(
