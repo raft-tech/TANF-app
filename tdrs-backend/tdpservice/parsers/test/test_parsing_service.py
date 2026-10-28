@@ -17,7 +17,10 @@ from tdpservice.data_files.models import (
     ShadowDataFile,
     create_or_update_shadow_data_file,
 )
-from tdpservice.data_files.submission_lifecycle import StaleParseOwnership
+from tdpservice.data_files.submission_lifecycle import (
+    StaleParseOwnership,
+    claim_parse,
+)
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.parsers.models import (
     DataFileSummary,
@@ -413,6 +416,26 @@ class TestParsingServiceExecution:
         datafile.refresh_from_db()
         assert datafile.state == SubmissionState.PARSE_FAILED
         assert datafile.current_parse_token is None
+
+    def test_pre_start_validation_failure_releases_claimed_parse(self, data_analyst):
+        """A missing file releases its claimed token before failure artifacts run."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=2,
+            state=SubmissionState.VIRUS_SCAN_COMPLETED,
+            file=None,
+        )
+        token = claim_parse(datafile)
+
+        result = ParsingService(data_file=datafile, parse_token=token).run()
+
+        assert result.success is False
+        assert "does not have an associated file" in result.error_message
+        datafile.refresh_from_db()
+        assert datafile.state == SubmissionState.PARSE_FAILED
+        assert datafile.current_parse_token is None
+        assert not ParserError.objects.filter(file=datafile).exists()
+        assert claim_parse(datafile) != token
 
     def test_parse_unexpected_exception_creates_error_and_returns_failed_result(
         self, monkeypatch, data_analyst
