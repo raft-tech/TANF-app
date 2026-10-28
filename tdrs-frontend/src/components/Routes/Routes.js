@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useSearchParams } from 'react-router-dom'
 import NoMatch from '../NoMatch'
 import SplashPage from '../SplashPage'
 import Profile from '../Profile'
@@ -32,6 +32,7 @@ const RouteProvider = ({ children }) => {
  * does not matter.
  */
 const AppRoutes = () => {
+  const [searchParams] = useSearchParams()
   const user = useSelector((state) => state.auth.user)
   const sttList = useSelector((state) => state?.stts?.sttList)
   const userAccountInReview = useSelector(accountIsInReview)
@@ -54,11 +55,13 @@ const AppRoutes = () => {
     : 'My Profile'
   const profileType = userAccountInReview ? 'access request' : 'profile'
 
-  const feedbackReportsTitle = userCanUploadFeedbackReports
+  const isManagingFeedbackReports =
+    userCanUploadFeedbackReports && searchParams.get('view') !== 'stt'
+  const feedbackReportsTitle = isManagingFeedbackReports
     ? 'Upload Feedback Reports'
     : 'Feedback Reports'
   // TODO: Change the subtitle to include wording for FRA as well as TANF/SSP
-  const feedbackReportsSubtitle = userCanUploadFeedbackReports
+  const feedbackReportsSubtitle = isManagingFeedbackReports
     ? 'TANF WPR, SSP WPR, TANF & SSP Combined, and Time Limit Reports'
     : null
 

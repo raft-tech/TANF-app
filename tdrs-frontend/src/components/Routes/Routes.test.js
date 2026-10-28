@@ -87,6 +87,73 @@ describe('Routes.js', () => {
     mockProfileEditMode = false
   })
 
+  describe('feedback report view query parameters', () => {
+    const renderFeedbackEntry = (role, permissions, approval = 'Approved') => {
+      const store = mockStore(
+        makeState({
+          authUser: {
+            account_approval_status: approval,
+            roles: [
+              {
+                name: role,
+                permissions: permissions.map((codename) => ({ codename })),
+              },
+            ],
+          },
+        })
+      )
+      render(
+        <Provider store={store}>
+          <MemoryRouter
+            initialEntries={['/feedback-reports?view=stt&stt=1&year=2025']}
+          >
+            <Routes />
+            <CurrentLocation />
+          </MemoryRouter>
+        </Provider>
+      )
+    }
+
+    it.each(['DIGIT Team', 'OFA System Admin'])('allows %s', (role) => {
+      renderFeedbackEntry(role, [
+        'view_reportfile',
+        'view_reportsource',
+        'add_reportsource',
+      ])
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/feedback-reports?view=stt&stt=1&year=2025'
+      )
+    })
+
+    it.each(['Data Analyst', 'OFA Regional Staff'])(
+      'preserves the existing report route for %s',
+      (role) => {
+        renderFeedbackEntry(role, ['view_reportfile'])
+        expect(screen.getByTestId('location')).toHaveTextContent(
+          '/feedback-reports?view=stt&stt=1&year=2025'
+        )
+      }
+    )
+
+    it('denies users without report-view permission', async () => {
+      renderFeedbackEntry('OFA Admin', [])
+      await waitFor(() =>
+        expect(screen.getByTestId('location')).toHaveTextContent('/home')
+      )
+    })
+
+    it('denies an unapproved admin', async () => {
+      renderFeedbackEntry(
+        'DIGIT Team',
+        ['view_reportfile', 'view_reportsource', 'add_reportsource'],
+        'Pending'
+      )
+      await waitFor(() =>
+        expect(screen.getByTestId('location')).toHaveTextContent('/home')
+      )
+    })
+  })
+
   describe('login destinations', () => {
     const destination =
       '/data-files/2026/1/tanf/1/history?type=tanf&filter=a%2Bb#results'

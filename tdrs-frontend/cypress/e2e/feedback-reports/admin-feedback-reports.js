@@ -162,6 +162,46 @@ Given('feedback report download statistics exist', () => {
   fr.stubDownloadStatistics()
 })
 
+Given('admin jurisdiction feedback reports exist', () => {
+  cy.intercept('GET', '/v1/stts/alpha', {
+    statusCode: 200,
+    body: [
+      { id: 1, name: 'Alabama', type: 'state' },
+      { id: 2, name: 'Alaska', type: 'state' },
+      { id: 3, name: 'Example Tribe', type: 'tribe' },
+    ],
+  })
+  cy.intercept({ method: 'GET', pathname: '/v1/reports/' }, {
+    statusCode: 200,
+    body: { count: 0, next: null, previous: null, results: [] },
+  }).as('adminJurisdictionReports')
+})
+
+When('the admin follows the Alabama feedback reports link', () => {
+  fr.getDownloadStatisticsModal().contains('a', 'Alabama').click()
+})
+
+Then('the admin sees Alabama feedback reports for fiscal year {string}', (year) => {
+  cy.wait('@adminJurisdictionReports').its('request.query').should('include', {
+    stt: '1', year, report_type: 'TANF_SSP',
+  })
+  cy.get('[aria-label="Feedback report views"]')
+    .contains('button', /^Feedback Reports$/).should('have.attr', 'aria-current', 'page')
+  cy.contains('h2', `Alabama — TANF/SSP Fiscal Year ${year} Feedback Reports`)
+    .should('be.visible')
+  cy.get('#feedback_reports').should('not.exist')
+})
+
+When('the admin searches Alabama feedback reports for fiscal year {string}', (year) => {
+  cy.get('#fiscal-year-select').select(year)
+  cy.contains('button', 'Search').click()
+})
+
+When('the admin returns to Manage Feedback Reports', () => {
+  cy.get('[aria-label="Feedback report views"]')
+    .contains('button', 'Manage Feedback Reports').click()
+})
+
 Given('the viewport is narrow', () => {
   cy.viewport(375, 667)
 })
@@ -182,7 +222,8 @@ Then('{string} sees the grouped download statistics', () => {
     cy.contains('1 of 3 jurisdictions').should('be.visible')
     cy.contains('th', 'Region 1').should('be.visible')
     cy.contains('th', 'Unassigned Region').should('be.visible')
-    cy.contains('th', 'Alabama').should('be.visible').find('a').should('not.exist')
+    cy.contains('th', 'Alabama').should('be.visible').find('a')
+      .should('have.attr', 'href', '/feedback-reports?view=stt&stt=1&year=2025&type=TANF_SSP')
     cy.contains('08/10/2026').should('be.visible')
     cy.contains('th', 'Alaska').should('be.visible')
     cy.contains('th', 'Example Tribe').should('be.visible')
