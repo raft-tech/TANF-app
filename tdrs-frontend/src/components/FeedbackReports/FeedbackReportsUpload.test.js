@@ -408,5 +408,106 @@ describe('FeedbackReportsUpload', () => {
       // Cleanup
       document.body.removeChild(externalInput)
     })
+
+    it('clearFileInput clears the file input and removes USWDS preview classes and elements', () => {
+      const ref = React.createRef()
+      const fileInputRef = React.createRef()
+      render(
+        <FeedbackReportsUpload
+          {...defaultProps}
+          inputRef={fileInputRef}
+          ref={ref}
+        />
+      )
+
+      const dropTarget = fileInputRef.current.parentNode
+      dropTarget.classList.add('usa-file-input__target', 'has-invalid-file')
+
+      const instructions = document.createElement('div')
+      instructions.className = 'usa-file-input__instructions display-block'
+      dropTarget.appendChild(instructions)
+
+      ref.current.clearFileInput()
+
+      expect(fileInputRef.current.value).toBe('')
+      expect(instructions.classList.contains('display-block')).toBe(false)
+      expect(dropTarget.classList.contains('has-invalid-file')).toBe(false)
+    })
+
+    it('clearFileInput handles missing instructions element and null inputRef safely', () => {
+      const ref = React.createRef()
+      const fileInputRef = React.createRef()
+      render(
+        <FeedbackReportsUpload
+          {...defaultProps}
+          inputRef={fileInputRef}
+          ref={ref}
+        />
+      )
+
+      const dropTarget = fileInputRef.current.parentNode
+      dropTarget.classList.add('usa-file-input__target', 'has-invalid-file')
+
+      ref.current.clearFileInput()
+      expect(dropTarget.classList.contains('has-invalid-file')).toBe(false)
+
+      // Also safe when inputRef.current is null
+      const nullInputRef = { current: null }
+      const ref2 = React.createRef()
+      render(
+        <FeedbackReportsUpload
+          {...defaultProps}
+          inputRef={nullInputRef}
+          ref={ref2}
+        />
+      )
+      nullInputRef.current = null
+      expect(() => ref2.current.clearFileInput()).not.toThrow()
+    })
+  })
+
+  describe('Notes field', () => {
+    it('renders label, hint, textarea, and character counter', () => {
+      renderComponent()
+
+      expect(screen.getByText('Notes (optional)')).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          'Notes will be displayed to STTs when additional detail is needed to contextualize a report'
+        )
+      ).toBeInTheDocument()
+      const textarea = screen.getByLabelText('Notes (optional)')
+      expect(textarea).toBeInTheDocument()
+      expect(textarea).toHaveAttribute('maxlength', '2000')
+      expect(screen.getByText('0/2000')).toBeInTheDocument()
+    })
+
+    it('displays dynamic character count when notes prop is provided', () => {
+      renderComponent({ notes: 'Testing 1 2 3' })
+
+      expect(screen.getByText('13/2000')).toBeInTheDocument()
+    })
+
+    it('triggers onNotesChange when user types in textarea', () => {
+      const mockOnNotesChange = jest.fn()
+      renderComponent({ onNotesChange: mockOnNotesChange })
+
+      const textarea = screen.getByLabelText('Notes (optional)')
+      fireEvent.change(textarea, { target: { value: 'New note' } })
+
+      expect(mockOnNotesChange).toHaveBeenCalledTimes(1)
+    })
+
+    it('displays notesError when provided', () => {
+      renderComponent({
+        notesError: 'HTML and JavaScript are not allowed in the notes field.',
+      })
+
+      expect(
+        screen.getByText(
+          'HTML and JavaScript are not allowed in the notes field.'
+        )
+      ).toBeInTheDocument()
+    })
   })
 })
