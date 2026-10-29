@@ -20,5 +20,13 @@ We use Actions to filter which workflows are getting run by CircleCI by sending 
   | `RELEASE_TRACKER_AGENT_WEBHOOK_KEY_HEADER` | variable | Header that carries the key. Default `Authorization`, sent as `Bearer <key>`. Any other header name sends the raw key. |
 
 - **Re-sending the webhook:** run the workflow manually with `dry_run` off and `notify_existing` on. No new issue is created if the tracker already exists.
-- **Permissions:** `contents: read` and `issues: write` with the built-in `GITHUB_TOKEN`. The Projects board is not touched.
+- **After creating:** the workflow sets the issue type to `Task`, makes it a sub-issue of #5789 (Release Tracking), adds it to org project 123, and sets Status to `In Progress` if Status is empty. Re-runs are safe: an existing parent or Status is left alone.
+- **Permissions:** real runs use a GitHub App token (`actions/create-github-app-token`) so the history shows the App, and because `GITHUB_TOKEN` cannot write org projects. Dry runs use `GITHUB_TOKEN`. The job fails with a clear error if the secrets are missing.
+
+  | Setting | Type | Purpose |
+  | --- | --- | --- |
+  | `TDP_APP_ID` | secret | GitHub App ID. |
+  | `TDP_APP_PRIVATE_KEY` | secret | GitHub App private key (PEM). |
+
+  App permissions: Repository Issues read/write, Metadata read; Organization Projects read/write. Install it on this repository.
 - **Limits:** a release created by another workflow using `GITHUB_TOKEN` does not trigger this workflow (GitHub does this to prevent loops). Releases are currently created by hand on the Releases page, so this does not apply today. If releases are ever automated, use a GitHub App token or PAT there, or run this workflow manually. A `release` event runs the workflow file from the tagged commit, so a hotfix tag cut from a release that predates this workflow will not trigger it. Use the manual run for those.

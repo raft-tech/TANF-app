@@ -11,6 +11,16 @@
 #   secret   RELEASE_TRACKER_AGENT_WEBHOOK_KEY         sender key
 #   variable RELEASE_TRACKER_AGENT_WEBHOOK_KEY_HEADER  header name (default Authorization)
 #
+# GitHub App (required for real runs, not for dry runs):
+#   secret   TDP_APP_ID           App ID
+#   secret   TDP_APP_PRIVATE_KEY  App private key (PEM)
+# The App creates the issue, sets its type to Task, makes it a sub-issue of
+# the Release Tracking parent, adds it to the org project, and sets Status to
+# In Progress. GITHUB_TOKEN cannot write org projects. The App needs:
+#   Repository: Issues read/write, Metadata read
+#   Organization: Projects read/write
+# and must be installed on this repository.
+#
 # Release notes and PR titles are untrusted. They are only read by the script
 # as data and are never placed into a shell command.
 name: Release Tracker
@@ -39,6 +49,13 @@ permissions:
   contents: read
   issues: write
 
+env:
+  PARENT_ISSUE: "5789"        # Release Tracking
+  ISSUE_TYPE: Task
+  PROJECT_OWNER: raft-tech
+  PROJECT_NUMBER: "123"
+  PROJECT_STATUS: In Progress
+
 concurrency:
   group: release-tracker-${{ github.event.release.tag_name || inputs.tag }}
   cancel-in-progress: false
@@ -51,17 +68,98 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      - name: Check App secrets
+        if: inputs.dry_run != true
+        env:
+          APP_ID: ${{ secrets.TDP_APP_ID }}
+          APP_KEY: ${{ secrets.TDP_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APP_ID" ] || [ -z "$APP_KEY" ]; then
+            echo "::error::Secrets TDP_APP_ID and TDP_APP_PRIVATE_KEY must be set. See the header of this workflow."
+            exit 1
+          fi
+
+      - name: Get App token
+        id: app-token
+        if: inputs.dry_run != true
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.TDP_APP_ID }}
+          private-key: ${{ secrets.TDP_APP_PRIVATE_KEY }}
+          owner: raft-tech
+
       - name: Create release tracker
         id: tracker
         run: python3 .github/scripts/release_tracker.py
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           TAG: ${{ github.event.release.tag_name || inputs.tag }}
           DRY_RUN: ${{ inputs.dry_run }}
           NOTIFY_EXISTING: ${{ inputs.notify_existing }}
           AGENT_WEBHOOK_URL: ${{ secrets.RELEASE_TRACKER_AGENT_WEBHOOK_URL }}
           AGENT_WEBHOOK_KEY: ${{ secrets.RELEASE_TRACKER_AGENT_WEBHOOK_KEY }}
           AGENT_WEBHOOK_KEY_HEADER: ${{ vars.RELEASE_TRACKER_AGENT_WEBHOOK_KEY_HEADER }}
+
+      - name: Set type, parent, and project status
+        if: inputs.dry_run != true && steps.tracker.outputs.tracker_issue != ''
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          TRACKER_ISSUE: ${{ steps.tracker.outputs.tracker_issue }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          # Look up ids by name so nothing is hard coded except names and numbers.
+          q='query($o:String!,$r:String!,$n:Int!,$p:Int!,$po:String!,$pn:Int!){
+            repository(owner:$o,name:$r){
+              issueTypes(first:50){nodes{id name}}
+              issue(number:$n){id issueType{name} parent{number}}
+              parent:issue(number:$p){id}
+            }
+            organization(login:$po){projectV2(number:$pn){id
+              field(name:"Status"){... on ProjectV2SingleSelectField{id options{id name}}}}}
+          }'
+          data=$(gh api graphql -f query="$q" -F o="$REPO_OWNER" -F r="$REPO_NAME" \
+            -F n="$TRACKER_ISSUE" -F p="$PARENT_ISSUE" -F po="$PROJECT_OWNER" -F pn="$PROJECT_NUMBER")
+          issue_id=$(jq -r '.data.repository.issue.id' <<<"$data")
+          type_id=$(jq -r --arg t "$ISSUE_TYPE" '.data.repository.issueTypes.nodes[]|select(.name==$t).id' <<<"$data")
+          parent_id=$(jq -r '.data.repository.parent.id' <<<"$data")
+          cur_parent=$(jq -r '.data.repository.issue.parent.number // empty' <<<"$data")
+          project_id=$(jq -r '.data.organization.projectV2.id' <<<"$data")
+          field_id=$(jq -r '.data.organization.projectV2.field.id' <<<"$data")
+          option_id=$(jq -r --arg s "$PROJECT_STATUS" '.data.organization.projectV2.field.options[]|select(.name==$s).id' <<<"$data")
+          for v in issue_id type_id parent_id project_id field_id option_id; do
+            if [ -z "${!v}" ] || [ "${!v}" = "null" ]; then
+              echo "::error::Could not resolve $v. Check App permissions and installation."; exit 1
+            fi
+          done
+
+          gh api graphql -f query='mutation($i:ID!,$t:ID!){updateIssue(input:{id:$i,issueTypeId:$t}){issue{number}}}' \
+            -F i="$issue_id" -F t="$type_id" >/dev/null
+          echo "Type set to $ISSUE_TYPE."
+
+          if [ -z "$cur_parent" ]; then
+            gh api graphql -f query='mutation($p:ID!,$c:ID!){addSubIssue(input:{issueId:$p,subIssueId:$c}){issue{number}}}' \
+              -F p="$parent_id" -F c="$issue_id" >/dev/null
+            echo "Parent set to #$PARENT_ISSUE."
+          else
+            echo "Already has parent #$cur_parent. Left as is."
+          fi
+
+          # Adding is idempotent and returns the existing item on re-runs.
+          item=$(gh api graphql -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id
+              fieldValueByName(name:"Status"){... on ProjectV2ItemFieldSingleSelectValue{name}}}}}' \
+            -F p="$project_id" -F c="$issue_id")
+          item_id=$(jq -r '.data.addProjectV2ItemById.item.id' <<<"$item")
+          cur_status=$(jq -r '.data.addProjectV2ItemById.item.fieldValueByName.name // empty' <<<"$item")
+          # Only set Status when empty, so a re-run never moves a tracker backwards.
+          if [ -z "$cur_status" ]; then
+            gh api graphql -f query='mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}){projectV2Item{id}}}' \
+              -F p="$project_id" -F i="$item_id" -F f="$field_id" -F o="$option_id" >/dev/null
+            echo "Status set to $PROJECT_STATUS."
+          else
+            echo "Status already $cur_status. Left as is."
+          fi
 
       - name: Summary
         if: steps.tracker.outputs.tracker_issue != ''
