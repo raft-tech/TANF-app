@@ -24,8 +24,8 @@ tasks:
   keycloak:lint:
     desc: Lint Keycloak image assembly and verification scripts (never starts services)
     cmds:
-      - docker run --rm --network none --mount "type=bind,src={{.ROOT_DIR}}/tdrs-backend/keycloak,dst=/src,readonly" koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d /src/collect-runtime.sh /src/test/build.sh /src/test/scan.sh
-      - for script in collect-runtime.sh entrypoint.sh select-realm-config.sh deploy.sh test/build.sh test/scan.sh; do bash -n "tdrs-backend/keycloak/$script" || exit 1; done
+      - docker run --rm --network none --mount "type=bind,src={{.ROOT_DIR}}/tdrs-backend/keycloak,dst=/src,readonly" koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d /src/check-readiness.sh /src/collect-runtime.sh /src/test/build.sh /src/test/scan.sh
+      - for script in check-readiness.sh collect-runtime.sh entrypoint.sh select-realm-config.sh deploy.sh test/build.sh test/scan.sh; do bash -n "tdrs-backend/keycloak/$script" || exit 1; done
       - sh -n tdrs-backend/keycloak/normalize-login-gov-key.sh
 
   gitcfg:

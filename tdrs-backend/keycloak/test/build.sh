@@ -12,6 +12,10 @@ echo 'Production source diff (must be reviewed if nonempty):'
 git diff HEAD -- tdrs-backend/keycloak ':!tdrs-backend/keycloak/test'
 BUILDX_METADATA_PROVENANCE=max docker buildx build --load --platform "$PLATFORM" \
     --metadata-file "$results/metadata.json" --tag "$IMAGE_REF" tdrs-backend/keycloak
+docker buildx build --platform "$PLATFORM" --target config-cli-evidence \
+    --output "type=local,dest=$results/config-cli-evidence" tdrs-backend/keycloak
+cp tdrs-backend/keycloak/config-cli-security.diff "$results/config-cli-evidence/"
+printf '%s\n' 90c97fc0f8968286400be7bcb27f8165581003f2 > "$results/config-cli-evidence/source-revision.txt"
 docker image inspect "$IMAGE_REF" --format 'ID={{.Id}} Platform={{.Os}}/{{.Architecture}} Digests={{json .RepoDigests}}'
 image_id="$(docker image inspect "$IMAGE_REF" --format '{{.Id}}')"
 docker image inspect "$image_id" > "$results/image.json"
@@ -29,12 +33,11 @@ docker run --pull=never --name "$container" --network none --platform "$PLATFORM
   java -version
   nginx -v
   jq --version
-  curl --version
   if [ -d /usr/share/keycloak-image ]; then
     test "$(id -u)" -ne 0
     test -w /opt/keycloak/data/import
     test -w /tmp/nginx_proxy
-    for utility in bash sh java sed grep find xargs curl jq base64 dirname cp mkdir; do
+    for utility in bash sh java sed grep find xargs timeout jq base64 dirname cp mkdir; do
       command -v "$utility"
     done
     for utility in apt-get dpkg gcc javac; do
@@ -44,7 +47,7 @@ docker run --pull=never --name "$container" --network none --platform "$PLATFORM
       fi
     done
     sha256sum -c /usr/share/keycloak-image/copied-files.sha256
-    printf "%s  %s\n" df6939a1d9c40d5ab7e1fb690082ea8980dbbf402ca92a9968b90b652cb3ca9a /opt/keycloak/keycloak-config-cli.jar | sha256sum -c -
+    sha256sum -c /usr/share/keycloak-image/config-cli.sha256
     sed "s/LISTEN_PORT/8080/" /opt/keycloak/nginx.conf.template > /tmp/nginx.conf
     nginx -t -c /tmp/nginx.conf
     printf "{\"architectureCheck\":true}\n" | jq -e .architectureCheck

@@ -7,7 +7,7 @@ root=/runtime-additions
 mkdir -p "$root/usr/bin" "$root/usr/sbin" "$root/var/lib/dpkg" "$root/usr/share/keycloak-image"
 cp /runtime-status "$root/var/lib/dpkg/status"
 declare -A packages=()
-for binary in /usr/bin/curl /usr/bin/jq /usr/bin/grep /usr/sbin/nginx; do
+for binary in /usr/bin/jq /usr/bin/grep /usr/sbin/nginx; do
     cp --parents "$binary" "$root"
     dependencies="$(ldd "$binary")"
     if [[ "$dependencies" == *'not found'* ]]; then
