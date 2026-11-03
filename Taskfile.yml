@@ -1,6 +1,16 @@
 version: "3"
 
 tasks:
+  keycloak:build:
+    desc: Build an explicit local Keycloak test image (never publishes)
+    requires:
+      vars: [IMAGE_REF, PLATFORM]
+    env:
+      IMAGE_REF: '{{.IMAGE_REF}}'
+      PLATFORM: '{{.PLATFORM}}'
+    cmds:
+      - bash tdrs-backend/keycloak/test/build.sh
+
   gitcfg:
     desc: Configure git
     cmds:
