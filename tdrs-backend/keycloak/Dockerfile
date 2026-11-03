@@ -1,41 +1,34 @@
-# Use the following to build: docker buildx build -t ghcr.io/raft-tech/keycloak_26.5:latest -f Dockerfile . --platform linux/amd64,linux/arm64 --push
+# Local-only build from the repository root (also supports linux/arm64):
+# task keycloak:build IMAGE_REF=tdp-keycloak:dhi-candidate-amd64 PLATFORM=linux/amd64
 
-# Stage 1: nginx binary and non-system shared libraries.
-FROM nginx:1.27 AS nginx-source
-# Collect libs that aren't part of glibc (those are already in ubi-micro).
-# Also exclude libcrypt — Debian's version requires glibc 2.36, but ubi-micro
-# only has glibc 2.34. We grab a compatible libcrypt from UBI 9 instead.
-RUN mkdir /nginx-libs && \
-    ldd /usr/sbin/nginx | awk '/=>/{print $3}' | \
-    grep -v -E '(libc\.so|libm\.so|libdl\.so|libpthread|librt\.so|libcrypt\.so|ld-linux)' | \
-    while read lib; do cp -L "$lib" /nginx-libs/; done
+FROM dhi.io/keycloak:26.7.3-debian13@sha256:1e1d26bfe8614ce1ee1b3ccb1780f4cbce339a302fe38bdb11fa12f408ea0f2c AS runtime
+FROM dhi.io/nginx:1.30.6-debian13@sha256:98cdc3c682c3c11e6ce1629094e2fb8c88e9fa58393c63ec934d0be787273e21 AS nginx-source
+FROM dhi.io/keycloak:26.7.3-debian13-dev@sha256:33795d6a5bcf9dcc23e3f9d8a7f9c0f32539b97ca219de89d63d29e9ec841772 AS assembly
 
-# Stage 2: libcrypt.so.1 compatible with UBI 9's glibc 2.34.
-# Debian nginx links against libcrypt.so.1, but UBI 9 only ships libcrypt.so.2.
-# The libxcrypt-compat package provides a backwards-compatible libcrypt.so.1.
-FROM registry.access.redhat.com/ubi9/ubi-minimal AS ubi-libs
-RUN microdnf install -y libxcrypt-compat && \
-    mkdir /ubi-libs && cp -L /usr/lib64/libcrypt.so.1* /ubi-libs/
-
-FROM adorsys/keycloak-config-cli:6.5.1-26.5.5 AS keycloak-config-cli
-
-FROM quay.io/keycloak/keycloak:26.7.3
-
-USER root
-# Copy nginx binary, Debian-compatible libs, and UBI-compatible libcrypt.
+USER 0:0
+COPY runtime-packages.lock /runtime-packages.lock
+RUN apt-get update && xargs -r apt-get install -y --no-install-recommends < /runtime-packages.lock && \
+    rm -rf /var/lib/apt/lists/*
+ADD --checksum=sha256:df6939a1d9c40d5ab7e1fb690082ea8980dbbf402ca92a9968b90b652cb3ca9a \
+    https://github.com/adorsys/keycloak-config-cli/releases/download/v6.5.1/keycloak-config-cli-26.5.5.jar /artifacts/keycloak-config-cli.jar
 COPY --from=nginx-source /usr/sbin/nginx /usr/sbin/nginx
-COPY --from=nginx-source /nginx-libs/ /usr/lib64/
-COPY --from=ubi-libs /ubi-libs/ /usr/lib64/
-RUN mkdir -p /var/log/nginx /tmp/nginx_client_body /tmp/nginx_proxy /tmp/nginx_fastcgi /tmp/nginx_uwsgi /tmp/nginx_scgi && \
-    chown -R 1000:0 /var/log/nginx /tmp/nginx_*
-USER 1000
+COPY --from=nginx-source /var/lib/dpkg/status /nginx-status
+# Compare against the actual final runtime, never replacing its existing libraries.
+COPY --from=runtime /usr/lib/ /runtime-libs/
+COPY --from=runtime /var/lib/dpkg/status /runtime-status
+COPY collect-runtime.sh /collect-runtime.sh
+RUN bash /collect-runtime.sh
 
-# Install jq and curl for manifest startup and health checks.
-ADD --chmod=755 https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64 /usr/local/bin/jq
-ADD --chmod=755 https://github.com/moparisthebest/static-curl/releases/download/v8.7.1/curl-amd64 /usr/local/bin/curl
+FROM runtime
+USER 0:0
+COPY --from=assembly /runtime-additions/ /
+COPY --from=assembly /artifacts/keycloak-config-cli.jar /opt/keycloak/keycloak-config-cli.jar
+RUN mkdir -p /opt/keycloak/data/import /var/log/nginx \
+    /tmp/nginx_client_body /tmp/nginx_proxy /tmp/nginx_fastcgi /tmp/nginx_uwsgi /tmp/nginx_scgi && \
+    chown -R 65532:65532 /opt/keycloak /var/log/nginx /tmp/nginx_*
+USER 65532:65532
 
 COPY realm-configs/ /opt/keycloak/realm-configs/
-COPY --from=keycloak-config-cli /app/keycloak-config-cli.jar /opt/keycloak/keycloak-config-cli.jar
 COPY --chmod=755 select-realm-config.sh /opt/keycloak/select-realm-config.sh
 COPY --chmod=755 normalize-login-gov-key.sh /opt/keycloak/normalize-login-gov-key.sh
 COPY nginx.conf /opt/keycloak/nginx.conf.template

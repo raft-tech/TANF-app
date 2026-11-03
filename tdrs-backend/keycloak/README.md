@@ -13,7 +13,8 @@ User -> Frontend -> Django /v2/ -> Keycloak -> Identity Provider (Login.gov / AM
 
 | File | Purpose |
 |---|---|
-| `Dockerfile` | Keycloak 26.5 image with nginx proxying and the config-cli jar copied from `adorsys/keycloak-config-cli` |
+| `Dockerfile` | Digest-pinned DHI Keycloak 26.7.3 / Java 21 with DHI nginx and a checksum-verified upstream config-cli JAR |
+| `collect-runtime.sh` | Copies only required utilities/missing shared libraries and retains package metadata for scanning |
 | `realm-configs/` | Full realm exports for `dev-local`, `staging`, and `prod` |
 | `select-realm-config.sh` | Copies the correct checked-in standard and admin realm exports into Keycloak's import path based on `DEPLOY_ENV` |
 | `normalize-login-gov-key.sh` | Decodes the base64 Login.gov private key and runs `keycloak-config-cli` |
@@ -25,13 +26,19 @@ User -> Frontend -> Django /v2/ -> Keycloak -> Identity Provider (Login.gov / AM
 ### Prerequisites
 
 - Docker and Docker Compose
+- A Docker account authenticated with `docker login dhi.io` for source builds (read-only access is sufficient; do not commit credentials).
 - The backend `docker-compose.yml` defines two Keycloak-related services:
   - **keycloak-pg** — PostgreSQL 15.7 database for Keycloak (port 5434)
-  - **keycloak** — Keycloak 26.5 server (ports 8443 browser / 8080 internal / 9001 management) that runs config-cli during startup
+  - **keycloak** — Keycloak 26.7.3 server (ports 8443 browser / 8080 internal / 9001 management) that runs config-cli during startup
 
 Local Docker starts Keycloak first, then the Keycloak entrypoint imports `realm-export.dev-local.json` with config-cli after Keycloak is healthy. Cloud.gov uses the same startup import path.
 
 ### Starting Keycloak
+
+For local-only DHI candidate builds, component/permission checks, and vulnerability
+reports, use the explicit-platform Task commands in [test/README.md](test/README.md).
+Those commands do not start Keycloak, publish, deploy, or establish runtime acceptance.
+The existing Compose image is not automatically rebuilt by `task backend-up`.
 
 ```bash
 cd tdrs-backend
