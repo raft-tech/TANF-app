@@ -1099,6 +1099,11 @@ class ParsingService:
 
         try:
             data_file = self.data_file
+            if self.reparse_id and self.file_meta is None:
+                self.file_meta = ReparseFileMeta.objects.get(
+                    data_file_id=data_file.id,
+                    reparse_meta_id=self.reparse_id,
+                )
             self.validate_preconditions()
 
             models = _parser_models_for_instance(data_file)
