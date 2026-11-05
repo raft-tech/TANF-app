@@ -129,6 +129,8 @@ describe('FeedbackReports', () => {
             results: [
               {
                 id: 42,
+                year: 2025,
+                report_type: 'TANF_SSP',
                 created_at: '2026-08-11T14:10:00Z',
                 original_filename: 'FY2025.zip',
                 date_extracted_on: '2025-09-30',

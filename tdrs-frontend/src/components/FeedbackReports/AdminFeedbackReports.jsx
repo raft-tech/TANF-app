@@ -71,6 +71,7 @@ function AdminFeedbackReports({ onSelectStt }) {
   const [dateTouched, setDateTouched] = useState(false)
   const [downloadStatistics, setDownloadStatistics] = useState({
     sourceId: null,
+    reportContext: null,
     data: null,
     loading: false,
     error: null,
@@ -85,6 +86,7 @@ function AdminFeedbackReports({ onSelectStt }) {
     statisticsRequestIdRef.current += 1
     setDownloadStatistics({
       sourceId: null,
+      reportContext: null,
       data: null,
       loading: false,
       error: null,
@@ -92,10 +94,16 @@ function AdminFeedbackReports({ onSelectStt }) {
   }
 
   const viewDownloadStatistics = async (sourceId) => {
+    const source = uploadHistory.find((report) => report.id === sourceId)
+    const reportContext = {
+      year: source.year,
+      reportType: source.report_type,
+    }
     const requestId = statisticsRequestIdRef.current + 1
     statisticsRequestIdRef.current = requestId
     setDownloadStatistics({
       sourceId,
+      reportContext,
       data: null,
       loading: true,
       error: null,
@@ -108,11 +116,18 @@ function AdminFeedbackReports({ onSelectStt }) {
     if (requestId !== statisticsRequestIdRef.current) return
 
     if (ok) {
-      setDownloadStatistics({ sourceId, data, loading: false, error: null })
+      setDownloadStatistics({
+        sourceId,
+        reportContext,
+        data,
+        loading: false,
+        error: null,
+      })
     } else {
       console.error('Failed to fetch download statistics:', error)
       setDownloadStatistics({
         sourceId,
+        reportContext,
         data: null,
         loading: false,
         error: 'Failed to load download statistics. Please try again.',
@@ -517,10 +532,7 @@ function AdminFeedbackReports({ onSelectStt }) {
             error={downloadStatistics.error}
             formatDateTime={formatDateTime}
             onClose={closeDownloadStatistics}
-            reportContext={{
-              year: selectedYear,
-              reportType: selectedReportType,
-            }}
+            reportContext={downloadStatistics.reportContext}
             onSelectStt={onSelectStt}
           />
         )}
