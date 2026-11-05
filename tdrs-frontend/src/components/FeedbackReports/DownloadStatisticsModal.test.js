@@ -35,7 +35,14 @@ const renderModal = (overrides = {}) => {
     onClose: jest.fn(),
     ...overrides,
   }
-  return { ...render(<DownloadStatisticsModal {...props} />), props }
+  return {
+    ...render(
+      <MemoryRouter>
+        <DownloadStatisticsModal {...props} />
+      </MemoryRouter>
+    ),
+    props,
+  }
 }
 
 describe('DownloadStatisticsModal', () => {
@@ -137,6 +144,62 @@ describe('DownloadStatisticsModal', () => {
       'href',
       '/feedback-reports?view=stt&stt=3&year=2025&type=FRA'
     )
+  })
+
+  it('selects the jurisdiction and source context on an ordinary link click', () => {
+    const onSelectStt = jest.fn()
+    const reportContext = { year: 2025, reportType: 'TANF_SSP' }
+    renderModal({ onSelectStt, reportContext })
+
+    fireEvent.click(screen.getByRole('link', { name: 'Alabama' }))
+
+    expect(onSelectStt).toHaveBeenCalledTimes(1)
+    expect(onSelectStt).toHaveBeenCalledWith(
+      statistics.regions[0].stts[0],
+      reportContext
+    )
+  })
+
+  it.each([
+    { metaKey: true },
+    { ctrlKey: true },
+    { shiftKey: true },
+    { altKey: true },
+    { button: 1 },
+  ])('preserves browser link behavior for %o', (clickOptions) => {
+    const onSelectStt = jest.fn()
+    renderModal({
+      onSelectStt,
+      reportContext: { year: 2025, reportType: 'TANF_SSP' },
+    })
+    const link = screen.getByRole('link', { name: 'Alabama' })
+
+    expect(fireEvent.click(link, clickOptions)).toBe(true)
+    expect(onSelectStt).not.toHaveBeenCalled()
+  })
+
+  it('keeps jurisdiction links within the modal keyboard focus cycle', async () => {
+    renderModal({ reportContext: { year: 2025, reportType: 'TANF_SSP' } })
+    const dialog = screen.getByRole('dialog')
+    const tableContainer = screen.getByLabelText(
+      'Jurisdiction download statistics'
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', { name: 'Download Statistics' })
+      ).toHaveFocus()
+    )
+
+    fireEvent.keyDown(dialog, { key: 'Tab' })
+    expect(tableContainer).toHaveFocus()
+    for (const name of ['Alabama', 'Alaska', 'Example Tribe']) {
+      fireEvent.keyDown(dialog, { key: 'Tab' })
+      expect(screen.getByRole('link', { name })).toHaveFocus()
+    }
+    fireEvent.keyDown(dialog, { key: 'Tab' })
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus()
+    fireEvent.keyDown(dialog, { key: 'Tab' })
+    expect(tableContainer).toHaveFocus()
   })
 
   it('closes from the button and Escape key', () => {
