@@ -55,11 +55,14 @@ describe('AdminFeedbackReports', () => {
     }))
   })
 
-  const renderComponent = (initialEntries = ['/feedback-reports']) => {
+  const renderComponent = (
+    initialEntries = ['/feedback-reports'],
+    props = {}
+  ) => {
     return render(
       <MemoryRouter initialEntries={initialEntries}>
         <Provider store={store}>
-          <AdminFeedbackReports />
+          <AdminFeedbackReports {...props} />
         </Provider>
       </MemoryRouter>
     )
@@ -819,6 +822,7 @@ describe('AdminFeedbackReports', () => {
         {
           id: 42,
           year: 2025,
+          report_type: 'TANF_SSP',
           date_extracted_on: '2025-02-28',
           created_at: '2025-03-05T10:31:00Z',
           processed_at: '2025-03-05T10:41:00Z',
@@ -883,6 +887,80 @@ describe('AdminFeedbackReports', () => {
       expect(screen.getByText('Not yet downloaded')).toBeInTheDocument()
     })
 
+    it('uses the clicked source context after an older history request finishes last', async () => {
+      const onSelectStt = jest.fn()
+      let resolveEarlierHistory
+      get.mockImplementation((url, options) => {
+        if (url.includes('/download-statistics/')) {
+          return Promise.resolve({
+            ok: true,
+            data: {
+              report_source_id: 42,
+              downloaded_count: 0,
+              total_count: 1,
+              regions: [
+                {
+                  id: 1,
+                  stts: [{ id: 1, name: 'Alabama', downloaded_at: null }],
+                },
+              ],
+            },
+          })
+        }
+        if (options.params.report_type === 'TANF_SSP') {
+          return new Promise((resolve) => {
+            resolveEarlierHistory = resolve
+          })
+        }
+        return Promise.resolve({ ok: true, data: { results: [] } })
+      })
+
+      renderComponent(['/feedback-reports?year=2025'], { onSelectStt })
+      await waitFor(() => expect(resolveEarlierHistory).toBeDefined())
+      fireEvent.click(screen.getByLabelText('FRA'))
+      await waitFor(() =>
+        expect(get).toHaveBeenCalledWith(
+          expect.stringContaining('/reports/report-sources/'),
+          { params: { year: 2025, report_type: 'FRA' } }
+        )
+      )
+      await act(async () => {
+        resolveEarlierHistory({
+          ok: true,
+          data: {
+            results: [
+              {
+                id: 42,
+                year: 2025,
+                report_type: 'TANF_SSP',
+                original_filename: 'FY2025.zip',
+                downloaded_count: 0,
+              },
+            ],
+          },
+        })
+      })
+
+      expect(screen.getByLabelText('FRA')).toBeChecked()
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: 'View download statistics for FY2025.zip',
+        })
+      )
+      const jurisdictionLink = await screen.findByRole('link', {
+        name: 'Alabama',
+      })
+      expect(jurisdictionLink).toHaveAttribute(
+        'href',
+        '/feedback-reports?view=stt&stt=1&year=2025&type=TANF_SSP'
+      )
+      fireEvent.click(jurisdictionLink)
+      expect(onSelectStt).toHaveBeenCalledWith(
+        { id: 1, name: 'Alabama', downloaded_at: null },
+        { year: 2025, reportType: 'TANF_SSP' }
+      )
+    })
+
     it('shows statistics loading and request error states', async () => {
       const consoleError = jest
         .spyOn(console, 'error')
@@ -900,6 +978,8 @@ describe('AdminFeedbackReports', () => {
               {
                 id: 42,
                 original_filename: 'FY2025.zip',
+                year: 2025,
+                report_type: 'TANF_SSP',
                 downloaded_count: 0,
               },
             ],
@@ -960,6 +1040,8 @@ describe('AdminFeedbackReports', () => {
                     {
                       id: 42,
                       original_filename: 'FY2025.zip',
+                      year: 2025,
+                      report_type: 'TANF_SSP',
                       downloaded_count: 0,
                     },
                   ],
@@ -999,6 +1081,8 @@ describe('AdminFeedbackReports', () => {
               {
                 id: 42,
                 original_filename: 'FY2025.zip',
+                year: 2025,
+                report_type: 'TANF_SSP',
                 downloaded_count: 0,
               },
             ],
