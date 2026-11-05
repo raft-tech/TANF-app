@@ -1,0 +1,64 @@
+--- a/pom.xml
++++ b/pom.xml
+@@ -4,14 +4,14 @@
+     <parent>
+         <groupId>org.springframework.boot</groupId>
+         <artifactId>spring-boot-starter-parent</artifactId>
+-        <version>3.4.5</version>
++        <version>3.5.16</version>
+         <relativePath />
+     </parent>
+ 
+     <groupId>de.adorsys.keycloak</groupId>
+     <artifactId>keycloak-config-cli</artifactId>
+     <packaging>jar</packaging>
+-    <version>6.5.1</version>
++    <version>6.5.1-tdp-security.1</version>
+ 
+     <name>keycloak-config-cli</name>
+     <url>https://github.com/adorsys/keycloak-config-cli</url>
+@@ -59,7 +59,7 @@
+         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+ 
+-        <spring-framework.version>6.2.11</spring-framework.version>
++        <spring-framework.version>6.2.19</spring-framework.version>
+         <angus-mail.version>2.0.4</angus-mail.version>
+         <json-smart.version>2.5.2</json-smart.version>
+         <commons-beanutils.version>1.11.0</commons-beanutils.version>
+@@ -77,7 +77,7 @@
+         <commons-lang3.version>3.18.0</commons-lang3.version>
+         <failsafe.version>3.3.2</failsafe.version>
+         <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
+-        <jackson.version>2.21.1</jackson.version>
++        <jackson.version>2.21.8</jackson.version>
+         <jacoco.version>0.8.12</jacoco.version>
+         <junit-pioneer.version>2.3.0</junit-pioneer.version>
+         <keepachangelog.version>2.1.1</keepachangelog.version>
+@@ -122,6 +122,14 @@
+ 
+     <dependencyManagement>
+         <dependencies>
++            <dependency>
++                <groupId>tools.jackson</groupId>
++                <artifactId>jackson-bom</artifactId>
++                <version>3.2.4</version>
++                <scope>import</scope>
++                <type>pom</type>
++            </dependency>
++
+             <dependency>
+                 <groupId>com.fasterxml.jackson</groupId>
+                 <artifactId>jackson-bom</artifactId>
+@@ -330,11 +338,6 @@
+         <dependency>
+             <groupId>org.javers</groupId>
+             <artifactId>javers-core</artifactId>
+-        </dependency>
+-
+-        <dependency>
+-            <groupId>org.yaml</groupId>
+-            <artifactId>snakeyaml</artifactId>
+         </dependency>
+ 
+         <dependency>
