@@ -11,6 +11,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 class Local(Common):
     """Define class for local configuration settings."""
 
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+    APP_NAME = os.getenv("CGAPPNAME_BACKEND", "tdp-backend-local")
+
     # Default DEBUG to True in local environments
     DEBUG = strtobool(os.getenv("DJANGO_DEBUG", "yes"))
 
