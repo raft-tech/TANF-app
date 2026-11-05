@@ -222,6 +222,41 @@ describe('FeedbackReports', () => {
       expect(get).toHaveBeenCalledTimes(1)
     })
 
+    it('returns to management through the tab while retaining submitted year and type', async () => {
+      renderComponent(
+        mockStore(adminState),
+        '/feedback-reports?view=stt&stt=10&year=2025&type=FRA',
+        true
+      )
+      await screen.findByRole('heading', { name: /Wisconsin.*2025/ })
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Manage Feedback Reports' })
+      )
+
+      expect(
+        screen.getByRole('button', { name: 'Manage Feedback Reports' })
+      ).toHaveAttribute('aria-current', 'page')
+      expect(
+        screen.getByRole('button', { name: 'Feedback Reports' })
+      ).not.toHaveAttribute('aria-current')
+      expect(screen.getByLabelText('Fiscal Year')).toHaveValue('2025')
+      expect(screen.getByLabelText('FRA')).toBeChecked()
+      const url = screen.getByTestId('feedback-location').textContent
+      expect(url.split('?')[0]).toBe('/feedback-reports')
+      const params = new URLSearchParams(url.split('?')[1])
+      expect(params.has('view')).toBe(false)
+      expect(params.has('stt')).toBe(false)
+      expect(params.get('year')).toBe('2025')
+      expect(params.get('type')).toBe('FRA')
+      await waitFor(() =>
+        expect(get).toHaveBeenCalledWith(
+          expect.stringContaining('/reports/report-sources/'),
+          { params: { year: 2025, report_type: 'FRA' } }
+        )
+      )
+    })
+
     it.each([
       [10, 'TANF_SSP', 'Wisconsin'],
       [10, 'FRA', 'Wisconsin'],
