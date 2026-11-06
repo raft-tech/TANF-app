@@ -643,9 +643,10 @@ class TestDataFileAPIAsDataAnalyst(DataFileAPITestBase):
         ],
     )
     def test_download_fra_error_report_file_for_own_stt(
-        self, request, api_client, file, dfs
+        self, request, api_client, file, dfs, user
     ):
         """Test that the fra error report file is downloaded as expected for a Data Analyst's set STT."""
+        user.user_permissions.add(Permission.objects.get(codename="has_fra_access"))
         datafile = request.getfixturevalue(file)
         dfs.datafile = datafile
         dfs.save()
