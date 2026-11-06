@@ -381,6 +381,38 @@ Scheduled run:
 
 For MVP, "workday" means Monday through Friday. If federal holiday exclusion is required, add a code-owned holiday calendar or a small approved dependency before relying on the scheduler for production commitments.
 
+### Scheduled Reporting Fiscal Year
+
+The reporting-year policy approved on November 6, 2026 switches fiscal years on
+**February 1 inclusive**, using the scheduler's existing `timezone.localdate()`
+timezone (configured as UTC by default). October through January continue to
+refresh the prior federal fiscal year's reporting data; February through
+September refresh the current federal fiscal year. Equivalently, January uses
+calendar year minus one, and all other months use calendar year.
+
+| Local date | Reporting fiscal year |
+| --- | --- |
+| September 30, 2026 | FY2026 |
+| October 1, 2026 | FY2026 |
+| December 31, 2026 | FY2026 |
+| January 1–31, 2027 | FY2026 |
+| February 1, 2027 onward (through January 2028) | FY2027 |
+
+The first affected monthly rollover is October 1, 2026 (FY2026, not FY2027).
+The first scheduled FY2027 run is Monday, February 1, 2027. The cutoff does not
+wait for February's submission due date and does not add a post-deadline run.
+When February 1 falls on a weekend, eligibility still changes that day, but the
+run waits until the first Monday-Friday date in February. Celery beat's daily
+13:00 UTC check and first-workday cadence are unchanged; holidays are not excluded.
+
+TAN, SSP, and TRIBAL runs retain separate output scopes. Monthly suppression
+uses scope, SCHEDULED trigger, PENDING/RUNNING/SUCCEEDED status, and the run's
+`created_at` month/year. FAILED runs may be retried on the due date; any active
+run for the same scope still prevents a new run regardless of trigger or month.
+Manual System Admin requests retain their explicitly selected fiscal year,
+even when it differs from the scheduled year. This reporting policy does not
+change federal fiscal-year conversion for source reporting months or imports.
+
 ---
 
 ## Statistical Weights MVP
@@ -416,9 +448,15 @@ Source-selection rules must be explicit:
 - latest accepted `DataFile` version per STT, quarter, program type, and section,
 - parser lifecycle states approved for calculation.
 
-The default accepted parser state should be `PARSE_COMPLETED`. If product or legacy parity requires including `PARSED_WITH_ERRORS`, document that decision in the pipeline definition and test it explicitly.
+For active, aggregate, and stratum inputs in TANF, SSP, and Tribal TANF, eligibility requires both a stable parsed lifecycle state (`PARSE_COMPLETED` or `PARSED_WITH_ERRORS`) and an authoritative `DataFileSummary` status of `Accepted`, `Accepted with Errors`, or `Partially Accepted with Errors`. Missing, Pending, unknown, and Rejected summaries are excluded, including Rejected summaries inconsistently paired with `PARSE_COMPLETED`. Extraction uses surviving persisted parsed records; no additional row-level acceptance policy is applied.
+
+Filter eligibility before selecting the maximum `version` per STT/quarter within the selected fiscal year, canonical program/section, and audit scope. An older eligible version remains usable when newer versions are rejected, pending, failed, or in flight, including while a newer version reparses. Groups with no eligible versions contribute no source. A selected file with unfinished reparse metadata still blocks the run; fallback must not bypass that safeguard. An entirely empty required source family fails validation, but not every STT/quarter must have all three families.
+
+Synthetic CSV imports receive explicit Accepted summaries with per-file imported-record totals. This is not a production backfill: any summary-less production files require data-owner assessment and a separately approved remediation procedure before release.
 
 The first node declares three `DataFileSource` inputs, then uses the shared `DataFileSourceSnapshot` to snapshot the selected active, aggregate, and stratum `DataFile` IDs into `ETLPipelineRun.metadata["source_datafile_ids"]`. All later nodes read from that snapshot rather than recalculating "latest accepted" files. This keeps counts, QA, and publication stable if a newer file is accepted while a run is executing. The statistical weights pipeline fails validation if any required source family snapshots to an empty list; an empty source run must not reach publication as a successful zero-row output. The shared snapshot helper also rejects any source `DataFile` that is part of active reparse work, and reparse startup rejects files already snapshotted by active `PENDING` or `RUNNING` ETL runs. This disjointness rule applies to every future DataFile-backed pipeline that uses the shared snapshot helper. The snapshot helper is shared infrastructure for future pipelines; statistical weights only owns the source declarations.
+
+Both new and reused snapshots check active reparse overlap, including unfinished reparse metadata added after snapshot creation. Snapshots freeze IDs, not parsed-row copies, and are not an atomic reservation protocol; these guards do not eliminate concurrency races. Persisted intermediate artifacts remain the inputs to QA and publication.
 
 The statistical weights implementation is split by responsibility under `tdpservice.etl.pipelines.statistical_weights`: `definition.py` owns parameter validation, output scope, shared node resources, node registration, and Celery Canvas declaration; `adapters.py` owns program-specific models and field names; `nodes.py` owns the concrete node subclasses, ORM extraction queries for `s1`, `s3`, and `s4`, and table-backed statistical-weights artifact persistence; and `candidates.py`, `qa.py`, and `publishing.py` own their respective domain behavior.
 

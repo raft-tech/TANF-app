@@ -9,6 +9,8 @@ import pytest
 
 from tdpservice.data_files.models import Program
 from tdpservice.etl.models import ETLPipelineRun, StatisticalWeight
+from tdpservice.etl.pipelines.sources import SOURCE_DATAFILE_IDS_KEY
+from tdpservice.etl.test.weights_fixtures import mixed_status_weights_data
 
 FISCAL_YEAR = 2024
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
@@ -59,6 +61,43 @@ def test_tanf_statistical_weights_pipeline_matches_expected_output(
 
     assert pipeline_run.final_output.row_count == len(expected_rows)
     assert actual_rows == expected_rows
+
+
+@pytest.mark.etl_integration
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize(
+    "program", [Program.Code.TANF, Program.Code.SSP, Program.Code.TRIBAL]
+)
+def test_statistical_weights_mixed_status_publication(
+    api_client, ofa_system_admin, stt, program
+):
+    """The API publishes only newest eligible rows across every source family."""
+    expected_ids = mixed_status_weights_data(stt, ofa_system_admin, program)
+    api_client.force_authenticate(user=ofa_system_admin)
+    response = api_client.post(
+        "/v1/etl/runs/",
+        {
+            "pipeline_key": "statistical_weights",
+            "parameters": {"fiscal_year": 2026, "program": program},
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201
+    pipeline_run = ETLPipelineRun.objects.get(id=response.data["id"])
+    assert pipeline_run.status == ETLPipelineRun.Status.SUCCEEDED
+    assert pipeline_run.metadata[SOURCE_DATAFILE_IDS_KEY] == expected_ids
+    assert pipeline_run.final_output.published
+    assert pipeline_run.final_output.row_count == 2
+    assert _published_weight_rows(pipeline_run) == [
+        ("55", 202510, "1", 2, 8, Decimal("4.0000")),
+        ("55", 202510, "2", 1, 12, Decimal("12.0000")),
+    ]
+    assert set(
+        StatisticalWeight.objects.filter(pipeline_run=pipeline_run).values_list(
+            "program", flat=True
+        )
+    ) == {program}
 
 
 def _expected_weight_rows() -> list[tuple]:
