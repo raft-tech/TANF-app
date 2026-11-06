@@ -1,30 +1,41 @@
-import { fileUploadSections } from '../../reducers/reports'
+import { programSlugToResponseCode } from '../../utils/reportSections'
 import { CaseAggregatesTable } from './components/CaseAggregatesTable'
 import { TotalAggregatesTable } from './components/TotalAggregatesTable'
 import { PaginatedHistory } from './components/PaginatedHistory'
 import KnowledgeCenterLink from './components/KnowledgeCenterLink'
 import { useSubmissionHistory } from '../../hooks/useSubmissionHistory'
 
-const SectionSubmissionHistory = ({ filterValues, reprocessedState }) => {
-  const { files, loading } = useSubmissionHistory(filterValues)
-  const num_sections = filterValues.stt.num_sections
+const SectionSubmissionHistory = ({
+  filterValues,
+  reprocessedState,
+  sections = [],
+  program,
+}) => {
+  const { files, loading } = useSubmissionHistory(filterValues, {
+    scoped: true,
+    enabled: sections.length > 0 && Boolean(program),
+  })
 
   return (
     <>
       <KnowledgeCenterLink />
       <div>
-        {fileUploadSections.slice(0, num_sections).map((section, index) => {
-          const sectionNumber = index + 1
+        {sections.map((section) => {
+          const sectionNumber = section.number
           const TableComponent =
-            sectionNumber === 1 || sectionNumber === 2
+            section.tableKind === 'case'
               ? CaseAggregatesTable
               : TotalAggregatesTable
 
           return (
             <PaginatedHistory
-              key={section}
-              caption={`Section ${sectionNumber} - ${section}`}
-              files={files.filter((f) => f.section.includes(section))}
+              key={section.id}
+              caption={`Section ${sectionNumber} - ${section.name}`}
+              files={files.filter(
+                (f) =>
+                  f.section === section.name &&
+                  f.program_type === programSlugToResponseCode(program.slug)
+              )}
               loading={loading}
               reprocessedState={reprocessedState}
               TableComponent={TableComponent}

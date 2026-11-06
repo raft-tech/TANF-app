@@ -1,5 +1,6 @@
-import { render, screen, act } from '@testing-library/react'
+import { render, renderHook, screen, act } from '@testing-library/react'
 import { useFormSubmission } from './useFormSubmission'
+import { deferred } from '../test-utils/reportScopes'
 
 // Helper component to test the hook
 function TestComponent({ testFn }) {
@@ -190,4 +191,37 @@ describe('useFormSubmission', () => {
     // The submit function should not be called
     expect(mockSubmitFn).not.toHaveBeenCalled()
   })
+})
+
+it('does not let a late submission reset a newer scope submitting state', async () => {
+  const first = deferred()
+  const second = deferred()
+  const onOldSuccess = jest.fn()
+  const { result, rerender } = renderHook(
+    ({ scope }) => useFormSubmission(scope),
+    { initialProps: { scope: 'a' } }
+  )
+  let oldRequest
+  act(() => {
+    oldRequest = result.current.executeSubmission(() => first.promise, {
+      onSuccess: onOldSuccess,
+    })
+  })
+  rerender({ scope: 'b' })
+  expect(result.current.isSubmitting).toBe(false)
+  let currentRequest
+  act(() => {
+    currentRequest = result.current.executeSubmission(() => second.promise)
+  })
+  await act(async () => {
+    first.resolve('old success')
+    await oldRequest
+  })
+  expect(onOldSuccess).not.toHaveBeenCalled()
+  expect(result.current.isSubmitting).toBe(true)
+  await act(async () => {
+    second.resolve('current success')
+    await currentRequest
+  })
+  expect(result.current.isSubmitting).toBe(false)
 })

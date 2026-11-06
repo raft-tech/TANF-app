@@ -1,6 +1,8 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import TanfSspReports from './TanfSspReports'
+import { createProgramParticipation } from '../../../test-utils/programParticipation'
+import { presentReportSections } from '../../../utils/reportSections'
 
 const mockUseReportsContext = jest.fn()
 const mockFeedbackReportAlert = jest.fn()
@@ -55,6 +57,16 @@ describe('TanfSspReports feedback report alert', () => {
     headerRef: React.createRef(),
     uploadAlert: { active: false, message: null },
     processingAlert: { active: false, message: null },
+    sttResolution: { state: 'ready' },
+    tdrAssignment: {
+      state: 'ready',
+      program: createProgramParticipation().program,
+      sections: presentReportSections(
+        createProgramParticipation({ sectionNames: ['Aggregate Data'] })
+          .sections
+      ),
+    },
+    uploadScopeReady: true,
   }
 
   beforeEach(() => {
