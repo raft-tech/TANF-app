@@ -39,7 +39,7 @@ const participation = (programSlug, sectionNames, status) =>
   })
 const a = createParticipationStt({
   name: 'Alabama',
-  ssp: true,
+  ssp: false,
   num_sections: 1,
   program_participations: [
     participation('tanf', ['Aggregate Data', 'Active Case Data']),
@@ -87,6 +87,7 @@ const setup = ({
   url = '/?stt=Alabama&type=tanf&fy=2024&q=Q1#assigned',
   catalog,
   staleStt = 'Alaska',
+  flags = [],
 } = {}) => {
   const store = configureStore({
     auth: {
@@ -99,6 +100,7 @@ const setup = ({
       },
     },
     stts: catalog || { sttList: stts, loaded: true, loading: false },
+    featureFlags: { flags, loading: false, error: null },
   })
   store.dispatch({ type: 'SET_SELECTED_STT', payload: { stt: staleStt } })
   const view = render(
@@ -254,7 +256,12 @@ describe('participation-driven TDR integration', () => {
     expect(
       get.mock.calls.filter(([url]) => url.includes('/data_files/'))
     ).toHaveLength(0)
-    act(() => store.dispatch({ type: SET_STTS, payload: { data: [a] } }))
+    act(() =>
+      store.dispatch({
+        type: SET_STTS,
+        payload: { data: [{ ...a, ssp: false }] },
+      })
+    )
     expect(
       screen.getByLabelText('Section 2 - SSP-MOE - Closed Case Data')
     ).toBeEnabled()
@@ -286,7 +293,12 @@ describe('participation-driven TDR integration', () => {
     expect(
       screen.getByText('Loading report assignments...')
     ).toBeInTheDocument()
-    act(() => store.dispatch({ type: SET_STTS, payload: { data: [a] } }))
+    act(() =>
+      store.dispatch({
+        type: SET_STTS,
+        payload: { data: [{ ...a, ssp: false }] },
+      })
+    )
     expect(
       screen.getByLabelText('Section 2 - SSP-MOE - Closed Case Data')
     ).toBeEnabled()
@@ -641,16 +653,290 @@ describe('participation-driven TDR integration', () => {
     )
   })
 
-  it.each([
-    ['legacy false with a record', { ...a, ssp: false }],
-    [
-      'legacy true without a record',
-      { ...a, program_participations: [a.program_participations[0]] },
-    ],
-  ])('keeps the temporary SSP conjunction: %s', (label, stt) => {
+  it('rejects a legacy-enabled SSP URL without an SSP record', () => {
+    const stt = {
+      ...a,
+      ssp: true,
+      program_participations: [a.program_participations[0]],
+    }
     setup({ stts: [stt], url: '/?stt=Alabama&type=ssp-moe&fy=2024&q=Q1' })
     expect(screen.queryByLabelText('SSP-MOE')).not.toBeInTheDocument()
     expect(screen.getByLabelText('TANF')).toBeChecked()
     expect(screen.queryByLabelText(/Section.*SSP-MOE/)).not.toBeInTheDocument()
+  })
+
+  it.each(['ACTIVE', 'FORMER', 'NEVER', 'unfamiliar', null, undefined])(
+    'offers, renders, and submits legacy-disabled SSP independently of status %s',
+    async (status) => {
+      const record = participation('ssp', ['Closed Case Data'], status)
+      if (status === undefined) delete record.status
+      const stt = {
+        ...a,
+        ssp: false,
+        program_participations: [a.program_participations[0], record],
+      }
+      get.mockResolvedValue({
+        ok: true,
+        data: [row(2, 'Closed Case Data', 'SSP')],
+      })
+      const { store, stage } = setup({ stts: [stt] })
+      fireEvent.click(screen.getByLabelText('SSP-MOE'))
+      expect(screen.getByLabelText('SSP-MOE')).toBeChecked()
+      expect(
+        screen.getByLabelText('Section 2 - SSP-MOE - Closed Case Data')
+      ).toBeEnabled()
+      await screen.findByText('history-2.txt')
+      expect(screen.getAllByRole('table', { name: /^Section/ })).toHaveLength(1)
+      const scope = store.getState().reports.uploadScope
+      const file = stage('ssp-status')
+      const changed = {
+        ...stt,
+        program_participations: [
+          stt.program_participations[0],
+          { ...record, status: 'changed-only' },
+        ],
+      }
+      act(() =>
+        store.dispatch({ type: SET_STTS, payload: { data: [changed] } })
+      )
+      expect(store.getState().reports.uploadScope).toBe(scope)
+      expect(store.getState().reports.submittedFiles[0].uuid).toBe(file.uuid)
+      post.mockResolvedValue({
+        ok: true,
+        data: row(9, file.section, 'SSP', { slug: file.uuid }),
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Submit Data Files' }))
+      await screen.findByText(/Successfully uploaded section\(s\): 2/)
+      expect(post).toHaveBeenCalledTimes(1)
+      expect(post.mock.calls[0][1].get('ssp')).toBe('true')
+      expect(post.mock.calls[0][1].get('section')).toBe('Closed Case Data')
+    }
+  )
+
+  it.each(['tanf', 'ssp-moe', 'invalid'])(
+    'normalizes an initial %s URL to the only participation, not TANF',
+    (type) => {
+      const stt = {
+        ...a,
+        ssp: false,
+        program_participations: [participation('ssp', ['Closed Case Data'])],
+      }
+      setup({
+        stts: [stt],
+        url: `/?stt=Alabama&type=${type}&fy=2024&q=Q1#assigned`,
+      })
+      expect(screen.queryByLabelText('TANF')).not.toBeInTheDocument()
+      expect(screen.getByLabelText('SSP-MOE')).toBeChecked()
+      expect(
+        screen.getByLabelText('Section 2 - SSP-MOE - Closed Case Data')
+      ).toBeEnabled()
+      expect(screen.getByTestId('location')).toHaveTextContent('type=ssp-moe')
+      expect(screen.getByTestId('location')).toHaveTextContent('#assigned')
+    }
+  )
+
+  it.each([
+    ['empty SSP', [participation('ssp', [])], 'ssp-moe'],
+    ['no records', [], ''],
+    ['missing records', undefined, ''],
+  ])('shows no default sections for %s', (label, records, selected) => {
+    const stt = { ...a, ssp: false, program_participations: records }
+    const { container, store } = setup({ stts: [stt] })
+    expect(container.querySelectorAll('input[type=file]')).toHaveLength(0)
+    expect(screen.queryAllByRole('table', { name: /^Section/ })).toHaveLength(0)
+    expect(
+      screen.queryByRole('button', { name: 'Submit Data Files' })
+    ).not.toBeInTheDocument()
+    expect(store.getState().reports.submittedFiles).toEqual([])
+    expect(
+      screen.getByText(/No report sections are assigned/)
+    ).toBeInTheDocument()
+    expect(get).not.toHaveBeenCalled()
+    if (selected) expect(screen.getByLabelText('SSP-MOE')).toBeChecked()
+    else {
+      expect(screen.queryAllByRole('radio')).toHaveLength(0)
+      expect(screen.getByTestId('location')).not.toHaveTextContent('type=')
+    }
+  })
+
+  it('selects SSP-only participation after deferred metadata arrives', () => {
+    const { store } = setup({
+      catalog: { sttList: [], loading: true, loaded: false },
+    })
+    expect(
+      screen.getByText('Loading report assignments...')
+    ).toBeInTheDocument()
+    const stt = {
+      ...a,
+      ssp: false,
+      program_participations: [participation('ssp', ['Closed Case Data'])],
+    }
+    act(() => store.dispatch({ type: SET_STTS, payload: { data: [stt] } }))
+    expect(screen.getByLabelText('SSP-MOE')).toBeChecked()
+    expect(screen.queryByLabelText('TANF')).not.toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent('type=ssp-moe')
+  })
+
+  it.each([
+    ['SSP-only', [participation('ssp', ['Closed Case Data'])], 'ssp-moe'],
+    ['empty SSP', [participation('ssp', [])], 'ssp-moe'],
+    ['no participation', [], ''],
+  ])(
+    'normalizes immediate and confirmed STT changes to %s, while Cancel retains files',
+    (label, records, selected) => {
+      const target = { ...b, ssp: false, program_participations: records }
+      const { store, stage } = setup({ stts: [a, target] })
+      changeStt('Alaska')
+      const assertTarget = () => {
+        expect(screen.queryByLabelText('TANF')).not.toBeInTheDocument()
+        expect(store.getState().reports.uploadScope.sttId).toBe(2)
+        expect(
+          store.getState().reports.submittedFiles.every((file) => !file.uuid)
+        ).toBe(true)
+        if (selected) expect(screen.getByLabelText('SSP-MOE')).toBeChecked()
+        else
+          expect(screen.getByTestId('location')).not.toHaveTextContent('type=')
+        expect(screen.getByTestId('location')).toHaveTextContent('#assigned')
+      }
+      assertTarget()
+      changeStt('Alabama')
+      fireEvent.click(screen.getByLabelText('TANF'))
+      const file = stage()
+      const scope = store.getState().reports.uploadScope
+      changeStt('Alaska')
+      fireEvent.click(modalButton('Cancel'))
+      expect(screen.getByLabelText('TANF')).toBeChecked()
+      expect(store.getState().reports.uploadScope).toBe(scope)
+      expect(
+        store
+          .getState()
+          .reports.submittedFiles.some((slot) => slot.uuid === file.uuid)
+      ).toBe(true)
+      changeStt('Alaska')
+      fireEvent.click(modalButton('OK'))
+      assertTarget()
+    }
+  )
+
+  it.each([false, true])(
+    'selects empty SSP through the shared immediate/modal program path (staged: %s)',
+    (staged) => {
+      const stt = {
+        ...a,
+        program_participations: [
+          a.program_participations[0],
+          participation('ssp', []),
+        ],
+      }
+      const { container, store, stage } = setup({ stts: [stt] })
+      if (staged) stage()
+      fireEvent.click(screen.getByLabelText('SSP-MOE'))
+      if (staged) {
+        fireEvent.click(modalButton('Cancel'))
+        expect(screen.getByLabelText('TANF')).toBeChecked()
+        expect(
+          store.getState().reports.submittedFiles.some((file) => file.uuid)
+        ).toBe(true)
+        fireEvent.click(screen.getByLabelText('SSP-MOE'))
+        fireEvent.click(modalButton('OK'))
+      }
+      expect(screen.getByLabelText('SSP-MOE')).toBeChecked()
+      expect(
+        screen.getByText(/No report sections are assigned/)
+      ).toBeInTheDocument()
+      expect(container.querySelectorAll('input[type=file]')).toHaveLength(0)
+      expect(screen.queryAllByRole('table', { name: /^Section/ })).toHaveLength(
+        0
+      )
+      expect(store.getState().reports.submittedFiles).toEqual([])
+      expect(
+        screen.queryByRole('button', { name: 'Submit Data Files' })
+      ).not.toBeInTheDocument()
+    }
+  )
+
+  it.each([undefined, null])(
+    'shows a configuration error for missing/malformed SSP sections: %s',
+    (sections) => {
+      const stt = {
+        ...a,
+        ssp: false,
+        program_participations: [{ ...participation('ssp', []), sections }],
+      }
+      const { container, store } = setup({
+        stts: [stt],
+        url: '/?stt=Alabama&type=ssp-moe&fy=2024&q=Q1',
+      })
+      expect(
+        screen.getByText(/Report section configuration could not be loaded/)
+      ).toBeInTheDocument()
+      expect(container.querySelectorAll('input[type=file]')).toHaveLength(0)
+      expect(store.getState().reports.submittedFiles).toEqual([])
+      expect(get).not.toHaveBeenCalled()
+    }
+  )
+
+  it.each([true, false])(
+    'renormalizes a selected SSP option when authoritative records change (TANF remains: %s)',
+    (hasTanf) => {
+      const { store, stage } = setup({
+        stts: [{ ...a, ssp: false }],
+        url: '/?stt=Alabama&type=ssp-moe&fy=2024&q=Q1#assigned',
+      })
+      stage()
+      const stt = {
+        ...a,
+        program_participations: hasTanf ? [a.program_participations[0]] : [],
+      }
+      act(() => store.dispatch({ type: SET_STTS, payload: { data: [stt] } }))
+      expect(screen.queryByLabelText('SSP-MOE')).not.toBeInTheDocument()
+      expect(
+        store.getState().reports.submittedFiles.every((file) => !file.uuid)
+      ).toBe(true)
+      if (hasTanf) expect(screen.getByLabelText('TANF')).toBeChecked()
+      else expect(screen.getByTestId('location')).not.toHaveTextContent('type=')
+      expect(screen.getByTestId('location')).toHaveTextContent('#assigned')
+    }
+  )
+
+  it.each(['2021', '2025'])(
+    'keeps existing fiscal bounds when PIA is the only available fallback from year %s',
+    (year) => {
+      setup({
+        stts: [{ ...a, program_participations: [] }],
+        flags: [
+          {
+            feature_name: 'program-integrity-audit',
+            enabled: true,
+            config: { minYear: 2024, maxYear: 2024 },
+          },
+        ],
+        url: `/?stt=Alabama&type=ssp-moe&fy=${year}&q=Q1#assigned`,
+      })
+      expect(screen.getByLabelText('Program Integrity Audit')).toBeChecked()
+      expect(screen.queryByLabelText('TANF')).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('SSP-MOE')).not.toBeInTheDocument()
+      expect(
+        screen.getByLabelText('Fiscal Year (October - September)*')
+      ).toHaveValue(year === '2021' ? '' : '2024')
+      expect(screen.getByTestId('location')).toHaveTextContent('#assigned')
+    }
+  )
+
+  it('preserves an available SSP choice through immediate and modal-confirmed STT changes despite legacy false', () => {
+    const { stage } = setup({
+      stts: [a, { ...b, ssp: false }],
+      url: '/?stt=Alabama&type=ssp-moe&fy=2024&q=Q1#assigned',
+    })
+    changeStt('Alaska')
+    expect(screen.getByLabelText('SSP-MOE')).toBeChecked()
+    changeStt('Alabama')
+    stage()
+    changeStt('Alaska')
+    fireEvent.click(modalButton('OK'))
+    expect(screen.getByLabelText('SSP-MOE')).toBeChecked()
+    expect(
+      screen.getByLabelText('Section 2 - SSP-MOE - Closed Case Data')
+    ).toBeEnabled()
   })
 })

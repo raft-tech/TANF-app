@@ -31,7 +31,7 @@ const MemoryRouter = ({ initialEntries, ...props }) => {
 
 const assignedFixture = (stt) => ({
   ...stt,
-  program_participations: [
+  program_participations: stt.program_participations || [
     createProgramParticipation({
       programSlug: stt.type === 'tribe' ? 'tribal' : 'tanf',
       sectionNames: CANONICAL_SECTION_NAMES,
@@ -184,6 +184,11 @@ describe('Reports', () => {
           name: 'Alaska',
           ssp: false,
           num_sections: 4,
+          program_participations: [
+            createProgramParticipation({
+              sectionNames: CANONICAL_SECTION_NAMES,
+            }),
+          ],
         },
       ],
       loading: false,
@@ -870,7 +875,7 @@ describe('Reports', () => {
     expect(expected).toEqual(currentYear.toString())
   })
 
-  it('Non OFA Admin should show the data files section when the user has an stt with ssp set to true', () => {
+  it('offers SSP-MOE to a nonselecting user with an SSP participation', () => {
     const store = mockStore({
       ...initialState,
       auth: {
@@ -896,8 +901,7 @@ describe('Reports', () => {
     expect(getByText('SSP-MOE')).toBeInTheDocument()
   })
 
-  // should not render the File Type section if the user is not an OFA Admin and the stt has ssp set to false
-  it('Non OFA Admin should not show the data files section when the user has an stt with ssp set to false', () => {
+  it('omits SSP-MOE for a nonselecting user without an SSP participation', () => {
     const store = mockStore({
       ...initialState,
       auth: {
@@ -923,7 +927,7 @@ describe('Reports', () => {
     expect(queryByText('SSP-MOE')).not.toBeInTheDocument()
   })
 
-  it('OFA Admin should see the data files section when they select a stt with ssp set to true', () => {
+  it('offers SSP-MOE to an admin selecting an STT with an SSP participation', () => {
     const store = mockStore({
       ...initialState,
       reports: {
@@ -943,7 +947,7 @@ describe('Reports', () => {
     expect(getByText('SSP-MOE')).toBeInTheDocument()
   })
 
-  it('OFA Admin should not see the data files section when they select a stt with ssp set to false', () => {
+  it('omits SSP-MOE for an admin selecting an STT without an SSP participation', () => {
     const store = mockStore({
       ...initialState,
       reports: {
@@ -2493,7 +2497,9 @@ describe('Reports', () => {
       render(
         <Provider store={mockStore(initialState)}>
           <MemoryRouter
-            initialEntries={['/data-files?fy=2023&q=Q1&type=tanf#history']}
+            initialEntries={[
+              '/data-files?fy=2023&q=Q1&type=tanf&stt=Alaska#history',
+            ]}
           >
             <Reports />
             <CurrentLocation />
@@ -2503,7 +2509,7 @@ describe('Reports', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('report-location').textContent).toBe(
-          '?fy=2023&q=Q1&type=tanf#history'
+          '?fy=2023&q=Q1&type=tanf&stt=Alaska#history'
         )
       })
 
@@ -2516,7 +2522,7 @@ describe('Reports', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('report-location').textContent).toBe(
-          '?fy=2024&q=Q1&type=tanf#history'
+          '?fy=2024&q=Q1&type=tanf&stt=Alaska#history'
         )
       })
     })
@@ -2577,11 +2583,13 @@ describe('Reports', () => {
       })
     })
 
-    it('should reset file type to default when it is invalid', async () => {
+    it('resets an invalid file type to an available TANF participation', async () => {
       const store = mockStore(initialState)
       const { getByLabelText } = render(
         <Provider store={store}>
-          <MemoryRouter initialEntries={['/?fy=2023&q=Q1&type=invalid-type']}>
+          <MemoryRouter
+            initialEntries={['/?fy=2023&q=Q1&type=invalid-type&stt=Alaska']}
+          >
             <Reports />
           </MemoryRouter>
         </Provider>

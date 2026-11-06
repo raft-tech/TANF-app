@@ -249,6 +249,31 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     [dispatch]
   )
 
+  const resetPiaYear = useCallback(
+    (type) => {
+      // Program changes must use the same fiscal bounds, including normalization.
+      const currentFiscalYear = getCurrentFiscalYear()
+      const minYear =
+        type === 'program-integrity-audit'
+          ? piaFeatureFlag?.config?.minYear || 2024
+          : 2021
+      const maxYear =
+        type === 'program-integrity-audit'
+          ? piaFeatureFlag?.config?.maxYear || 2024
+          : currentFiscalYear
+
+      if (yearInputValue && parseInt(yearInputValue) < minYear) {
+        setYearInputValue('')
+      } else if (
+        type === 'program-integrity-audit' &&
+        parseInt(yearInputValue) > maxYear
+      ) {
+        setYearInputValue(`${maxYear}`)
+      }
+    },
+    [yearInputValue, piaFeatureFlag]
+  )
+
   useEffect(() => {
     if (isFra || sttResolution.state !== 'ready') return
     if (sttResolution.unauthorized) {
@@ -258,12 +283,13 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     } else if (canSelectStt && sttInputValue && !sttResolution.stt) {
       setSttInputValue('')
     } else if (
-      sttResolution.stt &&
       !sttResolution.provisional &&
       tdrAssignment.state === 'ready' &&
       !tdrAssignment.options.some(({ value }) => value === fileTypeInputValue)
     ) {
-      setFileTypeInputValue(tdrAssignment.options[0]?.value || '')
+      const nextType = tdrAssignment.options[0]?.value || ''
+      setFileTypeInputValue(nextType)
+      resetPiaYear(nextType)
     }
   }, [
     isFra,
@@ -272,6 +298,7 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     sttInputValue,
     tdrAssignment,
     fileTypeInputValue,
+    resetPiaYear,
   ])
 
   // Re-validate when STT list becomes available (only validates STT param) since it might not be available yet
@@ -446,29 +473,6 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     },
     [dispatch, fileTypeInputValue, submittedFiles]
   )
-
-  const resetPiaYear = (type) => {
-    // Reset year if it's invalid for the new file type
-    // Program Integrity Audit starts at 2024, TANF/SSP/FRA start at 2021
-    const currentFiscalYear = getCurrentFiscalYear()
-    const minYear =
-      type === 'program-integrity-audit'
-        ? piaFeatureFlag?.config?.minYear || 2024
-        : 2021
-    const maxYear =
-      type === 'program-integrity-audit'
-        ? piaFeatureFlag?.config?.maxYear || 2024
-        : currentFiscalYear
-
-    if (yearInputValue && parseInt(yearInputValue) < minYear) {
-      setYearInputValue('')
-    } else if (
-      type === 'program-integrity-audit' &&
-      parseInt(yearInputValue) > maxYear
-    ) {
-      setYearInputValue(`${maxYear}`)
-    }
-  }
 
   const applySelection = (type, value) => {
     setUploadAlertState({ active: false, type: null, message: null })

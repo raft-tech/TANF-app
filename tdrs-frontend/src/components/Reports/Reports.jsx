@@ -66,20 +66,6 @@ function ReportsContent() {
       !userProfileStt) ||
     (isRegionalStaff && user?.regions?.length === 0)
 
-  const radio_options = stt
-    ? tdrAssignment.options
-    : [
-        { label: 'TANF', value: 'tanf' },
-        ...(piaFeatureFlag.enabled
-          ? [
-              {
-                label: 'Program Integrity Audit',
-                value: 'program-integrity-audit',
-              },
-            ]
-          : []),
-      ]
-
   return (
     <div className="page-container" style={{ position: 'relative' }}>
       <div>
@@ -115,7 +101,7 @@ function ReportsContent() {
               label="File Type*"
               fieldName="reportType"
               setValue={selectFileType}
-              options={radio_options}
+              options={tdrAssignment.options}
               classes="margin-top-4"
               selectedValue={fileTypeInputValue}
               error={getFileTypeError()}

@@ -2,6 +2,7 @@ import {
   presentReportSections,
   programSlugToResponseCode,
   validateTdrSubmission,
+  getTdrAssignment,
 } from './reportSections'
 import { getAssignedSections } from '../selectors/stts'
 import { getUploadAssignmentKey } from './reportScopes'
@@ -117,6 +118,67 @@ describe('programSlugToResponseCode', () => {
     [undefined, null],
   ])('maps %s explicitly to %s', (slug, expected) => {
     expect(programSlugToResponseCode(slug)).toBe(expected)
+  })
+})
+
+describe('getTdrAssignment program options', () => {
+  const assignment = (overrides, fileType = 'ssp-moe', pia = false) =>
+    getTdrAssignment(
+      { state: 'ready', stt: createParticipationStt(overrides) },
+      fileType,
+      pia
+    )
+
+  it.each([false, true, undefined])(
+    'offers an empty SSP record independently of legacy ssp=%s',
+    (ssp) => {
+      const result = assignment({
+        ssp,
+        program_participations: [
+          createProgramParticipation({ programSlug: 'ssp', sectionNames: [] }),
+        ],
+      })
+      expect(result.state).toBe('ready')
+      expect(result.options).toEqual([{ label: 'SSP-MOE', value: 'ssp-moe' }])
+      expect(result.program.slug).toBe('ssp')
+      expect(result.sections).toEqual([])
+    }
+  )
+
+  it.each(['state', 'territory', 'tribe'])(
+    'does not infer participation from %s type or legacy fields',
+    (type) => {
+      const result = assignment({ type, ssp: true, program_participations: [] })
+      expect(result.options).toEqual([])
+      expect(result.program).toBeNull()
+      expect(result.sections).toEqual([])
+    }
+  )
+
+  it.each([undefined, null, {}])(
+    'surfaces invalid SSP assignments instead of granting default sections: %j',
+    (sections) => {
+      const result = assignment({
+        ssp: false,
+        program_participations: [
+          { ...createProgramParticipation({ programSlug: 'ssp' }), sections },
+        ],
+      })
+      expect(result.state).toBe('error')
+      expect(result.sections).toEqual([])
+      expect(result.options).toEqual([])
+    }
+  )
+
+  it('retains separate PIA feature and STT-type gating without participation', () => {
+    const empty = { program_participations: [] }
+    expect(assignment(empty, 'tanf', true).options).toEqual([
+      { label: 'Program Integrity Audit', value: 'program-integrity-audit' },
+    ])
+    expect(assignment(empty).options).toEqual([])
+    expect(
+      assignment({ ...empty, type: 'tribe' }, 'tanf', true).options
+    ).toEqual([])
   })
 })
 

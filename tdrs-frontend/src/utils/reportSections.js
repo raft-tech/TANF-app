@@ -56,8 +56,7 @@ export const getTdrAssignment = (resolution, fileType, piaEnabled = false) => {
       fileTypeToProgramSlug('tanf', stt.type)
     )
     const ssp = getProgramParticipation(stt, 'ssp')
-    // Transitional Phase 3 gate; remove the legacy conjunction in Phase 4 only.
-    const sspAvailable = Boolean(stt.ssp && ssp)
+    const sspAvailable = Boolean(ssp)
     if (sspAvailable) getAssignedSections(stt, 'ssp-moe')
     const options = [
       ...(tanf ? [{ label: tanf.program.name, value: 'tanf' }] : []),
