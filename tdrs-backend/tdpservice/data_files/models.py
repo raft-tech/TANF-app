@@ -263,7 +263,17 @@ class DataFile(FileRecord):
     @property
     def program(self):
         """Return the program associated with the canonical section."""
-        return self.section.program
+        return self.section.program if self.section else None
+
+    @property
+    def program_code(self):
+        """Return the code of the program associated with the canonical section."""
+        return self.program.code if self.program else None
+
+    @property
+    def section_name(self):
+        """Return the name of the canonical section."""
+        return self.section.name if self.section else None
 
     @property
     def filename(self):
@@ -461,6 +471,8 @@ ShadowDataFile = create_shadow_model(
     exclude_fields={"current_parse_token", "parser_mode"},
 )
 ShadowDataFile.program = DataFile.program
+ShadowDataFile.program_code = DataFile.program_code
+ShadowDataFile.section_name = DataFile.section_name
 
 
 def create_or_update_shadow_data_file(data_file):

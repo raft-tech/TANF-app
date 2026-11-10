@@ -103,24 +103,16 @@ class ParseResult:
 
 def _program_code(data_file) -> Optional[str]:
     """Project a parser protocol program code from production or shadow data."""
-    if data_file is None:
-        return None
-    program = getattr(data_file, "program", None)
-    if program is not None and hasattr(program, "code"):
-        return program.code
-    return getattr(data_file, "program_type", None)
+    if data_file is not None and getattr(data_file, "program", None) is not None:
+        return data_file.program.code
+    return None
 
 
 def _section_name(data_file) -> Optional[str]:
     """Project a parser protocol section name from production or shadow data."""
-    if data_file is None:
-        return None
-    section = getattr(data_file, "section", None)
-    if section is not None and hasattr(section, "name"):
-        return section.name
-    if isinstance(section, str):
-        return section
-    return getattr(data_file, "section_name", None)
+    if data_file is not None and getattr(data_file, "section", None) is not None:
+        return data_file.section.name
+    return None
 
 
 def _shadow_record_model(production_model):
@@ -1084,7 +1076,7 @@ class ParsingService:
             reparse_success,
         )
 
-    def run(self) -> ParseResult:
+    def run(self) -> ParseResult:  # noqa: C901
         """Parse a production DataFile and return a ParseResult."""
         self._validate_python_parse_target()
 
