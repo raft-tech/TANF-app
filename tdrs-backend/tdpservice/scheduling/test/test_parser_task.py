@@ -44,13 +44,20 @@ from tdpservice.parsers.decoders import Utf8Decoder
 from tdpservice.parsers.util import DecoderUnknownException
 from tdpservice.scheduling import parser_task
 from tdpservice.parsers import service as parsing_service
+from tdpservice.parsers.parsing_service import lifecycle as parsing_service_lifecycle
+from tdpservice.parsers.parsing_service import service as parsing_service_core
 from tdpservice.search_indexes.models.reparse_meta import ReparseMeta
 
 
 def patch_parser_task(monkeypatch, attr, value, raising=False):
     """Patch attribute across parser_task and parsing_service modules."""
     patched = False
-    for module in (parser_task, parsing_service):
+    for module in (
+        parser_task,
+        parsing_service,
+        parsing_service_core,
+        parsing_service_lifecycle,
+    ):
         if hasattr(module, attr):
             monkeypatch.setattr(module, attr, value, raising=False)
             patched = True

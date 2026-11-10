@@ -22,7 +22,7 @@ from tdpservice.data_files.submission_lifecycle import (
 )
 from tdpservice.email.helpers.data_file import send_data_submitted_email
 from tdpservice.parsers.error_generator import ErrorGeneratorFactory
-from tdpservice.parsers.service import (
+from tdpservice.parsers.parsing_service import (
     GO_PARSER_FEATURE_FLAG,
     GO_PARSER_POST_PARSE_TASK_NAME,
     GO_PARSER_QUEUE,
