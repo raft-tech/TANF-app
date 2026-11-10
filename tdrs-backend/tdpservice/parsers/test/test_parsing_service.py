@@ -693,17 +693,36 @@ class TestParsingServiceModelAndModeResolution:
         """Verify _uses_shadow_table handles None safely."""
         assert _uses_shadow_table(None) is False
 
-    def test_program_code_and_section_name_helpers(self):
-        """Verify _program_code and _section_name projection helpers."""
+    def test_program_code_and_section_name_helpers(self, data_analyst):
+        """Verify _program_code and _section_name projection helpers and model properties."""
         assert _program_code(None) is None
         assert _section_name(None) is None
 
-        class ObjWithDirectAttrs:
-            section = "Direct Section"
-            program_type = "SSP"
+        class DummyProgram:
+            code = "SSP"
 
-        assert _section_name(ObjWithDirectAttrs()) == "Direct Section"
-        assert _program_code(ObjWithDirectAttrs()) == "SSP"
+        class DummySection:
+            name = "SSP - Section 1"
+
+        class DummyDataFile:
+            program = DummyProgram()
+            section = DummySection()
+
+        assert _section_name(DummyDataFile()) == "SSP - Section 1"
+        assert _program_code(DummyDataFile()) == "SSP"
+
+        datafile = DataFileFactory(stt=data_analyst.stt, version=35)
+        shadow_datafile = create_or_update_shadow_data_file(datafile)
+
+        assert datafile.program_code == datafile.program.code
+        assert datafile.section_name == datafile.section.name
+        assert _program_code(datafile) == datafile.program.code
+        assert _section_name(datafile) == datafile.section.name
+
+        assert shadow_datafile.program_code == shadow_datafile.program.code
+        assert shadow_datafile.section_name == shadow_datafile.section.name
+        assert _program_code(shadow_datafile) == shadow_datafile.program.code
+        assert _section_name(shadow_datafile) == shadow_datafile.section.name
 
 
 @pytest.mark.django_db
