@@ -38,10 +38,25 @@ The service supports both:
 
 ---
 
-## Core Classes
+## Core Classes & Architecture
+
+The parsing service domain is organized under [`tdpservice.parsers.parsing_service`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/parsers/parsing_service/__init__.py):
+
+```
+tdpservice/parsers/
+├── parsing_service/
+│   ├── __init__.py         # Package exports & public API
+│   ├── classes.py          # Data classes (ParserModelSet, ParseResult)
+│   ├── engine.py           # Transient PythonParserEngine
+│   ├── table_family.py     # Table families & model resolution
+│   ├── lifecycle.py        # Submission state transitions, summaries & metrics
+│   ├── dispatch.py         # Celery task dispatch & parser mode routing
+│   └── service.py          # ParsingService domain orchestrator
+└── service.py              # Backward-compatible facade
+```
 
 ### `ParsingService`
-Defined in [`tdpservice.parsers.service`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/parsers/service.py).
+Defined in [`tdpservice.parsers.parsing_service.service`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/parsers/parsing_service/service.py) (and exposed via [`tdpservice.parsers.service`](file:///Users/hschwarz/Documents/Projects/TDP/dev/TANF-app/tdrs-backend/tdpservice/parsers/service.py)).
 
 `ParsingService` is responsible for enforcing precondition invariants (valid initial state, file existence, parse ownership tokens), instantiating the appropriate parser via `ParserFactory`, executing the parse lifecycle, creating/updating `DataFileSummary`, updating the lifecycle state via `DataFileStateTransition` (with execution metrics appended to `metadata`), and returning a structured `ParseResult`.
 
