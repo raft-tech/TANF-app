@@ -107,7 +107,16 @@ class ParsingService:
         self.data_file = data_file
         self.data_file_id = getattr(data_file, "id", None)
         self.reparse_id = reparse_id
-        self.parse_token = str(parse_token) if parse_token else None
+        if parse_token is not None:
+            if isinstance(parse_token, UUID):
+                self.parse_token = parse_token
+            else:
+                try:
+                    self.parse_token = UUID(str(parse_token))
+                except ValueError:
+                    self.parse_token = parse_token
+        else:
+            self.parse_token = None
         self.event_id = str(event_id or uuid.uuid4())
         self.file_meta = file_meta
         self.dfs: Optional[Union[DataFileSummary, ShadowDataFileSummary]] = None
@@ -162,7 +171,7 @@ class ParsingService:
         data_file_id: int,
         table_mode: str | None = None,
         reparse_id: int = 0,
-        parse_token: str = "",
+        parse_token: Optional[Union[UUID, str]] = None,
         event_id=None,
     ) -> "ParsingService":
         """Construct a ParsingService instance for Go post-parse execution."""
@@ -208,7 +217,12 @@ class ParsingService:
             and self.parse_token
             and getattr(data_file, "current_parse_token", None)
         ):
-            if str(data_file.current_parse_token) != str(self.parse_token):
+            current_token = data_file.current_parse_token
+            is_match = (
+                current_token == self.parse_token
+                or str(current_token) == str(self.parse_token)
+            )
+            if not is_match:
                 raise StaleParseOwnership(
                     f"DataFile {data_file.id} has an active parse token {data_file.current_parse_token} "
                     f"which does not match provided token {self.parse_token}."

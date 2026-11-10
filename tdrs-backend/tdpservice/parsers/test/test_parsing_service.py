@@ -38,6 +38,7 @@ from tdpservice.parsers.service import (
     _get_summary_status,
     _parser_models_for_mode,
     _program_code,
+    _resolve_parse_owner,
     _section_name,
     _shadow_record_model,
     _uses_shadow_table,
@@ -852,9 +853,8 @@ class TestSummaryStatusAndAggregates:
         datafile = DataFileFactory(
             stt=data_analyst.stt,
             version=25,
-            section=Section.objects.filter(
-                name=Section.Name.FRA_WORK_OUTCOMES
-            ).first(),
+            program_type=Program.Code.FRA,
+            section=Section.Name.FRA_WORK_OUTCOMES,
         )
         dfs = DataFileSummary.objects.create(
             datafile=datafile, status=DataFileSummary.Status.PENDING
@@ -876,9 +876,8 @@ class TestSummaryStatusAndAggregates:
         datafile = DataFileFactory(
             stt=data_analyst.stt,
             version=26,
-            section=Section.objects.filter(
-                name=Section.Name.AGGREGATE_DATA
-            ).first(),
+            program_type=Program.Code.TANF,
+            section=Section.Name.AGGREGATE_DATA,
         )
         dfs = DataFileSummary.objects.create(
             datafile=datafile, status=DataFileSummary.Status.PENDING
@@ -1063,3 +1062,58 @@ class TestShadowPostParseAndEngineFallback:
         result = engine.execute()
         assert result is legacy_parser
         assert legacy_parser.parse_called is True
+
+    def test_resolve_parse_owner_returns_uuid(self, data_analyst):
+        """Verify _resolve_parse_owner returns UUID instance when claiming or resolving."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=32,
+            state=SubmissionState.VIRUS_SCAN_COMPLETED,
+        )
+
+        # 1. Unclaimed: claims parse and returns a UUID
+        file_meta, token = _resolve_parse_owner(datafile)
+        assert file_meta is None
+        assert isinstance(token, uuid.UUID)
+
+        # 2. Existing UUID token provided
+        existing_uuid = uuid.uuid4()
+        _, resolved_token = _resolve_parse_owner(datafile, parse_token=existing_uuid)
+        assert resolved_token == existing_uuid
+        assert isinstance(resolved_token, uuid.UUID)
+
+        # 3. String representation of a UUID converted to UUID instance
+        _, resolved_str_token = _resolve_parse_owner(
+            datafile, parse_token=str(existing_uuid)
+        )
+        assert resolved_str_token == existing_uuid
+        assert isinstance(resolved_str_token, uuid.UUID)
+
+        # 4. Non-UUID mock token preserved as-is for tests
+        _, resolved_mock = _resolve_parse_owner(
+            datafile, parse_token="non-uuid-mock-token"
+        )
+        assert resolved_mock == "non-uuid-mock-token"
+
+    def test_parse_token_remains_uuid_in_parsing_service(self, data_analyst):
+        """Verify ParsingService retains UUID type on parse_token throughout lifecycle."""
+        datafile = DataFileFactory(
+            stt=data_analyst.stt,
+            version=33,
+            state=SubmissionState.VIRUS_SCAN_COMPLETED,
+        )
+        claimed_token = claim_parse(datafile)
+        assert isinstance(claimed_token, uuid.UUID)
+
+        service = ParsingService(data_file=datafile, parse_token=claimed_token)
+        assert service.parse_token == claimed_token
+        assert isinstance(service.parse_token, uuid.UUID)
+
+        # Also verify for_post_parse preserves UUID
+        post_parse_service = ParsingService.for_post_parse(
+            data_file_id=datafile.id,
+            table_mode="go-only",
+            parse_token=str(claimed_token),
+        )
+        assert post_parse_service.parse_token == claimed_token
+        assert isinstance(post_parse_service.parse_token, uuid.UUID)

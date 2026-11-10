@@ -2,6 +2,7 @@
 
 from contextlib import nullcontext
 from typing import Optional
+from uuid import UUID
 
 from django.apps import apps
 
@@ -112,4 +113,9 @@ def _resolve_parse_owner(data_file, reparse_id=None, parse_token=None):
         )
     if parse_token is None:
         parse_token = claim_parse(data_file, reparse_file_meta=file_meta)
-    return file_meta, str(parse_token)
+    elif not isinstance(parse_token, UUID):
+        try:
+            parse_token = UUID(str(parse_token))
+        except ValueError:
+            pass
+    return file_meta, parse_token

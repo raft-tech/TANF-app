@@ -1,6 +1,7 @@
 """Transient execution engine for legacy Python-based file parsing."""
 
 from typing import Optional, Union
+from uuid import UUID
 
 from tdpservice.data_files.models import DataFile, ShadowDataFile
 from tdpservice.parsers.factory import ParserFactory
@@ -16,7 +17,7 @@ class PythonParserEngine:
         self,
         data_file: Union[DataFile, ShadowDataFile],
         dfs: Optional[Union[DataFileSummary, ShadowDataFileSummary]] = None,
-        parse_token: Optional[str] = None,
+        parse_token: Optional[Union[UUID, str]] = None,
     ):
         self.data_file = data_file
         self.dfs = dfs
