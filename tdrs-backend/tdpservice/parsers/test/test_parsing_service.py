@@ -593,26 +593,31 @@ class TestParsingServiceExecution:
         datafile = DataFileFactory(stt=data_analyst.stt, version=13)
         shadow_datafile = create_or_update_shadow_data_file(datafile)
 
+        prod_token = uuid.uuid4()
         prod_service = ParsingService.for_post_parse(
             data_file_id=datafile.id,
             table_mode="go-only",
             reparse_id=1,
-            parse_token="test-token",
+            parse_token=prod_token,
         )
         assert isinstance(prod_service.data_file, DataFile)
         assert prod_service.data_file.id == datafile.id
         assert prod_service.uses_shadow_table is False
-        assert prod_service.parse_token == "test-token"
+        assert prod_service.parse_token == prod_token
+        assert isinstance(prod_service.parse_token, uuid.UUID)
 
+        shadow_token = str(uuid.uuid4())
         shadow_service = ParsingService.for_post_parse(
             data_file_id=shadow_datafile.id,
             table_mode="go-shadow",
             reparse_id=2,
-            parse_token="shadow-token",
+            parse_token=shadow_token,
         )
         assert isinstance(shadow_service.data_file, ShadowDataFile)
         assert shadow_service.data_file.id == shadow_datafile.id
         assert shadow_service.uses_shadow_table is True
+        assert shadow_service.parse_token == uuid.UUID(shadow_token)
+        assert isinstance(shadow_service.parse_token, uuid.UUID)
 
     def test_python_parser_engine(self, monkeypatch, data_analyst):
         """Verify PythonParserEngine constructs parser and executes parsing."""
@@ -1089,11 +1094,9 @@ class TestShadowPostParseAndEngineFallback:
         assert resolved_str_token == existing_uuid
         assert isinstance(resolved_str_token, uuid.UUID)
 
-        # 4. Non-UUID mock token preserved as-is for tests
-        _, resolved_mock = _resolve_parse_owner(
-            datafile, parse_token="non-uuid-mock-token"
-        )
-        assert resolved_mock == "non-uuid-mock-token"
+        # 4. Invalid non-UUID token raises ValueError via _coerce_parse_token
+        with pytest.raises(ValueError):
+            _resolve_parse_owner(datafile, parse_token="invalid-token")
 
     def test_parse_token_remains_uuid_in_parsing_service(self, data_analyst):
         """Verify ParsingService retains UUID type on parse_token throughout lifecycle."""

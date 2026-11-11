@@ -19,6 +19,7 @@ from tdpservice.data_files.models import (
 from tdpservice.data_files.submission_lifecycle import (
     PARSE_QUEUEABLE_STATES,
     StaleParseOwnership,
+    _coerce_parse_token,
     begin_parse,
     finish_reparse,  # noqa: F401
     record_parse_dispatch_failure,
@@ -107,16 +108,7 @@ class ParsingService:
         self.data_file = data_file
         self.data_file_id = getattr(data_file, "id", None)
         self.reparse_id = reparse_id
-        if parse_token is not None:
-            if isinstance(parse_token, UUID):
-                self.parse_token = parse_token
-            else:
-                try:
-                    self.parse_token = UUID(str(parse_token))
-                except ValueError:
-                    self.parse_token = parse_token
-        else:
-            self.parse_token = None
+        self.parse_token = _coerce_parse_token(parse_token)
         self.event_id = str(event_id or uuid.uuid4())
         self.file_meta = file_meta
         self.dfs: Optional[Union[DataFileSummary, ShadowDataFileSummary]] = None
