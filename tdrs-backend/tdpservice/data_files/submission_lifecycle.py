@@ -159,8 +159,10 @@ def validate_transition(current_state, next_state) -> TransitionRecord:
     return TransitionRecord(normalized_current_state, normalized_next_state)
 
 
-def _coerce_parse_token(parse_token) -> UUID:
+def _coerce_parse_token(parse_token=None) -> UUID | None:
     """Normalize a parser ownership token."""
+    if parse_token is None:
+        return None
     if isinstance(parse_token, UUID):
         return parse_token
     return UUID(str(parse_token))
