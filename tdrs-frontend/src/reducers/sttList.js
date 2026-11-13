@@ -8,6 +8,7 @@ import {
 const initialState = {
   sttList: [],
   loading: false,
+  loaded: false,
 }
 
 /**
@@ -34,6 +35,7 @@ const sttList = (state = initialState, action) => {
       return {
         ...state,
         loading: false,
+        loaded: true,
         sttList: data,
       }
     }

@@ -32,8 +32,8 @@ function ReportsContent() {
     getSttError,
     getFileTypeError,
     piaFeatureFlag,
-    uploadAlert,
-    processingAlert,
+    effectiveStt: stt,
+    tdrAssignment,
   } = useReportsContext()
 
   const user = useSelector((state) => state.auth.user)
@@ -58,34 +58,13 @@ function ReportsContent() {
     }
   }, [])
 
-  const redux_stt = useSelector((state) => state.reports.stt)
-
-  const currentStt =
-    isOFAAdmin || isDIGITTeam || isSystemAdmin || isRegionalStaff
-      ? redux_stt
-      : userProfileStt
-
-  const stt = sttList?.find((stt) => stt?.name === currentStt)
-
-  const fileTypeStt = stt
-    ? stt
-    : sttList?.find((fileTypeStt) => fileTypeStt?.name === sttInputValue)
-
   const missingStt =
     (!isOFAAdmin &&
       !isDIGITTeam &&
       !isSystemAdmin &&
       !isRegionalStaff &&
-      !currentStt) ||
+      !userProfileStt) ||
     (isRegionalStaff && user?.regions?.length === 0)
-
-  const radio_options = [
-    { label: 'TANF', value: 'tanf' },
-    ...(fileTypeStt?.ssp ? [{ label: 'SSP-MOE', value: 'ssp-moe' }] : []),
-    ...(piaFeatureFlag.enabled && fileTypeStt?.type !== 'tribe'
-      ? [{ label: 'Program Integrity Audit', value: 'program-integrity-audit' }]
-      : []),
-  ]
 
   return (
     <div className="page-container" style={{ position: 'relative' }}>
@@ -122,7 +101,7 @@ function ReportsContent() {
               label="File Type*"
               fieldName="reportType"
               setValue={selectFileType}
-              options={radio_options}
+              options={tdrAssignment.options}
               classes="margin-top-4"
               selectedValue={fileTypeInputValue}
               error={getFileTypeError()}
@@ -134,12 +113,12 @@ function ReportsContent() {
         {fileTypeInputValue === 'program-integrity-audit' &&
         piaFeatureFlag.enabled === true ? (
           <ProgramIntegrityAuditReports
-            stt={stt ? stt : fileTypeStt}
+            stt={stt}
             isRegionalStaff={isRegionalStaff}
           />
         ) : (
           <TanfSspReports
-            stt={stt ? stt : fileTypeStt}
+            stt={stt}
             isRegionalStaff={isRegionalStaff}
             isDataAnalyst={isDataAnalyst}
           />

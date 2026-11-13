@@ -12,15 +12,25 @@ import {
   FETCH_FILE_LIST,
   FETCH_FILE_LIST_ERROR,
   SET_TANF_SUBMISSION_STATUS,
+  CONFIGURE_UPLOAD_SECTIONS,
+  BEGIN_FILE_VALIDATION,
+  INVALIDATE_FILE_LIST,
 } from '../actions/reports'
 
 import { programIntegrityAuditLabels } from '../components/Reports/utils'
+import {
+  sameUploadScope,
+  sameSection,
+  sameHistoryScope,
+} from '../utils/reportScopes'
+import { programSlugToResponseCode } from '../utils/reportSections'
 
 const getFileIndex = (files, section) =>
   files.findIndex((currentFile) => currentFile.section.includes(section))
 
 const getFile = (files, section) =>
   files
+    .slice()
     .sort((a, b) => b.id - a.id)
     .find((currentFile) => currentFile.section.includes(section))
 
@@ -44,6 +54,7 @@ export const getUpdatedFiles = ({
   validatedQuarter,
 }) => {
   const oldFileIndex = getFileIndex(state?.submittedFiles, section)
+  if (oldFileIndex === -1) return state.submittedFiles
   const updatedFiles = [...state.submittedFiles]
   updatedFiles[oldFileIndex] = {
     id,
@@ -93,16 +104,148 @@ const initialState = {
   loading: false,
 }
 
+const configuredSlots = (scope) =>
+  scope.sections.map(({ id, name, program }) => ({
+    section: name,
+    sectionId: id,
+    program,
+    fileName: null,
+    error: null,
+    uuid: null,
+    fileType: null,
+    isValidating: false,
+  }))
+
+const updateConfiguredSlot = (state, type, payload) => {
+  if (!sameUploadScope(state.uploadScope, payload.uploadScope)) return state
+  const identity = payload.sourceFile || payload
+  const index = state.submittedFiles.findIndex((slot) =>
+    sameSection(slot, {
+      id: identity.sectionId,
+      name: identity.section,
+      program: identity.program,
+    })
+  )
+  if (index === -1) return state
+  const slot = state.submittedFiles[index]
+  if (
+    [
+      BEGIN_FILE_VALIDATION,
+      SET_FILE,
+      SET_FILE_ERROR,
+      FILE_EXT_ERROR,
+      SET_FILE_SUBMITTED,
+    ].includes(type) &&
+    !identity.uuid
+  )
+    return state
+  if (
+    type !== BEGIN_FILE_VALIDATION &&
+    identity.uuid !== undefined &&
+    slot.uuid !== identity.uuid
+  )
+    return state
+  let updated
+  if (type === SET_FILE_SUBMITTED) {
+    const { submittedFile } = payload
+    if (
+      !identity.uuid ||
+      submittedFile?.slug !== identity.uuid ||
+      submittedFile?.section !== slot.section ||
+      submittedFile?.program_type !==
+        programSlugToResponseCode(slot.program.slug)
+    )
+      return state
+    updated = { ...slot, ...serializeApiDataFile(submittedFile) }
+  } else if (type === CLEAR_ERROR) {
+    updated = { ...slot, error: null }
+  } else if (type === CLEAR_FILE) {
+    updated = configuredSlots(state.uploadScope)[index]
+  } else {
+    const changes = { ...payload }
+    delete changes.uploadScope
+    const isValidating = type === BEGIN_FILE_VALIDATION
+    updated = {
+      ...(isValidating ? configuredSlots(state.uploadScope)[index] : slot),
+      ...changes,
+      id: null,
+      isValidating,
+      error: payload.error || null,
+    }
+  }
+  const submittedFiles = [...state.submittedFiles]
+  submittedFiles[index] = updated
+  return { ...state, submittedFiles }
+}
+
 const reports = (state = initialState, action) => {
   const { type, payload = {} } = action
+  if (
+    [CLEAR_FILE_LIST, REINITIALIZE_SUBMITTED_FILES].includes(type) &&
+    payload.uploadScope &&
+    !sameUploadScope(state.uploadScope, payload.uploadScope)
+  )
+    return state
+  if (
+    (state.uploadScope || payload.uploadScope) &&
+    [
+      BEGIN_FILE_VALIDATION,
+      SET_FILE,
+      SET_FILE_ERROR,
+      FILE_EXT_ERROR,
+      CLEAR_FILE,
+      CLEAR_ERROR,
+      SET_FILE_SUBMITTED,
+    ].includes(type)
+  )
+    return updateConfiguredSlot(state, type, payload)
+  if (
+    [SET_FILE_LIST, FETCH_FILE_LIST_ERROR, SET_TANF_SUBMISSION_STATUS].includes(
+      type
+    ) &&
+    (state.historyScope || payload.historyScope) &&
+    !sameHistoryScope(state.historyScope, payload.historyScope)
+  )
+    return state
   switch (type) {
+    case CONFIGURE_UPLOAD_SECTIONS: {
+      const { uploadScope } = payload
+      return {
+        ...state,
+        uploadScope,
+        submittedFiles: uploadScope
+          ? configuredSlots(uploadScope)
+          : initialState.submittedFiles,
+      }
+    }
+    case INVALIDATE_FILE_LIST: {
+      if (!sameHistoryScope(state.historyScope, payload.historyScope))
+        return state
+      return { ...state, historyScope: null, files: [], loading: false }
+    }
     case FETCH_FILE_LIST: {
       return {
         ...state,
         loading: true,
+        ...(payload.historyScope
+          ? { historyScope: payload.historyScope, files: [] }
+          : state.historyScope
+            ? { historyScope: null }
+            : {}),
       }
     }
     case REINITIALIZE_SUBMITTED_FILES: {
+      if (state.uploadScope) {
+        return {
+          ...state,
+          uploadScope: {
+            ...state.uploadScope,
+            generation:
+              payload.generation || `${state.uploadScope.generation}:reset`,
+          },
+          submittedFiles: configuredSlots(state.uploadScope),
+        }
+      }
       const { fileType } = payload
       const sections =
         fileType === 'program-integrity-audit'
@@ -176,6 +319,18 @@ const reports = (state = initialState, action) => {
       return { ...state, submittedFiles: updatedFiles }
     }
     case CLEAR_FILE_LIST: {
+      if (state.uploadScope) {
+        return {
+          ...state,
+          files: [],
+          uploadScope: {
+            ...state.uploadScope,
+            generation:
+              payload.generation || `${state.uploadScope.generation}:reset`,
+          },
+          submittedFiles: configuredSlots(state.uploadScope),
+        }
+      }
       const { fileType } = payload
       return {
         ...state,
@@ -219,6 +374,7 @@ const reports = (state = initialState, action) => {
     case CLEAR_ERROR: {
       const { section } = payload
       const file = getFile(state.submittedFiles, section)
+      if (!file) return state
       const updatedFiles = getUpdatedFiles({
         state,
         fileName: file.fileName,

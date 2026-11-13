@@ -5,6 +5,7 @@ const MAX_TRIES = 30
 
 export const usePollingTimer = () => {
   const timers = useRef({})
+  const generations = useRef({})
   const [pollState, setPollState] = useState({})
 
   // settimeout uses state from the time it was scheduled, not the time it executes
@@ -21,9 +22,6 @@ export const usePollingTimer = () => {
   const addTimer = (requestId, timer) => {
     timers.current[requestId] = timer
   }
-
-  const getPollState = (requestId) =>
-    pollState && requestId in pollState ? { ...pollState[requestId] } : null
 
   const stopTimer = (requestId, deleteRef = true) => {
     clearTimeout(timers.current[requestId])
@@ -65,22 +63,17 @@ export const usePollingTimer = () => {
     onError,
     onTimeout,
     wait_time = WAIT_TIME,
-    max_tries = MAX_TRIES
+    max_tries = MAX_TRIES,
+    isCurrent = () => true
   ) => {
+    if (!isCurrent()) return
     if (tryNumber > max_tries) {
       finish(requestId, () => onTimeout(onError))
       return
     }
 
-    const requestPoll = getPollState(requestId)
-    if (requestPoll && requestPoll.isPerformingRequest) {
-      finish(requestId, () =>
-        onError({ message: 'Already performing request.' })
-      )
-      return
-    }
-
     const retry = () => {
+      if (!isCurrent()) return
       setPollStateForRequest(requestId, {
         isPerformingRequest: false,
         isDonePolling: false,
@@ -94,11 +87,13 @@ export const usePollingTimer = () => {
         onError,
         onTimeout,
         wait_time,
-        max_tries
+        max_tries,
+        isCurrent
       )
     }
 
     const fetchAndTest = async () => {
+      if (!isCurrent()) return
       let response = null
 
       start(requestId)
@@ -106,9 +101,11 @@ export const usePollingTimer = () => {
       try {
         response = await request()
       } catch (networkError) {
+        if (!isCurrent()) return
         retry(requestId, tryNumber)
         return
       }
+      if (!isCurrent()) return
 
       if (!response.ok) {
         const statusCode = response.status
@@ -151,6 +148,8 @@ export const usePollingTimer = () => {
    * @param {Function} onTimeout - called when the number of tries exceeds `max_tries`
    * @param {Number} wait_time - the time to wait in ms
    * @param {Number} max_tries - the number of requests to try before calling `onTimeout`
+   * @param {Object} options - Optional isCurrent guard for requests and callbacks
+   * @returns {Function} Cancel this polling generation, including in-flight callbacks
    */
   const startPolling = (
     requestId,
@@ -160,8 +159,22 @@ export const usePollingTimer = () => {
     onError,
     onTimeout,
     wait_time = WAIT_TIME,
-    max_tries = MAX_TRIES
+    max_tries = MAX_TRIES,
+    options = {}
   ) => {
+    if (requestId in timers.current) stopTimer(requestId)
+    const generation = {}
+    generations.current[requestId] = generation
+    // A cleared timeout cannot cancel its already-running request.
+    const isCurrent = () => {
+      if (generations.current[requestId] !== generation) return false
+      if (options.isCurrent?.() === false) {
+        delete generations.current[requestId]
+        finish(requestId)
+        return false
+      }
+      return true
+    }
     reset(requestId)
     poll(
       requestId,
@@ -172,11 +185,19 @@ export const usePollingTimer = () => {
       onError,
       onTimeout,
       wait_time,
-      max_tries
+      max_tries,
+      isCurrent
     )
+    return () => {
+      if (generations.current[requestId] === generation) {
+        delete generations.current[requestId]
+        finish(requestId)
+      }
+    }
   }
 
   const stopAllTimers = useCallback(() => {
+    generations.current = {}
     const timer = timers.current
     if (timer && Object.keys(timer).length !== 0) {
       Object.keys(timers.current).forEach((requestId) =>
