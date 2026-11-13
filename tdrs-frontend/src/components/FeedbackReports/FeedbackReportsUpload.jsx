@@ -1,6 +1,7 @@
 import React, { useEffect, useImperativeHandle, forwardRef } from 'react'
 import PropTypes from 'prop-types'
 import { fileInput, datePicker } from '@uswds/uswds/src/js/components'
+import { removeOldPreviews } from '../FileUpload/utils'
 import Button from '../Button'
 
 const INVALID_EXT_ERROR = 'Invalid file. Make sure to select a zip file.'
@@ -37,6 +38,9 @@ const FeedbackReportsUpload = forwardRef(function FeedbackReportsUpload(
     inputRef,
     dateError,
     onDateBlur,
+    notes = '',
+    notesError,
+    onNotesChange,
   },
   ref
 ) {
@@ -87,10 +91,31 @@ const FeedbackReportsUpload = forwardRef(function FeedbackReportsUpload(
     }
   }
 
+  /**
+   * Clears the USWDS file input and removes file previews
+   */
+  const clearFileInput = () => {
+    if (inputRef?.current) {
+      inputRef.current.value = ''
+      const dropTarget = inputRef.current.closest('.usa-file-input__target')
+      if (dropTarget) {
+        const instructions = dropTarget.querySelector(
+          '.usa-file-input__instructions'
+        )
+        if (instructions) {
+          instructions.classList.remove('display-block')
+        }
+        dropTarget.classList.remove('has-invalid-file')
+        removeOldPreviews(dropTarget, instructions)
+      }
+    }
+  }
+
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
     getDateValue,
     clearDate,
+    clearFileInput,
   }))
 
   return (
@@ -165,6 +190,48 @@ const FeedbackReportsUpload = forwardRef(function FeedbackReportsUpload(
         </div>
       </div>
 
+      {/* Notes Input */}
+      <div
+        className={`usa-form-group margin-top-3 ${notesError ? 'usa-form-group--error' : ''}`}
+      >
+        <label
+          className="usa-label text-bold"
+          htmlFor="feedback-reports-notes"
+          id="notes-label"
+        >
+          Notes (optional)
+        </label>
+        <div className="feedback-reports-notes__header">
+          <div className="usa-hint margin-top-0" id="notes-hint">
+            Notes will be displayed to STTs when additional detail is needed to
+            contextualize a report
+          </div>
+          <div
+            className="usa-character-count__message feedback-reports-notes__count"
+            aria-live="polite"
+            id="notes-count-message"
+          >
+            {`${notes.length}/2000`}
+          </div>
+        </div>
+        {notesError && (
+          <div className="usa-error-message" id="notes-error" role="alert">
+            {notesError}
+          </div>
+        )}
+        <textarea
+          className="usa-textarea feedback-reports-notes__textarea"
+          id="feedback-reports-notes"
+          name="notes"
+          aria-labelledby="notes-label"
+          aria-describedby={`notes-hint notes-count-message ${notesError ? 'notes-error' : ''}`.trim()}
+          value={notes}
+          onChange={onNotesChange}
+          maxLength={2000}
+          rows={4}
+        />
+      </div>
+
       <Button
         type="submit"
         onClick={onUpload}
@@ -186,6 +253,9 @@ FeedbackReportsUpload.propTypes = {
   inputRef: PropTypes.object.isRequired,
   dateError: PropTypes.string,
   onDateBlur: PropTypes.func,
+  notes: PropTypes.string,
+  notesError: PropTypes.string,
+  onNotesChange: PropTypes.func,
 }
 
 export default FeedbackReportsUpload
