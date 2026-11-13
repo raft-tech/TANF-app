@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import PropTypes from 'prop-types'
 import { useSearchParams } from 'react-router-dom'
 import { get, post } from '../../fetch-instance'
 import createFileInputErrorState from '../../utils/createFileInputErrorState'
@@ -26,7 +27,7 @@ const NO_DATE_ERROR =
  * AdminFeedbackReports component allows DIGIT Team and OFA System Admin users to upload
  * feedback reports as ZIP files that will be distributed to State/Tribal TANF Programs (STTs).
  */
-function AdminFeedbackReports() {
+function AdminFeedbackReports({ onSelectStt }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const yearOptions = constructYears()
 
@@ -70,6 +71,7 @@ function AdminFeedbackReports() {
   const [dateTouched, setDateTouched] = useState(false)
   const [downloadStatistics, setDownloadStatistics] = useState({
     sourceId: null,
+    reportContext: null,
     data: null,
     loading: false,
     error: null,
@@ -84,6 +86,7 @@ function AdminFeedbackReports() {
     statisticsRequestIdRef.current += 1
     setDownloadStatistics({
       sourceId: null,
+      reportContext: null,
       data: null,
       loading: false,
       error: null,
@@ -91,10 +94,16 @@ function AdminFeedbackReports() {
   }
 
   const viewDownloadStatistics = async (sourceId) => {
+    const source = uploadHistory.find((report) => report.id === sourceId)
+    const reportContext = {
+      year: source.year,
+      reportType: source.report_type,
+    }
     const requestId = statisticsRequestIdRef.current + 1
     statisticsRequestIdRef.current = requestId
     setDownloadStatistics({
       sourceId,
+      reportContext,
       data: null,
       loading: true,
       error: null,
@@ -107,11 +116,18 @@ function AdminFeedbackReports() {
     if (requestId !== statisticsRequestIdRef.current) return
 
     if (ok) {
-      setDownloadStatistics({ sourceId, data, loading: false, error: null })
+      setDownloadStatistics({
+        sourceId,
+        reportContext,
+        data,
+        loading: false,
+        error: null,
+      })
     } else {
       console.error('Failed to fetch download statistics:', error)
       setDownloadStatistics({
         sourceId,
+        reportContext,
         data: null,
         loading: false,
         error: 'Failed to load download statistics. Please try again.',
@@ -516,11 +532,17 @@ function AdminFeedbackReports() {
             error={downloadStatistics.error}
             formatDateTime={formatDateTime}
             onClose={closeDownloadStatistics}
+            reportContext={downloadStatistics.reportContext}
+            onSelectStt={onSelectStt}
           />
         )}
       </div>
     </div>
   )
+}
+
+AdminFeedbackReports.propTypes = {
+  onSelectStt: PropTypes.func,
 }
 
 export default AdminFeedbackReports
