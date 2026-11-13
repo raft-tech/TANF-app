@@ -53,6 +53,12 @@ The FY2024 expected output remains the unchanged numerical regression baseline,
 not evidence of FY2026 legacy/SAS reconciliation. Small generated mixed-status
 fixtures separately cover TANF, SSP, and Tribal TANF publication.
 
+For hands-on inspection of source IDs, summary statuses, intermediate counts,
+published weights, calendar boundaries, and reparse guards in a disposable
+integration database, follow the
+[local review guide](../../../../../docs/Technical-Documentation/tech-memos/etl-pipelines/statistical-weights-local-review.md).
+Always use the integration command's dedicated trailing `--basetemp` override.
+
 The fixture inputs are stored as per-file `.csv.xz` archives so individual
 large extracts can be updated independently. Expected ETL outputs live under
 `expected_outputs/` and use the same per-file `.csv.xz` compression convention.

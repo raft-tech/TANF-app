@@ -231,6 +231,21 @@ First implementation:
 - one shared pipeline with program adapters,
 - database output plus QA email.
 
+Scheduled weights use the approved reporting year, not an automatic October 1
+federal-year rollover. In the scheduler's existing local timezone (UTC by
+default), February 1 is the inclusive transition: January uses calendar year
+minus one; all other months use calendar year. October 1, 2026 and January 31,
+2027 therefore refresh FY2026; February 1, 2027 begins FY2027. First-workday
+Monday-Friday cadence and monthly scope/status/created-at suppression remain
+unchanged, with no extra post-deadline run or holiday calendar. Manual requests
+retain the explicit validated fiscal year and existing System Admin permissions.
+
+The live integration suite uses PostgreSQL and eager Celery; it is not evidence
+of distributed worker behavior or FY2026 recovery. See the
+[local review guide](statistical-weights-local-review.md) for safe synthetic
+inspection and the [dataset memo](etl-statistical-weights-dataset.md#authorized-fy2026-reconciliation)
+for separately authorized legacy/SAS reconciliation and historical-output handling.
+
 Later extensions:
 
 - section expansion when business rules are approved.

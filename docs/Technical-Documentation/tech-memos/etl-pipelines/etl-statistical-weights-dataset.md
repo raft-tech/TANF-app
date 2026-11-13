@@ -673,6 +673,14 @@ Celery retries should be conservative. Retry transient database connection failu
 
 ### Integration Tests
 
+The live suite uses real PostgreSQL with eager Celery and an in-memory email
+backend. It does not verify distributed worker execution, browser authentication,
+external email delivery, or production data recovery. Its concrete coverage is
+the unchanged FY2024 numerical baseline, small mixed-status API-to-publication
+cases for TAN/SSP/TRIBAL, and scheduled all-program publication/idempotency on
+October 1 and January 1 using the prior reporting fiscal year. Additional runner,
+versioning, permission, and reparse safeguards are covered by focused backend tests.
+
 - Admin creates a weights run through DRF.
 - Pipeline runner launches the pipeline-owned Celery `chain`/`chord` Canvas.
 - Celery executes node tasks and updates pipeline/node statuses.
@@ -689,13 +697,66 @@ Celery retries should be conservative. Retry transient database connection failu
 ### Permission Tests
 
 - OFA System Admin can list pipelines, create runs, inspect runs, and retry failed runs.
-- DIGIT Team can inspect runs and, if enabled, create runs.
+- Approved DIGIT Team users can inspect runs but cannot create or retry them.
 - Data Analyst and Regional Staff cannot create runs.
 - Unapproved users cannot access ETL endpoints.
 
 ### Reconciliation Tests
 
 During migration from the SAS/notebook process, compare MVP outputs against known legacy outputs for the same fiscal year and reporting month. Store comparison results as QA payloads or implementation test artifacts until parity is accepted.
+
+### Authorized FY2026 Reconciliation
+
+The FY2024 compressed fixture is a regression baseline, not evidence that the
+affected FY2026 production output has recovered. An increased output row count
+alone is not sufficient. The following is a procedure requiring separate
+operational/data-owner authorization, not permission to run production work.
+
+1. Obtain the data team's approved legacy/SAS FY2026 baseline and record its
+   owner, approval reference, secure location/checksum, program/section, STT and
+   reporting-month scope, generation date, and source-data cutoff. Agree on the
+   source versions and surviving parsed rows being compared. Keep sensitive
+   records and exports outside the repository.
+2. With authorized read-only access, inventory input files for each program and
+   active/aggregate/stratum family. Record lifecycle, authoritative summary,
+   STT, quarter, fiscal year, audit flag, version, and persisted-record counts.
+   Identify missing/Pending/unknown/Rejected summaries and groups falling back
+   from newer ineligible versions. Have the data owner assess summary-less
+   production files; do not silently admit them, backfill through migrations,
+   or classify them as Accepted without an approved remediation procedure.
+3. Check active ETL/reparse conflicts and agree on an operationally stable input
+   window. Existing guards are not atomic reservations or immutable parsed-row
+   copies. Only after authorization, a System Admin may POST `/v1/etl/runs/` with
+   `{"pipeline_key":"statistical_weights","parameters":{"fiscal_year":2026,"program":"TAN"}}`.
+   Repeat separately with `SSP` and `TRIBAL` only for authorized program scopes.
+   Record run IDs; inspect an existing active scope on HTTP 409 instead of
+   starting duplicate work. Do not change the scheduler or machine clock.
+4. Inspect each completed run's `source_datafile_ids`. Compare exact selected
+   IDs with the inventory's maximum eligible version per STT/quarter and family.
+   Preserve each selected file's status/version and per-family input-row counts,
+   persisted S1/S3/S4 counts by STT/month/stratum, node statuses, final artifact
+   ID/version/row count, and all QA payloads. Explain missing-family failures,
+   unexpected partitions, warnings, and exclusions before accepting results.
+5. Compare published rows for the **specific run**, not an unscoped mixture of
+   output versions. Match on fiscal year, program, section, STT, reporting month,
+   and stratum; check key uniqueness and compare `case_count`, `cases`, and
+   `weight` at the existing four-decimal precision. Use a full outer comparison
+   to find missing/extra keys as well as mismatched values. Preserve T7/M7
+   preference, T6/M6 fallback, and the existing minimum-case/rounding rules.
+6. Classify and explain every difference against the approved baseline: source
+   version or acceptance changes, legacy input-window differences, missing data,
+   or a demonstrated implementation defect. Do not regenerate expected output,
+   alter formulas, or treat a higher row count as reconciliation. Reconcile the
+   exact STT/month/stratum tuples and obtain the data owner's recorded sign-off.
+7. Record old incomplete FY2026 and wrong-year run/artifact IDs with the owner.
+   Agree separately whether to retain, annotate, supersede through an authorized
+   rerun, or perform some other approved operational action. Preserve existing
+   publication versions/retention; this issue does not authorize historical
+   deletion, automatic production reruns, deployment, or application-data changes.
+
+Local review and reproduction steps are in
+[Statistical Weights: Local Review](statistical-weights-local-review.md). Record
+local synthetic verification separately from production FY2026 reconciliation.
 
 ---
 
