@@ -37,7 +37,7 @@ const INVALID_EXT_ERROR = (
     .ts###.&nbsp;
     <a
       className="usa-link"
-      href="https://tdp-project-updates.app.cloud.gov/knowledge-center/file-extension-guide.html"
+      href="/help/knowledge-center/file-extension-guide.html"
       target="_blank"
       aria-label="Need help? Read file extension guidance"
       rel="noreferrer"
@@ -349,7 +349,7 @@ function FileUpload({
           className="usa-link"
           target="_blank"
           rel="noopener noreferrer"
-          href="https://tdp-project-updates.app.cloud.gov/knowledge-center/uploading-data.html#reporting-period"
+          href="/help/knowledge-center/uploading-data.html#reporting-period"
         >
           Need help?
         </a>
