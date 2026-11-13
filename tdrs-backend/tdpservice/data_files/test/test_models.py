@@ -86,6 +86,8 @@ def test_data_file_program_comes_from_section(data_file_instance):
     data_file_instance.refresh_from_db()
 
     assert data_file_instance.program == program
+    assert data_file_instance.program_code == program.code
+    assert data_file_instance.section_name == section.name
 
 
 @pytest.mark.django_db
@@ -169,6 +171,8 @@ def test_shadow_data_file_uses_canonical_section():
 
     assert shadow_data_file.section == data_file.section
     assert shadow_data_file.program == data_file.program
+    assert shadow_data_file.program_code == data_file.program_code
+    assert shadow_data_file.section_name == data_file.section_name
     field = ShadowDataFile._meta.get_field("section")
     assert field.null is False
     assert field.remote_field.on_delete is PROTECT

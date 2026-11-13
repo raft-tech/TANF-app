@@ -146,8 +146,6 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
     actions = ["reparse"]
 
-    readonly_fields = ("versioned_file_download_link",)
-
     def versioned_file_download_link(self, obj):
         """Generate a custom download link for the file."""
         try:
@@ -187,6 +185,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
                     "state",
                     "state_changed_at",
                     "parsing_state",
+                    "upload_source",
                     "quarter",
                     "year",
                     "section",
@@ -221,6 +220,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
         "state",
         "state_changed_at",
         "parsing_state",
+        "upload_source",
         "program",
         "versioned_file_download_link",
     )
@@ -576,6 +576,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     list_display = [
         "id",
         "stt",
+        "upload_source",
         "parsing_state",
         "year",
         "quarter",
@@ -588,6 +589,7 @@ class DataFileAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
     list_filter = [
         "stt",
+        "upload_source",
         "year",
         "quarter",
         "section__program",

@@ -48,7 +48,10 @@ def test_DataFileAdmin_exposes_canonical_classification_in_admin():
     )
 
     assert "parsing_state" in data_file_admin.list_display
+    assert "upload_source" in data_file_admin.list_display
+    assert "upload_source" in data_file_admin.readonly_fields
     assert "parsing_state" in properties_fieldset[1]["fields"]
+    assert "upload_source" in properties_fieldset[1]["fields"]
     assert "section" in properties_fieldset[1]["fields"]
     assert "program" in properties_fieldset[1]["fields"]
     assert "program_type" not in properties_fieldset[1]["fields"]
