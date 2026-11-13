@@ -32,6 +32,8 @@ Copy `.env.example` to `.env` for Docker Compose, or `.env.local` for
 
 The login and health flows use these environment variables:
 
+- `ADMIN_AUTH_URL` (runtime server-to-server Django origin)
+- `ADMIN_AUTH_BROWSER_URL` (runtime browser auth origin)
 - `NEXT_PUBLIC_AUTH_URL`
 - `NEXT_PUBLIC_AUTH_BROWSER_URL`
 - `NEXT_PUBLIC_BACKEND_URL`
@@ -39,6 +41,11 @@ The login and health flows use these environment variables:
 - `ADMIN_FRONTEND_ORIGIN`
 - `ADMIN_API_PROXY_TOKEN`
 - `ADMIN_SESSION_COOKIE_NAME` (defaults to `admin_sessionid`)
+
+Cloud.gov uses the server-only `ADMIN_AUTH_URL` and `ADMIN_AUTH_BROWSER_URL`.
+They take precedence over the legacy `NEXT_PUBLIC_*` settings, which Next.js
+can inline at build time. `ADMIN_FRONTEND_ORIGIN` also supplies the public
+origin for login return URLs when Next.js runs behind the Cloud.gov router.
 
 `NEXT_PUBLIC_AUTH_URL` should point to the Django auth origin. When it is not
 set, the app derives the auth origin from `NEXT_PUBLIC_BACKEND_URL`.
@@ -87,6 +94,8 @@ Next.js proxy only forwards request context and the server-side proxy token.
 - `/api/backend-health` is a backing JSON probe for the Django auth endpoint.
   The login page shows recovery guidance when the service is unavailable,
   without exposing internal URLs or probe errors.
+- `/api/health` is the Cloud.gov liveness probe. It does not depend on Django,
+  so a backend outage does not cause Cloud.gov to restart healthy admin instances.
 - `/api/admin/*` forwards backend API requests with the Django session cookie,
   CSRF token required by mutating requests, and server-side proxy token to
   `/admin-api/v1/*`.
@@ -210,10 +219,143 @@ Manual usability/release checks (use test accounts):
    Capture dashboard, filtered list, and detail screenshots with synthetic data
    for the release digest.
 
-No database migration is required. Deploy the Django API and admin app together.
+No database migration is required. The user-account surfaces require the
+corresponding Django API endpoints before the admin app is deployed.
 
 Design context: the Mural “IA Django Admin” board prioritizes outstanding requests,
 new feedback, and failed nightly database backups. User accounts, access requests,
 change requests, feedback, and audit logs are separate surfaces. This preliminary
 release implements account reads and status totals; feedback/task integration and
 request approval workflows remain future work.
+
+## Cloud.gov deployment
+
+The admin console deploys independently using
+[`deploy-admin.yml`](../.github/workflows/deploy-admin.yml) and
+[`deploy-admin.sh`](../scripts/deploy-admin.sh). The same script runs from a
+developer workstation or GitHub Actions. It supports `initial` and `rolling`
+deployments; rolling deployments require capacity for an extra instance.
+
+The source package is built on Cloud.gov with the platform's `nodejs_buildpack`
+and Node 22. The small `cloudgov/package.json` wrapper installs the app with
+Yarn 4.6.0 and the immutable lockfile during the buildpack's `heroku-postbuild`
+step. This avoids depending on the buildpack's bundled Yarn version or uploading
+macOS dependencies. Next.js listens on Cloud.gov's `PORT` and `0.0.0.0`.
+The manifest allocates 2 GB of memory and bounds Yarn's download/conversion
+concurrency. The install step caps its Node heap at 512 MB, and Next.js builds
+use two workers to stay within the container's memory limit.
+`prepare-admin-deployment.sh` uploads only app source, public assets, and build
+configuration; local `.env*`, dependencies, build output, and tests are excluded.
+
+### Environment prerequisites
+
+Before the first deployment, configure the existing Django/Keycloak environment:
+
+1. Choose an admin hostname with Cloud.gov routing, DNS, and TLS configured.
+   Raft dev uses the `test` app suffix and
+   `tdp-admin-test.app.cloud.gov` in `hhs-acf-ofa / tanf-dev`.
+2. Set Django's `ADMIN_FRONTEND_BASE_URL` to that HTTPS origin and configure a
+   strong `ADMIN_API_PROXY_TOKEN`. Store the same token in the GitHub environment.
+   Keep `ADMIN_SESSION_COOKIE_NAME=admin_sessionid`. Restart Django after changing
+   settings. Persist the origin in the backend CI configuration too, since
+   `deploy-backend.sh` unsets settings absent from its environment.
+   The deployment script reads the existing backend token for local
+   runs and rejects mismatches before changing either app.
+3. Ensure Django allows the admin hostname in `ALLOWED_HOSTS` and trusts the
+   origin for CORS, CSRF, and OIDC redirects. Development already allows
+   `*.tanfdata.acf.hhs.gov` and `tdp-admin-test.app.cloud.gov`;
+   staging/production host allowlists must include the selected admin hostname
+   before enabling their deployments.
+4. Configure Django's `KEYCLOAK_TDP_ADMIN_*` settings or bound Keycloak service.
+   In particular, `KEYCLOAK_TDP_ADMIN_CLIENT_SECRET` must match the existing
+   `KC_TDP_ADMIN_CLIENT_SECRET` on Keycloak. A bound `tdp-keycloak-<environment>`
+   service's `tdp_admin_client_secret` takes precedence over the environment
+   variable. The deployment script rejects a missing secret; it does not verify
+   that Keycloak accepts it. Persist this secret in the backend CI configuration
+   as well, since `deploy-backend.sh` unsets absent settings. A missing or
+   mismatched secret causes `unauthorized_client` during the OIDC callback,
+   even when the login redirect and health checks succeed.
+   Register `https://<admin-host>/admin-auth/oidc/callback/` as an allowed redirect
+   URI and the admin origin as an allowed post-logout destination on the admin
+   Keycloak client. Keycloak client secrets remain on Django.
+
+The script maps the admin root route to Next.js and `/admin-auth` on the **same
+hostname** to Django, including login, callback, session check, and logout. This
+preserves Django's host-only session cookies. It maps the private backend route
+and permits only TCP port 8080 from the admin app to Django. `/admin-api` is reached
+through the server-side proxy; this script does not map it as a public route.
+
+### Test a deployment from your workstation
+
+Install CF CLI v8, `jq`, and `curl`, and log in to the intended environment.
+The script checks your existing org/space; it does not switch targets.
+
+```bash
+cf target -o hhs-acf-ofa -s tanf-dev
+python3 -m unittest discover -s scripts/tests -p 'test_admin_deployment.py'
+# After building tdp-admin with yarn build:
+node scripts/smoke-admin.mjs
+ADMIN_ROUTE_HOSTNAME=tdp-admin-test bash scripts/deploy-admin.sh rolling \
+  tdp-admin-test tdp-backend-test hhs-acf-ofa tanf-dev app.cloud.gov
+```
+
+Use `rolling` for subsequent deployments. For a shared domain, pass the domain
+as the last argument and set `ADMIN_ROUTE_HOSTNAME` separately, for example
+`ADMIN_ROUTE_HOSTNAME=tdp-admin-test` with `app.cloud.gov`. Django and Keycloak
+must be configured for that exact hostname first.
+
+Cloud.gov cannot change an existing app from the Docker lifecycle to the
+buildpack lifecycle. For the one-time transition, retain the Docker app under a
+different name and pass `PREVIOUS_ADMIN_APP_NAME` to the initial deployment:
+
+```bash
+cf rename tdp-admin-test tdp-admin-test-docker
+ADMIN_ROUTE_HOSTNAME=tdp-admin-test PREVIOUS_ADMIN_APP_NAME=tdp-admin-test-docker \
+  bash scripts/deploy-admin.sh initial tdp-admin-test tdp-backend-test \
+  hhs-acf-ofa tanf-dev app.cloud.gov
+```
+
+The script starts the replacement before removing the previous app from the
+root route. Keep the previous app for rollback until validation is complete.
+Ordinary rolling deployments retain the route declared in the manifest.
+
+The script verifies admin liveness, private backend reachability, and anonymous
+session checking through the public auth route. After deployment, also sign in
+with a test admin account, open `/dashboard` and `/users`, and log out. Verify an
+anonymous request cannot read admin data. These checks require the deployed
+Django and Keycloak configuration; unit tests alone do not verify SSO.
+
+### Deploy with GitHub Actions
+
+Create the selected GitHub environment (for example, `admin-raft`) with:
+
+| Kind | Name | Raft example / purpose |
+| --- | --- | --- |
+| Variable | `CF_ORG` | `hhs-acf-ofa` |
+| Variable | `CF_SPACE` | `tanf-dev` |
+| Variable | `ADMIN_APP_NAME` | `tdp-admin-test` |
+| Variable | `BACKEND_APP_NAME` | `tdp-backend-test` |
+| Variable | `ADMIN_ROUTE_DOMAIN` | `app.cloud.gov` |
+| Variable | `ADMIN_ROUTE_HOSTNAME` | `tdp-admin-test` |
+| Secret | `CF_USERNAME` | Cloud.gov deploy service-account username |
+| Secret | `CF_PASSWORD` | Cloud.gov deploy service-account password |
+| Secret | `ADMIN_API_PROXY_TOKEN` | Must match Django's configured token |
+
+Limit the service account to the target space and configure environment reviewers
+and branch restrictions for staging/production. PRs and relevant pushes to
+`develop` run admin checks without deployment credentials. To deploy, select
+**Actions → Test and deploy admin → Run workflow**, choose the ref, environment,
+and strategy. Lint, unit tests, production build, type checking, runtime smoke
+checks, and deployment script checks must pass first. Deployments to the same
+environment are serialized.
+The workflow must be on the default branch before GitHub exposes Run workflow.
+
+### Monitor and roll back
+
+Use `cf app tdp-admin-test` and `cf logs tdp-admin-test --recent` for instance
+health and logs. Monitor `/api/health` for app liveness and `/api/backend-health`
+for Django connectivity. For rollback, run the workflow against a known-good
+branch/tag with the same environment and `rolling`, or check out the known-good
+commit locally and run the deployment script. This rebuilds only the admin app.
+Runtime configuration is checked against Django on every deployment; coordinate
+any incompatible API or auth changes before rolling back.

@@ -1,0 +1,12 @@
+{
+  "name": "tdp-admin-cloudgov",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "heroku-postbuild": "cd app && NODE_OPTIONS=--max-old-space-size=512 npx --yes @yarnpkg/cli-dist@4.6.0 install --immutable && npx --yes @yarnpkg/cli-dist@4.6.0 build",
+    "start": "cd app && node node_modules/next/dist/bin/next start --hostname 0.0.0.0"
+  }
+}
