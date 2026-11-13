@@ -1,0 +1,27 @@
+---
+applications:
+  - name: ((app-name))
+    stack: cflinuxfs4
+    buildpacks:
+      - nodejs_buildpack
+    memory: 2G
+    disk_quota: 2G
+    instances: 1
+    command: npm start
+    routes:
+      - route: ((admin-route))
+    health-check-type: http
+    health-check-http-endpoint: /api/health
+    timeout: 180
+    env:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Bound dependency-install workers within the staging memory limit.
+      YARN_NETWORK_CONCURRENCY: "2"
+      YARN_TASK_POOL_CONCURRENCY: "1"
+      YARN_TASK_POOL_MODE: async
+      ADMIN_BACKEND_URL: http://((backend-app-name)).apps.internal:8080/admin-api/v1
+      ADMIN_AUTH_URL: http://((backend-app-name)).apps.internal:8080
+      ADMIN_AUTH_BROWSER_URL: https://((admin-route))
+      ADMIN_FRONTEND_ORIGIN: https://((admin-route))
+      ADMIN_SESSION_COOKIE_NAME: admin_sessionid

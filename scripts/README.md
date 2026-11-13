@@ -38,13 +38,13 @@ understand the role of the scripts.
 ```bash
 
 ./scripts/set-backend-env-vars.sh CGAPPNAME_BACKEND CG_SPACE
-./scripts/set-backend-env-vars.sh tdp-backend-raft tanf-dev
+./scripts/set-backend-env-vars.sh tdp-backend-test tanf-dev
 ```
 
 ### Arguments
 
 * `CGAPPNAME_BACKEND`: the sub domain of the app you are trying to set up environment variables for
-  * Example: `tdp-backend-raft`
+  * Example: `tdp-backend-test`
 * `CG_SPACE`: the space the app you are trying to set up for is deployed in.
   * Example: `tanf-dev`
 
@@ -56,7 +56,7 @@ Based on the provided arguments, set the appropriate environment variables on th
 
 * Determines the appropriate BASE_URL for the deployed instance based on the
 provided Cloud.gov App Name.
-  * For example, if the app name is `tdp-backend-raft` the `BASE_URL` will get set to `https://tdp-backend-raft.app.cloud.gov/v1`.
+  * For example, if the app name is `tdp-backend-test` the `BASE_URL` will get set to `https://tdp-backend-test.app.cloud.gov/v1`.
   * If there is already an existing `BASE_URL` environment variable set, the script will use Shell Parameter Expansion to replace localhost in the URL to prevent any issues.
 * Dynamically sets the `FRONTEND_BASE_URL` by replacing `backend` with `frontend` in the `BASE_URL` value.
 * Dynamically generates a new `DJANGO_SECRET_KEY` for each deployment. This value is generated with a python call to the `secrets` library. It is a randomly generated URL safe token that is 50 bytes in length.
@@ -81,7 +81,7 @@ The script `deploy-backend` invokes this script if the `DEPLOY_STRATEGY` is `ini
 ### Arguments
 
 * `SOURCE_APP`: The app to copy keys from.
-  * Example: `tdp-backend-raft`
+  * Example: `tdp-backend-test`
 * `DEST_APP`: The app to copy keys to.
   * Example: `tdp-backend-qasp`
 
@@ -100,7 +100,7 @@ This script is only a convenience tool for developers, it has no direct usage in
 
 ```bash
 ./scripts/deploy-backend.sh <strategy> <frontend-hostname> <backend-app-name> <cf-space> [all|backend|celery]
-./scripts/deploy-backend.sh rolling raft tdp-backend-raft tanf-dev backend
+./scripts/deploy-backend.sh rolling raft tdp-backend-test tanf-dev backend
 ```
 ### Arguments
 
@@ -135,6 +135,21 @@ Mostly for use in our CircleCI pipelines, this script deploys the Django backend
 ### Where it's used
 
 `deploy-backend.sh` is used by the independent backend and Celery CircleCI jobs. Shared migrations run before both jobs, and networking is configured after all application deployments succeed. With Cloud Foundry set up and logged in locally, the script can also be used manually. See the [CircleCI documentation](../docs/Technical-Documentation/circle-ci.md#deploy-backend).
+
+## deploy-admin.sh
+
+Deploy the standalone Next.js admin app from a workstation or GitHub Actions:
+
+```bash
+ADMIN_ROUTE_HOSTNAME=tdp-admin-test bash scripts/deploy-admin.sh rolling \
+  tdp-admin-test tdp-backend-test hhs-acf-ofa tanf-dev app.cloud.gov
+```
+
+The script validates the current Cloud.gov target and shared Django settings,
+packages source without local secrets or dependencies, deploys with the Node.js
+buildpack, configures private backend access and same-origin auth routing, and
+checks health. See the [admin deployment guide](../tdp-admin/README.md#cloudgov-deployment)
+for first-time configuration, GitHub environment secrets, and rollback steps.
 
 ## deploy-frontend.sh
 
