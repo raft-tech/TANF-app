@@ -15,8 +15,10 @@ PRODUCT_UPDATES_SPACE="tanf-dev"
 cf map-route "$BACKEND_APP_NAME" apps.internal --hostname "$BACKEND_APP_NAME"
 cf map-route "$CELERY_APP_NAME" apps.internal --hostname "$CELERY_APP_NAME"
 cf add-network-policy "$FRONTEND_APP_NAME" "$BACKEND_APP_NAME" --protocol tcp --port 8080
-cf add-network-policy "$FRONTEND_APP_NAME" "$PRODUCT_UPDATES_APP_NAME" \
-  -s "$PRODUCT_UPDATES_SPACE" --protocol tcp --port 8080
+
+cf target -s "$PRODUCT_UPDATES_SPACE"
+cf add-network-policy "$FRONTEND_APP_NAME" "$PRODUCT_UPDATES_APP_NAME" --protocol tcp --port 8080
+cf target -s "$CF_SPACE"
 
 if [[ "$CF_SPACE" == "tanf-prod" ]]; then
   cf add-network-policy "$BACKEND_APP_NAME" clamav-rest --protocol tcp --port 9000
