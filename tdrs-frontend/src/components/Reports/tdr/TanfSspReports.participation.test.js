@@ -19,6 +19,7 @@ import {
 } from '../../../test-utils/programParticipation'
 import { deferred, stageScopedFile } from '../../../test-utils/reportScopes'
 import { get, post } from '../../../fetch-instance'
+import * as fileUploadUtils from '../../FileUpload/utils'
 
 jest.mock('../../../fetch-instance')
 const mockLogger = { alert: jest.fn() }
@@ -550,6 +551,141 @@ describe('participation-driven TDR integration', () => {
       true
     )
   })
+
+  it.each(['tanf', 'ssp-moe'])(
+    'waits for file reading and header validation before enabling %s submission',
+    async (type) => {
+      const originalReader = global.FileReader
+      const readers = []
+      const encoding = deferred()
+      const encode = jest
+        .spyOn(fileUploadUtils, 'tryGetUTF8EncodedFile')
+        .mockReturnValue(encoding.promise)
+      const validate = jest
+        .spyOn(fileUploadUtils, 'validateHeader')
+        .mockResolvedValue({ isValid: true })
+      global.FileReader = jest.fn(() => {
+        const reader = {
+          readAsArrayBuffer: jest.fn(),
+          result: new ArrayBuffer(8),
+        }
+        readers.push(reader)
+        return reader
+      })
+      try {
+        const { store } = setup({
+          url: `/?stt=Alabama&type=${type}&fy=2024&q=Q1`,
+        })
+        const input = screen.getByLabelText(
+          type === 'tanf'
+            ? 'Section 1 - TANF - Active Case Data'
+            : 'Section 2 - SSP-MOE - Closed Case Data'
+        )
+        const file = new File(['HEADER'], 'waiting.txt', { type: 'text/plain' })
+        const button = screen.getByRole('button', { name: 'Submit Data Files' })
+        fireEvent.change(input, { target: { files: [file] } })
+        expect(button).toHaveAttribute('data-has-uploaded-files', 'true')
+        expect(
+          store
+            .getState()
+            .reports.submittedFiles.some((slot) => slot.isValidating)
+        ).toBe(true)
+        expect(button).toBeDisabled()
+        expect(input).toBeEnabled()
+        expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled()
+        fireEvent.click(button)
+        expect(post).not.toHaveBeenCalled()
+        expect(
+          screen.queryByText(/error that must be resolved/)
+        ).not.toBeInTheDocument()
+        await act(async () => readers[0].onload())
+        expect(encode).toHaveBeenCalledTimes(1)
+        expect(button).toBeDisabled()
+        await act(async () =>
+          encoding.resolve({ encodedFile: file, header: 'HEADER' })
+        )
+        expect(validate).toHaveBeenCalledWith(
+          'HEADER',
+          '2024',
+          'Q1',
+          type === 'tanf' ? 'TAN' : 'SSP'
+        )
+        expect(button).toBeEnabled()
+        const staged = store
+          .getState()
+          .reports.submittedFiles.find((slot) => slot.uuid)
+        post.mockResolvedValue({
+          ok: true,
+          data: row(99, staged.section, type === 'tanf' ? 'TAN' : 'SSP', {
+            slug: staged.uuid,
+          }),
+        })
+        fireEvent.click(button)
+        await screen.findByText(/Successfully uploaded section/)
+        expect(post).toHaveBeenCalledTimes(1)
+        expect(post.mock.calls[0][1].get('ssp')).toBe(
+          String(type === 'ssp-moe')
+        )
+      } finally {
+        global.FileReader = originalReader
+        encode.mockRestore()
+        validate.mockRestore()
+      }
+    }
+  )
+
+  it.each(['extension', 'read'])(
+    'ends the validation wait after a file %s error without allowing submission',
+    async (failure) => {
+      const originalReader = global.FileReader
+      const readers = []
+      global.FileReader = jest.fn(() => {
+        const reader = {
+          readAsArrayBuffer: jest.fn(),
+          abort: jest.fn(),
+          result: new ArrayBuffer(8),
+        }
+        readers.push(reader)
+        return reader
+      })
+      try {
+        setup()
+        fireEvent.change(
+          screen.getByLabelText('Section 1 - TANF - Active Case Data'),
+          {
+            target: {
+              files: [
+                new File(
+                  ['invalid'],
+                  failure === 'extension' ? 'invalid.pdf' : 'invalid.txt'
+                ),
+              ],
+            },
+          }
+        )
+        const button = screen.getByRole('button', { name: 'Submit Data Files' })
+        expect(button).toBeDisabled()
+        await act(async () =>
+          failure === 'extension' ? readers[0].onload() : readers[0].onerror()
+        )
+        expect(button).toBeEnabled()
+        expect(
+          screen.getByText(
+            failure === 'extension'
+              ? /Invalid extension/
+              : /Problem parsing input file/
+          )
+        ).toBeInTheDocument()
+        fireEvent.click(button)
+        expect(
+          screen.getByText(/There is 1 error that must be resolved/)
+        ).toBeInTheDocument()
+        expect(post).not.toHaveBeenCalled()
+      } finally {
+        global.FileReader = originalReader
+      }
+    }
+  )
 
   it('blocks an old FileReader after metadata removes its assigned section', async () => {
     const originalReader = global.FileReader

@@ -86,6 +86,8 @@ const SectionFileUploadForm = ({
       }),
   })
 
+  const isValidating = uploadedFiles.some((file) => file.isValidating)
+
   return (
     <>
       <form onSubmit={onSubmit}>
@@ -109,7 +111,9 @@ const SectionFileUploadForm = ({
             <Button
               className="card:margin-y-1"
               type="submit"
-              disabled={isSubmitting || !uploadScope || !sections.length}
+              disabled={
+                isSubmitting || isValidating || !uploadScope || !sections.length
+              }
               data-has-uploaded-files={uploadedFiles.length > 0}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Data Files'}
