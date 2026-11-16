@@ -24,6 +24,16 @@ Contains workflows, jobs, and commands for deploying the application on Cloud go
 
 Application deployments use a fan-out/fan-in workflow. Infrastructure and database configuration complete first, then the Django backend, Python Celery worker, and Go parser worker deploy as independent jobs. The frontend deploys independently after infrastructure. A final verification job waits for all application jobs before environment-level tests run.
 
+The standalone admin app uses the separate `admin-deployment` workflow. Add the
+`Deploy admin-raft` GitHub PR label to trigger it for Raft dev (`test`). GitHub
+only calls the CircleCI API; CircleCI runs `secrets-check`, `test-admin`, and then
+`deploy-admin-application`, using the existing `CF_USERNAME_DEV`,
+`CF_PASSWORD_DEV`, and `CF_ORG` variables. The admin deployment is serialized per
+target environment and does not run the full application deployment workflow.
+Admin checks also run in the full build-and-test workflows.
+See [admin deployment instructions](../tdp-admin/README.md#deploy-with-circleci)
+for prerequisites and rollback.
+
 #### owasp
 Contains workflows, jobs, and commands for running OWASP scans on the application in during the pipeline against Cloud.gov environments.
 

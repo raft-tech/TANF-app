@@ -138,7 +138,7 @@ Mostly for use in our CircleCI pipelines, this script deploys the Django backend
 
 ## deploy-admin.sh
 
-Deploy the standalone Next.js admin app from a workstation or GitHub Actions:
+Deploy the standalone Next.js admin app from a workstation or CircleCI:
 
 ```bash
 ADMIN_ROUTE_HOSTNAME=tdp-admin-test bash scripts/deploy-admin.sh rolling \
@@ -149,7 +149,8 @@ The script validates the current Cloud.gov target and shared Django settings,
 packages source without local secrets or dependencies, deploys with the Node.js
 buildpack, configures private backend access and same-origin auth routing, and
 checks health. See the [admin deployment guide](../tdp-admin/README.md#cloudgov-deployment)
-for first-time configuration, GitHub environment secrets, and rollback steps.
+for first-time configuration, CircleCI credentials, the GitHub PR label trigger,
+and rollback steps.
 
 ## deploy-frontend.sh
 

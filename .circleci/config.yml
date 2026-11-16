@@ -34,6 +34,16 @@ parameters:
   run_dev_deployment:
     type: boolean
     default: false
+  run_admin_deployment:
+    type: boolean
+    default: false
+  admin_target_env:
+    type: enum
+    enum: [test, a11y, qasp]
+    default: test
+  admin_revision:
+    type: string
+    default: ''
   run_nightly_owasp_scan:
     type: boolean
     default: false

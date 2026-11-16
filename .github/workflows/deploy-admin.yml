@@ -1,137 +1,29 @@
-name: Test and deploy admin
+name: Deploy admin with CircleCI
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
-    paths:
-      - 'tdp-admin/**'
-      - 'scripts/*admin*'
-      - 'scripts/tests/test_admin_deployment.py'
-      - '.github/workflows/deploy-admin.yml'
-  push:
-    branches: [develop]
-    paths:
-      - 'tdp-admin/**'
-      - 'scripts/*admin*'
-      - 'scripts/tests/test_admin_deployment.py'
-      - '.github/workflows/deploy-admin.yml'
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: Admin deployment environment
-        required: true
-        type: choice
-        default: admin-raft
-        options:
-          - admin-raft
-          - admin-a11y
-          - admin-qasp
-          - admin-develop
-          - admin-staging
-          - admin-production
-      strategy:
-        description: Deployment strategy
-        required: true
-        type: choice
-        default: rolling
-        options: [rolling, initial]
+    types: [labeled]
 
 permissions:
   contents: read
 
 jobs:
-  test:
-    name: Admin checks
-    if: github.event.action != 'labeled' || github.event.label.name == 'Deploy admin-raft'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    defaults:
-      run:
-        working-directory: tdp-admin
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Install dependencies
-        run: npx --yes @yarnpkg/cli-dist@4.6.0 install --immutable
-      - name: Lint
-        run: npx --yes @yarnpkg/cli-dist@4.6.0 lint
-      - name: Unit tests
-        run: npx --yes @yarnpkg/cli-dist@4.6.0 test
-      - name: Production build
-        run: npx --yes @yarnpkg/cli-dist@4.6.0 build
-      - name: Type check
-        run: npx --yes @yarnpkg/cli-dist@4.6.0 tsc --noEmit
-      - name: Production runtime smoke checks
-        working-directory: .
-        run: node scripts/smoke-admin.mjs
-      - name: Check deployment scripts
-        working-directory: .
-        run: |
-          shellcheck scripts/deploy-admin.sh scripts/prepare-admin-deployment.sh
-          python3 -m unittest discover -s scripts/tests -p 'test_admin_deployment.py'
-
-  deploy:
-    name: Deploy admin to Cloud.gov
+  trigger-admin-deployment:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' &&
-       github.event.action == 'labeled' &&
-       github.event.label.name == 'Deploy admin-raft' &&
-       github.event.pull_request.head.repo.full_name == github.repository)
-    needs: test
+      github.event.label.name == 'Deploy admin-raft' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    environment:
-      name: ${{ inputs.environment || 'admin-raft' }}
-    concurrency:
-      group: deploy-${{ inputs.environment || 'admin-raft' }}
-      cancel-in-progress: false
-    env:
-      CF_ORG: ${{ vars.CF_ORG }}
-      CF_SPACE: ${{ vars.CF_SPACE }}
-      ADMIN_APP_NAME: ${{ vars.ADMIN_APP_NAME }}
-      BACKEND_APP_NAME: ${{ vars.BACKEND_APP_NAME }}
-      ADMIN_ROUTE_DOMAIN: ${{ vars.ADMIN_ROUTE_DOMAIN }}
-      ADMIN_ROUTE_HOSTNAME: ${{ vars.ADMIN_ROUTE_HOSTNAME }}
-      DEPLOY_STRATEGY: ${{ inputs.strategy || 'rolling' }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Trigger CircleCI admin deployment
+        uses: promiseofcake/circleci-trigger-action@v1
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - name: Validate environment configuration
-        run: |
-          for name in CF_ORG CF_SPACE ADMIN_APP_NAME BACKEND_APP_NAME ADMIN_ROUTE_DOMAIN; do
-            if [[ -z "${!name}" ]]; then
-              echo "Missing GitHub environment variable: $name" >&2
-              exit 1
-            fi
-          done
-      - name: Install Cloud Foundry CLI
-        run: sudo bash scripts/cf-check.sh
-      - name: Log in to Cloud.gov
-        env:
-          CF_USERNAME: ${{ secrets.CF_USERNAME }}
-          CF_PASSWORD: ${{ secrets.CF_PASSWORD }}
-        run: |
-          : "${CF_USERNAME:?Missing CF_USERNAME environment secret}"
-          : "${CF_PASSWORD:?Missing CF_PASSWORD environment secret}"
-          cf api https://api.fr.cloud.gov
-          cf auth
-          cf target -o "$CF_ORG" -s "$CF_SPACE"
-      - name: Deploy and verify admin
-        env:
-          ADMIN_API_PROXY_TOKEN: ${{ secrets.ADMIN_API_PROXY_TOKEN }}
-        run: |
-          : "${ADMIN_API_PROXY_TOKEN:?Missing ADMIN_API_PROXY_TOKEN environment secret}"
-          bash scripts/deploy-admin.sh "$DEPLOY_STRATEGY" "$ADMIN_APP_NAME" \
-            "$BACKEND_APP_NAME" "$CF_ORG" "$CF_SPACE" "$ADMIN_ROUTE_DOMAIN"
-      - name: Log out of Cloud.gov
-        if: always()
-        run: |
-          if command -v cf >/dev/null; then
-            cf logout
-          fi
+          user-token: ${{ secrets.CIRCLE_CI_V2_TOKEN }}
+          project-slug: ${{ github.repository }}
+          branch: ${{ github.head_ref }}
+          payload: |
+            {
+              "run_admin_deployment": true,
+              "admin_target_env": "test",
+              "admin_revision": "${{ github.event.pull_request.head.sha }}",
+              "triggered": true
+            }

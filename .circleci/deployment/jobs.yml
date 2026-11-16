@@ -1,3 +1,25 @@
+  deploy-admin-application:
+    executor: docker-executor
+    working_directory: ~/tdp-deploy
+    environment:
+      ADMIN_TARGET_ENV: << pipeline.parameters.admin_target_env >>
+    steps:
+      - init-cloud-dot-gov
+      - run:
+          name: Deploy and verify admin
+          command: |
+            ADMIN_ROUTE_HOSTNAME="tdp-admin-$ADMIN_TARGET_ENV" \
+              bash scripts/deploy-admin.sh rolling \
+                "tdp-admin-$ADMIN_TARGET_ENV" "tdp-backend-$ADMIN_TARGET_ENV" \
+                "$CF_ORG" tanf-dev app.cloud.gov
+      - run:
+          name: Log out of Cloud.gov
+          when: always
+          command: |
+            if command -v cf >/dev/null; then
+              cf logout
+            fi
+
   apply-database-config:
     parameters:
       backend-appname:

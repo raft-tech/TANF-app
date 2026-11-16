@@ -230,10 +230,11 @@ request approval workflows remain future work.
 
 ## Cloud.gov deployment
 
-The admin console deploys independently using
-[`deploy-admin.yml`](../.github/workflows/deploy-admin.yml) and
+The admin console deploys independently through CircleCI's `admin-deployment`
+workflow. The GitHub [label trigger](../.github/workflows/deploy-admin.yml)
+starts that pipeline; CircleCI runs the checks and
 [`deploy-admin.sh`](../scripts/deploy-admin.sh). The same script runs from a
-developer workstation or GitHub Actions. It supports `initial` and `rolling`
+developer workstation or CircleCI. It supports `initial` and `rolling`
 deployments; rolling deployments require capacity for an extra instance.
 
 The source package is built on Cloud.gov with the platform's `nodejs_buildpack`
@@ -255,12 +256,13 @@ Before the first deployment, configure the existing Django/Keycloak environment:
    Raft dev uses the `test` app suffix and
    `tdp-admin-test.app.cloud.gov` in `hhs-acf-ofa / tanf-dev`.
 2. Set Django's `ADMIN_FRONTEND_BASE_URL` to that HTTPS origin and configure a
-   strong `ADMIN_API_PROXY_TOKEN`. Store the same token in the GitHub environment.
+   strong `ADMIN_API_PROXY_TOKEN`. The deployment script reuses Django's token;
+   an optional CircleCI `ADMIN_API_PROXY_TOKEN` must match it.
    Keep `ADMIN_SESSION_COOKIE_NAME=admin_sessionid`. Restart Django after changing
    settings. Persist the origin in the backend CI configuration too, since
    `deploy-backend.sh` unsets settings absent from its environment.
-   The deployment script reads the existing backend token for local
-   runs and rejects mismatches before changing either app.
+   The deployment script reads the existing backend token and rejects
+   mismatches before changing either app.
 3. Ensure Django allows the admin hostname in `ALLOWED_HOSTS` and trusts the
    origin for CORS, CSRF, and OIDC redirects. Development already allows
    `*.tanfdata.acf.hhs.gov` and `tdp-admin-test.app.cloud.gov`;
@@ -325,55 +327,58 @@ with a test admin account, open `/dashboard` and `/users`, and log out. Verify a
 anonymous request cannot read admin data. These checks require the deployed
 Django and Keycloak configuration; unit tests alone do not verify SSO.
 
-### Deploy with GitHub Actions
+### Deploy with CircleCI
 
-Create the selected GitHub environment (for example, `admin-raft`) with:
+The CircleCI project uses its existing dev deployment variables:
 
-| Kind | Name | Raft example / purpose |
-| --- | --- | --- |
-| Variable | `CF_ORG` | `hhs-acf-ofa` |
-| Variable | `CF_SPACE` | `tanf-dev` |
-| Variable | `ADMIN_APP_NAME` | `tdp-admin-test` |
-| Variable | `BACKEND_APP_NAME` | `tdp-backend-test` |
-| Variable | `ADMIN_ROUTE_DOMAIN` | `app.cloud.gov` |
-| Variable | `ADMIN_ROUTE_HOSTNAME` | `tdp-admin-test` |
-| Secret | `CF_USERNAME` | Cloud.gov deploy service-account username |
-| Secret | `CF_PASSWORD` | Cloud.gov deploy service-account password |
-| Secret | `ADMIN_API_PROXY_TOKEN` | Must match Django's configured token |
+| Variable | Purpose |
+| --- | --- |
+| `CF_ORG` | `hhs-acf-ofa` |
+| `CF_USERNAME_DEV` | Cloud.gov dev deploy service-account username |
+| `CF_PASSWORD_DEV` | Cloud.gov dev deploy service-account password |
+| `ADMIN_API_PROXY_TOKEN` | Optional; defaults to the backend's configured token |
 
-Limit the service account to the target space and configure environment reviewers
-and branch restrictions for staging/production. PRs and relevant pushes to
-`develop` run admin checks without deployment credentials. Lint, unit tests,
-production build, type checking, runtime smoke checks, and deployment script
-checks must pass before deployment. Deployments to the same environment are
-serialized.
+GitHub only needs the existing `CIRCLE_CI_V2_TOKEN` secret. A GitHub environment
+and Cloud.gov secrets in GitHub are not required.
 
-For Raft dev, add the PR label **Deploy admin-raft**. This deploys the PR's exact
-head commit to the `admin-raft` GitHub environment using a rolling deployment.
-The PR branch must belong to the same repository; fork PRs only run checks.
-Adding the label is the deployment trigger. Later pushes run checks; remove and
-reapply the label to deploy the updated commit. Configure the environment above
-before applying the label. The existing `Deploy with CircleCI-*` labels do not
-deploy the admin app.
+For Raft dev, add the PR label **Deploy admin-raft**. The GitHub action starts a
+CircleCI pipeline with `run_admin_deployment=true`, `admin_target_env=test`,
+`admin_revision=<PR head SHA>`, and `triggered=true`. The `admin-deployment`
+workflow runs `secrets-check` and `test-admin` before `deploy-admin-application`.
+Admin checks include lint, unit tests, production build, type checking, runtime
+smoke checks, and deployment/CI regression tests. They also run in the existing
+full build-and-test workflows.
+
+CircleCI checks that its pipeline revision matches the requested PR commit. If
+the branch moves before the pipeline starts, deployment fails before Cloud.gov
+login; reapply the label to request the new commit. The PR branch must belong to
+the same repository. Later pushes run normal PR checks; remove and reapply the
+label when ready to deploy again.
+
+The Raft label deploys `tdp-admin-test` against `tdp-backend-test` in `tanf-dev`,
+using `tdp-admin-test.app.cloud.gov`. Deployments use the shared script's rolling
+strategy, which also handles first-time app creation. Deploy jobs are serialized
+per target through CircleCI's serial group. This workflow does not redeploy the
+backend, frontend, workers, database, or infrastructure.
+
+The pipeline also accepts `admin_target_env=a11y` or `qasp` when explicitly
+triggered through CircleCI; configure the corresponding backend/Keycloak origin
+first. The existing `Deploy with CircleCI-*` labels retain their full application
+deployment behavior and do not start this independent admin workflow.
 
 Create the label once in each repository that runs this workflow:
 
 ```bash
 gh label create 'Deploy admin-raft' --color 0052CC \
-  --description 'Deploy the PR admin app to Raft dev with GitHub Actions'
+  --description 'Trigger the CircleCI admin deployment to Raft dev'
 ```
-
-For manual deployment, select **Actions → Test and deploy admin → Run workflow**,
-then choose the ref, environment, and strategy. The workflow must be on the
-default branch before GitHub exposes Run workflow; the PR label trigger can be
-used while this workflow is still being reviewed.
 
 ### Monitor and roll back
 
 Use `cf app tdp-admin-test` and `cf logs tdp-admin-test --recent` for instance
 health and logs. Monitor `/api/health` for app liveness and `/api/backend-health`
-for Django connectivity. For rollback, run the workflow against a known-good
-branch/tag with the same environment and `rolling`, or check out the known-good
+for Django connectivity. For rollback, trigger the CircleCI admin pipeline on a
+known-good branch with the same `admin_target_env`, or check out the known-good
 commit locally and run the deployment script. This rebuilds only the admin app.
 Runtime configuration is checked against Django on every deployment; coordinate
 any incompatible API or auth changes before rolling back.
