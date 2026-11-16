@@ -54,6 +54,7 @@ COPY --chmod=755 normalize-login-gov-key.sh /opt/keycloak/normalize-login-gov-ke
 COPY nginx.conf /opt/keycloak/nginx.conf.template
 COPY --chmod=755 entrypoint.sh /opt/keycloak/entrypoint.sh
 COPY --chmod=755 check-readiness.sh /opt/keycloak/check-readiness.sh
+COPY --chmod=755 check-runtime-security.sh /opt/keycloak/check-runtime-security.sh
 
 # Health and metrics are served on the management port (9000) by default.
 ENV KC_DB=postgres

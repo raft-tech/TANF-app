@@ -20,7 +20,7 @@ BUILDX_BUILDER=colima task keycloak:build IMAGE_REF=tdp-keycloak:dhi-candidate-a
 task keycloak:scan IMAGE_REF=tdp-keycloak:baseline PLATFORM=linux/amd64
 task keycloak:scan IMAGE_REF=tdp-keycloak:dhi-candidate-amd64 PLATFORM=linux/amd64
 task keycloak:scan IMAGE_REF=tdp-keycloak:dhi-candidate-arm64 PLATFORM=linux/arm64
-task backend-pytest PYTEST_ARGS="keycloak/test/test_readiness.py tdpservice/users/test/test_keycloak_realm_config.py -v"
+task backend-pytest PYTEST_ARGS="keycloak/test/ tdpservice/users/test/test_keycloak_realm_config.py -v"
 task backend-lint
 task keycloak:lint
 bash -n tdrs-backend/keycloak/test/build.sh
@@ -95,12 +95,48 @@ scanning and retains image metadata/archive, full OS/Java vulnerability JSON,
 CycloneDX SBOM, scanner/database timestamps, and logs under ignored `results/scan-*`.
 Database downloads are shared in ignored `results/trivy-cache`; each completed
 scan retains its own database metadata. Avoid concurrent scans against that cache.
-**Any Critical or High finding fails the gate.** No unfixed/VEX/ignore filtering
-is used. Review coverage in each report: unmanaged baseline binaries may not be
+**Any unresolved Critical or High finding fails the gate.** Raw Trivy scans use
+no unfixed/VEX/ignore filtering. An explicit local applicability policy assesses
+only three exact CVE/package/version pairs against the same immutable image's
+configuration and exported filesystem. It retains separate `assessment.json`
+and image/package-scoped `vex.json`, never rewrites `scan.json`, and prints every
+not-affected decision. See [TRIAGE.md](TRIAGE.md) for the evidence, enforced
+privilege boundary, and unsupported deployment overrides. The VEX is TDP-authored
+and unsigned, not a vendor attestation. Missing or changed evidence fails closed.
+Review coverage in each report: unmanaged baseline binaries may not be
 identified by package scanning, so baseline counts are not exhaustive.
 No release acceptance can be inferred from DHI branding or a successful build.
 
-## Latest remediation snapshot — 2026-11-03
+## Latest applicability-enforced candidates — 2026-11-03
+
+Both local builds/offline checks pass; both security gates pass with **0 unresolved
+Critical / 0 unresolved High**. Raw counts remain **0 Critical / 3 High / 44 Medium
+/ 26 Low**. The three High findings receive enforced, image-specific not-affected
+determinations, not blanket ignores or claims of patched OS libraries.
+
+| Platform | Local immutable image ID (SHA256) | Build evidence | Scan/assessment/VEX evidence |
+| --- | --- | --- | --- |
+| arm64 | `a362901556f53a68342c5c83ed9892d1d6281108673cbf8bb668a3000063dc90` | `results/build-20261103T192302Z-52015` | `results/scan-20261103T192653Z-53767` |
+| amd64 (emulated) | `55ae717438b52e8935d5241fef62c5830ea8bcedae689f53fd1b082d582942f1` | `results/build-20261103T192302Z-52014` | `results/scan-20261103T192701Z-53983` |
+
+Final targeted tests: **66 passed, 0 failed/skipped, 2 existing Django warnings
+in 3.40s**, including 36 new assessment/guard cases. Backend Flake8 and Keycloak
+shell lint/syntax checks pass. Logs: `results/applicability-complete-pytest.log`,
+`results/applicability-complete-lint.log` (shell), and
+`results/applicability-clean-lint.log` (Flake8 rerun after a test indentation fix).
+The policy source snapshot and its
+SHA256 are retained with each scan and match the executed assessment.
+
+The new runtime guard accepts the default user and rejects root on both images
+in offline script checks (`results/guard-root-{arm64,amd64}.log`). It is sourced
+into the entrypoint to inspect the original shell, not a child whose exec might
+drop the parent's capabilities, and runs before any file operations. Full
+startup/import/authentication/Cloud.gov acceptance remains unverified. No smoke
+tests, deployment, publication, or Phase 3 work was performed; stop for manual
+review. Do not override the guard or introduce privileged executables/mounts and
+continue relying on these applicability decisions.
+
+## Historical remediation snapshot — 2026-11-03, before applicability enforcement
 
 **Still blocked:** both final security candidates build and pass offline checks,
 but each raw scan reports **0 Critical / 3 High / 44 Medium / 26 Low**. All

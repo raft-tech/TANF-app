@@ -16,6 +16,7 @@ User -> Frontend -> Django /v2/ -> Keycloak -> Identity Provider (Login.gov / AM
 | `Dockerfile` | Digest-pinned DHI Keycloak 26.8.1 / Java 21 with DHI nginx and a pinned-source config-cli security rebuild |
 | `config-cli-security.diff` | Reviewed dependency overrides for config-cli 6.5.1-tdp-security.1 |
 | `check-readiness.sh` | Bounded loopback HTTP readiness check, without curl |
+| `check-runtime-security.sh` | Rejects root/mismatched UIDs and usable Linux capabilities before startup file operations |
 | `collect-runtime.sh` | Copies only required utilities/missing shared libraries and retains package metadata for scanning |
 | `realm-configs/` | Full realm exports for `dev-local`, `staging`, and `prod` |
 | `select-realm-config.sh` | Copies the correct checked-in standard and admin realm exports into Keycloak's import path based on `DEPLOY_ENV` |

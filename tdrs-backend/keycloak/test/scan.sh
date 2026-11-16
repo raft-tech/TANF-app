@@ -16,6 +16,10 @@ printf 'UTC: %s\nImage: %s\nID: %s\nPlatform: %s\nScanner: %s\n' \
 docker image inspect "$image_id" > "$results/image.json"
 # An archive avoids granting the scanner access to the Docker daemon/socket.
 docker image save "$image_id" --output "$results/image.tar"
+container="kc-security-filesystem-$$"
+trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
+docker create --platform "$PLATFORM" --name "$container" "$image_id" >/dev/null
+docker export "$container" --output "$results/rootfs.tar"
 scan() {
     docker run --rm --mount "type=bind,src=$PWD/$results,dst=/evidence" \
         --mount "type=bind,src=$PWD/$cache,dst=/cache" "$scanner" "$@"
@@ -28,25 +32,7 @@ scan image --cache-dir /cache --input /evidence/image.tar \
 scan --cache-dir /cache --version
 cp "$cache/db/metadata.json" "$results/vulnerability-db.json"
 cp "$cache/java-db/metadata.json" "$results/java-db.json"
-# Evaluate the full unsuppressed report; no ignore file, VEX, or unfixed filter.
-python3 - "$results/scan.json" <<'PY'
-import collections
-import json
-import sys
-
-with open(sys.argv[1]) as source:
-    report = json.load(source)
-results = report.get("Results", [])
-if not any(result.get("Class") == "os-pkgs" for result in results):
-    sys.exit("BLOCKED: OS package analysis is missing")
-if not any(result.get("Type") == "jar" for result in results):
-    sys.exit("BLOCKED: Java dependency analysis is missing")
-counts = collections.Counter(
-    finding["Severity"]
-    for result in results
-    for finding in result.get("Vulnerabilities", [])
-)
-print("Findings:", dict(counts))
-if counts["CRITICAL"] or counts["HIGH"]:
-    sys.exit("BLOCKED: Critical/High findings require remediation; see retained scan.json")
-PY
+cp tdrs-backend/keycloak/test/assess_scan.py "$results/assess_scan.py"
+# Raw Trivy findings remain untouched. Applicability is evaluated against the
+# same immutable image's filesystem/configuration, with exact package scopes.
+python3 tdrs-backend/keycloak/test/assess_scan.py "$results"

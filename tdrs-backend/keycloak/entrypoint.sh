@@ -1,6 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
+# Inspect this shell, not a child whose exec could drop the parent's capabilities.
+source /opt/keycloak/check-runtime-security.sh
+require_runtime_security
+
 # entrypoint.sh -- Starts Keycloak on a fixed internal port, then nginx on the
 # externally-facing port. If either process dies, the container exits.
 #

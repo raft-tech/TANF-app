@@ -1,6 +1,97 @@
 # Phase 2 vulnerability triage — 2026-11-03
 
-## Security remediation follow-up
+## Final applicability resolution — 2026-11-03
+
+Following the user's direction to fix the remaining findings or determine that
+they do not affect this image, `keycloak:scan` now separates the untouched raw
+scan from image-specific applicability decisions. Both new candidates pass with
+**zero unresolved Critical/High**. Raw Trivy still reports **3 High**; none of
+the three OS libraries has been patched or silently removed from inventory.
+
+| Advisory | Resolution | Required evidence / enforcement |
+| --- | --- | --- |
+| CVE-2026-16742 / libsystemd0 | Not affected: vulnerable component absent | No systemd-homed/homework anywhere in the exported filesystem and no installed systemd-homed package. The flaw is in that service, not libsystemd0. |
+| CVE-2025-69720 / libtinfo6 | Not affected: vulnerable component absent | No infocmp anywhere in the exported filesystem and no installed ncurses-bin package. The flaw is in progs/infocmp.c, not libtinfo6. |
+| CVE-2026-54369 / libacl1 | Not affected in the supported startup path: enforced mitigation | A new entrypoint guard runs before all file operations. It rejects UID 0, differing real/effective/saved/filesystem UIDs, and nonzero inherited/permitted/effective/ambient capability sets. The complete shipped filesystem must have no set-ID files or file-capability attributes, and no setfacl/getfacl utilities or acl package. |
+
+ACL's package remains vulnerable in general. The escalation needs a caller with
+authority the attacker does not have. **Non-root alone is not proof:** a daemon
+can still own sensitive files. The additional call-path boundary is that the
+identified startup ACL consumer, coreutils `cp` in `select-realm-config.sh`, copies
+operator-selected checked-in realm exports into the private import directory;
+it accepts no HTTP/request-selected filename. The policy verifies that script
+and the normalization script byte-for-byte, and requires `/opt`, Keycloak, realm,
+data, and import directories to be root/default-user-owned and not group/world
+writable. Trusted path selection plus the enforced privilege restrictions and
+absence of escalation helpers support the scoped determination, not UID alone.
+`check-runtime-security.sh` reads the calling shell's kernel `/proc/self/status`
+using Bash builtins. The normal capability **bounding** set is not a usable
+capability set and need not be zero; escalation helpers that could acquire its
+capabilities are forbidden by the filesystem assessment. Normal startup and its
+children run without root credentials or usable capabilities.
+
+Scope: the shipped image with its default entrypoint/user and trusted realm
+configuration. Overriding the entrypoint, using privileged/root execution,
+injecting privileged executables via mounts, or modifying the image invalidates
+this assessment. Root/capability execution through the entrypoint fails early.
+Overrides of `REALM_CONFIGS_DIR`, `OUTPUT_REALM_PATH`, `OUTPUT_REALM_DIR`, or
+`OUTPUT_ADMIN_REALM_PATH` into shared/untrusted locations are outside this
+assessment and require a separate path/permissions review.
+This is not a claim that arbitrary deployment overrides or compromised host
+administrators are safe. Cloud.gov/runtime compatibility still needs manual
+verification; a deployment that requires root/capabilities will now fail closed.
+
+`test/assess_scan.py` recognizes only the three exact CVE/package/version pairs
+above, on Debian 13 amd64/arm64 with UID/GID 65532, the expected entrypoint, and
+byte-identical reviewed startup/guard scripts. It compares the scan to installed
+package metadata and checks the exported filesystem without extracting it.
+Missing analysis, changed versions, new findings, a changed guard/entrypoint,
+privileged helpers, or reintroduced vulnerable tools invalidate the decision and
+leave the finding blocking. This is not a global ignore list or an import of
+Docker's weak `no-dsa` explanations. The local OpenVEX statements are authored
+by TDP, unsigned, scoped to the immutable image ID and exact package PURL, and
+retained for manual review rather than represented as vendor-signed statements.
+
+Evidence for both images is linked from [README.md](README.md): raw `scan.json`,
+SBOM, image archive/configuration, exported `rootfs.tar`, `assessment.json` with
+every raw finding and disposition, and image-scoped `vex.json`. Raw High counts
+remain visible in console output. No unresolved High/Critical vulnerability is
+waived. New guard offline checks accepted the default user and rejected root
+with exit 1 on both architectures, without starting any application service.
+
+### Resolution map for all original blocking advisories
+
+These are the changes actually present in the final candidates, not the
+historical recommendations below. Updated versions come from retained raw scan
+package inventories; all nineteen non-applicability-rule advisories are absent
+from the final raw Critical/High findings.
+
+| Advisory | What resolved the original report |
+| --- | --- |
+| CVE-2026-84939 | DHI Keycloak 26.8.1 supplies FreeMarker 2.3.35. |
+| CVE-2026-12064 | Removed curl/libcurl and replaced the sole loopback readiness request with the tested Bash helper. |
+| CVE-2026-8458 | Same curl/libcurl removal. |
+| CVE-2026-54369 | Enforced privilege restrictions and scoped applicability assessment above; not a libacl patch. |
+| CVE-2026-103111 | DHI base upgrade supplies PCRE2 10.46. |
+| CVE-2026-84782 | DHI base upgrade supplies OpenSSL 3.5.7; curl-specific extra dependencies removed. |
+| CVE-2026-16742 | Vulnerable systemd-homed/homework absent; scoped assessment above. |
+| CVE-2025-69720 | Vulnerable infocmp absent; scoped assessment above. |
+| CVE-2026-68494 | Source-built config-cli uses Jackson Core 2.21.8. |
+| CVE-2026-89407 | DHI server/admin CLI uses Jackson Core 2.21.7; config-cli uses 2.21.8. |
+| CVE-2026-89425 | Same server/admin CLI and config-cli Jackson Core updates. |
+| CVE-2026-54512 | Config-cli rebuild supplies Jackson Databind 2.21.8. |
+| CVE-2026-54513 | Same config-cli Jackson Databind update. |
+| CVE-2026-68497 | Same config-cli Jackson Databind update. |
+| CVE-2026-91776 | Server/admin CLI supplies Databind 2.22.3; config-cli supplies 2.21.8. |
+| CVE-2026-91777 | Same server/admin CLI and config-cli Databind updates. |
+| CVE-2026-102554 | DHI server supplies Guava 33.7.2-jre. |
+| CVE-2025-59250 | DHI server supplies SQL Server JDBC 13.4.0.jre11; no scanner exception needed for the earlier 13.2.1 suffix-identification false positive. |
+| CVE-2026-40973 | Config-cli rebuild uses Spring Boot 3.5.16. |
+| CVE-2026-41850 | Config-cli rebuild uses Spring Framework/Expression 6.2.19. |
+| CVE-2026-29062 | Config-cli rebuild uses Jackson 3 Core 3.2.4. |
+| GHSA-2m67-wjpj-xhg9 | Same Jackson 3 Core 3.2.4 update. |
+
+## Historical security remediation follow-up (before applicability enforcement)
 
 The subsequently authorized Keycloak 26.8.1 / config-cli security rebuild removed
 all original Java Critical/High reports and curl's findings. The first ARM64 raw
