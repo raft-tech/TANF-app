@@ -255,7 +255,9 @@ describe('AdminFeedbackReports', () => {
       fireEvent.click(fraRadio)
 
       // Confirm modal should appear; clicking OK discards changes and resets form
-      const okButton = screen.getByRole('button', { name: 'OK' })
+      const okButton = screen.getByRole('button', {
+        name: 'Discard and continue',
+      })
       fireEvent.click(okButton)
 
       // Date should be cleared
@@ -627,10 +629,11 @@ describe('AdminFeedbackReports', () => {
       )
     })
 
-    it('clears notes when changing an already selected file', async () => {
+    it('preserves notes and clears extraction date when changing an already selected file', async () => {
       renderComponent()
       await selectFiscalYear('2025')
       await selectFile('FY2025.zip')
+      setDateInputValue('2025-02-28')
 
       const notesTextarea = screen.getByLabelText('Notes (optional)')
       fireEvent.change(notesTextarea, {
@@ -639,7 +642,8 @@ describe('AdminFeedbackReports', () => {
 
       await selectFile('FY2025_02282025.zip')
 
-      expect(notesTextarea.value).toBe('')
+      expect(notesTextarea.value).toBe('Notes for first file')
+      expect(document.getElementById('date-extracted-on').value).toBe('')
     })
 
     it('blocks upload and displays error when notes contain HTML tags or JavaScript', async () => {
@@ -1310,7 +1314,9 @@ describe('AdminFeedbackReports', () => {
       fireEvent.change(fiscalYearSelect, { target: { value: '2024' } })
 
       // Confirm modal should appear; clicking OK discards changes and resets form
-      const okButton = screen.getByRole('button', { name: 'OK' })
+      const okButton = screen.getByRole('button', {
+        name: 'Discard and continue',
+      })
       fireEvent.click(okButton)
 
       await waitFor(() => {
@@ -1473,20 +1479,20 @@ describe('AdminFeedbackReports', () => {
 
       // Modal should be visible
       expect(
-        screen.getByText('Report Type or Fiscal Year changed')
+        screen.getByText('Discard unsaved changes?')
       ).toBeInTheDocument()
       expect(
         screen.getByText(
-          "Your uploaded files have not been submitted. Clicking 'OK' will discard all changes, reset the form and remove any uploaded files."
+          "Changing the report type or fiscal year will discard your unsaved notes and remove any files you've added. Do you want to continue?"
         )
       ).toBeInTheDocument()
 
       // Cancel button should keep original report type and notes
-      const cancelButton = screen.getByRole('button', { name: 'Cancel' })
+      const cancelButton = screen.getByRole('button', { name: 'Keep editing' })
       fireEvent.click(cancelButton)
 
       expect(
-        screen.queryByText('Report Type or Fiscal Year changed')
+        screen.queryByText('Discard unsaved note changes?')
       ).not.toBeInTheDocument()
       expect(screen.getByLabelText('TANF/SSP')).toBeChecked()
       expect(notesTextarea.value).toBe('FRA calculations exclude Tribal cases')
@@ -1504,11 +1510,13 @@ describe('AdminFeedbackReports', () => {
       const fraRadio = screen.getByLabelText('FRA')
       fireEvent.click(fraRadio)
 
-      const okButton = screen.getByRole('button', { name: 'OK' })
+      const okButton = screen.getByRole('button', {
+        name: 'Discard and continue',
+      })
       fireEvent.click(okButton)
 
       expect(
-        screen.queryByText('Report Type or Fiscal Year changed')
+        screen.queryByText('Discard unsaved changes?')
       ).not.toBeInTheDocument()
       expect(screen.getByLabelText('FRA')).toBeChecked()
       const updatedNotes = screen.getByLabelText('Notes (optional)')
@@ -1526,11 +1534,11 @@ describe('AdminFeedbackReports', () => {
       fireEvent.change(fiscalYearSelect, { target: { value: '2024' } })
 
       expect(
-        screen.getByText('Report Type or Fiscal Year changed')
+        screen.getByText('Discard unsaved note changes?')
       ).toBeInTheDocument()
 
       // Click cancel
-      const cancelButton = screen.getByRole('button', { name: 'Cancel' })
+      const cancelButton = screen.getByRole('button', { name: 'Keep editing' })
       fireEvent.click(cancelButton)
 
       expect(fiscalYearSelect.value).toBe('2025')
@@ -1546,10 +1554,12 @@ describe('AdminFeedbackReports', () => {
       fireEvent.change(fiscalYearSelect, { target: { value: '2024' } })
 
       expect(
-        screen.getByText('Report Type or Fiscal Year changed')
+        screen.getByText('Discard unsaved changes?')
       ).toBeInTheDocument()
 
-      const okButton = screen.getByRole('button', { name: 'OK' })
+      const okButton = screen.getByRole('button', {
+        name: 'Discard and continue',
+      })
       fireEvent.click(okButton)
 
       await waitFor(() => {
@@ -1593,7 +1603,9 @@ describe('AdminFeedbackReports', () => {
       const fraRadio = screen.getByLabelText('FRA')
       fireEvent.click(fraRadio)
 
-      const okButton = screen.getByRole('button', { name: 'OK' })
+      const okButton = screen.getByRole('button', {
+        name: 'Discard and continue',
+      })
       fireEvent.click(okButton)
 
       expect(fileInput.value).toBe('')
@@ -1616,7 +1628,7 @@ describe('AdminFeedbackReports', () => {
       fireEvent.click(fraRadio)
 
       expect(
-        screen.queryByText('Report Type or Fiscal Year changed')
+        screen.queryByText('Discard unsaved changes?')
       ).not.toBeInTheDocument()
       expect(fraRadio).toBeChecked()
 
@@ -1625,7 +1637,7 @@ describe('AdminFeedbackReports', () => {
       fireEvent.change(fiscalYearSelect, { target: { value: '2024' } })
 
       expect(
-        screen.queryByText('Report Type or Fiscal Year changed')
+        screen.queryByText('Discard unsaved changes?')
       ).not.toBeInTheDocument()
       expect(fiscalYearSelect.value).toBe('2024')
     })
@@ -1641,7 +1653,7 @@ describe('AdminFeedbackReports', () => {
       fireEvent.click(fraRadio)
 
       expect(
-        screen.getByText('Report Type or Fiscal Year changed')
+        screen.getByText('Discard unsaved changes?')
       ).toBeInTheDocument()
 
       // Press Escape
@@ -1649,7 +1661,7 @@ describe('AdminFeedbackReports', () => {
       fireEvent.keyDown(modal, { key: 'Escape' })
 
       expect(
-        screen.queryByText('Report Type or Fiscal Year changed')
+        screen.queryByText('Discard unsaved changes?')
       ).not.toBeInTheDocument()
       expect(screen.getByLabelText('TANF/SSP')).toBeChecked()
       expect(notesTextarea.value).toBe('Escape note')
@@ -1666,10 +1678,12 @@ describe('AdminFeedbackReports', () => {
       fireEvent.change(fiscalYearSelect, { target: { value: '' } })
 
       expect(
-        screen.getByText('Report Type or Fiscal Year changed')
+        screen.getByText('Discard unsaved changes?')
       ).toBeInTheDocument()
 
-      fireEvent.click(screen.getByRole('button', { name: 'OK' }))
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Discard and continue' })
+      )
 
       expect(fiscalYearSelect.value).toBe('')
       expect(screen.queryByText('Feedback Reports ZIP')).not.toBeInTheDocument()
@@ -1689,7 +1703,7 @@ describe('AdminFeedbackReports', () => {
       })
 
       expect(
-        screen.queryByText('Report Type or Fiscal Year changed')
+        screen.queryByText('Discard unsaved changes?')
       ).not.toBeInTheDocument()
     })
   })
