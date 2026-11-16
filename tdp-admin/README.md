@@ -343,12 +343,30 @@ Create the selected GitHub environment (for example, `admin-raft`) with:
 
 Limit the service account to the target space and configure environment reviewers
 and branch restrictions for staging/production. PRs and relevant pushes to
-`develop` run admin checks without deployment credentials. To deploy, select
-**Actions → Test and deploy admin → Run workflow**, choose the ref, environment,
-and strategy. Lint, unit tests, production build, type checking, runtime smoke
-checks, and deployment script checks must pass first. Deployments to the same
-environment are serialized.
-The workflow must be on the default branch before GitHub exposes Run workflow.
+`develop` run admin checks without deployment credentials. Lint, unit tests,
+production build, type checking, runtime smoke checks, and deployment script
+checks must pass before deployment. Deployments to the same environment are
+serialized.
+
+For Raft dev, add the PR label **Deploy admin-raft**. This deploys the PR's exact
+head commit to the `admin-raft` GitHub environment using a rolling deployment.
+The PR branch must belong to the same repository; fork PRs only run checks.
+Adding the label is the deployment trigger. Later pushes run checks; remove and
+reapply the label to deploy the updated commit. Configure the environment above
+before applying the label. The existing `Deploy with CircleCI-*` labels do not
+deploy the admin app.
+
+Create the label once in each repository that runs this workflow:
+
+```bash
+gh label create 'Deploy admin-raft' --color 0052CC \
+  --description 'Deploy the PR admin app to Raft dev with GitHub Actions'
+```
+
+For manual deployment, select **Actions → Test and deploy admin → Run workflow**,
+then choose the ref, environment, and strategy. The workflow must be on the
+default branch before GitHub exposes Run workflow; the PR label trigger can be
+used while this workflow is still being reviewed.
 
 ### Monitor and roll back
 

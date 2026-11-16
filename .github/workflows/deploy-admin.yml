@@ -2,6 +2,7 @@ name: Test and deploy admin
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - 'tdp-admin/**'
       - 'scripts/*admin*'
@@ -41,6 +42,7 @@ permissions:
 jobs:
   test:
     name: Admin checks
+    if: github.event.action != 'labeled' || github.event.label.name == 'Deploy admin-raft'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -48,6 +50,8 @@ jobs:
         working-directory: tdp-admin
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -72,14 +76,19 @@ jobs:
 
   deploy:
     name: Deploy admin to Cloud.gov
-    if: github.event_name == 'workflow_dispatch'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       github.event.action == 'labeled' &&
+       github.event.label.name == 'Deploy admin-raft' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
-      name: ${{ inputs.environment }}
+      name: ${{ inputs.environment || 'admin-raft' }}
     concurrency:
-      group: deploy-${{ inputs.environment }}
+      group: deploy-${{ inputs.environment || 'admin-raft' }}
       cancel-in-progress: false
     env:
       CF_ORG: ${{ vars.CF_ORG }}
@@ -88,9 +97,11 @@ jobs:
       BACKEND_APP_NAME: ${{ vars.BACKEND_APP_NAME }}
       ADMIN_ROUTE_DOMAIN: ${{ vars.ADMIN_ROUTE_DOMAIN }}
       ADMIN_ROUTE_HOSTNAME: ${{ vars.ADMIN_ROUTE_HOSTNAME }}
-      DEPLOY_STRATEGY: ${{ inputs.strategy }}
+      DEPLOY_STRATEGY: ${{ inputs.strategy || 'rolling' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Validate environment configuration
         run: |
           for name in CF_ORG CF_SPACE ADMIN_APP_NAME BACKEND_APP_NAME ADMIN_ROUTE_DOMAIN; do
