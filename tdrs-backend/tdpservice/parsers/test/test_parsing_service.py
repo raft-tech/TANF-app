@@ -1087,19 +1087,8 @@ class TestShadowPostParseAndEngineFallback:
         assert resolved_token == existing_uuid
         assert isinstance(resolved_token, uuid.UUID)
 
-        # 3. String representation of a UUID converted to UUID instance
-        _, resolved_str_token = _resolve_parse_owner(
-            datafile, parse_token=str(existing_uuid)
-        )
-        assert resolved_str_token == existing_uuid
-        assert isinstance(resolved_str_token, uuid.UUID)
-
-        # 4. Invalid non-UUID token raises ValueError via _coerce_parse_token
-        with pytest.raises(ValueError):
-            _resolve_parse_owner(datafile, parse_token="invalid-token")
-
     def test_parse_token_remains_uuid_in_parsing_service(self, data_analyst):
-        """Verify ParsingService retains UUID type on parse_token throughout lifecycle."""
+        """Verify ParsingService normalizes and retains UUID type on parse_token."""
         datafile = DataFileFactory(
             stt=data_analyst.stt,
             version=33,
@@ -1107,6 +1096,15 @@ class TestShadowPostParseAndEngineFallback:
         )
         claimed_token = claim_parse(datafile)
         assert isinstance(claimed_token, uuid.UUID)
+
+        # String representation of UUID normalized to UUID instance at service boundary
+        service_from_str = ParsingService(data_file=datafile, parse_token=str(claimed_token))
+        assert service_from_str.parse_token == claimed_token
+        assert isinstance(service_from_str.parse_token, uuid.UUID)
+
+        # Invalid non-UUID token raises ValueError via _coerce_parse_token at service boundary
+        with pytest.raises(ValueError):
+            ParsingService(data_file=datafile, parse_token="invalid-token")
 
         service = ParsingService(data_file=datafile, parse_token=claimed_token)
         assert service.parse_token == claimed_token

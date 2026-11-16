@@ -210,11 +210,7 @@ class ParsingService:
             and getattr(data_file, "current_parse_token", None)
         ):
             current_token = data_file.current_parse_token
-            is_match = (
-                current_token == self.parse_token
-                or str(current_token) == str(self.parse_token)
-            )
-            if not is_match:
+            if current_token != self.parse_token:
                 raise StaleParseOwnership(
                     f"DataFile {data_file.id} has an active parse token {data_file.current_parse_token} "
                     f"which does not match provided token {self.parse_token}."

@@ -496,18 +496,17 @@ def _owns_parse(locked, parse_token: UUID) -> bool:
 
 def begin_parse(
     data_file,
-    parse_token,
+    parse_token: UUID,
     reparse_file_meta=None,
     actor: str = "python_parser",
     event_id: UUID | str | None = None,
 ):
     """Start the current claimed parse and transition to PARSE_STARTED."""
-    normalized_token = _coerce_parse_token(parse_token)
     with transaction.atomic():
         locked = _locked_data_file(data_file)
-        if not _owns_parse(locked, normalized_token):
+        if not _owns_parse(locked, parse_token):
             raise StaleParseOwnership(
-                f"Parser token {normalized_token} no longer owns DataFile {data_file.id}."
+                f"Parser token {parse_token} no longer owns DataFile {data_file.id}."
             )
         transition = _apply_transition_locked(
             locked,
@@ -516,7 +515,7 @@ def begin_parse(
             source=actor,
             event_id=event_id,
             reparse_meta_id=(reparse_file_meta.reparse_meta_id if reparse_file_meta else None),
-            log_fields={"parse_token": str(normalized_token)},
+            log_fields={"parse_token": str(parse_token)},
         )
         if reparse_file_meta is not None:
             if reparse_file_meta.data_file_id != locked.id:
@@ -531,14 +530,14 @@ def begin_parse(
 
     data_file.state = transition.next_state
     data_file.state_changed_at = locked.state_changed_at
-    data_file.current_parse_token = normalized_token
+    data_file.current_parse_token = parse_token
     _emit_transition_log(
         transition,
         data_file.id,
         None,
-        {"parse_token": str(normalized_token), "actor": actor},
+        {"parse_token": str(parse_token), "actor": actor},
     )
-    return normalized_token
+    return parse_token
 
 
 def _clear_parse_token_locked(locked) -> None:
@@ -567,16 +566,15 @@ def _finish_reparse_locked(reparse_file_meta, success: bool, **metrics) -> bool:
 
 def record_parse_dispatch_failure(
     data_file,
-    parse_token,
+    parse_token: UUID,
     reparse_file_meta=None,
     note: str = "parser task dispatch failed",
     event_id: UUID | str | None = None,
 ) -> bool:
     """Release a claimed parse when the broker rejects dispatch."""
-    normalized_token = _coerce_parse_token(parse_token)
     with transaction.atomic():
         locked = _locked_data_file(data_file)
-        if not _owns_parse(locked, normalized_token):
+        if not _owns_parse(locked, parse_token):
             return False
         transition = None
         if locked.state != SubmissionState.PARSE_FAILED:
@@ -587,7 +585,7 @@ def record_parse_dispatch_failure(
                 source="parser_queue",
                 event_id=event_id,
                 reparse_meta_id=(reparse_file_meta.reparse_meta_id if reparse_file_meta else None),
-                log_fields={"parse_token": str(normalized_token)},
+                log_fields={"parse_token": str(parse_token)},
             )
         _clear_parse_token_locked(locked)
         _finish_reparse_locked(reparse_file_meta, success=False)
@@ -616,7 +614,7 @@ def _target_state_for_summary_status(summary_status) -> SubmissionState:
 
 def record_parse_outcome(
     data_file,
-    parse_token,
+    parse_token: UUID,
     summary_status,
     *,
     actor: str = "python_parser",
@@ -627,13 +625,12 @@ def record_parse_outcome(
 ):
     """Record a successful technical parse and release parser ownership."""
     target_state = _target_state_for_summary_status(summary_status)
-    normalized_token = _coerce_parse_token(parse_token)
-    fields = {"parse_token": str(normalized_token), **(log_fields or {})}
+    fields = {"parse_token": str(parse_token), **(log_fields or {})}
     with transaction.atomic():
         locked = _locked_data_file(data_file)
-        if not _owns_parse(locked, normalized_token):
+        if not _owns_parse(locked, parse_token):
             raise StaleParseOwnership(
-                f"Parser token {normalized_token} no longer owns DataFile {data_file.id}."
+                f"Parser token {parse_token} no longer owns DataFile {data_file.id}."
             )
         transition = _apply_transition_locked(
             locked,
@@ -654,7 +651,7 @@ def record_parse_outcome(
     data_file.state = transition.next_state
     data_file.state_changed_at = locked.state_changed_at
     data_file.current_parse_token = None
-    fields = {"parse_token": str(normalized_token), "actor": actor}
+    fields = {"parse_token": str(parse_token), "actor": actor}
     fields.update(log_fields or {})
     _emit_transition_log(transition, data_file.id, None, fields)
     return data_file
@@ -662,7 +659,7 @@ def record_parse_outcome(
 
 def record_parse_failure(
     data_file,
-    parse_token,
+    parse_token: UUID,
     note: str,
     *,
     reparse_file_meta=None,
@@ -673,11 +670,10 @@ def record_parse_failure(
     task_name: str | None = None,
 ) -> bool:
     """Record a technical failure only for the current parser owner."""
-    normalized_token = _coerce_parse_token(parse_token)
-    fields = {"parse_token": str(normalized_token), **(log_fields or {})}
+    fields = {"parse_token": str(parse_token), **(log_fields or {})}
     with transaction.atomic():
         locked = _locked_data_file(data_file)
-        if not _owns_parse(locked, normalized_token):
+        if not _owns_parse(locked, parse_token):
             return False
         transition = _apply_transition_locked(
             locked,
@@ -695,7 +691,7 @@ def record_parse_failure(
     data_file.state = transition.next_state
     data_file.state_changed_at = locked.state_changed_at
     data_file.current_parse_token = None
-    fields = {"parse_token": str(normalized_token), "actor": actor}
+    fields = {"parse_token": str(parse_token), "actor": actor}
     fields.update(log_fields or {})
     _emit_transition_log(transition, data_file.id, None, fields, level="warning")
     return True
@@ -770,36 +766,34 @@ def mark_stuck(
 
 
 @contextmanager
-def parse_write_scope(data_file_id: int, parse_token) -> Iterator[None]:
+def parse_write_scope(data_file_id: int, parse_token: UUID) -> Iterator[None]:
     """Fence one production parser write with the DataFile ownership lock."""
     from tdpservice.data_files.models import DataFile
 
-    normalized_token = _coerce_parse_token(parse_token)
     with transaction.atomic():
         data_file = DataFile.objects.select_for_update().get(pk=data_file_id)
         if (
-            data_file.current_parse_token != normalized_token
+            data_file.current_parse_token != parse_token
             or data_file.state != SubmissionState.PARSE_STARTED
         ):
             raise StaleParseOwnership(
-                f"Parser token {normalized_token} may no longer write "
+                f"Parser token {parse_token} may no longer write "
                 f"DataFile {data_file_id}."
             )
         yield
 
 
-def assert_parse_owner(data_file_id: int, parse_token) -> None:
+def assert_parse_owner(data_file_id: int, parse_token: UUID) -> None:
     """Fail fast when a parser task has lost ownership between writes."""
     from tdpservice.data_files.models import DataFile
 
-    normalized_token = _coerce_parse_token(parse_token)
     if not DataFile.objects.filter(
         pk=data_file_id,
-        current_parse_token=normalized_token,
+        current_parse_token=parse_token,
         state=SubmissionState.PARSE_STARTED,
     ).exists():
         raise StaleParseOwnership(
-            f"Parser token {normalized_token} no longer owns DataFile {data_file_id}."
+            f"Parser token {parse_token} no longer owns DataFile {data_file_id}."
         )
 
 

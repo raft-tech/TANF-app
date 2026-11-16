@@ -12,7 +12,6 @@ from tdpservice.data_files.models import (
     ShadowDataFile,
 )
 from tdpservice.data_files.submission_lifecycle import (
-    _coerce_parse_token,
     claim_parse,
     parse_write_scope,
 )
@@ -113,6 +112,4 @@ def _resolve_parse_owner(data_file, reparse_id=None, parse_token=None):
         )
     if parse_token is None:
         parse_token = claim_parse(data_file, reparse_file_meta=file_meta)
-    else:
-        parse_token = _coerce_parse_token(parse_token)
     return file_meta, parse_token
