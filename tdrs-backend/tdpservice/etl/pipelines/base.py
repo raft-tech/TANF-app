@@ -60,7 +60,7 @@ class PipelineNode(ABC):
 
         return run_pipeline_node.si(pipeline_run_id, self.key)
 
-    def run(self, pipeline_run) -> dict:
+    def run(self, pipeline_run, *, is_completion: bool = False) -> dict:
         """Execute this node and persist its ETLNodeRun state."""
         from tdpservice.etl.models import ETLNodeRun
 
@@ -84,7 +84,12 @@ class PipelineNode(ABC):
             self._mark_succeeded(node_run, result)
             return {"node_key": self.key, "status": node_run.status}
         except Exception as exc:
-            self._mark_failed(pipeline_run, node_run, exc)
+            self._mark_failed(
+                pipeline_run,
+                node_run,
+                exc,
+                update_pipeline_run=not is_completion,
+            )
             raise
 
     def _start_node_run(self, pipeline_run, node_run) -> dict | None:
@@ -169,6 +174,8 @@ class PipelineNode(ABC):
         pipeline_run,
         node_run,
         exc: Exception,
+        *,
+        update_pipeline_run: bool = True,
     ) -> None:
         """Persist node and pipeline failure state."""
         from tdpservice.etl.models import ETLPipelineRun
@@ -179,12 +186,28 @@ class PipelineNode(ABC):
             node_run.error_message = str(exc)
             node_run.save(update_fields=["status", "finished_at", "error_message"])
 
-        pipeline_run.status = ETLPipelineRun.Status.FAILED
-        pipeline_run.finished_at = timezone.now()
-        pipeline_run.error_message = f"{self.key}: {exc}"
-        pipeline_run.save(
-            update_fields=["status", "finished_at", "error_message", "updated_at"]
-        )
+        if not update_pipeline_run:
+            return
+
+        with transaction.atomic():
+            locked_run = ETLPipelineRun.objects.select_for_update().get(
+                id=pipeline_run.id
+            )
+            if locked_run.status not in (
+                ETLPipelineRun.Status.PENDING,
+                ETLPipelineRun.Status.RUNNING,
+            ):
+                return
+
+            locked_run.status = ETLPipelineRun.Status.FAILED
+            locked_run.finished_at = timezone.now()
+            locked_run.error_message = f"{self.key}: {exc}"
+            locked_run.save(
+                update_fields=["status", "finished_at", "error_message", "updated_at"]
+            )
+            pipeline_run.status = locked_run.status
+            pipeline_run.finished_at = locked_run.finished_at
+            pipeline_run.error_message = locked_run.error_message
 
 
 class PipelineNodeRegistry:
@@ -223,6 +246,7 @@ class PipelineDefinition(ABC):
     description: str
     allowed_parameters: dict
     nodes: PipelineNodeRegistry
+    completion_keys: tuple[str, ...] = ()
     schedule: dict | None = None
     required_groups: tuple[str, ...] = ("OFA System Admin",)
 
@@ -249,6 +273,18 @@ class PipelineDefinition(ABC):
             raise PipelineValidationError("Pipeline node keys cannot be empty.")
         if len(node_keys) != len(set(node_keys)):
             raise PipelineValidationError("Pipeline node keys must be unique.")
+
+        if len(self.completion_keys) != len(set(self.completion_keys)):
+            raise PipelineValidationError("Pipeline completion keys must be unique.")
+
+        node_key_set = set(node_keys)
+        missing_completion_keys = [
+            key for key in self.completion_keys if key not in node_key_set
+        ]
+        if missing_completion_keys:
+            raise PipelineValidationError(
+                f"Unknown completion node keys: {sorted(missing_completion_keys)}"
+            )
 
     def serialize(self) -> dict:
         """Return API-safe pipeline definition metadata."""
