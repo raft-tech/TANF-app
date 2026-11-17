@@ -50,7 +50,6 @@ tdpservice/parsers/
 │   ├── engine.py           # Transient PythonParserEngine
 │   ├── table_family.py     # Table families & model resolution
 │   ├── lifecycle.py        # Submission state transitions, summaries & metrics
-│   ├── dispatch.py         # Celery task dispatch & parser mode routing
 │   └── service.py          # ParsingService domain orchestrator
 └── service.py              # Backward-compatible facade
 ```

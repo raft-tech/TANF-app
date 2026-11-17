@@ -9,7 +9,7 @@ from uuid import UUID
 from django.conf import settings
 from django.db.utils import DatabaseError
 
-from tdpservice.data_files.enums import GoParserMode, SubmissionState
+from tdpservice.data_files.enums import SubmissionState
 from tdpservice.data_files.error_reports import ErrorReportFactory  # noqa: F401
 from tdpservice.data_files.models import (
     DataFile,
@@ -47,12 +47,6 @@ from tdpservice.parsers.models import (
 from tdpservice.parsers.util import DecoderUnknownException, log_parser_exception
 
 from .classes import ParseResult, ParserModelSet  # noqa: F401
-from .dispatch import (  # noqa: F401
-    _evaluate_go_parser_mode,
-    queue_go_parse,
-    queue_parse,
-    resolve_or_reuse_parser_mode,
-)
 from .engine import PythonParserEngine  # noqa: F401
 from .lifecycle import (  # noqa: F401
     _add_unexpected_error,
@@ -117,45 +111,6 @@ class ParsingService:
     def uses_shadow_table(self) -> bool:
         """Return True if this parsing service operates on a shadow table instance."""
         return _uses_shadow_table(self.data_file)
-
-    @staticmethod
-    def evaluate_parser_mode() -> GoParserMode:
-        """Evaluate the current feature flag for an unassigned data file."""
-        return _evaluate_go_parser_mode()
-
-    @staticmethod
-    def resolve_or_reuse_parser_mode(data_file_id: int) -> GoParserMode:
-        """Return one durable parser route for every dispatch of a data file."""
-        return resolve_or_reuse_parser_mode(data_file_id)
-
-    @classmethod
-    def schedule(
-        cls,
-        data_file_id: int,
-        reparse_id: int | None = None,
-        event_id=None,
-    ) -> uuid.UUID:
-        """Route and schedule every parse of a data file using its persisted parser mode."""
-        return queue_parse(data_file_id, reparse_id=reparse_id, event_id=event_id)
-
-    queue_parse = schedule
-
-    @staticmethod
-    def queue_go_parse(
-        data_file_id: int,
-        table_mode: GoParserMode,
-        reparse_id: int | None = None,
-        parse_token=None,
-        event_id=None,
-    ) -> None:
-        """Queue a Go parser task with routing, ownership, and audit context."""
-        return queue_go_parse(
-            data_file_id=data_file_id,
-            table_mode=table_mode,
-            reparse_id=reparse_id,
-            parse_token=parse_token,
-            event_id=event_id,
-        )
 
     @classmethod
     def for_post_parse(
@@ -228,10 +183,6 @@ class ParsingService:
     def parse(self) -> ParseResult:
         """Alias for run()."""
         return self.run()
-
-    def _calculate_total_records(self) -> int:
-        """Calculate total records processed from summary case aggregates."""
-        return _calculate_total_records(self.dfs)
 
     def _get_execution_metadata(
         self,
@@ -839,7 +790,6 @@ __all__ = [
     "_add_unexpected_error",
     "_calculate_total_records",
     "_count_parser_errors",
-    "_evaluate_go_parser_mode",
     "_finalize_parse",
     "_finalize_reparse",
     "_get_execution_metadata",
@@ -864,9 +814,6 @@ __all__ = [
     "finish_reparse",
     "fra_total_errors",
     "logger",
-    "queue_go_parse",
-    "queue_parse",
-    "resolve_or_reuse_parser_mode",
     "send_data_submitted_email",
     "set_error_report",
     "should_send_reparse_notification",

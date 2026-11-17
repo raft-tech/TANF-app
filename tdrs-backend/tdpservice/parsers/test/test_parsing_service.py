@@ -638,8 +638,8 @@ class TestParsingServiceExecution:
         assert result is dummy_parser
         assert dummy_parser.called is True
 
-    def test_parsing_service_scheduling_delegates(self, monkeypatch, data_analyst):
-        """Verify ParsingService.schedule claims parse and routes dispatch."""
+    def test_parser_task_queue_parse_delegates(self, monkeypatch, data_analyst):
+        """Verify parser_task.queue_parse claims parse and routes dispatch."""
         datafile = DataFileFactory(
             stt=data_analyst.stt,
             version=15,
@@ -648,27 +648,30 @@ class TestParsingServiceExecution:
         calls = []
 
         from tdpservice.scheduling import parser_task
+
         monkeypatch.setattr(
             parser_task.parse,
             "delay",
             lambda df_id, **kwargs: calls.append(("python", df_id)),
         )
 
-        token = ParsingService.schedule(data_file_id=datafile.id)
+        token = parser_task.queue_parse(data_file_id=datafile.id)
         assert token is not None
         assert ("python", datafile.id) in calls
 
     def test_resolve_or_reuse_parser_mode(self, data_analyst):
-        """Verify ParsingService.resolve_or_reuse_parser_mode persists and reuses mode."""
+        """Verify parser_task.resolve_or_reuse_parser_mode persists and reuses mode."""
+        from tdpservice.scheduling import parser_task
+
         datafile = DataFileFactory(stt=data_analyst.stt, version=16)
         assert datafile.parser_mode is None
 
-        mode1 = ParsingService.resolve_or_reuse_parser_mode(datafile.id)
+        mode1 = parser_task.resolve_or_reuse_parser_mode(datafile.id)
         datafile.refresh_from_db()
         assert datafile.parser_mode == mode1
 
         # Second resolution returns persisted mode
-        mode2 = ParsingService.resolve_or_reuse_parser_mode(datafile.id)
+        mode2 = parser_task.resolve_or_reuse_parser_mode(datafile.id)
         assert mode2 == mode1
 
 

@@ -11,12 +11,6 @@ from tdpservice.parsers.models import (
 )
 
 from .classes import ParseResult, ParserModelSet
-from .dispatch import (
-    _evaluate_go_parser_mode,
-    queue_go_parse,
-    queue_parse,
-    resolve_or_reuse_parser_mode,
-)
 from .engine import PythonParserEngine
 from .lifecycle import (
     _add_unexpected_error,
@@ -78,7 +72,6 @@ __all__ = [
     "_add_unexpected_error",
     "_calculate_total_records",
     "_count_parser_errors",
-    "_evaluate_go_parser_mode",
     "_finalize_parse",
     "_finalize_reparse",
     "_get_execution_metadata",
@@ -101,9 +94,6 @@ __all__ = [
     "case_aggregates_by_month",
     "fra_total_errors",
     "logger",
-    "queue_go_parse",
-    "queue_parse",
-    "resolve_or_reuse_parser_mode",
     "set_error_report",
     "should_send_reparse_notification",
     "total_errors_by_month",
