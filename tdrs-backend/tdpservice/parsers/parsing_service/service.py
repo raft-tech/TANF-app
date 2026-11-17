@@ -448,18 +448,261 @@ class ParsingService:
             reparse_success,
         )
 
-    def run(self) -> ParseResult:  # noqa: C901
+    def _record_execution_failure(
+        self,
+        data_file: Any,
+        start_time: float,
+        parser_class_name: Optional[str],
+        note: str,
+        add_unexpected_error: bool = False,
+    ) -> tuple[bool, int, int]:
+        """Record execution failure, update metrics, and return (stale_owner, records, errors)."""
+        duration_ms = int((time.monotonic() - start_time) * 1000)
+        execution_meta = self._get_execution_metadata(
+            duration_ms=duration_ms,
+            parser_class=parser_class_name,
+            data_file=data_file,
+        )
+        total_records_processed = execution_meta.get("total_records_processed", 0)
+        stale_owner = not _record_failed_parse(
+            data_file,
+            self.dfs,
+            self.parse_token,
+            note,
+            self.reparse_id,
+            add_unexpected_error=add_unexpected_error,
+            event_id=self.event_id,
+            extra_metadata=execution_meta,
+        )
+        total_errors_generated = execution_meta.get("total_errors_generated", 0)
+        return stale_owner, total_records_processed, total_errors_generated
+
+    def _handle_stale_ownership(
+        self, exc: StaleParseOwnership, data_file: Any
+    ) -> tuple[ParseResult, bool]:
+        """Handle stale ownership when another task or worker took over."""
+        logger.warning(
+            "Ignoring parser work from a stale ownership token.",
+            extra={
+                "data_file_id": self.data_file_id,
+                "parse_token": str(self.parse_token),
+                "reparse_id": self.reparse_id,
+            },
+        )
+        return (
+            ParseResult(
+                success=False,
+                data_file=data_file,
+                summary=self.dfs,
+                status=self.dfs.status if self.dfs else None,
+                error_message=str(exc),
+                total_records_processed=0,
+                total_errors_generated=0,
+            ),
+            True,
+        )
+
+    def _handle_decoder_error(
+        self,
+        exc: DecoderUnknownException,
+        data_file: Any,
+        start_time: float,
+        parser_class_name: Optional[str],
+    ) -> tuple[ParseResult, bool]:
+        """Handle unknown character encoding or decoder failure."""
+        logger.warning(
+            "DecoderUnknownException during parse",
+            extra={
+                "data_file_id": self.data_file_id,
+                "section": _section_name(data_file) if data_file else None,
+                "program_type": _program_code(data_file) if data_file else None,
+                "reparse_id": self.reparse_id,
+            },
+        )
+        stale_owner, records, errors = self._record_execution_failure(
+            data_file=data_file,
+            start_time=start_time,
+            parser_class_name=parser_class_name,
+            note="decoder unknown exception",
+        )
+        return (
+            ParseResult(
+                success=False,
+                data_file=data_file,
+                summary=self.dfs,
+                status=self.dfs.status if self.dfs else None,
+                error_message=str(exc) or "decoder unknown exception",
+                total_records_processed=records,
+                total_errors_generated=errors,
+            ),
+            stale_owner,
+        )
+
+    def _handle_database_error(
+        self,
+        exc: DatabaseError,
+        data_file: Any,
+        start_time: float,
+        parser_class_name: Optional[str],
+    ) -> tuple[ParseResult, bool]:
+        """Handle database errors encountered during parsing or record creation."""
+        log_parser_exception(
+            data_file,
+            f"Encountered Database exception in parsing service: \n{exc}",
+            "error",
+        )
+        logger.error(
+            "DatabaseError during parse",
+            extra={
+                "data_file_id": self.data_file_id,
+                "section": _section_name(data_file) if data_file else None,
+                "program_type": _program_code(data_file) if data_file else None,
+                "reparse_id": self.reparse_id,
+            },
+        )
+        stale_owner, records, errors = self._record_execution_failure(
+            data_file=data_file,
+            start_time=start_time,
+            parser_class_name=parser_class_name,
+            note="database error during parsing",
+        )
+        return (
+            ParseResult(
+                success=False,
+                data_file=data_file,
+                summary=self.dfs,
+                status=self.dfs.status if self.dfs else None,
+                error_message=str(exc) or "database error during parsing",
+                total_records_processed=records,
+                total_errors_generated=errors,
+            ),
+            stale_owner,
+        )
+
+    def _handle_unexpected_error(
+        self,
+        exc: Exception,
+        data_file: Any,
+        start_time: float,
+        parser_class_name: Optional[str],
+    ) -> tuple[ParseResult, bool]:
+        """Handle unexpected errors, distinguishing pre-start failures from runtime exceptions."""
+        error_message = str(exc) or "unexpected error during parsing"
+        is_shadow = _uses_shadow_table(data_file) if data_file else False
+        if (
+            data_file is not None
+            and not is_shadow
+            and self.parse_token
+            and data_file.state in PARSE_QUEUEABLE_STATES
+        ):
+            stale_owner = not record_parse_dispatch_failure(
+                data_file,
+                self.parse_token,
+                self.file_meta,
+                note=f"Parser failed before parse start: {exc}",
+                event_id=self.event_id,
+            )
+            return (
+                ParseResult(
+                    success=False,
+                    data_file=data_file,
+                    summary=self.dfs,
+                    status=self.dfs.status if self.dfs else None,
+                    error_message=error_message,
+                    total_records_processed=0,
+                    total_errors_generated=0,
+                ),
+                stale_owner,
+            )
+
+        if data_file is None or (self.parse_token is None and not is_shadow):
+            logger.exception(
+                "Exception during parse before ownership establishment: %s",
+                exc,
+                extra={"data_file_id": self.data_file_id},
+            )
+            return (
+                ParseResult(
+                    success=False,
+                    data_file=data_file,
+                    summary=self.dfs,
+                    status=None,
+                    error_message=error_message,
+                    total_records_processed=0,
+                    total_errors_generated=0,
+                ),
+                False,
+            )
+
+        log_parser_exception(
+            data_file,
+            (
+                f"Uncaught exception while parsing datafile: {data_file.pk}! Please review the logs to "
+                f"see if manual intervention is required."
+            ),
+            "exception",
+        )
+        logger.exception(
+            "Unexpected exception during parse",
+            extra={
+                "data_file_id": self.data_file_id,
+                "section": _section_name(data_file) if data_file else None,
+                "program_type": _program_code(data_file) if data_file else None,
+                "reparse_id": self.reparse_id,
+            },
+        )
+        stale_owner, records, errors = self._record_execution_failure(
+            data_file=data_file,
+            start_time=start_time,
+            parser_class_name=parser_class_name,
+            note="unexpected error during parsing",
+            add_unexpected_error=True,
+        )
+        return (
+            ParseResult(
+                success=False,
+                data_file=data_file,
+                summary=self.dfs,
+                status=self.dfs.status if self.dfs else None,
+                error_message=error_message,
+                total_records_processed=records,
+                total_errors_generated=errors,
+            ),
+            stale_owner,
+        )
+
+    def _cleanup_run(
+        self,
+        data_file: Any,
+        stale_owner: bool,
+        reparse_success: bool,
+    ) -> None:
+        """Close opened files and finalize reparse metadata if ownership is current."""
+        if (
+            data_file
+            and getattr(data_file, "file", None)
+            and not getattr(data_file.file, "closed", True)
+        ):
+            data_file.file.close()
+
+        if not stale_owner and self.reparse_id is not None:
+            _finalize_reparse(
+                data_file,
+                self.reparse_id,
+                self.file_meta,
+                self.dfs,
+                reparse_success,
+            )
+
+    def run(self) -> ParseResult:
         """Parse a production DataFile and return a ParseResult."""
         self._validate_python_parse_target()
 
         data_file = None
-        reparse_success = True
+        reparse_success = False
         stale_owner = False
-        error_message = None
         parser_class_name = None
         start_time = time.monotonic()
-        total_records_processed = 0
-        total_errors_generated = 0
 
         try:
             data_file = self.data_file
@@ -516,12 +759,6 @@ class ParsingService:
                 parser_class=parser_class_name,
                 data_file=data_file,
             )
-            total_records_processed = execution_meta.get(
-                "total_records_processed", 0
-            )
-            total_errors_generated = execution_meta.get(
-                "total_errors_generated", 0
-            )
 
             _transition_parse_outcome(
                 data_file,
@@ -546,242 +783,41 @@ class ParsingService:
                         },
                     )
 
+            reparse_success = True
             return ParseResult(
                 success=True,
                 data_file=data_file,
                 summary=self.dfs,
                 status=self.dfs.status if self.dfs else None,
                 error_message=None,
-                total_records_processed=total_records_processed,
-                total_errors_generated=total_errors_generated,
+                total_records_processed=execution_meta.get(
+                    "total_records_processed", 0
+                ),
+                total_errors_generated=execution_meta.get(
+                    "total_errors_generated", 0
+                ),
             )
 
         except StaleParseOwnership as exc:
-            stale_owner = True
-            reparse_success = False
-            error_message = str(exc)
-            logger.warning(
-                "Ignoring parser work from a stale ownership token.",
-                extra={
-                    "data_file_id": self.data_file_id,
-                    "parse_token": str(self.parse_token),
-                    "reparse_id": self.reparse_id,
-                },
-            )
-            return ParseResult(
-                success=False,
-                data_file=data_file,
-                summary=self.dfs,
-                status=self.dfs.status if self.dfs else None,
-                error_message=error_message,
-                total_records_processed=0,
-                total_errors_generated=0,
-            )
+            result, stale_owner = self._handle_stale_ownership(exc, data_file)
+            return result
         except DecoderUnknownException as exc:
-            reparse_success = False
-            error_message = str(exc) or "decoder unknown exception"
-            logger.warning(
-                "DecoderUnknownException during parse",
-                extra={
-                    "data_file_id": self.data_file_id,
-                    "section": _section_name(data_file) if data_file else None,
-                    "program_type": _program_code(data_file) if data_file else None,
-                    "reparse_id": self.reparse_id,
-                },
+            result, stale_owner = self._handle_decoder_error(
+                exc, data_file, start_time, parser_class_name
             )
-            duration_ms = int((time.monotonic() - start_time) * 1000)
-            execution_meta = self._get_execution_metadata(
-                duration_ms=duration_ms,
-                parser_class=parser_class_name,
-                data_file=data_file,
+            return result
+        except DatabaseError as exc:
+            result, stale_owner = self._handle_database_error(
+                exc, data_file, start_time, parser_class_name
             )
-            total_records_processed = execution_meta.get(
-                "total_records_processed", 0
+            return result
+        except Exception as exc:
+            result, stale_owner = self._handle_unexpected_error(
+                exc, data_file, start_time, parser_class_name
             )
-            total_errors_generated = execution_meta.get(
-                "total_errors_generated", 0
-            )
-            stale_owner = not _record_failed_parse(
-                data_file,
-                self.dfs,
-                self.parse_token,
-                "decoder unknown exception",
-                self.reparse_id,
-                event_id=self.event_id,
-                extra_metadata=execution_meta,
-            )
-            total_errors_generated = execution_meta.get(
-                "total_errors_generated", 0
-            )
-            return ParseResult(
-                success=False,
-                data_file=data_file,
-                summary=self.dfs,
-                status=self.dfs.status if self.dfs else None,
-                error_message=error_message,
-                total_records_processed=total_records_processed,
-                total_errors_generated=total_errors_generated,
-            )
-        except DatabaseError as e:
-            reparse_success = False
-            error_message = str(e) or "database error during parsing"
-            log_parser_exception(
-                data_file,
-                f"Encountered Database exception in parsing service: \n{e}",
-                "error",
-            )
-            logger.error(
-                "DatabaseError during parse",
-                extra={
-                    "data_file_id": self.data_file_id,
-                    "section": _section_name(data_file) if data_file else None,
-                    "program_type": _program_code(data_file) if data_file else None,
-                    "reparse_id": self.reparse_id,
-                },
-            )
-            duration_ms = int((time.monotonic() - start_time) * 1000)
-            execution_meta = self._get_execution_metadata(
-                duration_ms=duration_ms,
-                parser_class=parser_class_name,
-                data_file=data_file,
-            )
-            total_records_processed = execution_meta.get(
-                "total_records_processed", 0
-            )
-            total_errors_generated = execution_meta.get(
-                "total_errors_generated", 0
-            )
-            stale_owner = not _record_failed_parse(
-                data_file,
-                self.dfs,
-                self.parse_token,
-                "database error during parsing",
-                self.reparse_id,
-                event_id=self.event_id,
-                extra_metadata=execution_meta,
-            )
-            total_errors_generated = execution_meta.get(
-                "total_errors_generated", 0
-            )
-            return ParseResult(
-                success=False,
-                data_file=data_file,
-                summary=self.dfs,
-                status=self.dfs.status if self.dfs else None,
-                error_message=error_message,
-                total_records_processed=total_records_processed,
-                total_errors_generated=total_errors_generated,
-            )
-        except Exception as e:
-            reparse_success = False
-            error_message = str(e) or "unexpected error during parsing"
-            is_shadow = _uses_shadow_table(data_file) if data_file else False
-            if (
-                data_file is not None
-                and not is_shadow
-                and self.parse_token
-                and data_file.state in PARSE_QUEUEABLE_STATES
-            ):
-                stale_owner = not record_parse_dispatch_failure(
-                    data_file,
-                    self.parse_token,
-                    self.file_meta,
-                    note=f"Parser failed before parse start: {e}",
-                    event_id=self.event_id,
-                )
-                return ParseResult(
-                    success=False,
-                    data_file=data_file,
-                    summary=self.dfs,
-                    status=self.dfs.status if self.dfs else None,
-                    error_message=error_message,
-                    total_records_processed=0,
-                    total_errors_generated=0,
-                )
-            if data_file is None or (self.parse_token is None and not is_shadow):
-                # If we failed before resolving data_file or token (e.g. precondition / DoesNotExist)
-                logger.exception(
-                    "Exception during parse before ownership establishment: %s",
-                    e,
-                    extra={"data_file_id": self.data_file_id},
-                )
-                return ParseResult(
-                    success=False,
-                    data_file=data_file,
-                    summary=self.dfs,
-                    status=None,
-                    error_message=error_message,
-                    total_records_processed=0,
-                    total_errors_generated=0,
-                )
-
-            log_parser_exception(
-                data_file,
-                (
-                    f"Uncaught exception while parsing datafile: {data_file.pk}! Please review the logs to "
-                    f"see if manual intervention is required."
-                ),
-                "exception",
-            )
-            logger.exception(
-                "Unexpected exception during parse",
-                extra={
-                    "data_file_id": self.data_file_id,
-                    "section": _section_name(data_file) if data_file else None,
-                    "program_type": _program_code(data_file) if data_file else None,
-                    "reparse_id": self.reparse_id,
-                },
-            )
-            duration_ms = int((time.monotonic() - start_time) * 1000)
-            execution_meta = self._get_execution_metadata(
-                duration_ms=duration_ms,
-                parser_class=parser_class_name,
-                data_file=data_file,
-            )
-            total_records_processed = execution_meta.get(
-                "total_records_processed", 0
-            )
-            total_errors_generated = execution_meta.get(
-                "total_errors_generated", 0
-            )
-            stale_owner = not _record_failed_parse(
-                data_file,
-                self.dfs,
-                self.parse_token,
-                "unexpected error during parsing",
-                self.reparse_id,
-                add_unexpected_error=True,
-                event_id=self.event_id,
-                extra_metadata=execution_meta,
-            )
-            total_errors_generated = execution_meta.get(
-                "total_errors_generated", 0
-            )
-            return ParseResult(
-                success=False,
-                data_file=data_file,
-                summary=self.dfs,
-                status=self.dfs.status if self.dfs else None,
-                error_message=error_message,
-                total_records_processed=total_records_processed,
-                total_errors_generated=total_errors_generated,
-            )
+            return result
         finally:
-            if (
-                data_file
-                and getattr(data_file, "file", None)
-                and not getattr(data_file.file, "closed", True)
-            ):
-                data_file.file.close()
-
-            if not stale_owner and self.reparse_id is not None:
-                _finalize_reparse(
-                    data_file,
-                    self.reparse_id,
-                    self.file_meta,
-                    self.dfs,
-                    reparse_success,
-                )
+            self._cleanup_run(data_file, stale_owner, reparse_success)
 
 
 # Re-exports for mock patches and caller convenience
