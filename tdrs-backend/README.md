@@ -2,6 +2,9 @@
 
 Backend API Service for TDP. Deployed to Cloud.gov at https://tdp-backend.app.cloud.gov/ .
 
+For end user integrations, see [DataFile submissions and downloads](docs/api/data_files.md)
+and [OIDC authentication and access tokens](docs/api/authentication.md).
+
 # Prerequisites
 
 - [Docker](https://docs.docker.com/docker-for-mac/install/)

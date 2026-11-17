@@ -283,10 +283,16 @@ For headless CLI tools (no browser on the host), use the device flow. Standard O
 
 **1. Initiate device authorization**
 
+The `tdp-cli` client enforces `S256` PKCE for this flow. Generate `CODE_VERIFIER`
+and `CODE_CHALLENGE` using [step 2 of the authentication guide](../docs/api/authentication.md#2-request-a-device-code)
+before making this request. Keep the same verifier for the token exchange.
+
 ```bash
 curl -X POST "${KEYCLOAK_BROWSER_URL}/realms/tdp/protocol/openid-connect/auth/device" \
   -d "client_id=tdp-cli" \
-  -d "scope=openid email profile tdp-user-attributes"
+  -d "scope=openid email profile tdp-user-attributes" \
+  --data-urlencode 'code_challenge_method=S256' \
+  --data-urlencode "code_challenge=$CODE_CHALLENGE"
 ```
 
 Response includes `device_code`, `user_code`, `verification_uri_complete`, `interval`, and `expires_in`.
@@ -299,6 +305,7 @@ Response includes `device_code`, `user_code`, `verification_uri_complete`, `inte
 curl -X POST "${KEYCLOAK_BROWSER_URL}/realms/tdp/protocol/openid-connect/token" \
   -d "grant_type=urn:ietf:params:oauth:grant-type:device_code" \
   -d "device_code=<from step 1>" \
+  --data-urlencode "code_verifier=$CODE_VERIFIER" \
   -d "client_id=tdp-cli"
 ```
 
