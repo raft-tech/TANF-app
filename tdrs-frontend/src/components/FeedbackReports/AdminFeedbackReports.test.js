@@ -1478,9 +1478,7 @@ describe('AdminFeedbackReports', () => {
       fireEvent.click(fraRadio)
 
       // Modal should be visible
-      expect(
-        screen.getByText('Discard unsaved changes?')
-      ).toBeInTheDocument()
+      expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument()
       expect(
         screen.getByText(
           "Changing the report type or fiscal year will discard your unsaved notes and remove any files you've added. Do you want to continue?"
@@ -1533,9 +1531,7 @@ describe('AdminFeedbackReports', () => {
       const fiscalYearSelect = screen.getByLabelText('Fiscal Year')
       fireEvent.change(fiscalYearSelect, { target: { value: '2024' } })
 
-      expect(
-        screen.getByText('Discard unsaved changes?')
-      ).toBeInTheDocument()
+      expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument()
 
       // Click cancel
       const cancelButton = screen.getByRole('button', { name: 'Keep editing' })
@@ -1553,9 +1549,7 @@ describe('AdminFeedbackReports', () => {
       const fiscalYearSelect = screen.getByLabelText('Fiscal Year')
       fireEvent.change(fiscalYearSelect, { target: { value: '2024' } })
 
-      expect(
-        screen.getByText('Discard unsaved changes?')
-      ).toBeInTheDocument()
+      expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument()
 
       const okButton = screen.getByRole('button', {
         name: 'Discard and continue',
@@ -1652,9 +1646,7 @@ describe('AdminFeedbackReports', () => {
       const fraRadio = screen.getByLabelText('FRA')
       fireEvent.click(fraRadio)
 
-      expect(
-        screen.getByText('Discard unsaved changes?')
-      ).toBeInTheDocument()
+      expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument()
 
       // Press Escape
       const modal = document.getElementById('modal')
@@ -1677,9 +1669,7 @@ describe('AdminFeedbackReports', () => {
       const fiscalYearSelect = screen.getByLabelText('Fiscal Year')
       fireEvent.change(fiscalYearSelect, { target: { value: '' } })
 
-      expect(
-        screen.getByText('Discard unsaved changes?')
-      ).toBeInTheDocument()
+      expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument()
 
       fireEvent.click(
         screen.getByRole('button', { name: 'Discard and continue' })
