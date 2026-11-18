@@ -19,11 +19,7 @@ Contains workflows, jobs, and commands for building and testing the application.
 #### infrastructure
 Contains workflows, jobs, and commands for setting up the infrastructure on Cloud gov. For all development side builds, this is now triggered by GitHub Actions that serve as a filter so only runs when infrastructure code is changed. See [deploy-infrastructure](../.github/workflows/deploy-infrastructure.yml)
 
-#### deployment
-Contains workflows, jobs, and commands for deploying the application on Cloud gov. Note: merges to develop now automatically trigger a develop deploy using [deploy-develop-on-merge](../.github/workflows/deploy-develop-on-merge.yml) and deploys to dev environments happen when a label is created on the PR using [deploy-on-label](../.github/workflows/deploy-on-label.yml)
-
-Application deployments use a fan-out/fan-in workflow. Infrastructure and database configuration complete first, then the Django backend, Python Celery worker, and Go parser worker deploy as independent jobs. The frontend deploys independently after infrastructure. A final verification job waits for all application jobs before environment-level tests run.
-
+#### admin-deployment
 The standalone admin app uses the separate `admin-deployment` workflow. Add the
 `Deploy admin-raft` GitHub PR label to trigger it for Raft dev (`test`). GitHub
 only calls the CircleCI API; CircleCI runs `secrets-check`, `test-admin`, and then
@@ -33,6 +29,11 @@ target environment and does not run the full application deployment workflow.
 Admin checks also run in the full build-and-test workflows.
 See [admin deployment instructions](../tdp-admin/README.md#deploy-with-circleci)
 for prerequisites and rollback.
+
+#### deployment
+Contains workflows, jobs, and commands for deploying the application on Cloud gov. Note: merges to develop now automatically trigger a develop deploy using [deploy-develop-on-merge](../.github/workflows/deploy-develop-on-merge.yml) and deploys to dev environments happen when a label is created on the PR using [deploy-on-label](../.github/workflows/deploy-on-label.yml)
+
+Application deployments use a fan-out/fan-in workflow. Infrastructure and database configuration complete first, then the Django backend, Python Celery worker, and Go parser worker deploy as independent jobs. The frontend deploys independently after infrastructure. A final verification job waits for all application jobs before environment-level tests run.
 
 #### owasp
 Contains workflows, jobs, and commands for running OWASP scans on the application in during the pipeline against Cloud.gov environments.
