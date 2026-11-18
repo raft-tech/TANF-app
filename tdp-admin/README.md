@@ -41,6 +41,7 @@ The login and health flows use these environment variables:
 - `ADMIN_FRONTEND_ORIGIN`
 - `ADMIN_API_PROXY_TOKEN`
 - `ADMIN_SESSION_COOKIE_NAME` (defaults to `admin_sessionid`)
+- `TDP_HELP_URL` (defaults to `http://localhost:3000/help/`)
 
 Cloud.gov uses the server-only `ADMIN_AUTH_URL` and `ADMIN_AUTH_BROWSER_URL`.
 They take precedence over the legacy `NEXT_PUBLIC_*` settings, which Next.js
@@ -80,6 +81,10 @@ When `ADMIN_BACKEND_URL` is not set, the app derives it from
 production. The `/api/admin/*` proxy rejects mutating requests when the request
 `Origin` does not match this value, and it forwards CSRF only from the
 `X-CSRFToken` request header.
+
+`TDP_HELP_URL` is the environment-specific public help root used by admin links.
+Set it to values such as `https://develop.tanfdata.acf.hhs.gov/help/` or
+`https://tanfdata.acf.hhs.gov/help/`.
 
 The Django backend remains authoritative for session validation and admin
 authorization. Next.js route gating is only a user-experience guard.
