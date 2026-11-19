@@ -53,6 +53,7 @@ vault/
 vault_agent/
 
 # Build artifacts
+keycloak/test/results/
 *.egg-info/
 dist/
 build/

@@ -1,6 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
+# Inspect this shell, not a child whose exec could drop the parent's capabilities.
+source /opt/keycloak/check-runtime-security.sh
+require_runtime_security
+
 # entrypoint.sh -- Starts Keycloak on a fixed internal port, then nginx on the
 # externally-facing port. If either process dies, the container exits.
 #
@@ -35,7 +39,7 @@ KC_PID=$!
 echo "Waiting for Keycloak at http://127.0.0.1:${KEYCLOAK_MANAGEMENT_PORT}/health/ready ..."
 MAX_ATTEMPTS=90
 ATTEMPT=0
-until curl -sf "http://127.0.0.1:${KEYCLOAK_MANAGEMENT_PORT}/health/ready" > /dev/null 2>&1; do
+until /opt/keycloak/check-readiness.sh "$KEYCLOAK_MANAGEMENT_PORT" > /dev/null 2>&1; do
     ATTEMPT=$((ATTEMPT + 1))
     if [ "$ATTEMPT" -ge "$MAX_ATTEMPTS" ]; then
         echo "ERROR: Keycloak did not become ready after ${MAX_ATTEMPTS} attempts"
