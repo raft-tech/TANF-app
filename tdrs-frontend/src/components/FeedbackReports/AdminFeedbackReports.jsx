@@ -422,12 +422,11 @@ function AdminFeedbackReports() {
    * Checks if any unsubmitted form values have been entered
    */
   const hasEnteredFormValues = () => {
-    return Boolean(
-      selectedFile ||
-        (notes && notes.length > 0) ||
-        getDatePickerValue() ||
-        inputRef.current?.files?.length
-    )
+    if (selectedFile) return true
+    if (notes && notes.length > 0) return true
+    if (getDatePickerValue()) return true
+    if (inputRef.current?.files?.length) return true
+    return false
   }
 
   /**
@@ -470,7 +469,9 @@ function AdminFeedbackReports() {
     } else {
       setSelectedYear(pendingChange.value)
       updateSearchParams(
-        pendingChange.value ? { year: pendingChange.value } : { year: undefined }
+        pendingChange.value
+          ? { year: pendingChange.value }
+          : { year: undefined }
       )
     }
 
