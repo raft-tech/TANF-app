@@ -53,6 +53,7 @@ class StatisticalWeightsPipeline(PipelineDefinition):
         "s4": "weights.s4",
     }
     output_key = "statistical_weights"
+    completion_keys = ("notify_weights_run",)
     supported_program_types = tuple(PROGRAM_ADAPTERS)
     allowed_parameters = {
         "fiscal_year": {
@@ -131,7 +132,6 @@ class StatisticalWeightsPipeline(PipelineDefinition):
         run_weights_qa_signature = nodes.run_weights_qa.task(pipeline_run_id)
         finalize = chain(
             nodes.publish_weights.task(pipeline_run_id),
-            nodes.notify_weights_run.task(pipeline_run_id),
             finalize_pipeline_run.si(pipeline_run_id),
         )
         finalize.set(immutable=True)
@@ -184,10 +184,7 @@ class StatisticalWeightsPipeline(PipelineDefinition):
                     ),
                     output_contracts=(self.output_key,),
                 ),
-                NotifyWeightsRunNode(
-                    resources,
-                    input_contracts=(self.output_key,),
-                ),
+                NotifyWeightsRunNode(resources),
             )
         )
 
