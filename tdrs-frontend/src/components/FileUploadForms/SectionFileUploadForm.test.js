@@ -212,6 +212,28 @@ describe('SectionFileUploadForm', () => {
   }
 
   describe('Rendering', () => {
+    it.each([false, true])(
+      'uses the borderless USWDS fieldset while preserving submission disabling: %s',
+      (isSubmitting) => {
+        useFormSubmission.mockReturnValue({
+          isSubmitting,
+          executeSubmission: mockExecuteSubmission,
+        })
+        const { getByText, container } = renderComponent()
+        const fieldset = getByText(
+          isSubmitting ? 'Submitting...' : 'Submit Data Files'
+        ).closest('fieldset')
+
+        expect(fieldset).toHaveClass('usa-fieldset')
+        const inputs = container.querySelectorAll('input[type="file"]')
+        expect(inputs).toHaveLength(4)
+        inputs.forEach((input) => {
+          if (isSubmitting) expect(input).toBeDisabled()
+          else expect(input).toBeEnabled()
+        })
+      }
+    )
+
     it('renders all four section file upload inputs by default', () => {
       const { getByTestId } = renderComponent()
 

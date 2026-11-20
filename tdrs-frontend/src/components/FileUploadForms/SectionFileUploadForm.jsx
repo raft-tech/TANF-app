@@ -91,7 +91,10 @@ const SectionFileUploadForm = ({
   return (
     <>
       <form onSubmit={onSubmit}>
-        <fieldset disabled={isSubmitting || !uploadScope || !sections.length}>
+        <fieldset
+          className="usa-fieldset"
+          disabled={isSubmitting || !uploadScope || !sections.length}
+        >
           {sections.map((section) => (
             <FileUpload
               key={`${uploadScope?.generation}:${section.id}`}
