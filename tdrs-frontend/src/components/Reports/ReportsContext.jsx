@@ -17,13 +17,7 @@ import {
 } from '../../actions/reports'
 import { openFeedbackWidget } from '../../reducers/feedbackWidget'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import {
-  accountCanSelectStt,
-  accountIsRegionalStaff,
-} from '../../selectors/auth'
-import { resolveReportStt } from '../../selectors/stts'
-import { getTdrAssignment } from '../../utils/reportSections'
-import { getUploadAssignmentKey } from '../../utils/reportScopes'
+import { useReportAssignment } from '../../hooks/useReportAssignment'
 import { usePollingTimer } from '../../hooks/usePollingTimer'
 import { getCurrentFiscalYear, quarters } from './utils'
 import {
@@ -154,13 +148,8 @@ const validateUrlParams = (
 
 export const ReportsProvider = ({ isFra = false, children }) => {
   const dispatch = useDispatch()
-  const canSelectStt = useSelector(accountCanSelectStt)
-  const isRegionalStaff = useSelector(accountIsRegionalStaff)
-  const user = useSelector((state) => state.auth.user)
-  const sttState = useSelector((state) => state.stts)
   const uploadScope = useSelector((state) => state.reports.uploadScope)
   const historyScope = useSelector((state) => state.reports.historyScope)
-  const sttList = sttState?.sttList
   const featureFlags = useSelector(selectFeatureFlags)
   const piaFeatureFlag = getFlagOrDefault(
     'program-integrity-audit',
@@ -193,36 +182,19 @@ export const ReportsProvider = ({ isFra = false, children }) => {
     featureFlags
   )
 
-  const sttResolution = useMemo(
-    () =>
-      resolveReportStt({
-        user,
-        canSelectStt,
-        isRegionalStaff,
-        catalog: sttState,
-        selectedName: sttInputValue,
-      }),
-    [user, canSelectStt, isRegionalStaff, sttState, sttInputValue]
-  )
-  const tdrAssignment = useMemo(
-    () =>
-      getTdrAssignment(
-        sttResolution,
-        fileTypeInputValue,
-        piaFeatureFlag.enabled
-      ),
-    [sttResolution, fileTypeInputValue, piaFeatureFlag.enabled]
-  )
+  const {
+    canSelectStt,
+    sttList,
+    sttResolution,
+    tdrAssignment,
+    configuration,
+    assignmentKey,
+  } = useReportAssignment({
+    selectedSttName: sttInputValue,
+    fileType: fileTypeInputValue,
+    piaEnabled: piaFeatureFlag.enabled,
+  })
   const isTdr = !isFra && fileTypeInputValue !== 'program-integrity-audit'
-  const configuration = useMemo(
-    () => ({
-      sttId: sttResolution.stt?.id || null,
-      program: tdrAssignment.program || { id: null, slug: null },
-      sections: tdrAssignment.sections,
-    }),
-    [sttResolution.stt?.id, tdrAssignment.program, tdrAssignment.sections]
-  )
-  const assignmentKey = getUploadAssignmentKey(configuration)
   const uploadScopeReady = isTdr && uploadScope?.key === assignmentKey
   const ownedScopeRef = useRef(null)
   useEffect(() => {
