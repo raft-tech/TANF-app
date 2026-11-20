@@ -172,6 +172,12 @@ class DataFile(FileRecord):
         Q3 = "Q3"
         Q4 = "Q4"
 
+    class UploadSource(models.TextChoices):
+        """Enum for data file upload source."""
+
+        API = "API", "API"
+        FRONTEND = "Frontend", "Frontend"
+
     class Meta:
         """Metadata."""
 
@@ -205,6 +211,12 @@ class DataFile(FileRecord):
         related_name="data_files",
     )
     is_program_audit = models.BooleanField(default=False)
+    upload_source = models.CharField(
+        max_length=16,
+        choices=UploadSource.choices,
+        default=UploadSource.FRONTEND,
+        verbose_name="Upload Source",
+    )
 
     version = models.IntegerField()
     state = models.CharField(
@@ -251,7 +263,17 @@ class DataFile(FileRecord):
     @property
     def program(self):
         """Return the program associated with the canonical section."""
-        return self.section.program
+        return self.section.program if self.section else None
+
+    @property
+    def program_code(self):
+        """Return the code of the program associated with the canonical section."""
+        return self.program.code if self.program else None
+
+    @property
+    def section_name(self):
+        """Return the name of the canonical section."""
+        return self.section.name if self.section else None
 
     @property
     def filename(self):
@@ -449,6 +471,8 @@ ShadowDataFile = create_shadow_model(
     exclude_fields={"current_parse_token", "parser_mode"},
 )
 ShadowDataFile.program = DataFile.program
+ShadowDataFile.program_code = DataFile.program_code
+ShadowDataFile.section_name = DataFile.section_name
 
 
 def create_or_update_shadow_data_file(data_file):
@@ -469,6 +493,7 @@ def create_or_update_shadow_data_file(data_file):
         "stt",
         "file",
         "s3_versioning_id",
+        "upload_source",
     ]
     defaults = {field: getattr(data_file, field) for field in fields}
 

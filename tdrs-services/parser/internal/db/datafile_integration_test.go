@@ -64,7 +64,8 @@ func stateTransitionTestPool(t *testing.T) (*pgxpool.Pool, context.Context) {
 			s3_versioning_id text,
 			is_program_audit boolean NOT NULL, state text NOT NULL,
 			state_changed_at timestamptz NOT NULL DEFAULT NOW(),
-			section_id integer NOT NULL REFERENCES data_files_section
+			section_id integer NOT NULL REFERENCES data_files_section,
+			upload_source text NOT NULL DEFAULT 'Frontend'
 		);
 		CREATE TABLE shadow_data_files_datafile (LIKE data_files_datafile INCLUDING ALL);
 		ALTER TABLE shadow_data_files_datafile
@@ -74,11 +75,11 @@ func stateTransitionTestPool(t *testing.T) (*pgxpool.Pool, context.Context) {
 		INSERT INTO data_files_datafile (
 			id, original_filename, slug, extension, quarter, year, version,
 			stt_id, user_id, created_at, is_program_audit, state,
-			section_id
+			section_id, upload_source
 		) VALUES (
 			42, 'data.txt', 'data-txt', 'txt', 'Q1', 2026, 1,
 			1, '123e4567-e89b-12d3-a456-426614174000', NOW(), false,
-			'parse_started', 1
+			'parse_started', 1, 'API'
 		);
 		INSERT INTO shadow_data_files_datafile
 		SELECT * FROM data_files_datafile;
@@ -115,6 +116,9 @@ func TestDataFileCanonicalSectionRoundTrip(t *testing.T) {
 	if dataFile.SectionID != 1 || dataFile.ProgramType != "TAN" || dataFile.Section != "Active Case Data" {
 		t.Fatalf("production lookup returned program=%q section=%q", dataFile.ProgramType, dataFile.Section)
 	}
+	if dataFile.UploadSource != "API" {
+		t.Fatalf("production upload source = %q, want API", dataFile.UploadSource)
+	}
 
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO data_files_program VALUES (2, 'SSP');
@@ -134,6 +138,9 @@ func TestDataFileCanonicalSectionRoundTrip(t *testing.T) {
 		}
 		if shadowDataFile.SectionID != sectionID {
 			t.Fatalf("shadow section ID = %d, want %d", shadowDataFile.SectionID, sectionID)
+		}
+		if shadowDataFile.UploadSource != dataFile.UploadSource {
+			t.Fatalf("shadow upload source = %q, want %q", shadowDataFile.UploadSource, dataFile.UploadSource)
 		}
 		if sectionID == 2 && (shadowDataFile.ProgramType != "SSP" || shadowDataFile.Section != "Closed Case Data") {
 			t.Fatalf("shadow lookup returned program=%q section=%q", shadowDataFile.ProgramType, shadowDataFile.Section)
