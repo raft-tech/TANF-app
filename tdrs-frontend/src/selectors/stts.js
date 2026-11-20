@@ -87,6 +87,9 @@ export const getAssignedSections = (stt, fileType) => {
   return [...sections.values()]
 }
 
+const findSttByName = (sttList, name) =>
+  sttList.find((stt) => stt.name === name) || null
+
 /** Identity comes from the active control/profile, never reports.stt. */
 export const resolveReportStt = ({
   user,
@@ -102,11 +105,9 @@ export const resolveReportStt = ({
   if (isRegionalStaff) {
     if (!Array.isArray(user.regions)) return { state: 'loading', stt: null }
 
-    const stt = user.regions
-      .flatMap((region) => region.stts || [])
-      .find((stt) => stt.name === selectedName)
+    const regionalStts = user.regions.flatMap((region) => region.stts || [])
 
-    return { state: 'ready', stt: stt || null }
+    return { state: 'ready', stt: findSttByName(regionalStts, selectedName) }
   }
 
   if (canSelectStt) {
@@ -116,7 +117,7 @@ export const resolveReportStt = ({
 
     return {
       state: 'ready',
-      stt: catalog.sttList.find((stt) => stt.name === selectedName) || null,
+      stt: findSttByName(catalog.sttList, selectedName),
     }
   }
 
