@@ -157,10 +157,10 @@ export const ReportsProvider = ({ isFra = false, children }) => {
   const canSelectStt = useSelector(accountCanSelectStt)
   const isRegionalStaff = useSelector(accountIsRegionalStaff)
   const user = useSelector((state) => state.auth.user)
-  const catalog = useSelector((state) => state.stts)
+  const sttState = useSelector((state) => state.stts)
   const uploadScope = useSelector((state) => state.reports.uploadScope)
   const historyScope = useSelector((state) => state.reports.historyScope)
-  const sttList = useSelector((state) => state?.stts?.sttList)
+  const sttList = sttState?.sttList
   const featureFlags = useSelector(selectFeatureFlags)
   const piaFeatureFlag = getFlagOrDefault(
     'program-integrity-audit',
@@ -199,10 +199,10 @@ export const ReportsProvider = ({ isFra = false, children }) => {
         user,
         canSelectStt,
         isRegionalStaff,
-        catalog,
+        catalog: sttState,
         selectedName: sttInputValue,
       }),
-    [user, canSelectStt, isRegionalStaff, catalog, sttInputValue]
+    [user, canSelectStt, isRegionalStaff, sttState, sttInputValue]
   )
   const tdrAssignment = useMemo(
     () =>
