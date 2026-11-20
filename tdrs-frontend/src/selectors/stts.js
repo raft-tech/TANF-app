@@ -96,36 +96,53 @@ export const resolveReportStt = ({
   selectedName,
 }) => {
   const loaded = catalog?.loaded || catalog?.sttList?.length > 0
+
   if (!user) return { state: 'loading', stt: null }
+
   if (isRegionalStaff) {
     if (!Array.isArray(user.regions)) return { state: 'loading', stt: null }
+
     const stt = user.regions
       .flatMap((region) => region.stts || [])
       .find((stt) => stt.name === selectedName)
+
     return { state: 'ready', stt: stt || null }
   }
+
   if (canSelectStt) {
-    if (!loaded)
+    if (!loaded) {
       return { state: catalog?.error ? 'error' : 'loading', stt: null }
+    }
+
     return {
       state: 'ready',
       stt: catalog.sttList.find((stt) => stt.name === selectedName) || null,
     }
   }
+
   const profile = user.stt
+
   if (!profile?.id) return { state: 'ready', stt: null }
-  if (selectedName && selectedName !== profile.name)
+
+  if (selectedName && selectedName !== profile.name) {
     return { state: 'ready', stt: null, unauthorized: true }
+  }
+
   // A completed catalog (including []) is authoritative, not a truthiness
   // check on sections. Profile metadata is usable before catalog arrival.
-  if (loaded)
+  if (loaded) {
     return {
       state: 'ready',
       stt: catalog.sttList.find((stt) => stt.id === profile.id) || null,
     }
+  }
+
   if (catalog?.loading) return { state: 'loading', stt: null }
-  if (Object.hasOwn(profile, 'program_participations'))
+
+  if (Object.hasOwn(profile, 'program_participations')) {
     return { state: 'ready', stt: profile, provisional: true }
+  }
+
   return { state: catalog?.error ? 'error' : 'loading', stt: null }
 }
 
