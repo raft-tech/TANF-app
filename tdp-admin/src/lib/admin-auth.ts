@@ -31,8 +31,9 @@ export type AdminSession = {
   detail?: string;
 };
 
-export function getBackendBaseUrl() {
+export function getBackendBaseUrl(): string | null {
   return (
+    process.env.ADMIN_AUTH_URL ||
     process.env.NEXT_PUBLIC_BACKEND_URL ||
     process.env.NEXT_PUBLIC_AUTH_URL ||
     null
@@ -68,8 +69,8 @@ export function getAdminBackendBaseUrl() {
   return backendUrl ? deriveAdminBackendBaseUrl(backendUrl) : null;
 }
 
-export function getAuthBaseUrl() {
-  const authUrl = process.env.NEXT_PUBLIC_AUTH_URL;
+export function getAuthBaseUrl(): string | null {
+  const authUrl = process.env.ADMIN_AUTH_URL || process.env.NEXT_PUBLIC_AUTH_URL;
 
   if (authUrl) {
     return normalizeUrl(authUrl);
@@ -87,8 +88,9 @@ export function getAuthBaseUrl() {
     .replace(/\/$/, "");
 }
 
-export function getBrowserAuthBaseUrl() {
-  const browserAuthUrl = process.env.NEXT_PUBLIC_AUTH_BROWSER_URL;
+export function getBrowserAuthBaseUrl(): string | null {
+  const browserAuthUrl =
+    process.env.ADMIN_AUTH_BROWSER_URL || process.env.NEXT_PUBLIC_AUTH_BROWSER_URL;
   return browserAuthUrl ? normalizeUrl(browserAuthUrl) : getAuthBaseUrl();
 }
 
@@ -136,18 +138,23 @@ export function getAdminLoginUrl(provider: "dotgov" | "ams", nextUrl?: string) {
   return loginUrl.toString();
 }
 
-export function getDefaultAdminLoginNextUrl(requestUrl: string) {
-  return new URL("/dashboard", new URL(requestUrl).origin).toString();
+export function getDefaultAdminLoginNextUrl(requestUrl: string): string {
+  const origin = process.env.ADMIN_FRONTEND_ORIGIN || new URL(requestUrl).origin;
+  return new URL("/dashboard", origin).toString();
 }
 
-export function getAdminLoginNextUrl(requestUrl: string, nextUrl?: string | null) {
+export function getAdminLoginNextUrl(
+  requestUrl: string,
+  nextUrl?: string | null
+): string {
   const fallbackNextUrl = getDefaultAdminLoginNextUrl(requestUrl);
 
   if (!nextUrl) {
     return fallbackNextUrl;
   }
 
-  const requestOrigin = new URL(requestUrl).origin;
+  const requestOrigin =
+    process.env.ADMIN_FRONTEND_ORIGIN || new URL(requestUrl).origin;
 
   try {
     const resolvedNextUrl = new URL(nextUrl, requestOrigin);
@@ -294,12 +301,14 @@ export async function checkBackendHealth(): Promise<BackendHealth> {
       ok: false,
       backendUrl: null,
       authCheckUrl: null,
-      error: "NEXT_PUBLIC_BACKEND_URL is not set. Check your environment variables.",
+      error: "ADMIN_AUTH_URL or NEXT_PUBLIC_BACKEND_URL is not configured.",
     };
   }
 
   const normalizedBackendUrl = backendUrl.replace(/\/$/, "");
-  const authCheckUrl = `${normalizedBackendUrl}/auth_check`;
+  const authCheckUrl = process.env.ADMIN_AUTH_URL
+    ? `${normalizedBackendUrl}/admin-auth/auth_check`
+    : `${normalizedBackendUrl}/auth_check`;
 
   try {
     const requestHeaders = setInternalBackendForwardedProto(

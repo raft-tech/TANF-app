@@ -23,6 +23,9 @@ const originalEnv = { ...process.env };
 
 beforeEach(() => {
   delete process.env.ADMIN_BACKEND_URL;
+  delete process.env.ADMIN_AUTH_URL;
+  delete process.env.ADMIN_AUTH_BROWSER_URL;
+  delete process.env.ADMIN_FRONTEND_ORIGIN;
   delete process.env.NEXT_PUBLIC_AUTH_BROWSER_URL;
 });
 
@@ -32,6 +35,54 @@ afterEach(() => {
 });
 
 describe("admin auth helpers", () => {
+  it("prefers runtime server URLs over public build-time values", () => {
+    process.env.ADMIN_AUTH_URL = "http://tdp-backend-raft.apps.internal:8080";
+    process.env.ADMIN_AUTH_BROWSER_URL = "https://admin.example.gov";
+    process.env.NEXT_PUBLIC_AUTH_URL = "https://old-auth.example.gov";
+    process.env.NEXT_PUBLIC_AUTH_BROWSER_URL = "https://old-browser.example.gov";
+
+    expect(getAdminAuthCheckUrl()).toBe(
+      "http://tdp-backend-raft.apps.internal:8080/admin-auth/auth_check"
+    );
+    expect(getAdminLoginUrl("ams")).toBe(
+      "https://admin.example.gov/admin-auth/login/ams"
+    );
+    expect(getAdminBackendBaseUrl()).toBe(
+      "http://tdp-backend-raft.apps.internal:8080/admin-api/v1"
+    );
+  });
+
+  it("uses the configured public origin behind a reverse proxy", () => {
+    process.env.ADMIN_FRONTEND_ORIGIN = "https://admin.example.gov";
+
+    expect(getDefaultAdminLoginNextUrl("http://localhost:8080/login/ams")).toBe(
+      "https://admin.example.gov/dashboard"
+    );
+    expect(getAdminLoginNextUrl("http://localhost:8080/login/ams", "/users")).toBe(
+      "https://admin.example.gov/users"
+    );
+    expect(
+      getAdminLoginNextUrl("http://localhost:8080/login/ams", "https://evil.example/")
+    ).toBe("https://admin.example.gov/dashboard");
+  });
+
+  it("probes the admin auth endpoint using runtime configuration", async () => {
+    process.env.ADMIN_AUTH_URL = "http://tdp-backend-raft.apps.internal:8080/";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ authenticated: false }))
+    );
+
+    const health = await checkBackendHealth();
+
+    expect(health.ok).toBe(true);
+    expect(health.authCheckUrl).toBe(
+      "http://tdp-backend-raft.apps.internal:8080/admin-auth/auth_check"
+    );
+    const [, options] = vi.mocked(fetch).mock.calls[0];
+    expect((options?.headers as Headers).get("X-Forwarded-Proto")).toBe("https");
+  });
+
   it("prefers the explicit auth URL over the backend URL", () => {
     process.env.NEXT_PUBLIC_AUTH_URL = "https://auth.example.gov/";
     process.env.NEXT_PUBLIC_BACKEND_URL = "https://backend.example.gov/v1";
