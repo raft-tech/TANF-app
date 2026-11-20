@@ -129,6 +129,49 @@ describe('getTdrAssignment program options', () => {
       pia
     )
 
+  it.each(['loading', 'error'])(
+    'retains metadata state %s and separate PIA gating without deriving sections',
+    (state) => {
+      const stt = createParticipationStt({
+        program_participations: [
+          createProgramParticipation({ sectionNames: ['Active Case Data'] }),
+        ],
+      })
+
+      expect(getTdrAssignment({ state, stt }, 'tanf', true)).toEqual({
+        state,
+        program: null,
+        sections: [],
+        options: [
+          { label: 'Program Integrity Audit', value: 'program-integrity-audit' },
+        ],
+      })
+    }
+  )
+
+  it('does not leak partially built TDR options after a section configuration error', () => {
+    const result = assignment(
+      {
+        program_participations: [
+          { ...createProgramParticipation(), sections: null },
+          createProgramParticipation({ programSlug: 'ssp', id: 502 }),
+        ],
+      },
+      'tanf',
+      true
+    )
+
+    expect(result).toEqual({
+      state: 'error',
+      program: null,
+      sections: [],
+      options: [
+        { label: 'Program Integrity Audit', value: 'program-integrity-audit' },
+      ],
+      error: 'Assigned sections must be an array.',
+    })
+  })
+
   it.each([false, true, undefined])(
     'offers an empty SSP record independently of legacy ssp=%s',
     (ssp) => {

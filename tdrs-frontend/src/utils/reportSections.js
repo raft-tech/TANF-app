@@ -42,42 +42,70 @@ export const presentReportSections = (sections) => {
     .sort((a, b) => a.number - b.number)
 }
 
-export const getTdrAssignment = (resolution, fileType, piaEnabled = false) => {
-  const { stt, state } = resolution
-  const pia =
-    piaEnabled && stt && stt.type !== 'tribe'
-      ? [{ label: 'Program Integrity Audit', value: 'program-integrity-audit' }]
-      : []
-  const empty = { sections: [], program: null, options: pia, state }
-  if (state !== 'ready' || !stt) return empty
+export const getTdrAssignment = (sttResolution, fileType, piaEnabled = false) => {
+  const { stt, state: metadataState } = sttResolution
+  const piaOption = {
+    label: 'Program Integrity Audit',
+    value: 'program-integrity-audit',
+  }
+  const sspOption = { label: 'SSP-MOE', value: 'ssp-moe' }
+  const piaOptions = []
+
+  if (piaEnabled && stt && stt.type !== 'tribe') {
+    piaOptions.push(piaOption)
+  }
+
+  const emptyAssignment = {
+    sections: [],
+    program: null,
+    options: piaOptions,
+    state: metadataState,
+  }
+
+  if (metadataState !== 'ready' || !stt) return emptyAssignment
+
   try {
-    const tanf = getProgramParticipation(
+    const tanfProgramSlug = fileTypeToProgramSlug('tanf', stt.type)
+    const tanfParticipation = getProgramParticipation(stt, tanfProgramSlug)
+    const sspParticipation = getProgramParticipation(stt, 'ssp')
+    const options = []
+
+    if (tanfParticipation) {
+      const tanfOption = { label: tanfParticipation.program.name, value: 'tanf' }
+      options.push(tanfOption)
+    }
+
+    if (sspParticipation) {
+      getAssignedSections(stt, 'ssp-moe')
+      options.push(sspOption)
+    }
+
+    options.push(...piaOptions)
+
+    const selectedProgramSlug = fileTypeToProgramSlug(fileType, stt.type)
+    const selectedParticipation = getProgramParticipation(
       stt,
-      fileTypeToProgramSlug('tanf', stt.type)
+      selectedProgramSlug
     )
-    const ssp = getProgramParticipation(stt, 'ssp')
-    const sspAvailable = Boolean(ssp)
-    if (sspAvailable) getAssignedSections(stt, 'ssp-moe')
-    const options = [
-      ...(tanf ? [{ label: tanf.program.name, value: 'tanf' }] : []),
-      ...(sspAvailable ? [{ label: 'SSP-MOE', value: 'ssp-moe' }] : []),
-      ...pia,
-    ]
-    const participation = getProgramParticipation(
-      stt,
-      fileTypeToProgramSlug(fileType, stt.type)
+    const isSelectedOptionAvailable = options.some(
+      ({ value }) => value === fileType
     )
-    const available = options.some(({ value }) => value === fileType)
+    let program = null
+    let sections = []
+
+    if (isSelectedOptionAvailable) {
+      program = selectedParticipation?.program || null
+      sections = presentReportSections(getAssignedSections(stt, fileType))
+    }
+
     return {
       state: 'ready',
       options,
-      program: available ? participation?.program || null : null,
-      sections: available
-        ? presentReportSections(getAssignedSections(stt, fileType))
-        : [],
+      program,
+      sections,
     }
   } catch (error) {
-    return { ...empty, state: 'error', error: error.message }
+    return { ...emptyAssignment, state: 'error', error: error.message }
   }
 }
 
