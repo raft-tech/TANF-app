@@ -1,6 +1,7 @@
 """Test stuck file notification queries and rendering."""
 
-from datetime import timedelta
+from datetime import datetime, timedelta
+from datetime import timezone as datetime_timezone
 
 from django.conf import settings
 from django.contrib.admin.models import LogEntry
@@ -8,15 +9,16 @@ from django.core import mail
 from django.utils import timezone
 
 import pytest
+from pytest_mock import MockerFixture
 
 from tdpservice.data_files.enums import SubmissionState
-from tdpservice.data_files.models import DataFile, Section
+from tdpservice.data_files.models import DataFile, Program, Section
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.data_files.tasks import (
-    get_current_fiscal_year,
     get_stale_lifecycle_files,
     get_stuck_files,
     mark_stale_files_stuck,
+    notify_stuck_files,
 )
 from tdpservice.email.helpers.data_file import send_stuck_file_email
 from tdpservice.parsers.models import DataFileSummary
@@ -24,14 +26,22 @@ from tdpservice.parsers.test.factories import (
     DataFileSummaryFactory,
     ReparseMetaFactory,
 )
+from tdpservice.stts.models import STT
+from tdpservice.users.models import User
 
 
-def make_datafile(stt_user, stt, version, state=SubmissionState.UPLOADED, year=None):
+def make_datafile(
+    stt_user: User,
+    stt: STT,
+    version: int,
+    state: SubmissionState = SubmissionState.UPLOADED,
+    year: int = 2026,
+) -> DataFile:
     """Create a test data file with default params."""
     return DataFileFactory.create(
         quarter=DataFile.Quarter.Q1,
         section=Section.Name.ACTIVE_CASE_DATA,
-        year=year or get_current_fiscal_year(),
+        year=year,
         version=version,
         user=stt_user,
         stt=stt,
@@ -108,34 +118,28 @@ def test_stale_timeout_can_be_supplied_by_task_caller(stt_user, stt):
 
 
 @pytest.mark.django_db
-def test_stuck_current_fiscal_year_file_is_included(stt_user, stt):
-    """Finds current fiscal year files explicitly marked stuck."""
-    datafile = make_datafile(
-        stt_user,
-        stt,
-        1,
-        state=SubmissionState.STUCK,
-    )
+def test_stuck_files_across_fiscal_years_are_included(stt_user: User, stt: STT) -> None:
+    """Keep actionable stuck submissions from every fiscal year visible."""
+    datafiles = [
+        make_datafile(stt_user, stt, 1, state=SubmissionState.STUCK, year=year)
+        for year in (2024, 2025, 2026, 2027)
+    ]
 
     stuck_files = get_stuck_files()
 
-    assert list(stuck_files.values_list("pk", flat=True)) == [datafile.pk]
+    assert list(stuck_files.values_list("pk", flat=True)) == [
+        datafile.pk for datafile in datafiles
+    ]
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("summary_status", [None, DataFileSummary.Status.PENDING])
-def test_non_stuck_current_fy_missing_or_pending_summary_is_excluded(
+def test_non_stuck_missing_or_pending_summary_is_excluded(
     stt_user,
     stt,
     summary_status,
 ):
     """Ignore legacy summary conditions unless the lifecycle state is STUCK."""
-    stuck_file = make_datafile(
-        stt_user,
-        stt,
-        1,
-        state=SubmissionState.STUCK,
-    )
     non_stuck_file = make_datafile(
         stt_user,
         stt,
@@ -147,7 +151,77 @@ def test_non_stuck_current_fy_missing_or_pending_summary_is_excluded(
 
     stuck_files = get_stuck_files()
 
-    assert list(stuck_files.values_list("pk", flat=True)) == [stuck_file.pk]
+    assert not stuck_files.exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("newer_state", list(SubmissionState))
+def test_newer_version_supersedes_stuck_file_regardless_of_state(
+    stt_user: User, stt: STT, newer_state: SubmissionState
+) -> None:
+    """Only notify for the latest version, even if a newer version failed."""
+    make_datafile(stt_user, stt, 1, state=SubmissionState.STUCK, year=2025)
+    newer_file = make_datafile(stt_user, stt, 2, state=newer_state, year=2025)
+
+    expected_ids = [newer_file.pk] if newer_state == SubmissionState.STUCK else []
+    assert list(get_stuck_files().values_list("pk", flat=True)) == expected_ids
+
+
+@pytest.mark.django_db
+def test_latest_stuck_version_is_selected_by_version_number(
+    stt_user: User, stt: STT
+) -> None:
+    """Creation and lifecycle timestamps do not determine version relevance."""
+    latest_file = make_datafile(stt_user, stt, 3, state=SubmissionState.STUCK)
+    set_created_at(latest_file, timezone.now() - timedelta(days=2))
+    make_datafile(stt_user, stt, 1, state=SubmissionState.STUCK)
+    make_datafile(stt_user, stt, 2, state=SubmissionState.STUCK)
+
+    assert list(get_stuck_files().values_list("pk", flat=True)) == [latest_file.pk]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "series_dimension",
+    ["stt", "year", "quarter", "program_type", "section", "is_program_audit"],
+)
+@pytest.mark.parametrize(
+    "newer_state", [SubmissionState.STUCK, SubmissionState.COMPLETED]
+)
+def test_different_submission_series_do_not_supersede_each_other(
+    stt_user: User,
+    stt: STT,
+    other_stt: STT,
+    series_dimension: str,
+    newer_state: SubmissionState,
+) -> None:
+    """Keep each version-series dimension independent from all the others."""
+    stuck_file = make_datafile(stt_user, stt, 1, state=SubmissionState.STUCK)
+    series_changes = {
+        "stt": other_stt,
+        "year": 2025,
+        "quarter": DataFile.Quarter.Q2,
+        "program_type": Program.Code.SSP,
+        "section": Section.Name.CLOSED_CASE_DATA,
+        "is_program_audit": True,
+    }
+    newer_file = DataFileFactory.create(
+        user=stt_user,
+        **{
+            "stt": stt,
+            "year": stuck_file.year,
+            "quarter": stuck_file.quarter,
+            "section": Section.Name.ACTIVE_CASE_DATA,
+            "version": 2,
+            "state": newer_state,
+            series_dimension: series_changes[series_dimension],
+        },
+    )
+
+    expected_ids = [stuck_file.pk]
+    if newer_state == SubmissionState.STUCK:
+        expected_ids.append(newer_file.pk)
+    assert list(get_stuck_files().values_list("pk", flat=True)) == expected_ids
 
 
 @pytest.mark.django_db
@@ -391,20 +465,56 @@ def test_mark_stale_files_stuck_transitions_eligible_files(stt_user, stt):
 
 
 @pytest.mark.django_db
-def test_stuck_file_outside_current_fiscal_year_is_excluded(stt_user, stt):
-    """Ignores stuck files outside the current fiscal year."""
+def test_stuck_file_remains_visible_across_fiscal_year_rollover(
+    stt_user: User, stt: STT, mocker: MockerFixture
+) -> None:
+    """Keep prior-year work visible until it is superseded or leaves STUCK."""
+    now = mocker.patch("tdpservice.data_files.tasks.timezone.now")
+    now.return_value = datetime(2026, 9, 30, 23, 59, tzinfo=datetime_timezone.utc)
     datafile = make_datafile(
         stt_user,
         stt,
         1,
         state=SubmissionState.STUCK,
-        year=get_current_fiscal_year() - 1,
+        year=2026,
     )
 
-    stuck_files = get_stuck_files()
+    assert list(get_stuck_files().values_list("pk", flat=True)) == [datafile.pk]
 
-    assert datafile.pk not in stuck_files.values_list("pk", flat=True)
-    assert stuck_files.count() == 0
+    now.return_value = datetime(2026, 10, 1, 0, 1, tzinfo=datetime_timezone.utc)
+    assert list(get_stuck_files().values_list("pk", flat=True)) == [datafile.pk]
+
+    DataFile.objects.filter(pk=datafile.pk).update(
+        state=SubmissionState.REPARSE_REQUESTED
+    )
+    assert not get_stuck_files().exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "latest_state", [SubmissionState.STUCK, SubmissionState.COMPLETED]
+)
+def test_notification_sends_only_latest_actionable_submission(
+    stt_user: User,
+    stt: STT,
+    ofa_system_admin: User,
+    mocker: MockerFixture,
+    latest_state: SubmissionState,
+) -> None:
+    """Email the selected prior-year file or stay silent when it is superseded."""
+    send_email = mocker.patch("tdpservice.data_files.tasks.send_stuck_file_email")
+    make_datafile(stt_user, stt, 1, state=SubmissionState.STUCK, year=2025)
+    latest_file = make_datafile(stt_user, stt, 2, state=latest_state, year=2025)
+
+    notify_stuck_files()
+
+    if latest_state == SubmissionState.STUCK:
+        send_email.assert_called_once()
+        files, recipients = send_email.call_args.args
+        assert list(files.values_list("pk", flat=True)) == [latest_file.pk]
+        assert list(recipients) == [ofa_system_admin.username]
+    else:
+        send_email.assert_not_called()
 
 
 @pytest.mark.django_db

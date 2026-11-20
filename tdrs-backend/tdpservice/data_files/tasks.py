@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import Group
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import Exists, OuterRef, Q, QuerySet
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
@@ -38,23 +38,20 @@ def get_stale_parse_age(timeout_seconds: int | None = None):
     return timedelta(seconds=configured_timeout)
 
 
-def get_current_fiscal_year():
-    """Return the current federal fiscal year."""
-    today = timezone.now()
-    if today.month >= 10:
-        return today.year + 1
-
-    return today.year
-
-
-def get_stuck_files():
-    """Return current fiscal year files marked stuck."""
+def get_stuck_files() -> QuerySet[DataFile]:
+    """Return stuck submissions that are the latest version in their series."""
+    newer_versions = DataFile.objects.filter(
+        stt_id=OuterRef("stt_id"),
+        year=OuterRef("year"),
+        quarter=OuterRef("quarter"),
+        section_id=OuterRef("section_id"),
+        is_program_audit=OuterRef("is_program_audit"),
+        version__gt=OuterRef("version"),
+    )
     return (
         DataFile.objects.select_related("stt", "user")
-        .filter(
-            state=SubmissionState.STUCK,
-            year=get_current_fiscal_year(),
-        )
+        .filter(state=SubmissionState.STUCK)
+        .filter(~Exists(newer_versions))
         .order_by("created_at", "pk")
     )
 
