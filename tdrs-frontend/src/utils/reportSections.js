@@ -42,7 +42,11 @@ export const presentReportSections = (sections) => {
     .sort((a, b) => a.number - b.number)
 }
 
-export const getTdrAssignment = (sttResolution, fileType, piaEnabled = false) => {
+export const getTdrAssignment = (
+  sttResolution,
+  fileType,
+  piaEnabled = false
+) => {
   const { stt, state: metadataState } = sttResolution
   const piaOption = {
     label: 'Program Integrity Audit',
@@ -71,7 +75,10 @@ export const getTdrAssignment = (sttResolution, fileType, piaEnabled = false) =>
     const options = []
 
     if (tanfParticipation) {
-      const tanfOption = { label: tanfParticipation.program.name, value: 'tanf' }
+      const tanfOption = {
+        label: tanfParticipation.program.name,
+        value: 'tanf',
+      }
       options.push(tanfOption)
     }
 

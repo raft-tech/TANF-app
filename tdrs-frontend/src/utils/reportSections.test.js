@@ -143,7 +143,10 @@ describe('getTdrAssignment program options', () => {
         program: null,
         sections: [],
         options: [
-          { label: 'Program Integrity Audit', value: 'program-integrity-audit' },
+          {
+            label: 'Program Integrity Audit',
+            value: 'program-integrity-audit',
+          },
         ],
       })
     }
