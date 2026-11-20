@@ -4,6 +4,13 @@ import { get, post } from '../fetch-instance'
 import { logErrorToServer } from '../utils/eventLogger'
 import removeFileInputErrorState from '../utils/removeFileInputErrorState'
 import { quarters } from '../components/Reports/utils'
+import {
+  getUploadAssignmentKey,
+  getHistoryQueryKey,
+  sameHistoryScope,
+  sameUploadScope,
+  isUploadCurrent,
+} from '../utils/reportScopes'
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL
 
@@ -26,42 +33,113 @@ export const DOWNLOAD_DIALOG_OPEN = 'DOWNLOAD_DIALOG_OPEN'
 export const REINITIALIZE_SUBMITTED_FILES = 'REINITIALIZE_SUBMITTED_FILES'
 
 export const SET_TANF_SUBMISSION_STATUS = 'SET_TANF_SUBMISSION_STATUS'
+export const CONFIGURE_UPLOAD_SECTIONS = 'CONFIGURE_UPLOAD_SECTIONS'
+export const BEGIN_FILE_VALIDATION = 'BEGIN_FILE_VALIDATION'
+export const INVALIDATE_FILE_LIST = 'INVALIDATE_FILE_LIST'
 
-export const reinitializeSubmittedFiles = (fileType) => (dispatch) => {
-  dispatch({ type: REINITIALIZE_SUBMITTED_FILES, payload: { fileType } })
-}
+/**
+ * Opt-in TDR slots. null restores legacy defaults; expectedScope makes cleanup
+ * conditional so an old owner cannot invalidate a newer assignment.
+ */
+export const configureUploadSections =
+  (configuration, expectedScope) => (dispatch, getState) => {
+    const current = getState().reports.uploadScope
+    if (expectedScope && !sameUploadScope(current, expectedScope))
+      return current
+    const key = configuration ? getUploadAssignmentKey(configuration) : null
+    if (configuration && current?.key === key) return current
+    const uploadScope = configuration
+      ? { ...configuration, key, generation: uuidv4() }
+      : null
+    dispatch({ type: CONFIGURE_UPLOAD_SECTIONS, payload: { uploadScope } })
+    return uploadScope
+  }
+
+export const reinitializeSubmittedFiles =
+  (fileType, options = {}) =>
+  (dispatch, getState) => {
+    dispatch({
+      type: REINITIALIZE_SUBMITTED_FILES,
+      payload: {
+        fileType,
+        ...options,
+        ...(getState()?.reports?.uploadScope && { generation: uuidv4() }),
+      },
+    })
+  }
 
 export const clearFile =
-  ({ section }) =>
+  ({ section, ...identity }) =>
   (dispatch) => {
-    dispatch({ type: CLEAR_FILE, payload: { section } })
+    dispatch({ type: CLEAR_FILE, payload: { section, ...identity } })
   }
 
 export const clearFileList =
-  ({ fileType }) =>
-  (dispatch) => {
+  ({ fileType, uploadScope }) =>
+  (dispatch, getState) => {
+    if (
+      uploadScope &&
+      !sameUploadScope(getState().reports.uploadScope, uploadScope)
+    )
+      return
     // Clean up any DOM error states before clearing Redux state
     removeFileInputErrorState()
-    dispatch({ type: CLEAR_FILE_LIST, payload: { fileType } })
+    dispatch({
+      type: CLEAR_FILE_LIST,
+      payload: {
+        fileType,
+        ...(uploadScope && { uploadScope }),
+        ...(getState()?.reports?.uploadScope && { generation: uuidv4() }),
+      },
+    })
   }
 
 export const clearError =
-  ({ section }) =>
+  ({ section, ...identity }) =>
   (dispatch) => {
-    dispatch({ type: CLEAR_ERROR, payload: { section } })
+    dispatch({ type: CLEAR_ERROR, payload: { section, ...identity } })
   }
 
 export const getAvailableFileList =
-  ({ quarter = 'Q1', stt, year, file_type, section }, onSuccess = () => null) =>
-  async (dispatch) => {
+  (
+    { quarter = 'Q1', stt, year, file_type, section },
+    onSuccess = () => null,
+    options = {}
+  ) =>
+  async (dispatch, getState) => {
+    const historyScope = options.scoped
+      ? {
+          key: getHistoryQueryKey({ quarter, stt, year, file_type }),
+          requestId: options.requestId || uuidv4(),
+        }
+      : undefined
+    const isCurrent = () =>
+      !historyScope ||
+      (sameHistoryScope(getState().reports.historyScope, historyScope) &&
+        (options.isCurrent?.() ?? true))
+    if (
+      options.scoped &&
+      (!historyScope.key || options.isCurrent?.() === false)
+    )
+      return
+    const scopePayload = historyScope ? { historyScope } : {}
     dispatch({
       type: FETCH_FILE_LIST,
+      ...(historyScope && { payload: scopePayload }),
     })
     let url = `${BACKEND_URL}/data_files/?year=${year}&stt=${stt.id}&file_type=${file_type}`
     if (quarter) {
       url += `&quarter=${quarter}`
     }
-    const { data, ok, error } = await get(url)
+    let response
+    try {
+      response = await get(url)
+    } catch (error) {
+      if (!historyScope) throw error
+      response = { ok: false, error }
+    }
+    if (!isCurrent()) return
+    const { data, ok, error } = response
 
     if (!ok) {
       dispatch({
@@ -72,6 +150,7 @@ export const getAvailableFileList =
           quarter,
           file_type,
           section,
+          ...scopePayload,
         },
       })
       return
@@ -81,9 +160,12 @@ export const getAvailableFileList =
       type: SET_FILE_LIST,
       payload: {
         data,
+        ...scopePayload,
       },
     })
-    onSuccess()
+    if (!isCurrent()) return
+    if (historyScope) onSuccess(historyScope)
+    else onSuccess()
   }
 
 export const download =
@@ -140,7 +222,7 @@ export const download =
 
 // Main Redux action to add files to the state
 export const upload =
-  ({ file, section, year, quarter }) =>
+  ({ file, section, year, quarter, uploadScope, sectionId, program, uuid }) =>
   async (dispatch) => {
     try {
       dispatch({
@@ -150,14 +232,22 @@ export const upload =
           fileName: file.name,
           fileType: file.type,
           section,
-          uuid: uuidv4(),
+          uuid: uuid || uuidv4(),
+          ...(uploadScope && { uploadScope, sectionId, program }),
           ...(year && { validatedYear: year }),
           ...(quarter && { validatedQuarter: quarter }),
         },
       })
     } catch (error) {
       logErrorToServer(SET_FILE_ERROR)
-      dispatch({ type: SET_FILE_ERROR, payload: { error, section } })
+      dispatch({
+        type: SET_FILE_ERROR,
+        payload: {
+          error,
+          section,
+          ...(uploadScope && { uploadScope, sectionId, program, uuid }),
+        },
+      })
       return false
     }
 
@@ -191,10 +281,17 @@ export const submit =
       year,
       ssp,
       fileType,
+      uploadScope,
+      isCurrent: isContextCurrent = () => true,
     },
     onComplete = () => null
   ) =>
-  async (dispatch) => {
+  async (dispatch, getState) => {
+    const isCurrent = () =>
+      !uploadScope ||
+      (isContextCurrent() &&
+        isUploadCurrent(getState().reports, uploadScope, uploadedFiles))
+    if (!isCurrent()) return
     const submissionRequests = uploadedFiles.map((file) => {
       const formData = new FormData()
       const dataFile = {
@@ -212,11 +309,30 @@ export const submit =
       for (const [key, value] of Object.entries(dataFile)) {
         formData.append(key, value)
       }
-      return post(`${process.env.REACT_APP_BACKEND_URL}/data_files/`, formData)
+      const request = post(
+        `${process.env.REACT_APP_BACKEND_URL}/data_files/`,
+        formData
+      )
+      return uploadScope
+        ? Promise.resolve(request).catch((error) => ({ ok: false, error }))
+        : request
     })
 
     return Promise.all(submissionRequests)
       .then((responses) => {
+        // Successful server writes still need their audit event after navigation
+        // or a sibling request failure, even when local UI updates are stale.
+        if (uploadScope) {
+          const successes = responses.filter((response) => response.ok)
+          if (successes.length)
+            logger.alert(
+              `Submitted ${successes.length} data file(s): ${successes.map(({ data }) => `${data.original_filename} (${data.extension})`).join(', ')}`,
+              {
+                files: successes.map(({ data }) => data.id),
+                activity: 'upload',
+              }
+            )
+        }
         // Check if any responses have errors
         const failedResponse = responses.find((r) => !r.ok)
         if (failedResponse) {
@@ -225,43 +341,59 @@ export const submit =
           throw err
         }
 
-        setProcessingAlertState({
-          active: true,
-          type: 'success',
-          message: `Successfully uploaded section(s): ${formattedSections} on ${new Date().toDateString()}`,
-        })
-
-        removeFileInputErrorState()
-
-        const submittedFileObjects = []
-        const submittedFileNames = responses.reduce((result, response) => {
-          const submittedFile = map_section(fileType, response?.data)
-
-          dispatch({
-            type: SET_FILE_SUBMITTED,
-            payload: { submittedFile },
+        const current = isCurrent()
+        if (current)
+          setProcessingAlertState({
+            active: true,
+            type: 'success',
+            message: `Successfully uploaded section(s): ${formattedSections} on ${new Date().toDateString()}`,
           })
 
-          submittedFileObjects.push(submittedFile)
-          result.push(
-            `${submittedFile?.original_filename} (${submittedFile?.extension})`
-          )
-          return result
-        }, [])
+        if (current) removeFileInputErrorState()
+
+        const submittedFileObjects = []
+        const submittedFileNames = responses.reduce(
+          (result, response, index) => {
+            const submittedFile = map_section(fileType, response?.data)
+
+            if (current)
+              dispatch({
+                type: SET_FILE_SUBMITTED,
+                payload: {
+                  submittedFile,
+                  ...(uploadScope && {
+                    uploadScope,
+                    sourceFile: uploadedFiles[index],
+                  }),
+                },
+              })
+
+            submittedFileObjects.push(submittedFile)
+            result.push(
+              `${submittedFile?.original_filename} (${submittedFile?.extension})`
+            )
+            return result
+          },
+          []
+        )
 
         // Create LogEntries in Django for each created ReportFile
         const fileIds = responses.map((response) => response?.data?.id)
-        logger.alert(
-          `Submitted ${
-            submittedFileNames.length
-          } data file(s): ${submittedFileNames.join(', ')}`,
-          {
-            files: fileIds,
-            activity: 'upload',
-          }
-        )
+        if (!uploadScope)
+          logger.alert(
+            `Submitted ${
+              submittedFileNames.length
+            } data file(s): ${submittedFileNames.join(', ')}`,
+            {
+              files: fileIds,
+              activity: 'upload',
+            }
+          )
 
-        onComplete(fileIds)
+        if (isCurrent()) {
+          if (uploadScope) onComplete(fileIds, submittedFileObjects)
+          else onComplete(fileIds)
+        }
 
         // Return the submitted file objects for feedback widget
         return submittedFileObjects
@@ -275,11 +407,12 @@ export const submit =
             : error_response?.file
               ? error_response.file
               : null
-        setUploadAlertState({
-          active: true,
-          type: 'error',
-          message: ''.concat(error.message, ': ', msg),
-        })
+        if (isCurrent())
+          setUploadAlertState({
+            active: true,
+            type: 'error',
+            message: ''.concat(error.message, ': ', msg),
+          })
       })
   }
 

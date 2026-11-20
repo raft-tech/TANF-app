@@ -1,15 +1,74 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
-import { Provider } from 'react-redux'
-import { MemoryRouter, useLocation } from 'react-router-dom'
+import { Provider, useStore } from 'react-redux'
+import { MemoryRouter as Router, useLocation } from 'react-router-dom'
 import { thunk } from 'redux-thunk'
 import { get, post } from '../../fetch-instance'
 import configureStore from 'redux-mock-store'
-import appConfigureStore from '../../configureStore'
+import configureAppStore from '../../configureStore'
 import Reports from './Reports'
 import { SET_FILE, upload } from '../../actions/reports'
 import featureFlags from '../../reducers/featureFlags'
+import {
+  createProgramParticipation,
+  CANONICAL_SECTION_NAMES,
+} from '../../test-utils/programParticipation'
+
+// Legacy scenarios now enter through a controlled URL, not reports.stt.
+const MemoryRouter = ({ initialEntries, ...props }) => {
+  const store = useStore()
+  const stt = store.getState().reports?.stt
+  return (
+    <Router
+      {...props}
+      initialEntries={
+        initialEntries || [stt ? `/?stt=${encodeURIComponent(stt)}` : '/']
+      }
+    />
+  )
+}
+
+const assignedFixture = (stt) => ({
+  ...stt,
+  program_participations: stt.program_participations || [
+    createProgramParticipation({
+      programSlug: stt.type === 'tribe' ? 'tribal' : 'tanf',
+      sectionNames: CANONICAL_SECTION_NAMES,
+    }),
+    createProgramParticipation({
+      programSlug: 'ssp',
+      id: 502,
+      sectionNames: CANONICAL_SECTION_NAMES,
+    }),
+  ],
+})
+
+const fixtureStore = (state) => {
+  const stts = state.stts.sttList.map(assignedFixture)
+  const profile = state.auth.user?.stt
+  return configureAppStore({
+    ...state,
+    stts: { ...state.stts, sttList: stts },
+    auth: {
+      ...state.auth,
+      user: {
+        ...state.auth.user,
+        stt: profile
+          ? { ...stts.find((stt) => stt.name === profile.name), ...profile }
+          : profile,
+        ...(state.auth.user?.regions && {
+          regions: state.auth.user.regions.map((region) => ({
+            ...region,
+            stts: region.stts.map(assignedFixture),
+          })),
+        }),
+      },
+    },
+  })
+}
+
+const appConfigureStore = fixtureStore
 
 jest.mock('../../fetch-instance')
 
@@ -125,6 +184,11 @@ describe('Reports', () => {
           name: 'Alaska',
           ssp: false,
           num_sections: 4,
+          program_participations: [
+            createProgramParticipation({
+              sectionNames: CANONICAL_SECTION_NAMES,
+            }),
+          ],
         },
       ],
       loading: false,
@@ -150,7 +214,7 @@ describe('Reports', () => {
       flags: [],
     },
   }
-  const mockStore = configureStore([thunk])
+  const mockStore = fixtureStore
 
   const makeTestFile = (name, contents = ['test']) =>
     new File(contents, name, {
@@ -382,7 +446,7 @@ describe('Reports', () => {
   })
 
   it('should make a request with the selections and upload payloads after clicking Submit Data Files', async () => {
-    const store = appConfigureStore({
+    const store = fixtureStore({
       ...initialState,
       reports: {
         ...initialState.reports,
@@ -431,7 +495,15 @@ describe('Reports', () => {
     await waitFor(() => expect(getByText('section2.txt')).toBeInTheDocument())
     await waitFor(() => expect(getByText('section3.txt')).toBeInTheDocument())
     await waitFor(() => expect(getByText('section4.txt')).toBeInTheDocument())
-    await waitFor(() => expect(store.dispatch).toHaveBeenCalledTimes(15))
+    await waitFor(() =>
+      expect(
+        store
+          .getState()
+          .reports.submittedFiles.every(
+            (file) => file.uuid && !file.isValidating
+          )
+      ).toBe(true)
+    )
 
     fireEvent.click(getByText('Submit Data Files'))
     await waitFor(() => {
@@ -442,13 +514,15 @@ describe('Reports', () => {
         )
       ).toBe(true)
     })
-    expect(store.dispatch).toHaveBeenCalledTimes(19)
+    expect(
+      post.mock.calls.filter(([url]) => url.endsWith('/data_files/'))
+    ).toHaveLength(4)
   })
 
   it('should add files to the redux state when dispatching uploads', async () => {
     // Because mock-redux-store doesn't actually test reducers,
     // we need to test this separately from the test above
-    const store = mockStore(initialState)
+    const store = configureStore([thunk])(initialState)
 
     const file1 = makeTestFile('section1.txt')
     const file2 = makeTestFile('section2.txt')
@@ -621,7 +695,9 @@ describe('Reports', () => {
 
       await waitFor(() => {
         expect(getByText('section1.txt')).toBeInTheDocument()
-        expect(store.dispatch).toHaveBeenCalledTimes(6)
+        expect(store.getState().reports.submittedFiles[0].isValidating).toBe(
+          false
+        )
       })
 
       fireEvent.click(getByText(/Cancel/, { selector: 'button' }))
@@ -664,7 +740,9 @@ describe('Reports', () => {
 
       await waitFor(() => {
         expect(getByText('section1.txt')).toBeInTheDocument()
-        expect(store.dispatch).toHaveBeenCalledTimes(6)
+        expect(store.getState().reports.submittedFiles[0].isValidating).toBe(
+          false
+        )
       })
 
       fireEvent.click(getByText(/Cancel/, { selector: 'button' }))
@@ -717,7 +795,9 @@ describe('Reports', () => {
 
       await waitFor(() => {
         expect(getByText('section1.txt')).toBeInTheDocument()
-        expect(store.dispatch).toHaveBeenCalledTimes(6)
+        expect(store.getState().reports.submittedFiles[0].isValidating).toBe(
+          false
+        )
       })
 
       fireEvent.click(getByText(/Cancel/, { selector: 'button' }))
@@ -795,7 +875,7 @@ describe('Reports', () => {
     expect(expected).toEqual(currentYear.toString())
   })
 
-  it('Non OFA Admin should show the data files section when the user has an stt with ssp set to true', () => {
+  it('offers SSP-MOE to a nonselecting user with an SSP participation', () => {
     const store = mockStore({
       ...initialState,
       auth: {
@@ -821,8 +901,7 @@ describe('Reports', () => {
     expect(getByText('SSP-MOE')).toBeInTheDocument()
   })
 
-  // should not render the File Type section if the user is not an OFA Admin and the stt has ssp set to false
-  it('Non OFA Admin should not show the data files section when the user has an stt with ssp set to false', () => {
+  it('omits SSP-MOE for a nonselecting user without an SSP participation', () => {
     const store = mockStore({
       ...initialState,
       auth: {
@@ -848,7 +927,7 @@ describe('Reports', () => {
     expect(queryByText('SSP-MOE')).not.toBeInTheDocument()
   })
 
-  it('OFA Admin should see the data files section when they select a stt with ssp set to true', () => {
+  it('offers SSP-MOE to an admin selecting an STT with an SSP participation', () => {
     const store = mockStore({
       ...initialState,
       reports: {
@@ -868,7 +947,7 @@ describe('Reports', () => {
     expect(getByText('SSP-MOE')).toBeInTheDocument()
   })
 
-  it('OFA Admin should not see the data files section when they select a stt with ssp set to false', () => {
+  it('omits SSP-MOE for an admin selecting an STT without an SSP participation', () => {
     const store = mockStore({
       ...initialState,
       reports: {
@@ -1077,6 +1156,7 @@ describe('Reports', () => {
         quarter: 'Q1',
         section: 'Active Case Data',
         slug: '1234-5-6-7890',
+        program_type: 'TAN',
         year: '2021',
         s3_version_id: '3210',
         created_at: '2025-02-07T23:38:58+0000',
@@ -1106,6 +1186,7 @@ describe('Reports', () => {
             quarter: 'Q1',
             section: 'Active Case Data',
             slug: '1234-5-6-7890',
+            program_type: 'TAN',
             year: '2021',
             s3_version_id: '3210',
             created_at: '2025-02-07T23:38:58+0000',
@@ -1128,6 +1209,7 @@ describe('Reports', () => {
               quarter: 'Q1',
               section: 'Active Case Data',
               slug: '1234-5-6-7890',
+              program_type: 'TAN',
               year: '2021',
               s3_version_id: '3210',
               created_at: '2025-02-07T23:38:58+0000',
@@ -1219,7 +1301,9 @@ describe('Reports', () => {
 
     await waitFor(() => {
       expect(getByText('section1.txt')).toBeInTheDocument()
-      expect(store.dispatch).toHaveBeenCalledTimes(6)
+      expect(store.getState().reports.submittedFiles[0].isValidating).toBe(
+        false
+      )
     })
 
     const submitButton = getByText('Submit Data Files')
@@ -1240,7 +1324,11 @@ describe('Reports', () => {
     expect(getByText('testFile.txt')).toBeInTheDocument()
     expect(queryAllByText('Pending')).toHaveLength(3)
 
-    await waitFor(() => expect(store.dispatch).toHaveBeenCalledTimes(11))
+    await waitFor(() =>
+      expect(
+        store.getState().reports.submittedFiles.every((file) => !file.uuid)
+      ).toBe(true)
+    )
     expect(get).toHaveBeenCalledTimes(4)
     expect(times).toBe(2)
 
@@ -1274,6 +1362,7 @@ describe('Reports', () => {
             quarter: 'Q1',
             section: 'Active Case Data',
             slug: '1234-5-6-7890',
+            program_type: 'TAN',
             year: '2021',
             s3_version_id: '3210',
             created_at: '2025-02-07T23:38:58+0000',
@@ -1296,6 +1385,7 @@ describe('Reports', () => {
           quarter: 'Q1',
           section: 'Aggregate Data',
           slug: '1234-5-6-7890',
+          program_type: 'TAN',
           year: '2021',
           s3_version_id: '3210',
           created_at: '2025-02-07T23:38:58+0000',
@@ -1327,6 +1417,7 @@ describe('Reports', () => {
             quarter: 'Q1',
             section: 'Active Case Data',
             slug: '1234-5-6-7890',
+            program_type: 'TAN',
             year: '2021',
             s3_version_id: '3210',
             created_at: '2025-02-07T23:38:58+0000',
@@ -1352,6 +1443,7 @@ describe('Reports', () => {
             quarter: 'Q1',
             section: 'Aggregate Data',
             slug: '1234-5-6-7890',
+            program_type: 'TAN',
             year: '2021',
             s3_version_id: '3210',
             created_at: '2025-02-07T23:38:58+0000',
@@ -1374,6 +1466,7 @@ describe('Reports', () => {
               quarter: 'Q1',
               section: 'Active Case Data',
               slug: '1234-5-6-7890',
+              program_type: 'TAN',
               year: '2021',
               s3_version_id: '3210',
               created_at: '2025-02-07T23:38:58+0000',
@@ -1389,6 +1482,7 @@ describe('Reports', () => {
               quarter: 'Q1',
               section: 'Aggregate Data',
               slug: '1234-5-6-7890',
+              program_type: 'TAN',
               year: '2021',
               s3_version_id: '3210',
               created_at: '2025-02-07T23:38:58+0000',
@@ -1483,7 +1577,13 @@ describe('Reports', () => {
     await waitFor(() => {
       expect(getByText('section1.txt')).toBeInTheDocument()
       expect(getByText('section3.txt')).toBeInTheDocument()
-      expect(store.dispatch).toHaveBeenCalledTimes(9)
+      expect(
+        store
+          .getState()
+          .reports.submittedFiles.filter(
+            (file) => file.uuid && !file.isValidating
+          )
+      ).toHaveLength(2)
     })
 
     const submitButton = getByText('Submit Data Files')
@@ -1496,7 +1596,11 @@ describe('Reports', () => {
         ).length
       ).toBeGreaterThanOrEqual(1)
     )
-    await waitFor(() => expect(store.dispatch).toHaveBeenCalledTimes(15))
+    await waitFor(() =>
+      expect(
+        store.getState().reports.submittedFiles.every((file) => !file.uuid)
+      ).toBe(true)
+    )
 
     // act(() => jest.advanceTimersByTime(2000))
 
@@ -1532,7 +1636,8 @@ describe('Reports', () => {
 
   it('should show Fiscal Year only when selecting program audit', async () => {
     const store = appConfigureStore({
-      initialState,
+      ...initialState,
+      reports: { ...initialState.reports, stt: 'California' },
       featureFlags: {
         loading: false,
         error: null,
@@ -1973,7 +2078,9 @@ describe('Reports', () => {
 
     await waitFor(() => {
       expect(getByText('section1.txt')).toBeInTheDocument()
-      expect(store.dispatch).toHaveBeenCalledTimes(10)
+      expect(store.getState().reports.submittedFiles[0].isValidating).toBe(
+        false
+      )
     })
 
     // Try to change to Alaska (no SSP)
@@ -2390,7 +2497,9 @@ describe('Reports', () => {
       render(
         <Provider store={mockStore(initialState)}>
           <MemoryRouter
-            initialEntries={['/data-files?fy=2023&q=Q1&type=tanf#history']}
+            initialEntries={[
+              '/data-files?fy=2023&q=Q1&type=tanf&stt=Alaska#history',
+            ]}
           >
             <Reports />
             <CurrentLocation />
@@ -2400,7 +2509,7 @@ describe('Reports', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('report-location').textContent).toBe(
-          '?fy=2023&q=Q1&type=tanf#history'
+          '?fy=2023&q=Q1&type=tanf&stt=Alaska#history'
         )
       })
 
@@ -2413,7 +2522,7 @@ describe('Reports', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('report-location').textContent).toBe(
-          '?fy=2024&q=Q1&type=tanf#history'
+          '?fy=2024&q=Q1&type=tanf&stt=Alaska#history'
         )
       })
     })
@@ -2474,11 +2583,13 @@ describe('Reports', () => {
       })
     })
 
-    it('should reset file type to default when it is invalid', async () => {
+    it('resets an invalid file type to an available TANF participation', async () => {
       const store = mockStore(initialState)
       const { getByLabelText } = render(
         <Provider store={store}>
-          <MemoryRouter initialEntries={['/?fy=2023&q=Q1&type=invalid-type']}>
+          <MemoryRouter
+            initialEntries={['/?fy=2023&q=Q1&type=invalid-type&stt=Alaska']}
+          >
             <Reports />
           </MemoryRouter>
         </Provider>
