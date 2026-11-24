@@ -28,6 +28,7 @@ This context covers the Go parser service under `tdrs-services/parser/`.
 
 - Root `CONTEXT.md`
 - `CONTEXT-MAP.md`
+- `docs/agents/testing.md`
 - Backend context when parser behavior is consumed by Django or Celery workflows
 - Parser README or package-level documentation near the code being changed
 - `tdrs-backend/pytest-go-parser.ini` and `tdrs-backend/tdpservice/parsers/test/integration/` when changing Django/Go parser integration behavior

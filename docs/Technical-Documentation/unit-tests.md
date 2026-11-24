@@ -1,46 +1,66 @@
-# TDP Tech Deep Dive - Unit Tests
+# TDP Tech Deep Dive - Automated Tests
 
-## Backend Unit Tests
-* Uses Pytest
-* Most tests are located in their relevant Django app under the `tdpservice` module
-* Tests rely heavily on Factories and Fixtures using pytest-factoryboy
-* Most fixtures are defined in the `conftest.py` at the root of the `tdpservice` directory
-* Tests that could use the most refactoring are under the `users` app - that was among the first Django code for the project and is not very DRY.
-* 2 test modules are located in the main `tests` subdirectory:
-    * test_admin: Tests that customizations to the admin site work correctly
-    * test_clients: Tests a now-unused S3 client. This could be removed along with the `clients.py:get_s3_client` function. 
+For detailed layer ownership rules, core testing principles, and canonical mocking boilerplate across `pytest`, `go test`, `Jest`, and `Cypress`, see **[`docs/agents/testing.md`](../agents/testing.md)**.
 
-```
-$ tdrs-run-pytest
-```
-
-## Frontend Unit Tests
-* Uses Jest
-* Tests exist alongside their associated action, component or reducer
+## Backend Unit & Integration Tests (`pytest`)
+* Uses `pytest`, `pytest-django`, `pytest-mock`, and `pytest-factoryboy`.
+* Most tests are located in their relevant Django app under `tdrs-backend/tdpservice/**/test/`.
+* Shared fixtures (including role-specific user fixtures and mocked ClamAV clients) are defined in `tdrs-backend/tdpservice/conftest.py`.
+* Live Django-to-Go parser integration tests live under `tdrs-backend/tdpservice/parsers/test/integration/` and run against the `go-parser` container.
 
 ```bash
-$ tdrs-run-jest
+# Run standard backend pytest suite
+task backend-pytest
+
+# Run live Go parser integration suite
+task backend-pytest-go-integration
 ```
 
-## Frontend Accessibility Tests
-* Uses Pa11y
-* Bypasses authentication through use of the `REACT_APP_PA11Y_TEST` environment variable on app build.
-* Navigates to several pages in the app and confirms presence of expected private template container before taking a screenshot and running automated accessibility checks.
-* Stores the screenshots as artifacts in Circle CI.
+## Go Parser Unit Tests (`go test`)
+* Located in `tdrs-services/parser/internal/**`.
+* Covers record decoding, field transformations, validation rules, and DB batch writing.
 
 ```bash
-$ tdrs-run-pa11y
+cd tdrs-services/parser && make test
 ```
 
-## Frontend Integration / E2E Tests
-* None currently (as of 12/1/2021), the plan is to use Pa11y to accomplish this or add another integration testing framework.
-* Some examples of UI functionality that needs to be tested:
-    * Profile page as an authenticated user - viewing and editing.
-    * Data Files page as Data Analyst - searching for files by year and quarter for current STT.
-    * Data Files page as OFA Admin - searching for files by STT, year and quarter
-    * Data Files upload as both user types
-    * Welcome page shows expected permissions.
+## Frontend Unit & Component Tests (`Jest` + React Testing Library)
+* Uses Jest and `@testing-library/react`.
+* Tests exist alongside their associated action, component, hook, selector, or reducer under `tdrs-frontend/src/`.
+* HTTP requests are mocked via `jest.mock('../../fetch-instance')` (`tdrs-frontend/src/__mocks__/fetch-instance.js`), with mocks reset between tests in `beforeEach` (`jest.clearAllMocks()`).
 
-## Notes
+```bash
+# Run in Docker (watch-less)
+task frontend-test
 
-See **[Commands.sh](https://github.com/raft-tech/TANF-app/blob/develop/commands.sh)** for a list and description of standardized commands for running these tests as part of local development. The code sections above are aliases or functions from `commands.sh`.
+# Or locally in tdrs-frontend/
+cd tdrs-frontend && yarn test
+```
+
+## Admin Console Unit Tests (`Vitest`)
+* `tdrs-admin` unit tests use Vitest and run in Docker via Taskfile:
+
+```bash
+task admin-test
+```
+
+## Frontend Accessibility Tests (`Pa11y` & `cypress-axe`)
+* `pa11y-ci` navigates to application routes with `REACT_APP_PA11Y_TEST=true` (configured in `tdrs-frontend/.pa11yci.json`) and runs automated WCAG 2.1 AA accessibility checks, storing screenshots as CircleCI artifacts.
+* `cypress-axe` (`tdrs-frontend/cypress/e2e/common-steps/a11y.js`) audits authenticated UI states during E2E runs.
+
+```bash
+cd tdrs-frontend && yarn test:accessibility
+```
+
+## End-to-End Integration Tests (`Cypress`)
+* Uses Cypress with `@badeball/cypress-cucumber-preprocessor` (`tdrs-frontend/cypress/e2e/**/*.feature`).
+* Synchronize on network calls using `cy.intercept(...).as('alias')` and `cy.wait('@alias')` rather than fixed `cy.wait(ms)` delays.
+* See **[`cypress-integration-tests.md`](./cypress-integration-tests.md)** for setup and execution instructions, and **[`docs/agents/testing.md`](../agents/testing.md)** for what belongs in Cypress vs. Jest.
+
+```bash
+# Run locally via Taskfile
+task frontend-e2e-local
+
+# Or open Cypress interactively in tdrs-frontend/
+cd tdrs-frontend && yarn test:e2e
+```
