@@ -6,15 +6,15 @@
 
 ## CI/CD Pipeline
 
-All tests added into the `tdrs-frontend/cypress/e2e/` folder will be run against the newly deployed develop environment as part of our pipeline to help ensure site reliability and that no bugs have been introduced. These are run against the actual deployed environment and so might catch issues connecting with real backend services instead of having everything local.
+All tests added into the `tdrs-frontend/cypress/e2e/` folder are run in CI on pull requests (via the CircleCI `test-e2e` job) and against the newly deployed `develop` environment to help ensure site reliability and that no bugs have been introduced.
 
 ## Running tests
 
 1. Have both the backend and frontend running in separate terminal processes, the app needs to be reachable and usable at `localhost:3000` when testing locally
-1. In a new terminal, set up test users by running
+1. In a new terminal, set up test users and fixtures by running `task e2e-env-var-setup` (or manually):
    ```bash
    cd tdrs-backend
-   docker-compose exec web python manage.py loaddata cypress/users cypress/data_files
+   docker compose exec web python manage.py loaddata cypress/users cypress/data_files cypress/regions cypress/profile_editing_regions cypress/profile_editing_users cypress/feature_flags
    ```
 1. Be sure your `tdrs-backend/.env` file contains the following
    ```bash

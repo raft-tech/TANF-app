@@ -12,7 +12,7 @@
     * Jobs: a collection of steps run on an executor
     * Orbs: reusable code that can be imported in to circle config - similar to pip packages, etc
 * Automated workflows:
-    * `build-and-test`: Runs jobs `secrets-check`, `test-frontend` and `test-backend` on every commit
+    * `build-and-test`: Runs jobs `secrets-check`, `test-frontend`, `test-backend`, `test-go-parser`, and `test-e2e`.
     * `dev-deployment`: Deploys a PR to the dev space. Triggered by a GitHub action whenever one of the relevant deployment labels is assigned via an API call to Circle CI with the pipeline parameter `run_dev_deployment`.
     * `nightly`: Runs every night at UTC midnight and performs an OWASP scan against the staging site for both backend and frontend then stores the results in Django using a Cloud Foundry task.
     * `owasp-scan`: Runs an OWASP scan against the backend and frontend for a given PR. Triggered by a GitHub action whenever the `QASP Review` label is assigned via an API call to Circle CI with the pipeline parameter `run_owasp_scan`.

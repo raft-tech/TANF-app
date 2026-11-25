@@ -11,4 +11,4 @@ This repo is a multi-context monorepo. Read the root `CONTEXT.md` first, then re
 | Go parser service | `tdrs-services/parser/CONTEXT.md` | Go parser service under `tdrs-services/parser` |
 | React frontend | `tdrs-frontend/CONTEXT.md` | CRA React frontend and user-facing workflows |
 
-If a change crosses contexts, read each relevant context file before editing.
+If a change crosses contexts, read each relevant context file before editing. For automated testing layer ownership and mocking conventions, see `docs/agents/testing.md`.

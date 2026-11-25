@@ -16,11 +16,12 @@
 #         and push changes to your remote branch.
 #
 # Step 1: Makes a request to the V2 CircleCI API to initiate the project,
-#         which will filter based upon build_and_test_backend and 
-#         build_and_test_frontend to run the workflow/jobs listed here:
+#         which runs the full `build-and-test` workflow jobs:
 #           build-and-test:[
+#             secrets-check,
 #             test-backend,
 #             test-frontend,
+#             test-go-parser,
 #             test-e2e
 #           ]
 #

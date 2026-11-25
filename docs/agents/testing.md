@@ -19,11 +19,14 @@ Before writing or modifying a test, select the **lowest, fastest test layer** ca
 ## 2. Core Testing Principles
 
 ### General
+- **Search and extend first**: Search existing tests and fixtures for the behavior before adding new coverage; extend or parameterize an existing test (`@pytest.mark.parametrize`, `test.each`) when appropriate.
+- **Justify new tests**: Be able to state the behavior or regression being protected, the chosen layer (unit/component, integration/contract, or E2E), and the coverage gap a new test fills.
 - **Respect test-type boundaries**: A Django API test using the database is an integration test; a browser test with mocked API responses is not full end-to-end coverage.
 - **Keep suites independently runnable**: Unit, integration, and end-to-end suites must each run on their own without hidden cross-suite dependencies.
 - **Descriptive naming**: Give tests descriptive names that identify the scenario and expected outcome. Keep Cypress feature scenarios in business language using Gherkin.
+- **Regression reproduction**: For bug fixes, demonstrate that the regression test fails for the original defect and passes with the fix when reproducible.
 - **Observable waits only**: Wait for observable conditions with bounded timeouts (`waitFor`, `cy.wait('@alias')`). Avoid fixed delays (`cy.wait(3000)`, `time.sleep`) that assume processing has finished.
-- **Never hide failures**: Do not weaken assertions, increase retries, or skip tests merely to make a failure disappear.
+- **Never hide failures**: Do not weaken assertions, lower coverage thresholds, increase retries, or skip/delete tests merely to make a failure disappear.
 
 ### Unit Tests
 - Verify **one focused behavior** using real local logic and simple data.

@@ -120,7 +120,7 @@ After running either `test:cov` or `test:ci`, coverage details can be seen as HT
 $ open coverage/lcov-report/index.html
 ```
 
-In addition to [Jest's matchers](https://jestjs.io/docs/en/expect), this project uses [enzyme-matchers](https://github.com/FormidableLabs/enzyme-matchers) to simplify tests and make them more readable. Enzyme matchers is integrated with Jest using the [`jest-enzyme` package](https://github.com/FormidableLabs/enzyme-matchers/blob/master/packages/jest-enzyme/README.md#assertions) which provides many useful assertions for testing React components.
+In addition to [Jest's matchers](https://jestjs.io/docs/en/expect), this project uses [`@testing-library/react`](https://testing-library.com/docs/react-testing-library/intro/) and [`@testing-library/jest-dom`](https://github.com/testing-library/jest-dom) for accessible DOM queries and assertions. See [`docs/agents/testing.md`](../docs/agents/testing.md) for mocking conventions (`fetch-instance`) and component test patterns.
 
 ----
 

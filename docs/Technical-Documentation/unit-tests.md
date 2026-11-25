@@ -6,7 +6,9 @@ For detailed layer ownership rules, core testing principles, and canonical mocki
 * Uses `pytest`, `pytest-django`, `pytest-mock`, and `pytest-factoryboy`.
 * Most tests are located in their relevant Django app under `tdrs-backend/tdpservice/**/test/`.
 * Shared fixtures (including role-specific user fixtures and mocked ClamAV clients) are defined in `tdrs-backend/tdpservice/conftest.py`.
+* Use `@pytest.mark.parametrize` (and `test.each` in Jest) where applicable to cover input/validation permutations without duplicating test boilerplate.
 * Live Django-to-Go parser integration tests live under `tdrs-backend/tdpservice/parsers/test/integration/` and run against the `go-parser` container.
+* Live ETL integration tests live under `tdrs-backend/tdpservice/etl/test/integration/`.
 
 ```bash
 # Run standard backend pytest suite
@@ -14,6 +16,9 @@ task backend-pytest
 
 # Run live Go parser integration suite
 task backend-pytest-go-integration
+
+# Run live ETL integration suite
+task backend-pytest-etl-integration
 ```
 
 ## Go Parser Unit Tests (`go test`)
