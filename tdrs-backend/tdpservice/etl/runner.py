@@ -3,6 +3,7 @@
 import hashlib
 import json
 import logging
+from datetime import datetime, timedelta
 
 from celery import chord
 from django.db import IntegrityError, transaction
@@ -14,6 +15,8 @@ from tdpservice.etl.pipelines.base import PipelineDefinition
 from tdpservice.etl.registry import get_pipeline_definition
 
 logger = logging.getLogger(__name__)
+
+COMPLETION_CLAIM_TTL = timedelta(minutes=5)
 
 ACTIVE_RUN_STATUSES = (
     ETLPipelineRun.Status.PENDING,
@@ -138,64 +141,18 @@ class PipelineRunLauncher:
 
     def finalize(self) -> dict:
         """Finalize a pipeline run and execute any declared completion nodes."""
-        with transaction.atomic():
-            pipeline_run = ETLPipelineRun.objects.select_for_update().get(
-                id=self.pipeline_run.id
-            )
-            metadata = dict(pipeline_run.metadata or {})
-            if metadata.get("completion_claimed"):
-                self.pipeline_run = pipeline_run
-                return {
-                    "pipeline_run_id": pipeline_run.id,
-                    "status": pipeline_run.status,
-                    "already_finalized": True,
-                }
-
-            metadata["completion_claimed"] = True
-            pipeline_run.metadata = metadata
-
-            completion_keys = set(self.definition.completion_keys)
-            execution_node_runs = pipeline_run.node_runs.exclude(
-                node_key__in=completion_keys
-            )
-            failed_node_runs = execution_node_runs.filter(
-                status=ETLNodeRun.Status.FAILED
-            )
-
-            if failed_node_runs.exists():
-                pipeline_run.status = ETLPipelineRun.Status.FAILED
-                if not pipeline_run.error_message:
-                    first_failed = failed_node_runs.order_by("id").first()
-                    if first_failed and first_failed.error_message:
-                        pipeline_run.error_message = (
-                            f"{first_failed.node_key}: {first_failed.error_message}"
-                        )
-            elif execution_node_runs.exclude(
-                status=ETLNodeRun.Status.SUCCEEDED
-            ).exists():
-                pipeline_run.status = ETLPipelineRun.Status.FAILED
-                if not pipeline_run.error_message:
-                    pipeline_run.error_message = (
-                        "One or more ETLNodeRun records did not complete."
-                    )
-            else:
-                pipeline_run.status = ETLPipelineRun.Status.SUCCEEDED
-
-            if pipeline_run.finished_at is None:
-                pipeline_run.finished_at = timezone.now()
-
-            pipeline_run.save(
-                update_fields=[
-                    "status",
-                    "finished_at",
-                    "error_message",
-                    "metadata",
-                    "updated_at",
-                ]
-            )
-            self.pipeline_run = pipeline_run
+        completion_keys = tuple(self.definition.completion_keys)
+        if not self._claim_completion(completion_keys):
+            return {
+                "pipeline_run_id": self.pipeline_run.id,
+                "status": self.pipeline_run.status,
+                "already_finalized": True,
+            }
 
         completion_results = self._run_completion_nodes()
+        if completion_keys:
+            self._mark_completion_completed(completion_keys)
+
         result = {
             "pipeline_run_id": self.pipeline_run.id,
             "status": self.pipeline_run.status,
@@ -203,6 +160,135 @@ class PipelineRunLauncher:
         if completion_results:
             result["completion_results"] = completion_results
         return result
+
+    def _claim_completion(self, completion_keys: tuple[str, ...]) -> bool:
+        """Acquire or recover the completion claim, returning True if caller should run."""
+        now = timezone.now()
+        terminal_statuses = (
+            ETLNodeRun.Status.SUCCEEDED,
+            ETLNodeRun.Status.FAILED,
+        )
+        with transaction.atomic():
+            pipeline_run = ETLPipelineRun.objects.select_for_update().get(
+                id=self.pipeline_run.id
+            )
+            metadata = dict(pipeline_run.metadata or {})
+            if metadata.get("completion_completed_at"):
+                self.pipeline_run = pipeline_run
+                return False
+
+            if metadata.get("completion_claimed_at"):
+                return self._try_recover_claim(
+                    pipeline_run, metadata, completion_keys, terminal_statuses, now
+                )
+
+            metadata["completion_claimed_at"] = now.isoformat()
+            if not completion_keys:
+                metadata["completion_completed_at"] = now.isoformat()
+            pipeline_run.metadata = metadata
+            self._apply_terminal_outcome(pipeline_run, completion_keys, now)
+            self.pipeline_run = pipeline_run
+            return True
+
+    def _try_recover_claim(
+        self,
+        pipeline_run: ETLPipelineRun,
+        metadata: dict,
+        completion_keys: tuple[str, ...],
+        terminal_statuses: tuple[str, ...],
+        now: datetime,
+    ) -> bool:
+        """Recover an expired completion claim if incomplete completion nodes remain."""
+        incomplete_nodes = pipeline_run.node_runs.filter(
+            node_key__in=completion_keys
+        ).exclude(status__in=terminal_statuses)
+        if not incomplete_nodes.exists():
+            metadata["completion_completed_at"] = now.isoformat()
+            pipeline_run.metadata = metadata
+            pipeline_run.save(update_fields=["metadata", "updated_at"])
+            self.pipeline_run = pipeline_run
+            return False
+
+        if not _is_claim_stale(metadata.get("completion_claimed_at"), now):
+            self.pipeline_run = pipeline_run
+            return False
+
+        incomplete_nodes.filter(status=ETLNodeRun.Status.RUNNING).update(
+            status=ETLNodeRun.Status.PENDING
+        )
+        metadata["completion_claimed_at"] = now.isoformat()
+        pipeline_run.metadata = metadata
+        pipeline_run.save(update_fields=["metadata", "updated_at"])
+        self.pipeline_run = pipeline_run
+        return True
+
+    @staticmethod
+    def _apply_terminal_outcome(
+        pipeline_run: ETLPipelineRun,
+        completion_keys: tuple[str, ...],
+        now: datetime,
+    ) -> None:
+        """Compute and persist the pipeline's terminal status from execution nodes."""
+        execution_node_runs = pipeline_run.node_runs.exclude(
+            node_key__in=set(completion_keys)
+        )
+        failed_node_runs = execution_node_runs.filter(
+            status=ETLNodeRun.Status.FAILED
+        )
+
+        if failed_node_runs.exists():
+            pipeline_run.status = ETLPipelineRun.Status.FAILED
+            if not pipeline_run.error_message:
+                first_failed = failed_node_runs.order_by("id").first()
+                if first_failed and first_failed.error_message:
+                    pipeline_run.error_message = (
+                        f"{first_failed.node_key}: {first_failed.error_message}"
+                    )
+        elif execution_node_runs.exclude(status=ETLNodeRun.Status.SUCCEEDED).exists():
+            pipeline_run.status = ETLPipelineRun.Status.FAILED
+            if not pipeline_run.error_message:
+                pipeline_run.error_message = (
+                    "One or more ETLNodeRun records did not complete."
+                )
+        else:
+            pipeline_run.status = ETLPipelineRun.Status.SUCCEEDED
+
+        if pipeline_run.finished_at is None:
+            pipeline_run.finished_at = now
+
+        pipeline_run.save(
+            update_fields=[
+                "status",
+                "finished_at",
+                "error_message",
+                "metadata",
+                "updated_at",
+            ]
+        )
+
+    def _mark_completion_completed(self, completion_keys: tuple[str, ...]) -> None:
+        """Record completion finalization once all completion nodes are terminal."""
+        terminal_statuses = (
+            ETLNodeRun.Status.SUCCEEDED,
+            ETLNodeRun.Status.FAILED,
+        )
+        with transaction.atomic():
+            pipeline_run = ETLPipelineRun.objects.select_for_update().get(
+                id=self.pipeline_run.id
+            )
+            has_incomplete = (
+                pipeline_run.node_runs.filter(node_key__in=completion_keys)
+                .exclude(status__in=terminal_statuses)
+                .exists()
+            )
+            if has_incomplete:
+                return
+            metadata = dict(pipeline_run.metadata or {})
+            if not metadata.get("completion_completed_at"):
+                metadata["completion_completed_at"] = timezone.now().isoformat()
+                pipeline_run.metadata = metadata
+                pipeline_run.save(update_fields=["metadata", "updated_at"])
+            self.pipeline_run = pipeline_run
 
     def _run_completion_nodes(self) -> list[dict]:
         """Execute declared completion nodes without altering pipeline outcome."""
@@ -246,6 +332,19 @@ def _attach_error_callback(canvas_sig, error_sig) -> None:
 
     for linked in canvas_sig.options.get("link") or ():
         _attach_error_callback(linked, error_sig)
+
+
+def _is_claim_stale(claimed_at: str | None, now: datetime) -> bool:
+    """Return True when an in-flight completion claim has expired."""
+    if not claimed_at:
+        return True
+    try:
+        claimed_dt = datetime.fromisoformat(claimed_at)
+    except (TypeError, ValueError):
+        return True
+    if timezone.is_naive(claimed_dt):
+        claimed_dt = timezone.make_aware(claimed_dt, timezone.get_current_timezone())
+    return now - claimed_dt >= COMPLETION_CLAIM_TTL
 
 
 def output_scope_key(output_scope: dict) -> str:

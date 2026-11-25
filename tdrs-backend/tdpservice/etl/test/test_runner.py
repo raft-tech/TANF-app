@@ -724,3 +724,105 @@ def test_launch_executes_completion_once_on_parallel_failures(settings):
     assert second_finalize["already_finalized"] is True
     assert pipeline_run.status == ETLPipelineRun.Status.FAILED
     assert notify_run.status == ETLNodeRun.Status.SUCCEEDED
+
+
+@pytest.mark.django_db
+def test_finalize_recovers_interrupted_completion_nodes_after_stale_claim():
+    """A redelivered finalizer resumes pending/running completion nodes after TTL."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    calls = []
+
+    def first_completion(context):
+        calls.append("first")
+
+    def second_completion(context):
+        calls.append("second")
+
+    definition = _definition(
+        [
+            _node("extract"),
+            _node("notify_first", first_completion),
+            _node("notify_second", second_completion),
+        ],
+        completion_keys=("notify_first", "notify_second"),
+    )
+    pipeline_run = PipelineRunFactory(definition).create(
+        parameters={"fiscal_year": 2026},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+    pipeline_run.status = ETLPipelineRun.Status.SUCCEEDED
+    pipeline_run.finished_at = timezone.now()
+    pipeline_run.metadata = {
+        "completion_claimed_at": (timezone.now() - timedelta(minutes=10)).isoformat()
+    }
+    pipeline_run.save(
+        update_fields=["status", "finished_at", "metadata", "updated_at"]
+    )
+    pipeline_run.node_runs.filter(node_key="extract").update(
+        status=ETLNodeRun.Status.SUCCEEDED
+    )
+    pipeline_run.node_runs.filter(node_key="notify_first").update(
+        status=ETLNodeRun.Status.SUCCEEDED
+    )
+    pipeline_run.node_runs.filter(node_key="notify_second").update(
+        status=ETLNodeRun.Status.RUNNING
+    )
+
+    result = PipelineRunLauncher(
+        pipeline_run=pipeline_run,
+        definition=definition,
+    ).finalize()
+
+    pipeline_run.refresh_from_db()
+    assert result["status"] == ETLPipelineRun.Status.SUCCEEDED
+    assert calls == ["second"]
+    assert (
+        pipeline_run.node_runs.get(node_key="notify_second").status
+        == ETLNodeRun.Status.SUCCEEDED
+    )
+    assert "completion_completed_at" in pipeline_run.metadata
+
+    # Subsequent redeliveries exit cleanly without re-running completion.
+    repeat = PipelineRunLauncher(
+        pipeline_run=pipeline_run,
+        definition=definition,
+    ).finalize()
+    assert repeat["already_finalized"] is True
+    assert calls == ["second"]
+
+
+@pytest.mark.django_db
+def test_finalize_skips_while_fresh_completion_claim_is_active():
+    """A concurrent finalizer skips while another worker holds a fresh claim."""
+    from django.utils import timezone
+
+    calls = []
+
+    def notify(context):
+        calls.append("notify")
+
+    definition = _definition(
+        [_node("extract"), _node("notify", notify)],
+        completion_keys=("notify",),
+    )
+    pipeline_run = PipelineRunFactory(definition).create(
+        parameters={"fiscal_year": 2026},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+    pipeline_run.status = ETLPipelineRun.Status.FAILED
+    pipeline_run.metadata = {"completion_claimed_at": timezone.now().isoformat()}
+    pipeline_run.save(update_fields=["status", "metadata", "updated_at"])
+    pipeline_run.node_runs.filter(node_key="extract").update(
+        status=ETLNodeRun.Status.FAILED
+    )
+
+    result = PipelineRunLauncher(
+        pipeline_run=pipeline_run,
+        definition=definition,
+    ).finalize()
+
+    assert result["already_finalized"] is True
+    assert calls == []
