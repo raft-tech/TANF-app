@@ -826,3 +826,35 @@ def test_finalize_skips_while_fresh_completion_claim_is_active():
 
     assert result["already_finalized"] is True
     assert calls == []
+
+
+@pytest.mark.django_db
+def test_run_pipeline_node_routes_completion_node_through_finalize():
+    """Queued completion-node tasks from legacy canvases route through finalize()."""
+
+    def broken_notify(context):
+        raise RuntimeError("SMTP down")
+
+    definition = _definition(
+        [_node("extract"), _node("notify", broken_notify)],
+        completion_keys=("notify",),
+    )
+    pipeline_run = PipelineRunFactory(definition).create(
+        parameters={"fiscal_year": 2026},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+    pipeline_run.status = ETLPipelineRun.Status.RUNNING
+    pipeline_run.save(update_fields=["status", "updated_at"])
+    pipeline_run.node_runs.filter(node_key="extract").update(
+        status=ETLNodeRun.Status.SUCCEEDED
+    )
+
+    with patch("tdpservice.etl.tasks.get_pipeline_definition", return_value=definition):
+        result = run_pipeline_node(pipeline_run.id, "notify")
+
+    pipeline_run.refresh_from_db()
+    notify_run = pipeline_run.node_runs.get(node_key="notify")
+    assert result["status"] == ETLPipelineRun.Status.SUCCEEDED
+    assert pipeline_run.status == ETLPipelineRun.Status.SUCCEEDED
+    assert notify_run.status == ETLNodeRun.Status.FAILED
+    assert notify_run.error_message == "SMTP down"

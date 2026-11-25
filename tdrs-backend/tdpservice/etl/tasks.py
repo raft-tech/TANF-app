@@ -21,8 +21,12 @@ def run_pipeline_node(pipeline_run_id: int, node_key: str):
     pipeline_run = ETLPipelineRun.objects.get(id=pipeline_run_id)
     definition = get_pipeline_definition(pipeline_run.pipeline_key)
     definition.validate()
-    is_completion = node_key in definition.completion_keys
-    return definition.nodes[node_key].run(pipeline_run, is_completion=is_completion)
+    if node_key in definition.completion_keys:
+        return PipelineRunLauncher(
+            pipeline_run=pipeline_run,
+            definition=definition,
+        ).finalize()
+    return definition.nodes[node_key].run(pipeline_run)
 
 
 @shared_task(name="tdpservice.etl.tasks.finalize_pipeline_run")
