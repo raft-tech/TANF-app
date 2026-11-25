@@ -55,6 +55,11 @@ jest.mock('../FileUpload', () => ({
 }))
 
 const initialState = {
+  featureFlags: {
+    flags: [
+      { feature_name: 'program-integrity-audit', enabled: true, config: {} },
+    ],
+  },
   auth: {
     authenticated: true,
     user: {
@@ -134,7 +139,7 @@ describe('QuarterFileUploadForm', () => {
   const renderComponent = (
     storeState = initialState,
     stt = { id: 1 },
-    initialEntry = '/'
+    initialEntry = '/?type=program-integrity-audit&fy=2024'
   ) => {
     const store = mockStore(storeState)
     mockDispatch = jest.spyOn(store, 'dispatch')

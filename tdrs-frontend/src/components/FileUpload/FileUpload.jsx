@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 import PropTypes from 'prop-types'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch, useSelector, useStore } from 'react-redux'
+import { v4 as uuidv4 } from 'uuid'
 import fileTypeChecker from 'file-type-checker'
 import { fileInput } from '@uswds/uswds/src/js/components'
 
@@ -10,7 +11,13 @@ import {
   SET_FILE_ERROR,
   FILE_EXT_ERROR,
   upload,
+  BEGIN_FILE_VALIDATION,
 } from '../../actions/reports'
+import {
+  isUploadCurrent,
+  sameUploadScope,
+  sameSection,
+} from '../../utils/reportScopes'
 import createFileInputErrorState from '../../utils/createFileInputErrorState'
 import {
   handlePreview,
@@ -56,7 +63,14 @@ const NULL_PROGRAM_TYPE_ERROR = (
   </>
 )
 
-const load = (file, section, input, dropTarget, dispatch) => {
+const load = (
+  file,
+  section,
+  input,
+  dropTarget,
+  dispatch,
+  isCurrent = () => true
+) => {
   const filereader = new FileReader()
   const types = ['png', 'gif', 'jpeg']
 
@@ -67,6 +81,10 @@ const load = (file, section, input, dropTarget, dispatch) => {
     }
 
     filereader.onload = () => {
+      if (!isCurrent()) {
+        resolve({ stale: true })
+        return
+      }
       let error = false
       const basePayload = {
         file,
@@ -118,26 +136,34 @@ function FileUpload({
   label,
   setUploadAlertState,
   setProcessingAlertState,
+  uploadScope,
+  sectionDescriptor,
 }) {
   // e.g. 'Aggregate Case Data' => 'aggregate-case-data'
   // The set of uploaded files in our Redux state
   const files = useSelector((state) => state.reports.submittedFiles)
 
   const dispatch = useDispatch()
+  const store = useStore()
+  const mountedRef = useRef(true)
+  const validationTokenRef = useRef(null)
+  const latestScopeRef = useRef(uploadScope)
+  latestScopeRef.current = uploadScope
 
-  const hasFile = files?.some(
-    (file) => file.section.includes(section) && file.uuid
+  const selectedFile = files?.find((file) =>
+    uploadScope
+      ? sameUploadScope(store.getState().reports.uploadScope, uploadScope) &&
+        sectionDescriptor &&
+        sameSection(file, sectionDescriptor)
+      : file.section.includes(section)
   )
 
-  const hasPreview = files?.some(
-    (file) => file.section.includes(section) && file.file
-  )
-
-  const selectedFile = files?.find((file) => file.section.includes(section))
+  const hasFile = Boolean(selectedFile?.uuid)
+  const hasPreview = Boolean(selectedFile?.file)
 
   // Sanitize section name for use as CSS selector ID
   // Remove parentheses, hyphens, and other special characters
-  const formattedSectionName = selectedFile?.section
+  const formattedSectionName = (selectedFile?.section || section)
     .toLowerCase()
     .replace(/[()]/g, '') // Remove parentheses
     .replace(/\s+/g, '_') // Replace spaces with underscores
@@ -152,10 +178,16 @@ function FileUpload({
     : `Drag file here or choose from folder.`
 
   useEffect(() => {
+    // Reserving a UUID happens before USWDS finishes its own FileReader.
+    // Do not replace/remove that in-flight preview during scoped validation.
+    if (selectedFile?.isValidating) return
+    let active = true
+    let timer
     const trySettingPreview = () => {
+      if (!active) return
       const previewState = handlePreview(fileName, targetClassName)
       if (!previewState) {
-        setTimeout(trySettingPreview, 100)
+        timer = setTimeout(trySettingPreview, 100)
       }
     }
     if (hasPreview || hasFile) {
@@ -165,13 +197,29 @@ function FileUpload({
       const deps = checkPreviewDependencies(targetClassName)
       if (deps.rendered) removeOldPreviews(deps.dropTarget, deps.instructions)
     }
-  }, [hasPreview, hasFile, fileName, targetClassName])
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [
+    hasPreview,
+    hasFile,
+    fileName,
+    targetClassName,
+    selectedFile?.isValidating,
+  ])
 
   const inputRef = useRef(null)
   const previousFiscalPeriodRef = useRef(null)
   const validateAndUploadFileRef = useRef(null)
 
   const validateAndUploadFile = async (event, isRevalidation = false) => {
+    if (
+      uploadScope &&
+      (!selectedFile ||
+        !sameUploadScope(store.getState().reports.uploadScope, uploadScope))
+    )
+      return
     setUploadAlertState({
       active: false,
       type: null,
@@ -195,8 +243,34 @@ function FileUpload({
       fileName: file.name,
       fileType: file.type,
     }
+    const identity = uploadScope
+      ? {
+          uploadScope,
+          sectionId: sectionDescriptor.id,
+          program: sectionDescriptor.program,
+          uuid: uuidv4(),
+        }
+      : {}
+    validationTokenRef.current = identity.uuid
+    const isCurrent = () =>
+      !uploadScope ||
+      (mountedRef.current &&
+        sameUploadScope(latestScopeRef.current, uploadScope) &&
+        validationTokenRef.current === identity.uuid &&
+        isUploadCurrent(store.getState().reports, uploadScope, [
+          { ...identity, section },
+        ]))
+    const validationDispatch = (action) => {
+      if (isCurrent())
+        dispatch({ ...action, payload: { ...action.payload, ...identity } })
+    }
 
-    if (!isRevalidation) {
+    if (uploadScope) {
+      dispatch({
+        type: BEGIN_FILE_VALIDATION,
+        payload: { ...basePayload, ...identity, section },
+      })
+    } else if (!isRevalidation) {
       // Clear existing errors and the current file if the user is replacing it.
       dispatch(clearError({ section }))
       dispatch(clearFile({ section }))
@@ -210,8 +284,17 @@ function FileUpload({
       section,
       input,
       dropTarget,
-      dispatch
-    )
+      validationDispatch,
+      isCurrent
+    ).catch((readError) => {
+      if (!uploadScope) throw readError
+      validationDispatch({
+        type: SET_FILE_ERROR,
+        payload: { ...basePayload, section, error: readError },
+      })
+      return { error: true }
+    })
+    if (!isCurrent()) return
     let hasValidationError = error
 
     const dispatchProgramTypeError = (
@@ -238,7 +321,7 @@ function FileUpload({
       // Handle specific program type cases
       createFileInputErrorState(input, dropTarget, { preservePreview: true })
       hasValidationError = true
-      dispatch({
+      validationDispatch({
         type: SET_FILE_ERROR,
         payload: {
           error: {
@@ -289,7 +372,7 @@ function FileUpload({
       }
       createFileInputErrorState(input, dropTarget, { preservePreview: true })
       hasValidationError = true
-      dispatch({
+      validationDispatch({
         type: SET_FILE_ERROR,
         payload: {
           error: {
@@ -312,12 +395,16 @@ function FileUpload({
     if (!error) {
       // Get the correctly encoded file
       const { encodedFile, header } = await tryGetUTF8EncodedFile(result, file)
+      if (!isCurrent()) return
       const selectedProgramType = fileType.slice(0, 3).toUpperCase()
       const { isValid, calendarFiscalResult, programTypeResult } =
         await validateHeader(header, year, quarter, selectedProgramType)
+      if (!isCurrent()) return
       if (isValid) {
         dropTarget.classList.remove('has-invalid-file')
-        dispatch(upload({ file: encodedFile, section, year, quarter }))
+        dispatch(
+          upload({ file: encodedFile, section, year, quarter, ...identity })
+        )
       } else if (!programTypeResult.isValid) {
         dispatchProgramTypeError(
           programTypeResult,
@@ -376,8 +463,12 @@ function FileUpload({
 
   // Initialize USWDS file input component
   useEffect(() => {
+    mountedRef.current = true
     if (inputRef.current) {
       fileInput.init(inputRef.current.parentNode)
+    }
+    return () => {
+      mountedRef.current = false
     }
   }, [])
 
@@ -412,6 +503,7 @@ function FileUpload({
         id={formattedSectionName}
         className="usa-file-input"
         type="file"
+        disabled={Boolean(uploadScope && !selectedFile)}
         name={section}
         aria-describedby={`${formattedSectionName}-file`}
         aria-hidden="false"
@@ -423,6 +515,8 @@ function FileUpload({
 
 FileUpload.propTypes = {
   section: PropTypes.string.isRequired,
+  uploadScope: PropTypes.object,
+  sectionDescriptor: PropTypes.object,
 }
 
 export default FileUpload
