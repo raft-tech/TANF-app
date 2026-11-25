@@ -27,7 +27,22 @@ cd tdrs-services/parser && make test
 ## Frontend Unit & Component Tests (`Jest` + React Testing Library)
 * Uses Jest and `@testing-library/react`.
 * Tests exist alongside their associated action, component, hook, selector, or reducer under `tdrs-frontend/src/`.
-* HTTP requests are mocked via `jest.mock('../../fetch-instance')` (`tdrs-frontend/src/__mocks__/fetch-instance.js`), with mocks reset between tests in `beforeEach` (`jest.clearAllMocks()`).
+* HTTP requests are mocked via `jest.mock('../../fetch-instance')` (`tdrs-frontend/src/__mocks__/fetch-instance.js`). Always reset mocks in `beforeEach` so call counts and queued responses do not leak between tests:
+
+```javascript
+import { get, post } from '../../fetch-instance'
+
+jest.mock('../../fetch-instance')
+
+describe('MyComponent', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    // Re-seed default mock responses if needed (or use jest.resetAllMocks()
+    // when tests override mockImplementation/mockReturnValue)
+    get.mockResolvedValue({ data: [], error: null, status: 200, ok: true })
+  })
+})
+```
 
 ```bash
 # Run in Docker (watch-less)
