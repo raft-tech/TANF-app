@@ -17,8 +17,12 @@ from tdpservice.etl.pipelines.base import (
     PipelineNodeRegistry,
 )
 from tdpservice.etl.registry import get_pipeline_definition
-from tdpservice.etl.runner import PipelineRunFactory, output_scope_key
-from tdpservice.etl.tasks import run_pipeline_node
+from tdpservice.etl.runner import (
+    PipelineRunFactory,
+    PipelineRunLauncher,
+    output_scope_key,
+)
+from tdpservice.etl.tasks import finalize_pipeline_run, run_pipeline_node
 
 
 def _noop(context) -> None:
@@ -67,10 +71,19 @@ class ConcretePipelineDefinition(PipelineDefinition):
     description = "Pipeline used by runner tests."
     allowed_parameters = {"fiscal_year": {"required": True}}
 
-    def __init__(self, nodes, handlers=None):
+    def __init__(
+        self,
+        nodes,
+        handlers=None,
+        *,
+        completion_keys: tuple[str, ...] = (),
+        canvas_builder=None,
+    ):
         """Initialize a test pipeline with configurable nodes."""
         self.nodes = PipelineNodeRegistry(nodes)
         self.handlers = handlers or {}
+        self.completion_keys = completion_keys
+        self._canvas_builder = canvas_builder
 
     def extract(self, context):
         """Run a configurable extract handler."""
@@ -96,15 +109,17 @@ class ConcretePipelineDefinition(PipelineDefinition):
         return self.nodes
 
     def build_canvas(self, pipeline_run_id: int):
-        """Test pipeline does not declare an executable Canvas."""
+        """Return configured Canvas or raise if none was provided."""
+        if self._canvas_builder is not None:
+            return self._canvas_builder(self, pipeline_run_id)
         raise PipelineValidationError(
             f"Pipeline {self.key} does not define an executable Celery Canvas."
         )
 
 
-def _definition(nodes, handlers=None):
+def _definition(nodes, handlers=None, **kwargs):
     """Build a minimal pipeline definition."""
-    return ConcretePipelineDefinition(nodes, handlers)
+    return ConcretePipelineDefinition(nodes, handlers, **kwargs)
 
 
 def _create_pipeline_run():
@@ -133,14 +148,15 @@ def test_pipeline_canvas_uses_chord_for_extract_fan_in():
     assert chord_task.body.args[1] == "run_weights_qa"
     downstream_chain = chord_task.body.options["link"][0]
     assert downstream_chain.immutable
-    assert [task.args[1] for task in downstream_chain.tasks[:2]] == [
+    assert [task.args[1] for task in downstream_chain.tasks[:1]] == [
         "publish_weights",
-        "notify_weights_run",
     ]
     assert (
-        downstream_chain.tasks[2].name == "tdpservice.etl.tasks.finalize_pipeline_run"
+        downstream_chain.tasks[1].name == "tdpservice.etl.tasks.finalize_pipeline_run"
     )
     assert all(task.immutable for task in downstream_chain.tasks)
+    assert definition.completion_keys == ("notify_weights_run",)
+    assert "notify_weights_run" not in canvas_repr
     assert "validate_run_sources" in canvas_repr
     assert "extract_active_family_counts" in canvas_repr
     assert "extract_aggregate_case_counts" in canvas_repr
@@ -487,3 +503,358 @@ def test_run_pipeline_node_accepts_present_artifact_contract():
         "status": ETLNodeRun.Status.SUCCEEDED,
     }
     assert calls == [["artifact.input"]]
+
+
+def test_pipeline_validation_rejects_unknown_completion_key():
+    """Declared completion_keys must exist in the pipeline node registry."""
+    definition = _definition(
+        [_node("extract")],
+        completion_keys=("missing_node",),
+    )
+
+    with pytest.raises(PipelineValidationError, match="Unknown completion node keys"):
+        definition.validate()
+
+
+def test_pipeline_validation_rejects_duplicate_completion_keys():
+    """Declared completion_keys must be unique."""
+    definition = _definition(
+        [_node("extract"), _node("notify")],
+        completion_keys=("notify", "notify"),
+    )
+
+    with pytest.raises(PipelineValidationError, match="unique"):
+        definition.validate()
+
+
+@pytest.mark.django_db
+def test_finalize_persists_terminal_status_before_running_completion_nodes():
+    """Completion nodes observe the persisted terminal pipeline status."""
+    observed_statuses = []
+
+    def notify(context):
+        persisted = ETLPipelineRun.objects.get(id=context.pipeline_run.id)
+        observed_statuses.append((persisted.status, persisted.finished_at is not None))
+        return NodeResult(metadata={"notified": True})
+
+    definition = _definition(
+        [_node("extract"), _node("notify", notify)],
+        completion_keys=("notify",),
+    )
+    pipeline_run = PipelineRunFactory(definition).create(
+        parameters={"fiscal_year": 2026},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+    pipeline_run.node_runs.filter(node_key="extract").update(
+        status=ETLNodeRun.Status.SUCCEEDED
+    )
+
+    result = PipelineRunLauncher(
+        pipeline_run=pipeline_run,
+        definition=definition,
+    ).finalize()
+
+    pipeline_run.refresh_from_db()
+    notify_run = pipeline_run.node_runs.get(node_key="notify")
+    assert result["status"] == ETLPipelineRun.Status.SUCCEEDED
+    assert observed_statuses == [(ETLPipelineRun.Status.SUCCEEDED, True)]
+    assert pipeline_run.status == ETLPipelineRun.Status.SUCCEEDED
+    assert notify_run.status == ETLNodeRun.Status.SUCCEEDED
+    assert notify_run.metadata == {"notified": True}
+
+
+@pytest.mark.django_db
+def test_finalize_without_completion_keys_retains_existing_behavior():
+    """Pipelines without completion_keys retain existing finalization behavior."""
+    definition = _definition([_node("extract"), _node("load")])
+    pipeline_run = PipelineRunFactory(definition).create(
+        parameters={"fiscal_year": 2026},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+    pipeline_run.node_runs.update(status=ETLNodeRun.Status.SUCCEEDED)
+
+    result = PipelineRunLauncher(
+        pipeline_run=pipeline_run,
+        definition=definition,
+    ).finalize()
+
+    pipeline_run.refresh_from_db()
+    assert result == {
+        "pipeline_run_id": pipeline_run.id,
+        "status": ETLPipelineRun.Status.SUCCEEDED,
+    }
+    assert pipeline_run.status == ETLPipelineRun.Status.SUCCEEDED
+    assert pipeline_run.finished_at is not None
+
+
+@pytest.mark.django_db
+def test_completion_node_failure_does_not_overwrite_succeeded_pipeline():
+    """A failing completion node records its own error without altering SUCCEEDED."""
+
+    def broken_notify(context):
+        raise RuntimeError("SMTP down")
+
+    definition = _definition(
+        [_node("extract"), _node("notify", broken_notify)],
+        completion_keys=("notify",),
+    )
+    pipeline_run = PipelineRunFactory(definition).create(
+        parameters={"fiscal_year": 2026},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+    pipeline_run.node_runs.filter(node_key="extract").update(
+        status=ETLNodeRun.Status.SUCCEEDED
+    )
+
+    result = PipelineRunLauncher(
+        pipeline_run=pipeline_run,
+        definition=definition,
+    ).finalize()
+
+    pipeline_run.refresh_from_db()
+    notify_run = pipeline_run.node_runs.get(node_key="notify")
+    assert result["status"] == ETLPipelineRun.Status.SUCCEEDED
+    assert pipeline_run.status == ETLPipelineRun.Status.SUCCEEDED
+    assert pipeline_run.error_message is None
+    assert notify_run.status == ETLNodeRun.Status.FAILED
+    assert notify_run.error_message == "SMTP down"
+
+
+@pytest.mark.django_db
+def test_completion_node_failure_does_not_overwrite_failed_pipeline_error():
+    """A failing completion node preserves the original upstream failure error."""
+
+    def broken_notify(context):
+        raise RuntimeError("SMTP down")
+
+    definition = _definition(
+        [_node("extract"), _node("notify", broken_notify)],
+        completion_keys=("notify",),
+    )
+    pipeline_run = PipelineRunFactory(definition).create(
+        parameters={"fiscal_year": 2026},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+    pipeline_run.status = ETLPipelineRun.Status.FAILED
+    pipeline_run.error_message = "extract: source missing"
+    pipeline_run.save(update_fields=["status", "error_message", "updated_at"])
+    pipeline_run.node_runs.filter(node_key="extract").update(
+        status=ETLNodeRun.Status.FAILED,
+        error_message="source missing",
+    )
+
+    result = PipelineRunLauncher(
+        pipeline_run=pipeline_run,
+        definition=definition,
+    ).finalize()
+
+    pipeline_run.refresh_from_db()
+    notify_run = pipeline_run.node_runs.get(node_key="notify")
+    assert result["status"] == ETLPipelineRun.Status.FAILED
+    assert pipeline_run.status == ETLPipelineRun.Status.FAILED
+    assert pipeline_run.error_message == "extract: source missing"
+    assert notify_run.status == ETLNodeRun.Status.FAILED
+    assert notify_run.error_message == "SMTP down"
+
+
+@pytest.mark.django_db
+def test_launch_executes_completion_once_on_parallel_failures(settings):
+    """Multiple parallel task failures trigger completion processing only once."""
+    from celery import chain, chord
+
+    settings.CELERY_TASK_ALWAYS_EAGER = True
+    settings.CELERY_TASK_EAGER_PROPAGATES = False
+
+    notify_calls = []
+
+    def fail_first(context):
+        raise RuntimeError("branch 1 failed")
+
+    def fail_second(context):
+        raise RuntimeError("branch 2 failed")
+
+    def notify(context):
+        persisted = ETLPipelineRun.objects.get(id=context.pipeline_run.id)
+        notify_calls.append(persisted.status)
+        return NodeResult(metadata={"status_seen": persisted.status})
+
+    def build_parallel_canvas(defn, pipeline_run_id):
+        return chain(
+            defn.nodes.start.task(pipeline_run_id),
+            chord(
+                [
+                    defn.nodes.branch_a.task(pipeline_run_id),
+                    defn.nodes.branch_b.task(pipeline_run_id),
+                ],
+                finalize_pipeline_run.si(pipeline_run_id),
+            ),
+        )
+
+    definition = _definition(
+        [
+            _node("start"),
+            _node("branch_a", fail_first),
+            _node("branch_b", fail_second),
+            _node("notify", notify),
+        ],
+        completion_keys=("notify",),
+        canvas_builder=build_parallel_canvas,
+    )
+    pipeline_run = PipelineRunFactory(definition).create(
+        parameters={"fiscal_year": 2026},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+
+    with patch("tdpservice.etl.tasks.get_pipeline_definition", return_value=definition):
+        with patch("tdpservice.etl.runner.get_pipeline_definition", return_value=definition):
+            with pytest.raises(RuntimeError):
+                PipelineRunLauncher(
+                    pipeline_run=pipeline_run,
+                    definition=definition,
+                ).launch()
+
+            second_finalize = PipelineRunLauncher(
+                pipeline_run=pipeline_run,
+                definition=definition,
+            ).finalize()
+
+    pipeline_run.refresh_from_db()
+    notify_run = pipeline_run.node_runs.get(node_key="notify")
+    assert notify_calls == [ETLPipelineRun.Status.FAILED]
+    assert second_finalize["already_finalized"] is True
+    assert pipeline_run.status == ETLPipelineRun.Status.FAILED
+    assert notify_run.status == ETLNodeRun.Status.SUCCEEDED
+
+
+@pytest.mark.django_db
+def test_finalize_recovers_interrupted_completion_nodes_after_stale_claim():
+    """A redelivered finalizer resumes pending/running completion nodes after TTL."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    calls = []
+
+    def first_completion(context):
+        calls.append("first")
+
+    def second_completion(context):
+        calls.append("second")
+
+    definition = _definition(
+        [
+            _node("extract"),
+            _node("notify_first", first_completion),
+            _node("notify_second", second_completion),
+        ],
+        completion_keys=("notify_first", "notify_second"),
+    )
+    pipeline_run = PipelineRunFactory(definition).create(
+        parameters={"fiscal_year": 2026},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+    pipeline_run.status = ETLPipelineRun.Status.SUCCEEDED
+    pipeline_run.finished_at = timezone.now()
+    pipeline_run.metadata = {
+        "completion_claimed_at": (timezone.now() - timedelta(minutes=10)).isoformat()
+    }
+    pipeline_run.save(
+        update_fields=["status", "finished_at", "metadata", "updated_at"]
+    )
+    pipeline_run.node_runs.filter(node_key="extract").update(
+        status=ETLNodeRun.Status.SUCCEEDED
+    )
+    pipeline_run.node_runs.filter(node_key="notify_first").update(
+        status=ETLNodeRun.Status.SUCCEEDED
+    )
+    pipeline_run.node_runs.filter(node_key="notify_second").update(
+        status=ETLNodeRun.Status.RUNNING
+    )
+
+    result = PipelineRunLauncher(
+        pipeline_run=pipeline_run,
+        definition=definition,
+    ).finalize()
+
+    pipeline_run.refresh_from_db()
+    assert result["status"] == ETLPipelineRun.Status.SUCCEEDED
+    assert calls == ["second"]
+    assert (
+        pipeline_run.node_runs.get(node_key="notify_second").status
+        == ETLNodeRun.Status.SUCCEEDED
+    )
+    assert "completion_completed_at" in pipeline_run.metadata
+
+    # Subsequent redeliveries exit cleanly without re-running completion.
+    repeat = PipelineRunLauncher(
+        pipeline_run=pipeline_run,
+        definition=definition,
+    ).finalize()
+    assert repeat["already_finalized"] is True
+    assert calls == ["second"]
+
+
+@pytest.mark.django_db
+def test_finalize_skips_while_fresh_completion_claim_is_active():
+    """A concurrent finalizer skips while another worker holds a fresh claim."""
+    from django.utils import timezone
+
+    calls = []
+
+    def notify(context):
+        calls.append("notify")
+
+    definition = _definition(
+        [_node("extract"), _node("notify", notify)],
+        completion_keys=("notify",),
+    )
+    pipeline_run = PipelineRunFactory(definition).create(
+        parameters={"fiscal_year": 2026},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+    pipeline_run.status = ETLPipelineRun.Status.FAILED
+    pipeline_run.metadata = {"completion_claimed_at": timezone.now().isoformat()}
+    pipeline_run.save(update_fields=["status", "metadata", "updated_at"])
+    pipeline_run.node_runs.filter(node_key="extract").update(
+        status=ETLNodeRun.Status.FAILED
+    )
+
+    result = PipelineRunLauncher(
+        pipeline_run=pipeline_run,
+        definition=definition,
+    ).finalize()
+
+    assert result["already_finalized"] is True
+    assert calls == []
+
+
+@pytest.mark.django_db
+def test_run_pipeline_node_routes_completion_node_through_finalize():
+    """Queued completion-node tasks from legacy canvases route through finalize()."""
+
+    def broken_notify(context):
+        raise RuntimeError("SMTP down")
+
+    definition = _definition(
+        [_node("extract"), _node("notify", broken_notify)],
+        completion_keys=("notify",),
+    )
+    pipeline_run = PipelineRunFactory(definition).create(
+        parameters={"fiscal_year": 2026},
+        trigger_source=ETLPipelineRun.TriggerSource.ADMIN,
+    )
+    pipeline_run.status = ETLPipelineRun.Status.RUNNING
+    pipeline_run.save(update_fields=["status", "updated_at"])
+    pipeline_run.node_runs.filter(node_key="extract").update(
+        status=ETLNodeRun.Status.SUCCEEDED
+    )
+
+    with patch("tdpservice.etl.tasks.get_pipeline_definition", return_value=definition):
+        result = run_pipeline_node(pipeline_run.id, "notify")
+
+    pipeline_run.refresh_from_db()
+    notify_run = pipeline_run.node_runs.get(node_key="notify")
+    assert result["status"] == ETLPipelineRun.Status.SUCCEEDED
+    assert pipeline_run.status == ETLPipelineRun.Status.SUCCEEDED
+    assert notify_run.status == ETLNodeRun.Status.FAILED
+    assert notify_run.error_message == "SMTP down"

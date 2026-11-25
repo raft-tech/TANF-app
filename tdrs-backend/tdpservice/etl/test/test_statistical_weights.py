@@ -12,6 +12,7 @@ from tdpservice.data_files.models import DataFile, Program, Section
 from tdpservice.data_files.test.factories import DataFileFactory
 from tdpservice.etl.models import (
     ETLArtifact,
+    ETLNodeRun,
     ETLPipelineRun,
     ETLQAResult,
     StatisticalWeight,
@@ -548,7 +549,7 @@ def test_notify_weights_run_includes_operational_summary(
 ):
     """Statistical weights notification includes status, row count, QA, and run URL."""
     pipeline_run = _create_pipeline_run()
-    pipeline_run.status = ETLPipelineRun.Status.RUNNING
+    pipeline_run.status = ETLPipelineRun.Status.SUCCEEDED
     pipeline_run.save(update_fields=["status", "updated_at"])
     output = ETLArtifact.objects.create(
         pipeline_run=pipeline_run,
@@ -711,3 +712,198 @@ def test_validate_run_sources_rejects_all_ineligible_family(stt, user, program, 
     pipeline_run.refresh_from_db()
     selected_ids[family] = []
     assert pipeline_run.metadata[SOURCE_DATAFILE_IDS_KEY] == selected_ids
+
+
+@pytest.mark.django_db
+def test_statistical_weights_early_failure_sends_failed_notification(
+    settings,
+    ofa_system_admin,
+):
+    """A source-validation failure triggers a FAILED notification without output."""
+    from tdpservice.etl.runner import PipelineRunLauncher
+
+    settings.CELERY_TASK_ALWAYS_EAGER = True
+    settings.CELERY_TASK_EAGER_PROPAGATES = False
+
+    pipeline_run = _create_pipeline_run()
+
+    with (
+        patch("tdpservice.etl.tasks.get_pipeline_definition", return_value=PIPELINE),
+        patch("tdpservice.etl.runner.get_pipeline_definition", return_value=PIPELINE),
+        patch.object(
+            PIPELINE.nodes.validate_run_sources,
+            "execute",
+            side_effect=RuntimeError("Missing source datafiles"),
+        ),
+    ):
+        with pytest.raises(RuntimeError, match="Missing source datafiles"):
+            PipelineRunLauncher(
+                pipeline_run=pipeline_run,
+                definition=PIPELINE,
+            ).launch()
+
+    pipeline_run.refresh_from_db()
+    notify_run = pipeline_run.node_runs.get(node_key="notify_weights_run")
+    assert pipeline_run.status == ETLPipelineRun.Status.FAILED
+    assert pipeline_run.final_output is None
+    assert notify_run.status == ETLNodeRun.Status.SUCCEEDED
+    assert notify_run.metadata["notification"] == "sent"
+    assert len(mail.outbox) == 1
+    assert "FAILED" in mail.outbox[0].subject
+    assert "Status: FAILED" in mail.outbox[0].body
+
+
+@pytest.mark.parametrize(
+    "failing_node_key",
+    [
+        "extract_active_family_counts",
+        "run_weights_qa",
+        "publish_weights",
+    ],
+)
+@pytest.mark.django_db
+def test_statistical_weights_downstream_failures_trigger_completion(
+    settings,
+    ofa_system_admin,
+    failing_node_key,
+):
+    """Extraction, QA, and publication exceptions all trigger completion."""
+    from tdpservice.etl.runner import PipelineRunLauncher
+
+    settings.CELERY_TASK_ALWAYS_EAGER = True
+    settings.CELERY_TASK_EAGER_PROPAGATES = False
+
+    pipeline_run = _create_pipeline_run()
+
+    with (
+        patch("tdpservice.etl.tasks.get_pipeline_definition", return_value=PIPELINE),
+        patch("tdpservice.etl.runner.get_pipeline_definition", return_value=PIPELINE),
+        patch(
+            "tdpservice.etl.pipelines.base.PipelineNode._build_context",
+            side_effect=lambda run: NodeContext(pipeline_run=run, artifacts={}),
+        ),
+        patch.object(PIPELINE.nodes.validate_run_sources, "execute", return_value=None),
+        patch.object(
+            PIPELINE.nodes.extract_active_family_counts, "execute", return_value=None
+        ),
+        patch.object(
+            PIPELINE.nodes.extract_aggregate_case_counts, "execute", return_value=None
+        ),
+        patch.object(
+            PIPELINE.nodes.extract_stratum_case_counts, "execute", return_value=None
+        ),
+        patch.object(PIPELINE.nodes.run_weights_qa, "execute", return_value=None),
+        patch.object(PIPELINE.nodes.publish_weights, "execute", return_value=None),
+        patch.object(
+            PIPELINE.nodes[failing_node_key],
+            "execute",
+            side_effect=RuntimeError(f"{failing_node_key} boom"),
+        ),
+    ):
+        try:
+            PipelineRunLauncher(
+                pipeline_run=pipeline_run,
+                definition=PIPELINE,
+            ).launch()
+        except RuntimeError:
+            pass
+
+    pipeline_run.refresh_from_db()
+    notify_run = pipeline_run.node_runs.get(node_key="notify_weights_run")
+    assert pipeline_run.status == ETLPipelineRun.Status.FAILED
+    assert failing_node_key in (pipeline_run.error_message or "")
+    assert notify_run.status == ETLNodeRun.Status.SUCCEEDED
+    assert len(mail.outbox) == 1
+    assert "Status: FAILED" in mail.outbox[0].body
+
+
+@pytest.mark.django_db
+def test_statistical_weights_success_notifies_after_persisting_succeeded(
+    settings,
+    ofa_system_admin,
+):
+    """Successful runs persist SUCCEEDED before sending the notification."""
+    from tdpservice.etl.runner import PipelineRunLauncher
+
+    settings.CELERY_TASK_ALWAYS_EAGER = True
+    settings.CELERY_TASK_EAGER_PROPAGATES = False
+
+    pipeline_run = _create_pipeline_run()
+    observed_statuses = []
+    original_notify = PIPELINE.nodes.notify_weights_run.execute
+
+    def spy_notify(context):
+        persisted = ETLPipelineRun.objects.get(id=context.pipeline_run.id)
+        observed_statuses.append(persisted.status)
+        return original_notify(context)
+
+    with (
+        patch("tdpservice.etl.tasks.get_pipeline_definition", return_value=PIPELINE),
+        patch("tdpservice.etl.runner.get_pipeline_definition", return_value=PIPELINE),
+        patch(
+            "tdpservice.etl.pipelines.base.PipelineNode._build_context",
+            side_effect=lambda run: NodeContext(pipeline_run=run, artifacts={}),
+        ),
+        patch.object(PIPELINE.nodes.validate_run_sources, "execute", return_value=None),
+        patch.object(
+            PIPELINE.nodes.extract_active_family_counts, "execute", return_value=None
+        ),
+        patch.object(
+            PIPELINE.nodes.extract_aggregate_case_counts, "execute", return_value=None
+        ),
+        patch.object(
+            PIPELINE.nodes.extract_stratum_case_counts, "execute", return_value=None
+        ),
+        patch.object(PIPELINE.nodes.run_weights_qa, "execute", return_value=None),
+        patch.object(PIPELINE.nodes.publish_weights, "execute", return_value=None),
+        patch.object(
+            PIPELINE.nodes.notify_weights_run,
+            "execute",
+            side_effect=spy_notify,
+        ),
+    ):
+        PipelineRunLauncher(
+            pipeline_run=pipeline_run,
+            definition=PIPELINE,
+        ).launch()
+
+    pipeline_run.refresh_from_db()
+    notify_run = pipeline_run.node_runs.get(node_key="notify_weights_run")
+    assert pipeline_run.status == ETLPipelineRun.Status.SUCCEEDED
+    assert observed_statuses == [ETLPipelineRun.Status.SUCCEEDED]
+    assert notify_run.status == ETLNodeRun.Status.SUCCEEDED
+    assert len(mail.outbox) == 1
+    assert "Status: SUCCEEDED" in mail.outbox[0].body
+
+
+@pytest.mark.django_db
+def test_notify_weights_run_reports_failed_even_with_published_output(
+    ofa_system_admin,
+):
+    """A FAILED pipeline run reports FAILED even if a published output exists."""
+    pipeline_run = _create_pipeline_run()
+    pipeline_run.status = ETLPipelineRun.Status.FAILED
+    pipeline_run.error_message = "publish_weights: node save failed"
+    pipeline_run.save(update_fields=["status", "error_message", "updated_at"])
+    output = ETLArtifact.objects.create(
+        pipeline_run=pipeline_run,
+        key=PIPELINE.output_key,
+        artifact_role=ETLArtifact.ArtifactRole.FINAL,
+        artifact_kind=ETLArtifact.ArtifactKind.DATASET,
+        storage_kind=ETLArtifact.StorageKind.POSTGRES_TABLE,
+        reference=StatisticalWeight._meta.db_table,
+        schema_key="statistical_weights",
+        version=4,
+        row_count=10,
+        published=True,
+        metadata=pipeline_run.output_scope,
+    )
+    pipeline_run.final_output = output
+    pipeline_run.save(update_fields=["final_output", "updated_at"])
+
+    result = _execute_node(pipeline_run, "notify_weights_run")
+
+    assert result.metadata["notification"] == "sent"
+    assert len(mail.outbox) == 1
+    assert "FAILED" in mail.outbox[0].subject
+    assert "Status: FAILED" in mail.outbox[0].body
