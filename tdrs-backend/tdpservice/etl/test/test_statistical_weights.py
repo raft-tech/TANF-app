@@ -549,7 +549,7 @@ def test_notify_weights_run_includes_operational_summary(
 ):
     """Statistical weights notification includes status, row count, QA, and run URL."""
     pipeline_run = _create_pipeline_run()
-    pipeline_run.status = ETLPipelineRun.Status.RUNNING
+    pipeline_run.status = ETLPipelineRun.Status.SUCCEEDED
     pipeline_run.save(update_fields=["status", "updated_at"])
     output = ETLArtifact.objects.create(
         pipeline_run=pipeline_run,
@@ -874,3 +874,36 @@ def test_statistical_weights_success_notifies_after_persisting_succeeded(
     assert notify_run.status == ETLNodeRun.Status.SUCCEEDED
     assert len(mail.outbox) == 1
     assert "Status: SUCCEEDED" in mail.outbox[0].body
+
+
+@pytest.mark.django_db
+def test_notify_weights_run_reports_failed_even_with_published_output(
+    ofa_system_admin,
+):
+    """A FAILED pipeline run reports FAILED even if a published output exists."""
+    pipeline_run = _create_pipeline_run()
+    pipeline_run.status = ETLPipelineRun.Status.FAILED
+    pipeline_run.error_message = "publish_weights: node save failed"
+    pipeline_run.save(update_fields=["status", "error_message", "updated_at"])
+    output = ETLArtifact.objects.create(
+        pipeline_run=pipeline_run,
+        key=PIPELINE.output_key,
+        artifact_role=ETLArtifact.ArtifactRole.FINAL,
+        artifact_kind=ETLArtifact.ArtifactKind.DATASET,
+        storage_kind=ETLArtifact.StorageKind.POSTGRES_TABLE,
+        reference=StatisticalWeight._meta.db_table,
+        schema_key="statistical_weights",
+        version=4,
+        row_count=10,
+        published=True,
+        metadata=pipeline_run.output_scope,
+    )
+    pipeline_run.final_output = output
+    pipeline_run.save(update_fields=["final_output", "updated_at"])
+
+    result = _execute_node(pipeline_run, "notify_weights_run")
+
+    assert result.metadata["notification"] == "sent"
+    assert len(mail.outbox) == 1
+    assert "FAILED" in mail.outbox[0].subject
+    assert "Status: FAILED" in mail.outbox[0].body

@@ -47,11 +47,7 @@ def statistical_weights_email_context(pipeline_run: ETLPipelineRun) -> dict:
             .order_by("id")
             .last()
         )
-    run_status = (
-        ETLPipelineRun.Status.SUCCEEDED
-        if output and output.published
-        else pipeline_run.status
-    )
+    run_status = pipeline_run.status
     output_version = output.version if output else "unknown"
     row_count = output.row_count if output else 0
     subject = f"{program} Statistical Weights Run: {run_status}"
