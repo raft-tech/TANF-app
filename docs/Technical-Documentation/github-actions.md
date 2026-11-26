@@ -4,6 +4,16 @@ For now, the only use case we have for GitHub Actions is to help up trigger Circ
 ## Path Filtering
 We use Actions to filter which workflows are getting run by CircleCI by sending different flags to CircleCI through the promiseofcake CircleCI API trigger. See the individual files in [.github](../../.github/) for detailed instructions for how to use each.
 
+## Admin deployment
+
+Adding `Deploy admin-raft` to a PR triggers
+[`deploy-admin.yml`](../../.github/workflows/deploy-admin.yml), which calls
+CircleCI with `run_admin_deployment=true`, `admin_target_env=test`, and the PR's
+head revision. CircleCI's `admin-deployment` workflow performs the tests and
+Cloud.gov deployment using its existing dev credentials. GitHub does not build
+the admin app or authenticate with Cloud.gov. The PR branch must belong to the
+same repository.
+
 
 ## Release Tracker
 `.github/workflows/release-tracker.yml` creates the `Release Tracker vX.Y.Z` issue for every published release, including patch and hotfix releases. It uses `.github/ISSUE_TEMPLATE/release-tracker-issue-template.md` for the title, assignees, labels, and body, and runs `.github/scripts/release_tracker.py`.

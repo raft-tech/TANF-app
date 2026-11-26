@@ -1,3 +1,49 @@
+  test-admin:
+    executor: docker-executor
+    working_directory: ~/tdp-apps
+    environment:
+      ADMIN_EXPECTED_REVISION: << pipeline.parameters.admin_revision >>
+    steps:
+      - checkout
+      - run:
+          name: Verify the requested admin revision
+          command: |
+            if [[ -n "$ADMIN_EXPECTED_REVISION" && "$CIRCLE_SHA1" != "$ADMIN_EXPECTED_REVISION" ]]; then
+              echo "The PR changed after deployment was requested. Reapply the deploy label." >&2
+              exit 1
+            fi
+      - install-nodejs:
+          node-version: "22.13.0"
+      - install-deploy-dependencies
+      - run:
+          name: Install admin CI dependencies
+          command: |
+            apt-get update
+            apt-get install -y jq shellcheck
+      - run:
+          name: Install admin dependencies
+          command: cd tdp-admin && npx --yes @yarnpkg/cli-dist@4.6.0 install --immutable
+      - run:
+          name: Lint admin
+          command: cd tdp-admin && npx --yes @yarnpkg/cli-dist@4.6.0 lint
+      - run:
+          name: Test admin
+          command: cd tdp-admin && npx --yes @yarnpkg/cli-dist@4.6.0 test
+      - run:
+          name: Build admin for production
+          command: cd tdp-admin && npx --yes @yarnpkg/cli-dist@4.6.0 build
+      - run:
+          name: Type check admin
+          command: cd tdp-admin && npx --yes @yarnpkg/cli-dist@4.6.0 tsc --noEmit
+      - run:
+          name: Check admin production runtime
+          command: node scripts/smoke-admin.mjs
+      - run:
+          name: Check admin deployment scripts and CI configuration
+          command: |
+            shellcheck scripts/deploy-admin.sh scripts/prepare-admin-deployment.sh
+            python3 -m unittest discover -s scripts/tests -p 'test_admin_*.py'
+
   test-backend:
     executor: machine-executor
     steps:

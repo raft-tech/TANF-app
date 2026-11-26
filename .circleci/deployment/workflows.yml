@@ -1,4 +1,16 @@
 #workflows:
+  admin-deployment:
+    when: << pipeline.parameters.run_admin_deployment >>
+    jobs:
+      - secrets-check
+      - test-admin:
+          requires:
+            - secrets-check
+      - deploy-admin-application:
+          serial-group: << pipeline.project.slug >>/admin-<< pipeline.parameters.admin_target_env >>
+          requires:
+            - test-admin
+
   deployment:
     when:
       and:
@@ -8,6 +20,7 @@
             - equal: [ develop, << pipeline.git.branch >> ]
             - << pipeline.parameters.run_dev_deployment >>
         - not: << pipeline.parameters.run_nightly_owasp_scan >>
+        - not: << pipeline.parameters.run_admin_deployment >>
 
     jobs:
       - deploy-project-updates-site:

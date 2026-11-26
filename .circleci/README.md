@@ -19,6 +19,17 @@ Contains workflows, jobs, and commands for building and testing the application.
 #### infrastructure
 Contains workflows, jobs, and commands for setting up the infrastructure on Cloud gov. For all development side builds, this is now triggered by GitHub Actions that serve as a filter so only runs when infrastructure code is changed. See [deploy-infrastructure](../.github/workflows/deploy-infrastructure.yml)
 
+#### admin-deployment
+The standalone admin app uses the separate `admin-deployment` workflow. Add the
+`Deploy admin-raft` GitHub PR label to trigger it for Raft dev (`test`). GitHub
+only calls the CircleCI API; CircleCI runs `secrets-check`, `test-admin`, and then
+`deploy-admin-application`, using the existing `CF_USERNAME_DEV`,
+`CF_PASSWORD_DEV`, and `CF_ORG` variables. The admin deployment is serialized per
+target environment and does not run the full application deployment workflow.
+Admin checks also run in the full build-and-test workflows.
+See [admin deployment instructions](../tdp-admin/README.md#deploy-with-circleci)
+for prerequisites and rollback.
+
 #### deployment
 Contains workflows, jobs, and commands for deploying the application on Cloud gov. Note: merges to develop now automatically trigger a develop deploy using [deploy-develop-on-merge](../.github/workflows/deploy-develop-on-merge.yml) and deploys to dev environments happen when a label is created on the PR using [deploy-on-label](../.github/workflows/deploy-on-label.yml)
 
