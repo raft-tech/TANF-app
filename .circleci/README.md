@@ -14,13 +14,10 @@ This script will generate a complete config for building, testing, and deploying
 ### Directory structure
 
 #### build-and-test
-Contains workflows, jobs, and commands for building and testing the application. For all development side builds, these are now triggered by GitHub Actions that serve as a filter so only the code that's changed is tested. See [build-all](../.github/workflows/build-all.yml), [build-backend](../.github/workflows/build-backend.yml), and [build-frontend](../.github/workflows/build-frontend.yml)
-
-#### infrastructure
-Contains workflows, jobs, and commands for setting up the infrastructure on Cloud gov. For all development side builds, this is now triggered by GitHub Actions that serve as a filter so only runs when infrastructure code is changed. See [deploy-infrastructure](../.github/workflows/deploy-infrastructure.yml)
+Contains workflows, jobs, and commands for building and testing the application (`secrets-check`, `test-backend`, `test-frontend`, `test-go-parser`, `test-e2e`). For development builds, these are triggered by GitHub Actions: see [build-all](../.github/workflows/build-all.yml) and [build-pr](../.github/workflows/build-pr.yml).
 
 #### deployment
-Contains workflows, jobs, and commands for deploying the application on Cloud gov. Note: merges to develop now automatically trigger a develop deploy using [deploy-develop-on-merge](../.github/workflows/deploy-develop-on-merge.yml) and deploys to dev environments happen when a label is created on the PR using [deploy-on-label](../.github/workflows/deploy-on-label.yml)
+Contains workflows, jobs, and commands for deploying the application on Cloud.gov. Note: merges to `develop` automatically trigger a `develop` deploy via CircleCI branch filters, and PR deploys to dev environments are triggered by labels via [deploy-on-label](../.github/workflows/deploy-on-label.yml).
 
 Application deployments use a fan-out/fan-in workflow. Infrastructure and database configuration complete first, then the Django backend, Python Celery worker, and Go parser worker deploy as independent jobs. The frontend deploys independently after infrastructure. A final verification job waits for all application jobs before environment-level tests run.
 
@@ -82,7 +79,7 @@ Terraform is used to set up infrastruture so we would start in the `infrastructu
 
 What if you want to know how the deployments are triggered?
 
-We know we want the `deployments` directory. To see how a pipeline is started we look at workflow.yml. Then we find the desired workflow.
+We know we want the `deployment` directory. To see how a pipeline is started we look at `workflows.yml`, then find the desired workflow.
 
 `deployment/ -> workflows.yml -> desired workflow`
 
@@ -114,7 +111,7 @@ updated along with the secondary apps running in CF.
 
 ### Frontend/Backend
  - Before updating, make sure the current buildpacks that these apps use are supported by the latest OS. If they aren't you can update the manifest to point them to the correct buildpacks.
- - To update the apps you can either deploy each of the environments (raft, qasp, etc) from CircleCi or you can use the `tdrs-deploy <ENVIRONMENT>` command from `commands.sh`. Assuming the buildpacks are up to date, that is all you need to do.
+ - To update the apps you can deploy each of the environments (`raft`, `qasp`, etc.) from CircleCI (or manually trigger the CircleCI pipeline with `run_dev_deployment=true` and `target_env` set). Assuming the buildpacks are up to date, that is all you need to do.
 
 ### Secondary apps
  - Before you can make the update, you need to ensure you have the CF plugin that allows you to do so. Download the binary for your respective OS [HERE](https://github.com/cloudfoundry/stack-auditor/releases) and follow the installation instructions [HERE](https://docs.cloudfoundry.org/adminguide/stack-auditor.html#install).

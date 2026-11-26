@@ -134,13 +134,17 @@ s3_client.generate_presigned_url(**params)
 $ task backend-pytest
 ```
 
-2. Run the live Go parser integration suite separately when you need the worker to observe committed pytest fixtures in the shared Docker database.
+2. Run the live Go parser integration suite separately when you need the worker to observe committed pytest fixtures in the shared Docker database:
 
 ```bash
+# Isolated integration DB (recommended)
 $ task backend-pytest-go-integration
+
+# Or run against the active local DB and go-parser service (faster, not isolated)
+$ task backend-pytest-go-integration-active
 ```
 
-This suite is isolated from the default `pytest` run and depends on the `go-parser` service started by `task backend-up`.
+These suites are isolated from the default `pytest` run and depend on the `go-parser` service started by `task backend-up`.
 
 3. Run local linting tests by executing the following command:
 

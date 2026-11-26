@@ -493,7 +493,7 @@ The persisted route is included in every Go task payload. The Go worker does not
     "cwd": "${workspaceFolder}/tdrs-services/parser",
     "env": {},
     "args": ["--database.url", "postgres://tdpuser:something_secure@localhost:5432/tdrs_test?sslmode=disable",
-              "--server.local.file-path", "/Users/ericlipe/work/repos/tdrs/TANF-app/tdrs-backend/tdpservice/parsers/test/data/ADS.E2J.NDM1.TS53_fake.txt",
+              "--server.local.file-path", "${workspaceFolder}/tdrs-backend/tdpservice/parsers/test/data/ADS.E2J.NDM1.TS53_fake.txt",
               "--server.local.program", "TAN",
               "--server.local.section", "1",
               "--server.local.fiscal-year", "2023",
@@ -529,7 +529,7 @@ The persisted route is included in every Go task payload. The Go worker does not
     "cwd": "${workspaceFolder}/tdrs-services/parser",
     "env": {},
     "args": ["--dry-run", "--writer.format=csv",
-              "--server.local.file-path", "/Users/ericlipe/work/repos/tdrs/TANF-app/tdrs-backend/tdpservice/parsers/test/data/ADS.E2J.NDM1.TS53_fake.txt",
+              "--server.local.file-path", "${workspaceFolder}/tdrs-backend/tdpservice/parsers/test/data/ADS.E2J.NDM1.TS53_fake.txt",
               "--server.local.program", "TAN",
               "--server.local.section", "1",
               "--server.local.fiscal-year", "2023",
@@ -537,7 +537,7 @@ The persisted route is included in every Go task payload. The Go worker does not
 }
 ```
 
-**Important**: `cwd` must point to `cmd/parser` so the parser can resolve `config/` relative paths correctly.
+**Important**: `cwd` must point to `${workspaceFolder}/tdrs-services/parser` so the parser can resolve `config/` relative paths correctly.
 
 ### Debugging Tips
 

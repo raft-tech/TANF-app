@@ -23,5 +23,5 @@ This directory contains system and architecture documentation including diagrams
 - [jwt-key-rotation.md](./jwt-key-rotation.md) : Describes the process for rotating JWT keys in Login.gov.
 - [openid-connect.md](./openid-connect.md) : Provides an architecture-level view of the OpenID Connect prototocol.
 - [remote-development.md](./remote-development.md) : A guide on doing live remote development in Cloud.gov.
-- [unit-tests.md](./unit-tests.md) : Outlines our unit testing frameworks and how to run these manually.
+- [unit-tests.md](./unit-tests.md) : Outlines our unit testing frameworks and how to run these manually (see also [Automated Testing & Layer Ownership Guide](../agents/testing.md)).
 - [user_role_management.md](./user_role_management.md) : Provides an overview of our user management in Django Administrator Console.

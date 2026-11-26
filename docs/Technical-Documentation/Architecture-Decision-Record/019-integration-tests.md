@@ -13,7 +13,7 @@ Deployments are slow and require a lot of manual testing; this can cause quite a
 ### Agile testing quadrants
 
 Resources
-* [Testing Quadrants](http://www.exampler.com/old-blog/2003/08/22/#agile-testing-project-2)
+* [Testing Quadrants](https://www.exampler.com/old-blog/2003/08/22/#agile-testing-project-2)
 * [Using the Agile Testing Quadrants](https://lisacrispin.com/2011/11/08/using-the-agile-testing-quadrants/)
 
 The Agile Testing Quadrants is a useful way to explore how different types of tests can be used to help achieve different testing goals. In Brian Marick's original post, tests are described as being either **business facing** or **technology facing**.
@@ -34,7 +34,7 @@ Both business-facing and technology-facing tests can be described as having one 
 
 We can consider these ideas as a matrix. The following example from Lisa Crispin shows the quadrants and examples of types of tests applying to each
 
-![Quadrants and test types](http://www.exampler.com/testing-com/blog/agile/test-matrix.jpg)
+![Quadrants and test types](https://www.exampler.com/testing-com/blog/agile/test-matrix.jpg)
 
 Tests in the left half of the quadrant are generally valuable to automate - they consider "known" paths for the system and expected behaviors/results. We can codify these and run them every time a change is made to the system in order to give us confidence in releases.
 
@@ -79,9 +79,9 @@ Cypress improves the end-to-end testing game a lot by providing a simple interfa
 
 ### When will tests be run?
 
-Tests should be run locally as much as possible during development to ensure changes don't unexpectedly break something else in the system. Tests should at least be run before and during the PR process, so we should add a CircleCI task to run Cypress tests along with the unit tests.
+Tests should be run locally as much as possible during development to ensure changes don't unexpectedly break something else in the system. Tests are run in CI before and during the PR process via the CircleCI `test-e2e` job alongside the unit test jobs.
 
-We should also regularly run tests in a deployed environment. In order to best simulate a production deployment, we should automatically deploy to a specific environment after merges to `develop`, after which the end-to-end tests should automaticfally be run. This would require a few more changes to our CircleCI configuration and processes.
+We also run tests against deployed environments (for example, after merges to `develop`, where end-to-end tests are automatically triggered).
 
 ### How will failures be responded to?
 
